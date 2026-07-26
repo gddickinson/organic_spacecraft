@@ -1,0 +1,369 @@
+<style>
+  :root{--ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;
+  --line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);--chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;
+  --font-display:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+  --font-body:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  --font-mono:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace}
+  @media(prefers-color-scheme:light){:root{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f}}
+  :root[data-theme="dark"]{--ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;--line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);--chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d}
+  :root[data-theme="light"]{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f}
+  *{box-sizing:border-box}body{margin:0}
+  .page{background:radial-gradient(900px 600px at 80% -8%,rgba(84,207,124,.10),transparent 60%),var(--ground);color:var(--ink);font-family:var(--font-body);min-height:100vh}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 20px 60px}
+  .prog-nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;padding:8px 0 14px}
+  .prog-nav .pn-brand{color:var(--chloro);letter-spacing:.16em;text-transform:uppercase}
+  .prog-nav a{color:var(--ink-3);text-decoration:none;padding:3px 10px;border:1px solid var(--line);border-radius:999px}
+  .prog-nav a:hover{color:var(--ink);border-color:var(--line-2)}
+  .prog-nav a.current{color:var(--lumen);border-color:var(--lumen)}
+  h1{font-family:var(--font-display);font-size:clamp(1.7rem,4vw,2.5rem);margin:.2em 0 .1em;letter-spacing:-.01em}
+  .kick{font-family:var(--font-mono);font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--chloro);margin:0}
+  .sub{color:var(--ink-2);max-width:70ch;margin:.4em 0 18px;font-size:1.02rem}
+  .stage{position:relative;border:1px solid var(--line-2);border-radius:14px;overflow:hidden;background:linear-gradient(180deg,var(--ground-2),var(--ground))}
+  canvas{display:block;width:100%;height:auto;touch-action:none;cursor:grab}
+  canvas:active{cursor:grabbing}
+  .hint{position:absolute;left:14px;bottom:12px;font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.04em;pointer-events:none}
+  .badge{position:absolute;right:14px;top:12px;font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);border:1px solid var(--line);border-radius:6px;padding:3px 9px;background:rgba(10,21,18,.5)}
+  .bar{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 6px;align-items:center}
+  .seg{display:flex;flex-wrap:wrap;gap:6px}
+  button{font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;color:var(--ink-2);background:var(--ground-2);border:1px solid var(--line);border-radius:999px;padding:6px 13px;cursor:pointer;transition:color .15s,border-color .15s}
+  button:hover{color:var(--ink);border-color:var(--line-2)}
+  button.on{color:var(--chloro);border-color:var(--chloro)}
+  button.cut.on{color:var(--osteo);border-color:var(--osteo)}
+  .spacer{flex:1}
+  .info{margin-top:16px;display:grid;grid-template-columns:1.3fr 1fr;gap:20px}
+  @media(max-width:720px){.info{grid-template-columns:1fr}}
+  .info h2{font-family:var(--font-display);font-size:1.35rem;margin:0 0 6px}
+  .info .bi{font-style:italic;color:var(--ink-3);font-family:var(--font-display);font-size:.95rem}
+  .info p{color:var(--ink-2);font-size:.95rem;line-height:1.55;margin:.6em 0}
+  .specs{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;align-self:start}
+  .specs .c{background:var(--ground-2);padding:9px 12px}
+  .specs .k{font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+  .specs .v{font-family:var(--font-display);font-size:1.05rem;color:var(--ink);margin-top:2px}
+  .xlink{font-family:var(--font-mono);font-size:11px;color:var(--lumen);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:3px 11px;display:inline-block;margin-top:8px}
+  .foot{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3);margin-top:26px;border-top:1px solid var(--line);padding-top:14px;max-width:80ch}
+</style>
+
+<div class="page"><div class="wrap">
+  <nav class="prog-nav" aria-label="GESTALT program documents">
+    <span class="pn-brand">◈ GESTALT Program</span>
+    <a href="https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1">Design Dossier</a>
+    <a href="https://claude.ai/code/artifact/bd2c2c98-84cf-42c9-91ea-f0ec1c749fc5">Starship</a>
+    <a href="https://claude.ai/code/artifact/9b90d7e5-2a71-426a-b2bf-d3a96b32a82e">Habitat</a>
+    <a href="https://claude.ai/code/artifact/94531439-d04d-480e-9d04-bad6fcdacd9a">LICHEN</a>
+    <a href="https://claude.ai/code/artifact/2433fa54-e582-4194-8245-d63acee8fb85">GRAVID</a>
+    <a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet Registry</a>
+    <a href="https://claude.ai/code/artifact/7ca9c965-1932-4c5a-b0f1-a99e9febae58">Class Reference</a>
+    <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075">Compendium</a>
+    <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed">Earth Program</a>
+    <a href="#" class="current" aria-current="page">3D Models</a>
+  </nav>
+
+  <p class="kick">Interactive · drag to rotate · scroll to zoom · cutaway</p>
+  <h1>GESTALT Fleet — 3D Models</h1>
+  <p class="sub">Rotatable solid models of the main grown-vehicle forms, rendered live in the browser (no plug-ins). Drag to orbit, scroll or pinch to zoom. Toggle <strong>cutaway</strong> to slice a wedge and see the layered wall and <strong>interior components</strong> — cores, decks, cradles, shelters. A live <strong>scale bar</strong> (top-left) reads true size at any zoom, and <strong>labels</strong> call out each feature.</p>
+
+  <div class="bar">
+    <div class="seg" id="models"></div>
+  </div>
+  <div class="bar">
+    <button id="cut" class="cut">⊘ cutaway</button>
+    <button id="labels" class="on">⌖ labels</button>
+    <button id="spin" class="on">◷ auto-spin</button>
+    <button id="wire">△ wireframe</button>
+    <button id="reset">⟲ reset view</button>
+    <div class="spacer"></div>
+  </div>
+
+  <div class="stage">
+    <canvas id="cv" width="1040" height="620"></canvas>
+    <div class="badge" id="badge">NAVIS</div>
+    <div class="hint">drag · rotate  ·  scroll · zoom  ·  ⊘ cutaway</div>
+  </div>
+
+  <div class="info">
+    <div>
+      <h2 id="i-name">—</h2>
+      <div class="bi" id="i-bi">—</div>
+      <p id="i-desc">—</p>
+      <a class="xlink" id="i-link" href="#">Open the drawing set →</a>
+    </div>
+    <div class="specs" id="i-specs"></div>
+  </div>
+
+  <p class="foot">Rendered by a small self-contained software engine — a lathe (solid-of-revolution) mesh generator + painter's-algorithm rasteriser with flat shading, no external libraries. Cutaway revolves a partial arc and caps the slice with the layered wall cross-section. Geometry is to the reference proportions; a concept study, not a build model. Green = living / photosynthetic · amber = structure, armour &amp; docking · cyan = engineered systems · grey = rock.</p>
+</div></div>
+
+<script>
+(function(){
+"use strict";
+var TAU=Math.PI*2, cos=Math.cos, sin=Math.sin, PI=Math.PI, max=Math.max;
+var GREEN=[84,207,124], AMBER=[230,172,109], CYAN=[79,214,208], ROCK=[138,128,114], SHELL=[176,158,126], WARM=[214,140,96];
+
+// ---------- mesh helpers ----------
+function lathe(profile, seg, color, a0, a1){
+  if(a0===undefined)a0=0; if(a1===undefined)a1=TAU;
+  var full=(a1-a0)>=TAU-1e-6, P=profile.length, cols=full?seg:seg+1, V=[], F=[];
+  for(var s=0;s<cols;s++){
+    var fr=full?s/seg:s/(cols-1), a=a0+(a1-a0)*fr, ca=cos(a), sa=sin(a);
+    for(var p=0;p<P;p++) V.push([profile[p][0]*ca, profile[p][1], profile[p][0]*sa]);
+  }
+  for(var s2=0;s2<seg;s2++){
+    var s3=full?(s2+1)%seg:s2+1;
+    for(var p2=0;p2<P-1;p2++){
+      var a=s2*P+p2, b=s2*P+p2+1, c=s3*P+p2, d=s3*P+p2+1;
+      F.push([a,b,d,color]); F.push([a,d,c,color]);
+    }
+  }
+  return {V:V,F:F};
+}
+function capStrip(outer, inner, ang, color){ // flat cross-section between two profiles at one angle
+  var ca=cos(ang), sa=sin(ang), V=[], F=[], P=outer.length;
+  for(var p=0;p<P;p++) V.push([outer[p][0]*ca, outer[p][1], outer[p][0]*sa]);
+  for(var p=0;p<P;p++) V.push([inner[p][0]*ca, inner[p][1], inner[p][0]*sa]);
+  for(var p=0;p<P-1;p++){ var o=p,o1=p+1,i=P+p,i1=P+p+1; F.push([o,o1,i1,color]); F.push([o,i1,i,color]); }
+  return {V:V,F:F};
+}
+function sphere(cx,cy,cz,r, rings, seg, color){
+  var pr=[]; for(var i=0;i<=rings;i++){var t=i/rings*PI; pr.push([r*sin(t), r*cos(t)]);}
+  var m=lathe(pr,seg,color); for(var k=0;k<m.V.length;k++){m.V[k][0]+=cx;m.V[k][1]+=cy;m.V[k][2]+=cz;} return m;
+}
+function cyl(cx,cy,cz, r, halfL, seg, color){ return trans(lathe([[0,-halfL],[r,-halfL],[r,halfL],[0,halfL]],seg,color),cx,cy,cz); }
+function disk(r,y,seg,color){ return trans(lathe([[max(r,1e-4),0],[0,0]],seg,color),0,y,0); } // flat floor/deck plate
+function trans(m,dx,dy,dz){ for(var k=0;k<m.V.length;k++){m.V[k][0]+=dx;m.V[k][1]+=dy;m.V[k][2]+=dz;} return m; }
+function merge(){var V=[],F=[]; for(var i=0;i<arguments.length;i++){var m=arguments[i],o=V.length;
+  for(var v=0;v<m.V.length;v++)V.push(m.V[v]); for(var f=0;f<m.F.length;f++){var g=m.F[f];F.push([g[0]+o,g[1]+o,g[2]+o,g[3]]);}}
+  return {V:V,F:F};}
+function recolor(m,fn){ for(var f=0;f<m.F.length;f++){var g=m.F[f], my=(m.V[g[0]][1]+m.V[g[1]][1]+m.V[g[2]][1])/3,
+  mr=(Math.hypot(m.V[g[0]][0],m.V[g[0]][2])+Math.hypot(m.V[g[2]][0],m.V[g[2]][2]))/2, c=fn(my,mr); if(c)g[3]=c;} return m;}
+
+// cut arc — a wedge opening toward the camera (+z, angle π/2)
+var GAP=0.62, CA0=PI/2+GAP, CA1=PI/2-GAP+TAU;
+function hollowShell(prof, seg, hull, wall){ // returns parts for a cutaway hollow body
+  var inner=prof.map(function(p){return [max(p[0]*(1-wall),1e-4), p[1]];});
+  var mid  =prof.map(function(p){return [max(p[0]*(1-wall*0.5),1e-4), p[1]];});
+  var outer=lathe(prof,seg,hull,CA0,CA1), innerS=lathe(inner,seg,GREEN,CA0,CA1);
+  return [outer, innerS,
+    capStrip(prof,mid,CA0,AMBER), capStrip(mid,inner,CA0,GREEN),
+    capStrip(prof,mid,CA1,AMBER), capStrip(mid,inner,CA1,GREEN)];
+}
+
+// ---------- models (make(cut) -> mesh) ----------
+function spheroidProfile(A,B,N){ var pr=[]; for(var i=0;i<=N;i++){var y=(i/N*2-1)*A, r=B*Math.sqrt(max(0,1-(y/A)*(y/A))); pr.push([max(r,1e-3),y]);} return pr; }
+function bandColor(my){ return Math.abs(my)<0.18?AMBER : (my<-1.45?CYAN:null); }
+
+function navis(cut){
+  var prof=spheroidProfile(2.0,1.0,26), parts=[];
+  if(cut){ parts=hollowShell(prof,44,GREEN,0.13); recolor(parts[0],bandColor);
+    parts.push(cyl(0,0,0,0.11,1.45,14,CYAN));          // central vascular trunk
+    parts.push(disk(0.7,-0.7,22,AMBER), disk(0.78,0,22,AMBER), disk(0.7,0.7,22,AMBER)); // three decks
+    parts.push(sphere(0,-1.55,0,0.22,9,12,WARM)); }    // metabolic / power node
+  else{ var b=lathe(prof,44,GREEN); recolor(b,bandColor); parts=[b]; }
+  parts.push(recolor(lathe([[0.3,-2.0],[0.7,-2.35],[1.15,-2.75]],26,WARM),function(){return WARM;})); // radiator bloom
+  parts.push(lathe([[0.16,-2.5],[0.08,-3.0],[0.001,-3.55]],14,CYAN)); // mining root
+  parts.push(sphere(0,-3.7,0,0.3,10,16,ROCK)); // resource anchor
+  parts.push(sphere(0,2.05,0,0.24,9,14,CYAN));  // phototropic cap
+  return merge.apply(null,parts);
+}
+function habitat(cut){
+  var R=1.0,L=4.0,sn=6,prof=[[0,-L/2],[R,-L/2]]; for(var i=1;i<sn;i++)prof.push([R,-L/2+i*(L/sn)]); prof.push([R,L/2],[0,L/2]);
+  if(cut){ var p=hollowShell(prof,48,GREEN,0.06); recolor(p[0],function(my){return Math.abs(my)>L/2-0.06?AMBER:null;});
+    p.push(cyl(0,0,0,0.05,L/2-0.12,12,CYAN));           // axial sun-cord light guide
+    p.push(disk(0.85,-1.4,26,AMBER), disk(0.85,1.4,26,AMBER)); // de-spun end terraces
+    return merge.apply(null,p); }
+  var m=lathe(prof,48,GREEN); recolor(m,function(my){return Math.abs(my)>L/2-0.06?AMBER:null;}); return m;
+}
+function dome(cut){
+  var R=1.7,H=1.0,N=18,prof=[]; for(var i=0;i<=N;i++){var t=i/N*PI/2; prof.push([R*cos(t),H*sin(t)]);}
+  var ground=trans(lathe([[2.4,0],[0,0]],44,ROCK),0,-0.02,0);
+  if(cut){ var p=hollowShell(prof,44,GREEN,0.14);
+    var inner=[cyl(0,0.4,0,0.06,0.4,10,AMBER), sphere(0,0.35,0,0.32,9,14,GREEN)]; // support mast + habitat pod
+    return merge.apply(null,[ground].concat(p).concat(inner)); }
+  return merge(ground, lathe(prof,44,GREEN));
+}
+function nursery(cut){
+  var parts=[lathe([[0,-2.1],[0.13,-2.1],[0.13,2.1],[0,2.1]],20,CYAN)], n=5;
+  for(var i=0;i<n;i++){var y=-1.5+i*0.75, r=0.42+0.08*sin(i*1.3);
+    var s=(i===n-1?GREEN:AMBER);
+    if(cut && i===n-1){ // slice the near-hatching cradle to show a ship inside
+      parts=parts.concat(hollowShell(spheroidProfile(r,r*0.95,14),22,GREEN,0.4).map(function(m){return trans(m,0.62,y,0);}));
+      var emb=recolor(trans(lathe(spheroidProfile(r*0.5,r*0.34,12),16,GREEN),0.62,y,0),function(my){return Math.abs(my-y)<0.05?AMBER:null;});
+      parts.push(emb); // embryo ship (a mini NAVIS) gestating inside
+    } else parts.push(sphere(0.62,y,0,r,10,18,s));
+    parts.push(sphere(-0.62,y+0.35,0,r*0.9,10,18,AMBER));}
+  return merge.apply(null,parts);
+}
+function spore(cut){ // small egg-ovoid, 1-2 person pod
+  var pr=[],A=1.2,B=0.85,N=22; for(var i=0;i<=N;i++){var t=i/N, y=(t*2-1)*A, r=B*Math.sqrt(max(0,1-(y/A)*(y/A)))*(1+0.18*(y/A)); pr.push([max(r,1e-3),y]);}
+  if(cut){ var p=hollowShell(pr,32,GREEN,0.16);
+    p.push(sphere(0,-0.35,0,0.30,9,14,CYAN)); // torpor gland
+    p.push(disk(0.5,0.15,18,AMBER));          // cabin floor
+    return merge.apply(null,p); }
+  return lathe(pr,32,GREEN);
+}
+function leviathan(cut){ // siphonophore ark: spine + 12 drums budded on alternating sides
+  var parts=[recolor(lathe([[0,-3.0],[0.14,-3.0],[0.14,3.0],[0,3.0]],16,CYAN),function(){return CYAN;})];
+  for(var i=0;i<12;i++){ var row=i>>1, side=(i%2)?1:-1, y=-2.35+row*0.94, x=side*0.78;
+    if(cut && i===0){ // slice the nearest drum to show one world inside
+      parts=parts.concat(hollowShell([[0,-0.34],[0.44,-0.34],[0.44,0.34],[0,0.34]],20,GREEN,0.14).map(function(m){return trans(m,x,y,0);}));
+      parts.push(cyl(x,y,0,0.05,0.26,8,CYAN)); // drum axial light-core
+    } else {
+      parts.push(trans(lathe([[0,-0.34],[0.44,-0.34],[0.44,0.34],[0,0.34]],20,GREEN), x,y,0));
+    }
+    parts.push(cyl(x*0.5,y,0, 0.05, x*side*0.28, 8, AMBER)); } // strut to spine
+  return merge.apply(null,parts);
+}
+function testudo(cut){ // tortoise: heavily-armoured oblate shell
+  var pr=[],A=0.72,B=1.55,N=20; for(var i=0;i<=N;i++){var y=(i/N)*A, r=B*Math.sqrt(max(0,1-(y/A)*(y/A))); pr.push([max(r,1e-3),y]);}
+  pr.unshift([B*0.999,0]); // base rim
+  var base=trans(lathe([[B,0],[0,0]],40,GREEN),0,-0.01,0); // green underside (shelter)
+  if(cut){ var p=hollowShell(pr,40,SHELL,0.34);
+    p.push(sphere(0,0.26,0,0.45,10,16,GREEN)); // living shelter within
+    return merge.apply(null,[base].concat(p)); } // thick armour cutaway
+  var shell=recolor(lathe(pr,40,SHELL),function(){return SHELL;});
+  return merge(base,shell);
+}
+
+var MODELS={
+ navis:{name:"NAVIS · GESTALT",bi:"Navis viva",make:navis,fit:1.0,tilt:0.35,
+   desc:"The crewed explorer — a 24,000 t prolate-spheroid organism, 100 m by 50 m. Green photosynthetic hull, amber equatorial docking band, a warm radiator bloom and cyan mining root at the aft pole reaching a rock anchor, and the phototropic light-cap forward. Cutaway shows the metre-thick living wall and the lit interior.",
+   link:"285ef29f-751e-4767-b5a6-9cd178faddb1",linktext:"Open the Design Dossier →",
+   specs:[["Length","≈120 m"],["Beam","50 m"],["Grown mass","24,000 t"],["Crew","50"]],scaleM:25,hot:[[0.72,0.7,0.5,"Photosynthetic hull"],[0.95,0,0.28,"Docking sphincters ×6"],[0.8,-2.45,0.3,"Radiator bloom"],[0,-3.65,0,"Mining root + anchor"],[0,2.08,0,"Phototropic light-cap"]]},
+ arca:{name:"ARCA",bi:"Arca viva",make:habitat,fit:0.92,tilt:0.5,
+   desc:"The million-person spin-gravity habitat — a grown drum 5 km across and 10 km long in six ~1.7 km segments (amber de-spun caps). You live on the inside; 0.6 rpm gives 1 g at the rim. Cutaway reveals the hollow interior world.",
+   link:"9b90d7e5-2a71-426a-b2bf-d3a96b32a82e",linktext:"Open the Habitat drawings →",
+   specs:[["Drum Ø","5 km"],["Length","10 km"],["Spin","0.6 rpm → 1 g"],["Population","1,000,000"]],scaleM:2500,hot:[[1.0,0,0.25,"Inner-surface land · 1 g"],[0,2.02,0,"De-spun docking hub"],[0.7,-1.3,0.55,"Six grown segments"],[0,0,0,"Spin axis"]]},
+ lichen:{name:"LICHEN",bi:"Lichen vivum",make:dome,fit:0.9,tilt:0.15,
+   desc:"A settlement grown into Moon or Mars regolith — a low pressure blister rooted to bedrock under a thick regolith over-blanket. Cutaway shows the pressurised interior beneath the shell.",
+   link:"94531439-d04d-480e-9d04-bad6fcdacd9a",linktext:"Open the LICHEN drawings →",
+   specs:[["Dome span","≈500 m"],["Rise","≈150 m"],["Pressure","52 kPa"],["Per dome","~10,000"]],scaleM:147,hot:[[0,1.02,0,"Pressure membrane"],[1.5,0.18,0.35,"Rooted to bedrock"],[0.7,0.6,0.45,"52 kPa interior"]]},
+ gravid:{name:"GRAVID",bi:"Mater viva",make:nursery,fit:0.95,tilt:0.3,
+   desc:"The nursery-shipyard that gestates vessels from seeds. Cradles bud from a central feedstock spine; the green one nears hatching. Cutaway opens that cradle to show the ship growing inside its placenta.",
+   link:"2433fa54-e582-4194-8245-d63acee8fb85",linktext:"Open the GRAVID drawings →",
+   specs:[["Cradles","12–24"],["Overall","~1.2 km"],["Per-cradle feed","~26 t/day"],["Gestation","2–3 yr"]],scaleM:285,hot:[[0,0,0.15,"Feedstock spine"],[0.62,1.5,0.45,"Ship inside · hatching"],[-0.62,-0.4,0.55,"Gestation cradle"]]},
+ spore:{name:"SPORE",bi:"Semen vivum",make:spore,fit:0.95,tilt:0.2,
+   desc:"A one-to-two person lifeboat grown from the same seed as the big ships — a thin-walled ~4 m ovoid cabin, fast and disposable. Its trick is torpor: the occupant hibernates to stretch days of air into months. Cutaway shows the single cabin.",
+   link:"7ca9c965-1932-4c5a-b0f1-a99e9febae58",linktext:"Open the Class Reference →",
+   specs:[["Crew","1–2"],["Size","~4 m ovoid"],["Grown mass","~60 t"],["Gestation","~3 wk"]],scaleM:1.67,hot:[[0,0,0.9,"Cabin · 1–2 crew"],[0,-1.05,0,"Torpor gland"],[0.72,0.55,0.5,"Thin disposable wall"]]},
+ leviathan:{name:"LEVIATHAN",bi:"Cetus vivus",make:leviathan,fit:0.95,tilt:0.28,
+   desc:"An interstellar generation ark built like a siphonophore — twelve grown drums budded from one shared spine, each a spinning ~0.9 g world of six by twelve kilometres, crossing between stars over decades. A colony of worlds in a single organism.",
+   link:"7ca9c965-1932-4c5a-b0f1-a99e9febae58",linktext:"Open the Class Reference →",
+   specs:[["Population","10,000,000"],["Drums","12 × 6×12 km"],["Gravity","0.91 g @ 0.52 rpm"],["Grown mass","~12 Gt"]],scaleM:17600,hot:[[0.78,-2.35,0.44,"Grown drum · a world"],[0,0,0.16,"Shared spine"],[0.78,2.35,0.44,"×12 drums"]]},
+ testudo:{name:"TESTUDO",bi:"Testudo viva",make:testudo,fit:0.95,tilt:0.1,
+   desc:"The fleet's tortoise — a compact, extraordinarily armoured escort and storm shelter that interposes its regrowing carapace to take hits for others. Strictly a shield: it survives and dodges, it never shoots. Cutaway shows the ~1,000 g/cm² carapace over the shelter within.",
+   link:"7ca9c965-1932-4c5a-b0f1-a99e9febae58",linktext:"Open the Class Reference →",
+   specs:[["Crew","~10 (or 0)"],["Size","~100 m"],["Armour","~1,000 g/cm²"],["Grown mass","~150,000 t"]],scaleM:32,hot:[[0,0.74,0,"Regrowing carapace"],[1.52,0.12,0.3,"~1,000 g/cm² armour"],[0,0.1,1.0,"Shelter within"]]}
+};
+
+// ---------- renderer ----------
+var cv=document.getElementById("cv"), ctx=cv.getContext("2d"), W=cv.width, H=cv.height;
+var state={key:"navis",mesh:null,rx:-0.5,ry:0.6,zoom:1,scale:200,wire:false,spin:true,cut:false,labels:true};
+
+function build(key){
+  var M=MODELS[key]; state.key=key; state.mesh=M.make(state.cut); state.tilt=M.tilt;
+  var R=0.001,V=state.mesh.V; for(var i=0;i<V.length;i++){var d=V[i][0]*V[i][0]+V[i][1]*V[i][1]+V[i][2]*V[i][2]; if(d>R)R=d;}
+  state.scale=(250*9/Math.sqrt(R))*(M.fit||1);
+  state.rx=-M.tilt-0.12; state.ry=state.cut?0.35:0.6; state.zoom=1;
+  document.getElementById("badge").textContent=M.name.split(" ")[0]+(state.cut?" · CUT":"");
+  document.getElementById("i-name").textContent=M.name;
+  document.getElementById("i-bi").textContent=M.bi;
+  document.getElementById("i-desc").textContent=M.desc;
+  var lk=document.getElementById("i-link"); lk.href="https://claude.ai/code/artifact/"+M.link; lk.textContent=M.linktext;
+  document.getElementById("i-specs").innerHTML=M.specs.map(function(s){return '<div class="c"><div class="k">'+s[0]+'</div><div class="v">'+s[1]+'</div></div>';}).join("");
+  Array.prototype.forEach.call(document.querySelectorAll('#models button'),function(b){b.classList.toggle('on',b.dataset.k===key);});
+}
+function shade(rgb,l){var a=0.28; l=a+(1-a)*max(0,l); return 'rgb('+(rgb[0]*l|0)+','+(rgb[1]*l|0)+','+(rgb[2]*l|0)+')';}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  var m=state.mesh, cx=W/2, cy=H/2+8, f=state.scale*state.zoom, d=9;
+  var crx=cos(state.rx),srx=sin(state.rx),cry=cos(state.ry),sry=sin(state.ry);
+  var TV=new Array(m.V.length), PR=new Array(m.V.length);
+  for(var i=0;i<m.V.length;i++){
+    var x=m.V[i][0],y=m.V[i][1],z=m.V[i][2];
+    var x1=x*cry+z*sry, z1=-x*sry+z*cry, y2=y*crx-z1*srx, z2=y*srx+z1*crx;
+    TV[i]=[x1,y2,z2]; var pz=d-z2; PR[i]=[cx+f*x1/pz, cy-f*y2/pz];
+  }
+  var L=[0.4,0.55,0.75], ll=Math.sqrt(L[0]*L[0]+L[1]*L[1]+L[2]*L[2]); L=[L[0]/ll,L[1]/ll,L[2]/ll];
+  var faces=[];
+  for(var fi=0;fi<m.F.length;fi++){
+    var g=m.F[fi], A=TV[g[0]],B=TV[g[1]],C=TV[g[2]];
+    var ux=B[0]-A[0],uy=B[1]-A[1],uz=B[2]-A[2], vx=C[0]-A[0],vy=C[1]-A[1],vz=C[2]-A[2];
+    var nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx;
+    if(nz<0){nx=-nx;ny=-ny;nz=-nz;}
+    var nl=Math.sqrt(nx*nx+ny*ny+nz*nz)||1, l=(nx*L[0]+ny*L[1]+nz*L[2])/nl;
+    faces.push([(A[2]+B[2]+C[2])/3, g, l]);
+  }
+  faces.sort(function(a,b){return a[0]-b[0];});
+  for(var k=0;k<faces.length;k++){
+    var g=faces[k][1], col=g[3], p0=PR[g[0]],p1=PR[g[1]],p2=PR[g[2]];
+    ctx.beginPath(); ctx.moveTo(p0[0],p0[1]); ctx.lineTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]); ctx.closePath();
+    if(state.wire){ ctx.strokeStyle=shade(col,max(faces[k][2],0.5)); ctx.lineWidth=0.6; ctx.stroke(); }
+    else { ctx.fillStyle=shade(col,faces[k][2]); ctx.fill(); ctx.strokeStyle=ctx.fillStyle; ctx.lineWidth=0.5; ctx.stroke(); }
+  }
+  var MD=MODELS[state.key];
+  overlayScale(MD,f,d);
+  if(state.labels) overlayLabels(MD,f,d,cx,cy,crx,srx,cry,sry);
+}
+// --- dynamic scale bar: picks a round real length for the current zoom ---
+function chip(x,y,w,h){ ctx.fillStyle='rgba(9,18,15,.80)'; ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle='rgba(150,196,176,.28)'; ctx.lineWidth=1; ctx.strokeRect(x+0.5,y+0.5,w-1,h-1); }
+function overlayScale(MD,f,d){
+  if(!MD.scaleM) return;
+  var mpp=MD.scaleM*d/f;                                 // metres per screen pixel at mid-depth
+  var raw=120*mpp, p=Math.pow(10,Math.floor(Math.log(raw)/Math.LN10)), fr=raw/p;
+  var nm=(fr<1.5?1:fr<3.5?2:fr<7.5?5:10)*p, barPx=nm/mpp;
+  var lab=(nm>=1000?(nm/1000)+' km':(nm>=1?nm:+nm.toFixed(1))+' m');
+  ctx.font='11px ui-monospace,"SF Mono",Menlo,monospace'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  var bx=20, by=32, tw=ctx.measureText(lab).width, cw=max(barPx,tw)+16;
+  chip(bx-8,by-18,cw,36);
+  ctx.strokeStyle='#cfe6da'; ctx.lineWidth=1.4;
+  ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(bx+barPx,by);
+  ctx.moveTo(bx,by-4); ctx.lineTo(bx,by+4); ctx.moveTo(bx+barPx,by-4); ctx.lineTo(bx+barPx,by+4); ctx.stroke();
+  ctx.fillStyle='#e2f0e8'; ctx.fillText(lab, bx, by+13);
+}
+// --- labelled hotspots: 3D anchors projected each frame ---
+function overlayLabels(MD,f,d,cx,cy,crx,srx,cry,sry){
+  if(!MD.hot) return;
+  ctx.font='11px ui-monospace,"SF Mono",Menlo,monospace'; ctx.textBaseline='middle';
+  for(var hi=0;hi<MD.hot.length;hi++){
+    var h=MD.hot[hi], hx=h[0],hy=h[1],hz=h[2];
+    var X1=hx*cry+hz*sry, Z1=-hx*sry+hz*cry, Y2=hy*crx-Z1*srx, Z2=hy*srx+Z1*crx;
+    if(Z2<-0.25) continue;                                // on the far side — hide
+    var pz=d-Z2, sx=cx+f*X1/pz, sy=cy-f*Y2/pz;
+    var side=(X1>=0?1:-1), tx=sx+side*22, ty=sy+((hi%2)?12:-12);
+    var lab=h[3], tw=ctx.measureText(lab).width;
+    var lx=(side>0?tx:tx-tw); lx=max(6,Math.min(W-tw-8,lx)); ty=max(14,Math.min(H-14,ty));
+    ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(lx+(side>0?-4:tw+4),ty);
+    ctx.strokeStyle='rgba(79,214,208,.55)'; ctx.lineWidth=1; ctx.stroke();
+    chip(lx-6,ty-9,tw+12,18);
+    ctx.beginPath(); ctx.arc(sx,sy,3,0,TAU); ctx.fillStyle='#4fd6d0'; ctx.fill();
+    ctx.lineWidth=1; ctx.strokeStyle='rgba(9,18,15,.9)'; ctx.stroke();
+    ctx.textAlign='left'; ctx.fillStyle='#e2f0e8'; ctx.fillText(lab,lx,ty);
+  }
+}
+var raf; function loop(){ if(state.spin && !drag) state.ry+=0.005; draw(); raf=requestAnimationFrame(loop); }
+
+// ---------- interaction ----------
+var drag=false,lx=0,ly=0,pts={},pd0=0;
+cv.addEventListener('pointerdown',function(e){drag=true;lx=e.clientX;ly=e.clientY;pts[e.pointerId]=[e.clientX,e.clientY];try{cv.setPointerCapture(e.pointerId);}catch(_){}});
+cv.addEventListener('pointermove',function(e){
+  if(e.pointerId in pts)pts[e.pointerId]=[e.clientX,e.clientY];
+  var ks=Object.keys(pts);
+  if(ks.length===2){var a=pts[ks[0]],b=pts[ks[1]],dd=Math.hypot(a[0]-b[0],a[1]-b[1]); if(pd0)state.zoom=max(0.3,Math.min(4,state.zoom*(dd/pd0))); pd0=dd; drag=false; return;}
+  if(!drag)return; var dx=e.clientX-lx,dy=e.clientY-ly; lx=e.clientX; ly=e.clientY;
+  state.ry+=dx*0.008; state.rx+=dy*0.008; state.rx=max(-1.5,Math.min(1.5,state.rx));});
+function endp(e){drag=false; delete pts[e.pointerId]; if(Object.keys(pts).length<2)pd0=0;}
+cv.addEventListener('pointerup',endp); cv.addEventListener('pointercancel',endp);
+cv.addEventListener('wheel',function(e){e.preventDefault(); state.zoom*=(e.deltaY<0?1.1:0.9); state.zoom=max(0.3,Math.min(4,state.zoom));},{passive:false});
+
+document.getElementById('cut').addEventListener('click',function(){state.cut=!state.cut;this.classList.toggle('on',state.cut);build(state.key);});
+document.getElementById('labels').addEventListener('click',function(){state.labels=!state.labels;this.classList.toggle('on',state.labels);});
+document.getElementById('spin').addEventListener('click',function(){state.spin=!state.spin;this.classList.toggle('on',state.spin);});
+document.getElementById('wire').addEventListener('click',function(){state.wire=!state.wire;this.classList.toggle('on',state.wire);});
+document.getElementById('reset').addEventListener('click',function(){build(state.key);});
+
+var mb=document.getElementById('models');
+Object.keys(MODELS).forEach(function(k){var b=document.createElement('button');b.textContent=MODELS[k].name.split(" ")[0];b.dataset.k=k;
+  b.addEventListener('click',function(){build(k);}); mb.appendChild(b);});
+build('navis'); loop();
+})();
+</script>

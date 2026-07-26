@@ -1,0 +1,391 @@
+<style>
+  :root{--ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;
+  --line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);--chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;
+  --chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);
+  --font-display:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+  --font-body:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  --font-mono:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;--maxw:1180px;--spine:74ch}
+  @media(prefers-color-scheme:light){:root{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09)}}
+  :root[data-theme="dark"]{--ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;--line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);--chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d}
+  :root[data-theme="light"]{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f}
+  *{box-sizing:border-box}body{margin:0}
+  .page{background:radial-gradient(1100px 640px at 84% -6%,var(--chloro-soft),transparent 60%),radial-gradient(900px 520px at 4% 2%,var(--lumen-soft),transparent 55%),var(--ground);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.6;overflow-x:hidden;min-height:100vh}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  h1,h2,h3{font-family:var(--font-display);font-weight:600;text-wrap:balance;line-height:1.12;margin:0}
+  p{margin:0 0 1em;max-width:var(--spine)}strong{color:var(--ink)}
+  .prog-nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;padding:16px 0 4px}
+  .prog-nav .pn-brand{color:var(--chloro);letter-spacing:.16em;text-transform:uppercase}
+  .prog-nav a{color:var(--ink-3);text-decoration:none;padding:3px 10px;border:1px solid var(--line);border-radius:999px}
+  .prog-nav a:hover{color:var(--ink);border-color:var(--line-2)}
+  .prog-nav a.current{color:var(--lumen);border-color:var(--lumen)}
+  .mast{padding:34px 0 20px;border-bottom:1px solid var(--line-2)}
+  .kick{font-family:var(--font-mono);font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:var(--chloro);margin:0 0 12px}
+  .mast h1{font-size:clamp(2.1rem,5.4vw,3.4rem);letter-spacing:-.015em}
+  .sub{color:var(--ink-2);font-size:1.1rem;margin-top:10px}
+  .tbl-wrap{overflow-x:auto;margin:26px 0 8px}
+  table.cmp{width:100%;border-collapse:collapse;font-size:13px}
+  table.cmp th{text-align:left;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--line-2);padding:8px 12px 8px 0}
+  table.cmp td{border-bottom:1px solid var(--line);padding:8px 12px 8px 0;color:var(--ink-2);vertical-align:top;font-variant-numeric:tabular-nums}
+  table.cmp td a{color:var(--ink);text-decoration:none;border-bottom:1px dotted var(--line-2)}
+  table.cmp td a:hover{color:var(--lumen)}
+  .cls{padding:34px 0;border-bottom:1px solid var(--line)}
+  .cls-head{display:flex;gap:16px;align-items:baseline;margin-bottom:12px}
+  .cls-no{font-family:var(--font-mono);font-size:13px;color:var(--ink-3);padding-top:6px}
+  .cls h2{font-size:clamp(1.5rem,3.4vw,2.2rem)}
+  .binom{font-style:italic;font-family:var(--font-display);color:var(--ink-3);font-size:.62em;font-weight:400;margin-left:.3em}
+  .cls-role{font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;color:var(--ink-3);margin-top:6px}
+  .tier{font-size:10px;letter-spacing:.14em;text-transform:uppercase;border:1px solid;border-radius:5px;padding:1px 7px;margin-right:8px}
+  .tier-lumen{color:var(--lumen);border-color:var(--lumen)}.tier-chloro{color:var(--chloro);border-color:var(--chloro)}.tier-osteo{color:var(--osteo);border-color:var(--osteo)}
+  .lead{font-size:1.06em;color:var(--ink)}
+  .eco{font-size:.95em;color:var(--ink-2)}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:16px 0}
+  @media(max-width:720px){.cols{grid-template-columns:1fr}}
+  .specgrid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .sp{background:var(--ground-2);padding:9px 12px}
+  .spk{display:block;font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-bottom:3px}
+  .spv{font-family:var(--font-display);font-size:1.02rem;color:var(--ink)}
+  table.growth{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.growth td{border-bottom:1px solid var(--line);padding:7px 10px 7px 0;color:var(--ink-2);vertical-align:top;line-height:1.45}
+  table.growth td.gk{font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;color:var(--osteo);width:80px;white-space:nowrap}
+  .xlinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .xlinks a{font-family:var(--font-mono);font-size:10.5px;color:var(--lumen);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:3px 11px}
+  .xlinks a:hover{border-color:var(--lumen)}
+  .upgs{padding:30px 0}
+  .upg{border-left:2px solid var(--osteo);padding:2px 0 2px 16px;margin-bottom:16px}
+  .upg h3{font-size:1.15rem}.upg p{font-size:.95em;color:var(--ink-2)}
+  footer{padding:26px 0 64px}
+  .fbar{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);border-top:1px solid var(--line);padding-top:18px}
+  .reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}.reveal.in{opacity:1;transform:none}
+  @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
+  ::selection{background:var(--chloro);color:var(--ground)}:focus-visible{outline:2px solid var(--lumen);outline-offset:3px}
+</style>
+<div class="page"><div class="wrap">
+  <nav class="prog-nav" aria-label="GESTALT program documents">
+    <span class="pn-brand">◈ GESTALT Program</span>
+    <a href="https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1">Design Dossier</a>
+    <a href="https://claude.ai/code/artifact/bd2c2c98-84cf-42c9-91ea-f0ec1c749fc5">Starship</a>
+    <a href="https://claude.ai/code/artifact/9b90d7e5-2a71-426a-b2bf-d3a96b32a82e">Habitat</a>
+    <a href="https://claude.ai/code/artifact/94531439-d04d-480e-9d04-bad6fcdacd9a">LICHEN</a>
+    <a href="https://claude.ai/code/artifact/2433fa54-e582-4194-8245-d63acee8fb85">GRAVID</a>
+    <a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet Registry</a>
+    <a href="#" class="current" aria-current="page">Class Reference</a>
+    <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075">Compendium</a>
+    <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed">Earth Program</a>
+    <a href="https://claude.ai/code/artifact/1c6f18ca-eeda-4d83-bd97-fd9c1622823d">3D Models</a>
+  </nav>
+  <header class="mast">
+    <p class="kick">Fleet · every class in detail</p>
+    <h1>GESTALT Fleet — Class Reference</h1>
+    <p class="sub">A full profile of each of the eighteen grown-vehicle classes: what it is for, how big it is, how it is grown from a seed, and the one problem that decides it. The four flagship classes also have their own drawing sets, linked from each profile. All figures are the same reference numbers used across the program; every class is a concept, not a build spec.</p>
+  </header>
+
+  <section class="reveal">
+    <div class="tbl-wrap"><table class="cmp">
+      <thead><tr><th>Class</th><th>Tier</th><th>Crew / capacity</th><th>Size</th><th>Grown mass</th><th>Gestation</th></tr></thead>
+      <tbody>
+<tr><td><a href="#navis"><b>NAVIS · GESTALT</b></a></td><td>Ship</td><td>50</td><td>120 m</td><td>24,000 t</td><td>~5 yr</td></tr><tr><td><a href="#arca"><b>ARCA · GESTALT ARCA</b></a></td><td>Mega</td><td>1,000,000</td><td>—</td><td>~2–3 Gt</td><td>~30 yr</td></tr><tr><td><a href="#spore"><b>SPORE</b></a></td><td>Pod</td><td>1–2</td><td>~4 m ovoid</td><td>~60 t</td><td>~3 weeks</td></tr><tr><td><a href="#radix"><b>RADIX</b></a></td><td>Uncrewed</td><td>0</td><td>~40 m + tendrils</td><td>2,000–5,000 t</td><td>~18 mo, then open</td></tr><tr><td><a href="#pomona"><b>POMONA</b></a></td><td>Station</td><td>—</td><td>—</td><td>~few Mt</td><td>~7 yr</td></tr><tr><td><a href="#gravid"><b>GRAVID</b></a></td><td>Nursery</td><td>~200</td><td>~1.2 km</td><td>~120 Mt</td><td>~12 yr</td></tr><tr><td><a href="#leviathan"><b>LEVIATHAN</b></a></td><td>Ark</td><td>10,000,000</td><td>—</td><td>~12 Gt</td><td>~80 yr</td></tr><tr><td><a href="#lichen"><b>LICHEN</b></a></td><td>Surface</td><td>—</td><td>~500 m</td><td>—</td><td>2–4 yr / dome</td></tr><tr><td><a href="#tardigrade"><b>TARDIGRADE</b></a></td><td>Vault</td><td>0 (dormant)</td><td>~50 m sphere</td><td>~40,000 t</td><td>—</td></tr><tr><td><a href="#coral"><b>CORAL</b></a></td><td>Research</td><td>~2,000</td><td>—</td><td>~0.3 Mt</td><td>~5 yr</td></tr><tr><td><a href="#medusa"><b>MEDUSA</b></a></td><td>Harvester</td><td>0–12 (auto)</td><td>~1.2 km</td><td>—</td><td>~1–2 yr</td></tr><tr><td><a href="#atlas"><b>ATLAS</b></a></td><td>Freighter</td><td>~10–30 (auto)</td><td>~600 m</td><td>—</td><td>~3–4 yr</td></tr><tr><td><a href="#vesper"><b>VESPER</b></a></td><td>Sentinel</td><td>0 (auto)</td><td>—</td><td>—</td><td>~months</td></tr><tr><td><a href="#amber"><b>AMBER</b></a></td><td>Liner</td><td>~50,000</td><td>~150 m</td><td>~0.13 Mt</td><td>~3 yr</td></tr><tr><td><a href="#chorus"><b>CHORUS</b></a></td><td>Archive</td><td>0 (distributed)</td><td>—</td><td>—</td><td>~1 yr</td></tr><tr><td><a href="#testudo"><b>TESTUDO</b></a></td><td>Guardian</td><td>~10 (or 0)</td><td>~100 m</td><td>~150,000 t</td><td>~2–3 yr</td></tr><tr><td><a href="#nereus"><b>NEREUS</b></a></td><td>Diver</td><td>0 (or ~6)</td><td>~60 m</td><td>~3,000 t</td><td>~1–2 yr</td></tr><tr><td><a href="#sol-forge"><b>SOL-FORGE</b></a></td><td>Foundry</td><td>0 (auto)</td><td>—</td><td>—</td><td>~5 yr</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+<section class="cls reveal" id="navis">
+    <div class="cls-head">
+      <div class="cls-no">01</div>
+      <div>
+        <h2>NAVIS · GESTALT <span class="binom">Navis viva</span></h2>
+        <div class="cls-role"><span class="tier tier-lumen">Ship</span> Crewed interplanetary / interstellar explorer</div>
+      </div>
+    </div>
+    <p class="lead">The prototype hollow organism — a prolate spheroid whose whole inner surface breathes for its crew and thickens its own shielding in flight.</p>
+    <p class="eco"><strong>In the fleet:</strong> the reference explorer every other design is measured against — the 24,000 t starship worked out in full in the Dossier.</p>
+    <div class="cols">
+      <div><div class="specgrid"><div class="sp"><span class="spk">Crew</span><span class="spv">50</span></div><div class="sp"><span class="spk">Length</span><span class="spv">120 m</span></div><div class="sp"><span class="spk">Grown mass</span><span class="spv">24,000 t</span></div><div class="sp"><span class="spk">Seed</span><span class="spv">~500 kg</span></div><div class="sp"><span class="spk">Site</span><span class="spv">asteroid + ice</span></div><div class="sp"><span class="spk">Gestation</span><span class="spv">~5 yr</span></div></div></div>
+      <div><table class="growth"><tbody><tr><td class="gk">SEED</td><td>500 kg dormant husk — full standard consortium + volatiles charge.</td></tr><tr><td class="gk">FEEDSTOCK</td><td>Anchors a water/mineral-rich asteroid; mines Ca/P/metals, cracks ice.</td></tr><tr><td class="gk">GESTATION</td><td>Germinate → pneumostat shell → vascular + intima → shielding thickens → crew boards yr ~5.</td></tr><tr><td class="gk">CHALLENGE</td><td>Coordinating whole-body morphogenesis; tumour/apoptosis governance.</td></tr></tbody></table></div>
+    </div>
+    <div class="xlinks"><a href="https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1">Design Dossier</a><a href="https://claude.ai/code/artifact/bd2c2c98-84cf-42c9-91ea-f0ec1c749fc5">Starship Drawings</a><a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet registry card</a></div>
+  </section>
+  <section class="cls reveal" id="arca">
+    <div class="cls-head">
+      <div class="cls-no">02</div>
+      <div>
+        <h2>ARCA · GESTALT ARCA <span class="binom">Arca viva</span></h2>
+        <div class="cls-role"><span class="tier tier-chloro">Mega</span> Permanent spin-gravity habitat world</div>
+      </div>
+    </div>
+    <p class="lead">A grown, spinning cylinder lit from the axis by a ~15 GW piped-starlight sun-cord (bioluminescence can only manage a night glow); you live on the inside, held down by rotation, under a sky of far-side land.</p>
+    <p class="eco"><strong>In the fleet:</strong> the fleet's endpoint at the large scale: a grown world for a million people, the proof that the biology scales from vessel to habitat.</p>
+    <div class="cols">
+      <div><div class="specgrid"><div class="sp"><span class="spk">Population</span><span class="spv">1,000,000</span></div><div class="sp"><span class="spk">Drum</span><span class="spv">5 × 10 km</span></div><div class="sp"><span class="spk">Grown mass</span><span class="spv">~2–3 Gt</span></div><div class="sp"><span class="spk">Spin</span><span class="spv">0.6 rpm / 1 g</span></div><div class="sp"><span class="spk">Site</span><span class="spv">captured asteroid</span></div><div class="sp"><span class="spk">Gestation</span><span class="spv">~30 yr</span></div></div></div>
+      <div><table class="growth"><tbody><tr><td class="gk">SEED</td><td>~few t — biased toward tendon-cable and structural organs.</td></tr><tr><td class="gk">FEEDSTOCK</td><td>Consumes a whole captured asteroid + ice over decades.</td></tr><tr><td class="gk">GESTATION</td><td>Anchor → grow tendon cage + drum somites → sun-cord → seed the biomes → shield → occupy. Extends by adding somites.</td></tr><tr><td class="gk">CHALLENGE</td><td>Hoop load (230 MN/m) exceeds biology — needs engineered high-tensile cable.</td></tr></tbody></table></div>
+    </div>
+    <div class="xlinks"><a href="https://claude.ai/code/artifact/9b90d7e5-2a71-426a-b2bf-d3a96b32a82e">Habitat Drawings</a><a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet registry card</a></div>
+  </section>
+  <section class="cls reveal" id="spore">
+    <div class="cls-head">
+      <div class="cls-no">03</div>
+      <div>
+        <h2>SPORE <span class="binom">Semen vivum</span></h2>
+        <div class="cls-role"><span class="tier tier-osteo">Pod</span> One- to two-person lifeboat / personal short-hop</div>
+      </div>
+    </div>
+    <p class="lead">A functional cabin grown from the same seed the big ships start as — thin-walled, disposable, fast. Its trick is torpor: the occupant can drop into hibernation to stretch a few days of air into months.</p>
+    <p class="eco"><strong>In the fleet:</strong> the smallest viable grown craft — a lifeboat that shows the seed-to-cabin loop at its fastest and cheapest.</p>
+    <div class="cols">
+      <div><div class="specgrid"><div class="sp"><span class="spk">Crew</span><span class="spv">1–2</span></div><div class="sp"><span class="spk">Size</span><span class="spv">~4 m ovoid</span></div><div class="sp"><span class="spk">Grown mass</span><span class="spv">~60 t</span></div><div class="sp"><span class="spk">Seed</span><span class="spv">~3 kg</span></div><div class="sp"><span class="spk">Site</span><span class="spv">any ice / parent bay</span></div><div class="sp"><span class="spk">Gestation</span><span class="spv">~3 weeks</span></div></div></div>
+      <div><table class="growth"><tbody><tr><td class="gk">SEED</td><td>3 kg, palm-sized — or batch-grown in a parent ship's pod bay from spores.</td></tr><tr><td class="gk">FEEDSTOCK</td><td>A comet chip, cached water, or the parent's vascular feed — grams, not tonnes.</td></tr><tr><td class="gk">GESTATION</td><td>3 stages / ~3 wk: husk swells → cabin + seal close → thin intima + torpor gland mature.</td></tr><tr><td class="gk">CHALLENGE</td><td>Fast gestation with almost no feedstock; safe, reversible occupant torpor induction.</td></tr></tbody></table></div>
+    </div>
+    <div class="xlinks"><a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet registry card</a></div>
+  </section>
+  <section class="cls reveal" id="radix">
+    <div class="cls-head">
+      <div class="cls-no">04</div>
+      <div>
+        <h2>RADIX <span class="binom">Radix viva</span></h2>
+        <div class="cls-role"><span class="tier tier-osteo">Uncrewed</span> Autonomous asteroid miner + mobile seed-foundry</div>
+      </div>
+    </div>
+    <p class="lead">The fleet's root and womb: a crewless organism that eats asteroids, refines the metal biologically, and gestates seeds for every other class. Where RADIX takes hold, a shipyard grows.</p>
+    <p class="eco"><strong>In the fleet:</strong> the supply root of the whole fleet: it eats asteroids and prints seeds, so growth can begin anywhere there is rock and ice.</p>
+    <div class="cols">
+      <div><div class="specgrid"><div class="sp"><span class="spk">Crew</span><span class="spv">0</span></div><div class="sp"><span class="spk">Size</span><span class="spv">~40 m + tendrils</span></div><div class="sp"><span class="spk">Grown mass</span><span class="spv">2,000–5,000 t</span></div><div class="sp"><span class="spk">Seed</span><span class="spv">~120 kg</span></div><div class="sp"><span class="spk">Site</span><span class="spv">metallic / C-type</span></div><div class="sp"><span class="spk">Gestation</span><span class="spv">~18 mo, then open</span></div></div></div>
+      <div><table class="growth"><tbody><tr><td class="gk">SEED</td><td>120 kg hardened — biased to mining hyphae + a seed-foundry organ, no life support.</td></tr><tr><td class="gk">FEEDSTOCK</td><td>Bioleaches metals (Acidithiobacillus-type) and mineralises rock into feedstock pellets.</td></tr><tr><td class="gk">GESTATION</td><td>Root into body → grow refinery gut + foundry → begins spawning class-seeds; keeps growing indefinitely.</td></tr><tr><td class="gk">CHALLENGE</td><td>Unsupervised morphogenesis + a hard cap on its own runaway growth.</td></tr></tbody></table></div>
+    </div>
+    <div class="xlinks"><a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet registry card</a></div>
+  </section>
+  <section class="cls reveal" id="pomona">
+    <div class="cls-head">
+      <div class="cls-no">05</div>
+      <div>
+        <h2>POMONA <span class="binom">Hortus vivus</span></h2>
+        <div class="cls-role"><span class="tier tier-lumen">Station</span> Agriculture &amp; life-support station for a cluster</div>
+      </div>
+    </div>
+    <p class="lead">Almost all surface, almost no mass — a spray of thin, transparent photosynthetic fronds and algal bladders around a spine, feeding a whole cluster of ships and habitats with food, oxygen and biomass.</p>
+    <p class="eco"><strong>In the fleet:</strong> the fleet's farm — it closes the food half of life support that a starship's own walls cannot, feeding a cluster.</p>
+    <div class="cols">
+      <div><div class="specgrid"><div class="sp"><span class="spk">Tenders</span><span class="spv">~50</span></div><div class="sp"><span class="spk">Supplies</span><span class="spv">~100,000</span></div><div class="sp"><span class="spk">Envelope</span><span class="spv">~2 km fronds</span></div><div class="sp"><span class="spk">Photo. area</span><span class="spv">~18 km²</span></div><div class="sp"><span class="spk">Grown mass</span><span class="spv">~few Mt</span></div><div class="sp"><span class="spk">Gestation</span><span class="spv">~7 yr</span></div></div></div>
+      <div><table class="growth"><tbody><tr><td class="gk">SEED</td><td>~2 t — intima-dominant consortium, minimal structure and shielding.</td></tr><tr><td class="gk">FEEDSTOCK</td><td>Ice for water + CO₂; N/P/K delivered as pellets from a partner RADIX.</td></tr><tr><td class="gk">GESTATION</td><td>Grow spine → unfurl thin fronds maximising surface-to-mass → inflate algal bladders → balance the loop.</td></tr><tr><td class="gk">CHALLENGE</td><td>Structural fragility of huge thin surfaces; pathogen control in near-monoculture.</td></tr></tbody></table></div>
+    </div>
+    <div class="xlinks"><a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet registry card</a></div>
+  </section>
+  <section class="cls reveal" id="gravid">
+    <div class="cls-head">
+      <div class="cls-no">06</div>
+      <div>
+        <h2>GRAVID <span class="binom">Mater viva</span></h2>
+        <div class="cls-role"><span class="tier tier-chloro">Nursery</span> Nursery-shipyard — gestates whole vessels from seeds</div>
+      </div>
+    </div>
+    <p class="lead">The fleet's womb. A frame of gestation cradles — each a placental organ that feeds, lights and scaffolds a growing vessel — cutting a starship's wild 5-year gestation to two or three under controlled conditions.</p>
+    <p class="eco"><strong>In the fleet:</strong> the reproduction organ of the fleet: the nursery that gestates whole vessels from seeds, detailed in its own drawing set.</p>
+    <div class="cols">
+      <div><div class="specgrid"><div class="sp"><span class="spk">Crew</span><span class="spv">~200</span></div><div class="sp"><span class="spk">Size</span><span class="spv">~1.2 km</span></div><div class="sp"><span class="spk">Cradles</span><span class="spv">12–24</span></div><div class="sp"><span class="spk">Grown mass</span><span class="spv">~120 Mt</span></div><div class="sp"><span class="spk">Seed</span><span class="spv">~20 t</span></div><div class="sp"><span class="spk">Gestation</span><span class="spv">~12 yr</span></div></div></div>
+      <div><table class="growth"><tbody><tr><td class="gk">SEED</td><td>~20 t, cradle- and placenta-biased. The first unit is bootstrapped from a habitat-scale seed; later units are gestated inside an existing GRAVID.</td></tr><tr><td class="gk">FEEDSTOCK</td><td>Refined pellets + ice piped from partner RADIX miners, concentrated into placental feeds.</td></tr><tr><td class="gk">GESTATION</td><td>Grow frame → grow cradles + placental vascular trees → commission, then accept seeds continuously.</td></tr><tr><td class="gk">CHALLENGE</td><td>Graft rejection between cradle and gestatee; parallel morphogenesis; fleet-wide biosecurity.</td></tr></tbody></table></div>
+    </div>
+    <div class="xlinks"><a href="https://claude.ai/code/artifact/2433fa54-e582-4194-8245-d63acee8fb85">GRAVID Drawings</a><a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet registry card</a></div>
+  </section>
+  <section class="cls reveal" id="leviathan">
+    <div class="cls-head">
+      <div class="cls-no">07</div>
+      <div>
+        <h2>LEVIATHAN <span class="binom">Cetus vivus</span></h2>
+        <div class="cls-role"><span class="tier tier-chloro">Ark</span> Interstellar generation ark — a colony of worlds</div>
+      </div>
+    </div>
+    <p class="lead">A colonial super-organism after the siphonophore: twelve grown drums budded from one trunk, each a spinning ~0.9 g world, sharing a spine, a shield and a slow interstellar course. ~1,740 km² of land (~174 m²/person) carries ten million across centuries between stars.</p>
+    <p class="eco"><strong>In the fleet:</strong> the fleet folded inside a single hull — a self-contained colony of worlds for a one-way crossing between stars.</p>
+    <div class="cols">
+      <div><div class="specgrid"><div class="sp"><span class="spk">Population</span><span class="spv">10,000,000</span></div><div class="sp"><span class="spk">Drums</span><span class="spv">12 × 6×12 km</span></div><div class="sp"><span class="spk">Gravity</span><span class="spv">0.91 g @ 0.52 rpm</span></div><div class="sp"><span class="spk">Grown mass</span><span class="spv">~12 Gt</span></div><div class="sp"><span class="spk">Seed</span><span class="spv">GRAVID-grown</span></div><div class="sp"><span class="spk">Gestation</span><span class="spv">~80 yr</span></div></div></div>
+      <div><table class="growth"><tbody><tr><td class="gk">SEED</td><td>A colony-founder grown by GRAVID — carries the full biome gene-library and a trunk meristem that buds new drums.</td></tr><tr><td class="gk">FEEDSTOCK</td><td>An entire small moon or planetesimal + cometary volatiles — the most material of any class.</td></tr><tr><td class="gk">GESTATION</td><td>Grow the trunk → bud drums one at a time (siphonophore-style) → each matures its biome → colony synchronises → board over decades.</td></tr><tr><td class="gk">CHALLENGE</td><td>Genetic, ecological and cultural drift over a centuries-long cruise; keeping twelve drums one organism.</td></tr></tbody></table></div>
+    </div>
+    <div class="xlinks"><a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet registry card</a></div>
+  </section>
+  <section class="cls reveal" id="lichen">
+    <div class="cls-head">
+      <div class="cls-no">08</div>
+      <div>
+        <h2>LICHEN <span class="binom">Lichen vivum</span></h2>
+        <div class="cls-role"><span class="tier tier-chloro">Surface</span> Grown surface habitat — Moon / Mars regolith</div>
+      </div>
+    </div>
+    <p class="lead">A pressure blister grown into the ground — no spin, because a planet already provides gravity. Domes bud and fuse into a spreading colony; a thick regolith over-blanket does the shielding a hull would. The cheapest class to grow.</p>
+    <p class="eco"><strong>In the fleet:</strong> the fleet come to ground: a settlement grown into regolith, borrowing a planet's gravity and shielding.</p>
+    <div class="cols">
+      <div><div class="specgrid"><div class="sp"><span class="spk">Per dome</span><span class="spv">~10,000</span></div><div class="sp"><span class="spk">Span</span><span class="spv">~500 m</span></div><div class="sp"><span class="spk">Gravity</span><span class="spv">local · no spin</span></div><div class="sp"><span class="spk">Seed</span><span class="spv">~1 t</span></div><div class="sp"><span class="spk">Site</span><span class="spv">regolith + ice</span></div><div class="sp"><span class="spk">Gestation</span><span class="spv">2–4 yr / dome</span></div></div></div>
+      <div><table class="growth"><tbody><tr><td class="gk">SEED</td><td>~1 t, root/anchor- and membrane-biased; simply landed on the surface.</td></tr><tr><td class="gk">FEEDSTOCK</td><td>Local regolith (detoxed) + subsurface ice — abundant, so growth is fast and cheap.</td></tr><tr><td class="gk">GESTATION</td><td>Root &amp; anchor → inflate membrane → pull regolith over-blanket → green the interior → bud a neighbour.</td></tr><tr><td class="gk">CHALLENGE</td><td>Detoxing perchlorate regolith; bonding living tissue to raw rock; uplift anchoring in low g.</td></tr></tbody></table></div>
+    </div>
+    <div class="xlinks"><a href="https://claude.ai/code/artifact/94531439-d04d-480e-9d04-bad6fcdacd9a">LICHEN Drawings</a><a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet registry card</a></div>
+  </section>
+  <section class="cls reveal" id="tardigrade">
+    <div class="cls-head">
+      <div class="cls-no">09</div>
+      <div>
+        <h2>TARDIGRADE <span class="binom">Ursus vivus</span></h2>
+        <div class="cls-role"><span class="tier tier-osteo">Vault</span> Deep-time genome &amp; embryo vault — dormancy ark</div>
+      </div>
+    </div>
+    <p class="lead">The smallest body but the densest — a ~50 m sphere that is mostly shielding wrapped around a tiny archive. Named for the water-bear, it uses real survival tricks (trehalose glassification, the tardigrade Dsup protein, </p>
+    <p class="eco"><strong>In the fleet:</strong> the fleet's insurance policy — a dormancy vault holding the genomes and embryos that can restart everything.</p>
+    <div class="cols">
+      <div><div class="specgrid"><div class="sp"><span class="spk">Crew</span><span class="spv">0 (dormant)</span></div><div class="sp"><span class="spk">Size</span><span class="spv">~50 m sphere</span></div><div class="sp"><span class="spk">Grown mass</span><span class="spv">~40,000 t</span></div><div class="sp"><span class="spk">Shield</span><span class="spv">~500 g/cm²</span></div><div class="sp"><span class="spk">Seed</span><span class="spv">~10 kg</span></div><div class="sp"><span class="spk">Dormancy</span><span class="spv">up to ~1 Myr</span></div></div></div>
+      <div><table class="growth"><tbody><tr><td class="gk">SEED</td><td>~10 kg (or GRAVID-grown), vault- and shield-biased, loaded with the master genome library + embryo/seed archive.</td></tr><tr><td class="gk">FEEDSTOCK</td><td>A dense, metal-rich asteroid for deep shielding + ice for a water jacket; grown fast, then sealed.</td></tr><tr><td class="gk">GESTATION</td><td>Grow the shielded vault + archive chambers + a repair-and-wake organ → load the library → glassify into cryptobiosis. ~1–2 yr, then dormant.</td></tr><tr><td class="gk">CHALLENGE</td><td>Genome integrity over ~1 Myr — redundancy, error-correcting encoding, periodic repair-wake cycles; and guaranteed revival after eons.</td></tr></tbody></table></div>
+    </div>
+    <div class="xlinks"><a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet registry card</a></div>
+  </section>
+  <section class="cls reveal" id="coral">
+    <div class="cls-head">
+      <div class="cls-no">10</div>
+      <div>
+        <h2>CORAL <span class="binom">Recif vivum</span></h2>
+        <div class="cls-role"><span class="tier tier-lumen">Research</span> Orbital research &amp; medical station — variable gravity</div>
+      </div>
+    </div>
+    <p class="lead">Where the fleet studies and heals itself — grown like living coral into a calcium-carbonate reef, the chassis's calcifying bacteria doing openly what they do inside every hull. A slow ring gives 0–0.3 g for variable-gravity labs, a 0-g hub for microgravity work, and sealed 'polyp' pods for biocontainment and medicine.</p>
+    <p class="eco"><strong>In the fleet:</strong> the fleet's clinic and quarantine: variable-gravity labs and sealed pods for medicine and for handling novel organisms safely.</p>
+    <div class="cols">
+      <div><div class="specgrid"><div class="sp"><span class="spk">Crew</span><span class="spv">~2,000</span></div><div class="sp"><span class="spk">Ring</span><span class="spv">~500 m</span></div><div class="sp"><span class="spk">Gravity</span><span class="spv">0 – 0.3 g</span></div><div class="sp"><span class="spk">Grown mass</span><span class="spv">~0.3 Mt</span></div><div class="sp"><span class="spk">Seed</span><span class="spv">~5 t</span></div><div class="sp"><span class="spk">Gestation</span><span class="spv">~5 yr</span></div></div></div>
+      <div><table class="growth"><tbody><tr><td class="gk">SEED</td><td>~5 t, calcifier-biased — grows a CaCO₃ / hydroxyapatite reef skeleton — plus a spin-ring meristem.</td></tr><tr><td class="gk">FEEDSTOCK</td><td>Metals + ice + a carbonate/calcium source (a carbonaceous asteroid).</td></tr><tr><td class="gk">GESTATION</td><td>Grow hub + spin bearing → grow the ring reef → bud lab and quarantine pods along it → commission.</td></tr><tr><td class="gk">CHALLENGE</td><td>Absolute biocontainment of novel organisms; medical-grade sterility inside living tissue; a stable variable-g gradient.</td></tr></tbody></table></div>
+    </div>
+    <div class="xlinks"><a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet registry card</a></div>
+  </section>
+  <section class="cls reveal" id="medusa">
+    <div class="cls-head">
+      <div class="cls-no">11</div>
+      <div>
+        <h2>MEDUSA <span class="binom">Aequorea viva</span></h2>
+        <div class="cls-role"><span class="tier tier-osteo">Harvester</span> Free-flying comet &amp; volatile harvester</div>
+      </div>
+    </div>
+    <p class="lead">The fleet's volatile-drinker — a translucent jellyfish that grabs comets and icy plumes with kilometre-long tendrils, sublimates and filters their ice and organics, and stores the water, carbon and nitrogen the farms and habitats run on. Where RADIX eats rock, MEDUSA drinks ice. Its glow is literal: the chassis's light organs descend from </p>
+    <p class="eco"><strong>In the fleet:</strong> the fleet's water-carrier — it harvests comets and volatiles, the raw feedstock the growers depend on.</p>
+    <div class="cols">
+      <div><div class="specgrid"><div class="sp"><span class="spk">Crew</span><span class="spv">0–12 (auto)</span></div><div class="sp"><span class="spk">Bell</span><span class="spv">~120 m</span></div><div class="sp"><span class="spk">Span</span><span class="spv">~1.2 km</span></div><div class="sp"><span class="spk">Tankage</span><span class="spv">~10,000 t/load</span></div><div class="sp"><span class="spk">Seed</span><span class="spv">~50 kg</span></div><div class="sp"><span class="spk">Gestation</span><span class="spv">~1–2 yr</span></div></div></div>
+      <div><table class="growth"><tbody><tr><td class="gk">SEED</td><td>~50 kg, membrane- and tendril-biased, hardened for cold and vacuum.</td></tr><tr><td class="gk">FEEDSTOCK</td><td>Bootstraps from a small ice chunk, then feeds on the very volatiles it harvests — self-fuelling.</td></tr><tr><td class="gk">GESTATION</td><td>Grow the bell canopy + tankage → unfurl gathering tendrils → grow sublimation/filter organs → begin harvesting.</td></tr><tr><td class="gk">CHALLENGE</td><td>Capturing tenuous, diffuse volatiles efficiently; cryo-tough tendrils; surviving hypervelocity cometary dust.</td></tr></tbody></table></div>
+    </div>
+    <div class="xlinks"><a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet registry card</a></div>
+  </section>
+  <section class="cls reveal" id="atlas">
+    <div class="cls-head">
+      <div class="cls-no">12</div>
+      <div>
+        <h2>ATLAS <span class="binom">Onus vivum</span></h2>
+        <div class="cls-role"><span class="tier tier-osteo">Freighter</span> Bulk cargo hauler &amp; tanker — the fleet's logistics</div>
+      </div>
+    </div>
+    <p class="lead">The fleet's freight and tanker — a grown keel strung with modular holds like a fish heavy with egg-sacs. Pressurised holds carry biomass and seeds, cryogenic holds carry MEDUSA's ices, open holds carry RADIX's ore pellets; each can be dropped off and resealed. It runs on its own cargo, electrolysing water for reaction mass. This is the logistics that closes the ecosystem: harvesters gather, ATLAS moves, GRAVID grows, habitats consume.</p>
+    <p class="eco"><strong>In the fleet:</strong> the fleet's logistics spine: the bulk hauler and tanker that moves refined matter between growers and nurseries.</p>
+    <div class="cols">
+      <div><div class="specgrid"><div class="sp"><span class="spk">Crew</span><span class="spv">~10–30 (auto)</span></div><div class="sp"><span class="spk">Length</span><span class="spv">~600 m</span></div><div class="sp"><span class="spk">Holds</span><span class="spv">8 modular</span></div><div class="sp"><span class="spk">Payload</span><span class="spv">~0.5 Mt/trip</span></div><div class="sp"><span class="spk">Seed</span><span class="spv">~10 t</span></div><div class="sp"><span class="spk">Gestation</span><span class="spv">~3–4 yr</span></div></div></div>
+      <div><table class="growth"><tbody><tr><td class="gk">SEED</td><td>~10 t, keel- and hold-biased; GRAVID-grown.</td></tr><tr><td class="gk">FEEDSTOCK</td><td>Metals + ice at a nursery or mining node; grows fast.</td></tr><tr><td class="gk">GESTATION</td><td>Grow the keel → bud modular pressurised / cryo / bulk holds → grow the reaction-mass organ → commission.</td></tr><tr><td class="gk">CHALLENGE</td><td>Keeping cryo holds cold against warm living tissue (boil-off); sloshing loads under thrust; detachable holds that reseal cleanly.</td></tr></tbody></table></div>
+    </div>
+    <div class="xlinks"><a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet registry card</a></div>
+  </section>
+  <section class="cls reveal" id="vesper">
+    <div class="cls-head">
+      <div class="cls-no">13</div>
+      <div>
+        <h2>VESPER <span class="binom">Vigil viva</span></h2>
+        <div class="cls-role"><span class="tier tier-lumen">Sentinel</span> Relay, navigation &amp; deep-space watch — a constellation</div>
+      </div>
+    </div>
+    <p class="lead">The fleet's eyes and ears, grown not built. A tensioned parabolic dish laced with biomineralised magnetite (magnetotactic bacteria make magnetite for real) gives it radio; grown lens-and-retina 'eyes' and a bioluminescent beacon give it light. Deployed in hundreds and spread across millions of kilometres, the nodes act as one interferometer (~microarcsecond) and a mesh relay — comms, navigation, and an early-warning watch that feeds targets to RADIX and MEDUSA.</p>
+    <p class="eco"><strong>In the fleet:</strong> the fleet's nervous system at range — a constellation of relays, navigation beacons and deep-space watch.</p>
+    <div class="cols">
+      <div><div class="specgrid"><div class="sp"><span class="spk">Crew</span><span class="spv">0 (auto)</span></div><div class="sp"><span class="spk">Dish</span><span class="spv">~50 m</span></div><div class="sp"><span class="spk">Node mass</span><span class="spv">~500 t</span></div><div class="sp"><span class="spk">Constellation</span><span class="spv">100+ nodes</span></div><div class="sp"><span class="spk">Seed</span><span class="spv">~5 kg</span></div><div class="sp"><span class="spk">Gestation</span><span class="spv">~months</span></div></div></div>
+      <div><table class="growth"><tbody><tr><td class="gk">SEED</td><td>~5 kg, dish- and sensor-biased; mass-produced in batches by GRAVID / RADIX.</td></tr><tr><td class="gk">FEEDSTOCK</td><td>A small metal/ice chip — iron for the magnetite reflector.</td></tr><tr><td class="gk">GESTATION</td><td>Grow the node + tensioned magnetite dish → grow lens/retina 'eyes' + beacon → calibrate the figure → join the mesh.</td></tr><tr><td class="gk">CHALLENGE</td><td>Growing conductive, figure-perfect antennas and optics in living tissue; holding reflector shape as it flexes; phase-synchronising the constellation.</td></tr></tbody></table></div>
+    </div>
+    <div class="xlinks"><a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet registry card</a></div>
+  </section>
+  <section class="cls reveal" id="amber">
+    <div class="cls-head">
+      <div class="cls-no">14</div>
+      <div>
+        <h2>AMBER <span class="binom">Sucinum vivum</span></h2>
+        <div class="cls-role"><span class="tier tier-lumen">Liner</span> Long-haul passenger stasis liner</div>
+      </div>
+    </div>
+    <p class="lead">The opposite bet from a habitat: instead of keeping people alive and awake behind gigatonnes of world, AMBER puts fifty thousand of them to sleep. Each rests in an amber-like resin in cryptobiosis — trehalose glass, tardigrade Dsup shielding their DNA, antifreeze in their cells — so the ship needs no biosphere, only a small crew and a revival organ. It moves a person for ~3 t instead of ARCA's ~2,400 — roughly </p>
+    <p class="eco"><strong>In the fleet:</strong> the passenger counterpart to the ark: a stasis liner carrying people across long hauls in torpor.</p>
+    <div class="cols">
+      <div><div class="specgrid"><div class="sp"><span class="spk">Awake crew</span><span class="spv">~20</span></div><div class="sp"><span class="spk">Berths</span><span class="spv">~50,000</span></div><div class="sp"><span class="spk">Size</span><span class="spv">~150 m</span></div><div class="sp"><span class="spk">Grown mass</span><span class="spv">~0.13 Mt</span></div><div class="sp"><span class="spk">Per passenger</span><span class="spv">~3 t</span></div><div class="sp"><span class="spk">Gestation</span><span class="spv">~3 yr</span></div></div></div>
+      <div><table class="growth"><tbody><tr><td class="gk">SEED</td><td>~5 t, berth- and resin-biased; GRAVID-grown.</td></tr><tr><td class="gk">FEEDSTOCK</td><td>Metals + ice; grows the berth honeycomb, resin glands, a small life-support core and shield.</td></tr><tr><td class="gk">GESTATION</td><td>Grow hull + shield → grow the honeycomb of stasis berths + resin glands → grow the awake-crew module + revival organs → commission.</td></tr><tr><td class="gk">CHALLENGE</td><td>The fleet's deepest reach — mammals don't do anhydrobiosis; reversible human stasis and safe mass revival are far beyond today's science.</td></tr></tbody></table></div>
+    </div>
+    <div class="xlinks"><a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet registry card</a></div>
+  </section>
+  <section class="cls reveal" id="chorus">
+    <div class="cls-head">
+      <div class="cls-no">15</div>
+      <div>
+        <h2>CHORUS <span class="binom">Memoria viva</span></h2>
+        <div class="cls-role"><span class="tier tier-lumen">Archive</span> Cultural memory &amp; knowledge archive — distributed</div>
+      </div>
+    </div>
+    <p class="lead">The fleet's living memory. Where TARDIGRADE backs up the genome, CHORUS backs up the culture — every text, law, language, record and artwork — and keeps it coherent across light-hours and generations. It writes to grown DNA archives (real DNA data storage packs ~an exabyte into a few grams) and reconciles versions across nodes through VESPER's mesh, like an immune memory that never forgets. Its deepest problem isn't storage — grams hold everything — but keeping a civilisation's shared meaning from fragmenting across the distances between its worlds.</p>
+    <p class="eco"><strong>In the fleet:</strong> the fleet's memory: the distributed, error-corrected archive that stores the canonical genomes and the culture — the master no vessel grows without.</p>
+    <div class="cols">
+      <div><div class="specgrid"><div class="sp"><span class="spk">Crew</span><span class="spv">0 (distributed)</span></div><div class="sp"><span class="spk">Nodes</span><span class="spv">many + deep core</span></div><div class="sp"><span class="spk">Node size</span><span class="spv">~30 m</span></div><div class="sp"><span class="spk">Storage</span><span class="spv">1 EB ≈ 5 g DNA</span></div><div class="sp"><span class="spk">Seed</span><span class="spv">~2 kg</span></div><div class="sp"><span class="spk">Gestation</span><span class="spv">~1 yr</span></div></div></div>
+      <div><table class="growth"><tbody><tr><td class="gk">SEED</td><td>~2 kg, archive- and consensus-organ-biased; embedded in every habitat + a few shielded deep nodes.</td></tr><tr><td class="gk">FEEDSTOCK</td><td>Trivial — a little metal/ice + nucleotides for the DNA archives.</td></tr><tr><td class="gk">GESTATION</td><td>Grow the DNA-archive organs + a reconciliation/consensus process + comms interfaces → load the corpus → begin continuous sync.</td></tr><tr><td class="gk">CHALLENGE</td><td>Cultural coherence across light-hours and centuries (a governance problem as much as a technical one); slow DNA read/write; who curates the canon.</td></tr></tbody></table></div>
+    </div>
+    <div class="xlinks"><a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet registry card</a></div>
+  </section>
+  <section class="cls reveal" id="testudo">
+    <div class="cls-head">
+      <div class="cls-no">16</div>
+      <div>
+        <h2>TESTUDO <span class="binom">Testudo viva</span></h2>
+        <div class="cls-role"><span class="tier tier-osteo">Guardian</span> Defensive armoured escort &amp; storm shelter</div>
+      </div>
+    </div>
+    <p class="lead">Strictly a shield — it survives hits and dodges, it does not shoot. The fleet's tortoise: a compact, extraordinarily armoured escort that interposes its regrowing carapace between a hazard and something vulnerable — a farm, a liner full of sleepers, a young thin-shelled habitat — or opens a shelter cavity for a crew to ride out a solar storm. Whipple layers and a deep water jacket give it ~1,000 g/cm² — about 50× what a solar storm requires, ~3× a normal hull — and VESPER-derived senses let it spot debris coming and nudge the fleet clear.</p>
+    <p class="eco"><strong>In the fleet:</strong> the fleet's shell: a strictly defensive escort and storm shelter — armour and shielding only, never weapons.</p>
+    <div class="cols">
+      <div><div class="specgrid"><div class="sp"><span class="spk">Crew</span><span class="spv">~10 (or 0)</span></div><div class="sp"><span class="spk">Size</span><span class="spv">~100 m</span></div><div class="sp"><span class="spk">Armour</span><span class="spv">~1,000 g/cm²</span></div><div class="sp"><span class="spk">Grown mass</span><span class="spv">~150,000 t</span></div><div class="sp"><span class="spk">Seed</span><span class="spv">~5 t</span></div><div class="sp"><span class="spk">Gestation</span><span class="spv">~2–3 yr</span></div></div></div>
+      <div><table class="growth"><tbody><tr><td class="gk">SEED</td><td>~5 t, carapace- and shield-biased; GRAVID-grown.</td></tr><tr><td class="gk">FEEDSTOCK</td><td>Dense metal/rock for armour + ice for a deep water jacket.</td></tr><tr><td class="gk">GESTATION</td><td>Grow the domed carapace (Whipple layers + ablative + water jacket) → grow a shelter cavity + hazard-sensing organs → grow positioning muscles → commission.</td></tr><tr><td class="gk">CHALLENGE</td><td>Mass vs mobility (heavy armour is slow to interpose); keeping regrowth ahead of ablation; timing interposition from hazard prediction — all avoidance, never interception.</td></tr></tbody></table></div>
+    </div>
+    <div class="xlinks"><a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet registry card</a></div>
+  </section>
+  <section class="cls reveal" id="nereus">
+    <div class="cls-head">
+      <div class="cls-no">17</div>
+      <div>
+        <h2>NEREUS <span class="binom">Abyssus viva</span></h2>
+        <div class="cls-role"><span class="tier tier-lumen">Diver</span> Ice-moon subsurface-ocean explorer</div>
+      </div>
+    </div>
+    <p class="lead">The fleet's oceanographer — and its most fraught member. NEREUS lands on an ice moon (Europa, Enceladus), grows a hot melt-head that bores down through kilometres of crust while its tail refreezes the channel behind it, then swims the black ocean beneath as a pressure-equalized organism — no gas voids, incompressible like a Mariana-trench fish but built for the ~150 MPa of a moon's ocean floor (deeper than any trench on Earth). Bioluminescent, it explores, samples hydrothermal vents, and hunts for the thing the whole program tiptoes around: native alien life.</p>
+    <p class="eco"><strong>In the fleet:</strong> the fleet's diver — the one class built to reach the liquid-water oceans beneath an ice moon's crust.</p>
+    <div class="cols">
+      <div><div class="specgrid"><div class="sp"><span class="spk">Crew</span><span class="spv">0 (or ~6)</span></div><div class="sp"><span class="spk">Size</span><span class="spv">~60 m</span></div><div class="sp"><span class="spk">Depth rating</span><span class="spv">~150 MPa</span></div><div class="sp"><span class="spk">Grown mass</span><span class="spv">~3,000 t</span></div><div class="sp"><span class="spk">Seed</span><span class="spv">~50 kg</span></div><div class="sp"><span class="spk">Gestation</span><span class="spv">~1–2 yr</span></div></div></div>
+      <div><table class="growth"><tbody><tr><td class="gk">SEED</td><td>~50 kg, melt-head- and pressure-tissue-biased; landed on the ice.</td></tr><tr><td class="gk">FEEDSTOCK</td><td>Surface ice first; then ocean water, organics and vent minerals once through.</td></tr><tr><td class="gk">GESTATION</td><td>Grow the melt-head + refreezing tail + pressure-equalized body + luminous sensors → bore through the crust (resealing behind) → mature in the ocean.</td></tr><tr><td class="gk">CHALLENGE</td><td>Planetary protection — releasing an engineered organism into a possibly-inhabited alien ocean is the fleet's gravest ethical act, and the honest answer may be "don't"; plus pressure-equalized physiology at ~150 MPa.</td></tr></tbody></table></div>
+    </div>
+    <div class="xlinks"><a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet registry card</a></div>
+  </section>
+  <section class="cls reveal" id="sol-forge">
+    <div class="cls-head">
+      <div class="cls-no">18</div>
+      <div>
+        <h2>SOL-FORGE <span class="binom">Fornax viva</span></h2>
+        <div class="cls-role"><span class="tier tier-osteo">Foundry</span> Solar-close power plant &amp; high-heat foundry</div>
+      </div>
+    </div>
+    <p class="lead">The fleet's power plant and high-heat foundry — and the class that most openly admits biology's limit. SOL-FORGE spirals close to the Sun and unfurls a kilometres-wide reflective film to gather ~a terawatt of light, but at ~350 °C nothing living survives there (real hyperthermophiles cap ~122 °C). So the film is a non-living material the organism secretes, and the organism itself hides in its shadow behind big radiators. It beams power to the fleet and smelts what other classes can't. Less a living ship than a living thing tending a furnace it cannot enter.</p>
+    <p class="eco"><strong>In the fleet:</strong> the class that admits biology's limit: a solar-close foundry where the work is too hot for living tissue, so it hosts grown-then-mineralised industry instead.</p>
+    <div class="cols">
+      <div><div class="specgrid"><div class="sp"><span class="spk">Crew</span><span class="spv">0 (auto)</span></div><div class="sp"><span class="spk">Collector</span><span class="spv">~5 km film</span></div><div class="sp"><span class="spk">Orbit</span><span class="spv">~0.2 AU</span></div><div class="sp"><span class="spk">Power</span><span class="spv">~1 TW</span></div><div class="sp"><span class="spk">Seed</span><span class="spv">~10 t</span></div><div class="sp"><span class="spk">Gestation</span><span class="spv">~5 yr</span></div></div></div>
+      <div><table class="growth"><tbody><tr><td class="gk">SEED</td><td>~10 t, collector-secretion- and radiator-biased; grown at a resource body.</td></tr><tr><td class="gk">FEEDSTOCK</td><td>Metals for the reflective film + refractory core; its refined outputs feed the fleet.</td></tr><tr><td class="gk">GESTATION</td><td>Grow the shaded living core + big radiators → secrete and unfurl the km-scale reflective film → spiral sunward → begin collecting and refining.</td></tr><tr><td class="gk">CHALLENGE</td><td>Living tissue can't survive solar-close heat — the biology hides behind non-living grown structure and brutal radiators. The honest edge of the whole living premise.</td></tr></tbody></table></div>
+    </div>
+    <div class="xlinks"><a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet registry card</a></div>
+  </section>
+
+  <section class="upgs reveal">
+    <h2 style="margin-bottom:14px">Fleet-wide upgrades</h2>
+<div class="upg"><h3>Tendon-cage Mk II</h3><p>Roughly doubles usable fibre stress. Mk I was engineered spider-silk over bone anchors. Mk II copies tendon's own trick — a crimped, hierarchical fibril bundle inside a mineral-reinforced sheath — so the cable shares load evenly and carries about twice the stress before yielding. Half the structure for the same strength.</p></div><div class="upg"><h3>Self-heal Mk II</h3><p>Seconds to seal, ~3× faster to regrow. Mk I clotted a breach in minutes and regrew over days. Mk II adds a hull-wide reflex mesh of contractile rings that clamp a puncture in seconds — before the clot — plus pre-stocked caches of repair stem cells and nutrient bladders near the surface, so regrowth doesn't wait on vascular delivery. A "nociception" sensor net localises damage and even pre-thickens tissue where micrometeoroid flux runs chronically high.</p></div>
+  </section>
+
+  <footer>
+    <div class="fbar"><span>◈ GESTALT Program</span><span>Fleet Class Reference · 18 classes</span><span>Grown from seeds · concept, not build spec</span><span>See the Fleet Registry for the development log</span></div>
+  </footer>
+</div></div>
+<script>
+(function(){var r=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;var e=[].slice.call(document.querySelectorAll('.reveal'));if(r||!('IntersectionObserver'in window)){e.forEach(function(x){x.classList.add('in')});return;}var io=new IntersectionObserver(function(en){en.forEach(function(x){if(x.isIntersecting){x.target.classList.add('in');io.unobserve(x.target);}});},{rootMargin:'0px 0px -6% 0px',threshold:.05});e.forEach(function(x){io.observe(x)});})();
+</script>

@@ -1,0 +1,825 @@
+<style>
+  :root{
+    --ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;
+    --line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);
+    --chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;
+    --chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);
+    --sheet:#0b1714;
+    --font-display:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;
+    --font-body:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;
+    --maxw:1180px;--spine:70ch;
+  }
+  @media (prefers-color-scheme:light){:root{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}}
+  :root[data-theme="dark"]{--ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;--line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);--chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;--chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);--sheet:#0b1714}
+  :root[data-theme="light"]{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}
+
+  *{box-sizing:border-box}body{margin:0}
+  .page{background:radial-gradient(1100px 640px at 82% -6%,var(--chloro-soft),transparent 60%),radial-gradient(900px 520px at 6% 3%,var(--lumen-soft),transparent 55%),var(--ground);color:var(--ink);font-family:var(--font-body);font-size:16.5px;line-height:1.66;letter-spacing:.005em;overflow-x:hidden;min-height:100vh}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  h1,h2,h3,h4{font-family:var(--font-display);font-weight:600;text-wrap:balance;line-height:1.12;margin:0}
+  p{margin:0 0 1.05em}strong{color:var(--ink);font-weight:600}em{color:var(--ink)}
+  a{color:var(--lumen)}
+  .mono{font-family:var(--font-mono)}
+  .chem{font-family:var(--font-mono);font-size:.92em;color:var(--osteo);background:var(--osteo-soft);padding:.06em .4em;border-radius:4px;white-space:nowrap}
+
+  .prog-nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;padding:16px 0 4px}
+  .prog-nav .pn-brand{color:var(--chloro);letter-spacing:.16em;text-transform:uppercase}
+  .prog-nav a{color:var(--ink-3);text-decoration:none;padding:3px 10px;border:1px solid var(--line);border-radius:999px;transition:color .2s,border-color .2s}
+  .prog-nav a:hover{color:var(--ink);border-color:var(--line-2)}
+  .prog-nav a.current{color:var(--lumen);border-color:var(--lumen)}
+
+  header.mast{padding:34px 0 30px;border-bottom:1px solid var(--line-2)}
+  .mast .kick{font-family:var(--font-mono);font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:var(--chloro);margin:0 0 16px}
+  .mast h1{font-size:clamp(2.2rem,6vw,4rem);letter-spacing:-.015em;margin:0 0 8px}
+  .mast h1 .s{color:var(--chloro)}
+  .mast .sub{font-family:var(--font-display);font-style:italic;font-size:clamp(1.05rem,2.3vw,1.4rem);color:var(--ink-2);max-width:60ch}
+
+  /* table of contents */
+  .toc{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:26px 0 0}
+  .toc a{display:flex;gap:10px;align-items:baseline;text-decoration:none;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--sheet);transition:border-color .2s}
+  .toc a:hover{border-color:var(--line-2)}
+  .toc .n{font-family:var(--font-mono);font-size:12px;color:var(--chloro)}
+  .toc .t{font-size:14px}
+
+  section.doc{padding:48px 0;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:center;gap:.7em;margin:0 0 16px}
+  .eyebrow .num{color:var(--chloro)}.eyebrow .rule{flex:1;height:1px;background:var(--line)}
+  section.doc h2{font-size:clamp(1.7rem,4vw,2.5rem);letter-spacing:-.01em;margin-bottom:14px}
+  section.doc h3{font-size:1.28rem;margin:30px 0 10px;color:var(--ink)}
+  section.doc h4{font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:22px 0 8px}
+  .flow{max-width:var(--spine)}
+  .flow p,.lead{max-width:var(--spine)}
+  .lead{font-size:1.12em;color:var(--ink-2);margin-bottom:24px}
+
+  .callout{border-left:2px solid var(--chloro);background:var(--chloro-soft);padding:14px 18px;border-radius:0 10px 10px 0;margin:22px 0;max-width:var(--spine)}
+  .callout.warm{border-color:var(--osteo);background:var(--osteo-soft)}
+  .callout.cool{border-color:var(--lumen);background:var(--lumen-soft)}
+  .callout p{margin:0}.callout .lab{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:6px}
+
+  .tbl-wrap{overflow-x:auto;margin:18px 0;border:1px solid var(--line);border-radius:10px}
+  .fig{border:1px solid var(--line-2);border-radius:10px;background:var(--ground-2);padding:10px;margin:16px 0;overflow-x:auto}
+  .fig svg{display:block;width:100%;min-width:720px;height:auto}
+  .figcap{font-size:.82em;color:var(--ink-3);margin:8px 2px 0;line-height:1.5}
+  table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+  thead th{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:600;text-align:left;padding:12px 14px;background:var(--sheet);border-bottom:1px solid var(--line-2)}
+  td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+  tbody tr:last-child td{border-bottom:none}
+  td:first-child{color:var(--ink);font-family:var(--font-display);font-size:14.5px}
+  td .r{font-family:var(--font-mono);font-size:11px;color:var(--chloro)}
+
+  .pathway{font-family:var(--font-mono);font-size:12.5px;line-height:1.9;color:var(--ink-2);background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:16px 0;overflow-x:auto}
+  .pathway .step{color:var(--ink)}.pathway .en{color:var(--lumen)}.pathway b{color:var(--osteo)}
+
+  .gap{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;color:var(--osteo);display:inline-block;border:1px solid var(--osteo);border-radius:6px;padding:1px 7px;margin-left:4px}
+  sup.cite{font-size:.62em;line-height:0;vertical-align:super;font-family:var(--font-mono);font-weight:600}
+  sup.cite a{color:var(--lumen);text-decoration:none;padding:0 1px}
+  sup.cite a:hover{text-decoration:underline}
+  .refs{margin-top:18px;border-top:1px solid var(--line);padding-top:18px}
+  .refs h3{font-family:var(--font-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--osteo);margin-bottom:14px}
+  .refs ol{margin:0;padding-left:2.4em;display:grid;gap:8px}
+  .refs li{font-size:.82em;line-height:1.5;color:var(--ink-2);max-width:80ch}
+  .refs li a{color:var(--lumen);text-decoration:none}
+  .refs .rt{color:var(--ink-3);font-style:italic}
+  .refs-note{font-size:.8em;color:var(--ink-3);margin:0 0 14px;max-width:78ch}
+  .real{color:var(--chloro)}
+
+  .notes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:8px}
+  .note{border-left:2px solid var(--line-2);padding:2px 0 2px 16px}
+  .note .nh{font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:7px}
+  .note p{font-size:13px;color:var(--ink-2);margin:0;line-height:1.55}
+  .note.grn{border-color:var(--chloro)}.note.warm{border-color:var(--osteo)}.note.cool{border-color:var(--lumen)}
+
+  footer{padding:34px 0 66px}
+  .fbar{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);border-top:1px solid var(--line);padding-top:20px}
+  .fbar .sep{color:var(--line-2)}
+  .reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
+  ::selection{background:var(--chloro);color:var(--ground)}
+  :focus-visible{outline:2px solid var(--lumen);outline-offset:3px;border-radius:3px}
+</style>
+
+<div class="page"><div class="wrap">
+
+  <nav class="prog-nav" aria-label="GESTALT program documents">
+    <span class="pn-brand">◈ GESTALT Program</span>
+    <a href="https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1">Design Dossier</a>
+    <a href="https://claude.ai/code/artifact/bd2c2c98-84cf-42c9-91ea-f0ec1c749fc5">Starship</a>
+    <a href="https://claude.ai/code/artifact/9b90d7e5-2a71-426a-b2bf-d3a96b32a82e">Habitat</a>
+    <a href="https://claude.ai/code/artifact/94531439-d04d-480e-9d04-bad6fcdacd9a">LICHEN</a>
+    <a href="https://claude.ai/code/artifact/2433fa54-e582-4194-8245-d63acee8fb85">GRAVID</a>
+    <a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet Registry</a>
+    <a href="https://claude.ai/code/artifact/7ca9c965-1932-4c5a-b0f1-a99e9febae58">Class Reference</a>
+    <a href="#" class="current" aria-current="page">Compendium</a>
+    <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed">Earth Program</a>
+    <a href="https://claude.ai/code/artifact/1c6f18ca-eeda-4d83-bd97-fd9c1622823d">3D Models</a>
+  </nav>
+
+  <header class="mast">
+    <p class="kick">Engineering &amp; Biology Compendium · Technical Reference</p>
+    <h1>Beneath the <span class="s">S</span>kin</h1>
+    <p class="sub">The chemistry, biology and construction methods under every GESTALT plan — where the conceptual documents say "grown," this says <em>how</em>.</p>
+    <nav class="toc" aria-label="Contents">
+      <a href="#chassis"><span class="n">01</span><span class="t">The chassis — a designed symbiosis</span></a>
+      <a href="#genome"><span class="n">02</span><span class="t">Genome, gene circuits &amp; morphogenesis</span></a>
+      <a href="#materials"><span class="n">03</span><span class="t">Structural materials chemistry</span></a>
+      <a href="#metabolism"><span class="n">04</span><span class="t">Metabolism &amp; closed-loop biochemistry</span></a>
+      <a href="#defense"><span class="n">05</span><span class="t">Molecular defenses against space</span></a>
+      <a href="#build"><span class="n">06</span><span class="t">Construction — the growth protocol in detail</span></a>
+      <a href="#reality"><span class="n">07</span><span class="t">What is real, and what is not</span></a>
+      <a href="#params"><span class="n">08</span><span class="t">Key parameters &amp; assumptions</span></a>
+    </nav>
+  </header>
+
+  <p class="lead" style="margin-top:30px">The GESTALT plans describe <em>what</em> is grown. This document describes the machinery that would have to exist to grow it: the specific organisms and the labour divided among them, the genetic circuitry that turns a seed into a shaped body, the molecular composition and synthesis of every structural material, the biochemical loops that keep the air breathable, the proteins that let tissue survive vacuum and radiation, and the chemistry of pulling a spacecraft out of an asteroid. Real, demonstrated science is marked <span class="real">green</span>; the speculative integration is marked <span class="gap">gap</span>. There is a great deal of both.</p>
+
+  <!-- ===== 01 CHASSIS ===== -->
+  <section class="doc reveal" id="chassis">
+    <p class="eyebrow"><span class="num">01</span> The chassis <span class="rule"></span></p>
+    <h2>A designed symbiosis, not a single organism</h2>
+    <div class="flow">
+      <p>No one cell can be a hull, a lung, a skeleton and a foundry at once. GESTALT is therefore not one engineered organism but a <strong>designed consortium</strong> — a synthetic version of a lichen, which is already a fungus farming a photosynthetic partner as one composite body. The consortium divides labour among a handful of chassis species, each a real, transformable model organism carrying engineered payloads, held together by orthogonal chemical signalling.</p>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Role in the body</th><th>Real chassis organism</th><th>Native function it provides</th><th>What must be engineered in</th></tr></thead>
+          <tbody>
+            <tr><td>Structural matrix<br><span class="r">"the flesh &amp; wood"</span></td><td>Filamentous fungus — <em>Ganoderma / Pleurotus</em> (basidiomycete), the strains already pressed into mycelium materials</td><td>Chitin–glucan hyphal network; tip-growth by the Spitzenkörper; secretes and remodels its own matrix</td><td>Stress-directed growth; secretion of collagen/silk proteins it does not natively make; gas-tight wall variants</td></tr>
+            <tr><td>Air &amp; sugar<br><span class="r">"the intima"</span></td><td>Cyanobacterium <em>Synechocystis</em> sp. PCC 6803 (fully sequenced, naturally transformable) + green alga <em>Chlamydomonas reinhardtii</em></td><td>Oxygenic photosynthesis; CO₂ fixation into sugar exported to the fungus</td><td>Higher light tolerance; carboxysome tuning; sucrose-export circuits (as in engineered cyanobacteria)</td></tr>
+            <tr><td>Nitrogen<br><span class="r">"the gut fixer"</span></td><td><em>Anabaena</em> (heterocyst-forming) or <em>Azotobacter</em></td><td>Fixes atmospheric/again-cycled N₂ into ammonia via nitrogenase in anoxic heterocysts</td><td>Coupling N-supply to demand; O₂ protection of nitrogenase</td></tr>
+            <tr><td>Skeleton &amp; repair<br><span class="r">"the osteoblast"</span></td><td><em>Sporosarcina pasteurii</em> (ureolytic) + engineered mineralising cells</td><td>Microbially induced calcite precipitation (MICP) — lays down carbonate/mineral on command</td><td>Templated hydroxyapatite (not just calcite); collagen co-deposition; remodelling control</td></tr>
+            <tr><td>Mining &amp; refining<br><span class="r">"RADIX gut"</span></td><td><em>Acidithiobacillus ferrooxidans / thiooxidans</em> (industrial biomining)</td><td>Oxidises Fe/S, generates acid, bioleaches metals from rock</td><td>Selectivity; tolerance of regolith chemistry; integration with the body's vasculature</td></tr>
+            <tr><td>Antennae &amp; magnetics<br><span class="r">"VESPER"</span></td><td>Magnetotactic bacteria (<em>Magnetospirillum</em>)</td><td>Biomineralise membrane-bound magnetite (Fe₃O₄) magnetosomes in aligned chains</td><td>Bulk conductive/reflective structures; figure control for antennas</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>The genetic toolkit — specific parts</h4>
+      <p>These are not hypothetical hand-waves; each engineered function maps to characterised genes and demonstrated techniques.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Engineered function</th><th>Genes / parts</th><th>Host</th><th>Real basis</th></tr></thead>
+          <tbody>
+            <tr><td>Export sugar to the fungus</td><td><span class="chem">cscB</span> sucrose permease</td><td><em>Synechococcus / Synechocystis</em></td><td>"Leaky" cyanobacteria secreting sucrose (Ducat lab, 2012)<sup class="cite"><a href="#cref-10">[10]</a></sup></td></tr>
+            <tr><td>Fix nitrogen</td><td><span class="chem">nif</span> cluster + heterocyst O₂-protection</td><td><em>Anabaena</em> PCC 7120</td><td>Native diazotrophy; <span class="chem">nif</span> transfer into plants attempted</td></tr>
+            <tr><td>Precipitate mineral (MICP)</td><td><span class="chem">ureABC</span> urease</td><td><em>Sporosarcina pasteurii</em></td><td>Industrial biocement &amp; self-healing concrete</td></tr>
+            <tr><td>Grow magnetite</td><td><span class="chem">mamAB / mms6</span> magnetosome island</td><td><em>Magnetospirillum</em> AMB-1</td><td>Native Fe₃O₄ biomineralisation</td></tr>
+            <tr><td>Assemble &amp; edit</td><td>CRISPR-Cas; MoClo / Golden-Gate; registry parts</td><td>all chassis</td><td>Standard synthetic-biology workflow</td></tr>
+            <tr><td>Transform the hosts</td><td>natural competence (<em>Synechocystis</em>); <em>Agrobacterium</em> (fungi)</td><td>all chassis</td><td>Established transformation routes</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Holding it together — orthogonal signalling</h4>
+      <p>A consortium only behaves as one organism if the partners talk without cross-talk. The scaffold is <strong>quorum sensing</strong>: acyl-homoserine-lactone systems (<span class="chem">LuxI/LuxR</span>, <span class="chem">LasI/LasR</span>, <span class="chem">RhlI/RhlR</span>, plus low-crosstalk pairs such as <span class="chem">RpaI/RpaR</span> from <em>Rhodopseudomonas</em>) and orthogonal peptide systems give each partner a private channel to sense density and coordinate secretion. Metabolic interdependence enforces cooperation — the alga cannot fix N, the fungus cannot photosynthesise, the miner cannot build — so no partner benefits from defecting. This is a synthetic version of the <strong>syntrophy</strong> that binds real microbial communities, and it is also a containment feature: a partner that escapes the consortium loses the metabolites it depends on. <span class="gap">gap: stable division of labour at organism scale is unproven</span></p>
+    </div>
+  </section>
+
+  <!-- ===== 02 GENOME ===== -->
+  <section class="doc reveal" id="genome">
+    <p class="eyebrow"><span class="num">02</span> Genome, circuits &amp; morphogenesis <span class="rule"></span></p>
+    <h2>How a seed becomes a shaped body</h2>
+    <div class="flow">
+      <p>The single hardest problem in the whole program is not any one material — it is <strong>morphogenesis</strong>: getting an undifferentiated seed to grow into a kilometre-scale body with the right organ in the right place. Biology does this routinely at millimetre-to-metre scale (every embryo); doing it on command, at engineered scale, is the frontier. GESTALT would build on four real synthetic-biology tools. On the ground this is the program's one true bet — the <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#wp4">WP4 morphogenesis moonshot</a>, whose success or failure is the <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#gates">Phase-2 go/no-go gate</a> of the Earth Program.</p>
+
+      <h4>1 · Genome design &amp; safety recoding</h4>
+      <p>Each chassis carries a <strong>recoded genome</strong>. Real work (the <span class="chem">E. coli C321.ΔA</span> line, 321 codons reassigned)<sup class="cite"><a href="#cref-1">[1]</a><a href="#cref-2">[2]</a></sup> shows a genome can be rewritten to free codons and firewall it against natural gene transfer and viruses. GESTALT uses this two ways: to install <strong>synthetic auxotrophy</strong> — dependence on a non-natural amino acid (e.g. bipyridyl-alanine) not found anywhere in nature, so the cells die outside supply <span class="real">demonstrated, Church &amp; Isaacs labs 2015<sup class="cite"><a href="#cref-3">[3]</a><a href="#cref-4">[4]</a></sup></span> — and to make the organisms <strong>genetically incompatible</strong> with any wild biosphere they might reach.</p>
+
+      <h4>2 · Patterning — morphogen gradients &amp; synthetic Notch</h4>
+      <p>Position is told to cells by chemical gradients, exactly as in embryos (the "French-flag" model: a diffusing morphogen at high/medium/low concentration switches three different fates). GESTALT would use engineered diffusible signals plus <strong>synNotch</strong> receptors — synthetic Notch, a real modular receptor (Lim lab) whose custom ligand drives a custom transcriptional program — to build layered structures cell-contact by cell-contact. Synthetic synNotch circuits have already self-organised multi-layered structures in the lab. <span class="gap">gap: demonstrated at ~mm; needed at km</span></p>
+
+      <h4>3 · Self-organising texture — Turing patterns</h4>
+      <p>The fine repeating textures (the Whipple lamellae of the pneumostat, the villi of a placenta, the trabeculae of bone) come from <strong>reaction–diffusion</strong>: a short-range activator and a long-range inhibitor spontaneously produce stripes and spots. <span class="chem">activator↑ → self + inhibitor↑ → inhibitor diffuses → spacing</span>. Turing circuits have been built synthetically in bacteria; GESTALT uses them so the genome need not specify every strut, only the rule that generates them.</p>
+
+      <h4>4 · Stress-directed growth — Wolff's law in code</h4>
+      <p>The skeleton optimises itself: strain-sensing cells (piezo-channel analogues) deposit mineral where load is chronic and resorb it where it is idle, the mechanism that shapes real bone. A gene circuit couples <span class="chem">mechanical strain → osteoblast deposition</span> and <span class="chem">idleness → osteoclast resorption</span>, so the hull tunes its own truss geometry at a resolution no blueprint could specify.</p>
+
+      <h4>The scale gap — why this is the long pole</h4>
+      <p>Every tool above is real, and every one has been shown at millimetre scale. The problem is the distance to a spacecraft. A starship hull is ~43,000 m³ of tissue — on the order of <strong>10²⁰ cells</strong>, roughly a million human bodies' worth (a gigatonne habitat is a billion). Today's most advanced directed morphogenesis — organoids and synNotch-patterned spheroids (Toda &amp; Lim, 2018)<sup class="cite"><a href="#cref-6">[6]</a></sup> — reaches ~10⁶ cells at millimetre-to-centimetre scale. That is a <strong>~14-order-of-magnitude gap</strong> in cell number.</p>
+      <p>And the patterning cannot simply be scaled up. A morphogen gradient has a characteristic length of only <span class="chem">λ = √(D/k) ≈ 0.3–1 mm</span> — set by how fast the signal diffuses against how fast it decays — so <em>no single gradient can span a kilometre</em>. Real embryos get around this with a <strong>hierarchical relay</strong>: successive gradients, Hox coordinate genes, and a segmentation clock (an oscillator, cf. the repressilator of Elowitz &amp; Leibler, 2000)<sup class="cite"><a href="#cref-5">[5]</a></sup> that lays down repeating units one at a time as the body grows. GESTALT would need the same — a self-referential cascade in which each region patterns the next — engineered and reliable across ~10²⁰ cells and years of growth. Nothing at that scale exists, or is close. <span class="gap">gap: TRL ~2 — the true bottleneck of the whole program</span></p>
+
+      <div class="callout">
+        <span class="lab">Worked example · fitting a segmentation clock to a grown body</span>
+        <p>The clock-and-wavefront rule is simple: <span class="chem">segment length = clock period × growth-front speed</span>, one unit laid down per tick. <span class="real">Real embryos run this now</span> — a genetic oscillator (Hes/her genes) ticking once per somite: ~30 min in zebrafish, ~2 h in mouse, ~5 h in human, each somite ~<span class="chem">λ</span>-sized because a fresh gradient can only reach ~1 mm before it decays.</p>
+        <p>Now scale it — to the class actually grown "somite by somite." The <a href="https://claude.ai/code/artifact/9b90d7e5-2a71-426a-b2bf-d3a96b32a82e">ARCA habitat</a> is a 10 km drum built from ~1 mm units: that is <span class="chem">N = L/λ ≈ 10⁷</span> segments down the axis. A <em>single</em> growth front ticking at a zebrafish-fast 30 min would take <span class="chem">N·T ≈ 570 years</span> — absurd against its ~30-year gestation. To hit thirty years the body must lay down many segments at once: keep the embryo-speed clock and run <strong>~20 parallel growth fronts</strong> in register (<span class="chem">t = N·T/P</span>), which is exactly why the drum grows as several simultaneous segments rather than one nose-to-tail sweep. A metre-scale segment size eases the count but coarsens the body; the gradient limit is what pins segments near the millimetre.</p>
+        <p>So the clock is not the hard part — <span class="real">the oscillator is demonstrated</span>. The wall is <strong>reliability</strong>: holding phase across ~10⁷ ticks and keeping ~20 parallel fronts synchronised, without drift, for decades. <span class="gap">gap: that sustained, multi-front phase-accuracy at engineered scale is exactly the TRL ~2 bottleneck — the clock chemistry is real; running it a million times without losing count is not.</span></p>
+      </div>
+
+      <div class="callout warm">
+        <span class="lab">The governing constraint</span>
+        <p>All of this sits on <strong>error-correcting genome maintenance</strong>: multiple genome copies (as in <em>Deinococcus</em><sup class="cite"><a href="#cref-16">[16]</a></sup>), enforced apoptosis of drifting somatic cells (Hayflick-style division limits), and a canonical genome checksummed in the CHORUS archive and re-synchronised to the germline. Without it, a growing body is a growing tumour. Reproduction itself is gated by a cryptographic licence — see <a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Governance</a>.</p>
+      </div>
+
+      <h4>Growth control — why it won’t become a tumour</h4>
+      <p>A body that grows is a body that can grow a tumour, and the scale makes it acute. Building ~<span class="chem">10²⁰</span> cells takes ~10²⁰ divisions over the organism’s life; at a somatic mutation rate around <span class="chem">10⁻⁹ /bp</span>, roughly <strong>10¹⁴</strong> of those divisions will damage a growth-control gene at least once. Unchecked, some lineage would eventually collect the <strong>~six driver mutations</strong> cancer needs<sup class="cite"><a href="#cref-23">[23]</a></sup>, and the design’s greatest strength — vigorous, directed self-repair — becomes its lethal failure mode. This is <strong>Peto’s paradox</strong><sup class="cite"><a href="#cref-21">[21]</a></sup>: by naive arithmetic a blue whale should be riddled with cancer, yet big long-lived animals get <em>less</em> of it than mice — because they evolved extra suppression. An elephant carries ~<strong>20 copies of the TP53</strong> tumour-suppressor where we carry one<sup class="cite"><a href="#cref-22">[22]</a></sup>.</p>
+      <p>GESTALT has to out-do the elephant, and does it the same way: <strong>defense in depth</strong>, where no single mechanism suffices but the layers multiply. Each successive control knocks the expected number of uncontrolled tumours down by orders of magnitude, from near-certainty to under one over the whole life.</p>
+      <div class="fig">
+        <svg viewBox="0 0 960 340" role="img" aria-label="Defense-in-depth waterfall: the expected number of uncontrolled tumour lineages over the organism's life falls from about 10 to the 12 with no control, through seven layered controls, to about 0.1 — below the safe threshold of one per lifetime.">
+{fig}
+        </svg>
+        <p class="figcap"><strong>Seven layers, ~10¹³× total suppression.</strong> The requirement for several driver hits (not one), a low mutation rate from <em>Deinococcus</em>-style error correction, redundant tumour-suppressors (elephant-style), a Hayflick/telomere cap on each lineage, enforced apoptosis of off-spec cells, immune-cell surveillance, and compartmentalisation with periodic germline re-sync from the CHORUS archive. Only with <em>all</em> of them does the expected count drop below one — an order-of-magnitude estimate, not a guarantee.</p>
+      </div>
+      <p>The honest reading: this is the internal twin of the <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#wp6">biocontainment problem</a> — cancer control governs runaway growth <em>inside</em> one organism exactly as kill-switches and auxotrophy govern it <em>between</em> organisms, and both must be proven before anything is grown at scale. <span class="gap">gap: every layer is individually real (TP53 engineering, telomerase control, synthetic apoptosis circuits, CAR-style immune cells), but stacking all seven in one lineage and keeping them intact over a vessel’s lifetime of divisions is unproven — the same reliability wall as the containment genome (WP6).</span></p>
+    </div>
+  </section>
+
+  <!-- ===== 03 MATERIALS ===== -->
+  <section class="doc reveal" id="materials">
+    <p class="eyebrow"><span class="num">03</span> Structural materials chemistry <span class="rule"></span></p>
+    <h2>What the hull is actually made of</h2>
+    <div class="flow">
+      <p>Every layer of a GESTALT hull is a specific biopolymer or biomineral with a known composition, a biological synthesis route, and measurable mechanical properties. The trick is that biology already makes materials that rival engineered ones — spider silk out-toughens Kevlar, bone out-performs any equal-weight ceramic<sup class="cite"><a href="#cref-7">[7]</a><a href="#cref-8">[8]</a></sup> — it just makes them at ambient temperature and pressure out of air, water and dissolved rock.</p>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Material · role</th><th>Composition</th><th>Biological synthesis</th><th>Key properties</th></tr></thead>
+          <tbody>
+            <tr><td>Mycelium matrix<br><span class="r">bulk scaffold</span></td><td>Chitin <span class="chem">(C₈H₁₃O₅N)ₙ</span> + β-1,3/1,6-glucans</td><td>Hyphal tip-growth; chitin synthase extrudes fibrils across the membrane</td><td>Low density ~100–400 kg/m³; strong in tension (chitin nanofibrils), weak in point compression ~0.1–1 MPa</td></tr>
+            <tr><td>Osteoid trusses<br><span class="r">skeleton</span></td><td>Collagen I <span class="chem">(Gly-X-Y)ₙ</span> + hydroxyapatite <span class="chem">Ca₁₀(PO₄)₆(OH)₂</span></td><td>Cells secrete collagen triple helix; mineral nucleates in the gap zones (matrix-vesicle route)</td><td>Tensile ~100–150 MPa, compressive ~150–200 MPa; toughness from the mineral-collagen composite</td></tr>
+            <tr><td>Tendon cage<br><span class="r">tension skeleton</span></td><td>Spider-silk spidroins (MaSp1/2): poly-Ala β-sheet nanocrystals + Gly-rich amorphous matrix</td><td>Spun from a liquid-crystalline dope; shear + pH/ion gradient triggers β-sheet assembly</td><td>Tensile ~1–1.5 GPa; toughness ~150–350 MJ/m³ (exceeds Kevlar). Recombinant silk is real <span class="real">AMSilk, Spiber, Bolt</span></td></tr>
+            <tr><td>Melanised rind<br><span class="r">radiation</span></td><td>Eumelanin — polymer of DHI/DHICA from tyrosine</td><td>Tyrosinase: <span class="chem">tyrosine → L-DOPA → dopaquinone → polymer</span></td><td>Broadband absorber; radical scavenger; the pigment of the ISS-tested radiotrophic fungus</td></tr>
+            <tr><td>Pneumostat lamellae<br><span class="r">pressure seal</span></td><td>Cutin/suberin-type polyester + lipid multilayers</td><td>Secreted waxy polyesters, as in plant cuticle; stacked as many thin gas-tight sheets</td><td>Low gas permeability; redundant — a punctured sheet is backed by the next</td></tr>
+            <tr><td>Regolith / slag shield<br><span class="r">bulk shielding</span></td><td>Sintered regolith, MICP-bound aggregate, water ice</td><td>Ureolytic MICP cements mined regolith into a solid blanket</td><td>Hydrogen-rich mass; shielding scales with areal density (g/cm²), not cleverness</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Strength by weight — why biology competes</h4>
+      <p>Bio-materials are rarely the <em>strongest</em>, but they are light, and structures care about strength-per-weight. Specific strength — tensile strength divided by density — tells the story:</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Material</th><th>σ (MPa)</th><th>ρ (kg/m³)</th><th>Specific strength (kN·m/kg)</th></tr></thead>
+          <tbody>
+            <tr><td>Chitin nanofibril</td><td>~2,000</td><td>~1,400</td><td><span class="r">~1,430</span></td></tr>
+            <tr><td>Spider silk (spidroin)</td><td>~1,100</td><td>~1,300</td><td><span class="r">~850</span></td></tr>
+            <tr><td>Trabecular bone</td><td>~130</td><td>~1,400</td><td>~93</td></tr>
+            <tr><td>Steel (high-strength)</td><td>~1,500</td><td>7,850</td><td>~190</td></tr>
+            <tr><td>Aluminium 7075</td><td>~500</td><td>2,700</td><td>~185</td></tr>
+            <tr><td>Kevlar 49 / carbon fibre</td><td>~3,500</td><td>~1,600</td><td>~2,000–2,500</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Chitin fibre and silk beat steel and aluminium per unit mass, though engineered aramids and carbon fibre still lead. Bone and collagen trail — which is why they carry compression and framing, not the primary tension loads.</p>
+
+      <div class="callout warm">
+        <span class="lab">Worked example — silk vs steel for the ARCA hoop load</span>
+        <p>The habitat's rim carries <span class="chem">N = 230 MN per metre</span> of hoop tension. A silk-protein tendon at a 200 MPa working stress needs <span class="chem">A = N/σ = 1.15 m²</span> of cross-section per metre → <strong>1,495 kg/m²</strong>. A high-strength steel cable at 500 MPa needs only 0.46 m²/m — but at 7,850 kg/m³ that is <strong>3,611 kg/m²</strong>. The grown cage is <strong>~2.4× lighter</strong> than steel despite half the strength, purely because it is ~6× less dense — and its toughness (~150–350 MJ/m³, exceeding Kevlar's ~50) lets it absorb impact energy rather than shatter. That, quantified, is why a living ship can be built of protein.</p>
+      </div>
+
+      <h4>Biomineralisation — the core chemistry of growing hard structure</h4>
+      <p>Three real biomineralisation routes cover almost every hard part of the fleet:</p>
+      <div class="pathway">
+<span class="step">CARBONATE (MICP — bone anchors, reef, shield binder):</span>
+  urease: <b>CO(NH₂)₂</b> + 2H₂O <span class="en">──▶</span> 2NH₃ + H₂CO₃ ;  Ca²⁺ + CO₃²⁻ <span class="en">──▶</span> <b>CaCO₃↓</b>
+<span class="step">PHOSPHATE (true bone):</span>
+  10 Ca²⁺ + 6 PO₄³⁻ + 2 OH⁻ <span class="en">──▶</span> <b>Ca₁₀(PO₄)₆(OH)₂</b>  (nucleated on collagen)
+<span class="step">MAGNETITE (VESPER antennas, navigation):</span>
+  magnetosome: 3Fe³⁺/Fe²⁺ control <span class="en">──▶</span> <b>Fe₃O₄</b>  (membrane-templated, aligned by MamK)
+<span class="step">SILICA (lenses, refractory parts):</span>
+  silaffins + polyamines <span class="en">──▶</span> <b>SiO₂</b>  (diatom-style biosilicification)
+      </div>
+      <p>Each is demonstrated in nature and, for MICP and silica, in engineering. What GESTALT adds is <strong>spatial control</strong> — depositing the right mineral, in the right shape, on command from the patterning circuits above — which is the unsolved part. <span class="gap">gap</span></p>
+    </div>
+  </section>
+
+  <!-- ===== 04 METABOLISM ===== -->
+  <section class="doc reveal" id="metabolism">
+    <p class="eyebrow"><span class="num">04</span> Metabolism &amp; closed-loop biochemistry <span class="rule"></span></p>
+    <h2>Keeping the air and water alive</h2>
+    <div class="flow">
+      <h4>Photosynthesis — the oxygen source, in detail</h4>
+      <p>The photosynthetic intima runs the same chemistry as every leaf. Light drives the <strong>splitting of water</strong> at Photosystem II's oxygen-evolving complex — a <span class="chem">Mn₄CaO₅</span> cluster — releasing the O₂ the crew breathes; the electrons flow through the chain to fix carbon:</p>
+      <div class="pathway">
+<span class="step">LIGHT REACTIONS:</span>  2H₂O <span class="en">──PSII──▶</span> <b>O₂</b> + 4H⁺ + 4e⁻   ;  e⁻ chain <span class="en">──▶</span> ATP + NADPH
+<span class="step">CARBON FIXATION (Calvin cycle):</span>  CO₂ + RuBP <span class="en">──RuBisCO──▶</span> 2× 3-PGA <span class="en">──▶</span> <b>sugar</b>
+<span class="step">NET:</span>  6CO₂ + 6H₂O + light <span class="en">──▶</span> <b>C₆H₁₂O₆</b> + 6O₂
+      </div>
+      <p>RuBisCO — the carbon-fixing enzyme — is famously slow (a few turnovers per second) and wastefully grabs O₂ as well as CO₂. Cyanobacteria solve this with <strong>carboxysomes</strong>, protein shells that concentrate CO₂ around the enzyme; GESTALT would tune these, and could install faster synthetic fixation cycles (the <strong>CETCH cycle</strong> is a real in-vitro CO₂-fixation pathway more efficient than nature's). Realistic photosynthetic efficiency is ~3–6% of incident light into biomass, which is why the plans size illuminated wall area, not chemistry, as the O₂ limit.</p>
+
+      <p><strong>The flux, quantified.</strong> Water-splitting and carbon fixation cost ~8–10 absorbed photons per O₂; the theoretical ceiling is ~34% of absorbed PAR stored as sugar, which the loss chain (usable PAR is only ~45% of sunlight, plus reflection and respiration) drops to the ~3–6% above. At a good algal areal rate of ~30 g O₂/m²·day, one crew member's 0.84 kg/day<sup class="cite"><a href="#cref-20">[20]</a></sup> is covered by only ~<strong>28 m² of lit intima</strong>. Crucially the tissue is not light-hungry — most phototrophs saturate at ~200–400 µmol photons/m²·s (~40–90 W/m² of PAR), a fraction of full sun — so a piped source delivering ~150 W/m² is more than enough. (This is also why the habitat's light must be <em>piped starlight</em>, not bioluminescence: gigawatts of daylight cannot come from organisms that emit milliwatts.)</p>
+
+      <h4>Closing the loop — the nitrogen and waste cycle</h4>
+      <p>A materially-closed habitat must recycle every atom. Crew and organism waste is mineralised back into fertiliser by the same microbial cycles that run Earth's soils:</p>
+      <div class="pathway">
+<span class="step">AMMONIFICATION:</span> proteins/urea <span class="en">──▶</span> NH₄⁺
+<span class="step">NITRIFICATION:</span> NH₄⁺ <span class="en">──Nitrosomonas──▶</span> NO₂⁻ <span class="en">──Nitrobacter──▶</span> <b>NO₃⁻</b>  (plant-usable)
+<span class="step">FIXATION (top-up losses):</span> N₂ <span class="en">──nitrogenase──▶</span> NH₃
+<span class="step">UPTAKE:</span> NO₃⁻ + PO₄³⁻ <span class="en">──▶</span> intima biomass <span class="en">──▶</span> crew food
+      </div>
+      <p>By mass this is a small flux — a person excretes ~13 g of nitrogen a day (mostly urea), so a million-person habitat cycles only ~13 t of N daily through nitrification, topped up by fixation for the ~1–2% lost to space. This is exactly the loop that ESA's <strong>MELiSSA</strong> project has run in pieces for decades, and that BIOS-3 sustained human crews on for months<sup class="cite"><a href="#cref-11">[11]</a><a href="#cref-12">[12]</a><a href="#cref-13">[13]</a></sup>. The gap is not the individual steps but their <strong>long-term stability</strong> as a closed system at population scale.</p>
+      <div class="fig">
+        <svg viewBox="0 0 960 398" role="img" aria-label="The nitrogen cycle as a closed loop: biomass to ammonium to nitrite to nitrate and back to biomass, with denitrification/leak out to an N2 pool and nif fixation topping it back up.">
+        <line x1="328.3" y1="88.3" x2="411.7" y2="171.7" stroke="var(--ink-3)" stroke-width="1.6"/>
+        <path d="M411.7 171.7 L403.4 168.3 L408.3 163.4 Z" fill="var(--ink-3)"/>
+        <text x="386" y="114" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">ammonification</text>
+        <line x1="411.7" y1="228.3" x2="328.3" y2="311.7" stroke="var(--ink-3)" stroke-width="1.6"/>
+        <path d="M328.3 311.7 L331.7 303.4 L336.6 308.3 Z" fill="var(--ink-3)"/>
+        <text x="386" y="286" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">nitritation</text>
+        <text x="386" y="296" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">Nitrosomonas</text>
+        <line x1="271.7" y1="311.7" x2="188.3" y2="228.3" stroke="var(--ink-3)" stroke-width="1.6"/>
+        <path d="M188.3 228.3 L196.6 231.7 L191.7 236.6 Z" fill="var(--ink-3)"/>
+        <text x="214" y="286" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">nitratation</text>
+        <text x="214" y="296" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">Nitrobacter</text>
+        <line x1="188.3" y1="171.7" x2="271.7" y2="88.3" stroke="var(--ink-3)" stroke-width="1.6"/>
+        <path d="M271.7 88.3 L268.3 96.6 L263.4 91.7 Z" fill="var(--ink-3)"/>
+        <text x="214" y="114" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">assimilation / uptake</text>
+        <circle cx="300" cy="60" r="36" fill="var(--chloro)" fill-opacity=".12" stroke="var(--chloro)"/>
+        <text x="300" y="58" text-anchor="middle" font-family="var(--font-display)" font-size="15" fill="var(--ink)">Biomass</text>
+        <text x="300" y="71" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" fill="var(--ink-3)">organic N</text>
+        <circle cx="440" cy="200" r="36" fill="var(--lumen)" fill-opacity=".12" stroke="var(--lumen)"/>
+        <text x="440" y="198" text-anchor="middle" font-family="var(--font-display)" font-size="15" fill="var(--ink)">NH₄⁺</text>
+        <text x="440" y="211" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" fill="var(--ink-3)">ammonium</text>
+        <circle cx="300" cy="340" r="36" fill="var(--lumen)" fill-opacity=".12" stroke="var(--lumen)"/>
+        <text x="300" y="338" text-anchor="middle" font-family="var(--font-display)" font-size="15" fill="var(--ink)">NO₂⁻</text>
+        <text x="300" y="351" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" fill="var(--ink-3)">nitrite</text>
+        <circle cx="160" cy="200" r="36" fill="var(--lumen)" fill-opacity=".12" stroke="var(--lumen)"/>
+        <text x="160" y="198" text-anchor="middle" font-family="var(--font-display)" font-size="15" fill="var(--ink)">NO₃⁻</text>
+        <text x="160" y="211" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" fill="var(--ink-3)">nitrate</text>
+        <text x="300" y="196" text-anchor="middle" font-family="var(--font-mono)" font-size="11" fill="var(--osteo)">~13 t N/day</text>
+        <text x="300" y="209" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">(habitat) cycled</text>
+        <text x="510" y="120" text-anchor="middle" font-family="var(--font-display)" font-size="13" fill="var(--ink)">N₂ pool</text>
+        <text x="510" y="133" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" fill="var(--ink-3)">~71 Mt buffer</text>
+        <line x1="284.0" y1="103.4" x2="440.0" y2="108.6" stroke="var(--osteo)" stroke-width="1.6"/>
+        <path d="M440.0 108.6 L431.6 111.9 L431.9 104.9 Z" fill="var(--osteo)"/>
+        <text x="340" y="96" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" fill="var(--osteo)">denitrification / leak</text>
+        <line x1="448.5" y1="174.7" x2="465.5" y2="161.3" stroke="var(--chloro)" stroke-width="1.6"/>
+        <path d="M465.5 161.3 L461.1 169.2 L456.8 163.7 Z" fill="var(--chloro)"/>
+        <text x="506" y="176" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" fill="var(--chloro)">nif fixation</text>
+        <text x="30" y="372" font-family="var(--font-mono)" font-size="9" fill="var(--ink-2)">loop ~99% closed — nif re-fixes N₂→NH₃ at ~0.13 t N/day to top up leakage (16 ATP per N₂ — costly, so biology recycles)</text>
+        <text x="30" y="387" font-family="var(--font-mono)" font-size="9" fill="var(--ink-2)">nitrification costs ~4.6 g O₂ per g N (~59 t O₂/day, recovered when biomass respires) · atmospheric N₂ ≈ a millennium's reserve</text>
+        </svg>
+        <p class="figcap"><strong>Nitrogen travels in a circle; only leakage needs new atoms.</strong> Waste N is ammonified to NH₄⁺, oxidised in two microbial steps (<em>Nitrosomonas</em> → NO₂⁻, <em>Nitrobacter</em> → NO₃⁻), and re-assimilated by the intima and crops as protein — the loop MELiSSA and BIOS-3 already run in pieces. Because nitrogenase spends <strong>16 ATP to fix one N₂</strong>, the system recycles wherever it can and reserves <span class="chem">nif</span> fixation for the ~1% that denitrification and leakage open; the atmosphere's ~71 Mt of N₂ is a millennium-scale buffer behind it, and nitrification's oxygen debt (~4.6 g O₂ per g N) is repaid when the biomass is later respired.</p>
+      </div>
+
+      <h4>The vascular system — plumbing chemistry</h4>
+      <p>Two sap streams move matter through metres of tissue. The <strong>xylem-analogue</strong> carries water and dissolved minerals outward, driven by osmotic gradients and slow peristalsis (in a plant, transpiration-driven cohesion-tension; here, active pumping since there is no atmosphere to transpire into). The <strong>phloem-analogue</strong> carries the intima's sugars inward by pressure-flow: sucrose loaded at the source raises osmotic pressure, water follows, and the bulk flow carries sugar to every non-photosynthetic cell. The trunks run inside the osteoid struts — marrow through bone — so the plumbing is armoured by the structure it feeds.</p>
+      <p><strong>Why any of this is mandatory.</strong> Oxygen and nutrients diffuse only <span class="chem">~100–200 µm</span> through living tissue before the cells beyond starve (the Krogh limit). A 5.5&nbsp;m hull is <strong>~27,000×</strong> that range, so diffusion alone would leave it dead beyond its first fraction of a millimetre — <em>every</em> living cell must sit within ~100 µm of a channel. What makes that affordable is that most of the wall is <strong>not living cells</strong> but secreted matrix — bone mineral, chitin, silk — exactly as a tree trunk is mostly dead xylem and bone is mostly mineral around sparse osteocytes. The living cells are few, embedded in a mostly-inert skeleton and reached by a fine network, so the metabolic burden is far smaller than "metres of cells."</p>
+      <div class="fig">
+        <svg viewBox="0 0 960 392" role="img" aria-label="Left: a branching vascular tree obeying Murray's law from trunk to capillary. Right: a tissue detail showing capillaries ~400 µm apart, each supplying cells within a ~200 µm diffusion range, with vascular volume about one percent.">
+          <text x="40" y="34" font-family="var(--font-mono)" font-size="12" fill="var(--ink)">A · one lawful tree — trunk to capillary</text>
+          <line x1="48.0" y1="210.0" x2="140.0" y2="210.0" stroke="var(--osteo)" stroke-width="13.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="140.0" y1="210.0" x2="200.5" y2="183.0" stroke="var(--osteo)" stroke-width="10.27" stroke-linecap="round" opacity=".85"/>
+          <line x1="200.5" y1="183.0" x2="232.3" y2="147.5" stroke="var(--osteo)" stroke-width="8.11" stroke-linecap="round" opacity=".85"/>
+          <line x1="232.3" y1="147.5" x2="242.8" y2="114.8" stroke="var(--osteo)" stroke-width="6.41" stroke-linecap="round" opacity=".85"/>
+          <line x1="242.8" y1="114.8" x2="240.1" y2="90.2" stroke="var(--osteo)" stroke-width="5.06" stroke-linecap="round" opacity=".85"/>
+          <line x1="240.1" y1="90.2" x2="231.1" y2="74.8" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="240.1" y1="90.2" x2="245.6" y2="73.3" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="242.8" y1="114.8" x2="259.3" y2="96.4" stroke="var(--osteo)" stroke-width="5.06" stroke-linecap="round" opacity=".85"/>
+          <line x1="259.3" y1="96.4" x2="264.8" y2="79.4" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="259.3" y1="96.4" x2="275.6" y2="89.1" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="232.3" y1="147.5" x2="263.7" y2="133.5" stroke="var(--osteo)" stroke-width="6.41" stroke-linecap="round" opacity=".85"/>
+          <line x1="263.7" y1="133.5" x2="280.2" y2="115.1" stroke="var(--osteo)" stroke-width="5.06" stroke-linecap="round" opacity=".85"/>
+          <line x1="280.2" y1="115.1" x2="285.6" y2="98.1" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="280.2" y1="115.1" x2="296.4" y2="107.8" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="263.7" y1="133.5" x2="288.4" y2="133.5" stroke="var(--osteo)" stroke-width="5.06" stroke-linecap="round" opacity=".85"/>
+          <line x1="288.4" y1="133.5" x2="304.6" y2="126.2" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="288.4" y1="133.5" x2="304.6" y2="140.7" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="200.5" y1="183.0" x2="248.2" y2="183.0" stroke="var(--osteo)" stroke-width="8.11" stroke-linecap="round" opacity=".85"/>
+          <line x1="248.2" y1="183.0" x2="279.5" y2="169.0" stroke="var(--osteo)" stroke-width="6.41" stroke-linecap="round" opacity=".85"/>
+          <line x1="279.5" y1="169.0" x2="296.0" y2="150.6" stroke="var(--osteo)" stroke-width="5.06" stroke-linecap="round" opacity=".85"/>
+          <line x1="296.0" y1="150.6" x2="301.5" y2="133.6" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="296.0" y1="150.6" x2="312.3" y2="143.3" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="279.5" y1="169.0" x2="304.3" y2="169.0" stroke="var(--osteo)" stroke-width="5.06" stroke-linecap="round" opacity=".85"/>
+          <line x1="304.3" y1="169.0" x2="320.5" y2="161.7" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="304.3" y1="169.0" x2="320.5" y2="176.2" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="248.2" y1="183.0" x2="279.5" y2="197.0" stroke="var(--osteo)" stroke-width="6.41" stroke-linecap="round" opacity=".85"/>
+          <line x1="279.5" y1="197.0" x2="304.3" y2="197.0" stroke="var(--osteo)" stroke-width="5.06" stroke-linecap="round" opacity=".85"/>
+          <line x1="304.3" y1="197.0" x2="320.5" y2="189.7" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="304.3" y1="197.0" x2="320.5" y2="204.3" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="279.5" y1="197.0" x2="296.0" y2="215.4" stroke="var(--osteo)" stroke-width="5.06" stroke-linecap="round" opacity=".85"/>
+          <line x1="296.0" y1="215.4" x2="312.3" y2="222.7" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="296.0" y1="215.4" x2="301.5" y2="232.4" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="140.0" y1="210.0" x2="200.5" y2="237.0" stroke="var(--osteo)" stroke-width="10.27" stroke-linecap="round" opacity=".85"/>
+          <line x1="200.5" y1="237.0" x2="248.2" y2="237.0" stroke="var(--osteo)" stroke-width="8.11" stroke-linecap="round" opacity=".85"/>
+          <line x1="248.2" y1="237.0" x2="279.5" y2="223.0" stroke="var(--osteo)" stroke-width="6.41" stroke-linecap="round" opacity=".85"/>
+          <line x1="279.5" y1="223.0" x2="296.0" y2="204.6" stroke="var(--osteo)" stroke-width="5.06" stroke-linecap="round" opacity=".85"/>
+          <line x1="296.0" y1="204.6" x2="301.5" y2="187.6" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="296.0" y1="204.6" x2="312.3" y2="197.3" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="279.5" y1="223.0" x2="304.3" y2="223.0" stroke="var(--osteo)" stroke-width="5.06" stroke-linecap="round" opacity=".85"/>
+          <line x1="304.3" y1="223.0" x2="320.5" y2="215.7" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="304.3" y1="223.0" x2="320.5" y2="230.3" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="248.2" y1="237.0" x2="279.5" y2="251.0" stroke="var(--osteo)" stroke-width="6.41" stroke-linecap="round" opacity=".85"/>
+          <line x1="279.5" y1="251.0" x2="304.3" y2="251.0" stroke="var(--osteo)" stroke-width="5.06" stroke-linecap="round" opacity=".85"/>
+          <line x1="304.3" y1="251.0" x2="320.5" y2="243.8" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="304.3" y1="251.0" x2="320.5" y2="258.3" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="279.5" y1="251.0" x2="296.0" y2="269.4" stroke="var(--osteo)" stroke-width="5.06" stroke-linecap="round" opacity=".85"/>
+          <line x1="296.0" y1="269.4" x2="312.3" y2="276.7" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="296.0" y1="269.4" x2="301.5" y2="286.4" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="200.5" y1="237.0" x2="232.3" y2="272.5" stroke="var(--osteo)" stroke-width="8.11" stroke-linecap="round" opacity=".85"/>
+          <line x1="232.3" y1="272.5" x2="263.7" y2="286.5" stroke="var(--osteo)" stroke-width="6.41" stroke-linecap="round" opacity=".85"/>
+          <line x1="263.7" y1="286.5" x2="288.4" y2="286.5" stroke="var(--osteo)" stroke-width="5.06" stroke-linecap="round" opacity=".85"/>
+          <line x1="288.4" y1="286.5" x2="304.6" y2="279.3" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="288.4" y1="286.5" x2="304.6" y2="293.8" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="263.7" y1="286.5" x2="280.2" y2="304.9" stroke="var(--osteo)" stroke-width="5.06" stroke-linecap="round" opacity=".85"/>
+          <line x1="280.2" y1="304.9" x2="296.4" y2="312.2" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="280.2" y1="304.9" x2="285.6" y2="321.9" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="232.3" y1="272.5" x2="242.8" y2="305.2" stroke="var(--osteo)" stroke-width="6.41" stroke-linecap="round" opacity=".85"/>
+          <line x1="242.8" y1="305.2" x2="259.3" y2="323.6" stroke="var(--osteo)" stroke-width="5.06" stroke-linecap="round" opacity=".85"/>
+          <line x1="259.3" y1="323.6" x2="275.6" y2="330.9" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="259.3" y1="323.6" x2="264.8" y2="340.6" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="242.8" y1="305.2" x2="240.1" y2="329.8" stroke="var(--osteo)" stroke-width="5.06" stroke-linecap="round" opacity=".85"/>
+          <line x1="240.1" y1="329.8" x2="245.6" y2="346.7" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <line x1="240.1" y1="329.8" x2="231.1" y2="345.2" stroke="var(--osteo)" stroke-width="4.00" stroke-linecap="round" opacity=".85"/>
+          <text x="52" y="200" font-family="var(--font-mono)" font-size="9" fill="var(--osteo)">trunk</text>
+          <text x="430" y="120" font-family="var(--font-mono)" font-size="9" fill="var(--osteo)" text-anchor="end">capillaries</text>
+          <text x="40" y="356" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">Murray's law:  r³ = Σ (child r)³   → space-filling at least pumping cost</text>
+          <text x="40" y="372" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-3)">~40 branchings from a metre-wide trunk to a ~20 µm capillary (a human body: ~30).</text>
+          <text x="540" y="34" font-family="var(--font-mono)" font-size="12" fill="var(--ink)">B · every cell ≤ ~100 µm from a channel</text>
+          <circle cx="600" cy="150" r="52" fill="var(--lumen)" fill-opacity=".05" stroke="var(--lumen)" stroke-opacity=".25" stroke-dasharray="2 3"/>
+          <circle cx="686" cy="150" r="52" fill="var(--lumen)" fill-opacity=".05" stroke="var(--lumen)" stroke-opacity=".25" stroke-dasharray="2 3"/>
+          <circle cx="772" cy="150" r="52" fill="var(--lumen)" fill-opacity=".05" stroke="var(--lumen)" stroke-opacity=".25" stroke-dasharray="2 3"/>
+          <circle cx="643" cy="225" r="52" fill="var(--lumen)" fill-opacity=".05" stroke="var(--lumen)" stroke-opacity=".25" stroke-dasharray="2 3"/>
+          <circle cx="729" cy="225" r="52" fill="var(--lumen)" fill-opacity=".05" stroke="var(--lumen)" stroke-opacity=".25" stroke-dasharray="2 3"/>
+          <circle cx="815" cy="225" r="52" fill="var(--lumen)" fill-opacity=".05" stroke="var(--lumen)" stroke-opacity=".25" stroke-dasharray="2 3"/>
+          <circle cx="600" cy="300" r="52" fill="var(--lumen)" fill-opacity=".05" stroke="var(--lumen)" stroke-opacity=".25" stroke-dasharray="2 3"/>
+          <circle cx="686" cy="300" r="52" fill="var(--lumen)" fill-opacity=".05" stroke="var(--lumen)" stroke-opacity=".25" stroke-dasharray="2 3"/>
+          <circle cx="772" cy="300" r="52" fill="var(--lumen)" fill-opacity=".05" stroke="var(--lumen)" stroke-opacity=".25" stroke-dasharray="2 3"/>
+          <circle cx="618" cy="150" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="615" cy="177" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="578" cy="188" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="582" cy="150" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="585" cy="123" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="623" cy="112" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="696" cy="165" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="672" cy="178" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="642" cy="152" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="676" cy="135" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="701" cy="123" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="730" cy="149" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="765" cy="166" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="741" cy="153" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="747" cy="114" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="780" cy="134" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="803" cy="147" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="797" cy="186" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="625" cy="227" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="624" cy="200" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="660" cy="184" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="661" cy="222" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="662" cy="249" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="626" cy="265" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="717" cy="211" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="739" cy="196" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="772" cy="217" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="741" cy="239" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="718" cy="254" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="686" cy="232" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="820" cy="208" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="845" cy="218" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="845" cy="257" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="810" cy="242" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="785" cy="232" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="785" cy="192" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="617" cy="295" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="622" cy="321" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="589" cy="342" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="583" cy="305" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="578" cy="278" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="611" cy="257" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="700" cy="311" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="680" cy="330" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="644" cy="314" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="673" cy="288" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="692" cy="269" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="728" cy="286" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="769" cy="317" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="743" cy="311" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="738" cy="272" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="775" cy="282" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="801" cy="289" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="806" cy="327" r="2.4" fill="var(--chloro)" fill-opacity=".5"/>
+          <circle cx="600" cy="150" r="4.5" fill="var(--osteo)" stroke="var(--ground-2)"/>
+          <circle cx="686" cy="150" r="4.5" fill="var(--osteo)" stroke="var(--ground-2)"/>
+          <circle cx="772" cy="150" r="4.5" fill="var(--osteo)" stroke="var(--ground-2)"/>
+          <circle cx="643" cy="225" r="4.5" fill="var(--osteo)" stroke="var(--ground-2)"/>
+          <circle cx="729" cy="225" r="4.5" fill="var(--osteo)" stroke="var(--ground-2)"/>
+          <circle cx="815" cy="225" r="4.5" fill="var(--osteo)" stroke="var(--ground-2)"/>
+          <circle cx="600" cy="300" r="4.5" fill="var(--osteo)" stroke="var(--ground-2)"/>
+          <circle cx="686" cy="300" r="4.5" fill="var(--osteo)" stroke="var(--ground-2)"/>
+          <circle cx="772" cy="300" r="4.5" fill="var(--osteo)" stroke="var(--ground-2)"/>
+          <line x1="600" y1="90" x2="686" y2="90" stroke="var(--ink-3)" stroke-width=".8"/>
+          <text x="643" y="86" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">~400 µm</text>
+          <line x1="600" y1="150" x2="652" y2="150" stroke="var(--lumen)" stroke-width="1"/>
+          <text x="626" y="146" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--lumen)">~200 µm</text>
+          <text x="540" y="372" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)"><tspan fill="var(--osteo)">◍</tspan> channel   <tspan fill="var(--chloro)">•</tspan> living cell   ◌ diffusion range · vascular volume ~1%; matrix fills the rest</text>
+        </svg>
+        <p class="figcap"><strong>The living hull is kept alive like bone and wood.</strong> The network is a space-filling tree obeying Murray's law (r³ = Σ child r³) — ~40 branchings from a metre-wide trunk to a ~20 µm capillary — so that every cell sits inside a ~200 µm supply range (Krogh), modelled on bone's Haversian canals and canaliculi. It occupies only ~1% of the wall by volume, yet its total channel length runs to ~10⁸ km for one starship hull (a human body: ~10⁵ km).</p>
+      </div>
+      <p><strong>Gas, and getting rid of waste.</strong> The respiring cells in the dark structural layers need oxygen, carried dissolved on a <strong>haemoglobin/haemocyanin-analogue</strong> in the sap; their CO₂ is largely piped straight back to the photosynthetic intima (the closed carbon loop above), and nitrogenous waste is <strong>mineralised to NO₃⁻/PO₄³⁻ fertiliser</strong> rather than dumped. Spent cells are cleared and recycled by the macrophage/autophagy-analogue <a href="#defense">immune system</a> that also polices cancerous growth. <span class="gap">gap: the unsolved part is not the chemistry but the <strong>co-scaling</strong> — growing this fractal network from metre trunks to micron capillaries <em>in step with</em> the body, everywhere, for years. Vascularised organoids today reach only mm–cm; scaling the plumbing is the make-or-break inside the <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#wp4">morphogenesis moonshot</a>.</span></p>
+
+      <h4>Sustainability — how long can it last?</h4>
+      <p>The whole point of growing a vessel is that it is <strong>self-sustaining, not resupplied</strong>. It runs the loops above — oxygen, water, nitrogen and food all regenerate — and repairs and reproduces itself, so the question is not "when do the consumables run out?" but "what slowly leaks, and what ages?" The answer splits cleanly by timescale.</p>
+      <div class="fig">
+        <svg viewBox="0 0 960 340" role="img" aria-label="Sustainability ladder over log time: self-heal in minutes, buffers over days-weeks, indefinite closed-loop operation over years-decades while light and a resource body are available, deep-time genome drift held by the archive, and the ten-thousand-year dormancy wall; three external dependencies reset the clock.">
+        <rect x="90.0" y="80" width="149.1" height="150" rx="6" fill="var(--chloro)" fill-opacity=".09" stroke="var(--chloro)" stroke-opacity=".5"/>
+        <text x="164.5" y="104" text-anchor="middle" font-family="var(--font-display)" font-size="13" fill="var(--chloro)">self-heal</text>
+        <text x="164.5" y="124" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-2)">breach sealed in</text>
+        <text x="164.5" y="136" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-2)">seconds–minutes</text>
+        <text x="164.5" y="160" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">(clot / sphincter</text>
+        <text x="164.5" y="172" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">bulkhead)</text>
+        <rect x="239.1" y="80" width="149.1" height="150" rx="6" fill="var(--lumen)" fill-opacity=".09" stroke="var(--lumen)" stroke-opacity=".5"/>
+        <text x="313.6" y="104" text-anchor="middle" font-family="var(--font-display)" font-size="13" fill="var(--lumen)">buffers</text>
+        <text x="313.6" y="124" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-2)">atmosphere & water</text>
+        <text x="313.6" y="136" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-2)">reserves ride out outages</text>
+        <text x="313.6" y="160" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">(ARCA: ~140 yr O₂ reserve)</text>
+        <rect x="388.2" y="80" width="223.6" height="150" rx="6" fill="var(--chloro)" fill-opacity=".09" stroke="var(--chloro)" stroke-opacity=".5"/>
+        <text x="500.0" y="104" text-anchor="middle" font-family="var(--font-display)" font-size="13" fill="var(--chloro)">closed loop</text>
+        <text x="500.0" y="124" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-2)">indefinite steady state —</text>
+        <text x="500.0" y="136" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-2)">air/water/N/food</text>
+        <text x="500.0" y="148" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-2)">regenerate</text>
+        <text x="500.0" y="160" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">limit: leakage, re-mined</text>
+        <text x="500.0" y="172" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">from ice</text>
+        <rect x="611.8" y="80" width="149.1" height="150" rx="6" fill="var(--osteo)" fill-opacity=".09" stroke="var(--osteo)" stroke-opacity=".5"/>
+        <text x="686.4" y="104" text-anchor="middle" font-family="var(--font-display)" font-size="13" fill="var(--osteo)">deep time</text>
+        <text x="686.4" y="124" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-2)">genome drift &</text>
+        <text x="686.4" y="136" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-2)">scarce-element attrition</text>
+        <text x="686.4" y="160" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">held by CHORUS re-sync +</text>
+        <text x="686.4" y="172" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">ongoing mining</text>
+        <rect x="760.9" y="80" width="149.1" height="150" rx="6" fill="var(--osteo)" fill-opacity=".09" stroke="var(--osteo)" stroke-opacity=".5"/>
+        <text x="835.5" y="104" text-anchor="middle" font-family="var(--font-display)" font-size="13" fill="var(--osteo)">dormancy wall</text>
+        <text x="835.5" y="124" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-2)">a vitrified seed's</text>
+        <text x="835.5" y="136" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-2)">radiation limit</text>
+        <text x="835.5" y="160" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">then DNA-archive</text>
+        <text x="835.5" y="172" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">re-synthesis</text>
+        <line x1="90" y1="230" x2="910" y2="230" stroke="var(--line-2)"/>
+        <line x1="90.0" y1="230" x2="90.0" y2="234" stroke="var(--line-2)"/>
+        <text x="90.0" y="246" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">~5 min</text>
+        <line x1="239.1" y1="230" x2="239.1" y2="234" stroke="var(--line-2)"/>
+        <text x="239.1" y="246" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">~9 hr</text>
+        <line x1="388.2" y1="230" x2="388.2" y2="234" stroke="var(--line-2)"/>
+        <text x="388.2" y="246" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">~5 wk</text>
+        <line x1="462.7" y1="230" x2="462.7" y2="234" stroke="var(--line-2)"/>
+        <text x="462.7" y="246" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">1 yr</text>
+        <line x1="611.8" y1="230" x2="611.8" y2="234" stroke="var(--line-2)"/>
+        <text x="611.8" y="246" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">century</text>
+        <line x1="760.9" y1="230" x2="760.9" y2="234" stroke="var(--line-2)"/>
+        <text x="760.9" y="246" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">10 kyr</text>
+        <line x1="910.0" y1="230" x2="910.0" y2="234" stroke="var(--line-2)"/>
+        <text x="910.0" y="246" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">1 Myr</text>
+        <text x="500" y="262" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">time (log) — how long the system carries life before something must be topped up</text>
+        <text x="40" y="60" font-family="var(--font-mono)" font-size="10" fill="var(--ink)">Sustainability ladder — self-sustaining, not resupplied</text>
+        <text x="30" y="296" font-family="var(--font-mono)" font-size="9" fill="var(--osteo)">RESET THE CLOCK — three things the system cannot make for itself:</text>
+        <text x="30" y="314" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink)">① light</text>
+        <text x="128" y="314" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-2)">sun or piped — energy for photosynthesis; remove it → dormancy</text>
+        <text x="30" y="329" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink)">② a resource body</text>
+        <text x="128" y="329" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-2)">rock + ice — element & volatile make-up; remove it → a finite reserve</text>
+        <text x="30" y="344" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink)">③ genome archive</text>
+        <text x="128" y="344" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-2)">CHORUS master — genetic stability; remove it → drift wins over centuries</text>
+        </svg>
+        <p class="figcap"><strong>The loops don't run out — three <em>external</em> inputs set the clock.</strong> Minute-scale breaches self-heal; day-to-week outages are absorbed by the buffers (a habitat's atmosphere alone is a ~140-year O₂ reserve); and given light and a resource body the closed loops run <em>indefinitely</em>, the only steady drain being leakage to space, re-mined from ice. Over centuries the limits become genome drift and slow element attrition — held off by re-syncing the germline from the checksummed <span class="chem">CHORUS</span> archive and by ongoing mining — while a dormant seed hits its radiation wall near ~10⁴ years, past which only DNA re-synthesis revives the line. Notably, <strong>building</strong> a vessel costs far more than sustaining it: construction demands processing ~18× its mass in rock (the phosphorus bottleneck), whereas once grown the elements are largely conserved.</p>
+      </div>
+      <p>The honest caveat is closure. The <em>design</em> is for indefinite closed-loop life, but the <em>demonstrated</em> closure is months (BIOS-3<sup class="cite"><a href="#cref-11">[11]</a></sup>), and Biosphere&nbsp;2's oxygen crashed in two years<sup class="cite"><a href="#cref-12">[12]</a></sup>. Stretching closure from months to years to genuinely open-ended, at population scale, is exactly the unsolved <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#wp2">life-support research problem</a> — so these systems are robustly self-sustaining for outages and, on paper, indefinitely so given light, resources and the archive, but the long-duration closure that claim rests on is the thing still to be proven.</p>
+    </div>
+  </section>
+
+  <!-- ===== 05 DEFENSE ===== -->
+  <section class="doc reveal" id="defense">
+    <p class="eyebrow"><span class="num">05</span> Molecular defenses against space <span class="rule"></span></p>
+    <h2>The proteins that survive vacuum, cold and radiation</h2>
+    <div class="flow">
+      <p>Space kills cells four ways — radiation, freezing, desiccation and pressure. For each, a real extremophile already carries the molecular answer; GESTALT's job is to express them together in one lineage.</p>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Threat</th><th>Molecule / system</th><th>Mechanism</th><th>Source (real)</th></tr></thead>
+          <tbody>
+            <tr><td>Ionising radiation<br><span class="r">DNA damage</span></td><td>Mn²⁺–metabolite antioxidant complexes; RecA-driven repair (ESDSA); redundant genomes</td><td>Mn antioxidants protect the <em>repair proteins</em> from oxidation, so shattered DNA is reassembled from overlapping copies</td><td><em>Deinococcus radiodurans</em> (survives ~5,000 Gy)</td></tr>
+            <tr><td>Ionising radiation<br><span class="r">strand breaks</span></td><td>Dsup (Damage-suppressor protein)</td><td>Binds DNA and physically shields it from hydroxyl radicals; ~40% X-ray protection when expressed in human cells</td><td>Tardigrade <em>Ramazzottius varieornatus</em></td></tr>
+            <tr><td>Radiation (bulk)<br><span class="r">absorption</span></td><td>Eumelanin</td><td>Broadband absorption + free-radical quenching; possibly converts some dose to usable energy</td><td><em>Cladosporium sphaerospermum</em> (ISS-tested, 2019)</td></tr>
+            <tr><td>Freezing<br><span class="r">ice damage</span></td><td>Antifreeze glycoproteins (AFGPs)</td><td>Bind to ice crystal faces, halting growth (thermal hysteresis) so no crystal lances a membrane</td><td>Antarctic notothenioid fish</td></tr>
+            <tr><td>Freezing / drying<br><span class="r">vitrification</span></td><td>Trehalose <span class="chem">(α,α-1,1-glucose₂)</span> + CAHS/LEA proteins</td><td>Forms a glass replacing water, holding proteins and membranes in place through desiccation and cold</td><td>Tardigrades, brine shrimp, resurrection plants</td></tr>
+            <tr><td>High pressure<br><span class="r">protein unfolding</span></td><td>Piezolytes — TMAO (trimethylamine N-oxide)</td><td>Counteracts pressure denaturation of proteins; rises with depth in real fish; no gas voids anywhere</td><td>Deep-sea fauna (Mariana amphipods) — for NEREUS</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout cool">
+        <span class="lab">Why biology beats metal here</span>
+        <p>A metal hull only <em>resists</em> damage until it fails; these systems let tissue <em>tolerate and repair</em> it. A cell can be perforated by a cosmic ray, glassified solid, or crushed to 150 MPa and still recover — the strategy is not to be un-damageable but to be <strong>un-killable</strong>, replacing expendable somatic cells from a shielded germline. That is the one genuine advantage the living approach has over engineered materials.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 06 CONSTRUCTION ===== -->
+  <section class="doc reveal" id="build">
+    <p class="eyebrow"><span class="num">06</span> Construction — the growth protocol <span class="rule"></span></p>
+    <h2>Pulling a spacecraft out of a rock</h2>
+    <div class="flow">
+      <p>"Construction" for GESTALT means feeding an asteroid to a seed. The chemistry is real biomining and in-situ resource use; the biology is germination and directed growth. Here is the sequence in more detail than any single plan gives it.</p>
+
+      <h4>Stage 0 · The seed &amp; dormancy chemistry</h4>
+      <p>The launched seed is an <strong>anhydrobiotic</strong> package: totipotent cells vitrified in trehalose glass with CAHS/LEA proteins holding their molecular machinery in suspension, an error-corrected (possibly wholly synthetic) genome, freeze-dried starter cultures of every consortium partner, and a small nutrient/water charge. In this glassy state metabolism is effectively zero and radiation damage accumulates slowly against the <em>Deinococcus</em>/Dsup protections — the same trick that lets tardigrades ride out space.</p>
+      <p><strong>How long can it wait?</strong> A vitrified seed does no repair, so radiation damage just accumulates until revival, when it must all be undone at once. The dormancy limit is therefore set by how much accumulated dose <em>Deinococcus</em>-class repair (multi-copy genome reassembly, RecA) can reverse — roughly the ~5 kGy that drops viability to 1/e. That splits the mission into two sharply different regimes.</p>
+      <div class="fig">
+        <svg viewBox="0 0 960 370" role="img" aria-label="Germination viability versus dormancy duration on a log time axis: interplanetary transits of years to decades are trivial; viability falls toward 1/e near ten thousand years as accumulated dose reaches the repair limit; a DNA archive extends the line past the wall.">
+        <rect x="110.0" y="60" width="263.3" height="260" fill="var(--chloro)" fill-opacity=".07"/>
+        <text x="241.7" y="52" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--chloro)">interplanetary transit — trivial</text>
+        <line x1="110" y1="320" x2="900" y2="320" stroke="var(--line-2)"/>
+        <line x1="110" y1="60" x2="110" y2="320" stroke="var(--line-2)"/>
+        <line x1="106" y1="320.0" x2="110" y2="320.0" stroke="var(--line-2)"/>
+        <text x="102" y="323.0" text-anchor="end" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">0</text>
+        <line x1="106" y1="255.0" x2="110" y2="255.0" stroke="var(--line-2)"/>
+        <text x="102" y="258.0" text-anchor="end" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">25</text>
+        <line x1="106" y1="190.0" x2="110" y2="190.0" stroke="var(--line-2)"/>
+        <text x="102" y="193.0" text-anchor="end" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">50</text>
+        <line x1="106" y1="125.0" x2="110" y2="125.0" stroke="var(--line-2)"/>
+        <text x="102" y="128.0" text-anchor="end" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">75</text>
+        <line x1="106" y1="60.0" x2="110" y2="60.0" stroke="var(--line-2)"/>
+        <text x="102" y="63.0" text-anchor="end" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">100</text>
+        <text x="36" y="190" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)" transform="rotate(-90 36 190)">germination viability (%)</text>
+        <line x1="110.0" y1="320" x2="110.0" y2="324" stroke="var(--line-2)"/>
+        <text x="110.0" y="335" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">1 yr</text>
+        <line x1="241.7" y1="320" x2="241.7" y2="324" stroke="var(--line-2)"/>
+        <text x="241.7" y="335" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">10</text>
+        <line x1="373.3" y1="320" x2="373.3" y2="324" stroke="var(--line-2)"/>
+        <text x="373.3" y="335" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">100</text>
+        <line x1="505.0" y1="320" x2="505.0" y2="324" stroke="var(--line-2)"/>
+        <text x="505.0" y="335" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">1 kyr</text>
+        <line x1="636.7" y1="320" x2="636.7" y2="324" stroke="var(--line-2)"/>
+        <text x="636.7" y="335" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">10 kyr</text>
+        <line x1="768.3" y1="320" x2="768.3" y2="324" stroke="var(--line-2)"/>
+        <text x="768.3" y="335" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">100 kyr</text>
+        <line x1="900.0" y1="320" x2="900.0" y2="324" stroke="var(--line-2)"/>
+        <text x="900.0" y="335" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">1 Myr</text>
+        <text x="505" y="352" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">dormancy duration (log)</text>
+        <line x1="110" y1="224.3" x2="900" y2="224.3" stroke="var(--line)" stroke-dasharray="2 4"/>
+        <text x="896" y="221.3" text-anchor="end" font-family="var(--font-mono)" font-size="7.5" fill="var(--ink-3)">1/e</text>
+        <line x1="110" y1="317.4" x2="900" y2="317.4" stroke="var(--line)" stroke-dasharray="2 4"/>
+        <text x="896" y="314.4" text-anchor="end" font-family="var(--font-mono)" font-size="7.5" fill="var(--ink-3)">1%</text>
+        <polyline points="110.0,60.0 129.8,60.0 149.5,60.1 169.2,60.1 189.0,60.1 208.8,60.2 228.5,60.2 248.2,60.3 268.0,60.5 287.8,60.7 307.5,61.0 327.2,61.4 347.0,62.0 366.8,62.8 386.5,63.9 406.2,65.5 426.0,67.7 445.8,70.8 465.5,75.2 485.2,81.2 505.0,89.4 524.8,100.5 544.5,115.4 564.2,134.6 584.0,158.8 603.8,187.6 623.5,219.8 643.3,252.4 663.0,281.2 682.8,302.3 702.5,314.2 722.2,318.8 742.0,319.9 761.7,320.0 781.5,320.0 801.2,320.0 821.0,320.0 840.8,320.0 860.5,320.0 880.2,320.0 900.0,320.0" fill="none" stroke="var(--osteo)" stroke-width="2.3"/>
+        <text x="626.2" y="217.8" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--osteo)">light husk (~0.6 Sv/yr)</text>
+        <polyline points="110.0,60.0 129.8,60.0 149.5,60.0 169.2,60.0 189.0,60.0 208.8,60.1 228.5,60.1 248.2,60.1 268.0,60.2 287.8,60.2 307.5,60.3 327.2,60.5 347.0,60.7 366.8,60.9 386.5,61.3 406.2,61.8 426.0,62.6 445.8,63.7 465.5,65.2 485.2,67.3 505.0,70.2 524.8,74.3 544.5,79.9 564.2,87.7 584.0,98.3 603.8,112.4 623.5,130.8 643.3,154.0 663.0,182.1 682.8,213.8 702.5,246.6 722.2,276.4 742.0,299.2 761.7,312.6 781.5,318.3 801.2,319.8 821.0,320.0 840.8,320.0 860.5,320.0 880.2,320.0 900.0,320.0" fill="none" stroke="var(--lumen)" stroke-width="2.3"/>
+        <text x="689.1" y="217.8" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--lumen)">shielded (~0.2 Sv/yr)</text>
+        <text x="831.2" y="150" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--chloro)">past the wall:</text>
+        <text x="831.2" y="161" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--chloro)">DNA-archive re-synthesis</text>
+        </svg>
+        <p class="figcap"><strong>Two regimes.</strong> An interplanetary transit of years to decades deposits only tens of grays — negligible against a kilogray tolerance — so seeds cross the Solar System with viability essentially untouched. The wall is <em>deep time</em>: at ~0.6 Sv/yr a lightly-shielded seed reaches the 1/e repair limit after ~<strong>8,000 years</strong>, ~<strong>25,000</strong> behind shielding — millennia of dormancy, but not forever. Past that, only the checksummed <strong>DNA archive</strong> — re-synthesising the genome from stored, error-corrected sequence<sup class="cite"><a href="#cref-19">[19]</a></sup> — can still revive the line. (Dose-equivalent ≈ absorbed dose to order of magnitude for this estimate.)</p>
+      </div>
+
+      <h4>Stage 1 · Germination &amp; anchoring</h4>
+      <p>On arrival, rehydration melts the glass and restarts metabolism. Root-analogue hyphae anchor to the body and begin secreting acids.</p>
+
+      <h4>Stage 2 · Mining &amp; refining — the ISRU chemistry</h4>
+      <p>This is where the mass comes from. Chemolithotrophic bacteria <strong>bioleach</strong> the rock exactly as they do in terrestrial copper mines:</p>
+      <div class="pathway">
+<span class="step">IRON/SULFUR OXIDATION:</span> 2Fe²⁺ + ½O₂ + 2H⁺ <span class="en">──A. ferrooxidans──▶</span> 2Fe³⁺ + H₂O
+<span class="step">SULFIDE LEACHING:</span> FeS₂ + Fe³⁺ <span class="en">──▶</span> Fe²⁺ + S⁰/SO₄²⁻ + <b>dissolved metals</b>
+<span class="step">ICE PROCESSING:</span> H₂O(ice) <span class="en">──melt/electrolyse──▶</span> <b>O₂</b> + H₂ ; CO₂ <span class="en">──▶</span> carbon feedstock
+<span class="step">EXTRACTED:</span> Ca, P (bone) · Fe, Si, metals (structure/antennas) · C, N, H₂O (biomass, air)
+      </div>
+      <p>The extracted ions are loaded into the xylem and delivered where the patterning circuits are calling for them. This is the slow step — biomining rates set how fast a hull can thicken, which is why gestation runs in years for a starship and decades for a world.</p>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Element</th><th>In a chondrite (mass %)</th><th>Goes into</th></tr></thead>
+          <tbody>
+            <tr><td>Fe</td><td>~20%</td><td>Tendon-anchor mineral, magnetite antennas</td></tr>
+            <tr><td>Si</td><td>~15%</td><td>Silica lenses, refractory parts</td></tr>
+            <tr><td>Ca</td><td>~1.3%</td><td>Bone, carbonate cement (MICP)</td></tr>
+            <tr><td>C / N</td><td>~2% / ~0.3% (carbonaceous)</td><td>Biomass, atmosphere</td></tr>
+            <tr><td>H₂O</td><td>up to ~10–20% (hydrated / icy)</td><td>Water loop, O₂ via electrolysis</td></tr>
+            <tr><td>P</td><td><span class="r">~0.1%</span></td><td>Bone (hydroxyapatite) — the bottleneck</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>Phosphorus sets the digging.</strong> Iron, silicon and even calcium are abundant, but bone's hydroxyapatite needs phosphorus, and asteroids hold only ~0.1% of it. The reference starship's ~2,400 t of bone mineral contains ~<strong>440 t of P</strong> — to concentrate that from ~0.1% rock, the ship must process on the order of <strong>18× its own mass</strong> in asteroid (~440,000 t). So how much rock a hull eats is driven not by its bulk but by its scarcest nutrient; a design that leans on carbonate cement (Ca-only MICP) wherever it can, reserving phosphate bone for the load paths that truly need it, digs far less.</p>
+
+      <h4>Stage 3 · Morphogenesis — body-plan formation</h4>
+      <p>With feedstock flowing, the developmental program (Section 02) runs: morphogen gradients establish the axis; synNotch and Turing circuits lay down the layered wall (pneumostat first, so a pressurisable shell closes early); the osteoid skeleton mineralises along stress lines; the vascular trees branch by the same auxin-gradient rules that pattern plant veins; and the intima carpets the interior once there is light. For a spinning habitat the tendon cage is spun and cross-linked before spin-up loads it.</p>
+
+      <h4>Stage 4 · Maturation &amp; occupation</h4>
+      <p>Shielding thickens to spec (water and MICP-bound regolith routed to the highest-flux walls), life-support closes its loops, and — for crewed classes — people move in while the organism keeps thickening its armour around them. Growth never fully stops: the hull remodels, heals and, at end of life, buds a new seed.</p>
+
+      <div class="callout">
+        <span class="lab">In one sentence</span>
+        <p>A vitrified seed rehydrates, bioleaches an asteroid for Ca/P/Fe/Si/C/N and cracks its ice for O₂ and water, then runs an embryonic developmental program that deposits chitin, bone, silk and photosynthetic tissue in a body plan set by chemical gradients — turning rock and ice into a living spacecraft over years.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 07 REALITY ===== -->
+  <section class="doc reveal" id="reality">
+    <p class="eyebrow"><span class="num">07</span> What is real, and what is not <span class="rule"></span></p>
+    <h2>The honest ledger</h2>
+    <div class="flow">
+      <p>Almost every <em>component</em> above is real, and much of it has flown. The bricks are genuine; the mortar — coordinating them into one self-building organism at scale — is not, and no amount of detail hides that.</p>
+      <div class="notes-grid">
+        <div class="note grn"><div class="nh">Demonstrated (TRL 4–7)</div><p>Mycelium composites<sup class="cite"><a href="#cref-9">[9]</a></sup>; recombinant spider silk; MICP &amp; self-healing concrete<sup class="cite"><a href="#cref-18">[18]</a></sup>; algal life support (flew on ISS); radiotrophic melanin (ISS)<sup class="cite"><a href="#cref-14">[14]</a></sup>; Deinococcus &amp; Dsup<sup class="cite"><a href="#cref-15">[15]</a></sup> radiation protection; trehalose/AFP dormancy; industrial bioleaching (ISS BioRock<sup class="cite"><a href="#cref-17">[17]</a></sup>); DNA data storage<sup class="cite"><a href="#cref-19">[19]</a></sup>; recoded genomes with synthetic auxotrophy; synNotch &amp; Turing gene circuits.</p></div>
+        <div class="note warm"><div class="nh">The gap (TRL ~2)</div><p>Self-organising vasculature and coordinated morphogenesis at metre-to-kilometre scale. Every organ can be grown in isolation; getting one genome to grow all of them, in the right places, into a coordinated body, is the unsolved core — and the reason GESTALT is a vision, not a build spec.</p></div>
+        <div class="note cool"><div class="nh">The honest verdict</div><p>You could plausibly grow a structural panel, an algal life-support wall, a self-healing coating and a biomined feedstock stream with today's science. You cannot grow a coordinated organism the size of a stadium. The distance between those two is this program's whole premise — and its whole caveat.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 08 PARAMETERS ===== -->
+  <section class="doc reveal" id="params">
+    <p class="eyebrow"><span class="num">08</span> Key parameters &amp; assumptions <span class="rule"></span></p>
+    <h2>The canonical numbers</h2>
+    <p class="lead">Every figure used across the seven GESTALT documents, reconciled here to one source of truth. These are first-order estimates for feasibility, not flight-hardware specs; ranges reflect real spread, and each was recomputed during the deepening pass.</p>
+
+    <h4 style="font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:20px 0 8px">Human metabolism &amp; life support</h4>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Quantity</th><th>Value</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td>O₂ consumed / person</td><td>0.84 kg/day</td><td>NASA BVAD standard</td></tr>
+        <tr><td>CO₂ produced / person</td><td>1.00 kg/day</td><td>respiratory quotient ~0.87</td></tr>
+        <tr><td>Food (dry) / person</td><td>0.62 kg/day</td><td>~1.8 kg wet</td></tr>
+        <tr><td>Water (potable) / person</td><td>2.0 kg/day</td><td>recycled &gt;99%</td></tr>
+        <tr><td>Nitrogen excreted / person</td><td>13 g/day</td><td>mostly urea</td></tr>
+        <tr><td>Cabin pressure</td><td>52 kPa</td><td>34% O₂ (reduced-pressure mix)</td></tr>
+        <tr><td>Algal O₂ yield</td><td>~30 g/m²·day</td><td>good photobioreactor</td></tr>
+        <tr><td>Photosynthetic efficiency</td><td>3–6%</td><td>of incident light into biomass</td></tr>
+        <tr><td>Lit intima per person</td><td>~28 m²</td><td>to cover O₂</td></tr>
+      </tbody>
+    </table></div>
+
+    <h4 style="font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:22px 0 8px">Reference vehicles</h4>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Parameter</th><th>NAVIS · starship</th><th>ARCA · habitat</th></tr></thead>
+      <tbody>
+        <tr><td>Crew / population</td><td>50</td><td>1,000,000</td></tr>
+        <tr><td>Size</td><td>120 × 50 m</td><td>5 × 10 km</td></tr>
+        <tr><td>Hull / rim thickness</td><td>5.5 m</td><td>~33 m</td></tr>
+        <tr><td>Grown mass</td><td>24,000 t</td><td>~2.5 Gt</td></tr>
+        <tr><td>Launched seed</td><td>500 kg (48,000:1)</td><td>few t</td></tr>
+        <tr><td>Gestation</td><td>~5 yr (~13 t/day)</td><td>~30 yr</td></tr>
+        <tr><td>Gravity</td><td>0 g (free-flying)</td><td>1.0 g @ 0.6 rpm (rim 157 m/s)</td></tr>
+        <tr><td>Atmosphere</td><td>52 kPa</td><td>52 kPa · ~113 Mt (~140 yr O₂ buffer)</td></tr>
+        <tr><td>Hoop / pressure load</td><td>0.65 MN/m</td><td>230 MN/m (2.3 m tendon)</td></tr>
+      </tbody>
+    </table></div>
+
+    <h4 style="font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:22px 0 8px">Radiation, thermal &amp; impact</h4>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Quantity</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Deep-space GCR baseline</td><td>~0.6 Sv/yr</td></tr>
+        <tr><td>GCR behind 305 g/cm² hull</td><td>~0.21 Sv/yr (secondary floor)</td></tr>
+        <tr><td>Solar particle event stopped by</td><td>~20 g/cm²</td></tr>
+        <tr><td>ISS crew (LEO) · NASA career limit</td><td>~0.15 Sv/yr · 0.6–1.2 Sv</td></tr>
+        <tr><td>1 AU radiative equilibrium (black hull)</td><td>278 K (5 °C)</td></tr>
+        <tr><td>Micrometeoroid flux (sub-mm)</td><td>~8 impacts/decade on a 7,854 m² hull</td></tr>
+      </tbody>
+    </table></div>
+
+    <h4 style="font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:22px 0 8px">Materials, ISRU &amp; morphogenesis</h4>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Quantity</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Mycelium composite</td><td>100–400 kg/m³ · 0.1–1 MPa compressive</td></tr>
+        <tr><td>Trabecular bone</td><td>~1,400 kg/m³ · 100–150 / 150–200 MPa</td></tr>
+        <tr><td>Spider silk (spidroin)</td><td>~1,300 kg/m³ · 1–1.5 GPa · 150–350 MJ/m³ toughness</td></tr>
+        <tr><td>Silk working stress (Mk I / Mk II)</td><td>100 / 200 MPa</td></tr>
+        <tr><td>Chondrite Fe / Si / Ca</td><td>~20 / 15 / 1.3 %</td></tr>
+        <tr><td>Chondrite P (the ISRU bottleneck)</td><td><span class="r">~0.1 %</span> → process ~18× ship mass</td></tr>
+        <tr><td>Chondrite C / N / H₂O</td><td>~2 / 0.3 / 10–20 %</td></tr>
+        <tr><td>Starship-hull cell count</td><td>~10²⁰ (organoids today ~10⁶)</td></tr>
+        <tr><td>Morphogen gradient length</td><td>~1 mm → hierarchical relay required</td></tr>
+        <tr><td>Morphogenesis maturity</td><td><span class="gap">TRL ~2 — the long pole</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ===== REFERENCES ===== -->
+  <section class="doc reveal" id="refs">
+    <p class="eyebrow"><span class="num">09</span> References &amp; sources <span class="rule"></span></p>
+    <h2>The published basis</h2>
+    <div class="refs">
+      <p class="refs-note">This compendium's job is to show that every mechanism in GESTALT is a real, published capability — the leaps are in <em>integration and scale</em>, not invention. Each named organism, construct, material property and pathway below is sourced. Superscripts in the text link here; the honest gaps (morphogenesis, vasculature co-scaling, trait stacking) are flagged in-line, not cited away.</p>
+      <ol>
+        <li id="cref-1">Lajoie, M. J. et&nbsp;al. (2013). Genomically recoded organisms expand biological functions. <span class="rt">Science</span> 342, 357–360. — all 321 UAG codons reassigned in <em>E.&nbsp;coli</em> (genetic firewall).</li>
+        <li id="cref-2">Ostrov, N. et&nbsp;al. (2016). Design, synthesis, and testing toward a 57-codon genome. <span class="rt">Science</span> 353, 819–822. — rE.coli-57; genome-wide codon compression.</li>
+        <li id="cref-3">Mandell, D. J. et&nbsp;al. (2015). Biocontainment of genetically modified organisms by synthetic protein design. <span class="rt">Nature</span> 518, 55–60. — synthetic auxotrophy, escape &lt;10⁻¹².</li>
+        <li id="cref-4">Rovner, A. J. et&nbsp;al. (2015). Recoded organisms engineered to depend on synthetic amino acids. <span class="rt">Nature</span> 518, 89–93. — the companion biocontainment result.</li>
+        <li id="cref-5">Elowitz, M. B. &amp; Leibler, S. (2000). A synthetic oscillatory network of transcriptional regulators. <span class="rt">Nature</span> 403, 335–338. — the repressilator; genetic-oscillator basis for a segmentation clock.</li>
+        <li id="cref-6">Toda, S. et&nbsp;al. (2018). Programming self-organizing multicellular structures with synthetic cell–cell signaling. <span class="rt">Science</span> 361, 156–162. — synNotch tissue patterning at mm–cm (~10⁶ cells).</li>
+        <li id="cref-7">Gosline, J. M. et&nbsp;al. (1999). The mechanical design of spider silks. <span class="rt">J. Exp. Biol.</span> 202, 3295–3303. — dragline silk 1–1.5 GPa, toughness 150–350 MJ·m⁻³.</li>
+        <li id="cref-8">Wegst, U. G. K. et&nbsp;al. (2015). Bioinspired structural materials. <span class="rt">Nat. Mater.</span> 14, 23–36. — collagen–hydroxyapatite bone; biological composite strength.</li>
+        <li id="cref-9">Jones, M. et&nbsp;al. (2020). Engineered mycelium composite construction materials. <span class="rt">Mater. Des.</span> 187, 108397. — mycelium 100–400 kg·m⁻³, 0.1–1 MPa.</li>
+        <li id="cref-10">Ducat, D. C. et&nbsp;al. (2012). Rerouting carbon flux to enhance photosynthetic productivity. <span class="rt">Appl. Environ. Microbiol.</span> 78, 2660–2668. — cyanobacterial sucrose export (<span class="chem">cscB</span>).</li>
+        <li id="cref-11">Salisbury, F. B. et&nbsp;al. (1997). Bios-3: Siberian experiments in bioregenerative life support. <span class="rt">BioScience</span> 47, 575–585. — closed-loop closure; RQ/PQ buffering.</li>
+        <li id="cref-12">Nelson, M. et&nbsp;al. (1993). Using a closed ecological system to study Earth's biosphere: Biosphere&nbsp;2. <span class="rt">BioScience</span> 43, 225–236. — the documented oxygen decline.</li>
+        <li id="cref-13">Lasseur, C. et&nbsp;al. (2010). MELiSSA: the European project of a closed life-support system. <span class="rt">Gravit. Space Biol.</span> 23, 3–12.</li>
+        <li id="cref-14">Dadachova, E. et&nbsp;al. (2007). Ionizing radiation changes the electronic properties of melanin and enhances the growth of melanized fungi. <span class="rt">PLoS ONE</span> 2, e457.</li>
+        <li id="cref-15">Hashimoto, T. et&nbsp;al. (2016). Extremotolerant tardigrade genome and improved radiotolerance of human cultured cells by Dsup. <span class="rt">Nat. Commun.</span> 7, 12808.</li>
+        <li id="cref-16">Cox, M. M. &amp; Battista, J. R. (2005). <em>Deinococcus radiodurans</em> — the consummate survivor. <span class="rt">Nat. Rev. Microbiol.</span> 3, 882–892. — multi-copy genome; radiation-damage repair.</li>
+        <li id="cref-17">Cockell, C. S. et&nbsp;al. (2020). Space station biomining experiment demonstrates rare-earth-element extraction in microgravity. <span class="rt">Nat. Commun.</span> 11, 5523. — ESA BioRock on the ISS.</li>
+        <li id="cref-18">DeJong, J. T. et&nbsp;al. (2010). Bio-mediated soil improvement. <span class="rt">Ecol. Eng.</span> 36, 197–210. — microbially induced calcite precipitation (MICP, <em>Sporosarcina</em>).</li>
+        <li id="cref-19">Church, G. M. et&nbsp;al. (2012). Next-generation digital information storage in DNA. <span class="rt">Science</span> 337, 1628. — the archival-genome / DNA-data-storage basis.</li>
+        <li id="cref-20">Anderson, M. S. et&nbsp;al. (2018). <span class="rt">Life Support Baseline Values and Assumptions Document.</span> NASA/TP-2015-218570/REV1. — per-crew metabolic and life-support figures.</li>
+        <li id="cref-21">Caulin, A. F. &amp; Maley, C. C. (2011). Peto’s Paradox: evolution’s prescription for cancer prevention. <span class="rt">Trends Ecol. Evol.</span> 26, 175–182. — why large long-lived bodies resist cancer.</li>
+        <li id="cref-22">Abegglen, L. M. et&nbsp;al. (2015). Potential mechanisms for cancer resistance in elephants and comparative cellular response to DNA damage in humans. <span class="rt">JAMA</span> 314, 1850–1860. — ~20 copies of TP53 in elephants.</li>
+        <li id="cref-23">Vogelstein, B. et&nbsp;al. (2013). Cancer genome landscapes. <span class="rt">Science</span> 339, 1546–1558. — the multi-driver-mutation basis of cancer.</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    <div class="fbar"><span>◈ GESTALT Program</span><span class="sep">·</span><span>Engineering &amp; Biology Compendium</span><span class="sep">·</span><span>Companion to all six plans</span><span class="sep">·</span><span>Real science green · speculative leaps flagged</span></div>
+  </footer>
+
+</div></div>
+<script>
+(function(){var r=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;var e=[].slice.call(document.querySelectorAll('.reveal'));if(r||!('IntersectionObserver'in window)){e.forEach(function(x){x.classList.add('in')});return;}var io=new IntersectionObserver(function(en){en.forEach(function(x){if(x.isIntersecting){x.target.classList.add('in');io.unobserve(x.target);}});},{rootMargin:'0px 0px -6% 0px',threshold:.06});e.forEach(function(x){io.observe(x)});})();
+</script>

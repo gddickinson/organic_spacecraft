@@ -1,0 +1,1034 @@
+<style>
+  :root{
+    --ground:#0a1512;--ground-2:#0e1c18;--ground-3:#12241f;
+    --ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;
+    --line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);
+    --chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;
+    --chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);
+    --l-regolith:#5a5148;--l-rind:#2a2420;--l-mycelium:#c8c2a3;--l-tendon:#e6ac6d;--l-pneumostat:#7fb6b3;--l-service:#4c6a7a;--l-soil:#6b7d55;--l-void:#060d0b;--l-air:#0c1a2a;
+    --sheet:#0b1714;--sheet-line:rgba(120,196,170,.10);
+    --font-display:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;
+    --font-body:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;
+    --maxw:1180px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --ground:#e9eee7;--ground-2:#e1e8df;--ground-3:#d8e1d5;
+      --ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;
+      --line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);
+      --chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;
+      --chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);
+      --l-regolith:#8b8072;--l-rind:#4a4038;--l-mycelium:#cfc9ad;--l-tendon:#d99b52;--l-pneumostat:#8fc0bd;--l-service:#7fa0b0;--l-soil:#8ba06d;--l-void:#c9d2c6;--l-air:#b6c6d4;
+      --sheet:#eef2ea;--sheet-line:rgba(30,70,52,.09);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0a1512;--ground-2:#0e1c18;--ground-3:#12241f;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;
+    --line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);--chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;
+    --chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);
+    --l-regolith:#5a5148;--l-rind:#2a2420;--l-mycelium:#c8c2a3;--l-service:#4c6a7a;--l-soil:#6b7d55;--l-void:#060d0b;--l-air:#0c1a2a;--sheet:#0b1714;--sheet-line:rgba(120,196,170,.10);
+  }
+  :root[data-theme="light"]{
+    --ground:#e9eee7;--ground-2:#e1e8df;--ground-3:#d8e1d5;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;
+    --line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;
+    --chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);
+    --l-regolith:#8b8072;--l-rind:#4a4038;--l-mycelium:#cfc9ad;--l-service:#7fa0b0;--l-soil:#8ba06d;--l-void:#c9d2c6;--l-air:#b6c6d4;--sheet:#eef2ea;--sheet-line:rgba(30,70,52,.09);
+  }
+
+  *{box-sizing:border-box}body{margin:0}
+  .page{background:radial-gradient(1100px 640px at 82% -6%,var(--chloro-soft),transparent 60%),radial-gradient(900px 520px at 6% 3%,var(--lumen-soft),transparent 55%),var(--ground);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.6;letter-spacing:.005em;overflow-x:hidden;min-height:100vh}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  h1,h2,h3{font-family:var(--font-display);font-weight:600;text-wrap:balance;line-height:1.1;margin:0}
+  p{margin:0 0 1em}strong{color:var(--ink);font-weight:600}
+
+  .masthead{padding:56px 0 26px;border-bottom:1px solid var(--line-2)}
+  .mh-kicker{font-family:var(--font-mono);font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--chloro);margin:0 0 18px}
+  .mh-title{font-size:clamp(2.2rem,6.4vw,4.4rem);letter-spacing:-.015em;margin:0 0 4px}
+  .mh-title .s{color:var(--chloro)}
+  .mh-sub{font-family:var(--font-display);font-style:italic;font-size:clamp(1.05rem,2.3vw,1.4rem);color:var(--ink-2);margin:0 0 26px}
+  .titleblock{display:grid;grid-template-columns:2fr 1fr;border:1px solid var(--line-2);border-radius:12px;overflow:hidden;background:var(--sheet)}
+  .tb-index{padding:20px 22px;border-right:1px solid var(--line)}
+  .tb-index .h,.tb-meta .h{font-family:var(--font-mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px}
+  .idx{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+  .idx li{display:grid;grid-template-columns:58px 1fr;gap:10px;font-size:13.5px}
+  .idx .pl{font-family:var(--font-mono);font-size:11.5px;color:var(--lumen);letter-spacing:.04em;padding-top:1px}
+  .idx a{color:var(--ink);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .2s}
+  .idx a:hover{border-color:var(--line-2)}
+  .tb-meta{padding:20px 22px}
+  .tb-meta .row{display:flex;justify-content:space-between;gap:12px;font-family:var(--font-mono);font-size:11.5px;border-bottom:1px dotted var(--line);padding-bottom:8px;margin-bottom:9px}
+  .tb-meta .row .k{color:var(--ink-3);letter-spacing:.06em}
+  .tb-meta .row .v{color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+
+  /* vital stats strip */
+  .vitals{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:22px;border:1px solid var(--line);background:var(--line);border-radius:12px;overflow:hidden}
+  .vitals .c{background:var(--ground);padding:16px 16px 14px}
+  .vitals .k{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px}
+  .vitals .v{font-family:var(--font-display);font-size:clamp(1.4rem,3.4vw,1.9rem);line-height:1;letter-spacing:-.01em}
+  .vitals .v .u{font-family:var(--font-mono);font-size:.46em;color:var(--ink-3);margin-left:.28em;letter-spacing:0}
+  .vitals .s{font-size:12px;color:var(--ink-3);margin-top:6px;line-height:1.35}
+
+  .plate{padding:46px 0;border-bottom:1px solid var(--line)}
+  .plate-head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+  .plate-no{font-family:var(--font-mono);font-size:12px;letter-spacing:.16em;color:var(--chloro);white-space:nowrap}
+  .plate-head h2{font-size:clamp(1.5rem,3.6vw,2.3rem);letter-spacing:-.01em}
+  .plate-meta{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;color:var(--ink-3);margin-left:auto;text-align:right;line-height:1.6}
+  .plate-cap{color:var(--ink-2);max-width:76ch;font-size:14.5px;margin:10px 0 20px}
+  sup.cite{font-size:.62em;line-height:0;vertical-align:super;font-family:var(--font-mono);font-weight:600}
+  sup.cite a{color:var(--lumen);text-decoration:none;padding:0 1px}
+  sup.cite a:hover{text-decoration:underline}
+  .refs{margin-top:16px;border-top:1px solid var(--line);padding-top:18px}
+  .refs ol{margin:0;padding-left:2.4em;display:grid;gap:8px}
+  .refs li{font-size:.8em;line-height:1.5;color:var(--ink-2);max-width:82ch}
+  .refs .rt{color:var(--ink-3);font-style:italic}
+  .refs-note{font-size:.8em;color:var(--ink-3);margin:0 0 14px;max-width:80ch}
+
+  .sheet{border:1px solid var(--line-2);border-radius:10px;background:linear-gradient(var(--sheet-line) 1px,transparent 1px) 0 0/100% 34px,linear-gradient(90deg,var(--sheet-line) 1px,transparent 1px) 0 0/34px 100%,var(--sheet);padding:8px;overflow-x:auto;position:relative}
+  .sheet::before,.sheet::after{content:"";position:absolute;width:12px;height:12px;border:1px solid var(--line-2);opacity:.6}
+  .sheet::before{left:6px;top:6px;border-right:none;border-bottom:none}
+  .sheet::after{right:6px;bottom:6px;border-left:none;border-top:none}
+  .sheet svg{display:block;height:auto}
+  .sheet.big svg{min-width:900px;width:100%}
+  .sheet.med svg{min-width:840px;width:100%}
+
+  .detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:14px}
+  .detail-card{border:1px solid var(--line-2);border-radius:10px;background:var(--sheet);padding:12px 12px 14px}
+  .detail-card .dc-t{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--lumen);margin:2px 2px 8px;display:flex;justify-content:space-between;gap:8px}
+  .detail-card .dc-t .n{color:var(--osteo)}
+  .detail-card svg{display:block;width:100%;height:auto}
+  .detail-card p{font-size:12.5px;color:var(--ink-2);margin:8px 4px 2px;line-height:1.5}
+
+  .edge{fill:none;stroke:var(--ink);stroke-width:1.7;stroke-linejoin:round;stroke-linecap:round}
+  .edge2{fill:none;stroke:var(--ink-2);stroke-width:1.1;stroke-linejoin:round}
+  .thin{fill:none;stroke:var(--ink-3);stroke-width:.8}
+  .thin2{fill:none;stroke:var(--ink-2);stroke-width:.9}
+  .hid{fill:none;stroke:var(--ink-3);stroke-width:.8;stroke-dasharray:5 3;opacity:.65}
+  .ctr{fill:none;stroke:var(--lumen);stroke-width:.8;stroke-dasharray:12 3 2 3;opacity:.5}
+  .dim{fill:none;stroke:var(--ink-3);stroke-width:.7}
+  .sta{fill:none;stroke:var(--line-2);stroke-width:.7;stroke-dasharray:2 3}
+  .f-hull{fill:var(--ink);fill-opacity:.05}
+  .f-soil{fill:var(--l-soil);fill-opacity:.5}
+  .f-air{fill:var(--lumen);fill-opacity:.05}
+  .f-service{fill:var(--l-service);fill-opacity:.28;stroke:var(--l-service);stroke-width:1}
+  .f-tendon{fill:var(--osteo);fill-opacity:.14;stroke:var(--osteo);stroke-width:1}
+  .f-sun{fill:var(--lumen);fill-opacity:.22;stroke:var(--lumen);stroke-width:1.1}
+  .f-water{fill:var(--lumen);fill-opacity:.30;stroke:var(--lumen);stroke-width:.8}
+  .f-forest{fill:var(--chloro);fill-opacity:.24;stroke:var(--chloro);stroke-width:.8}
+  .stroke-c{stroke:var(--chloro)}.stroke-l{stroke:var(--lumen)}.stroke-o{stroke:var(--osteo)}
+  .fill-c{fill:var(--chloro)}.fill-l{fill:var(--lumen)}.fill-o{fill:var(--osteo)}
+  .t-serif{font-family:var(--font-display);fill:var(--ink);font-size:14px}
+  .t-lab{font-family:var(--font-mono);fill:var(--ink-2);font-size:10px;letter-spacing:.1em}
+  .t-lab3{font-family:var(--font-mono);fill:var(--ink-3);font-size:9.5px;letter-spacing:.08em}
+  .t-dim{font-family:var(--font-mono);fill:var(--ink-3);font-size:9.5px;letter-spacing:.03em}
+  .t-big{font-family:var(--font-display);fill:var(--ink);font-weight:600;font-size:24px}
+  .t-acc-c{fill:var(--chloro)}.t-acc-l{fill:var(--lumen)}.t-acc-o{fill:var(--osteo)}
+  .human{fill:var(--ink-2);opacity:.85}
+
+  .notes{padding:44px 0 20px}
+  .notes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+  .note{border-left:2px solid var(--line-2);padding:2px 0 2px 16px}
+  .note .nh{font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:7px}
+  .note p{font-size:13px;color:var(--ink-2);margin:0;line-height:1.55}
+  .note.warm{border-color:var(--osteo)}.note.grn{border-color:var(--chloro)}.note.cy{border-color:var(--lumen)}
+  footer{padding:24px 0 66px}
+  .fbar{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;color:var(--ink-3);border-top:1px solid var(--line);padding-top:20px}
+  .fbar .sep{color:var(--line-2)}
+  .reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+  @media (max-width:720px){.titleblock{grid-template-columns:1fr}.tb-index{border-right:none;border-bottom:1px solid var(--line)}.plate-meta{margin-left:0;text-align:left}.vitals{grid-template-columns:repeat(2,1fr)}}
+  ::selection{background:var(--chloro);color:var(--ground)}
+  :focus-visible{outline:2px solid var(--lumen);outline-offset:3px;border-radius:3px}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="human" viewBox="0 0 40 100"><circle cx="20" cy="12" r="8.5"/><path d="M20 22 C11 22 9 31 9 43 L12 70 L9.5 98 L15.5 98 L20 73 L24.5 98 L30.5 98 L28 70 L31 43 C31 31 29 22 20 22 Z"/></symbol>
+  <symbol id="tree" viewBox="0 0 40 60"><rect x="17" y="34" width="6" height="24" rx="2"/><path d="M20 2 C6 20 8 40 20 40 C32 40 34 20 20 2 Z"/></symbol>
+  <symbol id="ship" viewBox="0 0 120 60"><ellipse cx="60" cy="30" rx="52" ry="24"/></symbol>
+</svg>
+
+<div class="page"><div class="wrap">
+
+  <!-- ================= MASTHEAD ================= -->
+  <style>
+    .prog-nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;padding:16px 0 4px}
+    .prog-nav .pn-brand{color:var(--chloro);letter-spacing:.16em;text-transform:uppercase}
+    .prog-nav a{color:var(--ink-3);text-decoration:none;padding:3px 10px;border:1px solid var(--line);border-radius:999px;transition:color .2s,border-color .2s}
+    .prog-nav a:hover{color:var(--ink);border-color:var(--line-2)}
+    .prog-nav a.current{color:var(--lumen);border-color:var(--lumen)}
+  </style>
+  <nav class="prog-nav" aria-label="GESTALT program documents">
+    <span class="pn-brand">◈ GESTALT Program</span>
+    <a href="https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1">Design Dossier</a>
+    <a href="https://claude.ai/code/artifact/bd2c2c98-84cf-42c9-91ea-f0ec1c749fc5">Starship</a>
+    <a href="#" class="current" aria-current="page">Habitat</a>
+    <a href="https://claude.ai/code/artifact/94531439-d04d-480e-9d04-bad6fcdacd9a">LICHEN</a>
+    <a href="https://claude.ai/code/artifact/2433fa54-e582-4194-8245-d63acee8fb85">GRAVID</a>
+    <a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet Registry</a>
+    <a href="https://claude.ai/code/artifact/7ca9c965-1932-4c5a-b0f1-a99e9febae58">Class Reference</a>
+    <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075">Compendium</a>
+    <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed">Earth Program</a>
+    <a href="https://claude.ai/code/artifact/1c6f18ca-eeda-4d83-bd97-fd9c1622823d">3D Models</a>
+  </nav>
+
+  <header class="masthead">
+    <p class="mh-kicker">Architectural Drawing Set · Grown Megastructure Program</p>
+    <h1 class="mh-title">GE<span class="s">S</span>TALT ARCA · Living Habitat</h1>
+    <p class="mh-sub"><em>Arca viva</em> — a grown spin-gravity world for one million, drawn plate by plate</p>
+
+    <div class="titleblock">
+      <div class="tb-index">
+        <div class="h">Sheet Index</div>
+        <ul class="idx">
+          <li><span class="pl">PL. 0</span><a href="#h0">Cutaway — the interior world</a></li>
+          <li><span class="pl">PL. I</span><a href="#h1">General arrangement — external</a></li>
+          <li><span class="pl">PL. II</span><a href="#h2">Longitudinal section — biomes &amp; axis</a></li>
+          <li><span class="pl">PL. III</span><a href="#h3">Transverse section — the ring world</a></li>
+          <li><span class="pl">PL. IV</span><a href="#h4">Rim wall — the ground you stand on</a></li>
+          <li><span class="pl">PL. V</span><a href="#h5">Detail studies — sun-cord, tendons, growth</a></li>
+          <li><span class="pl">PL. VI</span><a href="#h6">Unrolled biome map — the plan view</a></li>
+        </ul>
+      </div>
+      <div class="tb-meta">
+        <div class="h">Reference Habitat</div>
+        <div class="row"><span class="k">DRUM Ø</span><span class="v">5 km</span></div>
+        <div class="row"><span class="k">LENGTH</span><span class="v">10 km</span></div>
+        <div class="row"><span class="k">SPIN</span><span class="v">0.6 rpm</span></div>
+        <div class="row"><span class="k">RIM GRAVITY</span><span class="v">≈ 1.0 g</span></div>
+        <div class="row"><span class="k">POPULATION</span><span class="v">1,000,000</span></div>
+        <div class="row"><span class="k">GROWN MASS</span><span class="v">≈ 2–3 Gt</span></div>
+      </div>
+    </div>
+
+    <div class="vitals">
+      <div class="c"><div class="k">Living surface</div><div class="v">100<span class="u">km²</span></div><div class="s">≈100 m²/person · ~10,000/km², a garden-city density</div></div>
+      <div class="c"><div class="k">Interior volume</div><div class="v">196<span class="u">km³</span></div><div class="s">lit from the axis by a ~15 GW piped-starlight sun-cord (~150 W/m²)</div></div>
+      <div class="c"><div class="k">Atmosphere</div><div class="v">113<span class="u">Mt</span></div><div class="s">52 kPa rim / ~45 kPa axis; air adds ~140 g/cm² of radial shielding</div></div>
+      <div class="c"><div class="k">Hull hoop load</div><div class="v">230<span class="u">MN/m</span></div><div class="s">carried by a grown high-tensile tendon cage</div></div>
+    </div>
+  </header>
+
+  <!-- ================= PLATE 0 — CUTAWAY ================= -->
+  <section class="plate reveal" id="h0">
+    <div class="plate-head"><span class="plate-no">PLATE 0</span><h2>Cutaway · the interior world</h2><div class="plate-meta">¾ CUTAWAY · NOT TO SCALE</div></div>
+    <p class="plate-cap">A section of the drum removed. You live on the <strong>inside</strong> of the spinning cylinder: the ground curves up on both sides and closes overhead into a sky of far-side landscape. There are no windows — a luminous <strong>sun-cord</strong> runs the axis, dimming for night. Below the soil lies the layered living rim (Plate&nbsp;IV).</p>
+    <div class="sheet big">
+      <svg viewBox="0 0 960 686" role="img" aria-label="Cutaway of the Gestalt Arca habitat cylinder showing the interior landscape curving around an axial sun-cord">
+        <defs>
+          <linearGradient id="skyA" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="var(--l-soil)" stop-opacity=".4"/>
+            <stop offset="34%" stop-color="var(--lumen)" stop-opacity=".05"/>
+            <stop offset="66%" stop-color="var(--lumen)" stop-opacity=".05"/>
+            <stop offset="100%" stop-color="var(--l-soil)" stop-opacity=".4"/>
+          </linearGradient>
+          <radialGradient id="sunG" cx="50%" cy="50%" r="50%">
+            <stop offset="0" stop-color="var(--lumen)" stop-opacity=".9"/>
+            <stop offset="60%" stop-color="var(--lumen)" stop-opacity=".28"/>
+            <stop offset="100%" stop-color="var(--lumen)" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+
+        <!-- drum shell as a big cut tube: outer capsule -->
+        <path d="M150 120 L760 120 A 70 190 0 0 1 760 500 L150 500 A 70 190 0 0 1 150 120 Z" class="edge f-hull"/>
+        <!-- interior sky -->
+        <path d="M180 150 L760 150 A 52 160 0 0 1 760 470 L180 470 A 52 160 0 0 1 180 150 Z" fill="url(#skyA)"/>
+
+        <!-- far-side land arching over the top and bottom -->
+        <path d="M180 150 L760 150 A 52 160 0 0 1 760 176 L180 176 Z" class="f-soil"/>
+        <path d="M180 444 L760 444 A 52 160 0 0 0 760 470 L180 470 Z" class="f-soil"/>
+        <!-- forest & settlement ticks on far land -->
+        <g class="fill-c" opacity=".7"><circle cx="240" cy="164" r="2"/><circle cx="300" cy="162" r="2"/><circle cx="470" cy="162" r="2"/><circle cx="600" cy="164" r="2"/></g>
+        <use href="#tree" x="336" y="150" width="9" height="13.5" class="fill-c" opacity=".6"/>
+        <use href="#tree" x="520" y="150" width="9" height="13.5" class="fill-c" opacity=".6"/>
+
+        <!-- cut face: near land in the foreground (the removed wedge reveals a slice you look across) -->
+        <path d="M180 470 L760 470 L760 505 L180 505 Z" class="f-soil" opacity=".85"/>
+        <!-- rim layer stack shown at the cut (left edge) -->
+        <g>
+          <path d="M150 120 A 70 190 0 0 0 150 500" fill="none" stroke="var(--l-regolith)" stroke-width="11"/>
+          <path d="M162 128 A 60 178 0 0 0 162 492" fill="none" stroke="var(--l-mycelium)" stroke-width="6"/>
+          <path d="M172 136 A 53 168 0 0 0 172 484" fill="none" stroke="var(--osteo)" stroke-width="3.5"/>
+          <path d="M180 150 A 52 160 0 0 0 180 470" fill="none" stroke="var(--l-pneumostat)" stroke-width="2"/>
+        </g>
+
+        <!-- near landscape in the cut: terraces, lake, forest, town -->
+        <g transform="translate(0 0)">
+          <path d="M200 505 L200 486 Q 300 476 420 486 T 720 486 L720 505 Z" class="f-soil"/>
+          <ellipse cx="360" cy="497" rx="60" ry="9" class="f-water"/>
+          <use href="#tree" x="470" y="474" width="14" height="21" class="fill-c" opacity=".8"/>
+          <use href="#tree" x="500" y="476" width="12" height="18" class="fill-c" opacity=".8"/>
+          <g class="edge2" opacity=".7"><rect x="560" y="482" width="16" height="12"/><rect x="580" y="485" width="12" height="9"/><rect x="600" y="480" width="14" height="14"/></g>
+          <use href="#human" x="640" y="486" width="5" height="12.5" class="human"/>
+        </g>
+
+        <!-- axial sun-cord -->
+        <ellipse cx="455" cy="310" rx="330" ry="30" fill="url(#sunG)"/>
+        <line x1="150" y1="310" x2="820" y2="310" stroke="var(--lumen)" stroke-width="4" stroke-linecap="round"/>
+        <line x1="150" y1="310" x2="820" y2="310" stroke="#fff" stroke-width="1.2" opacity=".5"/>
+        <!-- guy tendons from endcap to cord -->
+        <g class="thin stroke-o" opacity=".5"><line x1="760" y1="150" x2="810" y2="310"/><line x1="760" y1="470" x2="810" y2="310"/></g>
+
+        <!-- right endcap terraces (agriculture climbing to axis) -->
+        <g class="thin2" opacity=".7" fill="none">
+          <path d="M772 176 A 60 150 0 0 1 810 300"/><path d="M786 200 A 44 116 0 0 1 812 300"/><path d="M798 236 A 28 74 0 0 1 814 300"/>
+        </g>
+
+        <!-- de-spun docking hub, right -->
+        <g class="edge2"><rect x="812" y="292" width="70" height="36" rx="6" class="f-service"/><line x1="882" y1="300" x2="900" y2="300"/><line x1="882" y1="320" x2="900" y2="320"/></g>
+
+        <!-- spin arrow -->
+        <path d="M470 128 A 40 14 0 0 1 540 128" fill="none" class="stroke-l" stroke-width="1.2"/>
+        <path d="M540 128 l-7 -3 l2 7 z" class="fill-l"/>
+        <text x="505" y="118" text-anchor="middle" class="t-lab3">↻ 0.6 rpm</text>
+
+        <!-- callouts -->
+        <g class="t-lab">
+          <line x1="455" y1="310" x2="455" y2="250" class="thin"/><circle cx="455" cy="310" r="2.5" class="fill-l"/>
+          <text x="455" y="242" text-anchor="middle" class="t-acc-l">AXIAL SUN-CORD</text><text x="455" y="230" text-anchor="middle" class="t-lab3">0 g · piped starlight (~15 GW)</text>
+          <line x1="300" y1="163" x2="300" y2="96" class="thin"/><circle cx="300" cy="163" r="2" class="fill-c"/>
+          <text x="300" y="88" text-anchor="middle" class="t-acc-c">FAR-SIDE LAND (the "sky")</text>
+          <line x1="360" y1="497" x2="250" y2="540" class="thin"/><circle cx="360" cy="497" r="2" class="fill-l"/>
+          <text x="150" y="544" class="t-lab3">RING-LAKE + SETTLEMENT · 1 g underfoot</text>
+          <line x1="172" y1="360" x2="70" y2="360" class="thin"/><circle cx="172" cy="360" r="2" style="fill:var(--l-regolith)"/>
+          <text x="66" y="356" text-anchor="end" class="t-lab">LIVING RIM ›› PL. IV</text>
+          <line x1="846" y1="292" x2="846" y2="250" class="thin"/><circle cx="846" cy="310" r="2" style="fill:var(--l-service)"/>
+          <text x="846" y="242" text-anchor="middle" class="t-lab3">DE-SPUN DOCK HUB</text>
+        </g>
+      
+        <!-- ===== BORDER · NOTES · TITLE BLOCK ===== -->
+        <rect x="8" y="8" width="944" height="666" fill="none" stroke="var(--line-2)" stroke-width="1.5"/>
+        <rect x="14" y="14" width="932" height="654" fill="none" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="14" y1="588" x2="946" y2="588" stroke="var(--line-2)" stroke-width="1"/>
+        <rect x="616" y="594" width="330" height="72" fill="none" stroke="var(--line-2)" stroke-width="1.2"/>
+        <line x1="616" y1="618" x2="946" y2="618" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="616" y1="642" x2="946" y2="642" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="605" font-family="var(--font-mono)" font-size="7.5" fill="var(--ink-3)">PROJECT · GESTALT — ARCA Habitat (1,000,000 pop)</text>
+        <text x="624" y="614" font-family="var(--font-display)" font-size="12" fill="var(--ink)">Cutaway — The Interior World</text>
+        <line x1="766" y1="618" x2="766" y2="642" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="866" y1="618" x2="866" y2="642" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="627" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">DRAWING NO.</text>
+        <text x="624" y="638" font-family="var(--font-mono)" font-size="11" fill="var(--lumen)">GST·HAB·100</text>
+        <text x="774" y="627" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">SCALE</text>
+        <text x="774" y="638" font-family="var(--font-mono)" font-size="9" fill="var(--ink)">NTS</text>
+        <text x="874" y="627" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">REV</text>
+        <text x="874" y="638" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">C</text>
+        <line x1="716" y1="642" x2="716" y2="666" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="806" y1="642" x2="806" y2="666" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="651" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">DATE</text>
+        <text x="624" y="662" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">2026-07</text>
+        <text x="724" y="651" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">SHEET</text>
+        <text x="724" y="662" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">1 of 7</text>
+        <text x="814" y="651" font-family="var(--font-mono)" font-size="6.5" fill="var(--osteo)">STATUS</text>
+        <text x="814" y="662" font-family="var(--font-mono)" font-size="6.8" fill="var(--osteo)">CONCEPT — NOT FOR CONSTRUCTION</text>
+        <text x="30" y="606" font-family="var(--font-mono)" font-size="10" letter-spacing="2" fill="var(--osteo)">GENERAL NOTES</text>
+        <text x="30" y="623" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">1  Cutaway pictorial — not to scale.</text>
+        <text x="30" y="638" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">2  You live on the inside of a spinning drum.</text>
+        <text x="30" y="653" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">3  Rim-wall layers detailed on PLATE IV.</text>
+</svg>
+    </div>
+  </section>
+
+  <!-- ================= PLATE I — GENERAL ARRANGEMENT ================= -->
+  <section class="plate reveal" id="h1">
+    <div class="plate-head"><span class="plate-no">PLATE I</span><h2>General arrangement · external</h2><div class="plate-meta">SCALE 1 : 66,700 (1 px ≈ 16.7 m)<br>SIX GROWN SEGMENTS @ ~1.7 km</div></div>
+    <p class="plate-cap">The whole organism from outside: a segmented drum, <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#wp4">grown somite by somite</a> like a stalk, wrapped in a regolith shield. De-spun docking hubs cap each axis; the aft cap is moored to the asteroid it is eating. At this scale the starship GESTALT is a speck and a human is invisible.</p>
+    <div class="sheet big">
+      <svg viewBox="0 0 960 626" role="img" aria-label="External general arrangement of the Gestalt Arca habitat cylinder with dimensions">
+        <line x1="60" y1="290" x2="920" y2="290" class="ctr"/>
+
+        <!-- drum capsule: body x200..800, endcaps rx60 ry150, cy290 -->
+        <path d="M200 140 L800 140 A 60 150 0 0 1 800 440 L200 440 A 60 150 0 0 1 200 140 Z" class="edge f-hull"/>
+        <!-- regolith shield stipple -->
+        <g fill="var(--l-regolith)" fill-opacity=".5">
+          <circle cx="260" cy="180" r="2"/><circle cx="340" cy="165" r="2"/><circle cx="430" cy="175" r="2"/><circle cx="520" cy="162" r="2"/><circle cx="610" cy="178" r="2"/><circle cx="700" cy="168" r="2"/><circle cx="760" cy="200" r="2"/>
+          <circle cx="260" cy="400" r="2"/><circle cx="360" cy="415" r="2"/><circle cx="470" cy="405" r="2"/><circle cx="580" cy="418" r="2"/><circle cx="690" cy="405" r="2"/><circle cx="250" cy="290" r="2"/><circle cx="770" cy="360" r="2"/>
+        </g>
+        <!-- segment collars -->
+        <g class="thin2"><line x1="300" y1="145" x2="300" y2="435"/><line x1="400" y1="141" x2="400" y2="439"/><line x1="500" y1="140" x2="500" y2="440"/><line x1="600" y1="141" x2="600" y2="439"/><line x1="700" y1="145" x2="700" y2="435"/></g>
+        <!-- circumferential ribs (subtle) -->
+        <g class="thin" opacity=".4"><path d="M300 145 A 200 150 0 0 0 300 435" fill="none"/><path d="M500 140 A 200 150 0 0 0 500 440" fill="none"/><path d="M700 145 A 200 150 0 0 0 700 435" fill="none"/></g>
+
+        <!-- radiator collar near fore endcap -->
+        <g class="edge2"><line x1="240" y1="140" x2="230" y2="108"/><line x1="255" y1="140" x2="248" y2="106"/><line x1="270" y1="140" x2="266" y2="106"/><line x1="240" y1="440" x2="230" y2="472"/><line x1="255" y1="440" x2="248" y2="474"/><line x1="270" y1="440" x2="266" y2="474"/></g>
+
+        <!-- de-spun docking hubs on axis -->
+        <g class="edge2 f-service"><rect x="118" y="272" width="42" height="36" rx="5"/></g>
+        <g class="thin"><line x1="118" y1="280" x2="100" y2="280"/><line x1="118" y1="300" x2="100" y2="300"/></g>
+        <path d="M160 285 L200 270 M160 295 L200 310" class="hid"/>
+        <g class="edge2 f-service"><rect x="800" y="272" width="42" height="36" rx="5"/></g>
+
+        <!-- moored resource body -->
+        <g class="thin2"><line x1="842" y1="284" x2="890" y2="270"/><line x1="842" y1="296" x2="890" y2="300"/></g>
+        <ellipse cx="905" cy="286" rx="30" ry="22" class="edge2 f-hull"/>
+        <g class="thin" opacity=".6"><path d="M888 282 l10 -5 M900 274 l10 10 M894 300 l10 -5"/></g>
+        <text x="905" y="330" text-anchor="middle" class="t-lab3">RESOURCE ASTEROID</text>
+
+        <!-- labels -->
+        <g class="t-lab">
+          <line x1="139" y1="272" x2="139" y2="220" class="thin"/><text x="139" y="212" text-anchor="middle" class="t-lab3">DE-SPUN DOCK HUB</text>
+          <line x1="250" y1="112" x2="250" y2="80" class="thin"/><text x="250" y="72" text-anchor="middle" class="t-lab3">RADIATOR COLLAR</text>
+          <line x1="450" y1="141" x2="450" y2="96" class="thin"/><text x="450" y="88" text-anchor="middle">GROWTH SEGMENTS (SOMITES) — each a biome</text>
+          <line x1="650" y1="405" x2="650" y2="462" class="thin"/><text x="650" y="475" text-anchor="middle" class="t-lab3">REGOLITH SHIELD BLANKET</text>
+        </g>
+
+        <!-- spin arrow -->
+        <path d="M470 128 A 40 12 0 0 1 540 128" fill="none" class="stroke-l" stroke-width="1.2"/><path d="M540 128 l-7 -3 l2 7 z" class="fill-l"/>
+        <text x="505" y="120" text-anchor="middle" class="t-lab3">↻ 0.6 rpm</text>
+
+        <!-- dimensions -->
+        <g class="dim"><line x1="200" y1="464" x2="800" y2="464"/><line x1="200" y1="458" x2="200" y2="470"/><line x1="800" y1="458" x2="800" y2="470"/></g>
+        <text x="500" y="478" text-anchor="middle" class="t-dim">DRUM LENGTH 10 km — L.O.A. ≈ 11 km incl. hubs</text>
+        <g class="dim"><line x1="176" y1="140" x2="176" y2="440"/><line x1="172" y1="140" x2="180" y2="140"/><line x1="172" y1="440" x2="180" y2="440"/></g>
+        <text x="168" y="294" class="t-dim" transform="rotate(-90 168 294)" text-anchor="middle">Ø 5 km</text>
+
+        <!-- scale bar + starship-for-scale -->
+        <g transform="translate(70 430)">
+          <line x1="0" y1="0" x2="120" y2="0" class="edge2"/>
+          <g class="thin"><line x1="0" y1="-4" x2="0" y2="4"/><line x1="60" y1="-4" x2="60" y2="4"/><line x1="120" y1="-4" x2="120" y2="4"/></g>
+          <text x="0" y="15" class="t-dim">0</text><text x="60" y="15" class="t-dim" text-anchor="middle">1</text><text x="120" y="15" class="t-dim" text-anchor="middle">2 km</text>
+        </g>
+        <use href="#ship" x="70" y="404" width="7.2" height="3.6" class="human"/>
+        <text x="82" y="410" class="t-lab3">‹ starship GESTALT (120 m)</text>
+      
+        <!-- ===== BORDER · NOTES · TITLE BLOCK ===== -->
+        <rect x="8" y="8" width="944" height="606" fill="none" stroke="var(--line-2)" stroke-width="1.5"/>
+        <rect x="14" y="14" width="932" height="594" fill="none" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="14" y1="528" x2="946" y2="528" stroke="var(--line-2)" stroke-width="1"/>
+        <rect x="616" y="534" width="330" height="72" fill="none" stroke="var(--line-2)" stroke-width="1.2"/>
+        <line x1="616" y1="558" x2="946" y2="558" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="616" y1="582" x2="946" y2="582" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="545" font-family="var(--font-mono)" font-size="7.5" fill="var(--ink-3)">PROJECT · GESTALT — ARCA Habitat (1,000,000 pop)</text>
+        <text x="624" y="554" font-family="var(--font-display)" font-size="12" fill="var(--ink)">General Arrangement — External</text>
+        <line x1="766" y1="558" x2="766" y2="582" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="866" y1="558" x2="866" y2="582" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="567" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">DRAWING NO.</text>
+        <text x="624" y="578" font-family="var(--font-mono)" font-size="11" fill="var(--lumen)">GST·HAB·101</text>
+        <text x="774" y="567" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">SCALE</text>
+        <text x="774" y="578" font-family="var(--font-mono)" font-size="9" fill="var(--ink)">1 : 66,700</text>
+        <text x="874" y="567" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">REV</text>
+        <text x="874" y="578" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">C</text>
+        <line x1="716" y1="582" x2="716" y2="606" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="806" y1="582" x2="806" y2="606" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="591" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">DATE</text>
+        <text x="624" y="602" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">2026-07</text>
+        <text x="724" y="591" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">SHEET</text>
+        <text x="724" y="602" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">2 of 7</text>
+        <text x="814" y="591" font-family="var(--font-mono)" font-size="6.5" fill="var(--osteo)">STATUS</text>
+        <text x="814" y="602" font-family="var(--font-mono)" font-size="6.8" fill="var(--osteo)">CONCEPT — NOT FOR CONSTRUCTION</text>
+        <text x="30" y="546" font-family="var(--font-mono)" font-size="10" letter-spacing="2" fill="var(--osteo)">GENERAL NOTES</text>
+        <text x="30" y="563" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">1  Drum Ø 5 km × 10 km long.</text>
+        <text x="30" y="578" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">2  Grown as six segments @ ~1.7 km.</text>
+        <text x="30" y="593" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">3  Regolith over-blanket for shielding.</text>
+        <text x="30" y="608" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">4  De-spun docking hubs at each axis cap.</text>
+</svg>
+    </div>
+  </section>
+
+  <!-- ================= PLATE II — LONGITUDINAL SECTION ================= -->
+  <section class="plate reveal" id="h2">
+    <div class="plate-head"><span class="plate-no">PLATE II</span><h2>Longitudinal section · biomes &amp; axis</h2><div class="plate-meta">SECTION ON AXIS · SCALE 1 : 66,700</div></div>
+    <p class="plate-cap">The drum opened along its axis. Land lines the whole inner surface — drawn here as the near and far shores of one ring world — divided into six climate <strong>biomes</strong>. Gravity fades from 1 g at the rim to 0 g on the axis, so the endcaps are terraced farms and the sun-cord and docks float weightless at the centre.</p>
+    <div class="sheet big">
+      <svg viewBox="0 0 960 626" role="img" aria-label="Longitudinal section of the habitat showing biomes, the axial sun-cord, and the gravity gradient">
+        <line x1="60" y1="290" x2="900" y2="290" class="ctr"/>
+        <!-- outer + inner shell -->
+        <path d="M200 140 L800 140 A 60 150 0 0 1 800 440 L200 440 A 60 150 0 0 1 200 140 Z" class="edge"/>
+        <path d="M210 158 L792 158 A 46 132 0 0 1 792 422 L210 422 A 46 132 0 0 1 210 158 Z" class="edge2"/>
+
+        <!-- land strips (near = bottom, far = top) -->
+        <rect x="210" y="158" width="582" height="16" class="f-soil"/>
+        <rect x="210" y="406" width="582" height="16" class="f-soil"/>
+        <!-- rivers/lakes on near land -->
+        <path d="M215 416 Q 320 410 430 416 T 700 416" class="f-water" fill="none" stroke-width="2"/>
+        <ellipse cx="360" cy="415" rx="34" ry="4" class="f-water"/>
+        <!-- forests -->
+        <g class="fill-c" opacity=".7"><use href="#tree" x="250" y="398" width="8" height="12"/><use href="#tree" x="470" y="398" width="8" height="12"/><use href="#tree" x="620" y="398" width="8" height="12"/></g>
+
+        <!-- biome dividers + labels -->
+        <g class="sta"><line x1="308" y1="158" x2="308" y2="422"/><line x1="405" y1="158" x2="405" y2="422"/><line x1="500" y1="158" x2="500" y2="422"/><line x1="597" y1="158" x2="597" y2="422"/><line x1="694" y1="158" x2="694" y2="422"/></g>
+        <g class="t-lab3" text-anchor="middle">
+          <text x="259" y="440">WETLAND</text><text x="356" y="440">FOREST</text><text x="452" y="440">FARM</text><text x="548" y="440">SAVANNA</text><text x="645" y="440">URBAN</text><text x="743" y="440">RESERVE</text>
+        </g>
+
+        <!-- axial sun-cord -->
+        <line x1="180" y1="290" x2="820" y2="290" stroke="var(--lumen)" stroke-width="4" stroke-linecap="round"/>
+        <g class="stroke-l" opacity=".22" stroke-width="1"><line x1="260" y1="290" x2="260" y2="176"/><line x1="260" y1="290" x2="260" y2="404"/><line x1="500" y1="290" x2="500" y2="176"/><line x1="500" y1="290" x2="500" y2="404"/><line x1="700" y1="290" x2="700" y2="176"/><line x1="700" y1="290" x2="700" y2="404"/></g>
+
+        <!-- endcap terraces -->
+        <g class="thin2" fill="none" opacity=".7">
+          <path d="M792 174 A 46 116 0 0 1 820 290"/><path d="M792 406 A 46 116 0 0 0 820 290"/>
+          <path d="M778 190 A 32 90 0 0 1 818 290"/><path d="M778 390 A 32 90 0 0 0 818 290"/>
+          <path d="M210 174 A 46 116 0 0 0 182 290"/><path d="M210 406 A 46 116 0 0 1 182 290"/>
+        </g>
+
+        <!-- de-spun hubs -->
+        <g class="edge2 f-service"><rect x="150" y="276" width="34" height="28" rx="4"/><rect x="818" y="276" width="34" height="28" rx="4"/></g>
+
+        <!-- gravity gradient ladder (right) -->
+        <g class="dim"><line x1="878" y1="158" x2="878" y2="290"/><line x1="874" y1="158" x2="882" y2="158"/><line x1="874" y1="290" x2="882" y2="290"/></g>
+        <text x="890" y="162" class="t-lab3">1.0 g · rim</text>
+        <text x="890" y="226" class="t-lab3">↑ gravity</text>
+        <text x="890" y="238" class="t-lab3">fades</text>
+        <text x="890" y="292" class="t-lab3">0 g · axis</text>
+
+        <!-- callouts -->
+        <g class="t-lab">
+          <line x1="500" y1="290" x2="500" y2="112" class="thin"/><circle cx="500" cy="290" r="2.5" class="fill-l"/>
+          <text x="500" y="104" text-anchor="middle" class="t-acc-l">AXIAL SUN-CORD (0 g)</text>
+          <line x1="452" y1="166" x2="452" y2="96" class="thin"/><circle cx="452" cy="166" r="2" class="fill-c"/>
+          <text x="360" y="90" class="t-acc-c">INNER LAND SURFACE — six biomes</text>
+          <line x1="806" y1="230" x2="806" y2="120" class="thin"/><circle cx="806" cy="230" r="2" style="fill:var(--l-soil)"/>
+          <text x="806" y="112" text-anchor="middle" class="t-lab3">ENDCAP FARM TERRACES</text>
+        </g>
+
+        <!-- scale bar -->
+        <g transform="translate(70 462)">
+          <line x1="0" y1="0" x2="120" y2="0" class="edge2"/>
+          <g class="thin"><line x1="0" y1="-4" x2="0" y2="4"/><line x1="60" y1="-4" x2="60" y2="4"/><line x1="120" y1="-4" x2="120" y2="4"/></g>
+          <text x="0" y="15" class="t-dim">0</text><text x="60" y="15" class="t-dim" text-anchor="middle">1</text><text x="120" y="15" class="t-dim" text-anchor="middle">2 km</text>
+        </g>
+      
+        <!-- ===== BORDER · NOTES · TITLE BLOCK ===== -->
+        <rect x="8" y="8" width="944" height="606" fill="none" stroke="var(--line-2)" stroke-width="1.5"/>
+        <rect x="14" y="14" width="932" height="594" fill="none" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="14" y1="528" x2="946" y2="528" stroke="var(--line-2)" stroke-width="1"/>
+        <rect x="616" y="534" width="330" height="72" fill="none" stroke="var(--line-2)" stroke-width="1.2"/>
+        <line x1="616" y1="558" x2="946" y2="558" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="616" y1="582" x2="946" y2="582" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="545" font-family="var(--font-mono)" font-size="7.5" fill="var(--ink-3)">PROJECT · GESTALT — ARCA Habitat (1,000,000 pop)</text>
+        <text x="624" y="554" font-family="var(--font-display)" font-size="12" fill="var(--ink)">Longitudinal Section — Biomes & Axis</text>
+        <line x1="766" y1="558" x2="766" y2="582" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="866" y1="558" x2="866" y2="582" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="567" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">DRAWING NO.</text>
+        <text x="624" y="578" font-family="var(--font-mono)" font-size="11" fill="var(--lumen)">GST·HAB·102</text>
+        <text x="774" y="567" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">SCALE</text>
+        <text x="774" y="578" font-family="var(--font-mono)" font-size="9" fill="var(--ink)">1 : 66,700</text>
+        <text x="874" y="567" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">REV</text>
+        <text x="874" y="578" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">C</text>
+        <line x1="716" y1="582" x2="716" y2="606" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="806" y1="582" x2="806" y2="606" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="591" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">DATE</text>
+        <text x="624" y="602" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">2026-07</text>
+        <text x="724" y="591" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">SHEET</text>
+        <text x="724" y="602" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">3 of 7</text>
+        <text x="814" y="591" font-family="var(--font-mono)" font-size="6.5" fill="var(--osteo)">STATUS</text>
+        <text x="814" y="602" font-family="var(--font-mono)" font-size="6.8" fill="var(--osteo)">CONCEPT — NOT FOR CONSTRUCTION</text>
+        <text x="30" y="546" font-family="var(--font-mono)" font-size="10" letter-spacing="2" fill="var(--osteo)">GENERAL NOTES</text>
+        <text x="30" y="563" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">1  Section on the spin axis.</text>
+        <text x="30" y="578" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">2  Gravity fades 1 g (rim) → 0 g (axis).</text>
+        <text x="30" y="593" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">3  Axial sun-cord lights biomes from within.</text>
+        <text x="30" y="608" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">4  Endcaps are terraced 0-g farms.</text>
+</svg>
+    </div>
+  </section>
+
+  <!-- ================= PLATE III — TRANSVERSE SECTION ================= -->
+  <section class="plate reveal" id="h3">
+    <div class="plate-head"><span class="plate-no">PLATE III</span><h2>Transverse section · the ring world</h2><div class="plate-meta">END VIEW · SCALE 1 : 20,000 (1 px ≈ 10 m)</div></div>
+    <p class="plate-cap">The defining diagram: a slice across the drum. Everyone lives on the inner rim, held down by spin. Read the radial ladder outward — 0 g on the axis but, because the 2.5 km radius is far shorter than the air's ~8.4 km scale height, still a breathable ~45 kPa there — rising only gently to 52 kPa and 1 g at the rim. The habitable world is the green ring at the edge, but the whole volume holds air.</p>
+    <div class="sheet big">
+      <svg viewBox="0 0 960 746" role="img" aria-label="Transverse cross-section of the habitat ring showing radial layers and the gravity and pressure gradient">
+        <!-- concentric rings, center (360,310), R=250 (=2.5km @100px/km) -->
+        <g transform="translate(360 310)">
+          <!-- air column radial gradient -->
+          <defs><radialGradient id="airR" cx="50%" cy="50%" r="50%">
+            <stop offset="0" stop-color="var(--lumen)" stop-opacity="0"/>
+            <stop offset="72%" stop-color="var(--lumen)" stop-opacity=".03"/>
+            <stop offset="100%" stop-color="var(--lumen)" stop-opacity=".14"/>
+          </radialGradient></defs>
+          <circle r="250" class="edge"/>
+          <!-- regolith shield -->
+          <circle r="250" fill="none" stroke="var(--l-regolith)" stroke-width="12" opacity=".6"/>
+          <!-- rind -->
+          <circle r="242" fill="none" stroke="var(--l-rind)" stroke-width="5"/>
+          <!-- mycelium -->
+          <circle r="236" fill="none" stroke="var(--l-mycelium)" stroke-width="6" opacity=".7"/>
+          <!-- tendon cage (weave) -->
+          <circle r="228" fill="none" stroke="var(--osteo)" stroke-width="7" opacity=".5"/>
+          <circle r="228" fill="none" stroke="var(--osteo)" stroke-width="1" stroke-dasharray="3 5"/>
+          <!-- pneumostat -->
+          <circle r="222" fill="none" stroke="var(--l-pneumostat)" stroke-width="3"/>
+          <!-- service/vascular deck -->
+          <circle r="214" fill="none" stroke="var(--l-service)" stroke-width="8" opacity=".5"/>
+          <!-- air -->
+          <circle r="205" fill="url(#airR)"/>
+          <!-- LAND ring (inner surface) -->
+          <circle r="205" fill="none" stroke="var(--l-soil)" stroke-width="6"/>
+          <!-- surface features around the ring: forest arc, lake arc, city arc -->
+          <path d="M-60 -196 A 205 205 0 0 1 90 -184" fill="none" class="stroke-c" stroke-width="4" opacity=".7"/>
+          <path d="M120 -166 A 205 205 0 0 1 196 -60" fill="none" class="stroke-l" stroke-width="4" opacity=".7"/>
+          <g class="thin2" opacity=".7"><line x1="-150" y1="-140" x2="-156" y2="-146"/><line x1="-176" y1="-104" x2="-183" y2="-108"/><line x1="-196" y1="-60" x2="-203" y2="-62"/></g>
+          <!-- axial sun-cord -->
+          <circle r="14" class="f-sun"/>
+          <g class="stroke-l" opacity=".25"><line x1="0" y1="0" x2="0" y2="-200"/><line x1="0" y1="0" x2="173" y2="100"/><line x1="0" y1="0" x2="-173" y2="100"/></g>
+
+          <!-- radial altitude ladder (down) -->
+          <g class="dim"><line x1="0" y1="0" x2="0" y2="205"/></g>
+          <g class="t-lab3">
+            <circle cx="0" cy="0" r="1.6" class="fill-l"/><text x="8" y="4">axis · 0 g · ~45 kPa · breathable</text>
+            <line x1="-4" y1="102" x2="4" y2="102" class="thin"/><text x="8" y="106">0.5 g · ~47 kPa</text>
+            <line x1="-4" y1="205" x2="4" y2="205" class="thin"/><text x="8" y="209" class="t-acc-c">rim · 1.0 g · 52 kPa · you are here</text>
+          </g>
+
+          <!-- spin -->
+          <path d="M-40 -262 A 265 265 0 0 1 60 -258" fill="none" class="stroke-l" stroke-width="1.2"/><path d="M60 -258 l-8 -2 l3 7 z" class="fill-l"/>
+          <text x="0" y="-272" text-anchor="middle" class="t-lab3">↻ 0.6 rpm · rim 157 m/s</text>
+
+          <!-- diameter -->
+          <g class="dim"><line x1="-250" y1="286" x2="250" y2="286"/><line x1="-250" y1="280" x2="-250" y2="292"/><line x1="250" y1="280" x2="250" y2="292"/></g>
+          <text x="0" y="300" text-anchor="middle" class="t-dim">Ø 5 km</text>
+        </g>
+
+        <!-- radial layer legend (right) -->
+        <g transform="translate(700 120)" class="t-lab">
+          <text x="0" y="0" class="t-lab3" style="letter-spacing:.16em">RADIAL STACK (OUT › IN)</text>
+          <g transform="translate(0 22)"><rect x="0" y="-9" width="14" height="12" fill="var(--l-regolith)" opacity=".7"/><text x="22" y="0">Regolith shield</text></g>
+          <g transform="translate(0 44)"><rect x="0" y="-9" width="14" height="12" fill="var(--l-rind)"/><text x="22" y="0">Melanized rind</text></g>
+          <g transform="translate(0 66)"><rect x="0" y="-9" width="14" height="12" fill="var(--l-mycelium)"/><text x="22" y="0">Mycelial matrix</text></g>
+          <g transform="translate(0 88)"><rect x="0" y="-9" width="14" height="12" fill="var(--osteo)" opacity=".6"/><text x="22" y="0">Tendon cage — the skeleton</text></g>
+          <g transform="translate(0 110)"><rect x="0" y="-9" width="14" height="12" fill="var(--l-pneumostat)"/><text x="22" y="0">Pneumostat — pressure seal</text></g>
+          <g transform="translate(0 132)"><rect x="0" y="-9" width="14" height="12" fill="var(--l-service)" opacity=".6"/><text x="22" y="0">Service &amp; vascular deck</text></g>
+          <g transform="translate(0 154)"><rect x="0" y="-9" width="14" height="12" fill="var(--l-soil)"/><text x="22" y="0">Soil + biosphere (1 g)</text></g>
+          <text x="0" y="188" class="t-lab3">›› enlarged in Plate IV</text>
+        </g>
+
+        <!-- momentum inset -->
+        <g transform="translate(760 470)">
+          <text x="0" y="-58" class="t-lab3" style="letter-spacing:.14em">MOMENTUM MGMT</text>
+          <circle r="38" class="edge2"/><circle r="24" class="thin2"/>
+          <path d="M0 -38 A 38 38 0 0 1 30 -22" fill="none" class="stroke-l"/><path d="M0 24 A 24 24 0 0 1 -18 15" fill="none" class="stroke-o"/>
+          <text x="0" y="52" text-anchor="middle" class="t-lab3">counter-rotating</text>
+          <text x="0" y="63" text-anchor="middle" class="t-lab3">flywheel organs</text>
+        </g>
+      
+        <!-- ===== BORDER · NOTES · TITLE BLOCK ===== -->
+        <rect x="8" y="8" width="944" height="726" fill="none" stroke="var(--line-2)" stroke-width="1.5"/>
+        <rect x="14" y="14" width="932" height="714" fill="none" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="14" y1="648" x2="946" y2="648" stroke="var(--line-2)" stroke-width="1"/>
+        <rect x="616" y="654" width="330" height="72" fill="none" stroke="var(--line-2)" stroke-width="1.2"/>
+        <line x1="616" y1="678" x2="946" y2="678" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="616" y1="702" x2="946" y2="702" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="665" font-family="var(--font-mono)" font-size="7.5" fill="var(--ink-3)">PROJECT · GESTALT — ARCA Habitat (1,000,000 pop)</text>
+        <text x="624" y="674" font-family="var(--font-display)" font-size="12" fill="var(--ink)">Transverse Section — The Ring World</text>
+        <line x1="766" y1="678" x2="766" y2="702" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="866" y1="678" x2="866" y2="702" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="687" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">DRAWING NO.</text>
+        <text x="624" y="698" font-family="var(--font-mono)" font-size="11" fill="var(--lumen)">GST·HAB·103</text>
+        <text x="774" y="687" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">SCALE</text>
+        <text x="774" y="698" font-family="var(--font-mono)" font-size="9" fill="var(--ink)">1 : 20,000</text>
+        <text x="874" y="687" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">REV</text>
+        <text x="874" y="698" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">C</text>
+        <line x1="716" y1="702" x2="716" y2="726" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="806" y1="702" x2="806" y2="726" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="711" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">DATE</text>
+        <text x="624" y="722" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">2026-07</text>
+        <text x="724" y="711" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">SHEET</text>
+        <text x="724" y="722" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">4 of 7</text>
+        <text x="814" y="711" font-family="var(--font-mono)" font-size="6.5" fill="var(--osteo)">STATUS</text>
+        <text x="814" y="722" font-family="var(--font-mono)" font-size="6.8" fill="var(--osteo)">CONCEPT — NOT FOR CONSTRUCTION</text>
+        <text x="30" y="666" font-family="var(--font-mono)" font-size="10" letter-spacing="2" fill="var(--osteo)">GENERAL NOTES</text>
+        <text x="30" y="683" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">1  End view, looking along the axis.</text>
+        <text x="30" y="698" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">2  Spin 0.6 rpm → 1.0 g at the 2.5 km rim (157 m/s).</text>
+        <text x="30" y="713" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">3  Atmosphere ~113 Mt at 52 kPa (34% O₂).</text>
+        <text x="30" y="728" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">4  Radial air column adds ~140 g/cm² shielding.</text>
+</svg>
+    </div>
+  </section>
+
+  <!-- ================= PLATE IV — RIM WALL DETAIL ================= -->
+  <section class="plate reveal" id="h4">
+    <div class="plate-head"><span class="plate-no">PLATE IV</span><h2>Rim wall · the ground you stand on</h2><div class="plate-meta">DETAIL 1 · SCALE 1 : 130 · DEEP SPACE (LEFT) → SOIL (RIGHT)</div></div>
+    <p class="plate-cap">A radial core through the ~33 m rim. Most of the depth is the <strong>tendon cage</strong> — a woven skeleton carrying <strong>230 MN per metre</strong> of hoop tension: 130 from air pressure (P·R) plus ~100 from the spin-weight of the soil, water and structures pressing outward at 1 g. That needs ~2.3 m of silk-bone fibre at a 100 MPa working stress<sup class="cite"><a href="#href-8">[8]</a><a href="#href-9">[9]</a><a href="#href-10">[10]</a></sup> — halved to ~1.15 m by the Mk II upgrade. Beneath it runs a habitable <strong>service deck</strong> of transit, water mains and vascular trunks. Note what the stack does <em>not</em> need: a dedicated radiation shield — the ~300 g/cm² regolith over-blanket is the real shield<sup class="cite"><a href="#href-6">[6]</a><a href="#href-7">[7]</a></sup>, and the ~140 g/cm² radial column of overhead air adds to it (~440 g/cm² together, comparable to several metres of water), so the habitat is self-shielded by the world around and inside it.</p>
+    <div class="sheet med">
+      <svg viewBox="0 0 960 506" role="img" aria-label="Detail of the habitat rim wall layers from regolith shield to soil">
+        <!-- bands x100..860 (760px = 33m => 23px/m). y 80..270 -->
+        <rect x="40" y="80" width="60" height="190" fill="var(--l-void)"/><text x="70" y="66" text-anchor="middle" class="t-lab3">SPACE</text>
+        <!-- regolith 10m 230 -->
+        <rect x="100" y="80" width="230" height="190" fill="var(--l-regolith)"/>
+        <g fill="#000" fill-opacity=".2"><circle cx="140" cy="120" r="2.5"/><circle cx="200" cy="180" r="2.5"/><circle cx="260" cy="130" r="2.5"/><circle cx="300" cy="220" r="2.5"/><circle cx="170" cy="230" r="2.5"/></g>
+        <!-- rind 2m 46 -->
+        <rect x="330" y="80" width="46" height="190" fill="var(--l-rind)"/>
+        <!-- mycelium 5m 115 -->
+        <rect x="376" y="80" width="115" height="190" fill="var(--l-mycelium)"/>
+        <g stroke="#000" stroke-opacity=".14" fill="none"><path d="M384 110 C 430 100 460 150 486 120"/><path d="M384 200 C 440 220 460 160 488 210"/></g>
+        <!-- tendon cage 3m 69 -->
+        <rect x="491" y="80" width="69" height="190" fill="var(--l-tendon)" fill-opacity=".9"/>
+        <g stroke="#5b3d18" stroke-opacity=".5" stroke-width="1.6" fill="none">
+          <path d="M493 80 L558 150 M493 150 L558 220 M493 220 L558 270"/>
+          <path d="M558 80 L493 150 M558 150 L493 220 M558 220 L493 270"/>
+        </g>
+        <!-- pneumostat 2m 46 -->
+        <rect x="560" y="80" width="46" height="190" fill="var(--l-pneumostat)"/>
+        <g stroke="#0d3b39" stroke-opacity=".4" stroke-width="1"><line x1="562" y1="98" x2="604" y2="98"/><line x1="562" y1="120" x2="604" y2="120"/><line x1="562" y1="142" x2="604" y2="142"/><line x1="562" y1="164" x2="604" y2="164"/><line x1="562" y1="186" x2="604" y2="186"/><line x1="562" y1="208" x2="604" y2="208"/><line x1="562" y1="230" x2="604" y2="230"/><line x1="562" y1="252" x2="604" y2="252"/></g>
+        <!-- service deck 8m 184 -->
+        <rect x="606" y="80" width="184" height="190" fill="var(--l-service)" fill-opacity=".35"/>
+        <g class="thin2" opacity=".8"><rect x="624" y="110" width="40" height="130"/><rect x="676" y="150" width="30" height="60"/><circle cx="740" cy="140" r="14"/><circle cx="740" cy="200" r="10"/></g>
+        <text x="698" y="258" text-anchor="middle" class="t-lab3">transit · water · vascular trunks</text>
+        <!-- soil 3m 69 -->
+        <rect x="790" y="80" width="69" height="190" fill="var(--l-soil)" fill-opacity=".7"/>
+        <g fill="var(--chloro)" fill-opacity=".5"><circle cx="806" cy="120" r="2"/><circle cx="836" cy="150" r="2"/><circle cx="814" cy="190" r="2"/></g>
+        <!-- people + tree on the inner surface (right face) -->
+        <use href="#human" x="864" y="60" width="8" height="20" class="human"/>
+        <use href="#tree" x="878" y="52" width="18" height="27" class="fill-c" opacity=".7"/>
+        <line x1="859" y1="80" x2="905" y2="80" class="edge2"/>
+        <text x="884" y="98" text-anchor="middle" class="t-lab3">1 g · people</text>
+
+        <!-- dimension ladder -->
+        <g class="dim"><line x1="100" y1="52" x2="859" y2="52"/>
+          <line x1="100" y1="48" x2="100" y2="76"/><line x1="330" y1="48" x2="330" y2="76"/><line x1="376" y1="48" x2="376" y2="76"/><line x1="491" y1="48" x2="491" y2="76"/><line x1="560" y1="48" x2="560" y2="76"/><line x1="606" y1="48" x2="606" y2="76"/><line x1="790" y1="48" x2="790" y2="76"/><line x1="859" y1="48" x2="859" y2="76"/>
+        </g>
+        <text x="480" y="40" text-anchor="middle" class="t-dim">TOTAL RIM ≈ 33 m</text>
+
+        <!-- labels -->
+        <g class="t-lab" text-anchor="middle">
+          <text x="215" y="292" class="t-serif" font-size="12">Regolith shield</text><text x="215" y="306" class="t-dim">10 m · asteroid slag</text>
+          <text x="353" y="292" class="t-serif" font-size="11">Rind</text><text x="353" y="306" class="t-dim">2 m</text>
+          <text x="433" y="292" class="t-serif" font-size="12">Mycelium</text><text x="433" y="306" class="t-dim">5 m</text>
+          <text x="525" y="292" class="t-serif" font-size="12">Tendon cage</text><text x="525" y="306" class="t-dim">3 m · 230 MN/m</text>
+          <text x="583" y="292" class="t-serif" font-size="10">Pneumostat</text><text x="583" y="306" class="t-dim">2 m</text>
+          <text x="698" y="292" class="t-serif" font-size="12">Service deck</text><text x="698" y="306" class="t-dim">8 m · habitable</text>
+          <text x="824" y="292" class="t-serif" font-size="12">Soil</text><text x="824" y="306" class="t-dim">3 m</text>
+        </g>
+
+        <!-- scale bar -->
+        <g transform="translate(40 336)"><line x1="0" y1="0" x2="230" y2="0" class="edge2"/><g class="thin"><line x1="0" y1="-4" x2="0" y2="4"/><line x1="115" y1="-4" x2="115" y2="4"/><line x1="230" y1="-4" x2="230" y2="4"/></g><text x="0" y="15" class="t-dim">0</text><text x="115" y="15" class="t-dim" text-anchor="middle">5</text><text x="230" y="15" class="t-dim" text-anchor="middle">10 m</text></g>
+      
+        <!-- ===== BORDER · NOTES · TITLE BLOCK ===== -->
+        <rect x="8" y="8" width="944" height="486" fill="none" stroke="var(--line-2)" stroke-width="1.5"/>
+        <rect x="14" y="14" width="932" height="474" fill="none" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="14" y1="408" x2="946" y2="408" stroke="var(--line-2)" stroke-width="1"/>
+        <rect x="616" y="414" width="330" height="72" fill="none" stroke="var(--line-2)" stroke-width="1.2"/>
+        <line x1="616" y1="438" x2="946" y2="438" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="616" y1="462" x2="946" y2="462" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="425" font-family="var(--font-mono)" font-size="7.5" fill="var(--ink-3)">PROJECT · GESTALT — ARCA Habitat (1,000,000 pop)</text>
+        <text x="624" y="434" font-family="var(--font-display)" font-size="12" fill="var(--ink)">Rim Wall — The Ground You Stand On</text>
+        <line x1="766" y1="438" x2="766" y2="462" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="866" y1="438" x2="866" y2="462" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="447" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">DRAWING NO.</text>
+        <text x="624" y="458" font-family="var(--font-mono)" font-size="11" fill="var(--lumen)">GST·HAB·104</text>
+        <text x="774" y="447" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">SCALE</text>
+        <text x="774" y="458" font-family="var(--font-mono)" font-size="9" fill="var(--ink)">1 : 130</text>
+        <text x="874" y="447" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">REV</text>
+        <text x="874" y="458" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">C</text>
+        <line x1="716" y1="462" x2="716" y2="486" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="806" y1="462" x2="806" y2="486" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="471" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">DATE</text>
+        <text x="624" y="482" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">2026-07</text>
+        <text x="724" y="471" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">SHEET</text>
+        <text x="724" y="482" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">5 of 7</text>
+        <text x="814" y="471" font-family="var(--font-mono)" font-size="6.5" fill="var(--osteo)">STATUS</text>
+        <text x="814" y="482" font-family="var(--font-mono)" font-size="6.8" fill="var(--osteo)">CONCEPT — NOT FOR CONSTRUCTION</text>
+        <text x="30" y="426" font-family="var(--font-mono)" font-size="10" letter-spacing="2" fill="var(--osteo)">MATERIAL LEGEND · outer → inner</text>
+        <rect x="30" y="433" width="14" height="10" style="fill:var(--l-regolith);fill-opacity:.55;stroke:var(--l-regolith)"/>
+        <text x="50" y="441" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">Regolith over-blanket</text>
+        <rect x="30" y="448" width="14" height="10" style="fill:var(--l-rind);fill-opacity:.55;stroke:var(--l-rind)"/>
+        <text x="50" y="456" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">Rind</text>
+        <rect x="30" y="463" width="14" height="10" style="fill:var(--l-mycelium);fill-opacity:.55;stroke:var(--l-mycelium)"/>
+        <text x="50" y="471" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">Mycelial matrix</text>
+        <rect x="30" y="478" width="14" height="10" style="fill:var(--l-tendon);fill-opacity:.55;stroke:var(--l-tendon)"/>
+        <text x="50" y="486" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">Tendon cage (silk-bone)</text>
+        <rect x="290" y="433" width="14" height="10" style="fill:var(--l-pneumostat);fill-opacity:.55;stroke:var(--l-pneumostat)"/>
+        <text x="310" y="441" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">Pneumostat seal</text>
+        <rect x="290" y="448" width="14" height="10" style="fill:var(--l-service);fill-opacity:.55;stroke:var(--l-service)"/>
+        <text x="310" y="456" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">Service deck</text>
+        <rect x="290" y="463" width="14" height="10" style="fill:var(--l-soil);fill-opacity:.55;stroke:var(--l-soil)"/>
+        <text x="310" y="471" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">Soil · living ground</text>
+</svg>
+    </div>
+  </section>
+
+  <!-- ================= PLATE V — DETAIL STUDIES ================= -->
+  <section class="plate reveal" id="h5">
+    <div class="plate-head"><span class="plate-no">PLATE V</span><h2>Detail studies · systems that make a world</h2><div class="plate-meta">DETAILS 2–6 · VARIOUS SCALES</div></div>
+    <p class="plate-cap">How the habitat lights itself, carries its own weight, grows new land, docks ships, and what a district actually looks like from the ground.</p>
+    <div class="detail-grid">
+
+      <!-- D2 sun-cord -->
+      <div class="detail-card">
+        <div class="dc-t"><span>Axial sun-cord</span><span class="n">DET. 2</span></div>
+        <svg viewBox="0 0 300 200" role="img" aria-label="Cross-section of the axial sun-cord light organ">
+          <circle cx="90" cy="100" r="60" class="f-sun"/>
+          <circle cx="90" cy="100" r="38" style="fill:var(--lumen);fill-opacity:.4"/>
+          <circle cx="90" cy="100" r="18" fill="#fff" opacity=".6"/>
+          <g class="stroke-l" opacity=".5"><line x1="90" y1="100" x2="90" y2="20"/><line x1="90" y1="100" x2="160" y2="60"/><line x1="90" y1="100" x2="160" y2="140"/><line x1="90" y1="100" x2="90" y2="180"/><line x1="90" y1="100" x2="24" y2="150"/></g>
+          <text x="90" y="104" text-anchor="middle" class="t-lab3">glow</text>
+          <text x="196" y="52" class="t-lab3">bioluminescent</text><text x="196" y="64" class="t-lab3">core</text>
+          <text x="196" y="120" class="t-lab3">piped starlight</text><text x="196" y="132" class="t-lab3">feed (from cap)</text>
+          <path d="M210 150 h70 M210 168 h70" class="hid"/>
+          <text x="245" y="186" text-anchor="middle" class="t-lab3">dimming sheath → night</text>
+        </svg>
+        <p>A weightless luminous tube on the axis. Lighting ~100 km² of interior to a moderate daylight of <strong>~150 W/m²</strong><sup class="cite"><a href="#href-2">[2]</a></sup> takes about <strong>15 GW</strong>, fed mainly by <strong>concentrated starlight</strong> piped from a collector at the sunward endcap — <strong>~3.7 km across at 1 AU</strong>, and scaling to ~10 km out in the asteroid belt where sunlight is ~7× weaker. That 150 W/m² closes the oxygen loop with room to spare: the biomes need only ~8 g O₂/m²·day, roughly a 2% photosynthetic efficiency. Bioluminescent organs add only a dim safety glow, since biology tops out under 1 W/m². A muscular sheath dims the whole cord to make day and night.</p>
+      </div>
+
+      <!-- D3 tendon node -->
+      <div class="detail-card">
+        <div class="dc-t"><span>Tendon-cage node</span><span class="n">DET. 3</span></div>
+        <svg viewBox="0 0 300 200" role="img" aria-label="A load-bearing tendon node where high-tensile cables cross and anchor">
+          <!-- cables -->
+          <g stroke="var(--osteo)" stroke-width="7" fill="none" stroke-linecap="round" opacity=".85">
+            <path d="M20 40 C 110 70 190 70 280 40"/><path d="M20 160 C 110 130 190 130 280 160"/>
+          </g>
+          <g stroke="var(--osteo)" stroke-width="4" fill="none" opacity=".6"><path d="M40 20 C 120 90 120 110 60 180"/><path d="M260 20 C 180 90 180 110 240 180"/></g>
+          <!-- mineralized anchor (enthesis) -->
+          <ellipse cx="150" cy="100" rx="46" ry="34" class="f-tendon"/>
+          <g stroke="#5b3d18" stroke-opacity=".4" stroke-width="1"><line x1="112" y1="88" x2="188" y2="88"/><line x1="108" y1="100" x2="192" y2="100"/><line x1="112" y1="112" x2="188" y2="112"/></g>
+          <text x="150" y="150" text-anchor="middle" class="t-lab3">mineralized anchor</text>
+          <text x="150" y="30" text-anchor="middle" class="t-acc-o t-lab">SILK-BONE CABLES</text>
+        </svg>
+        <p>Engineered spider-silk protein spun over a mineralized bone anchor — a grown ligament-to-bone joint. The helical cage of these carries the ring's entire outward load in pure tension.</p>
+      </div>
+
+      <!-- D4 segment growth -->
+      <div class="detail-card">
+        <div class="dc-t"><span>Segment growth collar</span><span class="n">DET. 4</span></div>
+        <svg viewBox="0 0 300 200" role="img" aria-label="How a new drum segment is grown at a flexible collar">
+          <rect x="20" y="60" width="90" height="80" class="edge2 f-hull"/>
+          <rect x="190" y="60" width="90" height="80" class="edge2 f-hull"/>
+          <!-- collar / meristem -->
+          <rect x="110" y="54" width="80" height="92" rx="8" class="f-forest"/>
+          <g class="stroke-c" stroke-width="1" opacity=".6"><line x1="122" y1="60" x2="122" y2="140"/><line x1="138" y1="56" x2="138" y2="144"/><line x1="154" y1="54" x2="154" y2="146"/><line x1="170" y1="56" x2="170" y2="144"/></g>
+          <text x="150" y="164" text-anchor="middle" class="t-lab3">growth collar (meristem)</text>
+          <text x="65" y="50" text-anchor="middle" class="t-lab3">mature somite</text>
+          <text x="235" y="50" text-anchor="middle" class="t-lab3">new somite</text>
+          <path d="M235 156 l0 20 M228 170 l7 8 l7 -8" class="stroke-c" fill="none"/>
+          <text x="150" y="192" text-anchor="middle" class="t-lab3">habitat extends itself as population grows</text>
+        </svg>
+        <p>Segments meet at living collars of dividing cells. To house more people the habitat grows another somite — a new biome — from the collar, so the world lengthens over its lifetime.</p>
+      </div>
+
+      <!-- D5 dock hub -->
+      <div class="detail-card">
+        <div class="dc-t"><span>De-spun docking hub</span><span class="n">DET. 5</span></div>
+        <svg viewBox="0 0 300 200" role="img" aria-label="The de-spun docking hub on the spin axis with a bearing to the rotating drum">
+          <!-- rotating endcap -->
+          <path d="M40 20 A 120 90 0 0 1 40 180" class="edge2 f-hull"/>
+          <text x="30" y="104" text-anchor="middle" class="t-lab3" transform="rotate(-90 30 104)">rotating drum ↻</text>
+          <!-- bearing ring -->
+          <circle cx="120" cy="100" r="30" class="thin2"/><circle cx="120" cy="100" r="30" class="stroke-o" stroke-width="1" stroke-dasharray="3 4" fill="none"/>
+          <text x="120" y="146" text-anchor="middle" class="t-lab3">spin bearing</text>
+          <!-- de-spun hub (still) -->
+          <rect x="150" y="76" width="90" height="48" rx="6" class="f-service"/>
+          <text x="195" y="104" text-anchor="middle" class="t-lab3">0 g dock</text>
+          <line x1="240" y1="86" x2="278" y2="80" class="edge2"/><line x1="240" y1="114" x2="278" y2="120" class="edge2"/>
+          <text x="270" y="60" text-anchor="middle" class="t-lab3">ships berth here</text>
+        </svg>
+        <p>Ships can't dock to a spinning rim, so the axis hub runs on a living bearing that cancels the spin — weightless and stationary. Passengers ride "down" the endcap into gravity.</p>
+      </div>
+
+      <!-- D6 district -->
+      <div class="detail-card">
+        <div class="dc-t"><span>District — from the ground</span><span class="n">DET. 6</span></div>
+        <svg viewBox="0 0 300 200" role="img" aria-label="A district seen from the ground, with the land curving up into the sky">
+          <!-- sky with far land curving up -->
+          <path d="M0 0 H300 V70 C 220 40 80 40 0 70 Z" fill="var(--lumen)" opacity=".05"/>
+          <path d="M0 70 C 80 40 220 40 300 70" fill="none" class="thin2" opacity=".6"/>
+          <g class="fill-c" opacity=".4"><circle cx="70" cy="52" r="2"/><circle cx="150" cy="46" r="2"/><circle cx="230" cy="52" r="2"/></g>
+          <text x="150" y="34" text-anchor="middle" class="t-lab3">far side of the world, overhead</text>
+          <!-- sun cord line -->
+          <line x1="0" y1="16" x2="300" y2="16" stroke="var(--lumen)" stroke-width="2" opacity=".7"/>
+          <!-- ground -->
+          <rect x="0" y="150" width="300" height="50" class="f-soil"/>
+          <ellipse cx="150" cy="162" rx="60" ry="7" class="f-water"/>
+          <use href="#tree" x="30" y="122" width="20" height="30" class="fill-c" opacity=".8"/>
+          <use href="#tree" x="250" y="126" width="18" height="27" class="fill-c" opacity=".8"/>
+          <g class="edge2" opacity=".8"><rect x="70" y="128" width="20" height="22"/><rect x="94" y="134" width="16" height="16"/><rect x="210" y="132" width="18" height="18"/></g>
+          <use href="#human" x="150" y="136" width="6" height="15" class="human"/>
+          <use href="#human" x="162" y="138" width="5" height="13" class="human"/>
+          <text x="150" y="192" text-anchor="middle" class="t-lab3">1 g · open air · horizon curves up, not down</text>
+        </svg>
+        <p>At ground level it reads as ordinary countryside — until you notice the horizon rising instead of falling, farms and lakes hanging in the sky, and a line of light where a sun should be.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= PLATE VI — UNROLLED BIOME MAP ================= -->
+  <section class="plate reveal" id="h6">
+    <div class="plate-head"><span class="plate-no">PLATE VI</span><h2>Unrolled biome map · the plan view</h2><div class="plate-meta">INNER SURFACE FLATTENED · 15.7 × 10 km<br>SCALE 1 : 20,000</div></div>
+    <p class="plate-cap">The cylinder's inner surface peeled off and laid flat: 15.7 km of circumference (the left edge wraps around to the right) by 10 km end to end. Six climate biomes ring the drum in sequence; a transit trunk runs the length between the de-spun hubs, and water gathers at the rim into ring-lakes and rivers. Each biome rings the full 15.7 km circumference over ~1.7 km of length — about 26 km² apiece — and the Urban stripe holds roughly 60% of the million people at a dense ~36,000/km².</p>
+    <div class="sheet big">
+      <svg viewBox="0 0 960 816" role="img" aria-label="Unrolled plan-view map of the habitat inner surface showing six biomes, transit, and water">
+        <!-- dims -->
+        <g class="dim"><line x1="96" y1="76" x2="872" y2="76"/><line x1="96" y1="72" x2="96" y2="80"/><line x1="872" y1="72" x2="872" y2="80"/></g>
+        <text x="484" y="68" text-anchor="middle" class="t-dim">15.7 km CIRCUMFERENCE — left edge wraps to right edge</text>
+        <g class="dim"><line x1="80" y1="92" x2="80" y2="592"/><line x1="76" y1="92" x2="84" y2="92"/><line x1="76" y1="592" x2="84" y2="592"/></g>
+        <text x="72" y="342" class="t-dim" transform="rotate(-90 72 342)" text-anchor="middle">10 km LENGTH</text>
+
+        <!-- map frame -->
+        <rect x="96" y="92" width="776" height="500" class="edge2"/>
+
+        <!-- biome stripes -->
+        <rect x="96" y="92"  width="776" height="83" fill="var(--lumen)"  fill-opacity=".10"/>
+        <rect x="96" y="175" width="776" height="83" fill="var(--chloro)" fill-opacity=".12"/>
+        <rect x="96" y="258" width="776" height="84" fill="var(--l-soil)" fill-opacity=".32"/>
+        <rect x="96" y="342" width="776" height="83" fill="var(--osteo)"  fill-opacity=".10"/>
+        <rect x="96" y="425" width="776" height="83" fill="var(--ink-3)"  fill-opacity=".16"/>
+        <rect x="96" y="508" width="776" height="84" fill="var(--chloro)" fill-opacity=".22"/>
+
+        <!-- wetland ring-lakes -->
+        <ellipse cx="360" cy="130" rx="150" ry="20" class="f-water"/>
+        <ellipse cx="640" cy="150" rx="90" ry="14" class="f-water"/>
+        <!-- forest patches -->
+        <g class="fill-c" opacity=".55"><circle cx="150" cy="212" r="9"/><circle cx="215" cy="228" r="11"/><circle cx="300" cy="210" r="8"/><circle cx="560" cy="224" r="10"/><circle cx="640" cy="208" r="9"/><circle cx="770" cy="226" r="11"/><circle cx="430" cy="235" r="8"/></g>
+        <!-- farm grid -->
+        <g class="thin2" opacity=".7">
+          <rect x="130" y="272" width="66" height="26"/><rect x="204" y="272" width="66" height="26"/><rect x="278" y="272" width="66" height="26"/><rect x="360" y="272" width="66" height="26"/><rect x="520" y="272" width="66" height="26"/><rect x="594" y="272" width="66" height="26"/><rect x="700" y="272" width="66" height="26"/>
+          <rect x="130" y="306" width="66" height="26"/><rect x="204" y="306" width="66" height="26"/><rect x="360" y="306" width="66" height="26"/><rect x="520" y="306" width="66" height="26"/><rect x="700" y="306" width="66" height="26"/>
+        </g>
+        <!-- savanna stipple -->
+        <g fill="var(--osteo)" fill-opacity=".4"><circle cx="150" cy="380" r="1.6"/><circle cx="230" cy="400" r="1.6"/><circle cx="330" cy="375" r="1.6"/><circle cx="560" cy="395" r="1.6"/><circle cx="640" cy="378" r="1.6"/><circle cx="760" cy="402" r="1.6"/></g>
+        <!-- urban blocks (3 clusters at transit trunks) -->
+        <g class="thin2" opacity=".8" fill="var(--ink-3)" fill-opacity=".18">
+          <rect x="250" y="440" width="16" height="16"/><rect x="270" y="446" width="12" height="14"/><rect x="248" y="462" width="14" height="12"/><rect x="272" y="466" width="16" height="16"/><rect x="252" y="484" width="12" height="12"/>
+          <rect x="444" y="438" width="16" height="16"/><rect x="466" y="444" width="14" height="14"/><rect x="442" y="462" width="16" height="14"/><rect x="468" y="466" width="12" height="16"/><rect x="450" y="486" width="14" height="12"/>
+          <rect x="636" y="440" width="16" height="16"/><rect x="658" y="446" width="12" height="14"/><rect x="638" y="464" width="14" height="14"/><rect x="660" y="466" width="16" height="14"/></g>
+        <!-- reserve sparse -->
+        <g class="fill-c" opacity=".5"><circle cx="200" cy="545" r="7"/><circle cx="420" cy="555" r="8"/><circle cx="700" cy="548" r="7"/></g>
+
+        <!-- rivers (meander down the length) -->
+        <path d="M205 92 C 190 180 225 260 200 342 C 180 420 220 500 205 592" class="f-water" fill="none" stroke-width="2.4"/>
+        <path d="M655 92 C 675 180 640 260 662 342 C 680 430 645 510 658 592" class="f-water" fill="none" stroke-width="2"/>
+
+        <!-- ring transit lines -->
+        <g class="stroke-l" stroke-width="1" stroke-dasharray="7 4" opacity=".6"><line x1="96" y1="258" x2="872" y2="258"/><line x1="96" y1="425" x2="872" y2="425"/></g>
+        <!-- transit trunks -->
+        <g class="stroke-l" stroke-width="1.4" opacity=".8"><line x1="290" y1="92" x2="290" y2="592"/><line x1="484" y1="92" x2="484" y2="592"/><line x1="678" y1="92" x2="678" y2="592"/></g>
+        <!-- stations -->
+        <g class="fill-l"><circle cx="290" cy="258" r="3"/><circle cx="484" cy="258" r="3"/><circle cx="678" cy="258" r="3"/><circle cx="290" cy="425" r="3"/><circle cx="484" cy="425" r="3"/><circle cx="678" cy="425" r="3"/></g>
+
+        <!-- biome name labels (left) -->
+        <g text-anchor="start">
+          <text x="106" y="128" class="t-serif" font-size="13">Wetland</text><text x="106" y="142" class="t-lab3">ring-lakes · water reserve</text>
+          <text x="106" y="212" class="t-serif" font-size="13">Forest</text><text x="106" y="226" class="t-lab3">O₂ · carbon · recreation</text>
+          <text x="106" y="296" class="t-serif" font-size="13">Farm</text><text x="106" y="310" class="t-lab3">open-field staple crops</text>
+          <text x="106" y="380" class="t-serif" font-size="13">Savanna</text><text x="106" y="394" class="t-lab3">grazing · low-water</text>
+          <text x="106" y="462" class="t-serif" font-size="13">Urban</text><text x="106" y="476" class="t-lab3">densest — ~60% of people</text>
+          <text x="106" y="546" class="t-serif" font-size="13">Reserve</text><text x="106" y="560" class="t-lab3">wild · gene bank</text>
+        </g>
+
+        <!-- endcaps -->
+        <text x="484" y="106" text-anchor="middle" class="t-lab3">▲ FORE ENDCAP — dock hub + farm terraces (curves up to 0 g)</text>
+        <text x="484" y="584" text-anchor="middle" class="t-lab3">▼ AFT ENDCAP — dock hub + terraces</text>
+
+        <!-- wrap arrows -->
+        <g class="t-lab3" fill="var(--lumen)"><text x="90" y="342" text-anchor="end">◄</text><text x="878" y="342">►</text></g>
+        <text x="484" y="614" text-anchor="middle" class="t-lab3">↕ top &amp; bottom edges are the sealed endcaps — they do not wrap. The sun-cord runs the full length overhead on the axis, dimming for night.</text>
+
+        <!-- scale + legend -->
+        <g transform="translate(96 648)">
+          <line x1="0" y1="0" x2="99" y2="0" class="edge2"/><g class="thin"><line x1="0" y1="-4" x2="0" y2="4"/><line x1="49.4" y1="-4" x2="49.4" y2="4"/><line x1="99" y1="-4" x2="99" y2="4"/></g>
+          <text x="0" y="15" class="t-dim">0</text><text x="49" y="15" class="t-dim" text-anchor="middle">1</text><text x="99" y="15" class="t-dim" text-anchor="middle">2 km</text>
+        </g>
+        <g transform="translate(300 648)" class="t-lab3">
+          <line x1="0" y1="-3" x2="22" y2="-3" class="stroke-l" stroke-width="1.4"/><text x="28" y="0">transit trunk</text>
+          <line x1="120" y1="-3" x2="142" y2="-3" class="stroke-l" stroke-width="1" stroke-dasharray="6 3"/><text x="148" y="0">ring line</text>
+          <circle cx="228" cy="-3" r="3" class="fill-l"/><text x="238" y="0">station</text>
+          <path d="M300 -10 C 306 -4 300 2 306 8" class="f-water" fill="none" stroke-width="2"/><text x="316" y="0">river</text>
+          <rect x="384" y="-9" width="12" height="12" class="f-water"/><text x="402" y="0">lake</text>
+        </g>
+      
+        <!-- ===== BORDER · NOTES · TITLE BLOCK ===== -->
+        <rect x="8" y="8" width="944" height="796" fill="none" stroke="var(--line-2)" stroke-width="1.5"/>
+        <rect x="14" y="14" width="932" height="784" fill="none" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="14" y1="718" x2="946" y2="718" stroke="var(--line-2)" stroke-width="1"/>
+        <rect x="616" y="724" width="330" height="72" fill="none" stroke="var(--line-2)" stroke-width="1.2"/>
+        <line x1="616" y1="748" x2="946" y2="748" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="616" y1="772" x2="946" y2="772" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="735" font-family="var(--font-mono)" font-size="7.5" fill="var(--ink-3)">PROJECT · GESTALT — ARCA Habitat (1,000,000 pop)</text>
+        <text x="624" y="744" font-family="var(--font-display)" font-size="12" fill="var(--ink)">Unrolled Biome Map — Plan View</text>
+        <line x1="766" y1="748" x2="766" y2="772" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="866" y1="748" x2="866" y2="772" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="757" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">DRAWING NO.</text>
+        <text x="624" y="768" font-family="var(--font-mono)" font-size="11" fill="var(--lumen)">GST·HAB·106</text>
+        <text x="774" y="757" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">SCALE</text>
+        <text x="774" y="768" font-family="var(--font-mono)" font-size="9" fill="var(--ink)">1 : 200,000</text>
+        <text x="874" y="757" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">REV</text>
+        <text x="874" y="768" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">C</text>
+        <line x1="716" y1="772" x2="716" y2="796" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="806" y1="772" x2="806" y2="796" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="781" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">DATE</text>
+        <text x="624" y="792" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">2026-07</text>
+        <text x="724" y="781" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">SHEET</text>
+        <text x="724" y="792" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">7 of 7</text>
+        <text x="814" y="781" font-family="var(--font-mono)" font-size="6.5" fill="var(--osteo)">STATUS</text>
+        <text x="814" y="792" font-family="var(--font-mono)" font-size="6.8" fill="var(--osteo)">CONCEPT — NOT FOR CONSTRUCTION</text>
+        <text x="30" y="736" font-family="var(--font-mono)" font-size="10" letter-spacing="2" fill="var(--osteo)">GENERAL NOTES</text>
+        <text x="30" y="753" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">1  Inner surface flattened to a plan (~157 km²).</text>
+        <text x="30" y="768" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">2  Six climate biomes; endcap farms at the poles.</text>
+        <text x="30" y="783" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">3  ~100 m²/person — a garden-city density.</text>
+        <text x="30" y="798" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">4  Sun-cord runs the full length overhead.</text>
+</svg>
+    </div>
+  </section>
+
+  <!-- ================= NOTES ================= -->
+  <section class="notes reveal">
+    <div class="notes-grid">
+      <div class="note grn"><div class="nh">Drawing conventions</div><p>Green = living / photosynthetic tissue · cyan = engineered systems &amp; data · amber = structure, fluid &amp; shielding. Chain-dashed lines are centrelines; dashed lines are hidden edges. Each plate carries a title block (drawing no. · scale · revision); all sheets are <strong>CONCEPT — not for construction</strong>.</p></div>
+      <div class="note grn">
+        <div class="nh">Why this shape</div>
+        <p>A million people need spin gravity over a huge floor, so the grown egg becomes a grown drum. Living on the inside of a spinning cylinder gives ~1 g at the rim; the far side of the land becomes the sky. Same organism, new body plan.</p>
+      </div>
+      <div class="note cy">
+        <div class="nh">Scale caveat</div>
+        <p>Orthographic plates are dimensioned; in the section views the rim stack is drawn far thicker than 1:scale (it is only ~33 m on a 5,000 m radius — a hair on the drawing). Plate 0 and the district study are perspective illustrations.</p>
+      </div>
+      <div class="note warm">
+        <div class="nh">The hard part</div>
+        <p>At this scale biology alone can't hold the hoop load (~230 MN/m); the tendon cage likely needs engineered high-tensile cable, possibly reinforced. Gestation runs to decades and gigatonnes of in-situ material. Conceptual, not a build spec.</p>
+      </div>
+      <div class="note">
+        <div class="nh">Life at 0.6 rpm</div>
+        <p>The spin is gentle enough to live in: Coriolis force on a walking person is only ~1.8% of gravity, and a ball dropped from 2 m lands ~5 cm spinward. And because the drum's 2.5 km radius is far shorter than the air's ~8.4 km scale height, the atmosphere barely thins with altitude — 52 kPa at the rim, still ~45 kPa and breathable on the 0-g axis. Spinning the ~2.5 Gt drum up to 0.6 rpm costs a one-time ~3×10¹⁶ J (~9 TWh, ~300 MW averaged over a 3-year spin-up) — then it simply keeps turning.</p>
+      </div>
+      <div class="note grn">
+        <div class="nh">The air is a century-scale buffer</div>
+        <p>A million people breathe ~840 t of O₂ and exhale ~1,000 t of CO₂ a day<sup class="cite"><a href="#href-1">[1]</a></sup>. Against that, the ~113 Mt atmosphere is still enormous: at its 34% O₂ it holds ~42 Mt of O₂ — about <strong>140 years' supply</strong> if photosynthesis stopped entirely — and CO₂ would take ~3 years to build to a hazardous 1%. The habitat's air is a giant flywheel; short outages of the living wall are non-events, not emergencies.</p>
+      </div>
+      <div class="note warm">
+        <div class="nh">The tight loop is food, not air</div>
+        <p>Oxygen is easy — ~56 km² of managed vegetation covers the crew's demand<sup class="cite"><a href="#href-3">[3]</a></sup>, well within the 100 km² of landscape. Food is the real constraint: feeding a million at open-field intensity would need ~150 km² (more surface than exists), so the habitat leans on multi-tier endcap farms (~15–30 km²). And full closure at this scale is unproven — BIOS-3 ran 2–3 crew for months at partial closure; Biosphere-2's oxygen crashed from 21% to 14% in two years.<sup class="cite"><a href="#href-4">[4]</a><a href="#href-5">[5]</a></sup> Buffered, but not solved.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== REFERENCES ===== -->
+  <section class="plate reveal" id="refs">
+    <div class="plate-head"><span class="plate-no">SOURCES</span><h2>References &amp; sources</h2><div class="plate-meta">THE PUBLISHED BASIS</div></div>
+    <div class="refs">
+      <p class="refs-note">ARCA's life-support, shielding and light budgets rest on real, published standards and results; the spin-gravity geometry is textbook mechanics (ω²R). Each cited claim links here. Full closure at population scale is <em>unproven</em> — that gap is stated in the text, not cited away.</p>
+      <ol>
+        <li id="href-1">Anderson, M. S. et&nbsp;al. (2018). <span class="rt">Life Support Baseline Values and Assumptions Document.</span> NASA/TP-2015-218570/REV1. — per-crew O₂ 0.84 kg·day⁻¹ (→ ~840 t·day⁻¹ for a million), CO₂, water, food.</li>
+        <li id="href-2">Kopp, G. &amp; Lean, J. L. (2011). A new, lower value of total solar irradiance. <span class="rt">Geophys. Res. Lett.</span> 38, L01706. — solar constant 1361 W·m⁻²: the 15 GW sun-cord and ~3.7 km collector at 1 AU.</li>
+        <li id="href-3">Lasseur, C. et&nbsp;al. (2010). MELiSSA: the European project of a closed life-support system. <span class="rt">Gravit. Space Biol.</span> 23, 3–12. — algal / managed-vegetation oxygen production.</li>
+        <li id="href-4">Salisbury, F. B. et&nbsp;al. (1997). Bios-3: Siberian experiments in bioregenerative life support. <span class="rt">BioScience</span> 47, 575–585. — 2–3 crew sustained for months at partial closure.</li>
+        <li id="href-5">Nelson, M. et&nbsp;al. (1993). Using a closed ecological system to study Earth's biosphere: Biosphere&nbsp;2. <span class="rt">BioScience</span> 43, 225–236. — the documented O₂ decline (21% → 14%).</li>
+        <li id="href-6">Zeitlin, C. et&nbsp;al. (2013). Measurements of energetic particle radiation in transit to Mars on the MSL. <span class="rt">Science</span> 340, 1080–1084. — deep-space GCR baseline the regolith over-blanket must stop.</li>
+        <li id="href-7">Durante, M. &amp; Cucinotta, F. A. (2011). Physical basis of radiation protection in space travel. <span class="rt">Rev. Mod. Phys.</span> 83, 1245–1281. — areal-density shielding and the secondary-particle floor.</li>
+        <li id="href-8">Gosline, J. M. et&nbsp;al. (1999). The mechanical design of spider silks. <span class="rt">J. Exp. Biol.</span> 202, 3295–3303. — silk-fibre working stress for the tendon cage (230 MN·m⁻¹).</li>
+        <li id="href-9">Wegst, U. G. K. et&nbsp;al. (2015). Bioinspired structural materials. <span class="rt">Nat. Mater.</span> 14, 23–36. — collagen–hydroxyapatite (bone) in the silk-bone fibre.</li>
+        <li id="href-10">DeJong, J. T. et&nbsp;al. (2010). Bio-mediated soil improvement. <span class="rt">Ecol. Eng.</span> 36, 197–210. — microbially induced calcite (MICP) mineralising the structure.</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    <div class="fbar">
+      <span>GESTALT ARCA · <em>Arca viva</em></span><span class="sep">·</span>
+      <span>Spin-Gravity Habitat · pop. 1,000,000</span><span class="sep">·</span>
+      <span>Companion to the GESTALT starship set — same organism, 80× the length</span><span class="sep">·</span>
+      <span>Drawing set, Rev. A</span>
+    </div>
+  </footer>
+
+</div></div>
+
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var els = [].slice.call(document.querySelectorAll('.reveal'));
+  if(reduce || !('IntersectionObserver' in window)){ els.forEach(function(e){e.classList.add('in')}); return; }
+  var io = new IntersectionObserver(function(en){ en.forEach(function(x){ if(x.isIntersecting){ x.target.classList.add('in'); io.unobserve(x.target);} }); },{rootMargin:'0px 0px -6% 0px',threshold:.06});
+  els.forEach(function(e){io.observe(e)});
+})();
+</script>

@@ -1,0 +1,571 @@
+<style>
+  :root{
+    --ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;
+    --line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);
+    --chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;
+    --chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);
+    --sheet:#0b1714;--sheet-line:rgba(120,196,170,.10);
+    --font-display:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;
+    --font-body:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;
+    --maxw:1180px;--spine:70ch;
+  }
+  @media (prefers-color-scheme:light){:root{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}}
+  :root[data-theme="dark"]{--ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;--line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);--chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;--chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);--sheet:#0b1714}
+  :root[data-theme="light"]{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}
+
+  *{box-sizing:border-box}body{margin:0}
+  .page{background:radial-gradient(1100px 640px at 82% -6%,var(--chloro-soft),transparent 60%),radial-gradient(900px 520px at 6% 3%,var(--lumen-soft),transparent 55%),var(--ground);color:var(--ink);font-family:var(--font-body);font-size:16.5px;line-height:1.66;letter-spacing:.005em;overflow-x:hidden;min-height:100vh}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  h1,h2,h3,h4{font-family:var(--font-display);font-weight:600;text-wrap:balance;line-height:1.12;margin:0}
+  p{margin:0 0 1.05em}strong{color:var(--ink)}
+  a{color:var(--lumen)}
+
+  .prog-nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;padding:16px 0 4px}
+  .prog-nav .pn-brand{color:var(--chloro);letter-spacing:.16em;text-transform:uppercase}
+  .prog-nav a{color:var(--ink-3);text-decoration:none;padding:3px 10px;border:1px solid var(--line);border-radius:999px;transition:color .2s,border-color .2s}
+  .prog-nav a:hover{color:var(--ink);border-color:var(--line-2)}
+  .prog-nav a.current{color:var(--lumen);border-color:var(--lumen)}
+
+  header.mast{padding:34px 0 30px;border-bottom:1px solid var(--line-2)}
+  .mast .kick{font-family:var(--font-mono);font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:var(--chloro);margin:0 0 16px}
+  .mast h1{font-size:clamp(2.2rem,6vw,4rem);letter-spacing:-.015em;margin:0 0 8px}
+  .mast h1 .s{color:var(--chloro)}
+  .mast .sub{font-family:var(--font-display);font-style:italic;font-size:clamp(1.05rem,2.3vw,1.4rem);color:var(--ink-2);max-width:62ch}
+
+  section.doc{padding:46px 0;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:center;gap:.7em;margin:0 0 16px}
+  .eyebrow .num{color:var(--chloro)}.eyebrow .rule{flex:1;height:1px;background:var(--line)}
+  section.doc h2{font-size:clamp(1.7rem,4vw,2.5rem);letter-spacing:-.01em;margin-bottom:14px}
+  section.doc h3.sub-h{font-family:var(--font-display);font-size:1.25rem;margin:30px 0 10px;color:var(--ink)}
+  sup.cite{font-size:.62em;line-height:0;vertical-align:super;font-family:var(--font-mono);font-weight:600}
+  sup.cite a{color:var(--lumen);text-decoration:none;padding:0 1px}
+  sup.cite a:hover{text-decoration:underline}
+  .refs{margin-top:16px;border-top:1px solid var(--line);padding-top:18px;max-width:var(--spine)}
+  .refs ol{margin:0;padding-left:2.4em;display:grid;gap:8px}
+  .refs li{font-size:.82em;line-height:1.5;color:var(--ink-2)}
+  .refs .rt{color:var(--ink-3);font-style:italic}
+  .refs-note{font-size:.82em;color:var(--ink-3);margin:0 0 14px;max-width:var(--spine)}
+  .flow{max-width:var(--spine)}.lead{font-size:1.12em;color:var(--ink-2);margin-bottom:22px;max-width:var(--spine)}
+
+  .sheet{border:1px solid var(--line-2);border-radius:10px;background:linear-gradient(var(--sheet-line) 1px,transparent 1px) 0 0/100% 34px,linear-gradient(90deg,var(--sheet-line) 1px,transparent 1px) 0 0/34px 100%,var(--sheet);padding:8px;overflow-x:auto;margin:8px 0 20px}
+  .sheet svg{display:block;height:auto;min-width:860px;width:100%}
+
+  .callout{border-left:2px solid var(--chloro);background:var(--chloro-soft);padding:14px 18px;border-radius:0 10px 10px 0;margin:22px 0;max-width:var(--spine)}
+  .callout.warm{border-color:var(--osteo);background:var(--osteo-soft)}.callout.cool{border-color:var(--lumen);background:var(--lumen-soft)}
+  .callout p{margin:0}.callout .lab{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:6px}
+
+  .tbl-wrap{overflow-x:auto;margin:18px 0;border:1px solid var(--line);border-radius:10px}
+  table{border-collapse:collapse;width:100%;min-width:680px;font-size:13.5px}
+  thead th{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:600;text-align:left;padding:12px 14px;background:var(--sheet);border-bottom:1px solid var(--line-2)}
+  td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+  tbody tr:last-child td{border-bottom:none}
+  td:first-child{color:var(--ink);font-family:var(--font-display);font-size:14.5px}
+  .trl{font-family:var(--font-mono);font-size:11px;color:var(--osteo)}
+  .crit{color:var(--osteo);font-family:var(--font-mono);font-size:10px;border:1px solid var(--osteo);border-radius:5px;padding:1px 6px}
+
+  .notes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:8px}
+  .note{border-left:2px solid var(--line-2);padding:2px 0 2px 16px}
+  .note .nh{font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:7px}
+  .note p{font-size:13px;color:var(--ink-2);margin:0;line-height:1.55}
+  .note.grn{border-color:var(--chloro)}.note.warm{border-color:var(--osteo)}.note.cool{border-color:var(--lumen)}
+
+  footer{padding:34px 0 66px}
+  .fbar{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);border-top:1px solid var(--line);padding-top:20px}
+  .fbar .sep{color:var(--line-2)}
+  .reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
+  ::selection{background:var(--chloro);color:var(--ground)}
+  :focus-visible{outline:2px solid var(--lumen);outline-offset:3px;border-radius:3px}
+</style>
+
+<div class="page"><div class="wrap">
+
+  <nav class="prog-nav" aria-label="GESTALT program documents">
+    <span class="pn-brand">◈ GESTALT Program</span>
+    <a href="https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1">Design Dossier</a>
+    <a href="https://claude.ai/code/artifact/bd2c2c98-84cf-42c9-91ea-f0ec1c749fc5">Starship</a>
+    <a href="https://claude.ai/code/artifact/9b90d7e5-2a71-426a-b2bf-d3a96b32a82e">Habitat</a>
+    <a href="https://claude.ai/code/artifact/94531439-d04d-480e-9d04-bad6fcdacd9a">LICHEN</a>
+    <a href="https://claude.ai/code/artifact/2433fa54-e582-4194-8245-d63acee8fb85">GRAVID</a>
+    <a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet Registry</a>
+    <a href="https://claude.ai/code/artifact/7ca9c965-1932-4c5a-b0f1-a99e9febae58">Class Reference</a>
+    <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075">Compendium</a>
+    <a href="#" class="current" aria-current="page">Earth Program</a>
+    <a href="https://claude.ai/code/artifact/1c6f18ca-eeda-4d83-bd97-fd9c1622823d">3D Models</a>
+  </nav>
+
+  <header class="mast">
+    <p class="kick">Research · Development · Testing · Prototyping — the ground program</p>
+    <h1>How You'd <span class="s">A</span>ctually Build It</h1>
+    <p class="sub">A step-by-step program to develop the biology of GESTALT and grow the first prototypes on Earth — long before any seed is launched. Climbing the technology-readiness ladder, one honest gate at a time.</p>
+  </header>
+
+  <p class="lead" style="margin-top:30px">The concept documents describe a finished fleet. This one asks the only question that matters for making it real: <strong>what would you do on Monday?</strong> The answer is a decades-long research program that develops each biological subsystem to flight readiness on the ground, integrates them, and — if the hard part can be cracked — gestates a small living vessel in an Earth chamber before ever trusting one to space. It is written as a real roadmap: phases with entry and exit gates, work packages with lead questions, and a containment regime that comes first. Where the science is real it is marked; where it is a bet, the bet is named.</p>
+
+  <!-- ===== PHASE LADDER ===== -->
+  <section class="doc reveal" id="phases">
+    <p class="eyebrow"><span class="num">01</span> The shape of the program <span class="rule"></span></p>
+    <h2>Five phases up the readiness ladder</h2>
+    <p class="lead">Each phase raises the technology-readiness level (TRL 1 = idea, 9 = flight-proven) and ends on a hard, falsifiable gate. Note the dip: the program cannot climb past Phase 2 until <strong>morphogenesis</strong> — the true long pole — catches up, however far ahead the other subsystems run.</p>
+    <div class="sheet">
+      <svg viewBox="0 0 960 400" role="img" aria-label="Five-phase technology-readiness ladder for the GESTALT Earth program">
+        <!-- TRL axis -->
+        <g font-family="var(--font-mono)" font-size="10" fill="var(--ink-3)">
+          <line x1="46" y1="72" x2="46" y2="348" stroke="var(--line-2)"/>
+          <text x="40" y="84" text-anchor="end">TRL 8</text><line x1="42" y1="80" x2="50" y2="80" stroke="var(--line-2)"/>
+          <text x="40" y="170" text-anchor="end">6</text><line x1="42" y1="166.7" x2="50" y2="166.7" stroke="var(--line-2)"/>
+          <text x="40" y="257" text-anchor="end">4</text><line x1="42" y1="253.3" x2="50" y2="253.3" stroke="var(--line-2)"/>
+          <text x="40" y="344" text-anchor="end">2</text><line x1="42" y1="340" x2="50" y2="340" stroke="var(--line-2)"/>
+        </g>
+        <!-- connecting path (the climb, dipping at P2) -->
+        <path d="M140 253 L320 210 L490 296 L670 210 L850 123" fill="none" class="thin" style="stroke:var(--ink-3);stroke-dasharray:5 4" opacity=".5"/>
+
+        <!-- phase bars: (name, TRL lo→hi, cx) -->
+        <!-- P0 3-5 -->
+        <g><rect x="90" y="210" width="100" height="86.7" rx="8" style="fill:var(--chloro);fill-opacity:.14;stroke:var(--chloro)"/><text x="140" y="200" text-anchor="middle" class="trl" fill="var(--chloro)">TRL 3→5</text>
+          <text x="140" y="316" text-anchor="middle" font-family="var(--font-display)" font-size="14" fill="var(--ink)">Phase 0</text><text x="140" y="332" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-3)">Prove the bricks · 0–5 yr</text></g>
+        <!-- P1 4-6 -->
+        <g><rect x="270" y="166.7" width="100" height="86.6" rx="8" style="fill:var(--chloro);fill-opacity:.14;stroke:var(--chloro)"/><text x="320" y="157" text-anchor="middle" class="trl" fill="var(--chloro)">TRL 4→6</text>
+          <text x="320" y="316" text-anchor="middle" font-family="var(--font-display)" font-size="14" fill="var(--ink)">Phase 1</text><text x="320" y="332" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-3)">Integrate · 5–12 yr</text></g>
+        <!-- P2 2-4 (the dip) -->
+        <g><rect x="440" y="253.3" width="100" height="86.7" rx="8" style="fill:var(--osteo);fill-opacity:.2;stroke:var(--osteo);stroke-width:1.6"/><text x="490" y="244" text-anchor="middle" class="trl" fill="var(--osteo)">TRL 2→4</text>
+          <text x="490" y="356" text-anchor="middle" font-family="var(--font-display)" font-size="14" fill="var(--ink)">Phase 2 · the moonshot</text><text x="490" y="372" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--osteo)">Morphogenesis · 10–25 yr · the gate</text></g>
+        <!-- P3 4-6 -->
+        <g><rect x="620" y="166.7" width="100" height="86.6" rx="8" style="fill:var(--chloro);fill-opacity:.14;stroke:var(--chloro)"/><text x="670" y="157" text-anchor="middle" class="trl" fill="var(--chloro)">TRL 4→6</text>
+          <text x="670" y="316" text-anchor="middle" font-family="var(--font-display)" font-size="14" fill="var(--ink)">Phase 3</text><text x="670" y="332" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-3)">Gestate a demonstrator · 25–40 yr</text></g>
+        <!-- P4 6-8 -->
+        <g><rect x="800" y="80" width="100" height="86.7" rx="8" style="fill:var(--lumen);fill-opacity:.14;stroke:var(--lumen)"/><text x="850" y="70" text-anchor="middle" class="trl" fill="var(--lumen)">TRL 6→8</text>
+          <text x="850" y="316" text-anchor="middle" font-family="var(--font-display)" font-size="14" fill="var(--ink)">Phase 4</text><text x="850" y="332" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-3)">Space qualification · 40+ yr</text></g>
+
+        <text x="490" y="392" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--ink-3)">~40 years to a space-gestated small vessel — IF the morphogenesis gate opens. It may not.</text>
+      </svg>
+    </div>
+    <div class="flow">
+      <p><strong>Phase 0 · Prove the bricks (0–5 yr).</strong> Take each subsystem — mycelium composites<sup class="cite"><a href="#eref-13">[13]</a></sup>, algal life support, self-healing bioconcrete<sup class="cite"><a href="#eref-11">[11]</a></sup>, radiotrophic melanin, biomining — to reliable bench performance, in vacuum and thermal cycling where relevant. Almost all of this exists today; the work is qualification, not invention. <span class="crit">exit gate</span> each subsystem meets a written performance spec in isolation.</p>
+      <p><strong>Phase 1 · Integrate (5–12 yr).</strong> Combine subsystems into single living artefacts: a structural panel that is also photosynthetic and self-healing; a closed nutrient loop fed by biomined feedstock. <span class="crit">exit gate</span> a self-supporting, self-repairing, oxygen-producing wall runs for a year.</p>
+      <p><strong>Phase 2 · The morphogenesis moonshot (10–25 yr, the long pole).</strong> Move directed growth from millimetres to metres — patterned, layered, on command. This is the one subsystem starting at TRL ~2, and the whole program is gated on it. <span class="crit">exit gate</span> a seed grows a decimetre-to-metre patterned multi-tissue structure to a target design. <em>This gate may never open; the honest program is designed to learn that as cheaply as possible.</em></p>
+      <p><strong>Phase 3 · Gestate a demonstrator (25–40 yr).</strong> With patterning in hand, grow a metre-scale pressurised living vessel from a seed in an Earth chamber, fed on simulated regolith and ice. <span class="crit">exit gate</span> a seed becomes a pressure-holding, self-healing mini-hull.</p>
+      <p><strong>Phase 4 · Space qualification (40+ yr).</strong> Fly the seed. Gestate a small vessel in orbit, then at a resource body. <span class="crit">exit gate</span> a launched seed grows a working vessel off Earth.</p>
+    </div>
+  </section>
+
+  <!-- ===== WORK PACKAGES ===== -->
+  <section class="doc reveal">
+    <p class="eyebrow"><span class="num">02</span> Work packages <span class="rule"></span></p>
+    <h2>Six streams, run in parallel</h2>
+    <p class="lead">Five of the six can advance independently and quickly; the sixth — morphogenesis — is the critical path, and a seventh discipline, containment, must lead all of them. Each package gets its own detailed plan in the rounds that follow.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Work package</th><th>Lead question</th><th>Today → target</th><th>Phase</th></tr></thead>
+      <tbody>
+        <tr><td>WP1 · Structural biomaterials</td><td>Can grown mycelium, osteoid/MICP<sup class="cite"><a href="#eref-10">[10]</a></sup> and recombinant silk<sup class="cite"><a href="#eref-12">[12]</a></sup> meet hull specs in vacuum?</td><td class="trl">TRL 4 → 6</td><td>0–1</td></tr>
+        <tr><td>WP2 · Closed-loop life support</td><td>Can an algal wall close the O₂/CO₂/water loop for years at scale?</td><td class="trl">TRL 5 → 6</td><td>0–1</td></tr>
+        <tr><td>WP3 · Survival systems</td><td>Self-heal, radiation tolerance and dormancy expressed together in one lineage?</td><td class="trl">TRL 3 → 5</td><td>0–1</td></tr>
+        <tr><td>WP4 · Morphogenesis <span class="crit">critical path</span></td><td>Directed, patterned growth from mm to m — the whole program's gate.</td><td class="trl">TRL 2 → 4</td><td>2</td></tr>
+        <tr><td>WP5 · ISRU &amp; the seed</td><td>Biomine Ca/P/Fe from regolith simulant; build a revivable dormant seed.</td><td class="trl">TRL 4 → 6</td><td>0–3</td></tr>
+        <tr><td>WP6 · Genome, safety &amp; containment</td><td>Recoding, synthetic auxotrophy, kill-switches — must be proven <em>first</em>.</td><td class="trl">TRL 3 → 5</td><td>0 (leads)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ===== WP1 DETAIL ===== -->
+  <section class="doc reveal" id="wp1">
+    <p class="eyebrow"><span class="num">WP1</span> Structural biomaterials · detail <span class="rule"></span></p>
+    <h2>Growing a hull that holds up in vacuum</h2>
+    <p class="lead">The bricks of the hull — mycelium scaffold, osteoid bone, silk tendon — mostly exist as terrestrial materials. WP1 qualifies them for space and pushes each to a hull-relevant spec. Three tracks, each with a rig and a number to beat.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Track · experiment</th><th>Rig / method</th><th>Success criterion</th><th>TRL</th></tr></thead>
+      <tbody>
+        <tr><td>Mycelium · vacuum &amp; thermal survival</td><td>Grown panels in a 10⁻⁵ torr thermal-vacuum chamber, cycled −100…+120 °C</td><td>Outgassing <b>TML &lt;1.0% / CVCM &lt;0.10%</b> (ASTM E595<sup class="cite"><a href="#eref-19">[19]</a></sup>); retains &gt;80% strength after 100 cycles</td><td class="trl">4→5</td></tr>
+        <tr><td>Mycelium · creep &amp; thick growth</td><td>Sustained-load creep frame; scale-up culture to a monolith</td><td>Creep &lt;1% over 1 yr at design stress; uniform monolith <b>&gt;0.5 m thick</b> (today ~cm panels)</td><td class="trl">4→5</td></tr>
+        <tr><td>Osteoid · MICP under load</td><td><em>Sporosarcina</em>-cemented column in a mechanical test rig under cyclic strain</td><td>Compressive strength to <b>bone-like ~100–150 MPa</b> (today ~few–30 MPa); mineral localises to high-strain zones (Wolff's law)</td><td class="trl">3→5</td></tr>
+        <tr><td>Silk · fibre &amp; cable</td><td>Recombinant spidroin expression + wet-spinning (AMSilk / Spiber route); hierarchical cabling</td><td>Fibre tensile <b>≥1 GPa</b>, toughness ≥150 MJ/m³; a metre-scale tendon carrying its rated load</td><td class="trl">3→4</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warm">
+      <span class="lab">The two hard sub-problems</span>
+      <p>Everything here is a known material at small scale; two things are genuinely hard. First, <strong>thick monolithic growth</strong> — mycelium is made in centimetre panels today, not metre blocks with uniform properties. Second, <strong>MICP to bone strength</strong> — microbial calcite reliably cements sand to a few tens of MPa, but reaching the ~150 MPa and the fracture toughness of real collagen-mineral bone needs the templated, layered deposition that only living cells do well. Both are integration problems, not new chemistry.</p>
+    </div>
+    <p class="flow"><strong>Gate (exit Phase 1):</strong> a self-supporting grown panel — mycelium scaffold + osteoid struts + a silk-cable edge — that survives thermal-vacuum cycling, holds a design load for a year, and is produced at ≥0.5 m scale. It feeds directly into the integrated living wall of WP2.</p>
+  </section>
+
+  <!-- ===== WP2 DETAIL ===== -->
+  <section class="doc reveal" id="wp2">
+    <p class="eyebrow"><span class="num">WP2</span> Closed-loop life support · detail <span class="rule"></span></p>
+    <h2>Closing the air and water loop, and keeping it closed</h2>
+    <p class="lead">The individual reactions are demonstrated; the challenge is a living wall that runs for years without crashing. WP2 builds from a photosynthetic panel up to a sealed testbed that carries a real metabolic load.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Track · experiment</th><th>Rig / method</th><th>Success criterion</th><th>TRL</th></tr></thead>
+      <tbody>
+        <tr><td>Photosynthetic wall</td><td>Structural panel (from WP1) with an embedded algal intima layer under piped light</td><td>Sustained <b>~30 g O₂/m²·day</b> for &gt;1 yr; a ~28–56 m² panel = one crew-equivalent of oxygen</td><td class="trl">4→6</td></tr>
+        <tr><td>Closed loop (MELiSSA-scale<sup class="cite"><a href="#eref-14">[14]</a></sup>)</td><td>Sealed chamber: algae + crops + a metabolic load (rodents or a CO₂/waste simulator), fully instrumented</td><td><b>&gt;90–95% O₂/water closure, stable 1–2 yr</b> — beating BIOS-3<sup class="cite"><a href="#eref-15">[15]</a></sup> (~63–78%, months) without a Biosphere-2 O₂ crash<sup class="cite"><a href="#eref-16">[16]</a></sup></td><td class="trl">5→6</td></tr>
+        <tr><td>Waste → fertiliser</td><td>Nitrifying bioreactor (<em>Nitrosomonas / Nitrobacter</em>) mineralising urea and waste</td><td>Stable urea → NO₃⁻ conversion at load; recycled nutrients grow the next crop</td><td class="trl">5→6</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warm">
+      <span class="lab">The counterintuitive hard part</span>
+      <p>A small testbed is <em>harder</em> to keep stable than a whole habitat. The million-person ARCA has a ~140-year oxygen buffer in its ~113 Mt of air; a sealed room has almost none, so the RQ ≈ 0.87 / PQ ≈ 1.0 gas mismatch and every transient bite immediately — which is exactly how Biosphere-2's oxygen crashed. The research problem is therefore <strong>active dynamic control of a low-inertia closed ecology</strong>: buffering, sensing and correcting faster than it can drift. Solve it small and it only gets easier at scale.</p>
+    </div>
+    <p class="flow"><strong>Gate (exit Phase 1):</strong> a sealed system that keeps a crew-equivalent metabolic load in balance — O₂, CO₂, water and nitrogen — for a continuous year at &gt;90% closure, integrated with a WP1 structural wall. This is the living intima of a real hull, proven on the ground.</p>
+  </section>
+
+  <!-- ===== WP3 DETAIL ===== -->
+  <section class="doc reveal" id="wp3">
+    <p class="eyebrow"><span class="num">WP3</span> Survival systems · detail <span class="rule"></span></p>
+    <h2>Self-healing, radiation-hard, and able to sleep</h2>
+    <p class="lead">Each of these tricks is proven in some extremophile; WP3's job is to express them together in one structural, photosynthetic lineage — and against space conditions, not lab ones.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Track · experiment</th><th>Rig / method</th><th>Success criterion</th><th>TRL</th></tr></thead>
+      <tbody>
+        <tr><td>Self-heal under vacuum ΔP</td><td>Puncture a pressurised living panel (fibrin-analogue clot + <em>Bacillus</em> calcite); high-speed + pressure log</td><td>Seals a mm puncture against a <b>52 kPa</b> gradient in seconds–minutes; regrows the layers over days</td><td class="trl">3→5</td></tr>
+        <tr><td>Radiation tolerance</td><td>Chassis expressing Dsup<sup class="cite"><a href="#eref-7">[7]</a></sup> + <em>Deinococcus</em><sup class="cite"><a href="#eref-6">[6]</a></sup> RecA / Mn-antioxidants + melanin; proton / γ beam dosimetry</td><td>Survives <b>~kilogray acute</b> (cf. <em>Deinococcus</em> ~5 kGy) with low mutation gain; melanin mat measurably attenuates dose</td><td class="trl">3→5</td></tr>
+        <tr><td>Dormancy / cryptobiosis</td><td>Trehalose + CAHS/LEA + antifreeze glycoproteins; desiccate → vitrify → freeze/vacuum → revive</td><td>High revival viability after combined desiccation, freezing and vacuum — the seed's dormancy, validated</td><td class="trl">3→4</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warm">
+      <span class="lab">The integration problem</span>
+      <p>Individually these are real — self-healing bioconcrete is a commercial product, the tardigrade Dsup protein confers ~40% X-ray protection in human cells, and tardigrades have survived open space. The unsolved part is stacking <strong>a dozen traits into one lineage</strong> that must also be structural and photosynthetic, without them interfering. Note the neatest conflict and its resolution: radiation melanin is <em>dark</em> and would shade the intima — so the layered anatomy puts it in the outer rind and the photosynthesis on the inner wall, and the genome expresses each only where it belongs. That spatial regulation is, once more, a morphogenesis problem (WP4).</p>
+    </div>
+    <p class="flow"><strong>Gate (exit Phase 1):</strong> a single engineered lineage that self-seals a breach under vacuum, tolerates a kilogray, and revives from full cryptobiosis — the same cells that, in WP1 and WP2, also build structure and make oxygen.</p>
+  </section>
+
+  <!-- ===== WP4 DETAIL (centerpiece) ===== -->
+  <section class="doc reveal" id="wp4">
+    <p class="eyebrow"><span class="num">WP4</span> The morphogenesis moonshot · critical path <span class="rule"></span></p>
+    <h2>The one bet everything waits on</h2>
+    <p class="lead">Five of the six work packages qualify known biology. This one asks whether directed growth can climb ~14 orders of magnitude in cell number — from a millimetre organoid to a kilometre organism. It is the gate on the whole program, and it is deliberately built to be tested early and failed fast.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Rung</th><th>Scale · cells</th><th>What must work</th><th>Go / no-go</th></tr></thead>
+      <tbody>
+        <tr><td>Today</td><td>1 mm · ~10⁶</td><td>Organoids &amp; synNotch<sup class="cite"><a href="#eref-8">[8]</a></sup> spheroids self-organise (avascular)</td><td>the starting point</td></tr>
+        <tr><td>Rung 1</td><td>1 cm · ~10⁹</td><td>Patterned multi-tissue construct grown to a target 3D form, with a first internal vascular network</td><td>proceed only if it stays alive — no necrotic core</td></tr>
+        <tr><td>Rung 2</td><td>1 dm · ~10¹²</td><td>Decimetre construct: a correctly layered wall <em>and</em> a branching vascular tree feeding it</td><td><b>make-or-break</b> — vasculature must scale with tissue</td></tr>
+        <tr><td>Rung 3 <span class="crit">Phase 2 gate</span></td><td>1 m · ~10¹⁵</td><td>A metre mini-hull grown from a seed — layered, vascularised, holding pressure</td><td>reached ⇒ concept credible; not ⇒ program stops here</td></tr>
+        <tr><td>(Beyond)</td><td>10s of m · ~10¹⁹⁻²⁰</td><td>A full small vessel</td><td>Phase 3, only after Rung 3</td></tr>
+      </tbody>
+    </table></div>
+
+    <h4 style="font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:22px 0 8px">The circuit stack to break the millimetre barrier</h4>
+    <p class="flow">A single morphogen gradient reaches only ~1 mm, so the program builds a hierarchical patterning stack: <strong>axis gradients</strong> (French-flag) to set the body's poles; a <strong>segmentation clock<sup class="cite"><a href="#eref-9">[9]</a></sup>-and-wavefront</strong> — an oscillator laying repeating units one at a time as the tissue grows, exactly as vertebrate somites form — to pattern <em>beyond</em> gradient range; <strong>synNotch</strong> contact circuits to build the radial wall layers; <strong>Turing</strong> reaction–diffusion for the fine texture; and <strong>stress-directed</strong> deposition with enforced apoptosis to shape and bound the growth.</p>
+
+    <div class="callout warm">
+      <span class="lab">The real wall is plumbing, not patterning</span>
+      <p>Oxygen and nutrients diffuse only ~100–200 µm into tissue before cells starve — which is why every capillary in your body is about that far from the next. So <em>any</em> living structure thicker than a fraction of a millimetre needs internal vasculature, and it must grow <strong>in step</strong> with the tissue it feeds. This, not raw cell number, is what separates today's millimetre organoids (avascular, necrotic in the middle) from a metre of living hull. Self-organising vasculature at scale is the true long pole <em>inside</em> the long pole — and Rung 2 is exactly where the program finds out whether it exists.</p>
+    </div>
+
+    <p class="flow"><strong>Fail-fast by design.</strong> The rungs are ordered so the hardest new capability — a vascularised decimetre construct — is reached in the first ~10–15 years, not the last. If Rung 2 cannot be made to work, the honest program concludes that grown kilometre-scale organisms are not achievable with foreseeable biology and says so, having spent a fraction of the full cost to learn it. And every other work package still yields real materials, closed life-support and biomining technology regardless.</p>
+  </section>
+
+  <!-- ===== WP5 DETAIL ===== -->
+  <section class="doc reveal" id="wp5">
+    <p class="eyebrow"><span class="num">WP5</span> ISRU, biomining &amp; the seed · detail <span class="rule"></span></p>
+    <h2>Turning a rock into feedstock — and packing it into grams</h2>
+    <p class="lead">GESTALT's whole leverage — a half-tonne seed becoming a 24,000-tonne ship — rests on two capabilities: eating a resource body for its elements, and shipping the organism as a dormant package that revives on arrival. WP5 builds both on regolith and ice simulants.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Track · experiment</th><th>Rig / method</th><th>Success criterion</th><th>TRL</th></tr></thead>
+      <tbody>
+        <tr><td>Biomine metals</td><td><em>Acidithiobacillus</em><sup class="cite"><a href="#eref-18">[18]</a></sup> + phosphate-solubilisers on regolith simulant (JSC-1A, MGS-1)</td><td>Useful Fe/Ca leaching rates; concentrate the scarce <b>P from ~0.1% feed</b> (the ISRU bottleneck)</td><td class="trl">5→6</td></tr>
+        <tr><td>Process volatiles</td><td>Ice-simulant melt + electrolysis (~15.9 MJ/kg water); CO₂ / organics capture</td><td>Water, O₂ and carbon feedstock at target purity from a dirty ice analogue</td><td class="trl">4→6</td></tr>
+        <tr><td>The dormant seed</td><td>Minimal chassis package in trehalose glass; storage + simulated-transit radiation; revival on simulant</td><td>Reliable germination after a years-equivalent dose — a <b>~kg seed</b> that becomes a growing organism</td><td class="trl">4→5</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warm">
+      <span class="lab">Real, and already off Earth</span>
+      <p>The mining half is the program's most flight-proven piece: ESA's <strong>BioRock</strong><sup class="cite"><a href="#eref-17">[17]</a></sup> experiment (ISS, 2019–20) showed microbes leaching rare-earth elements from basalt <em>in microgravity</em>. The open problems are autonomy and the phosphorus concentration — a starship needs ~440 t of P, so at ~0.1% feed it must process ~18× its own mass in rock, unsupervised, for years. The seed half is the leverage itself: across the fleet, seeds run from ~2 kg (CHORUS) to ~500 kg (NAVIS), and the entire ~48,000:1 grown-to-launched ratio depends on one reviving reliably after transit.</p>
+    </div>
+    <p class="flow"><strong>Gate (exit Phase 1–2):</strong> a benchtop loop that feeds a growing culture on nothing but processed regolith and ice simulant, and a dormant seed that survives a simulated interplanetary transit and germinates. Together they close the "grows from local resources" premise on the ground.</p>
+  </section>
+
+  <!-- ===== WP6 DETAIL (leads) ===== -->
+  <section class="doc reveal" id="wp6">
+    <p class="eyebrow"><span class="num">WP6</span> Genome, safety &amp; containment · detail <span class="rule"></span></p>
+    <h2>The package that has to work before any of the others count</h2>
+    <p class="lead">WP6 is numbered last and scheduled first. The moment an engineered lineage is asked to grow, self-repair and reproduce, its <em>containment</em> is no longer a compliance afterthought — it is the enabling technology. Every gram of biomass any other work package produces is only permitted because WP6 has shown that biomass cannot survive outside the rig, cannot swap genes with wild life, and can be switched off. So this package leads: it is the one whose exit criteria gate entry to every escalation everywhere else in the program.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Track · experiment</th><th>Rig / method</th><th>Success criterion</th><th>TRL</th></tr></thead>
+      <tbody>
+        <tr><td>Recode &amp; make it dependent</td><td>Recoded chassis (freed codon reassigned) engineered for <b>synthetic auxotrophy</b> — obligate need for a non-natural amino acid absent from any environment</td><td>Measured <b>escape frequency &lt;10⁻¹¹</b> on rich media <em>and</em> soil extract; no growth without the synthetic nutrient over &gt;10¹² cells</td><td class="trl">4→5</td></tr>
+        <tr><td>The genetic firewall</td><td>Exploit the recoded genome: reassigned codons make the organism's genes unreadable to wild ribosomes and its ribosomes deaf to wild/phage DNA</td><td>Demonstrated resistance to horizontal gene transfer and to a phage panel — the lineage cannot donate or receive functional DNA</td><td class="trl">3→5</td></tr>
+        <tr><td>Layered kill-switches</td><td>Two orthogonal inducible-lethality circuits (toxin–antitoxin<sup class="cite"><a href="#eref-5">[5]</a></sup> <b>"deadman" + "passcode"</b> logic) that require a continuous benign signal to stay alive</td><td>Reliable induced kill on signal-withdrawal; combined mutational escape below the auxotrophy floor after long passage</td><td class="trl">3→5</td></tr>
+        <tr><td>Keep containment stable</td><td>Multi-copy, error-corrected genome (Deinococcus-style redundancy + ECC encoding) with germline "policing" of the safety loci across many generations</td><td>Bounded genetic drift; <b>no loss of auxotrophy or kill-switch function</b> over the generations a growing vessel would actually live</td><td class="trl">2→4</td></tr>
+        <tr><td>Governance &amp; staged review</td><td>Institutional Biosafety Committee protocol, a containment-escalation matrix, and an independent biosafety+ethics board holding a standing veto</td><td>An approved, published containment framework each phase must clear <em>before</em> its biology begins — release never a research step</td><td class="trl">gate</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warm">
+      <span class="lab">Why this one goes first — and it is largely real</span>
+      <p>Every ingredient exists. <strong>Recoded genomes</strong> are built: <em>E. coli</em> C321.ΔA<sup class="cite"><a href="#eref-1">[1]</a></sup> has all 321 of its UAG stop codons reassigned (Lajoie et&nbsp;al., 2013), and the rE.coli-57<sup class="cite"><a href="#eref-2">[2]</a></sup> project set out to free seven codons genome-wide (Ostrov/Church, 2016). Built on that, <strong>synthetic auxotrophy</strong> already reaches an escape frequency below <b>10⁻¹²</b> — undetectable in trillions of cells (Mandell &amp; Rovner<sup class="cite"><a href="#eref-3">[3]</a><a href="#eref-4">[4]</a></sup> et&nbsp;al., <em>Nature</em> 2015). <strong>Kill-switches</strong> with "deadman" and "passcode" logic are demonstrated devices (Collins lab, 2016). What WP6 adds is not new science but <em>stacking</em> these into one lineage that is simultaneously structural, photosynthetic and radiation-hard — and proving the safety loci survive the very genome-copying a self-growing organism depends on. That last row is the honest weak point: containment that must hold across a vessel's lifetime of cell divisions is closer to TRL&nbsp;2 than the single-generation lab demonstrations, and it is the reason nothing in this program ever plans an environmental release.</p>
+    </div>
+    <p class="flow"><strong>Gate (leads all phases):</strong> a single lineage that is synthetically auxotrophic below 10⁻¹¹ escape, phage- and HGT-resistant, killable on demand by two orthogonal switches, and stable in all four properties over a demonstrator's worth of generations — signed off by the independent board. Until a construct clears this bar it stays in its current containment tier; WP1–WP5 escalate only behind it. This is the ground rehearsal for the flight-side <a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Governance &amp; containment</a> regime, and it applies the genetic-safety toolkit detailed in the <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075">Compendium</a>.</p>
+  </section>
+
+  <!-- ===== INTEGRATION & SCALE-UP LADDER ===== -->
+  <section class="doc reveal" id="ladder">
+    <p class="eyebrow"><span class="num">03</span> How the packages converge <span class="rule"></span></p>
+    <h2>Six work packages, one climbing artefact</h2>
+    <p class="lead">The work packages run in parallel, but they are not the deliverable. The deliverable is a single living thing that does all six jobs at once — and it is built by making that thing bigger and more integrated one rung at a time. Each rung folds in another package and roughly a thousand-fold more cells; the pips show how many of the six subsystems must co-exist in one lineage before that rung counts as passed.</p>
+    <div class="sheet">
+      <svg viewBox="0 0 960 420" role="img" aria-label="Four-rung integration and scale-up ladder from component brick to gestated demonstrator, each rung adding a subsystem and ~1000x cells">
+        <!-- axis hint -->
+        <g font-family="var(--font-mono)" font-size="10" fill="var(--ink-3)">
+          <text x="30" y="250" text-anchor="middle" transform="rotate(-90 30 250)">integration · scale · TRL →</text>
+        </g>
+        <polyline points="150,300 380,238 610,176 840,110" fill="none" style="stroke:var(--ink-3);stroke-dasharray:5 4" opacity=".5"/>
+        <g>
+          <rect x="62" y="300" width="176" height="80" rx="9" style="fill:var(--chloro);fill-opacity:.13;stroke:var(--chloro)"/>
+          <text x="150" y="322" text-anchor="middle" font-family="var(--font-display)" font-size="14.5" fill="var(--ink)">Component brick</text>
+          <text x="150" y="339" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">cm coupon · ~g</text>
+          <text x="150" y="352" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">~10⁹ cells · WP outputs alone</text>
+          <circle cx="122" cy="368" r="3.2" style="fill:var(--chloro)"/><circle cx="132" cy="368" r="3.2" fill="none" style="stroke:var(--line-2)"/><circle cx="142" cy="368" r="3.2" fill="none" style="stroke:var(--line-2)"/><circle cx="152" cy="368" r="3.2" fill="none" style="stroke:var(--line-2)"/><circle cx="162" cy="368" r="3.2" fill="none" style="stroke:var(--line-2)"/><circle cx="172" cy="368" r="3.2" fill="none" style="stroke:var(--line-2)"/>
+          <text x="150" y="395" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--chloro)">Phase 0 · TRL 3–5</text>
+        </g>
+        <g>
+          <rect x="292" y="238" width="176" height="80" rx="9" style="fill:var(--chloro);fill-opacity:.13;stroke:var(--chloro)"/>
+          <text x="380" y="260" text-anchor="middle" font-family="var(--font-display)" font-size="14.5" fill="var(--ink)">Living panel</text>
+          <text x="380" y="277" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">1 m² · ~4 kg</text>
+          <text x="380" y="290" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">~6×10¹² cells · 1st co-lineage</text>
+          <circle cx="352" cy="306" r="3.2" style="fill:var(--chloro)"/><circle cx="362" cy="306" r="3.2" style="fill:var(--chloro)"/><circle cx="372" cy="306" r="3.2" style="fill:var(--chloro)"/><circle cx="382" cy="306" r="3.2" style="fill:var(--chloro)"/><circle cx="392" cy="306" r="3.2" fill="none" style="stroke:var(--line-2)"/><circle cx="402" cy="306" r="3.2" fill="none" style="stroke:var(--line-2)"/>
+          <text x="380" y="333" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--chloro)">Phase 1 · TRL 4–6</text>
+        </g>
+        <g>
+          <rect x="522" y="176" width="176" height="80" rx="9" style="fill:var(--osteo);fill-opacity:.13;stroke:var(--osteo)"/>
+          <text x="610" y="198" text-anchor="middle" font-family="var(--font-display)" font-size="14.5" fill="var(--ink)">Pressurised module</text>
+          <text x="610" y="215" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">2 m shell · ~0.2 t</text>
+          <text x="610" y="228" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">~3×10¹⁴ cells · seed→shell</text>
+          <circle cx="582" cy="244" r="3.2" style="fill:var(--osteo)"/><circle cx="592" cy="244" r="3.2" style="fill:var(--osteo)"/><circle cx="602" cy="244" r="3.2" style="fill:var(--osteo)"/><circle cx="612" cy="244" r="3.2" style="fill:var(--osteo)"/><circle cx="622" cy="244" r="3.2" style="fill:var(--osteo)"/><circle cx="632" cy="244" r="3.2" fill="none" style="stroke:var(--line-2)"/>
+          <text x="610" y="271" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--osteo)">Phase 2→3 · TRL 4–6</text>
+        </g>
+        <g>
+          <rect x="752" y="110" width="176" height="80" rx="9" style="fill:var(--lumen);fill-opacity:.13;stroke:var(--lumen)"/>
+          <text x="840" y="132" text-anchor="middle" font-family="var(--font-display)" font-size="14.5" fill="var(--ink)">Gestated demonstrator</text>
+          <text x="840" y="149" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">5 m vessel · ~2.4 t</text>
+          <text x="840" y="162" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">~3×10¹⁵ cells · fed on simulant</text>
+          <circle cx="812" cy="178" r="3.2" style="fill:var(--lumen)"/><circle cx="822" cy="178" r="3.2" style="fill:var(--lumen)"/><circle cx="832" cy="178" r="3.2" style="fill:var(--lumen)"/><circle cx="842" cy="178" r="3.2" style="fill:var(--lumen)"/><circle cx="852" cy="178" r="3.2" style="fill:var(--lumen)"/><circle cx="862" cy="178" r="3.2" style="fill:var(--lumen)"/>
+          <text x="840" y="205" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--lumen)">Phase 3 · TRL →6</text>
+        </g>
+        <text x="480" y="30" text-anchor="middle" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-3)">◍ = a subsystem (of six) that must live in one lineage at that rung · amber = the rung that needs morphogenesis (WP4) to close a shell</text>
+      </svg>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Rung</th><th>What it is</th><th>Scale · cells</th><th>Packages folded in</th><th>Phase · TRL</th></tr></thead>
+      <tbody>
+        <tr><td><b>1 · Brick</b></td><td>Each work-package output on its own bench</td><td>cm · ~10⁹</td><td>one at a time (WP1–WP6 separately)</td><td class="trl">0 · 3–5</td></tr>
+        <tr><td><b>2 · Panel</b></td><td>One lineage that is structural, photosynthetic, self-healing and contained</td><td>1 m², ~4 kg · ~6×10¹²</td><td>WP1 + WP2 + WP3 + WP6</td><td class="trl">1 · 4–6</td></tr>
+        <tr><td><b>3 · Module</b></td><td>A grown <em>closed</em> shell that holds ~1 atm — the first thing morphogenesis must build</td><td>2 m, ~0.2 t · ~3×10¹⁴</td><td>+ WP4 (morphogenesis closes the shell)</td><td class="trl">2→3 · 4–6</td></tr>
+        <tr><td><b>4 · Demonstrator</b></td><td>A metre-scale living vessel gestated from a seed and fed on simulant</td><td>5 m, ~2.4 t · ~3×10¹⁵</td><td>+ WP5 — all six at once</td><td class="trl">3 · →6</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warm">
+      <span class="lab">Where the ladder can break — and it is the same place every time</span>
+      <p>Rungs 1 and 2 are integration engineering: hard, but every ingredient is demonstrated, and a working <em>panel</em> is a genuine product even if the program stops there. The wall is the step from panel to <strong>closed module</strong> — a flat sheet is not a pressure vessel, and turning a growing tissue into a sealed, curved, load-bearing shell is precisely the <a href="#wp4">morphogenesis problem (WP4)</a>. That single transition, marked amber, is why the phase ladder dips at Phase 2: rungs 1–2 can be reached in the first decade with today's biology, but rung 3 waits on the one capability nobody has yet. The mass figures are deliberately modest — a ~2.4 t demonstrator is smaller than the fleet's smallest flight vessel — because the point of the ground program is to prove the <em>mechanism</em>, not the scale; the ~48,000:1 grown-to-launched leverage is a flight-side reward, not a thing to chase in a chamber.</p>
+    </div>
+    <p class="flow"><strong>The convergence rule:</strong> a rung is passed only when a single lineage clears it with all of that rung's subsystems co-expressed and its <a href="#wp6">WP6 containment</a> intact at the new scale — never by bolting separately-grown parts together. Each rung is a checkpoint on the <a href="#phases">five-phase ladder</a> above, and the whole climb is the same story the fleet tells at flight scale: <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075">the Compendium</a>'s cell-count ladder, walked one contained step at a time.</p>
+  </section>
+
+  <!-- ===== BIOSAFETY ===== -->
+  <section class="doc reveal">
+    <p class="eyebrow"><span class="num">04</span> Containment first <span class="rule"></span></p>
+    <h2>The safety case leads the science</h2>
+    <div class="flow">
+      <p>A program to build self-reproducing engineered organisms cannot bolt on safety at the end. Every phase runs under an escalating containment regime, and <strong>WP6 gates the others</strong>: no organism graduates to a larger or less-contained stage until its biocontainment is demonstrated.</p>
+      <div class="callout warm">
+        <span class="lab">The rule</span>
+        <p>Work proceeds only inside physical containment (BSL-appropriate labs and closed bioreactors) <em>and</em> genetic containment (synthetic auxotrophy for a non-natural nutrient, recoded genomes that cannot exchange DNA with wild life, and inducible kill-switches) — with an independent biosafety and ethics board holding a standing veto. Environmental release is never a research step; it is a separate, later, publicly-deliberated decision. Nothing in this program requires releasing anything, ever, on Earth.</p>
+      </div>
+      <p>This mirrors how recombinant DNA was actually governed after Asilomar (1975): capability and containment developed together, with the second leading. GESTALT's stakes are higher, so the discipline must be stricter — see the <a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Governance &amp; containment</a> section of the fleet registry for the flight-side controls this ground regime is the rehearsal for.</p>
+    </div>
+  </section>
+
+  <!-- ===== FACILITIES, COST, TIMELINE ===== -->
+  <section class="doc reveal" id="plan">
+    <p class="eyebrow"><span class="num">05</span> Time, money &amp; people <span class="rule"></span></p>
+    <h2>Four decades, a national-lab's budget, and one bet that dominates it</h2>
+    <p class="lead">Stripped to a schedule, the program is six work packages laid across ~40 years. Five of them are ordinary — well-scoped bench-to-pilot biology that would be worth funding on its own. One, morphogenesis, is the critical path: it starts early, runs almost the whole length, and every later milestone waits on it. Containment (WP6) is the other full-length bar — not because it is slow, but because it must lead every escalation.</p>
+    <div class="sheet">
+      <svg viewBox="0 0 960 325" role="img" aria-label="Gantt chart of six work packages across ~40 years and five phases, with WP4 morphogenesis as the critical path and WP6 containment spanning the whole program">
+        <text x="178.1" y="54" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--chloro)">Phase 0</text>
+        <text x="293.6" y="54" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--chloro)">Phase 1</text>
+        <text x="486.1" y="54" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--osteo)">Phase 2 · moonshot</text>
+        <text x="755.6" y="54" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--lumen)">Phase 3</text>
+        <line x1="226.2" y1="62" x2="226.2" y2="272" style="stroke:var(--line-2);stroke-dasharray:4 4;stroke-width:1" opacity=".6"/>
+        <line x1="361.0" y1="62" x2="361.0" y2="272" style="stroke:var(--line-2);stroke-dasharray:4 4;stroke-width:1" opacity=".6"/>
+        <line x1="611.2" y1="62" x2="611.2" y2="272" style="stroke:var(--osteo);stroke-dasharray:4 4;stroke-width:1.4" opacity=".6"/>
+        <line x1="900.0" y1="62" x2="900.0" y2="272" style="stroke:var(--line-2);stroke-dasharray:4 4;stroke-width:1" opacity=".6"/>
+        <path d="M226.2 63 L231.2 68 L226.2 73 L221.2 68 Z" style="fill:var(--chloro)"/>
+        <text x="226.2" y="84" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">bricks</text>
+        <path d="M361.0 63 L366.0 68 L361.0 73 L356.0 68 Z" style="fill:var(--chloro)"/>
+        <text x="361.0" y="84" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">panel</text>
+        <path d="M611.2 63 L616.2 68 L611.2 73 L606.2 68 Z" style="fill:var(--osteo)"/>
+        <text x="611.2" y="84" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">module — the gate</text>
+        <path d="M900.0 63 L905.0 68 L900.0 73 L895.0 68 Z" style="fill:var(--lumen)"/>
+        <text x="892.0" y="84" text-anchor="end" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">demonstrator</text>
+        <text x="120" y="111" text-anchor="end" font-family="var(--font-mono)" font-size="10" fill="var(--ink-2)">WP1 · Structural</text>
+        <rect x="130.0" y="98" width="250.2" height="17" rx="4" style="fill:var(--chloro);fill-opacity:.28;stroke:var(--chloro)"/>
+        <text x="120" y="141" text-anchor="end" font-family="var(--font-mono)" font-size="10" fill="var(--ink-2)">WP2 · Life support</text>
+        <rect x="130.0" y="128" width="269.5" height="17" rx="4" style="fill:var(--chloro);fill-opacity:.28;stroke:var(--chloro)"/>
+        <text x="120" y="171" text-anchor="end" font-family="var(--font-mono)" font-size="10" fill="var(--ink-2)">WP3 · Survival</text>
+        <rect x="130.0" y="158" width="269.5" height="17" rx="4" style="fill:var(--chloro);fill-opacity:.28;stroke:var(--chloro)"/>
+        <text x="120" y="201" text-anchor="end" font-family="var(--font-mono)" font-size="10" fill="var(--ink-2)">WP4 · Morphogenesis  ▲crit</text>
+        <rect x="168.5" y="188" width="731.5" height="17" rx="4" style="fill:var(--osteo);fill-opacity:.28;stroke:var(--osteo)"/>
+        <text x="120" y="231" text-anchor="end" font-family="var(--font-mono)" font-size="10" fill="var(--ink-2)">WP5 · ISRU / seed</text>
+        <rect x="187.8" y="218" width="558.2" height="17" rx="4" style="fill:var(--chloro);fill-opacity:.28;stroke:var(--chloro)"/>
+        <text x="120" y="261" text-anchor="end" font-family="var(--font-mono)" font-size="10" fill="var(--ink-2)">WP6 · Containment  ◆leads</text>
+        <rect x="130.0" y="248" width="770.0" height="17" rx="4" style="fill:var(--lumen);fill-opacity:.28;stroke:var(--lumen)"/>
+        <line x1="130" y1="278" x2="900" y2="278" style="stroke:var(--line-2)"/>
+        <line x1="130.0" y1="278" x2="130.0" y2="283" style="stroke:var(--line-2)"/>
+        <text x="130.0" y="296" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">0</text>
+        <line x1="226.2" y1="278" x2="226.2" y2="283" style="stroke:var(--line-2)"/>
+        <text x="226.2" y="296" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">5</text>
+        <line x1="322.5" y1="278" x2="322.5" y2="283" style="stroke:var(--line-2)"/>
+        <text x="322.5" y="296" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">10</text>
+        <line x1="418.8" y1="278" x2="418.8" y2="283" style="stroke:var(--line-2)"/>
+        <text x="418.8" y="296" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">15</text>
+        <line x1="515.0" y1="278" x2="515.0" y2="283" style="stroke:var(--line-2)"/>
+        <text x="515.0" y="296" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">20</text>
+        <line x1="611.2" y1="278" x2="611.2" y2="283" style="stroke:var(--line-2)"/>
+        <text x="611.2" y="296" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">25</text>
+        <line x1="707.5" y1="278" x2="707.5" y2="283" style="stroke:var(--line-2)"/>
+        <text x="707.5" y="296" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">30</text>
+        <line x1="803.8" y1="278" x2="803.8" y2="283" style="stroke:var(--line-2)"/>
+        <text x="803.8" y="296" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">35</text>
+        <line x1="900.0" y1="278" x2="900.0" y2="283" style="stroke:var(--line-2)"/>
+        <text x="900.0" y="296" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">40</text>
+        <text x="515" y="313" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-3)">years from program start — WP4 (morphogenesis) is the critical path; WP6 (containment) runs the whole length and gates every escalation</text>
+      </svg>
+    </div>
+    <h3 class="sub-h">What it would cost</h3>
+    <p class="flow">These are <strong>order-of-magnitude</strong> figures — the honest precision at this stage is one significant figure. They assume a distributed, publicly-funded effort at academic-plus-national-lab scale, and they deliberately <em>exclude</em> Phase 4 (spaceflight), whose cost is launch-dominated and separate.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Phase · focus</th><th>Span</th><th>Burn</th><th>Phase cost</th><th>Cumulative</th></tr></thead>
+      <tbody>
+        <tr><td><b>0</b> · Prove the bricks</td><td>0–5 yr</td><td>~$0.25B/yr</td><td>~$1–2B</td><td>~$1–2B</td></tr>
+        <tr><td><b>1</b> · Integrate</td><td>5–12 yr</td><td>~$0.45B/yr</td><td>~$3B</td><td>~$4–5B</td></tr>
+        <tr><td><b>2</b> · Morphogenesis moonshot <span class="crit">critical path</span></td><td>10–25 yr</td><td>~$0.7B/yr</td><td><b>~$8–12B</b></td><td>~$15B</td></tr>
+        <tr><td><b>3</b> · Gestate a demonstrator</td><td>25–40 yr</td><td>~$1.2B/yr</td><td>~$15–20B</td><td><b>~$30–40B</b></td></tr>
+        <tr><td>4 · Space qualification</td><td>40+ yr</td><td>launch-set</td><td>not costed</td><td>&mdash;</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warm">
+      <span class="lab">Is ~$30–40B a lot? For a 40-year program, no.</span>
+      <p>Averaged over its life that is <b>~$0.8B/yr</b> — the running cost of a single national laboratory, and about <b>3–4%</b> of one space agency's annual budget. For comparison: the Human Genome Project ran ~$3B, JWST ~$10B, ITER ~$45B. GESTALT's ground program is roughly <em>one JWST per decade</em> — unremarkable for a civilisation-scale capability, and back-loaded so that the expensive phases only begin <strong>after</strong> the cheap early science has shown the hard bet can be won. If morphogenesis fails at Phase 2 (~$15B, ~year 25), the program stops there having spent a third of the total and delivered real materials, closed-life-support and biomining technology as spin-offs. That is the design: <em>fail cheap, before the costly chamber-and-gestation phase.</em></p>
+    </div>
+    <h3 class="sub-h">Who builds it, and where</h3>
+    <div class="notes-grid">
+      <div class="note grn"><div class="nh">Tier 1 · Distributed labs</div><p>Phases 0–1. Existing university and institute benches (BSL-1/2) running the six work packages in parallel — synthetic biology, materials, closed-ecology. No new facility; the work is qualification, and its spin-offs justify it alone.</p></div>
+      <div class="note warm"><div class="nh">Tier 2 · Morphogenesis Institute</div><p>Phase 2, the moonshot's home. A dedicated <strong>biofoundry</strong> (automated strain design–build–test at scale) plus imaging and organoid-to-tissue rigs, aimed at the one capability nobody has. This is where most of the money and most of the risk live.</p></div>
+      <div class="note cool"><div class="nh">Tier 3 · Integration &amp; gestation facility</div><p>Phases 3+. Thermal-vacuum chambers, pilot bioreactors, a closed-ecology testbed, and finally a large sealed, containment-hardened <strong>growth chamber</strong> with a regolith/ice-simulant processing plant — where a seed becomes a metre-scale vessel.</p></div>
+      <div class="note grn"><div class="nh">Standing · Independent oversight</div><p>Across all tiers, the <a href="#wp6">WP6</a> biosafety &amp; ethics board with a real veto, plus institutional biosafety committees. This is the flight-side <a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Governance</a> regime, rehearsed on the ground.</p></div>
+    </div>
+    <p class="flow"><strong>Read the chart as one sentence:</strong> spend a little to prove the bricks, a little more to integrate them, then make the one big bet on directed growth — and only if it pays does the program graduate to the chamber that gestates a living vessel. Every horizontal bar is governed, top to bottom, by the containment bar beneath it.</p>
+  </section>
+
+  <!-- ===== HONEST FRAMING ===== -->
+  <section class="doc reveal">
+    <p class="eyebrow"><span class="num">06</span> What this program is <span class="rule"></span></p>
+    <h2>A way to find out — cheaply — whether it can be done</h2>
+    <div class="notes-grid">
+      <div class="note grn"><div class="nh">Mostly de-risking known biology</div><p>Five of six work packages are qualification of demonstrated science (TRL 3–5). That half is a normal, fundable engineering-biology program — worth doing for its own spin-offs (materials, closed life support, biomining) whether or not a spacecraft ever grows.</p></div>
+      <div class="note warm"><div class="nh">One real bet</div><p>Morphogenesis at metre-to-kilometre scale (WP4) is TRL ~2 and may prove intractable. The program is deliberately structured to reach that gate early and fail fast if it must, rather than spend decades assuming it will open.</p></div>
+      <div class="note cool"><div class="nh">Decades and billions</div><p>Order-of-magnitude: ~40 years and tens of billions of dollars to a space-gestated vessel — comparable to fusion (ITER ~$25B) or a genome-scale program — and only if the moonshot lands. This is a civilisation-scale research bet, framed honestly as one.</p></div>
+    </div>
+    <p class="lead" style="margin-top:24px">The point of writing it as a real program is not to promise the fleet. It is to show that the path from today's laboratory to a living starship is a <strong>finite, structured sequence of experiments with clear gates</strong> — most of them fundable now — and to name exactly where that path might end. The sections above fill in each stream; the gates below say how it ends.</p>
+  </section>
+
+  <!-- ===== DECISION GATES & SYNTHESIS ===== -->
+  <section class="doc reveal" id="gates">
+    <p class="eyebrow"><span class="num">07</span> Decision gates &amp; synthesis <span class="rule"></span></p>
+    <h2>Every phase is allowed to say no</h2>
+    <p class="lead">A program that could run 40 years and cost tens of billions has to be honest about how it ends — including badly. GESTALT's answer is that each phase turns on a <strong>single falsifiable question</strong>, and a clear "no" stops the work. The gates are ordered so the cheapest questions are asked first and the one most likely to fail — morphogenesis — is asked before the expensive chamber phase. Nothing here is open-ended; the whole thing is a sequence of yes/no experiments.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Phase</th><th>Exit gate — the "yes"</th><th>The one thing that ends it — the "no"</th><th>Spent if killed</th><th>What still survives</th></tr></thead>
+      <tbody>
+        <tr><td class="trl">0</td><td>Every subsystem meets a written spec <em>alone</em> (E595 outgassing, ~30 g O₂/m²·d, self-heal under 52 kPa ΔP, ~kGy tolerance, auxotrophy escape &lt;10⁻¹¹)</td><td>A subsystem simply cannot reach spec on the bench</td><td>~$1.5B · <b>5%</b></td><td>Everything — this is just qualification of known biology</td></tr>
+        <tr><td class="trl">1</td><td><em>One</em> lineage is structural + photosynthetic + self-healing + contained and runs &gt;1 yr at &gt;90% loop closure</td><td>The traits interfere and cannot co-exist in a single organism</td><td>~$4.5B · <b>14%</b></td><td>Materials, closed life-support, biomining as separate products</td></tr>
+        <tr><td class="trl">2</td><td>A seed grows a dm→m <em>patterned, vascularised, closed</em> multi-tissue shell that holds ~1 atm <span class="crit">the gate</span></td><td>Growth plateaus below dm, or vasculature won't co-scale past the ~200 µm diffusion limit</td><td>~$15B · <b>45%</b></td><td>All Phase-0/1 tech, plus a real answer to a deep biology question</td></tr>
+        <tr><td class="trl">3</td><td>A seed becomes a ~m pressurised living vessel fed on regolith/ice <em>simulant</em>, contained at scale</td><td>Cannot hold pressure at scale, or cannot feed on ISRU simulant</td><td>~$33B · <b>100%</b></td><td>A grown pressure vessel — most of the concept, minus spaceflight</td></tr>
+      </tbody>
+    </table></div>
+    <div class="sheet">
+      <svg viewBox="0 0 1020 135" role="img" aria-label="Cumulative budget-at-risk bar showing how much of the ~$33B ground program is committed if it is killed at each phase gate">
+        <rect x="120.0" y="54" width="35.5" height="30" style="fill:var(--chloro);fill-opacity:.30;stroke:var(--chloro)"/>
+        <rect x="155.5" y="54" width="70.9" height="30" style="fill:var(--chloro);fill-opacity:.30;stroke:var(--chloro)"/>
+        <text x="190.9" y="99" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--chloro)">Phase 1</text>
+        <rect x="226.4" y="54" width="248.2" height="30" style="fill:var(--osteo);fill-opacity:.30;stroke:var(--osteo)"/>
+        <text x="350.5" y="99" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--osteo)">Phase 2 · moonshot</text>
+        <rect x="474.5" y="54" width="425.5" height="30" style="fill:var(--lumen);fill-opacity:.30;stroke:var(--lumen)"/>
+        <text x="687.3" y="99" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--lumen)">Phase 3 · gestation</text>
+        <line x1="155.5" y1="46" x2="155.5" y2="88" style="stroke:var(--chloro);stroke-width:1"/>
+        <path d="M155.5 42 L159.5 46 L155.5 50 L151.5 46 Z" style="fill:var(--chloro)"/>
+        <text x="155.5" y="38" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" font-weight="400" fill="var(--chloro)">5%</text>
+        <line x1="226.4" y1="46" x2="226.4" y2="88" style="stroke:var(--chloro);stroke-width:1"/>
+        <path d="M226.4 42 L230.4 46 L226.4 50 L222.4 46 Z" style="fill:var(--chloro)"/>
+        <text x="226.4" y="38" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" font-weight="400" fill="var(--chloro)">14%</text>
+        <line x1="474.5" y1="46" x2="474.5" y2="88" style="stroke:var(--osteo);stroke-width:1.6"/>
+        <path d="M474.5 41 L479.5 46 L474.5 51 L469.5 46 Z" style="fill:var(--osteo)"/>
+        <text x="474.5" y="38" text-anchor="middle" font-family="var(--font-mono)" font-size="11" font-weight="700" fill="var(--osteo)">45%</text>
+        <line x1="900.0" y1="46" x2="900.0" y2="88" style="stroke:var(--lumen);stroke-width:1"/>
+        <path d="M900.0 42 L904.0 46 L900.0 50 L896.0 46 Z" style="fill:var(--lumen)"/>
+        <text x="900.0" y="38" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" font-weight="400" fill="var(--lumen)">100%</text>
+        <text x="155.5" y="114" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">$1.5B</text>
+        <text x="226.4" y="114" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">$4.5B</text>
+        <text x="474.5" y="114" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">$15B</text>
+        <text x="900.0" y="114" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">$33B</text>
+        <text x="510" y="122" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-3)">cumulative ground-program spend — a diamond marks how much is committed if the program is killed at that gate</text>
+      </svg>
+    </div>
+    <div class="callout warm">
+      <span class="lab">The design goal in one number: 45%</span>
+      <p>The gate most likely to fail is Phase 2, and it lands at <strong>~45% of total spend</strong> — after which the program either graduates to gestation or stops, having answered whether directed growth can climb ~14 orders of magnitude in cell number. Either outcome is a result. That is the whole philosophy: <em>buy the answer to the hardest question before paying for the chamber that assumes the answer is yes.</em></p>
+    </div>
+    <h3 class="sub-h">What would actually make us stop</h3>
+    <div class="notes-grid">
+      <div class="note warm"><div class="nh">1 · Morphogenesis plateaus</div><p>The likeliest failure: directed growth cannot be pushed past ~cm of patterned tissue because vasculature won't co-scale with the structure. This is the <a href="#wp4">WP4</a> long pole and the Phase-2 gate.</p></div>
+      <div class="note grn"><div class="nh">2 · The traits won't share a cell</div><p>A dozen engineered functions — structural, photosynthetic, radiation-hard, self-healing — interfere irreducibly when stacked in one lineage, and no spatial regulation resolves it.</p></div>
+      <div class="note cool"><div class="nh">3 · Containment can't hold at scale</div><p>The <a href="#wp6">WP6</a> safety loci mutate out over the generations a growing vessel needs. Unlike the others, this "no" halts the program <strong>on principle, not just feasibility</strong> — and it is checked first.</p></div>
+      <div class="note grn"><div class="nh">4 · The ecology won't stay closed</div><p>The low-inertia closed loop cannot be stabilised even with active control, so life support can't run for years without resupply — the lesson BIOS-3 and Biosphere-2 already taught, unbeaten.</p></div>
+      <div class="note cool"><div class="nh">5 · It grows too slowly to matter</div><p>The gestation-rate math says a useful vessel takes impractically long to grow from a seed, removing the point even if every other gate opens.</p></div>
+    </div>
+    <h3 class="sub-h">The oversight that never lapses</h3>
+    <p class="flow">Across all seven sections, one thing is constant: the <a href="#wp6">WP6</a> biosafety &amp; ethics board holds a standing veto, environmental release is <em>never</em> a research step but a separate publicly-deliberated decision, and any defensive-class design in the fleet (e.g. TESTUDO) stays strictly defensive — the program builds shelter, not weapons. This ground regime is the rehearsal for the flight-side <a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Governance &amp; containment</a> controls the fleet will need.</p>
+    <h3 class="sub-h">The whole program, in one breath</h3>
+    <p class="flow">The <a href="https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1">concept documents</a> describe a finished fleet — starships, million-person habitats, surface colonies, nurseries — grown from seeds. This program is the root of that tree: a finite, gated, mostly-fundable sequence that develops each biological subsystem to readiness, integrates them into one living artefact, makes a single honest bet on directed growth, and — only if that bet pays — gestates a small living vessel in an Earth chamber. It shares one <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075">cell-count ladder</a> with the fleet, walked one contained rung at a time. Whether it ends at a starship or at a pile of genuinely useful spin-off technology, it is designed to find out <strong>cheaply, safely, and in the open</strong> which of those it will be. That is the most that can honestly be promised — and it is enough to begin.</p>
+  </section>
+
+  <!-- ===== REFERENCES ===== -->
+  <section class="doc reveal" id="refs">
+    <p class="eyebrow"><span class="num">08</span> References &amp; sources <span class="rule"></span></p>
+    <h2>Everything this program builds on is already published</h2>
+    <div class="refs">
+      <p class="refs-note">The point of this roadmap is that it is a <em>de-risking</em> program, not an invention program: five of six work packages qualify demonstrated science. Every named result and standard below is real and cited; the one genuine bet — directed morphogenesis at metre-to-kilometre scale — is flagged in the text as TRL&nbsp;~2, not sourced away.</p>
+      <ol>
+        <li id="eref-1">Lajoie, M. J. et&nbsp;al. (2013). Genomically recoded organisms expand biological functions. <span class="rt">Science</span> 342, 357&ndash;360. — <em>E.&nbsp;coli</em> C321.&Delta;A (WP6 genetic firewall).</li>
+        <li id="eref-2">Ostrov, N. et&nbsp;al. (2016). Design, synthesis, and testing toward a 57-codon genome. <span class="rt">Science</span> 353, 819&ndash;822. — rE.coli-57.</li>
+        <li id="eref-3">Mandell, D. J. et&nbsp;al. (2015). Biocontainment of GMOs by synthetic protein design. <span class="rt">Nature</span> 518, 55&ndash;60. — synthetic auxotrophy, escape &lt;10&#8315;&sup1;&sup2;.</li>
+        <li id="eref-4">Rovner, A. J. et&nbsp;al. (2015). Recoded organisms engineered to depend on synthetic amino acids. <span class="rt">Nature</span> 518, 89&ndash;93.</li>
+        <li id="eref-5">Chan, C. T. Y. et&nbsp;al. (2016). "Deadman" and "Passcode" microbial kill switches for bacterial containment. <span class="rt">Nat. Chem. Biol.</span> 12, 82&ndash;86. — WP6 kill-switches.</li>
+        <li id="eref-6">Cox, M. M. &amp; Battista, J. R. (2005). <em>Deinococcus radiodurans</em> &mdash; the consummate survivor. <span class="rt">Nat. Rev. Microbiol.</span> 3, 882&ndash;892. — WP3 radiation repair.</li>
+        <li id="eref-7">Hashimoto, T. et&nbsp;al. (2016). Extremotolerant tardigrade genome and improved radiotolerance of human cells by Dsup. <span class="rt">Nat. Commun.</span> 7, 12808.</li>
+        <li id="eref-8">Toda, S. et&nbsp;al. (2018). Programming self-organizing multicellular structures with synthetic cell&ndash;cell signaling. <span class="rt">Science</span> 361, 156&ndash;162. — WP4 synNotch patterning (the moonshot's state of the art).</li>
+        <li id="eref-9">Elowitz, M. B. &amp; Leibler, S. (2000). A synthetic oscillatory network of transcriptional regulators. <span class="rt">Nature</span> 403, 335&ndash;338. — the segmentation-clock oscillator.</li>
+        <li id="eref-10">DeJong, J. T. et&nbsp;al. (2010). Bio-mediated soil improvement. <span class="rt">Ecol. Eng.</span> 36, 197&ndash;210. — MICP (WP1 osteoid/calcite).</li>
+        <li id="eref-11">Wiktor, V. &amp; Jonkers, H. M. (2011). Quantification of crack-healing in bacteria-based self-healing concrete. <span class="rt">Cem. Concr. Compos.</span> 33, 763&ndash;770. — WP3 self-healing.</li>
+        <li id="eref-12">Gosline, J. M. et&nbsp;al. (1999). The mechanical design of spider silks. <span class="rt">J. Exp. Biol.</span> 202, 3295&ndash;3303. — WP1 recombinant silk (&ge;1&nbsp;GPa).</li>
+        <li id="eref-13">Jones, M. et&nbsp;al. (2020). Engineered mycelium composite construction materials. <span class="rt">Mater. Des.</span> 187, 108397. — WP1 mycelium composites.</li>
+        <li id="eref-14">Lasseur, C. et&nbsp;al. (2010). MELiSSA: the European closed life-support project. <span class="rt">Gravit. Space Biol.</span> 23, 3&ndash;12. — WP2 algal life support.</li>
+        <li id="eref-15">Salisbury, F. B. et&nbsp;al. (1997). Bios-3: Siberian experiments in bioregenerative life support. <span class="rt">BioScience</span> 47, 575&ndash;585.</li>
+        <li id="eref-16">Nelson, M. et&nbsp;al. (1993). Using a closed ecological system to study Earth's biosphere: Biosphere&nbsp;2. <span class="rt">BioScience</span> 43, 225&ndash;236. — the O&#8322; crash (WP2 stability problem).</li>
+        <li id="eref-17">Cockell, C. S. et&nbsp;al. (2020). Space station biomining experiment demonstrates rare-earth extraction in microgravity. <span class="rt">Nat. Commun.</span> 11, 5523. — ESA BioRock (WP5).</li>
+        <li id="eref-18">Schippers, A. et&nbsp;al. (2014). Biomining: metal recovery from ores with microorganisms. <span class="rt">Adv. Biochem. Eng. Biotechnol.</span> 141, 1&ndash;47. — <em>Acidithiobacillus</em> bioleaching (WP5).</li>
+        <li id="eref-19">ASTM E595-15 (2015). <span class="rt">Standard Test Method for Total Mass Loss and Collected Volatile Condensable Materials from Outgassing in a Vacuum Environment.</span> ASTM International. — WP1 vacuum outgassing spec (TML&lt;1%, CVCM&lt;0.1%).</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    <div class="fbar"><span>◈ GESTALT Program</span><span class="sep">·</span><span>Earth R&amp;D · Testing · Prototyping</span><span class="sep">·</span><span>Complete · 6 work packages · gated go/no-go</span><span class="sep">·</span><span>Real science green · bets named</span></div>
+  </footer>
+
+</div></div>
+<script>
+(function(){var r=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;var e=[].slice.call(document.querySelectorAll('.reveal'));if(r||!('IntersectionObserver'in window)){e.forEach(function(x){x.classList.add('in')});return;}var io=new IntersectionObserver(function(en){en.forEach(function(x){if(x.isIntersecting){x.target.classList.add('in');io.unobserve(x.target);}});},{rootMargin:'0px 0px -6% 0px',threshold:.06});e.forEach(function(x){io.observe(x)});})();
+</script>

@@ -1,0 +1,380 @@
+<style>
+  :root{
+    --ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;
+    --line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);
+    --chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;
+    --chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);
+    --l-regolith:#7a5a42;--l-rind:#2a2420;--l-pneumostat:#7fb6b3;--l-soil:#6b7d55;--l-void:#060d0b;--sky:#3a2418;
+    --sheet:#0b1714;--sheet-line:rgba(120,196,170,.10);
+    --font-display:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+    --font-body:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;--maxw:1120px;
+  }
+  @media (prefers-color-scheme:light){:root{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--l-regolith:#a8825f;--l-rind:#4a4038;--l-pneumostat:#8fc0bd;--l-soil:#8ba06d;--l-void:#c9d2c6;--sky:#e6c9a8;--sheet:#eef2ea;--sheet-line:rgba(30,70,52,.09)}}
+  :root[data-theme="dark"]{--ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;--line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);--chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;--l-regolith:#7a5a42;--l-rind:#2a2420;--l-void:#060d0b;--sky:#3a2418;--sheet:#0b1714}
+  :root[data-theme="light"]{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--l-regolith:#a8825f;--l-rind:#4a4038;--l-void:#c9d2c6;--sky:#e6c9a8;--sheet:#eef2ea}
+
+  *{box-sizing:border-box}body{margin:0}
+  .page{background:radial-gradient(1000px 600px at 82% -6%,var(--chloro-soft),transparent 60%),var(--ground);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.6;overflow-x:hidden;min-height:100vh}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  h1,h2,h3{font-family:var(--font-display);font-weight:600;text-wrap:balance;line-height:1.1;margin:0}
+  p{margin:0 0 1em}strong{color:var(--ink)}
+
+  .prog-nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;padding:16px 0 4px}
+  .prog-nav .pn-brand{color:var(--chloro);letter-spacing:.16em;text-transform:uppercase}
+  .prog-nav a{color:var(--ink-3);text-decoration:none;padding:3px 10px;border:1px solid var(--line);border-radius:999px;transition:color .2s,border-color .2s}
+  .prog-nav a:hover{color:var(--ink);border-color:var(--line-2)}
+  .prog-nav a.current{color:var(--lumen);border-color:var(--lumen)}
+
+  .masthead{padding:22px 0 24px;border-bottom:1px solid var(--line-2)}
+  .mh-kicker{font-family:var(--font-mono);font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:var(--chloro);margin:0 0 14px}
+  .mh-title{font-size:clamp(2rem,5.6vw,3.6rem);letter-spacing:-.015em;margin:0 0 6px}
+  .mh-title .s{color:var(--chloro)}
+  .mh-sub{font-family:var(--font-display);font-style:italic;color:var(--ink-2);font-size:1.15rem;margin:0 0 18px}
+  .vitals{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;border:1px solid var(--line);background:var(--line);border-radius:12px;overflow:hidden}
+  .vitals .c{background:var(--ground);padding:14px 15px}
+  .vitals .k{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:7px}
+  .vitals .v{font-family:var(--font-display);font-size:1.4rem;line-height:1}
+  .vitals .v .u{font-family:var(--font-mono);font-size:.5em;color:var(--ink-3);margin-left:.25em}
+  .vitals .s{font-size:12px;color:var(--ink-3);margin-top:6px;line-height:1.35}
+
+  .plate{padding:40px 0;border-bottom:1px solid var(--line)}
+  .plate-head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+  .plate-no{font-family:var(--font-mono);font-size:12px;letter-spacing:.16em;color:var(--chloro)}
+  .plate-head h2{font-size:clamp(1.4rem,3.4vw,2.1rem)}
+  .plate-meta{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;color:var(--ink-3);margin-left:auto;text-align:right;line-height:1.6}
+  .plate-cap{color:var(--ink-2);max-width:74ch;font-size:14.5px;margin:10px 0 20px}
+  sup.cite{font-size:.62em;line-height:0;vertical-align:super;font-family:var(--font-mono);font-weight:600}
+  sup.cite a{color:var(--lumen);text-decoration:none;padding:0 1px}
+  sup.cite a:hover{text-decoration:underline}
+  .refs{margin-top:16px;border-top:1px solid var(--line);padding-top:18px}
+  .refs ol{margin:0;padding-left:2.4em;display:grid;gap:8px}
+  .refs li{font-size:.8em;line-height:1.5;color:var(--ink-2);max-width:82ch}
+  .refs .rt{color:var(--ink-3);font-style:italic}
+  .refs-note{font-size:.8em;color:var(--ink-3);margin:0 0 14px;max-width:80ch}
+  .sheet{border:1px solid var(--line-2);border-radius:10px;background:linear-gradient(var(--sheet-line) 1px,transparent 1px) 0 0/100% 34px,linear-gradient(90deg,var(--sheet-line) 1px,transparent 1px) 0 0/34px 100%,var(--sheet);padding:8px;overflow-x:auto}
+  .sheet svg{display:block;height:auto;min-width:840px;width:100%}
+
+  .edge{fill:none;stroke:var(--ink);stroke-width:1.7;stroke-linejoin:round;stroke-linecap:round}
+  .edge2{fill:none;stroke:var(--ink-2);stroke-width:1.1}
+  .thin{fill:none;stroke:var(--ink-3);stroke-width:.8}
+  .thin2{fill:none;stroke:var(--ink-2);stroke-width:.9}
+  .dim{fill:none;stroke:var(--ink-3);stroke-width:.7}
+  .f-soil{fill:var(--l-soil);fill-opacity:.5}
+  .f-water{fill:var(--lumen);fill-opacity:.3;stroke:var(--lumen);stroke-width:.8}
+  .f-ice{fill:var(--lumen);fill-opacity:.18;stroke:var(--lumen);stroke-width:1}
+  .f-air{fill:var(--lumen);fill-opacity:.04}
+  .f-dome{fill:var(--chloro);fill-opacity:.06}
+  .stroke-c{stroke:var(--chloro)}.stroke-l{stroke:var(--lumen)}.stroke-o{stroke:var(--osteo)}
+  .fill-c{fill:var(--chloro)}.fill-l{fill:var(--lumen)}
+  .t-serif{font-family:var(--font-display);fill:var(--ink);font-size:14px}
+  .t-lab{font-family:var(--font-mono);fill:var(--ink-2);font-size:10px;letter-spacing:.1em}
+  .t-lab3{font-family:var(--font-mono);fill:var(--ink-3);font-size:9.5px;letter-spacing:.08em}
+  .t-dim{font-family:var(--font-mono);fill:var(--ink-3);font-size:9.5px}
+  .t-big{font-family:var(--font-display);fill:var(--ink);font-weight:600;font-size:20px}
+  .human{fill:var(--ink-2);opacity:.85}
+
+  .notes{padding:38px 0 18px}
+  .notes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+  .note{border-left:2px solid var(--line-2);padding:2px 0 2px 16px}
+  .note .nh{font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:7px}
+  .note p{font-size:13px;color:var(--ink-2);margin:0;line-height:1.55}
+  .note.warm{border-color:var(--osteo)}.note.grn{border-color:var(--chloro)}
+  footer{padding:22px 0 60px}
+  .fbar{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);border-top:1px solid var(--line);padding-top:18px}
+  .fbar .sep{color:var(--line-2)}
+  .reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
+  @media (max-width:640px){.vitals{grid-template-columns:repeat(2,1fr)}.plate-meta{margin-left:0;text-align:left}}
+  ::selection{background:var(--chloro);color:var(--ground)}
+  :focus-visible{outline:2px solid var(--lumen);outline-offset:3px}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="human" viewBox="0 0 40 100"><circle cx="20" cy="12" r="8.5"/><path d="M20 22 C11 22 9 31 9 43 L12 70 L9.5 98 L15.5 98 L20 73 L24.5 98 L30.5 98 L28 70 L31 43 C31 31 29 22 20 22 Z"/></symbol>
+  <symbol id="tree" viewBox="0 0 40 60"><rect x="17" y="34" width="6" height="24" rx="2"/><path d="M20 2 C6 20 8 40 20 40 C32 40 34 20 20 2 Z"/></symbol>
+</svg>
+
+<div class="page"><div class="wrap">
+
+  <nav class="prog-nav" aria-label="GESTALT program documents">
+    <span class="pn-brand">◈ GESTALT Program</span>
+    <a href="https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1">Design Dossier</a>
+    <a href="https://claude.ai/code/artifact/bd2c2c98-84cf-42c9-91ea-f0ec1c749fc5">Starship</a>
+    <a href="https://claude.ai/code/artifact/9b90d7e5-2a71-426a-b2bf-d3a96b32a82e">Habitat</a>
+    <a href="#" class="current" aria-current="page">LICHEN</a>
+    <a href="https://claude.ai/code/artifact/2433fa54-e582-4194-8245-d63acee8fb85">GRAVID</a>
+    <a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet Registry</a>
+    <a href="https://claude.ai/code/artifact/7ca9c965-1932-4c5a-b0f1-a99e9febae58">Class Reference</a>
+    <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075">Compendium</a>
+    <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed">Earth Program</a>
+    <a href="https://claude.ai/code/artifact/1c6f18ca-eeda-4d83-bd97-fd9c1622823d">3D Models</a>
+  </nav>
+
+  <header class="masthead">
+    <p class="mh-kicker">Fleet Class Drawing Set · Surface Habitat</p>
+    <h1 class="mh-title">LICHEN · Surface <span class="s">D</span>ome</h1>
+    <p class="mh-sub"><em>Lichen vivum</em> — a settlement grown into the regolith of the Moon or Mars</p>
+    <div class="vitals">
+      <div class="c"><div class="k">Per dome</div><div class="v">~10k<span class="u">people</span></div><div class="s">a spreading colony of fused domes</div></div>
+      <div class="c"><div class="k">Dome span</div><div class="v">~500<span class="u">m</span></div><div class="s">~150 m rise; local gravity, no spin</div></div>
+      <div class="c"><div class="k">Membrane load</div><div class="v">7.4<span class="u">MN/m</span></div><div class="s">trivial — the hard part is holding it down</div></div>
+      <div class="c"><div class="k">Over-blanket</div><div class="v">9–21<span class="u">m</span></div><div class="s">regolith ballast + shield (Mars → Moon)</div></div>
+    </div>
+  </header>
+
+  <!-- PLATE I -->
+  <section class="plate reveal">
+    <div class="plate-head"><span class="plate-no">PLATE I</span><h2>Section through a dome</h2><div class="plate-meta">VERTICAL SECTION · ~1 : 3,300<br>MARS SURFACE SHOWN</div></div>
+    <p class="plate-cap">Unlike every free-flying class, LICHEN borrows a planet's gravity, so there is no spin — just a low pressure blister rooted into the ground. The membrane barely feels the 52 kPa inside<sup class="cite"><a href="#lref-4">[4]</a></sup>; what it needs is a thick regolith over-blanket to shield it<sup class="cite"><a href="#lref-6">[6]</a><a href="#lref-7">[7]</a></sup>, ballast it against uplift, and roots that anchor to bedrock and tap subsurface ice — the in-situ resource use whose ground rehearsal is the Earth Program's <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#wp5">WP5 (biomining, volatiles &amp; the seed)</a>.</p>
+    <div class="sheet">
+      <svg viewBox="0 0 960 646" role="img" aria-label="Vertical section through a LICHEN surface dome on Mars">
+        <!-- sky -->
+        <rect x="0" y="0" width="960" height="300" fill="var(--sky)" opacity=".18"/>
+        <text x="60" y="40" class="t-lab3">THIN CO₂ SKY · ~0.6 kPa</text>
+        <!-- ground -->
+        <line x1="0" y1="300" x2="960" y2="300" class="edge2"/>
+        <rect x="0" y="300" width="960" height="220" fill="var(--l-regolith)" fill-opacity=".14"/>
+        <g fill="var(--l-regolith)" fill-opacity=".5"><circle cx="90" cy="340" r="2"/><circle cx="180" cy="380" r="2"/><circle cx="120" cy="430" r="2"/><circle cx="820" cy="350" r="2"/><circle cx="880" cy="410" r="2"/><circle cx="60" cy="470" r="2"/><circle cx="900" cy="470" r="2"/></g>
+        <!-- subsurface ice lens -->
+        <ellipse cx="480" cy="452" rx="150" ry="34" class="f-ice"/>
+        <text x="480" y="456" text-anchor="middle" class="t-lab3">subsurface ice</text>
+
+        <!-- over-blanket (outer, thick) -->
+        <path d="M228 300 A 252 205 0 0 1 732 300" fill="none" stroke="var(--l-regolith)" stroke-width="17"/>
+        <g fill="var(--l-regolith)" fill-opacity=".7"><circle cx="330" cy="150" r="2"/><circle cx="480" cy="103" r="2"/><circle cx="630" cy="150" r="2"/><circle cx="270" cy="235" r="2"/><circle cx="690" cy="235" r="2"/></g>
+        <!-- rind -->
+        <path d="M240 300 A 240 188 0 0 1 720 300" fill="none" stroke="var(--l-rind)" stroke-width="5"/>
+        <!-- membrane -->
+        <path d="M246 300 A 234 182 0 0 1 714 300" fill="none" stroke="var(--l-pneumostat)" stroke-width="2.5"/>
+        <!-- interior air -->
+        <path d="M246 300 A 234 182 0 0 1 714 300 Z" class="f-dome"/>
+
+        <!-- floor garden -->
+        <rect x="246" y="298" width="468" height="6" class="f-soil"/>
+        <ellipse cx="400" cy="300" rx="46" ry="5" class="f-water"/>
+        <use href="#tree" x="300" y="284" width="11" height="16.5" class="fill-c" opacity=".8"/>
+        <use href="#tree" x="560" y="284" width="11" height="16.5" class="fill-c" opacity=".8"/>
+        <use href="#tree" x="620" y="286" width="9" height="13.5" class="fill-c" opacity=".8"/>
+        <use href="#human" x="470" y="290" width="4" height="10" class="human"/>
+        <use href="#human" x="500" y="291" width="3.6" height="9" class="human"/>
+
+        <!-- central light shaft -->
+        <line x1="480" y1="120" x2="480" y2="298" class="stroke-l" stroke-width="3" opacity=".5"/>
+        <circle cx="480" cy="118" r="7" class="f-water"/>
+        <g class="stroke-l" opacity=".3"><line x1="480" y1="160" x2="360" y2="298"/><line x1="480" y1="160" x2="600" y2="298"/></g>
+
+        <!-- roots -->
+        <g class="thin2" fill="none">
+          <path d="M250 300 C 245 350 220 380 200 440"/><path d="M710 300 C 715 350 740 380 760 440"/>
+          <path d="M480 300 C 480 360 480 400 480 430" stroke="var(--l-pneumostat)"/>
+          <path d="M420 300 C 410 350 380 380 350 430"/><path d="M540 300 C 550 350 580 380 610 430"/>
+        </g>
+
+        <!-- labels -->
+        <g class="t-lab">
+          <line x1="480" y1="102" x2="480" y2="66" class="thin"/><text x="480" y="58" text-anchor="middle" class="t-lab">REGOLITH OVER-BLANKET · shield + ballast</text><text x="480" y="70" text-anchor="middle" class="t-lab3">≈9 m Mars / ≈21 m Moon</text>
+          <line x1="640" y1="176" x2="770" y2="150" class="thin"/><text x="776" y="146" class="t-lab">rind + pressure membrane</text><text x="776" y="158" class="t-lab3">52 kPa · load only ~7.4 MN/m</text>
+          <line x1="480" y1="150" x2="560" y2="120" class="thin"/><text x="566" y="116" class="t-lab3">light shaft + luminous lining</text>
+          <line x1="480" y1="420" x2="600" y2="392" class="thin"/><text x="606" y="388" class="t-lab3">anchor + ice-tap roots</text>
+          <text x="300" y="330" class="t-lab3">MARS 0.38 g (local) — no spin needed</text>
+        </g>
+
+        <!-- dims + scale -->
+        <g class="dim"><line x1="240" y1="486" x2="720" y2="486"/><line x1="240" y1="480" x2="240" y2="492"/><line x1="720" y1="480" x2="720" y2="492"/></g>
+        <text x="480" y="500" text-anchor="middle" class="t-dim">≈ 500 m span · ≈150 m rise</text>
+        <g transform="translate(60 490)"><line x1="0" y1="0" x2="100" y2="0" class="edge2"/><g class="thin"><line x1="0" y1="-4" x2="0" y2="4"/><line x1="100" y1="-4" x2="100" y2="4"/></g><text x="0" y="15" class="t-dim">0</text><text x="100" y="15" class="t-dim" text-anchor="middle">100 m</text></g>
+      
+        <!-- ===== BORDER · NOTES · TITLE BLOCK ===== -->
+        <rect x="8" y="8" width="944" height="626" fill="none" stroke="var(--line-2)" stroke-width="1.5"/>
+        <rect x="14" y="14" width="932" height="614" fill="none" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="14" y1="548" x2="946" y2="548" stroke="var(--line-2)" stroke-width="1"/>
+        <rect x="616" y="554" width="330" height="72" fill="none" stroke="var(--line-2)" stroke-width="1.2"/>
+        <line x1="616" y1="578" x2="946" y2="578" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="616" y1="602" x2="946" y2="602" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="565" font-family="var(--font-mono)" font-size="7" fill="var(--ink-3)">PROJECT · GESTALT — LICHEN Surface Dome</text>
+        <text x="624" y="574" font-family="var(--font-display)" font-size="11.5" fill="var(--ink)">Section Through a Dome</text>
+        <line x1="766" y1="578" x2="766" y2="602" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="866" y1="578" x2="866" y2="602" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="587" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">DRAWING NO.</text>
+        <text x="624" y="598" font-family="var(--font-mono)" font-size="11" fill="var(--lumen)">GST·LIC·101</text>
+        <text x="774" y="587" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">SCALE</text>
+        <text x="774" y="598" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">1 : 3,300</text>
+        <text x="874" y="587" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">REV</text>
+        <text x="874" y="598" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">C</text>
+        <line x1="716" y1="602" x2="716" y2="626" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="806" y1="602" x2="806" y2="626" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="611" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">DATE</text>
+        <text x="624" y="622" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">2026-07</text>
+        <text x="724" y="611" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">SHEET</text>
+        <text x="724" y="622" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">1 of 3</text>
+        <text x="814" y="611" font-family="var(--font-mono)" font-size="6.5" fill="var(--osteo)">STATUS</text>
+        <text x="814" y="622" font-family="var(--font-mono)" font-size="6.8" fill="var(--osteo)">CONCEPT — NOT FOR CONSTRUCTION</text>
+        <text x="30" y="566" font-family="var(--font-mono)" font-size="10" letter-spacing="2" fill="var(--osteo)">MATERIAL LEGEND · outer → inner</text>
+        <rect x="30" y="573" width="14" height="10" style="fill:var(--l-regolith);fill-opacity:.55;stroke:var(--l-regolith)"/>
+        <text x="50" y="581" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">Regolith over-blanket</text>
+        <rect x="30" y="588" width="14" height="10" style="fill:var(--l-rind);fill-opacity:.55;stroke:var(--l-rind)"/>
+        <text x="50" y="596" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">Rind + membrane</text>
+        <rect x="30" y="603" width="14" height="10" style="fill:var(--l-pneumostat);fill-opacity:.55;stroke:var(--l-pneumostat)"/>
+        <text x="50" y="611" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">Pressure membrane</text>
+        <rect x="30" y="618" width="14" height="10" style="fill:var(--l-soil);fill-opacity:.55;stroke:var(--l-soil)"/>
+        <text x="50" y="626" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">Soil floor</text>
+        <rect x="290" y="573" width="14" height="10" style="fill:var(--lumen);fill-opacity:.55;stroke:var(--lumen)"/>
+        <text x="310" y="581" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">Subsurface ice</text>
+</svg>
+    </div>
+  </section>
+
+  <!-- PLATE II -->
+  <section class="plate reveal">
+    <div class="plate-head"><span class="plate-no">PLATE II</span><h2>Colony plan · a spreading crust</h2><div class="plate-meta">PLAN VIEW · GROWTH MARGIN AT RIGHT</div></div>
+    <p class="plate-cap">One dome is a village; the settlement is a colony. New domes bud from the rim and fuse to their neighbours through pressurised tunnels, so the town spreads across the regolith like a lichen thallus creeping over bare rock — older and larger toward the founder, youngest at the advancing margin.</p>
+    <div class="sheet">
+      <svg viewBox="0 0 960 526" role="img" aria-label="Plan view of a LICHEN colony of fused domes spreading across regolith">
+        <rect x="0" y="0" width="960" height="400" fill="var(--l-regolith)" fill-opacity=".07"/>
+        <g fill="var(--l-regolith)" fill-opacity=".4"><circle cx="120" cy="80" r="2"/><circle cx="820" cy="90" r="2"/><circle cx="150" cy="330" r="2"/><circle cx="880" cy="340" r="2"/><circle cx="500" cy="60" r="2"/><circle cx="60" cy="200" r="2"/></g>
+
+        <!-- tunnels (draw first, behind domes) -->
+        <g class="thin2"><line x1="300" y1="200" x2="440" y2="140"/><line x1="300" y1="200" x2="470" y2="270"/><line x1="440" y1="140" x2="590" y2="190"/><line x1="470" y1="270" x2="590" y2="190"/><line x1="300" y1="200" x2="200" y2="300"/><line x1="590" y1="190" x2="700" y2="180"/><line x1="590" y1="190" x2="705" y2="245"/></g>
+
+        <!-- domes: founder large -> smaller toward margin -->
+        <g class="edge2 f-dome"><circle cx="300" cy="200" r="72"/></g>
+        <circle cx="300" cy="200" r="72" class="stroke-c" fill="none" opacity=".4"/>
+        <g class="edge2 f-dome"><circle cx="440" cy="140" r="50"/><circle cx="470" cy="270" r="54"/><circle cx="590" cy="190" r="46"/><circle cx="200" cy="300" r="40"/><circle cx="180" cy="120" r="34"/></g>
+        <!-- growth margin buds -->
+        <g class="thin2 f-dome"><circle cx="700" cy="180" r="22"/><circle cx="705" cy="245" r="17"/><circle cx="760" cy="150" r="13"/><circle cx="775" cy="210" r="10"/><circle cx="800" cy="270" r="8"/></g>
+
+        <!-- labels -->
+        <g class="t-lab">
+          <text x="300" y="204" text-anchor="middle" class="t-lab3">FOUNDER</text><text x="300" y="216" text-anchor="middle" class="t-lab3">~10,000</text>
+          <line x1="300" y1="128" x2="300" y2="90" class="thin"/><text x="300" y="82" text-anchor="middle">founder dome — oldest &amp; largest</text>
+          <text x="470" y="274" text-anchor="middle" class="t-lab3">farm dome</text>
+          <text x="590" y="194" text-anchor="middle" class="t-lab3">civic</text>
+          <path d="M820 210 l26 0 M840 202 l8 8 l-8 8" class="stroke-c" fill="none"/>
+          <text x="835" y="150" text-anchor="middle">growth margin</text><text x="835" y="162" text-anchor="middle" class="t-lab3">new domes bud outward</text>
+          <text x="430" y="330" class="t-lab3">— pressurised tunnels link the colony —</text>
+        </g>
+        <g transform="translate(60 360)"><line x1="0" y1="0" x2="120" y2="0" class="edge2"/><g class="thin"><line x1="0" y1="-4" x2="0" y2="4"/><line x1="120" y1="-4" x2="120" y2="4"/></g><text x="0" y="15" class="t-dim">0</text><text x="120" y="15" class="t-dim" text-anchor="middle">500 m</text></g>
+      
+        <!-- ===== BORDER · NOTES · TITLE BLOCK ===== -->
+        <rect x="8" y="8" width="944" height="506" fill="none" stroke="var(--line-2)" stroke-width="1.5"/>
+        <rect x="14" y="14" width="932" height="494" fill="none" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="14" y1="428" x2="946" y2="428" stroke="var(--line-2)" stroke-width="1"/>
+        <rect x="616" y="434" width="330" height="72" fill="none" stroke="var(--line-2)" stroke-width="1.2"/>
+        <line x1="616" y1="458" x2="946" y2="458" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="616" y1="482" x2="946" y2="482" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="445" font-family="var(--font-mono)" font-size="7" fill="var(--ink-3)">PROJECT · GESTALT — LICHEN Surface Dome</text>
+        <text x="624" y="454" font-family="var(--font-display)" font-size="11.5" fill="var(--ink)">Colony Plan — A Spreading Crust</text>
+        <line x1="766" y1="458" x2="766" y2="482" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="866" y1="458" x2="866" y2="482" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="467" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">DRAWING NO.</text>
+        <text x="624" y="478" font-family="var(--font-mono)" font-size="11" fill="var(--lumen)">GST·LIC·102</text>
+        <text x="774" y="467" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">SCALE</text>
+        <text x="774" y="478" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">NTS</text>
+        <text x="874" y="467" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">REV</text>
+        <text x="874" y="478" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">C</text>
+        <line x1="716" y1="482" x2="716" y2="506" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="806" y1="482" x2="806" y2="506" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="491" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">DATE</text>
+        <text x="624" y="502" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">2026-07</text>
+        <text x="724" y="491" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">SHEET</text>
+        <text x="724" y="502" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">2 of 3</text>
+        <text x="814" y="491" font-family="var(--font-mono)" font-size="6.5" fill="var(--osteo)">STATUS</text>
+        <text x="814" y="502" font-family="var(--font-mono)" font-size="6.8" fill="var(--osteo)">CONCEPT — NOT FOR CONSTRUCTION</text>
+        <text x="30" y="446" font-family="var(--font-mono)" font-size="10" letter-spacing="2" fill="var(--osteo)">GENERAL NOTES</text>
+        <text x="30" y="463" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">1  New domes bud from the rim and fuse.</text>
+        <text x="30" y="478" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">2  Older & larger toward the founder dome.</text>
+        <text x="30" y="493" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">3  Youngest domes at the advancing margin.</text>
+        <text x="30" y="508" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">4  Pressurised tunnels link neighbours.</text>
+</svg>
+    </div>
+  </section>
+
+  <!-- PLATE III -->
+  <section class="plate reveal">
+    <div class="plate-head"><span class="plate-no">PLATE III</span><h2>Growth sequence · seed to settlement</h2><div class="plate-meta">FIVE STAGES · ~2–4 YR PER DOME</div></div>
+    <p class="plate-cap">A one-tonne seed lands, roots, inflates, buries itself, greens, and buds a neighbour. With a whole planet's regolith and ice underfoot, it is the fastest and cheapest class to grow — the challenge is chemistry, not scale: Martian regolith must be stripped of its perchlorates before anything can live in it.</p>
+    <div class="sheet">
+      <svg viewBox="0 0 960 356" role="img" aria-label="Five-stage growth sequence of a LICHEN dome">
+        <g class="t-lab3" text-anchor="middle">
+          <!-- ground line each frame at y=150 -->
+          <g><line x1="20" y1="150" x2="180" y2="150" class="edge2"/><ellipse cx="100" cy="140" rx="9" ry="12" style="fill:var(--osteo);fill-opacity:.3;stroke:var(--osteo)"/><text x="100" y="186">1 · seed lands</text><text x="100" y="200" fill="var(--ink-3)">~1 t husk</text></g>
+          <text x="196" y="145" fill="var(--ink-3)">›</text>
+          <g><line x1="212" y1="150" x2="372" y2="150" class="edge2"/><path d="M292 150 C 288 168 280 180 272 196 M292 150 C 296 168 304 180 312 196" class="thin2" fill="none"/><path d="M280 150 A 12 10 0 0 1 304 150" class="thin2" fill="none"/><text x="292" y="186">2 · roots anchor</text><text x="292" y="200" fill="var(--ink-3)">detox regolith</text></g>
+          <text x="388" y="145" fill="var(--ink-3)">›</text>
+          <g><line x1="404" y1="150" x2="564" y2="150" class="edge2"/><path d="M456 150 A 28 24 0 0 1 512 150" style="fill:var(--chloro);fill-opacity:.08;stroke:var(--l-pneumostat);stroke-width:1.5"/><text x="484" y="186">3 · membrane inflates</text><text x="484" y="200" fill="var(--ink-3)">52 kPa</text></g>
+          <text x="580" y="145" fill="var(--ink-3)">›</text>
+          <g><line x1="596" y1="150" x2="756" y2="150" class="edge2"/><path d="M648 150 A 28 24 0 0 1 704 150" fill="none" stroke="var(--l-regolith)" stroke-width="6"/><rect x="662" y="146" width="28" height="4" class="f-soil"/><use href="#tree" x="670" y="136" width="7" height="10.5" class="fill-c"/><text x="676" y="186">4 · shield + green</text><text x="676" y="200" fill="var(--ink-3)">over-blanket</text></g>
+          <text x="772" y="145" fill="var(--ink-3)">›</text>
+          <g><line x1="788" y1="150" x2="948" y2="150" class="edge2"/><path d="M812 150 A 26 22 0 0 1 864 150" fill="none" stroke="var(--l-regolith)" stroke-width="5"/><path d="M876 150 A 12 10 0 0 1 900 150" style="fill:var(--chloro);fill-opacity:.1;stroke:var(--l-pneumostat)"/><path d="M864 150 l12 0" class="thin2"/><text x="868" y="186">5 · buds a neighbour</text><text x="868" y="200" fill="var(--ink-3)">colony spreads</text></g>
+        </g>
+      
+        <!-- ===== BORDER · NOTES · TITLE BLOCK ===== -->
+        <rect x="8" y="8" width="944" height="336" fill="none" stroke="var(--line-2)" stroke-width="1.5"/>
+        <rect x="14" y="14" width="932" height="324" fill="none" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="14" y1="258" x2="946" y2="258" stroke="var(--line-2)" stroke-width="1"/>
+        <rect x="616" y="264" width="330" height="72" fill="none" stroke="var(--line-2)" stroke-width="1.2"/>
+        <line x1="616" y1="288" x2="946" y2="288" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="616" y1="312" x2="946" y2="312" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="275" font-family="var(--font-mono)" font-size="7" fill="var(--ink-3)">PROJECT · GESTALT — LICHEN Surface Dome</text>
+        <text x="624" y="284" font-family="var(--font-display)" font-size="11.5" fill="var(--ink)">Growth Sequence — Seed to Settlement</text>
+        <line x1="766" y1="288" x2="766" y2="312" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="866" y1="288" x2="866" y2="312" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="297" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">DRAWING NO.</text>
+        <text x="624" y="308" font-family="var(--font-mono)" font-size="11" fill="var(--lumen)">GST·LIC·103</text>
+        <text x="774" y="297" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">SCALE</text>
+        <text x="774" y="308" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">NTS</text>
+        <text x="874" y="297" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">REV</text>
+        <text x="874" y="308" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">C</text>
+        <line x1="716" y1="312" x2="716" y2="336" stroke="var(--line)" stroke-width="0.8"/>
+        <line x1="806" y1="312" x2="806" y2="336" stroke="var(--line)" stroke-width="0.8"/>
+        <text x="624" y="321" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">DATE</text>
+        <text x="624" y="332" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">2026-07</text>
+        <text x="724" y="321" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">SHEET</text>
+        <text x="724" y="332" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink)">3 of 3</text>
+        <text x="814" y="321" font-family="var(--font-mono)" font-size="6.5" fill="var(--osteo)">STATUS</text>
+        <text x="814" y="332" font-family="var(--font-mono)" font-size="6.8" fill="var(--osteo)">CONCEPT — NOT FOR CONSTRUCTION</text>
+        <text x="30" y="276" font-family="var(--font-mono)" font-size="10" letter-spacing="2" fill="var(--osteo)">GENERAL NOTES</text>
+        <text x="30" y="293" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">1  Seed lands, roots, inflates, buries, greens.</text>
+        <text x="30" y="308" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">2  ~2–4 yr per dome; then buds a neighbour.</text>
+        <text x="30" y="323" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">3  Perchlorate stripped before anything lives.</text>
+</svg>
+    </div>
+  </section>
+
+  <section class="notes reveal">
+    <div class="notes-grid">
+      <div class="note grn"><div class="nh">Drawing conventions</div><p>Green = living / photosynthetic tissue · cyan = engineered systems &amp; data · amber = structure, fluid &amp; shielding. Chain-dashed lines are centrelines; dashed lines are hidden edges. Each plate carries a title block (drawing no. · scale · revision); all sheets are <strong>CONCEPT — not for construction</strong>.</p></div>
+      <div class="note grn"><div class="nh">Why no spin</div><p>On a planet you already have gravity, so LICHEN drops the whole rotating apparatus of ARCA. It becomes the simplest, cheapest class — a pressure blister on the ground — and the only one that colonises a surface rather than flying free.</p></div>
+      <div class="note warm"><div class="nh">The real problem: chemistry</div><p>Martian regolith holds ~0.5–1% <strong>perchlorate</strong><sup class="cite"><a href="#lref-2">[2]</a><a href="#lref-3">[3]</a></sup> (<span style="font-family:var(--font-mono);font-size:.9em">ClO₄⁻</span>), toxic to thyroids and most plants. Perchlorate-reducing bacteria (real: <em>Dechloromonas</em>, <em>Azospira</em>)<sup class="cite"><a href="#lref-1">[1]</a></sup> strip it stepwise — <span style="font-family:var(--font-mono);font-size:.85em">ClO₄⁻ → ClO₃⁻ → ClO₂⁻ → Cl⁻ + O₂</span> — and the final chlorite-dismutase step <em>releases oxygen</em>: detoxing the top ~1 m of one dome's floor liberates ~1,400 t of O₂, roughly 4,600 person-years' worth<sup class="cite"><a href="#lref-8">[8]</a></sup>, so the poison doubles as a startup air supply. Bonding a living membrane to raw rock<sup class="cite"><a href="#lref-5">[5]</a></sup>, and anchoring against uplift, are the other hard parts: the dome lifts with ~10 GN of pressure force (52 kPa over its ~0.2 km² footprint), held down by an over-blanket sized so its own weight balances that pressure — <span style="font-family:var(--font-mono);font-size:.85em">ρgh = 52 kPa</span> gives ~9 m of regolith on Mars, ~21 m on the lower-gravity Moon.</p></div>
+      <div class="note"><div class="nh">Status</div><p>Conceptual. A companion class in the GESTALT program — see the <a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091" style="color:var(--lumen)">Fleet Registry</a> for the full family and growth protocols.</p></div>
+    </div>
+  </section>
+
+  <!-- ===== REFERENCES ===== -->
+  <section class="plate reveal" id="refs">
+    <div class="plate-head"><span class="plate-no">SOURCES</span><h2>References &amp; sources</h2><div class="plate-meta">THE PUBLISHED BASIS</div></div>
+    <div class="refs">
+      <p class="refs-note">LICHEN's headline trick — turning toxic Martian regolith into breathable oxygen — and its structural and shielding numbers rest on real, published work. Each cited claim links here.</p>
+      <ol>
+        <li id="lref-1">Coates, J. D. &amp; Achenbach, L. A. (2004). Microbial perchlorate reduction: rocket-fuelled metabolism. <span class="rt">Nat. Rev. Microbiol.</span> 2, 569–580. — <em>Dechloromonas</em>/<em>Azospira</em> reduce ClO₄⁻ → Cl⁻, with chlorite dismutase releasing O₂.</li>
+        <li id="lref-2">Hecht, M. H. et&nbsp;al. (2009). Detection of perchlorate and the soluble chemistry of martian soil at the Phoenix lander site. <span class="rt">Science</span> 325, 64–67. — Mars regolith ~0.4–0.6 wt% perchlorate.</li>
+        <li id="lref-3">Davila, A. F., Willson, D., Coates, J. D. &amp; McKay, C. P. (2013). Perchlorate on Mars: a chemical hazard and a resource for humans. <span class="rt">Int. J. Astrobiol.</span> 12, 321–325. — the detox-as-oxygen-supply premise.</li>
+        <li id="lref-4">Gosline, J. M. et&nbsp;al. (1999). The mechanical design of spider silks. <span class="rt">J. Exp. Biol.</span> 202, 3295–3303. — silk membrane / anchor-fibre strength.</li>
+        <li id="lref-5">DeJong, J. T. et&nbsp;al. (2010). Bio-mediated soil improvement. <span class="rt">Ecol. Eng.</span> 36, 197–210. — microbially induced calcite (MICP) bonding the membrane to raw rock.</li>
+        <li id="lref-6">Zeitlin, C. et&nbsp;al. (2013). Measurements of energetic particle radiation in transit to Mars on the MSL. <span class="rt">Science</span> 340, 1080–1084. — surface GCR the regolith over-blanket must attenuate.</li>
+        <li id="lref-7">Durante, M. &amp; Cucinotta, F. A. (2011). Physical basis of radiation protection in space travel. <span class="rt">Rev. Mod. Phys.</span> 83, 1245–1281. — areal-density shielding by regolith.</li>
+        <li id="lref-8">Anderson, M. S. et&nbsp;al. (2018). <span class="rt">Life Support Baseline Values and Assumptions Document.</span> NASA/TP-2015-218570/REV1. — O₂ at 0.84 kg·person⁻¹·day⁻¹ (the ~4,600 person-years from ~1,400 t).</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    <div class="fbar"><span>LICHEN · <em>Lichen vivum</em></span><span class="sep">·</span><span>Surface Habitat Drawing Set</span><span class="sep">·</span><span>GESTALT Program · Round 4</span></div>
+  </footer>
+
+</div></div>
+<script>
+(function(){var r=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;var e=[].slice.call(document.querySelectorAll('.reveal'));if(r||!('IntersectionObserver'in window)){e.forEach(function(x){x.classList.add('in')});return;}var io=new IntersectionObserver(function(en){en.forEach(function(x){if(x.isIntersecting){x.target.classList.add('in');io.unobserve(x.target);}});},{rootMargin:'0px 0px -6% 0px',threshold:.06});e.forEach(function(x){io.observe(x)});})();
+</script>
