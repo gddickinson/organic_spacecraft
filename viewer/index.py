@@ -52,8 +52,19 @@ def _card(doc):
     )
 
 
+def _models_card():
+    return (
+        '<a class="card" href="/models" style="border-color:var(--lumen)">'
+        '<div class="ct"><span class="emoji">🛸</span>'
+        '<span class="kind">Interactive 3D</span></div>'
+        '<div class="title">Working 3D Models</div>'
+        '<p class="blurb">Rotate, zoom &amp; download real glTF / OBJ / STL models of the '
+        'seven main designs — open in any 3D viewer, Blender, or a 3D printer.</p></a>'
+    )
+
+
 def render():
-    cards = "\n".join(_card(d) for d in DOCS)
+    cards = "\n".join([_models_card()] + [_card(d) for d in DOCS])
     return f"""<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8">

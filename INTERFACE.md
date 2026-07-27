@@ -35,13 +35,18 @@ organic_spacecraft/
 ├── assets/figures/       ← figures for the README, rendered from the docs' own SVGs
 │                            (see viewer note; each is extracted + var-resolved to PNG)
 ├── assets/sim/           ← animated-GIF outputs of the design simulations
+├── assets/models3d/      ← exported 3D models (glb + obj + stl + preview) per design
 ├── sim/                  ← Python simulations of the designs' major systems (see sim/INTERFACE.md)
 │   ├── params.py         canonical parameters per design (single source of truth)
 │   ├── systems.py        system dynamics (growth, life support, spin, thermal, gestation)
 │   ├── geometry.py       3D mesh / point generators
 │   ├── animate.py        builders: geometry + systems -> animated-GIF 3D scenes
 │   └── run.py            CLI entry point (`python -m sim.run`)
-└── viewer/               ← zero-dependency local web viewer (stdlib only)
+├── models3d/             ← exportable 3D models (glTF/OBJ/STL) of the designs (see models3d/INTERFACE.md)
+│   ├── build.py          mesh builders per design (trimesh) -> coloured scene
+│   ├── render.py         static preview render
+│   └── run.py            CLI entry point (`python -m models3d.run`)
+└── viewer/               ← zero-dependency local web viewer (stdlib only; /models 3D gallery)
     ├── catalog.py        Document registry (source of truth)
     ├── wrap.py           Fragment → standalone HTML + link rewriting
     ├── index.py          Landing-page (index) HTML builder

@@ -293,6 +293,28 @@ it are two views of the same physics.
 
 ---
 
+## Working 3D models
+
+Beyond the browser-rendered [3D Models](#see-them-in-3d) document, the [`models3d/`](models3d/)
+package exports **real, downloadable 3D model files** of the seven main designs — colour-coded to
+the GESTALT identity and generated with [trimesh](https://trimesh.org). Each design ships in three
+formats: **`.glb`** (glTF — opens in web viewers, Blender, game engines, AR), **`.obj`** (universal),
+and **`.stl`** (3D printing). Run `python -m models3d.run`; files land in
+[`assets/models3d/`](assets/models3d/).
+
+| | | | |
+|:-:|:-:|:-:|:-:|
+| ![NAVIS 3D model](assets/models3d/navis-preview.png) | ![ARCA 3D model](assets/models3d/arca-preview.png) | ![LICHEN 3D model](assets/models3d/lichen-preview.png) | ![GRAVID 3D model](assets/models3d/gravid-preview.png) |
+| **NAVIS** | **ARCA** | **LICHEN** | **GRAVID** |
+| ![SPORE 3D model](assets/models3d/spore-preview.png) | ![LEVIATHAN 3D model](assets/models3d/leviathan-preview.png) | ![TESTUDO 3D model](assets/models3d/testudo-preview.png) | *seven designs ·<br>glb + obj + stl* |
+| **SPORE** | **LEVIATHAN** | **TESTUDO** | |
+
+**View them interactively** in a lit, rotatable, AR-capable gallery: run `python viewer/app.py --open`
+and click **Working 3D Models** (route `/models`, built on `<model-viewer>`) — or just drop any
+`.glb` into an [online glTF viewer](https://gltf-viewer.donmccurdy.com/), Blender, or a slicer.
+
+---
+
 ## By the numbers
 
 Every figure below is grounded in a Python calculation and reconciled across documents to the

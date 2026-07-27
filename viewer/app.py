@@ -24,11 +24,17 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import index  # noqa: E402
+import models_page  # noqa: E402
 from catalog import BY_SLUG, artifact_id_to_slug  # noqa: E402
 from wrap import wrap  # noqa: E402
 
-DOCS_DIR = Path(__file__).resolve().parent.parent / "docs"
+ROOT = Path(__file__).resolve().parent.parent
+DOCS_DIR = ROOT / "docs"
+MODELS_DIR = ROOT / "assets" / "models3d"
 ID_TO_SLUG = artifact_id_to_slug()
+
+MODEL_MIME = {".glb": "model/gltf-binary", ".obj": "text/plain",
+              ".stl": "model/stl", ".png": "image/png"}
 
 
 def load_document(slug):
@@ -67,6 +73,15 @@ class Handler(BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(data)
 
+    def _send_file(self, fs_path, content_type):
+        data = fs_path.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(data)
+
     def do_GET(self):
         path = self.path.split("?", 1)[0].split("#", 1)[0].rstrip("/")
         if path in ("", "/index.html"):
@@ -77,6 +92,14 @@ class Handler(BaseHTTPRequestHandler):
             if html is None:
                 return self._send(_not_found(slug), status=404)
             return self._send(html)
+        if path in ("/models", "/models.html"):
+            return self._send(models_page.render())
+        if path.startswith("/models/"):
+            name = Path(path[len("/models/"):]).name          # no traversal
+            fs = MODELS_DIR / name
+            if fs.is_file() and fs.suffix in MODEL_MIME:
+                return self._send_file(fs, MODEL_MIME[fs.suffix])
+            return self._send(_not_found(path.lstrip("/")), status=404)
         return self._send(_not_found(path.lstrip("/")), status=404)
 
     do_HEAD = do_GET

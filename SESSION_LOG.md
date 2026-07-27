@@ -2,6 +2,24 @@
 
 Running progress log. Newest first.
 
+## 2026-07-26 — Working 3D models (glTF/OBJ/STL) + an interactive viewer
+
+- **New `models3d/` package**: builds solid, colour-coded 3D meshes of the
+  seven main designs (trimesh) and exports each to **three working formats** —
+  `.glb` (glTF, coloured), `.obj`, and `.stl` (printing) — into
+  `assets/models3d/`, plus a preview PNG. Modular: `build.py` (per-design mesh
+  builders), `render.py` (matplotlib preview), `run.py` (CLI
+  `python -m models3d.run [--check]`). `dome_half` is hand-triangulated so it
+  needs no external triangulation engine; each GLB is round-trip-validated.
+- **Interactive gallery in the local viewer**: added a `/models` route
+  (`viewer/models_page.py`) that shows the models lit, rotatable and AR-capable
+  via `<model-viewer>`, with download links, plus static serving of the
+  glb/obj/stl at `/models/<file>` (path-traversal guarded) and a "Working 3D
+  Models" card on the landing page.
+- README gains a "Working 3D models" section with the seven previews. Verified
+  every mesh by eye from a rendered frame (fixed the preview's cross-part depth
+  sorting so the LICHEN/TESTUDO domes show).
+
 ## 2026-07-26 — Nervous System (13th document): sensing, cognition, comms
 
 - **New 13th document — Nervous System** (`gestalt-nervous.html`): how a grown
