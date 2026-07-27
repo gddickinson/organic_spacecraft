@@ -5,7 +5,7 @@ The top-level map of this project. Read this before opening source files.
 ## What this project is
 
 **GESTALT** is a conceptual design program for living, grown-from-a-seed
-spacecraft and habitats. The deliverables are ten self-contained, cross-linked
+spacecraft and habitats. The deliverables are eleven self-contained, cross-linked
 HTML documents (published as web artifacts) plus a small Python viewer for
 reading them offline. Every quantitative claim in the documents is grounded in
 Python calculations and cited to real published sources.
@@ -18,7 +18,7 @@ organic_spacecraft/
 ├── README.md             ← how to run the viewer, what each doc is
 ├── SESSION_LOG.md        ← running progress log
 ├── deepen-roadmap.md     ← the design-loop state file + round-by-round history
-├── docs/                 ← the ten published documents (HTML fragments)
+├── docs/                 ← the eleven published documents (HTML fragments)
 │   ├── gestalt.html            Design Dossier (starship)
 │   ├── gestalt-drawings.html   Starship architectural drawing set
 │   ├── gestalt-habitat.html    ARCA million-person habitat drawings
@@ -27,6 +27,7 @@ organic_spacecraft/
 │   ├── gestalt-fleet.html      Fleet registry + readiness + governance
 │   ├── gestalt-classref.html   Fleet Class Reference (all 18 classes, detailed)
 │   ├── gestalt-compendium.html Engineering & Biology Compendium (deep reference)
+│   ├── gestalt-cells.html      Cell Atlas (all ~42 cell types, cytology reference)
 │   ├── gestalt-earthprogram.html  Earth Program (ground R&D roadmap)
 │   └── gestalt-3d.html         Interactive 3D models (self-contained WebGL-free engine)
 ├── assets/figures/       ← figures for the README, rendered from the docs' own SVGs

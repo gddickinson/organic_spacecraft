@@ -1,0 +1,577 @@
+<style>
+  :root{
+    --ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;
+    --line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);
+    --chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;
+    --chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);
+    --sheet:#0b1714;
+    --font-display:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;
+    --font-body:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;
+    --maxw:1180px;--spine:70ch;
+  }
+  @media (prefers-color-scheme:light){:root{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}}
+  :root[data-theme="dark"]{--ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;--line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);--chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;--chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);--sheet:#0b1714}
+  :root[data-theme="light"]{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}
+
+  *{box-sizing:border-box}body{margin:0}
+  .page{background:radial-gradient(1100px 640px at 82% -6%,var(--chloro-soft),transparent 60%),radial-gradient(900px 520px at 6% 3%,var(--lumen-soft),transparent 55%),var(--ground);color:var(--ink);font-family:var(--font-body);font-size:16.5px;line-height:1.66;letter-spacing:.005em;overflow-x:hidden;min-height:100vh}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  h1,h2,h3,h4{font-family:var(--font-display);font-weight:600;text-wrap:balance;line-height:1.12;margin:0}
+  p{margin:0 0 1.05em}strong{color:var(--ink);font-weight:600}em{color:var(--ink)}
+  a{color:var(--lumen)}
+  .mono{font-family:var(--font-mono)}
+  .chem{font-family:var(--font-mono);font-size:.92em;color:var(--osteo);background:var(--osteo-soft);padding:.06em .4em;border-radius:4px;white-space:nowrap}
+
+  .prog-nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;padding:16px 0 4px}
+  .prog-nav .pn-brand{color:var(--chloro);letter-spacing:.16em;text-transform:uppercase}
+  .prog-nav a{color:var(--ink-3);text-decoration:none;padding:3px 10px;border:1px solid var(--line);border-radius:999px;transition:color .2s,border-color .2s}
+  .prog-nav a:hover{color:var(--ink);border-color:var(--line-2)}
+  .prog-nav a.current{color:var(--lumen);border-color:var(--lumen)}
+
+  header.mast{padding:34px 0 30px;border-bottom:1px solid var(--line-2)}
+  .mast .kick{font-family:var(--font-mono);font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:var(--chloro);margin:0 0 16px}
+  .mast h1{font-size:clamp(2.2rem,6vw,4rem);letter-spacing:-.015em;margin:0 0 8px}
+  .mast h1 .s{color:var(--chloro)}
+  .mast .sub{font-family:var(--font-display);font-style:italic;font-size:clamp(1.05rem,2.3vw,1.4rem);color:var(--ink-2);max-width:62ch}
+
+  .toc{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:26px 0 0}
+  .toc a{display:flex;gap:10px;align-items:baseline;text-decoration:none;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--sheet);transition:border-color .2s}
+  .toc a:hover{border-color:var(--line-2)}
+  .toc .n{font-family:var(--font-mono);font-size:12px;color:var(--chloro)}
+  .toc .t{font-size:14px}
+
+  section.doc{padding:48px 0;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:center;gap:.7em;margin:0 0 16px}
+  .eyebrow .num{color:var(--chloro)}.eyebrow .rule{flex:1;height:1px;background:var(--line)}
+  section.doc h2{font-size:clamp(1.7rem,4vw,2.5rem);letter-spacing:-.01em;margin-bottom:14px}
+  section.doc h3{font-size:1.28rem;margin:30px 0 10px;color:var(--ink)}
+  section.doc h4{font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:22px 0 8px}
+  .flow{max-width:var(--spine)}
+  .flow p,.lead{max-width:var(--spine)}
+  .lead{font-size:1.12em;color:var(--ink-2);margin-bottom:24px}
+
+  .callout{border-left:2px solid var(--chloro);background:var(--chloro-soft);padding:14px 18px;border-radius:0 10px 10px 0;margin:22px 0;max-width:var(--spine)}
+  .callout.warm{border-color:var(--osteo);background:var(--osteo-soft)}
+  .callout.cool{border-color:var(--lumen);background:var(--lumen-soft)}
+  .callout p{margin:0}.callout .lab{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:6px}
+
+  .tbl-wrap{overflow-x:auto;margin:18px 0;border:1px solid var(--line);border-radius:10px}
+  .fig{border:1px solid var(--line-2);border-radius:10px;background:var(--ground-2);padding:10px;margin:16px 0;overflow-x:auto}
+  .fig svg{display:block;width:100%;min-width:720px;height:auto}
+  .figcap{font-size:.82em;color:var(--ink-3);margin:8px 2px 0;line-height:1.5}
+  table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+  thead th{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:600;text-align:left;padding:12px 14px;background:var(--sheet);border-bottom:1px solid var(--line-2)}
+  td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+  tbody tr:last-child td{border-bottom:none}
+  td:first-child{color:var(--ink);font-family:var(--font-display);font-size:14.5px}
+  td .r{font-family:var(--font-mono);font-size:11px;color:var(--chloro)}
+  td .rc{font-family:var(--font-mono);font-size:11px;color:var(--lumen)}
+  td .rw{font-family:var(--font-mono);font-size:11px;color:var(--osteo)}
+
+  .pathway{font-family:var(--font-mono);font-size:12.5px;line-height:1.9;color:var(--ink-2);background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:16px 0;overflow-x:auto}
+  .pathway .step{color:var(--ink)}.pathway .en{color:var(--lumen)}.pathway b{color:var(--osteo)}
+
+  .gap{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;color:var(--osteo);display:inline-block;border:1px solid var(--osteo);border-radius:6px;padding:1px 7px;margin-left:4px}
+  sup.cite{font-size:.62em;line-height:0;vertical-align:super;font-family:var(--font-mono);font-weight:600}
+  sup.cite a{color:var(--lumen);text-decoration:none;padding:0 1px}
+  sup.cite a:hover{text-decoration:underline}
+  .refs{margin-top:18px;border-top:1px solid var(--line);padding-top:18px}
+  .refs h3{font-family:var(--font-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--osteo);margin-bottom:14px}
+  .refs ol{margin:0;padding-left:2.4em;display:grid;gap:8px}
+  .refs li{font-size:.82em;line-height:1.5;color:var(--ink-2);max-width:80ch}
+  .refs li a{color:var(--lumen);text-decoration:none}
+  .refs .rt{color:var(--ink-3);font-style:italic}
+  .refs-note{font-size:.8em;color:var(--ink-3);margin:0 0 14px;max-width:78ch}
+  .real{color:var(--chloro)}
+
+  .notes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:8px}
+  .note{border-left:2px solid var(--line-2);padding:2px 0 2px 16px}
+  .note .nh{font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:7px}
+  .note p{font-size:13px;color:var(--ink-2);margin:0;line-height:1.55}
+  .note.grn{border-color:var(--chloro)}.note.warm{border-color:var(--osteo)}.note.cool{border-color:var(--lumen)}
+
+  footer{padding:34px 0 66px}
+  .fbar{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);border-top:1px solid var(--line);padding-top:20px}
+  .fbar .sep{color:var(--line-2)}
+  .reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
+  ::selection{background:var(--chloro);color:var(--ground)}
+  :focus-visible{outline:2px solid var(--lumen);outline-offset:3px;border-radius:3px}
+</style>
+
+<div class="page"><div class="wrap">
+
+  <nav class="prog-nav" aria-label="GESTALT program documents">
+    <span class="pn-brand">◈ GESTALT Program</span>
+    <a href="https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1">Design Dossier</a>
+    <a href="https://claude.ai/code/artifact/bd2c2c98-84cf-42c9-91ea-f0ec1c749fc5">Starship</a>
+    <a href="https://claude.ai/code/artifact/9b90d7e5-2a71-426a-b2bf-d3a96b32a82e">Habitat</a>
+    <a href="https://claude.ai/code/artifact/94531439-d04d-480e-9d04-bad6fcdacd9a">LICHEN</a>
+    <a href="https://claude.ai/code/artifact/2433fa54-e582-4194-8245-d63acee8fb85">GRAVID</a>
+    <a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet Registry</a>
+    <a href="https://claude.ai/code/artifact/7ca9c965-1932-4c5a-b0f1-a99e9febae58">Class Reference</a>
+    <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075">Compendium</a>
+    <a href="#" class="current" aria-current="page">Cell Atlas</a>
+    <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed">Earth Program</a>
+    <a href="https://claude.ai/code/artifact/1c6f18ca-eeda-4d83-bd97-fd9c1622823d">3D Models</a>
+  </nav>
+
+  <header class="mast">
+    <p class="kick">Cell Atlas · Cytology &amp; Histology</p>
+    <h1>The Cells That <span class="s">Are</span> the Ship</h1>
+    <p class="sub">A grown vessel is not filled with life — it is built out of it. This is the catalogue of every cell type the body needs: what each one is, how it lives and survives, how they coordinate into one organism, how they are distributed and fed, and how they would be engineered, grown and tested.</p>
+    <nav class="toc" aria-label="Contents">
+      <a href="#plan"><span class="n">01</span><span class="t">The plan of the body — one seed, many cells</span></a>
+      <a href="#structural"><span class="n">02</span><span class="t">Structural cells — skin, wood, bone &amp; seal</span></a>
+      <a href="#metabolic"><span class="n">03</span><span class="t">Metabolic &amp; light cells — the air plant</span></a>
+      <a href="#vascular"><span class="n">04</span><span class="t">Vascular &amp; transport cells</span></a>
+      <a href="#coord"><span class="n">05</span><span class="t">Sensing, signalling &amp; coordination</span></a>
+      <a href="#defense"><span class="n">06</span><span class="t">Defence &amp; immune cells</span></a>
+      <a href="#resource"><span class="n">07</span><span class="t">Resource &amp; mining cells</span></a>
+      <a href="#ecosystem"><span class="n">08</span><span class="t">The internal ecosystem — a managed microbiome</span></a>
+      <a href="#lifecycle"><span class="n">09</span><span class="t">Life-cycle, turnover &amp; distribution</span></a>
+      <a href="#engineer"><span class="n">10</span><span class="t">Engineering, growing &amp; testing the cells</span></a>
+      <a href="#reality"><span class="n">11</span><span class="t">What is real, and what is a bet</span></a>
+    </nav>
+  </header>
+
+  <p class="lead" style="margin-top:30px">The other GESTALT documents describe organs — a hull, a lung, a skeleton, a nursery. This one goes one level down, to the cells those organs are made of. A single NAVIS hull is on the order of <strong>10<sup>19</sup> cells</strong>; the whole crewed vessel is a small planet's worth of them. They come in about <strong>42 distinct types across eight functional classes</strong>, and — like every animal, plant and fungus — <em>all</em> of them descend by division and differentiation from the handful of cells packed into one seed. What follows is their census: role, survival, metabolism, life-cycle, coordination, and distribution, then how each would be engineered, grown and tested. Where a cell type maps to a real, transformable organism or a demonstrated technique it is marked <span class="real">green</span>; where the integration is a genuine bet it is marked <span class="gap">gap</span>. This document assumes the chassis organisms and gene circuits set out in the <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075#chassis">Compendium</a>.</p>
+
+  <!-- ===== 01 PLAN ===== -->
+  <section class="doc reveal" id="plan">
+    <p class="eyebrow"><span class="num">01</span> The plan of the body <span class="rule"></span></p>
+    <h2>One seed, many cells</h2>
+    <div class="flow">
+      <p>Biology already solves the hard version of this problem: a human is ~37 trillion cells of ~200 types, all clonal descendants of one zygote, arranged into organs by a growth program. GESTALT borrows that architecture wholesale. The seed carries a small population of <strong>totipotent founder cells</strong> and a genome encoding the whole body plan; gestation is a controlled cascade of division and differentiation that reads position and stress and turns founders into the right cell, in the right place, in the right number.</p>
+      <p>The division of labour is the same one the <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075#chassis">Compendium</a> sets out at the organism level — a designed consortium of a structural fungus, photosynthetic microbes, mineralising cells and a few specialists — but here each is resolved into the specific differentiated cell types it produces. The consortium is real; the <em>differentiation program</em> that places 10<sup>19</sup> cells into a shaped, self-maintaining body is the single largest bet in the whole enterprise (§11).</p>
+
+      <div class="fig" role="img" aria-label="A lineage tree: one totipotent seed founder cell dividing and differentiating into eight functional classes of cell, each with example cell types.">
+<svg viewBox="0 0 960 474" role="img">
+<rect x="18" y="205" width="116" height="64" rx="9" fill="var(--chloro-soft)" stroke="var(--chloro)"/>
+<text x="76" y="231" text-anchor="middle" font-family="var(--font-display)" font-size="13" fill="var(--ink)">seed founder</text>
+<text x="76" y="248" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">totipotent</text>
+<path d="M134 237 C 220 237, 230 60, 300 60" fill="none" stroke="var(--chloro)" stroke-opacity=".5" stroke-width="1.4"/>
+<rect x="300" y="40" width="232" height="40" rx="8" fill="var(--sheet)" stroke="var(--chloro)"/>
+<text x="314" y="65" font-family="var(--font-mono)" font-size="12" fill="var(--chloro)">Structural</text>
+<text x="546" y="64" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-3)">hyphal · osteoblast · pneumocyte · scute · fibre</text>
+<path d="M134 237 C 220 237, 230 114, 300 114" fill="none" stroke="var(--chloro)" stroke-opacity=".5" stroke-width="1.4"/>
+<rect x="300" y="94" width="232" height="40" rx="8" fill="var(--sheet)" stroke="var(--chloro)"/>
+<text x="314" y="119" font-family="var(--font-mono)" font-size="12" fill="var(--chloro)">Metabolic &amp; light</text>
+<text x="546" y="118" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-3)">cyanobacterium · alga · light-guide · storage</text>
+<path d="M134 237 C 220 237, 230 168, 300 168" fill="none" stroke="var(--lumen)" stroke-opacity=".5" stroke-width="1.4"/>
+<rect x="300" y="148" width="232" height="40" rx="8" fill="var(--sheet)" stroke="var(--lumen)"/>
+<text x="314" y="173" font-family="var(--font-mono)" font-size="12" fill="var(--lumen)">Vascular &amp; transport</text>
+<text x="546" y="172" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-3)">endothelial · pericyte · sap · sphincter</text>
+<path d="M134 237 C 220 237, 230 222, 300 222" fill="none" stroke="var(--lumen)" stroke-opacity=".5" stroke-width="1.4"/>
+<rect x="300" y="202" width="232" height="40" rx="8" fill="var(--sheet)" stroke="var(--lumen)"/>
+<text x="314" y="227" font-family="var(--font-mono)" font-size="12" fill="var(--lumen)">Sensing &amp; coordination</text>
+<text x="546" y="226" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-3)">photoreceptor · conductor · organizer · CHORUS</text>
+<path d="M134 237 C 220 237, 230 276, 300 276" fill="none" stroke="var(--osteo)" stroke-opacity=".5" stroke-width="1.4"/>
+<rect x="300" y="256" width="232" height="40" rx="8" fill="var(--sheet)" stroke="var(--osteo)"/>
+<text x="314" y="281" font-family="var(--font-mono)" font-size="12" fill="var(--osteo)">Defence &amp; immune</text>
+<text x="546" y="280" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-3)">surveillance · phagocyte · clot · barrier</text>
+<path d="M134 237 C 220 237, 230 330, 300 330" fill="none" stroke="var(--osteo)" stroke-opacity=".5" stroke-width="1.4"/>
+<rect x="300" y="310" width="232" height="40" rx="8" fill="var(--sheet)" stroke="var(--osteo)"/>
+<text x="314" y="335" font-family="var(--font-mono)" font-size="12" fill="var(--osteo)">Resource &amp; mining</text>
+<text x="546" y="334" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-3)">miner · concentrator · ice-tap · radiator</text>
+<path d="M134 237 C 220 237, 230 384, 300 384" fill="none" stroke="var(--chloro)" stroke-opacity=".5" stroke-width="1.4"/>
+<rect x="300" y="364" width="232" height="40" rx="8" fill="var(--sheet)" stroke="var(--chloro)"/>
+<text x="314" y="389" font-family="var(--font-mono)" font-size="12" fill="var(--chloro)">Ecosystem microbiome</text>
+<text x="546" y="388" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-3)">N-fixer · nitrifier · saprophyte · gut</text>
+<path d="M134 237 C 220 237, 230 438, 300 438" fill="none" stroke="var(--lumen)" stroke-opacity=".5" stroke-width="1.4"/>
+<rect x="300" y="418" width="232" height="40" rx="8" fill="var(--sheet)" stroke="var(--lumen)"/>
+<text x="314" y="443" font-family="var(--font-mono)" font-size="12" fill="var(--lumen)">Germline &amp; stem</text>
+<text x="546" y="442" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-3)">totipotent · blastema · progenitor</text>
+<text x="18" y="30" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">Differentiation from one founder → 8 classes → 42 types</text>
+</svg>
+      </div>
+      <p class="figcap">From one founder to forty-two types. Every cell in the vessel is a clonal descendant of the seed's totipotent founders; differentiation is directed by position, stress and morphogen gradients during gestation (§10). Colour marks the broad job: <span style="color:var(--chloro)">green</span> = living structure &amp; metabolism, <span style="color:var(--lumen)">cyan</span> = transport, sensing &amp; coordination, <span style="color:var(--osteo)">amber</span> = mineral, defence &amp; resource work.</p>
+
+      <div class="callout cool"><span class="lab">The census — a NAVIS hull</span><p>The 120 m × 50 m hull is a ~5.5 m-thick living shell of ~15,800 m² area and ~87,000 m³ volume. At tissue densities of ~10<sup>12</sup>/m³ (sparse mycelial matrix) to ~10<sup>14</sup>/m³ (denser cellular tissue), that is <strong>~5×10<sup>18</sup> cells in the hull alone</strong> — before the decks, vasculature and interior. The design target is not to specify each one, but to specify ~42 <em>types</em> and the rules that place and renew them.</p></div>
+    </div>
+  </section>
+
+  <!-- ===== 02 STRUCTURAL ===== -->
+  <section class="doc reveal" id="structural">
+    <p class="eyebrow"><span class="num">02</span> Structural cells <span class="rule"></span></p>
+    <h2>Skin, wood, bone and the seal</h2>
+    <div class="flow">
+      <p>The bulk of the vessel by mass is structure, and structure is the province of cells that build, then often <em>become</em>, their own material — like the cells that make wood, bone, bark and silk on Earth. They read mechanical stress and lay material along the load, so the hull is not merely strong but <em>self-optimising</em>.<sup class="cite"><a href="#cref-1">[1]</a></sup></p>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Cell type · where</th><th>Role &amp; how it survives</th><th>Chassis &amp; nutrition</th><th>Life-cycle · coordination · distribution</th></tr></thead>
+        <tbody>
+          <tr><td>Epidermal scute cell <span class="rw">epidermis, 0.5 m</span></td><td>Builds a tough lignin/suberin-analogue wall, then <em>dies on purpose</em> to become the dead, ablative outer armour that takes micrometeoroid hits.<sup class="cite"><a href="#cref-2">[2]</a></sup> Survives by not needing to — it is meant to be sacrificial.</td><td>Fungal/plant-wall lineage; heterotroph while alive (fed sugar), inert once cornified.</td><td>Differentiate → wall-thicken → programmed death → ablate → replaced from below. Turnover paced to the micrometeoroid flux the baroreceptors report. Outermost skin.</td></tr>
+          <tr><td>Radiotrophic melanocyte <span class="rw">rind, 0.5 m</span></td><td>Packs melanin to absorb ionising radiation and heat, shielding everything inward; melanin may even harvest a little of that energy.<sup class="cite"><a href="#cref-3">[3]</a></sup> Survives high dose via melanin + <em>Deinococcus</em>-grade DNA repair.<sup class="cite"><a href="#cref-4">[4]</a></sup></td><td>Melanised fungal cells (<em>Cryptococcus/Cladosporium</em>-style); fed, partly radiotrophic.</td><td>Long-lived, slow turnover; renewed from progenitors beneath. Forms the continuous dark rind under the skin.</td></tr>
+          <tr><td>Mycelial hyphal cell <span class="r">matrix, 2.0 m</span></td><td>The tension scaffold — "the wood." Grows by tip-extension into a space-filling chitin–glucan net that carries load and heals by regrowth.<sup class="cite"><a href="#cref-5">[5]</a></sup></td><td><em>Ganoderma / Pleurotus</em> fungus; heterotroph, fed sugar from the intima via the vasculature.</td><td>Indeterminate tip-growth; remodels; regenerates severed hyphae. Grows toward stress. The largest single tissue by volume.</td></tr>
+          <tr><td>Osteoblast-analogue <span class="rw">osteoid, 1.0 m</span></td><td>Lays down collagen and templated hydroxyapatite along stress lines to build the load trusses (Wolff's law).<sup class="cite"><a href="#cref-1">[1]</a></sup></td><td>Engineered mineralisers + <em>Sporosarcina</em> (MICP)<sup class="cite"><a href="#cref-6">[6]</a></sup>; fed Ca/PO₄ from vasculature.</td><td>Osteoblast → embeds as osteocyte. Deposition directed by the strain the osteocytes report. Threads the osteoid layer as trusses.</td></tr>
+          <tr><td>Osteocyte &amp; osteoclast-analogue <span class="rw">osteoid</span></td><td>The osteocyte, buried in mineral, is the strain gauge; the osteoclast dissolves mineral (acid) so trusses can be <em>remodelled</em> as loads change.</td><td>Same lineage; low metabolism (osteocyte), acid-secreting (osteoclast).</td><td>Osteocytes are effectively permanent sensors; osteoclasts are recruited on demand. Distributed through the mineral.</td></tr>
+          <tr><td>Pneumocyte / lamella cell <span class="rc">pneumostat, 1.0 m</span></td><td>Secretes and maintains hundreds of stacked gas-tight lipid–protein lamellae — the <em>actual pressure vessel</em>. Survives a full atmosphere of pressure difference by redundancy of sheets.</td><td>Engineered epithelial-analogue; fed; high secretory load.</td><td>Continuous renewal of the lamellae (a leaky sheet is resorbed and re-laid). Sealed continuous layer just outside the intima.</td></tr>
+          <tr><td>Fibre &amp; sclereid cell <span class="r">tendons, struts</span></td><td>Spins high-tensile silk/collagen fibres for tendon bands (tension) or lignifies into rigid struts (compression).<sup class="cite"><a href="#cref-7">[7]</a></sup></td><td>Silk-gene-bearing cells; fed; heavy protein export.</td><td>Deposit fibre then quiesce. Aligned to principal stresses; concentrated at tendon bands and the pneumostat's tension net.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== 03 METABOLIC ===== -->
+  <section class="doc reveal" id="metabolic">
+    <p class="eyebrow"><span class="num">03</span> Metabolic &amp; light cells <span class="rule"></span></p>
+    <h2>The air plant, and the cells that feed everyone else</h2>
+    <div class="flow">
+      <p>Only one class of cell brings new energy and carbon into the body: the phototrophs of the photosynthetic intima. Everything else — every structural, vascular, sensing and defence cell — is a heterotroph living on the sugar and oxygen they export. The whole trophic web (§08) hangs from this layer, which is why light is the fleet's hard range limit.</p>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Cell type · where</th><th>Role &amp; how it survives</th><th>Chassis &amp; nutrition</th><th>Life-cycle · coordination · distribution</th></tr></thead>
+        <tbody>
+          <tr><td>Cyanobacterial symbiont <span class="r">intima, 0.5 m</span></td><td>Oxygenic photosynthesis: makes the crew's O₂ and exports sucrose to the fungus.<sup class="cite"><a href="#cref-8">[8]</a></sup> Survives high light via tuned photoprotection.</td><td><em>Synechocystis</em> PCC 6803 with <span class="chem">cscB</span> sucrose export; autotroph (light + CO₂).</td><td>Divides fast; population held in check by host density control &amp; the immune census (§06). Lines the lit inner wall and light-guide terminals.</td></tr>
+          <tr><td>Algal symbiont <span class="r">intima</span></td><td>Chloroplast-bearing; contributes O₂ and richer biomass/food. Survives as a managed monoculture partner.</td><td><em>Chlamydomonas reinhardtii</em>; autotroph.</td><td>Population-controlled; co-cultured with the cyanobacteria. In the intima and any lit interior farm surfaces.</td></tr>
+          <tr><td>Light-guide (crystallin) cell <span class="rc">windows → intima</span></td><td>Transparent, high-refractive-index cell that pipes starlight from the clarified windows deep into tissue — how the intima below the surface is lit at all.<sup class="cite"><a href="#cref-9">[9]</a></sup> Survives by being nearly inert.</td><td>Crystallin-packed lens-fibre-analogue; minimal metabolism, long-lived.</td><td>Terminally differentiated for life (like lens fibres). Bundled into waveguides from each window to deep intima.</td></tr>
+          <tr><td>Bioluminescent cell <span class="rc">intima backup</span></td><td>Emits light (luciferase) to keep photosynthesis ticking through eclipse or in shadowed interior farms — a backup lamp, not a power source.</td><td>Luciferase-bearing; heterotroph (spends sugar to make light).</td><td>Activated on low-light signal; otherwise dark. Interleaved with phototrophs in dim zones.</td></tr>
+          <tr><td>Storage parenchyma cell <span class="r">throughout</span></td><td>Banks sugar/lipid/starch reserves — the buffer that rides out an eclipse or an outage (days to weeks). Survives lean periods on its own store.</td><td>Plant/fungal storage-cell analogue; heterotroph.</td><td>Fills and empties with supply; the body's larder. Distributed through mycelium and near the intima.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== 04 VASCULAR ===== -->
+  <section class="doc reveal" id="vascular">
+    <p class="eyebrow"><span class="num">04</span> Vascular &amp; transport cells <span class="rule"></span></p>
+    <h2>The plumbing that keeps metres of tissue alive</h2>
+    <div class="flow">
+      <p>Metres of living tissue cannot survive by diffusion — the <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075#materials">Krogh limit</a> is ~200 µm. So the body is threaded by a branching vascular tree obeying Murray's law, with capillaries ~400 µm apart, so no cell is more than ~100–200 µm from a supply channel.<sup class="cite"><a href="#cref-10">[10]</a></sup> Building and running that network is a job for its own cell types.</p>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Cell type · where</th><th>Role &amp; how it survives</th><th>Chassis &amp; nutrition</th><th>Life-cycle · coordination · distribution</th></tr></thead>
+        <tbody>
+          <tr><td>Endothelial-analogue <span class="rc">every channel</span></td><td>Lines the vascular tubes; controls what crosses the wall and keeps the sap in. A breach here is a leak, so it is a first responder to damage.</td><td>Engineered epithelial lineage; fed from the flow it carries.</td><td>Renews along the channel; sprouts new capillaries toward hungry (hypoxic) tissue — the body grows its own plumbing. Everywhere, at every scale of the tree.</td></tr>
+          <tr><td>Contractile pericyte / smooth-muscle <span class="rc">channels &amp; valves</span></td><td>Wraps channels and squeezes — the pump and the flow regulator; also the muscle of internal valves. Survives on the sugar it moves.</td><td>Contractile-protein (actin/myosin-analogue) cells.</td><td>Long-lived; contracts on signal from the coordination net (§05). Concentrated at arterial channels and valves.</td></tr>
+          <tr><td>Conductive sap cell <span class="r">bulk transport</span></td><td>Bulk highways: a phloem-analogue moves sugar out from the intima; a xylem-analogue moves water &amp; minerals in from the roots. Some die to become hollow conduits (like xylem).</td><td>Plant vascular-analogue; the phloem cell is living, the xylem conduit is a dead wall.</td><td>Xylem conduits are permanent pipes; phloem cells renew. Run the length of the body as trunk lines.</td></tr>
+          <tr><td>Sphincter myocyte <span class="rw">docks &amp; bulkheads</span></td><td>Large contractile cells forming the six docking sphincters and the bulkhead valves that seal compartments during a breach (the compartmentalisation defence).</td><td>Contractile cells; fed; high-power on demand.</td><td>Quiescent, then contract hard on command. Ringed around each port and bulkhead.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== 05 COORDINATION ===== -->
+  <section class="doc reveal" id="coord">
+    <p class="eyebrow"><span class="num">05</span> Sensing, signalling &amp; coordination <span class="rule"></span></p>
+    <h2>The nervous system of a grown ship</h2>
+    <div class="flow">
+      <p>A body of 10<sup>19</sup> cells needs to <em>act as one</em>: aim its windows at the star, seal a breach in seconds, throttle metabolism to demand, and — over years — keep its own genome from drifting. GESTALT has no brain; coordination is distributed across three overlapping systems working on three timescales.</p>
+      <div class="notes-grid">
+        <div class="note grn"><div class="nh">Growth · morphogens</div><p>During gestation, <strong>organizer cells</strong> emit diffusing morphogens; reaction–diffusion (Turing) gradients and contact signalling (synNotch) tell each cell what to become and where — the body plan as chemistry.<sup class="cite"><a href="#cref-11">[11]</a></sup></p></div>
+        <div class="note cool"><div class="nh">Runtime · the signalling net</div><p>A slow electro-chemical network — modelled on plant electrical signalling and fungal mycelial conduction<sup class="cite"><a href="#cref-12">[12]</a></sup> — carries reflexes: breach → seal, low light → phototropism, strain → remodel. A distributed reflex net, not a mind.</p></div>
+        <div class="note warm"><div class="nh">Deep time · CHORUS</div><p>A protected <strong>germline archive</strong> keeps a master copy of the genome and periodically re-syncs somatic lineages, so mutation and drift do not accumulate over a vessel's long life (the sustainability backstop).</p></div>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Cell type · where</th><th>Role &amp; how it survives</th><th>Chassis &amp; nutrition</th><th>Life-cycle · coordination · distribution</th></tr></thead>
+        <tbody>
+          <tr><td>Photoreceptor cell <span class="rc">phototropic cap</span></td><td>Senses light direction (opsin) and drives phototropism — turning the clarified windows toward the star to feed the intima.</td><td>Opsin-bearing sensory cell; fed.</td><td>Long-lived sensor; signals the contractile cells that re-aim the cap. Clustered in the forward cap.</td></tr>
+          <tr><td>Baro- / mechanoreceptor <span class="rc">skin, walls, bone</span></td><td>Senses pressure (breach), strain (for bone remodelling) and contact (docking). The trigger for the seal reflex.</td><td>Mechanosensitive-channel cells; fed.</td><td>Distributed as a sensory sheet through skin, pneumostat and osteoid.</td></tr>
+          <tr><td>Chemoreceptor <span class="rc">intima, vasculature</span></td><td>Reads O₂/CO₂/pH/nutrients and feeds back to throttle photosynthesis, flow and storage.</td><td>Chemosensory cell; fed.</td><td>Sited at the intima and along the vascular trunks.</td></tr>
+          <tr><td>Conductor cell (neuron-analogue) <span class="rc">body-wide net</span></td><td>Propagates the slow electro-chemical signals that carry reflexes across the body. Survives on low, steady energy.</td><td>Excitable-membrane cell; fed. <span class="gap">gap</span></td><td>Long-lived; forms a sparse conduction network alongside the vasculature.</td></tr>
+          <tr><td>Organizer / morphogen cell <span class="r">growth &amp; repair</span></td><td>Emits the morphogens that pattern the body; the "architect." Mostly active during gestation and at wound blastemas.</td><td>Signalling-payload cell; fed. <span class="gap">gap</span></td><td>Transient — active while building, then stands down. Located at growth fronts.</td></tr>
+          <tr><td>CHORUS germline / archive cell <span class="rw">shielded core</span></td><td>Keeps the master genome and re-syncs somatic cells; the body's seed-bank-within. Survives by being few, deeply shielded and <em>Deinococcus</em>-hardened, and rarely dividing.<sup class="cite"><a href="#cref-4">[4]</a></sup></td><td>Protected germline lineage; fed; minimal division.</td><td>Near-permanent; a small, central, heavily-protected population.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== 06 DEFENSE ===== -->
+  <section class="doc reveal" id="defense">
+    <p class="eyebrow"><span class="num">06</span> Defence &amp; immune cells <span class="rule"></span></p>
+    <h2>Policing 10<sup>19</sup> cells</h2>
+    <div class="flow">
+      <p>Growing a whale-and-beyond mass of dividing cells makes cancer and infection existential, not incidental. The defence is the internal twin of the fleet's <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#wp6">biocontainment</a> problem, and it is enforced by dedicated cells plus circuits every cell carries (the seven-layer control described in the <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075#defense">Compendium</a>).</p>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Cell type · where</th><th>Role &amp; how it survives</th><th>Chassis &amp; nutrition</th><th>Life-cycle · coordination · distribution</th></tr></thead>
+        <tbody>
+          <tr><td>Immune surveillance cell <span class="rc">patrols</span></td><td>Patrols for off-spec, cancerous or foreign cells and marks them for death — an engineered CAR-style recognition system.<sup class="cite"><a href="#cref-13">[13]</a></sup></td><td>CAR-analogue sentinel; fed.</td><td>Renewed from progenitors; roams the vasculature and tissue. Everywhere.</td></tr>
+          <tr><td>Phagocyte-analogue <span class="r">everywhere</span></td><td>Engulfs debris, dead cells, ablated skin and pathogens; the cleanup and recycling crew (feeds the decomposers).</td><td>Macrophage-analogue; heterotroph.</td><td>Recruited to damage/turnover sites by the signalling net.</td></tr>
+          <tr><td>Apoptosis sentinel <span class="rw">circuit in all cells</span></td><td>Enforces programmed death of damaged or aberrant cells — a synthetic suicide circuit, plus a Hayflick/telomere division cap. This is the load-bearing cancer control.</td><td>Circuit carried by every cell; a property, not only a place.</td><td>Always armed; triggered by DNA damage or loss of "self" signals.</td></tr>
+          <tr><td>Clotting / wound-response cell <span class="rw">breach sites</span></td><td>First responder: on a pressure-drop signal it dumps a fast sealant (fibrin/calcite-analogue) to plug a breach in seconds, before slow regrowth.</td><td>Secretory cell; fed; pre-loaded with sealant.</td><td>Pre-positioned in skin and pneumostat; fires on the baroreceptor alarm.</td></tr>
+          <tr><td>Encapsulation / barrier cell <span class="rw">around damage</span></td><td>Walls off irreparable damage or infection — the compartmentalisation reflex that trades a region to save the whole.</td><td>Wall-forming cell; fed.</td><td>Recruited to build a sphincter-sealed bulkhead around a lost zone.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== 07 RESOURCE ===== -->
+  <section class="doc reveal" id="resource">
+    <p class="eyebrow"><span class="num">07</span> Resource &amp; mining cells <span class="rule"></span></p>
+    <h2>Pulling a spacecraft out of a rock</h2>
+    <div class="flow">
+      <p>The body has to feed on asteroids and regolith, not on a factory. That is the job of the RADIX mining root and its cells — the only cells that make a living from rock and inorganic chemistry rather than from the intima's sugar.</p>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Cell type · where</th><th>Role &amp; how it survives</th><th>Chassis &amp; nutrition</th><th>Life-cycle · coordination · distribution</th></tr></thead>
+        <tbody>
+          <tr><td>Chemolithotroph miner <span class="rw">mining root</span></td><td>Oxidises Fe/S, secretes acid and bioleaches metals from rock — industrial biomining, run as a tissue.<sup class="cite"><a href="#cref-14">[14]</a></sup> Survives extreme acidity it makes itself.</td><td><em>Acidithiobacillus ferrooxidans/thiooxidans</em>; chemoautotroph (energy from minerals).</td><td>Divides at the rock face; guided to ore by chemoreceptors. In the root tips against the resource body.</td></tr>
+          <tr><td>Biomineral concentrator <span class="rw">root → vasculature</span></td><td>Takes leached ions and concentrates scarce elements (P, metals), handing refined feedstock to the vasculature. Survives high ion loads.</td><td>Engineered accumulator cell; fed.</td><td>Sited just behind the mining face, feeding the transport trunks.</td></tr>
+          <tr><td>Osmoregulator / ice-tap cell <span class="rc">roots (LICHEN)</span></td><td>Manages water balance, taps subsurface ice, and detoxifies brines &amp; perchlorates before water enters the body.<sup class="cite"><a href="#cref-15">[15]</a></sup></td><td>Halotolerant, perchlorate-reducing cell; fed.</td><td>In the ice-tap roots and water-handling tissue.</td></tr>
+          <tr><td>Magnetite / antenna cell <span class="rw">VESPER sensors</span></td><td>Biomineralises magnetite (Fe₃O₄) into aligned chains for magnetic sensing and grown antenna structures.<sup class="cite"><a href="#cref-16">[16]</a></sup></td><td>Magnetotactic (<em>Magnetospirillum</em>); fed.</td><td>Specialised sensory/antenna organs.</td></tr>
+          <tr><td>Radiator / thermal cell <span class="rw">radiator bloom</span></td><td>Dumps waste heat: high-surface-area tissue with regulated flow, opening or closing the "bloom" to hold temperature.</td><td>Vascular-analogue; fed.</td><td>Flow throttled by chemoreceptor/temperature feedback. In the aft radiator organ.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== 08 ECOSYSTEM ===== -->
+  <section class="doc reveal" id="ecosystem">
+    <p class="eyebrow"><span class="num">08</span> The internal ecosystem <span class="rule"></span></p>
+    <h2>A managed microbiome, not just a machine</h2>
+    <div class="flow">
+      <p>The tissue cells above are only half the census. The body also carries a <strong>microbiome</strong> of free-living guilds that close the element loops — exactly the microbes an Earth soil or a closed life-support system runs on. They are not decoration: without them the nitrogen and carbon cycles do not close, and the body starves on its own waste.<sup class="cite"><a href="#cref-17">[17]</a></sup></p>
+
+      <div class="fig" role="img" aria-label="A trophic web: light drives the photosynthetic intima, which feeds heterotroph tissue and the crew; waste and dead cells feed decomposers and the nitrogen guild; chemolithotroph miners feed on rock; storage buffers the loop.">
+<svg viewBox="0 0 960 430" role="img">
+<line x1="192" y1="96" x2="245" y2="172" stroke="var(--lumen)" stroke-opacity=".65" stroke-width="1.5"/><path d="M245 172 L238 168 L244 164 Z" fill="var(--lumen)" fill-opacity=".8"/><text x="219" y="130" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">energy</text>
+<line x1="424" y1="178" x2="492" y2="161" stroke="var(--chloro)" stroke-opacity=".65" stroke-width="1.5"/><path d="M492 161 L485 166 L483 160 Z" fill="var(--chloro)" fill-opacity=".8"/><text x="458" y="165" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">sugar+O₂</text>
+<line x1="339" y1="150" x2="762" y2="133" stroke="var(--chloro)" stroke-opacity=".65" stroke-width="1.5"/><path d="M762 133 L754 137 L754 130 Z" fill="var(--chloro)" fill-opacity=".8"/><text x="551" y="138" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">O₂+food</text>
+<line x1="683" y1="162" x2="764" y2="238" stroke="var(--chloro)" stroke-opacity=".65" stroke-width="1.5"/><path d="M764 238 L756 234 L760 229 Z" fill="var(--chloro)" fill-opacity=".8"/><text x="724" y="196" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">reserves</text>
+<line x1="842" y1="158" x2="597" y2="331" stroke="var(--ink-3)" stroke-opacity=".65" stroke-width="1.5"/><path d="M597 331 L601 324 L605 329 Z" fill="var(--ink-3)" fill-opacity=".8"/><text x="719" y="241" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">waste</text>
+<line x1="588" y1="192" x2="504" y2="355" stroke="var(--ink-3)" stroke-opacity=".65" stroke-width="1.5"/><path d="M504 355 L504 346 L511 349 Z" fill="var(--ink-3)" fill-opacity=".8"/><text x="546" y="269" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">dead cells</text>
+<line x1="497" y1="359" x2="341" y2="213" stroke="var(--chloro)" stroke-opacity=".65" stroke-width="1.5" stroke-dasharray="4 3"/><path d="M341 213 L349 217 L345 222 Z" fill="var(--chloro)" fill-opacity=".8"/><text x="419" y="282" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">recycled N · CO₂</text>
+<line x1="194" y1="323" x2="242" y2="323" stroke="var(--osteo)" stroke-opacity=".65" stroke-width="1.5"/><path d="M242 323 L234 327 L234 319 Z" fill="var(--osteo)" fill-opacity=".8"/>
+<line x1="423" y1="321" x2="493" y2="276" stroke="var(--osteo)" stroke-opacity=".65" stroke-width="1.5"/><path d="M493 276 L488 284 L484 278 Z" fill="var(--osteo)" fill-opacity=".8"/><text x="458" y="295" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">metals</text>
+<line x1="590" y1="246" x2="590" y2="196" stroke="var(--osteo)" stroke-opacity=".65" stroke-width="1.5"/><path d="M590 196 L594 204 L586 204 Z" fill="var(--osteo)" fill-opacity=".8"/>
+<rect x="60" y="70" width="130" height="46" rx="8" fill="var(--sheet)" stroke="var(--lumen)"/><text x="125.0" y="97" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--lumen)">starlight</text>
+<rect x="60" y="300" width="130" height="46" rx="8" fill="var(--sheet)" stroke="var(--osteo)"/><text x="125.0" y="327" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--osteo)">rock · ice</text>
+<rect x="250" y="150" width="170" height="58" rx="8" fill="var(--sheet)" stroke="var(--chloro)"/><text x="335.0" y="176" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--chloro)">INTIMA</text><text x="335.0" y="190" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">photosynthesis</text>
+<rect x="250" y="300" width="170" height="46" rx="8" fill="var(--sheet)" stroke="var(--osteo)"/><text x="335.0" y="320" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--osteo)">miners</text><text x="335.0" y="334" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">bioleach rock</text>
+<rect x="500" y="130" width="180" height="58" rx="8" fill="var(--sheet)" stroke="var(--chloro)"/><text x="590.0" y="156" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--chloro)">heterotroph tissue</text><text x="590.0" y="170" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">structure · vessels</text>
+<rect x="500" y="250" width="180" height="44" rx="8" fill="var(--sheet)" stroke="var(--osteo)"/><text x="590.0" y="276" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--osteo)">biomineral → bone</text>
+<rect x="500" y="336" width="180" height="52" rx="8" fill="var(--sheet)" stroke="var(--chloro)"/><text x="590.0" y="359" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--chloro)">N + decomposer</text><text x="590.0" y="373" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">guilds</text>
+<rect x="770" y="110" width="150" height="46" rx="8" fill="var(--sheet)" stroke="var(--ink-3)"/><text x="845.0" y="137" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--ink-3)">crew</text>
+<rect x="770" y="220" width="150" height="46" rx="8" fill="var(--sheet)" stroke="var(--chloro)"/><text x="845.0" y="247" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--chloro)">storage buffer</text>
+<text x="18" y="30" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">Internal trophic web — only light &amp; rock cross the boundary</text>
+</svg>
+      </div>
+      <p class="figcap">The internal trophic web. Only the intima (green) brings in new energy; everything else eats its output or recycles waste. Two inputs cross the boundary — <span style="color:var(--lumen)">light</span> and <span style="color:var(--osteo)">rock/ice</span> — and the microbial guilds close the nitrogen and carbon loops so only leakage needs topping up.</p>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Guild · where</th><th>Role &amp; how it survives</th><th>Chassis &amp; nutrition</th><th>Life-cycle · coordination · distribution</th></tr></thead>
+        <tbody>
+          <tr><td>Nitrogen fixer <span class="r">anoxic pockets</span></td><td>Fixes N₂ → ammonia to replace nitrogen lost to leakage; runs its nitrogenase in O₂-protected heterocysts.<sup class="cite"><a href="#cref-18">[18]</a></sup></td><td><em>Anabaena</em> / <em>Azotobacter</em>; diazotroph.</td><td>Population tuned to N-demand. In anoxic micro-niches.</td></tr>
+          <tr><td>Nitrifier guild <span class="r">aerobic tissue</span></td><td>Two-step: ammonia → nitrite → nitrate, making N available to biomass again — the same guild that runs soils and the <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075#metabolism">habitat's</a> loop.</td><td><em>Nitrosomonas</em> + <em>Nitrobacter</em>-analogues; chemoautotroph.</td><td>Held in balance by quorum sensing &amp; substrate supply. Through aerobic tissue.</td></tr>
+          <tr><td>Saprophyte / detritivore <span class="r">recyclers</span></td><td>Breaks down dead cells and crew waste back into feedstock — closes the carbon loop and clears the phagocytes' haul.</td><td>Decomposer fungi/bacteria; heterotroph.</td><td>Blooms where material accumulates; the recycling floor of the ecosystem.</td></tr>
+          <tr><td>Fermenter / gut-analogue <span class="r">processing organs</span></td><td>Processes crew food and waste (the ship's "gut"), and pre-digests feedstock for the tissue.</td><td>Gut-microbe consortium; heterotroph.</td><td>Concentrated in dedicated processing organs.</td></tr>
+          <tr><td>Storage &amp; buffer microbes <span class="r">reserves</span></td><td>Bank nutrients and dampen swings, giving the closed ecology inertia against shocks (the flywheel that a real closed system needs).</td><td>Reserve-accumulating microbes; heterotroph.</td><td>Distributed reservoir; the ecosystem's shock absorber.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout warm"><span class="lab">The honest hard part</span><p>An ecosystem of dozens of engineered types coexisting <em>stably</em> for decades, without one lineage outcompeting, mutating or crashing the others, is unproven. Biosphere-2's oxygen crashed in two years; BIOS-3 and MELiSSA held closure only for months at small scale.<sup class="cite"><a href="#cref-17">[17]</a></sup> Long-term closed-ecology stability is the goal of Earth-Program <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#wp2">WP2</a>, not a solved problem. <span class="gap">gap</span></p></div>
+    </div>
+  </section>
+
+  <!-- ===== 09 LIFECYCLE ===== -->
+  <section class="doc reveal" id="lifecycle">
+    <p class="eyebrow"><span class="num">09</span> Life-cycle, turnover &amp; distribution <span class="rule"></span></p>
+    <h2>How cells are placed, renewed and retired</h2>
+    <div class="flow">
+      <p>Every cell type above shares a common life-cycle grammar borrowed from real tissue: it is <strong>born</strong> from a progenitor, <strong>differentiates</strong> into role, <strong>works</strong>, and is eventually <strong>renewed or retired</strong> by programmed death. Three rules keep 10<sup>19</sup> cells honest.</p>
+      <div class="notes-grid">
+        <div class="note grn"><div class="nh">Distribution — the Krogh rule</div><p>No cell may sit &gt;~200 µm from a vascular channel, so tissue is laid down <em>with</em> its plumbing. Cell density follows the layer: sparse in the mycelial matrix, dense at the intima and osteoid.</p></div>
+        <div class="note cool"><div class="nh">Turnover — renewal pools</div><p>Each tissue keeps a small progenitor pool for steady replacement; the epidermis renews fast (it is being ablated), the osteocytes and CHORUS core almost never divide.</p></div>
+        <div class="note warm"><div class="nh">Retirement — the division cap</div><p>Somatic lineages carry a Hayflick/telomere cap and armed apoptosis, so no line divides forever — the same brake that stops cancer also bounds senescence, refreshed only by CHORUS re-sync.</p></div>
+      </div>
+
+      <div class="fig" role="img" aria-label="A depth map of the hull showing which cell types populate each of the six layers, with the vascular tree threading through and capillaries spaced about 400 micrometres apart.">
+<svg viewBox="0 0 960 400" role="img">
+<text x="120" y="38" text-anchor="end" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">DEPTH·m</text>
+<text x="300.0" y="38" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">VACUUM ↑</text>
+<rect x="150" y="52.0" width="300" height="29.1" fill="#5f7c68" fill-opacity=".55" stroke="var(--line-2)"/>
+<text x="164" y="63.5" font-family="var(--font-display)" font-size="13" fill="var(--ink)">Sacrificial epidermis</text>
+<text x="164" y="78.5" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">0.5 m</text>
+<text x="466" y="70.5" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-3)">scute cells — ablative, die on purpose</text>
+<line x1="126" y1="52.0" x2="150" y2="52.0" stroke="var(--line)"/>
+<text x="120" y="56.0" text-anchor="end" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">0</text>
+<rect x="150" y="81.1" width="300" height="29.1" fill="#2b2420" fill-opacity=".55" stroke="var(--line-2)"/>
+<text x="164" y="92.6" font-family="var(--font-display)" font-size="13" fill="var(--ink)">Melanised rind</text>
+<text x="164" y="107.6" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">0.5 m</text>
+<text x="466" y="99.6" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-3)">radiotrophic melanocytes</text>
+<line x1="126" y1="81.1" x2="150" y2="81.1" stroke="var(--line)"/>
+<text x="120" y="85.1" text-anchor="end" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">0.5</text>
+<rect x="150" y="110.2" width="300" height="116.4" fill="#9c9873" fill-opacity=".55" stroke="var(--line-2)"/>
+<text x="164" y="165.4" font-family="var(--font-display)" font-size="13" fill="var(--ink)">Mycelial matrix</text>
+<text x="164" y="180.4" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">2 m</text>
+<text x="466" y="172.4" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-3)">hyphal cells · storage parenchyma</text>
+<line x1="126" y1="110.2" x2="150" y2="110.2" stroke="var(--line)"/>
+<text x="120" y="114.2" text-anchor="end" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">1</text>
+<rect x="150" y="226.5" width="300" height="58.2" fill="#b98a4f" fill-opacity=".55" stroke="var(--line-2)"/>
+<text x="164" y="252.6" font-family="var(--font-display)" font-size="13" fill="var(--ink)">Osteoid trusses</text>
+<text x="164" y="267.6" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">1 m</text>
+<text x="466" y="259.6" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-3)">osteoblasts · osteocytes · osteoclasts</text>
+<line x1="126" y1="226.5" x2="150" y2="226.5" stroke="var(--line)"/>
+<text x="120" y="230.5" text-anchor="end" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">3</text>
+<rect x="150" y="284.7" width="300" height="58.2" fill="#2f6f6b" fill-opacity=".55" stroke="var(--line-2)"/>
+<text x="164" y="310.8" font-family="var(--font-display)" font-size="13" fill="var(--ink)">Pneumostat membrane</text>
+<text x="164" y="325.8" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">1 m</text>
+<text x="466" y="317.8" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-3)">pneumocyte lamellae (the seal)</text>
+<line x1="126" y1="284.7" x2="150" y2="284.7" stroke="var(--line)"/>
+<text x="120" y="288.7" text-anchor="end" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">4</text>
+<rect x="150" y="342.9" width="300" height="29.1" fill="#3a9d54" fill-opacity=".55" stroke="var(--line-2)"/>
+<text x="164" y="354.5" font-family="var(--font-display)" font-size="13" fill="var(--ink)">Photosynthetic intima</text>
+<text x="164" y="369.5" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">0.5 m</text>
+<text x="466" y="361.5" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-3)">cyanobacteria · algae · light-guides</text>
+<line x1="126" y1="342.9" x2="150" y2="342.9" stroke="var(--line)"/>
+<text x="120" y="346.9" text-anchor="end" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">5</text>
+<line x1="126" y1="372.0" x2="150" y2="372.0" stroke="var(--line)"/>
+<text x="120" y="376.0" text-anchor="end" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">5.5</text>
+<rect x="150" y="372.0" width="300" height="26" fill="#13233a" stroke="var(--line-2)"/>
+<text x="164" y="389.0" font-family="var(--font-mono)" font-size="10" fill="var(--lumen)">PRESSURISED HABITAT · 52 kPa</text>
+<path d="M410 364 C 390 82, 270 82, 190 72" fill="none" stroke="var(--lumen)" stroke-opacity=".5" stroke-width="1.2"/>
+<circle cx="190" cy="72" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="234" cy="77" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="278" cy="77" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="322" cy="73" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="366" cy="67" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="410" cy="66" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<path d="M410 364 C 390 144, 270 144, 190 134" fill="none" stroke="var(--lumen)" stroke-opacity=".5" stroke-width="1.2"/>
+<circle cx="190" cy="134" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="234" cy="139" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="278" cy="139" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="322" cy="135" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="366" cy="129" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="410" cy="128" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<path d="M410 364 C 390 206, 270 206, 190 196" fill="none" stroke="var(--lumen)" stroke-opacity=".5" stroke-width="1.2"/>
+<circle cx="190" cy="196" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="234" cy="201" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="278" cy="201" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="322" cy="197" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="366" cy="191" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="410" cy="190" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<path d="M410 364 C 390 268, 270 268, 190 258" fill="none" stroke="var(--lumen)" stroke-opacity=".5" stroke-width="1.2"/>
+<circle cx="190" cy="258" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="234" cy="263" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="278" cy="263" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="322" cy="259" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="366" cy="253" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="410" cy="252" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<path d="M410 364 C 390 330, 270 330, 190 320" fill="none" stroke="var(--lumen)" stroke-opacity=".5" stroke-width="1.2"/>
+<circle cx="190" cy="320" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="234" cy="325" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="278" cy="325" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="322" cy="321" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="366" cy="315" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<circle cx="410" cy="314" r="1.6" fill="var(--lumen)" fill-opacity=".7"/>
+<text x="410" y="68" text-anchor="end" font-family="var(--font-mono)" font-size="8.5" fill="var(--lumen)">vasculature · capillaries ~400 µm apart</text>
+<text x="18" y="26" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">Where the cells live — the six-layer hull, threaded by its plumbing</text>
+</svg>
+      </div>
+      <p class="figcap">Where the cells live. The six-layer hull (compare the <a href="https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1">Dossier</a> anatomy) mapped to its resident cell types, with the vascular tree threading every layer so no cell is beyond the ~200 µm diffusion limit. Regeneration re-runs this same program locally at a wound.</p>
+
+      <p>Repair is not a separate system — it is the growth program, aimed at a hole. Damage exposes matrix and drops pressure; wound-response cells seal it; a <strong>blastema</strong> of reactivated stem cells re-forms, organizer cells re-establish the local morphogen field, and the tissue regrows layer by layer, stopping when size-sensing and the division cap say the shape is restored.</p>
+    </div>
+  </section>
+
+  <!-- ===== 10 ENGINEER ===== -->
+  <section class="doc reveal" id="engineer">
+    <p class="eyebrow"><span class="num">10</span> Engineering, growing &amp; testing <span class="rule"></span></p>
+    <h2>From a strain in a flask to a shaped body</h2>
+    <div class="flow">
+      <p>Each cell type is reached the same way: start from a real, transformable chassis; add characterised gene circuits for its job; wire in the containment and differentiation controls; then prove it at increasing scale. The chassis and parts are the <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075#genome">Compendium's</a> subject; here is the cell-level pipeline.</p>
+
+      <h4>Engineer — the payload every cell carries</h4>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Module</th><th>What it does</th><th>Real basis</th></tr></thead>
+          <tbody>
+            <tr><td>Differentiation circuit</td><td>Reads morphogen/contact signals and commits the cell to a type (synNotch, optogenetic gates).</td><td>Synthetic morphogen &amp; synNotch patterning<sup class="cite"><a href="#cref-11">[11]</a></sup></td></tr>
+            <tr><td>Job payload</td><td>The genes for the cell's product — <span class="chem">cscB</span>, silk, collagen, MICP, opsin, luciferase, CAR receptor…</td><td>Each demonstrated separately (§§02–07 refs)</td></tr>
+            <tr><td>Containment</td><td>Auxotrophy + engineered kill-switches, so no cell survives outside the body or off its feedstock.</td><td>Synthetic auxotrophy / safeguard circuits<sup class="cite"><a href="#cref-19">[19]</a></sup></td></tr>
+            <tr><td>Cancer &amp; drift control</td><td>Telomere cap, armed apoptosis, and CHORUS re-sync tags (§§05–06).</td><td>Tumour-suppressor &amp; suicide circuits<sup class="cite"><a href="#cref-13">[13]</a></sup></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Grow — the differentiation cascade</h4>
+      <div class="pathway">
+        <span class="step">seed founders</span> → <span class="en">morphogen field</span> established by organizer cells → founders read position &amp; stress → commit to <b>class</b> → commit to <b>type</b> → tissue lays down <span class="en">with its vasculature</span> → large structures built as repeating <b>somites</b> in parallel → size-sensing halts the front
+      </div>
+      <p>Big bodies are grown the way embryos build spines: as many identical segments in parallel, so a 10 km ARCA drum does not wait on one slow growth front but on ~20 running at once.</p>
+
+      <h4>Test — the ladder that de-risks it</h4>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Rung</th><th>What it proves for cells</th><th>Earth-Program stage</th></tr></thead>
+          <tbody>
+            <tr><td>Single-type organoid</td><td>Each cell type differentiates, survives and does its job in isolation.</td><td><a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#phases">Phase 0</a> · component brick</td></tr>
+            <tr><td>Co-culture stability</td><td>Two-to-few types coexist without one overrunning the others — the first ecosystem test.</td><td>Phase 1 · living panel</td></tr>
+            <tr><td>Living panel (1 m²)</td><td>A full tissue stack with its vasculature holds together and stays alive.</td><td>Phase 1 · TRL 4–6</td></tr>
+            <tr><td>Pressurised module</td><td>The seal, defence and closed loops work under load and pressure.</td><td>Phase 2–3 · seed→shell</td></tr>
+            <tr><td>Gestated demonstrator</td><td>The whole cascade — seed → shaped, self-maintaining body — runs once, end to end.</td><td>Phase 3 · TRL →6</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>This is the same <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed">integration ladder</a> the Earth Program is built around; the cells are simply what climbs it. Containment is proven <em>before</em> scale at every rung.</p>
+    </div>
+  </section>
+
+  <!-- ===== 11 REALITY ===== -->
+  <section class="doc reveal" id="reality">
+    <p class="eyebrow"><span class="num">11</span> What is real, and what is a bet <span class="rule"></span></p>
+    <div class="flow">
+      <p>Nearly every <em>individual</em> cell type here maps to a real organism or a demonstrated technique — mycelium materials, sucrose-exporting cyanobacteria, MICP mineralisation, biomining acidophiles, radiotrophic melanin, CAR recognition, synNotch patterning, crystallin optics. That is the <span class="real">green</span> in the tables. The bets are in the <em>integration</em>, and they are large:</p>
+      <div class="notes-grid">
+        <div class="note warm"><div class="nh">Bet 1 · directed morphogenesis</div><p>Turning a seed into a specified, metre-scale shape — placing 10<sup>19</sup> cells by morphogen — does not exist yet. It is the single biggest gate, and the Earth Program tests it first. <span class="gap">gap</span></p></div>
+        <div class="note warm"><div class="nh">Bet 2 · consortium stability</div><p>Dozens of engineered types coexisting for decades without one mutating, drifting or crashing the ecosystem is unproven at any scale. <span class="gap">gap</span></p></div>
+        <div class="note warm"><div class="nh">Bet 3 · the coordination net</div><p>A body-wide signalling system that reliably carries reflexes across kilometres of tissue is speculative — plant/fungal signalling is real but slow and simple. <span class="gap">gap</span></p></div>
+      </div>
+      <p style="margin-top:20px">The honest summary: the <em>parts bin</em> is real; assembling it into one coordinated, self-maintaining, cancer-proof body is the enterprise. This document is a specification of the parts and the rules — not a claim that the body has been built. It hasn't.</p>
+
+      <div class="refs" id="refs">
+        <h3>References</h3>
+        <p class="refs-note">Representative sources for the cell-level claims. Many overlap the <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075">Compendium</a>'s apparatus; each supports a specific mechanism, not the integrated whole.</p>
+        <ol>
+          <li id="cref-1">Frost, H.M. <span class="rt">"Bone's mechanostat" / Wolff's law</span> — mechanically directed bone remodelling (self-optimising structure).</li>
+          <li id="cref-2">Programmed cell death in cornification &amp; bark (suberin/lignin) — <span class="rt">sacrificial dead outer layers in biology.</span></li>
+          <li id="cref-3">Dadachova, E. et al. (2007) <span class="rt">"Ionizing radiation changes the electronic properties of melanin and enhances the growth of melanized fungi."</span> PLoS ONE.</li>
+          <li id="cref-4">Cox, M.M. &amp; Battista, J.R. (2005) <span class="rt">"Deinococcus radiodurans — the consummate survivor."</span> Nat. Rev. Microbiol.</li>
+          <li id="cref-5">Haneef, M. et al. (2017) <span class="rt">"Advanced materials from fungal mycelium."</span> Sci. Rep.</li>
+          <li id="cref-6">DeJong, J.T. et al. (2010) <span class="rt">"Microbially induced calcite precipitation (MICP)."</span> Ecol. Eng.</li>
+          <li id="cref-7">Bowen, C.H. et al. (2018) <span class="rt">"Recombinant spider silk production in microbes."</span> Biomacromolecules.</li>
+          <li id="cref-8">Ducat, D.C. et al. (2012) <span class="rt">"Rerouting carbon flux to enhance sucrose secretion by cyanobacteria" (cscB).</span> AEM.</li>
+          <li id="cref-9">Piatigorsky, J. <span class="rt">Crystallins &amp; the transparency of lens fibre cells;</span> Müller-cell light-guiding in the retina.</li>
+          <li id="cref-10">Murray, C.D. (1926) <span class="rt">"The physiological principle of minimum work"</span> (Murray's law); Krogh's diffusion-limit tissue model.</li>
+          <li id="cref-11">Toda, S. et al. (2018) <span class="rt">"Programming self-organizing multicellular structures with synthetic cell–cell signaling" (synNotch).</span> Science.</li>
+          <li id="cref-12">Fromm, J. &amp; Lautner, S. (2007) <span class="rt">"Electrical signals in plants";</span> Adamatzky, A. — fungal electrical signalling.</li>
+          <li id="cref-13">June, C.H. et al. (2018) <span class="rt">"CAR T cell immunotherapy"</span> — engineered cellular recognition &amp; killing.</li>
+          <li id="cref-14">Rawlings, D.E. &amp; Johnson, D.B. (2007) <span class="rt">"The microbiology of biomining"</span> (<em>Acidithiobacillus</em>).</li>
+          <li id="cref-15">Davila, A.F. et al. — <span class="rt">perchlorate reduction &amp; brine biology relevant to Mars regolith.</span></li>
+          <li id="cref-16">Bazylinski, D.A. &amp; Frankel, R.B. (2004) <span class="rt">"Magnetosome formation in prokaryotes."</span> Nat. Rev. Microbiol.</li>
+          <li id="cref-17">Nelson, M. et al. — <span class="rt">Biosphere-2 &amp; BIOS-3/MELiSSA closed-ecology life support (limits of closure).</span></li>
+          <li id="cref-18">Kumar, K. et al. (2010) <span class="rt">"Heterocyst differentiation and nitrogen fixation in cyanobacteria."</span></li>
+          <li id="cref-19">Mandell, D.J. et al. (2015) <span class="rt">"Biocontainment of genetically modified organisms by synthetic auxotrophy."</span> Nature.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="fbar">
+      <span>◈ GESTALT Program</span><span class="sep">·</span>
+      <span>Cell Atlas &amp; Cytology</span><span class="sep">·</span>
+      <span>~42 cell types · 8 classes · ~10<sup>19</sup> cells / hull</span><span class="sep">·</span>
+      <span>a concept study — real parts, unbuilt whole</span>
+    </div>
+  </footer>
+
+</div></div>
+
+<script>
+(function(){
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.08});
+  document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+})();
+</script>

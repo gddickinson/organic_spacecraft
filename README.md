@@ -65,6 +65,7 @@ flowchart TD
   GRAVID --> ARCA["🌍 ARCA habitat<br/>+ 🍄 LICHEN surface domes"]
   GRAVID --> MORE["🛰️ 18 classes<br/>Fleet Registry + Class Reference"]
   SCI["🧬 Compendium — the science<br/>that must be true"] -. underwrites .-> GRAVID
+  CELLS["🔬 Cell Atlas — the ~42<br/>cell types it's built from"] -. underwrites .-> GRAVID
   EARTH["🌿 Earth Program — how we'd<br/>find out, on Earth"] -. gates .-> SCI
   NAVIS --> V3D["🛸 3D Models<br/>spin them, slice them open"]
   ARCA --> V3D
@@ -73,7 +74,7 @@ flowchart TD
 
 ---
 
-## The ten documents
+## The eleven documents
 
 Each document is a self-contained web page and shares one navigation bar linking the whole
 set. **Open** goes to the live, interactive document; **Source** is the HTML in this repo.
@@ -88,8 +89,9 @@ set. **Open** goes to the live, interactive document; **Source** is the HTML in 
 | 6 | **Fleet Registry** | Vehicle classes, a readiness scorecard, and the containment regime. | [Open](https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091) · [Source](docs/gestalt-fleet.html) |
 | 7 | **Fleet Class Reference** | A detailed profile of every one of the 18 classes + a comparison table. | [Open](https://claude.ai/code/artifact/7ca9c965-1932-4c5a-b0f1-a99e9febae58) · [Source](docs/gestalt-classref.html) |
 | 8 | **Compendium** | The deep technical reference: organisms, circuits, materials, metabolism, defenses, biomining — 20+ citations. | [Open](https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075) · [Source](docs/gestalt-compendium.html) |
-| 9 | **Earth Program** | The ground R&D roadmap: TRL ladder, six work packages, a 40-year Gantt with budget, gated go/no-go. | [Open](https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed) · [Source](docs/gestalt-earthprogram.html) |
-| 10 | **3D Models** | Interactive, rotatable/zoomable solid models of all seven main forms, with cutaways. | [Open](https://claude.ai/code/artifact/1c6f18ca-eeda-4d83-bd97-fd9c1622823d) · [Source](docs/gestalt-3d.html) |
+| 9 | **Cell Atlas** | Cytology of a grown vessel: all ~42 cell types across 8 classes — roles, survival, coordination, distribution, life-cycle, nutrition, and how they'd be engineered, grown & tested. | [Open](https://claude.ai/code/artifact/c6dd460f-700a-4b98-820a-0f75b0b1d973) · [Source](docs/gestalt-cells.html) |
+| 10 | **Earth Program** | The ground R&D roadmap: TRL ladder, six work packages, a 40-year Gantt with budget, gated go/no-go. | [Open](https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed) · [Source](docs/gestalt-earthprogram.html) |
+| 11 | **3D Models** | Interactive, rotatable/zoomable solid models of all seven main forms, with detailed cutaway interiors. | [Open](https://claude.ai/code/artifact/1c6f18ca-eeda-4d83-bd97-fd9c1622823d) · [Source](docs/gestalt-3d.html) |
 
 ---
 
@@ -180,6 +182,26 @@ with real biology and physics. Four of its figures:
 
 ---
 
+## The cells themselves
+
+One level below the organs, the [Cell Atlas](docs/gestalt-cells.html) is the census of what a
+grown vessel is actually built from: a single NAVIS hull is on the order of **10¹⁹ cells** of
+about **42 distinct types**, and — like every organism — all of them descend from the handful
+of founder cells in one seed.
+
+![Cell lineage — one totipotent founder differentiating into eight functional classes and forty-two cell types](assets/figures/cells-lineage.png)
+
+*From one founder to forty-two types. Every cell is a clonal descendant of the seed's totipotent founders; differentiation is directed by position, stress and morphogen gradients during gestation. The eight classes span structure, metabolism, transport, sensing & coordination, defence, resource-work, the internal microbiome, and the germline.*
+
+The atlas gives each type its role, how it survives, its metabolism, life-cycle, coordination and
+where it lives — plus the internal **trophic web** (only light and rock cross the boundary; the
+microbial guilds close the loops), a **hull cell-distribution map**, and the pipeline for how each
+type would be engineered, grown and tested. Honestly: nearly every *individual* cell type maps to a
+real organism or demonstrated technique — the bet is in assembling them into one coordinated,
+self-maintaining, cancer-proof body.
+
+---
+
 ## Building it on Earth
 
 None of this is worth anything if it cannot be tested. The [Earth Program](docs/gestalt-earthprogram.html)
@@ -196,9 +218,10 @@ rough ~$30–40 B budget — built so the riskiest bet fails cheaply and early.
 
 The [3D Models](docs/gestalt-3d.html) document renders all seven main forms as solid models
 in a self-contained, plug-in-free software engine — **drag to rotate, scroll to zoom**, and
-toggle **cutaway** to slice a wedge and see the layered wall and the interior components
-(cores, decks, cradles, shelters). A live **scale bar** reads true size at any zoom, and
-**labelled hotspots** call out each feature.
+toggle **cutaway** to slice a wedge and see the layered wall and a detailed interior — decks,
+habitation compartments, a vascular core, ARCA's terraced farms, GRAVID's embryos at two growth
+stages, roots and shelter pods. A live **scale bar** reads true size at any zoom, and **labelled
+hotspots** call out each feature.
 
 ---
 
@@ -219,8 +242,9 @@ Compendium's canonical-parameter table.
 | GRAVID nursery | **12–24 cradles · ~26 t/day each · ~2–3 yr per ship** | GRAVID |
 | Fleet | **18 classes · 4 m SPORE → 40 km LEVIATHAN** | Fleet / Class Reference |
 | Cancer control | **7 layers · ~10¹³× tumour-lineage suppression** | Compendium |
+| Cells in one hull | **~10¹⁹ cells · ~42 cell types across 8 classes** | Cell Atlas |
 | Ground program | **5 phases · 6 work packages · ~40 yr · ~$30–40 B** | Earth Program |
-| This documentation | **10 documents · ~108 cited references** | — |
+| This documentation | **11 documents · ~127 cited references** | — |
 
 ---
 
@@ -270,7 +294,7 @@ organic_spacecraft/
 ├── INTERFACE.md           ← navigation map (read before the source)
 ├── SESSION_LOG.md         ← running progress log
 ├── deepen-roadmap.md      ← the design-loop state + round-by-round history
-├── docs/                  ← the ten published documents (HTML fragments)
+├── docs/                  ← the eleven published documents (HTML fragments)
 ├── assets/figures/        ← figures extracted from the documents (this README)
 └── viewer/                ← zero-dependency local web viewer (stdlib only)
     ├── catalog.py         document registry (source of truth)

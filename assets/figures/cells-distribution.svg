@@ -1,0 +1,167 @@
+<svg viewBox="-12.0 -12.0 1026.0 426.0" role="img" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
+*{box-sizing:border-box}body{margin:0}
+  .page{background:radial-gradient(1100px 640px at 82% -6%,rgba(84,207,124,.13),transparent 60%),radial-gradient(900px 520px at 6% 3%,rgba(79,214,208,.11),transparent 55%),#0a1512;color:#e2f0e8;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16.5px;line-height:1.66;letter-spacing:.005em;overflow-x:hidden;min-height:100vh}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
+  h1,h2,h3,h4{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-weight:600;text-wrap:balance;line-height:1.12;margin:0}
+  p{margin:0 0 1.05em}strong{color:#e2f0e8;font-weight:600}em{color:#e2f0e8}
+  a{color:#4fd6d0}
+  .mono{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace}
+  .chem{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:.92em;color:#e6ac6d;background:rgba(230,172,109,.13);padding:.06em .4em;border-radius:4px;white-space:nowrap}
+
+  .prog-nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.08em;padding:16px 0 4px}
+  .prog-nav .pn-brand{color:#54cf7c;letter-spacing:.16em;text-transform:uppercase}
+  .prog-nav a{color:#7c9689;text-decoration:none;padding:3px 10px;border:1px solid rgba(150,196,176,.16);border-radius:999px;transition:color .2s,border-color .2s}
+  .prog-nav a:hover{color:#e2f0e8;border-color:rgba(150,196,176,.30)}
+  .prog-nav a.current{color:#4fd6d0;border-color:#4fd6d0}
+
+  header.mast{padding:34px 0 30px;border-bottom:1px solid rgba(150,196,176,.30)}
+  .mast .kick{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:#54cf7c;margin:0 0 16px}
+  .mast h1{font-size:clamp(2.2rem,6vw,4rem);letter-spacing:-.015em;margin:0 0 8px}
+  .mast h1 .s{color:#54cf7c}
+  .mast .sub{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-style:italic;font-size:clamp(1.05rem,2.3vw,1.4rem);color:#a9c2b6;max-width:62ch}
+
+  .toc{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:26px 0 0}
+  .toc a{display:flex;gap:10px;align-items:baseline;text-decoration:none;color:#e2f0e8;border:1px solid rgba(150,196,176,.16);border-radius:10px;padding:12px 14px;background:#0b1714;transition:border-color .2s}
+  .toc a:hover{border-color:rgba(150,196,176,.30)}
+  .toc .n{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;color:#54cf7c}
+  .toc .t{font-size:14px}
+
+  section.doc{padding:48px 0;border-bottom:1px solid rgba(150,196,176,.16)}
+  .eyebrow{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#7c9689;display:flex;align-items:center;gap:.7em;margin:0 0 16px}
+  .eyebrow .num{color:#54cf7c}.eyebrow .rule{flex:1;height:1px;background:rgba(150,196,176,.16)}
+  section.doc h2{font-size:clamp(1.7rem,4vw,2.5rem);letter-spacing:-.01em;margin-bottom:14px}
+  section.doc h3{font-size:1.28rem;margin:30px 0 10px;color:#e2f0e8}
+  section.doc h4{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#e6ac6d;margin:22px 0 8px}
+  .flow{max-width:70ch}
+  .flow p,.lead{max-width:70ch}
+  .lead{font-size:1.12em;color:#a9c2b6;margin-bottom:24px}
+
+  .callout{border-left:2px solid #54cf7c;background:rgba(84,207,124,.13);padding:14px 18px;border-radius:0 10px 10px 0;margin:22px 0;max-width:70ch}
+  .callout.warm{border-color:#e6ac6d;background:rgba(230,172,109,.13)}
+  .callout.cool{border-color:#4fd6d0;background:rgba(79,214,208,.11)}
+  .callout p{margin:0}.callout .lab{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#7c9689;display:block;margin-bottom:6px}
+
+  .tbl-wrap{overflow-x:auto;margin:18px 0;border:1px solid rgba(150,196,176,.16);border-radius:10px}
+  .fig{border:1px solid rgba(150,196,176,.30);border-radius:10px;background:#0e1c18;padding:10px;margin:16px 0;overflow-x:auto}
+  .fig svg{display:block;width:100%;min-width:720px;height:auto}
+  .figcap{font-size:.82em;color:#7c9689;margin:8px 2px 0;line-height:1.5}
+  table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+  thead th{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#7c9689;font-weight:600;text-align:left;padding:12px 14px;background:#0b1714;border-bottom:1px solid rgba(150,196,176,.30)}
+  td{padding:11px 14px;border-bottom:1px solid rgba(150,196,176,.16);vertical-align:top;color:#a9c2b6}
+  tbody tr:last-child td{border-bottom:none}
+  td:first-child{color:#e2f0e8;font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-size:14.5px}
+  td .r{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;color:#54cf7c}
+  td .rc{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;color:#4fd6d0}
+  td .rw{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;color:#e6ac6d}
+
+  .pathway{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12.5px;line-height:1.9;color:#a9c2b6;background:#0b1714;border:1px solid rgba(150,196,176,.16);border-radius:10px;padding:16px 18px;margin:16px 0;overflow-x:auto}
+  .pathway .step{color:#e2f0e8}.pathway .en{color:#4fd6d0}.pathway b{color:#e6ac6d}
+
+  .gap{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.06em;color:#e6ac6d;display:inline-block;border:1px solid #e6ac6d;border-radius:6px;padding:1px 7px;margin-left:4px}
+  sup.cite{font-size:.62em;line-height:0;vertical-align:super;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-weight:600}
+  sup.cite a{color:#4fd6d0;text-decoration:none;padding:0 1px}
+  sup.cite a:hover{text-decoration:underline}
+  .refs{margin-top:18px;border-top:1px solid rgba(150,196,176,.16);padding-top:18px}
+  .refs h3{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#e6ac6d;margin-bottom:14px}
+  .refs ol{margin:0;padding-left:2.4em;display:grid;gap:8px}
+  .refs li{font-size:.82em;line-height:1.5;color:#a9c2b6;max-width:80ch}
+  .refs li a{color:#4fd6d0;text-decoration:none}
+  .refs .rt{color:#7c9689;font-style:italic}
+  .refs-note{font-size:.8em;color:#7c9689;margin:0 0 14px;max-width:78ch}
+  .real{color:#54cf7c}
+
+  .notes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:8px}
+  .note{border-left:2px solid rgba(150,196,176,.30);padding:2px 0 2px 16px}
+  .note .nh{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7c9689;margin-bottom:7px}
+  .note p{font-size:13px;color:#a9c2b6;margin:0;line-height:1.55}
+  .note.grn{border-color:#54cf7c}.note.warm{border-color:#e6ac6d}.note.cool{border-color:#4fd6d0}
+
+  footer{padding:34px 0 66px}
+  .fbar{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;color:#7c9689;border-top:1px solid rgba(150,196,176,.16);padding-top:20px}
+  .fbar .sep{color:rgba(150,196,176,.30)}
+  .reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  
+  ::selection{background:#54cf7c;color:#0a1512}
+  :focus-visible{outline:2px solid #4fd6d0;outline-offset:3px;border-radius:3px}
+]]></style><rect x="-12.0" y="-12.0" width="1026.0" height="426.0" fill="#0c1613"/>
+<text x="120" y="38" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9" fill="#7c9689">DEPTH·m</text>
+<text x="300.0" y="38" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9" fill="#7c9689">VACUUM ↑</text>
+<rect x="150" y="52.0" width="300" height="29.1" fill="#5f7c68" fill-opacity=".55" stroke="rgba(150,196,176,.30)"/>
+<text x="164" y="63.5" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="13" fill="#e2f0e8">Sacrificial epidermis</text>
+<text x="164" y="78.5" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">0.5 m</text>
+<text x="466" y="70.5" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="10.5" fill="#7c9689">scute cells — ablative, die on purpose</text>
+<line x1="126" y1="52.0" x2="150" y2="52.0" stroke="rgba(150,196,176,.16)"/>
+<text x="120" y="56.0" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9" fill="#7c9689">0</text>
+<rect x="150" y="81.1" width="300" height="29.1" fill="#2b2420" fill-opacity=".55" stroke="rgba(150,196,176,.30)"/>
+<text x="164" y="92.6" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="13" fill="#e2f0e8">Melanised rind</text>
+<text x="164" y="107.6" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">0.5 m</text>
+<text x="466" y="99.6" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="10.5" fill="#7c9689">radiotrophic melanocytes</text>
+<line x1="126" y1="81.1" x2="150" y2="81.1" stroke="rgba(150,196,176,.16)"/>
+<text x="120" y="85.1" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9" fill="#7c9689">0.5</text>
+<rect x="150" y="110.2" width="300" height="116.4" fill="#9c9873" fill-opacity=".55" stroke="rgba(150,196,176,.30)"/>
+<text x="164" y="165.4" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="13" fill="#e2f0e8">Mycelial matrix</text>
+<text x="164" y="180.4" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">2 m</text>
+<text x="466" y="172.4" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="10.5" fill="#7c9689">hyphal cells · storage parenchyma</text>
+<line x1="126" y1="110.2" x2="150" y2="110.2" stroke="rgba(150,196,176,.16)"/>
+<text x="120" y="114.2" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9" fill="#7c9689">1</text>
+<rect x="150" y="226.5" width="300" height="58.2" fill="#b98a4f" fill-opacity=".55" stroke="rgba(150,196,176,.30)"/>
+<text x="164" y="252.6" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="13" fill="#e2f0e8">Osteoid trusses</text>
+<text x="164" y="267.6" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">1 m</text>
+<text x="466" y="259.6" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="10.5" fill="#7c9689">osteoblasts · osteocytes · osteoclasts</text>
+<line x1="126" y1="226.5" x2="150" y2="226.5" stroke="rgba(150,196,176,.16)"/>
+<text x="120" y="230.5" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9" fill="#7c9689">3</text>
+<rect x="150" y="284.7" width="300" height="58.2" fill="#2f6f6b" fill-opacity=".55" stroke="rgba(150,196,176,.30)"/>
+<text x="164" y="310.8" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="13" fill="#e2f0e8">Pneumostat membrane</text>
+<text x="164" y="325.8" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">1 m</text>
+<text x="466" y="317.8" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="10.5" fill="#7c9689">pneumocyte lamellae (the seal)</text>
+<line x1="126" y1="284.7" x2="150" y2="284.7" stroke="rgba(150,196,176,.16)"/>
+<text x="120" y="288.7" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9" fill="#7c9689">4</text>
+<rect x="150" y="342.9" width="300" height="29.1" fill="#3a9d54" fill-opacity=".55" stroke="rgba(150,196,176,.30)"/>
+<text x="164" y="354.5" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="13" fill="#e2f0e8">Photosynthetic intima</text>
+<text x="164" y="369.5" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">0.5 m</text>
+<text x="466" y="361.5" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="10.5" fill="#7c9689">cyanobacteria · algae · light-guides</text>
+<line x1="126" y1="342.9" x2="150" y2="342.9" stroke="rgba(150,196,176,.16)"/>
+<text x="120" y="346.9" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9" fill="#7c9689">5</text>
+<line x1="126" y1="372.0" x2="150" y2="372.0" stroke="rgba(150,196,176,.16)"/>
+<text x="120" y="376.0" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9" fill="#7c9689">5.5</text>
+<rect x="150" y="372.0" width="300" height="26" fill="#13233a" stroke="rgba(150,196,176,.30)"/>
+<text x="164" y="389.0" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="10" fill="#4fd6d0">PRESSURISED HABITAT · 52 kPa</text>
+<path d="M410 364 C 390 82, 270 82, 190 72" fill="none" stroke="#4fd6d0" stroke-opacity=".5" stroke-width="1.2"/>
+<circle cx="190" cy="72" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="234" cy="77" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="278" cy="77" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="322" cy="73" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="366" cy="67" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="410" cy="66" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<path d="M410 364 C 390 144, 270 144, 190 134" fill="none" stroke="#4fd6d0" stroke-opacity=".5" stroke-width="1.2"/>
+<circle cx="190" cy="134" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="234" cy="139" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="278" cy="139" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="322" cy="135" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="366" cy="129" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="410" cy="128" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<path d="M410 364 C 390 206, 270 206, 190 196" fill="none" stroke="#4fd6d0" stroke-opacity=".5" stroke-width="1.2"/>
+<circle cx="190" cy="196" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="234" cy="201" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="278" cy="201" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="322" cy="197" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="366" cy="191" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="410" cy="190" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<path d="M410 364 C 390 268, 270 268, 190 258" fill="none" stroke="#4fd6d0" stroke-opacity=".5" stroke-width="1.2"/>
+<circle cx="190" cy="258" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="234" cy="263" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="278" cy="263" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="322" cy="259" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="366" cy="253" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="410" cy="252" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<path d="M410 364 C 390 330, 270 330, 190 320" fill="none" stroke="#4fd6d0" stroke-opacity=".5" stroke-width="1.2"/>
+<circle cx="190" cy="320" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="234" cy="325" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="278" cy="325" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="322" cy="321" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="366" cy="315" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<circle cx="410" cy="314" r="1.6" fill="#4fd6d0" fill-opacity=".7"/>
+<text x="410" y="68" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8.5" fill="#4fd6d0">vasculature · capillaries ~400 µm apart</text>
+<text x="18" y="26" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="11" fill="#e2f0e8">Where the cells live — the six-layer hull, threaded by its plumbing</text>
+</svg>

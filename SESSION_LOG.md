@@ -2,6 +2,24 @@
 
 Running progress log. Newest first.
 
+## 2026-07-26 — Cell Atlas (11th document) + richer 3D interiors
+
+- **New 11th document — the Cell Atlas** (`gestalt-cells.html`): a cell-level
+  cytology of a grown vessel. Grounds the census in Python (~10¹⁹ cells per
+  hull; ~42 distinct types across 8 functional classes) and catalogues every
+  type — role, survival, chassis, metabolism, life-cycle, coordination and
+  distribution — plus the internal ecosystem/trophic web, and how each type is
+  engineered, grown and tested (cross-linked to the Compendium and Earth
+  Program). Three new house-style figures (lineage tree, trophic web, hull
+  cell-distribution map), 19 citations, honest `gap:` flags on the three big
+  integration bets. Registered in the viewer catalog (slug `cells`); the
+  canonical nav is regenerated to **eleven** entries across every document and
+  all eleven artifacts republished.
+- **3D models — richer cutaway interiors**: multi-level decks, habitation
+  compartments, vascular cores, ARCA terraces/settlements/sun-cord nodes,
+  LICHEN floors + taproot, GRAVID embryos at two growth stages with umbilicals,
+  and SPORE/LEVIATHAN/TESTUDO occupants. All 14 builds node-verified.
+
 ## 2026-07-26 — Detailed illustrated README (+ a broken figure found & fixed)
 
 - **Rewrote `README.md`** into a detailed, illustrated guide: hero, a mermaid program

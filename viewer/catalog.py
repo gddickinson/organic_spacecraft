@@ -65,6 +65,13 @@ DOCS = [
         "The deep technical reference — chassis organisms, genome and "
         "morphogenesis circuits, materials chemistry, metabolism, defenses, "
         "biomining, canonical parameters — with 20 real citations."),
+    Doc("cells", "gestalt-cells.html",
+        "c6dd460f-700a-4b98-820a-0f75b0b1d973",
+        "Cell Atlas", "Cytology reference", "🔬",
+        "A cell-level cytology of a grown vessel: all ~42 cell types across "
+        "eight functional classes — their roles, survival, coordination, "
+        "distribution, life-cycle and nutrition, the internal ecosystem, and "
+        "how each would be engineered, grown and tested."),
     Doc("earth", "gestalt-earthprogram.html",
         "bc243583-d959-4284-841a-70ab529d40ed",
         "Earth Program", "R&D roadmap", "🌱",
