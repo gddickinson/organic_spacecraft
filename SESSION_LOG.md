@@ -2,6 +2,24 @@
 
 Running progress log. Newest first.
 
+## 2026-07-26 — Python simulations of the designs' major systems (animated 3D)
+
+- **New `sim/` package**: dependency-light Python (numpy + matplotlib) that
+  models the major systems of the four main designs and renders them as
+  **animated 3D GIFs** (`assets/sim/`). Modular — `params.py` (canonical
+  numbers, single source of truth), `systems.py` (grounded dynamics: growth,
+  life support, spin gravity, thermal, gestation), `geometry.py` (3D meshes),
+  `animate.py` (per-design 3D-scene-plus-gauge builders), `run.py` (CLI:
+  `python -m sim.run [design] [--fast] [--check]`).
+- **Four simulations**, each a 3D scene + live gauges: **NAVIS** grows from a
+  seed to ~24,000 t on the mining-limited curve with day/night intima glow;
+  **ARCA** spins to 1 g at the rim with crew on the inner surface, a Coriolis
+  drop, and a stable ~125-yr O₂ reserve; **LICHEN** swings ~160–265 K on the
+  Martian surface while the interior holds 293 K; **GRAVID** gestates vessels in
+  staggered cradle cycles. Each verified by eye from a rendered frame.
+- Added `sim/INTERFACE.md`, a README "Simulations" section (the four GIFs), the
+  project INTERFACE tree, and a gitignore for the preview frames.
+
 ## 2026-07-26 — Metabolism (12th document): ingest → digest → metabolise → excrete
 
 - **New 12th document — Metabolism** (`gestalt-metabolism.html`): the nutrition-

@@ -247,6 +247,29 @@ hotspots** call out each feature.
 
 ---
 
+## Simulations — the systems in motion
+
+A small Python package ([`sim/`](sim/)) models the **major systems** of each main design and
+renders them as animated 3D visualisations. Every number is grounded in the program's canonical
+parameters, so the curves match the documents. Run them with `python -m sim.run` (see
+[`sim/INTERFACE.md`](sim/INTERFACE.md)).
+
+| NAVIS — grows, mines & breathes | ARCA — spins up 1 g & holds its air |
+|---|---|
+| ![NAVIS simulation: the ship grows from a seed to ~24,000 t, mining root feeding it, intima glowing day/night](assets/sim/sim-navis.gif) | ![ARCA simulation: the drum spins to 1 g at the rim, crew on the inner surface, O2 reserve stable over 140 years](assets/sim/sim-arca.gif) |
+| *Grows from a seed to ~24,000 t on the mining-limited deposition curve; the intima glows through a day/night cycle; the body is mined, not photosynthesised.* | *Spins to 1 g at the 2.5 km rim (gravity fading to 0 at the axis), crew riding the inner surface, a Coriolis drop path, and the ~125-year O₂ reserve holding steady.* |
+
+| LICHEN — day/night on the surface | GRAVID — gestating the fleet |
+|---|---|
+| ![LICHEN simulation: a dome on Mars regolith, sun crossing the sky, surface temperature swinging while the interior stays at 293 K](assets/sim/sim-lichen.gif) | ![GRAVID simulation: cradles budding off a feedstock spine, embryos growing through their gestation cycles, one hatching](assets/sim/sim-gravid.gif) |
+| *The surface swings ~160–265 K through the Martian day while the buried interior stays a stable 293 K; the regolith over-blanket balances the 52 kPa inside.* | *Cradles bud off the feedstock spine and gestate vessels through staggered cycles (amber → green), releasing a finished ship when one reaches hatch.* |
+
+Each simulation is driven by a grounded model — the growth curve, a closed-loop O₂ buffer, the
+spin-gravity gradient, radiative day/night thermal balance — so the 3D motion and the gauges beside
+it are two views of the same physics.
+
+---
+
 ## By the numbers
 
 Every figure below is grounded in a Python calculation and reconciled across documents to the
