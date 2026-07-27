@@ -27,7 +27,7 @@ models3d/
 
 | key | model |
 |---|---|
-| `navis` | prolate-spheroid hull + docking band + radiator bloom + mining root + anchor + light-cap |
+| `navis` | detailed: forward-tapered hull, 6 docking sphincters + hatches on an equatorial ridge, phototropic cap + eye-lens + clarified windows + sensor mast, caudal seed organ, 8-petal radiator bloom, branching mining root + anchor |
 | `arca` | spin drum + de-spun end rings + axial sun-cord |
 | `lichen` | regolith-seated dome + light shaft |
 | `gravid` | feedstock spine + cradles budding on alternating sides |

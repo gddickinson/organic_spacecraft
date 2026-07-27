@@ -15,6 +15,7 @@ import numpy as np
 import trimesh
 from trimesh import creation
 from trimesh import transformations as tf
+from trimesh import geometry as tgeo
 
 GREEN = [84, 207, 124, 255]
 AMBER = [230, 172, 109, 255]
@@ -89,6 +90,21 @@ def ring(major, minor, color, at=(0, 0, 0)):
     return _col(m, color)
 
 
+def orient(mesh, normal, at):
+    """Rotate a mesh so its +Z points along ``normal``, then move it to ``at``."""
+    n = np.array(normal, float)
+    n = n / (np.linalg.norm(n) or 1.0)
+    mesh.apply_transform(tgeo.align_vectors([0, 0, 1.0], n))
+    mesh.apply_translation(at)
+    return mesh
+
+
+def seg(p0, p1, r, color, sections=12):
+    """A thin cylinder connecting two points (roots, struts, masts)."""
+    m = creation.cylinder(radius=r, segment=[list(p0), list(p1)], sections=sections)
+    return _col(m, color)
+
+
 def scene(parts):
     s = trimesh.Scene()
     for i, (name, m) in enumerate(parts):
@@ -98,13 +114,70 @@ def scene(parts):
 
 # ---- the designs (long axis +Z), proportioned to the drawing sets ----
 def navis():
-    """Crewed explorer — 120 m x 50 m prolate spheroid + appendages."""
-    p = [("hull", ellipsoid(0.417, 0.417, 1.0, GREEN)),
-         ("dockband", ring(0.42, 0.028, AMBER)),
-         ("phototropic_cap", ellipsoid(0.13, 0.13, 0.13, CYAN, subdiv=2, at=(0, 0, 1.02))),
-         ("radiator_bloom", cone(0.42, 0.55, WARM, at=(0, 0, -1.55), point="+z")),
-         ("mining_root", cone(0.12, 0.55, CYAN, at=(0, 0, -1.05), point="-z")),
-         ("resource_anchor", ellipsoid(0.17, 0.17, 0.17, ROCK, subdiv=2, at=(0, 0, -1.72)))]
+    """Crewed explorer — a detailed 120 m x 50 m prolate-spheroid organism.
+
+    Refined per the drawing set (GST-SS-101): a forward-tapered hull (A < C < B
+    beam law), six discrete docking sphincters on an equatorial ridge, a forward
+    phototropic cap with clarified windows and a sensor mast, and — aft — a
+    caudal seed organ, an eight-petal radiator bloom, and a branching mining
+    root reaching a resource anchor.
+    """
+    a, b = 1.0, 0.417
+    p = []
+
+    # 1 — hull: prolate spheroid, forward-tapered so the fore is narrower than the aft
+    hull = creation.icosphere(subdivisions=4, radius=1.0)
+    v = hull.vertices.copy()
+    taper = 1.0 - 0.14 * v[:, 2]                  # z>0 (fore) narrower, z<0 (aft) fuller
+    v[:, 0] *= b * taper
+    v[:, 1] *= b * taper
+    hull.vertices = v
+    p.append(("hull", _col(hull, GREEN)))
+
+    def r_at(z):                                  # tapered equatorial radius at height z
+        return b * (1 - 0.14 * z) * np.sqrt(max(1e-4, 1 - z * z))
+
+    # 2 — equatorial ridge + six docking sphincters (with recessed hatches)
+    p.append(("dock_ridge", ring(b * 1.008, 0.014, AMBER)))
+    for i in range(6):
+        th = i * np.pi / 3
+        n = [np.cos(th), np.sin(th), 0.0]
+        pos = [r_at(0.0) * np.cos(th), r_at(0.0) * np.sin(th), 0.0]
+        port = _col(creation.torus(0.055, 0.02, major_sections=18, minor_sections=8), AMBER)
+        p.append((f"dock_{i}", orient(port, n, pos)))
+        hatch = _col(creation.cylinder(radius=0.032, height=0.012, sections=16), CYAN)
+        p.append((f"hatch_{i}", orient(hatch, n, pos)))
+
+    # 3 — forward phototropic cap, an eye-lens, a ring of clarified windows, a sensor mast
+    p.append(("phototropic_cap", ellipsoid(0.15, 0.15, 0.11, CYAN, at=(0, 0, a * 0.985))))
+    p.append(("cap_lens", ellipsoid(0.07, 0.07, 0.03, CYAN, subdiv=2, at=(0, 0, a * 1.055))))
+    for i in range(6):
+        th = i * np.pi / 3 + 0.35
+        z = 0.60
+        pos = np.array([r_at(z) * np.cos(th), r_at(z) * np.sin(th), z])
+        n = np.array([pos[0], pos[1], pos[2] * 0.55])
+        win = ellipsoid(0.05, 0.05, 0.02, CYAN, subdiv=2)
+        p.append((f"window_{i}", orient(win, n, pos * 0.99)))
+    p.append(("sensor_mast", seg((0, 0, a * 1.04), (0, 0, a * 1.32), 0.010, CYAN)))
+    p.append(("sensor_tip", ellipsoid(0.03, 0.03, 0.03, AMBER, subdiv=2, at=(0, 0, a * 1.34))))
+
+    # 4 — aft: caudal seed organ, petalled radiator bloom, branching mining root, anchor
+    p.append(("caudal_seed_organ", ellipsoid(0.16, 0.16, 0.24, AMBER, at=(0, 0, -a * 1.02))))
+    for i in range(8):
+        th = i * np.pi / 4
+        phi = np.deg2rad(58)
+        d = [np.sin(phi) * np.cos(th), np.sin(phi) * np.sin(th), -np.cos(phi)]
+        petal = creation.cone(radius=0.11, height=0.55, sections=10)
+        petal.apply_scale([1.0, 0.32, 1.0])       # flatten a cone into a vane
+        p.append((f"radiator_petal_{i}", orient(_col(petal, WARM), d, (0, 0, -a * 1.02))))
+    hub = (0, 0, -a * 1.32)
+    anchor = (0, 0, -a * 1.60)
+    p.append(("mining_root", seg((0, 0, -a * 1.10), hub, 0.055, CYAN)))
+    p.append(("resource_anchor", ellipsoid(0.20, 0.20, 0.17, ROCK, at=anchor)))
+    for i in range(3):
+        th = i * 2 * np.pi / 3
+        tip = (0.10 * np.cos(th), 0.10 * np.sin(th), anchor[2] + 0.06)
+        p.append((f"rootlet_{i}", seg(hub, tip, 0.02, CYAN)))
     return scene(p)
 
 
