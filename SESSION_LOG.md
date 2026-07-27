@@ -2,6 +2,25 @@
 
 Running progress log. Newest first.
 
+## 2026-07-26 — Nervous System (13th document): sensing, cognition, comms
+
+- **New 13th document — Nervous System** (`gestalt-nervous.html`): how a grown
+  vessel senses, thinks, controls and communicates. Its thesis: a km-scale ship
+  needs both a **grown "wet" nervous system** (real sensory organs, bioelectric
+  signalling, grown neural computation — DishBrain-style) for sensing,
+  homeostasis, reflex and learning, and a **fabricated "dry" silicon core** (fast
+  deterministic compute, navigation, comms, the human digital interface) —
+  because biology can't grow a fast transistor or a radio, and silicon can't
+  self-repair or sense. The two are joined by a real bio-electronic **interface**
+  (OECTs, microelectrode arrays, electrogenetics, optogenetics, conductive
+  nanowires). It is, honestly, a cyborg. Covers senses, the signalling
+  speed-limit, the four kinds of organic computation, the silicon side & the
+  interface, communication (crew + fleet), and a worked docking control loop.
+  Three house-style figures (control stack, bio-electronic interface, docking
+  loop), 14 citations. Registered in the catalog (slug `nervous`); canonical nav
+  regenerated to **thirteen** entries across every document; all thirteen
+  artifacts republished.
+
 ## 2026-07-26 — Python simulations of the designs' major systems (animated 3D)
 
 - **New `sim/` package**: dependency-light Python (numpy + matplotlib) that

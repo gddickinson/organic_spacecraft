@@ -5,7 +5,7 @@ The top-level map of this project. Read this before opening source files.
 ## What this project is
 
 **GESTALT** is a conceptual design program for living, grown-from-a-seed
-spacecraft and habitats. The deliverables are twelve self-contained, cross-linked
+spacecraft and habitats. The deliverables are thirteen self-contained, cross-linked
 HTML documents (published as web artifacts) plus a small Python viewer for
 reading them offline. Every quantitative claim in the documents is grounded in
 Python calculations and cited to real published sources.
@@ -29,6 +29,7 @@ organic_spacecraft/
 │   ├── gestalt-compendium.html Engineering & Biology Compendium (deep reference)
 │   ├── gestalt-cells.html      Cell Atlas (all ~42 cell types, cytology reference)
 │   ├── gestalt-metabolism.html Metabolism (ingest/digest/metabolise/excrete + budget)
+│   ├── gestalt-nervous.html    Nervous System (sensing, computation, silicon interface, comms)
 │   ├── gestalt-earthprogram.html  Earth Program (ground R&D roadmap)
 │   └── gestalt-3d.html         Interactive 3D models (self-contained WebGL-free engine)
 ├── assets/figures/       ← figures for the README, rendered from the docs' own SVGs

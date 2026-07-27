@@ -79,6 +79,14 @@ DOCS = [
         "light, digests them into building blocks, metabolises those into "
         "tissue, and excretes little but heat and spoil, with a mass-and-energy "
         "budget showing it eats the rock to grow, not the sunlight."),
+    Doc("nervous", "gestalt-nervous.html",
+        "d17aa4f1-9546-40a1-ad63-425e94099adc",
+        "Nervous System", "Cognition & control", "🧠",
+        "How a grown vessel senses, thinks, controls and communicates — a hybrid "
+        "'cyborg' of a grown wet nervous system (real sensory organs, bioelectric "
+        "signalling, grown neural computation), a fabricated silicon core (fast "
+        "compute, comms, the human interface), and the bio-electronic interface "
+        "that binds them."),
     Doc("earth", "gestalt-earthprogram.html",
         "bc243583-d959-4284-841a-70ab529d40ed",
         "Earth Program", "R&D roadmap", "🌱",

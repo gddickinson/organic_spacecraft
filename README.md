@@ -67,6 +67,7 @@ flowchart TD
   SCI["🧬 Compendium — the science<br/>that must be true"] -. underwrites .-> GRAVID
   CELLS["🔬 Cell Atlas — the ~42<br/>cell types it's built from"] -. underwrites .-> GRAVID
   METAB["🍽️ Metabolism — how it eats<br/>a rock and excretes heat"] -. underwrites .-> GRAVID
+  NERV["🧠 Nervous System — how it<br/>senses, thinks and talks"] -. underwrites .-> GRAVID
   EARTH["🌿 Earth Program — how we'd<br/>find out, on Earth"] -. gates .-> SCI
   NAVIS --> V3D["🛸 3D Models<br/>spin them, slice them open"]
   ARCA --> V3D
@@ -75,7 +76,7 @@ flowchart TD
 
 ---
 
-## The twelve documents
+## The thirteen documents
 
 Each document is a self-contained web page and shares one navigation bar linking the whole
 set. **Open** goes to the live, interactive document; **Source** is the HTML in this repo.
@@ -92,8 +93,9 @@ set. **Open** goes to the live, interactive document; **Source** is the HTML in 
 | 8 | **Compendium** | The deep technical reference: organisms, circuits, materials, metabolism, defenses, biomining — 20+ citations. | [Open](https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075) · [Source](docs/gestalt-compendium.html) |
 | 9 | **Cell Atlas** | Cytology of a grown vessel: all ~42 cell types across 8 classes — roles, survival, coordination, distribution, life-cycle, nutrition, and how they'd be engineered, grown & tested. | [Open](https://claude.ai/code/artifact/c6dd460f-700a-4b98-820a-0f75b0b1d973) · [Source](docs/gestalt-cells.html) |
 | 10 | **Metabolism** | How the vessel ingests rock & light, digests, metabolises and excretes — with a mass-and-energy budget showing it *eats the rock* to grow, and photosynthesises only to breathe. | [Open](https://claude.ai/code/artifact/30f6d8bd-2623-4369-8709-9fa6d7c47444) · [Source](docs/gestalt-metabolism.html) |
-| 11 | **Earth Program** | The ground R&D roadmap: TRL ladder, six work packages, a 40-year Gantt with budget, gated go/no-go. | [Open](https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed) · [Source](docs/gestalt-earthprogram.html) |
-| 12 | **3D Models** | Interactive, rotatable/zoomable solid models of all seven main forms, with detailed cutaway interiors. | [Open](https://claude.ai/code/artifact/1c6f18ca-eeda-4d83-bd97-fd9c1622823d) · [Source](docs/gestalt-3d.html) |
+| 11 | **Nervous System** | How it senses, thinks, controls and communicates — a hybrid "cyborg" of a grown wet nervous system, grown neural computation, and a fabricated silicon core joined by a bio-electronic interface. | [Open](https://claude.ai/code/artifact/d17aa4f1-9546-40a1-ad63-425e94099adc) · [Source](docs/gestalt-nervous.html) |
+| 12 | **Earth Program** | The ground R&D roadmap: TRL ladder, six work packages, a 40-year Gantt with budget, gated go/no-go. | [Open](https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed) · [Source](docs/gestalt-earthprogram.html) |
+| 13 | **3D Models** | Interactive, rotatable/zoomable solid models of all seven main forms, with detailed cutaway interiors. | [Open](https://claude.ai/code/artifact/1c6f18ca-eeda-4d83-bd97-fd9c1622823d) · [Source](docs/gestalt-3d.html) |
 
 ---
 
@@ -224,6 +226,27 @@ physiology: *rock and light in; tissue built; heat and spoil out; everything els
 
 ---
 
+## How it thinks and talks
+
+The [Nervous System](docs/gestalt-nervous.html) document tackles the hardest control question: a
+km-scale ship must sense, decide, act and communicate in real time — but biology is superb at
+sensing and homeostasis and *slow* at arithmetic, while silicon is the reverse. So a GESTALT vessel
+is, honestly, a **cyborg** — it pushes each job to the substrate that's good at it:
+
+![The control stack: cellular reflexes, the autonomic net and a grown neural brain (wet), a fabricated silicon core (dry), joined by a bio-electronic interface](assets/figures/nerv-stack.png)
+
+*The control stack. Reflexes, homeostasis and a grown neural brain stay **wet** (grown, parallel, self-repairing — real sensory organs, bioelectric signalling, and neural tissue that learns); fast deterministic compute, navigation and radio stay **dry** (a fabricated silicon core, carried like a stone in a fruit); and the two meet at a real, if immature, **bio-electronic interface**.*
+
+It answers the specifics: the senses it can grow (opsin eyes, mechano/chemo/**magneto** receptors);
+how signals travel (real bioelectric signalling in plants, fungi and bacteria) and why latency forces
+the hybrid; whether it can **grow computation** (yes — grown neurons already learned to play Pong, plus
+gene-circuit logic and reservoir computing) and what that's good and bad at; how it interfaces with
+**silicon** (OECTs, microelectrode arrays, electrogenetics, optogenetics, conductive nanowires — you
+can't grow a CPU, so it carries one); and how it talks to the crew (light, scent, sound, and digital)
+and to other craft (grown antennas + electronic transceivers).
+
+---
+
 ## Building it on Earth
 
 None of this is worth anything if it cannot be tested. The [Earth Program](docs/gestalt-earthprogram.html)
@@ -289,8 +312,9 @@ Compendium's canonical-parameter table.
 | Cancer control | **7 layers · ~10¹³× tumour-lineage suppression** | Compendium |
 | Cells in one hull | **~10¹⁹ cells · ~42 cell types across 8 classes** | Cell Atlas |
 | Feeding | **mines ~100 t/day rock → 13 t/day tissue (~9:1); photosynthesis only breathes** | Metabolism |
+| Mind | **two brains: a grown wet nervous system + a fabricated silicon core** | Nervous System |
 | Ground program | **5 phases · 6 work packages · ~40 yr · ~$30–40 B** | Earth Program |
-| This documentation | **12 documents · ~140 cited references** | — |
+| This documentation | **13 documents · ~154 cited references** | — |
 
 ---
 
@@ -340,7 +364,7 @@ organic_spacecraft/
 ├── INTERFACE.md           ← navigation map (read before the source)
 ├── SESSION_LOG.md         ← running progress log
 ├── deepen-roadmap.md      ← the design-loop state + round-by-round history
-├── docs/                  ← the twelve published documents (HTML fragments)
+├── docs/                  ← the thirteen published documents (HTML fragments)
 ├── assets/figures/        ← figures extracted from the documents (this README)
 └── viewer/                ← zero-dependency local web viewer (stdlib only)
     ├── catalog.py         document registry (source of truth)

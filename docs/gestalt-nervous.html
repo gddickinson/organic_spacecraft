@@ -1,0 +1,400 @@
+<style>
+  :root{
+    --ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;
+    --line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);
+    --chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;
+    --chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);
+    --sheet:#0b1714;
+    --font-display:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;
+    --font-body:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;
+    --maxw:1180px;--spine:70ch;
+  }
+  @media (prefers-color-scheme:light){:root{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}}
+  :root[data-theme="dark"]{--ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;--line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);--chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;--chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);--sheet:#0b1714}
+  :root[data-theme="light"]{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}
+
+  *{box-sizing:border-box}body{margin:0}
+  .page{background:radial-gradient(1100px 640px at 82% -6%,var(--lumen-soft),transparent 60%),radial-gradient(900px 520px at 6% 3%,var(--chloro-soft),transparent 55%),var(--ground);color:var(--ink);font-family:var(--font-body);font-size:16.5px;line-height:1.66;letter-spacing:.005em;overflow-x:hidden;min-height:100vh}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  h1,h2,h3,h4{font-family:var(--font-display);font-weight:600;text-wrap:balance;line-height:1.12;margin:0}
+  p{margin:0 0 1.05em}strong{color:var(--ink);font-weight:600}em{color:var(--ink)}
+  a{color:var(--lumen)}
+  .mono{font-family:var(--font-mono)}
+  .chem{font-family:var(--font-mono);font-size:.92em;color:var(--lumen);background:var(--lumen-soft);padding:.06em .4em;border-radius:4px;white-space:nowrap}
+
+  .prog-nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;padding:16px 0 4px}
+  .prog-nav .pn-brand{color:var(--chloro);letter-spacing:.16em;text-transform:uppercase}
+  .prog-nav a{color:var(--ink-3);text-decoration:none;padding:3px 10px;border:1px solid var(--line);border-radius:999px;transition:color .2s,border-color .2s}
+  .prog-nav a:hover{color:var(--ink);border-color:var(--line-2)}
+  .prog-nav a.current{color:var(--lumen);border-color:var(--lumen)}
+
+  header.mast{padding:34px 0 30px;border-bottom:1px solid var(--line-2)}
+  .mast .kick{font-family:var(--font-mono);font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:var(--chloro);margin:0 0 16px}
+  .mast h1{font-size:clamp(2.2rem,6vw,4rem);letter-spacing:-.015em;margin:0 0 8px}
+  .mast h1 .s{color:var(--lumen)}
+  .mast .sub{font-family:var(--font-display);font-style:italic;font-size:clamp(1.05rem,2.3vw,1.4rem);color:var(--ink-2);max-width:62ch}
+
+  .toc{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:26px 0 0}
+  .toc a{display:flex;gap:10px;align-items:baseline;text-decoration:none;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--sheet);transition:border-color .2s}
+  .toc a:hover{border-color:var(--line-2)}
+  .toc .n{font-family:var(--font-mono);font-size:12px;color:var(--chloro)}
+  .toc .t{font-size:14px}
+
+  section.doc{padding:48px 0;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:center;gap:.7em;margin:0 0 16px}
+  .eyebrow .num{color:var(--chloro)}.eyebrow .rule{flex:1;height:1px;background:var(--line)}
+  section.doc h2{font-size:clamp(1.7rem,4vw,2.5rem);letter-spacing:-.01em;margin-bottom:14px}
+  section.doc h3{font-size:1.28rem;margin:30px 0 10px;color:var(--ink)}
+  section.doc h4{font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:22px 0 8px}
+  .flow{max-width:var(--spine)}
+  .flow p,.lead{max-width:var(--spine)}
+  .lead{font-size:1.12em;color:var(--ink-2);margin-bottom:24px}
+
+  .callout{border-left:2px solid var(--chloro);background:var(--chloro-soft);padding:14px 18px;border-radius:0 10px 10px 0;margin:22px 0;max-width:var(--spine)}
+  .callout.warm{border-color:var(--osteo);background:var(--osteo-soft)}
+  .callout.cool{border-color:var(--lumen);background:var(--lumen-soft)}
+  .callout p{margin:0}.callout .lab{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:6px}
+
+  .tbl-wrap{overflow-x:auto;margin:18px 0;border:1px solid var(--line);border-radius:10px}
+  .fig{border:1px solid var(--line-2);border-radius:10px;background:var(--ground-2);padding:10px;margin:16px 0;overflow-x:auto}
+  .fig svg{display:block;width:100%;min-width:720px;height:auto}
+  .figcap{font-size:.82em;color:var(--ink-3);margin:8px 2px 0;line-height:1.5}
+  table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+  thead th{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:600;text-align:left;padding:12px 14px;background:var(--sheet);border-bottom:1px solid var(--line-2)}
+  td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+  tbody tr:last-child td{border-bottom:none}
+  td:first-child{color:var(--ink);font-family:var(--font-display);font-size:14.5px}
+  td .r{font-family:var(--font-mono);font-size:11px;color:var(--chloro)}
+  td .rc{font-family:var(--font-mono);font-size:11px;color:var(--lumen)}
+  td .rw{font-family:var(--font-mono);font-size:11px;color:var(--osteo)}
+
+  .pathway{font-family:var(--font-mono);font-size:12.5px;line-height:1.9;color:var(--ink-2);background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:16px 0;overflow-x:auto}
+  .pathway .step{color:var(--ink)}.pathway .en{color:var(--lumen)}.pathway b{color:var(--osteo)}
+
+  .gap{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;color:var(--osteo);display:inline-block;border:1px solid var(--osteo);border-radius:6px;padding:1px 7px;margin-left:4px}
+  sup.cite{font-size:.62em;line-height:0;vertical-align:super;font-family:var(--font-mono);font-weight:600}
+  sup.cite a{color:var(--lumen);text-decoration:none;padding:0 1px}
+  sup.cite a:hover{text-decoration:underline}
+  .refs{margin-top:18px;border-top:1px solid var(--line);padding-top:18px}
+  .refs h3{font-family:var(--font-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--osteo);margin-bottom:14px}
+  .refs ol{margin:0;padding-left:2.4em;display:grid;gap:8px}
+  .refs li{font-size:.82em;line-height:1.5;color:var(--ink-2);max-width:80ch}
+  .refs li a{color:var(--lumen);text-decoration:none}
+  .refs .rt{color:var(--ink-3);font-style:italic}
+  .refs-note{font-size:.8em;color:var(--ink-3);margin:0 0 14px;max-width:78ch}
+  .real{color:var(--chloro)}
+
+  .notes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:8px}
+  .note{border-left:2px solid var(--line-2);padding:2px 0 2px 16px}
+  .note .nh{font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:7px}
+  .note p{font-size:13px;color:var(--ink-2);margin:0;line-height:1.55}
+  .note.grn{border-color:var(--chloro)}.note.warm{border-color:var(--osteo)}.note.cool{border-color:var(--lumen)}
+
+  footer{padding:34px 0 66px}
+  .fbar{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);border-top:1px solid var(--line);padding-top:20px}
+  .fbar .sep{color:var(--line-2)}
+  .reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
+  ::selection{background:var(--lumen);color:var(--ground)}
+  :focus-visible{outline:2px solid var(--lumen);outline-offset:3px;border-radius:3px}
+</style>
+
+<div class="page"><div class="wrap">
+
+  <nav class="prog-nav" aria-label="GESTALT program documents">
+    <span class="pn-brand">◈ GESTALT Program</span>
+    <a href="https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1">Design Dossier</a>
+    <a href="https://claude.ai/code/artifact/bd2c2c98-84cf-42c9-91ea-f0ec1c749fc5">Starship</a>
+    <a href="https://claude.ai/code/artifact/9b90d7e5-2a71-426a-b2bf-d3a96b32a82e">Habitat</a>
+    <a href="https://claude.ai/code/artifact/94531439-d04d-480e-9d04-bad6fcdacd9a">LICHEN</a>
+    <a href="https://claude.ai/code/artifact/2433fa54-e582-4194-8245-d63acee8fb85">GRAVID</a>
+    <a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet Registry</a>
+    <a href="https://claude.ai/code/artifact/7ca9c965-1932-4c5a-b0f1-a99e9febae58">Class Reference</a>
+    <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075">Compendium</a>
+    <a href="https://claude.ai/code/artifact/c6dd460f-700a-4b98-820a-0f75b0b1d973">Cell Atlas</a>
+    <a href="https://claude.ai/code/artifact/30f6d8bd-2623-4369-8709-9fa6d7c47444">Metabolism</a>
+    <a href="#" class="current" aria-current="page">Nervous System</a>
+    <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed">Earth Program</a>
+    <a href="https://claude.ai/code/artifact/1c6f18ca-eeda-4d83-bd97-fd9c1622823d">3D Models</a>
+  </nav>
+
+  <header class="mast">
+    <p class="kick">Nervous System · Cognition, Control &amp; Comms</p>
+    <h1>The Wet Brain and the <span class="s">Dry</span></h1>
+    <p class="sub">A grown ship must sense, decide, act, and talk — across kilometres, in real time, with people and machines. Biology is brilliant at sensing and staying alive but slow at arithmetic; silicon is the reverse. So a GESTALT vessel is, honestly, a <em>cyborg</em>: a grown nervous system fused to a fabricated computer.</p>
+    <nav class="toc" aria-label="Contents">
+      <a href="#arch"><span class="n">01</span><span class="t">The architecture — a layered, hybrid mind</span></a>
+      <a href="#senses"><span class="n">02</span><span class="t">Senses — what the ship can feel</span></a>
+      <a href="#signals"><span class="n">03</span><span class="t">Signalling — and its speed limit</span></a>
+      <a href="#wet"><span class="n">04</span><span class="t">Growing computation — the wet brain</span></a>
+      <a href="#dry"><span class="n">05</span><span class="t">Silicon, and the bio-electronic interface</span></a>
+      <a href="#comms"><span class="n">06</span><span class="t">Talking — to the crew and to other craft</span></a>
+      <a href="#loop"><span class="n">07</span><span class="t">A worked loop — coming in to dock</span></a>
+      <a href="#reality"><span class="n">08</span><span class="t">What is real, and what is a bet</span></a>
+    </nav>
+  </header>
+
+  <p class="lead" style="margin-top:30px">The other documents grow a body. This one asks how that body <em>knows</em> anything and <em>acts</em> on it. The honest answer refuses a single clean substrate: growing a fast, precise, radio-fluent flight computer out of cells is not on the cards, and running a whole living ship on transistors throws away everything biology is good at. GESTALT therefore splits the mind by what each material does best — a <strong>grown nervous system</strong> for sensing, homeostasis, reflex and learning, and a <strong>fabricated silicon core</strong> for fast deterministic control, communications and the human digital world — joined by a real, if immature, <strong>bio-electronic interface</strong>. Established science is marked <span class="real">green</span>; the integration is marked <span class="gap">gap</span>.</p>
+
+  <!-- ===== 01 ARCH ===== -->
+  <section class="doc reveal" id="arch">
+    <p class="eyebrow"><span class="num">01</span> The architecture <span class="rule"></span></p>
+    <h2>A layered, hybrid mind — not a brain in a jar</h2>
+    <div class="flow">
+      <p>There is no central brain. Coordination is spread across four layers, each on the substrate and timescale that suits its job — fast local reflexes at the bottom, slow global homeostasis and learning in the middle, and a dry silicon core at the top for everything biology is bad at. Each layer is as autonomous as it can be, so a severed or slow link never leaves the ship helpless.</p>
+
+      <div class="fig" role="img" aria-label="A four-layer control stack: cellular reflexes (bioelectric, milliseconds, local); the autonomic net (bioelectric and chemical, seconds, body-wide homeostasis); the grown neural brain (neural tissue, adaptive control and learning); and the silicon core (fast deterministic compute, comms and the human interface), joined to the wet layers by a bio-electronic interface.">
+<svg viewBox="0 0 960 372" role="img">
+<text x="18" y="26" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">The control stack — each job on the substrate that suits it</text>
+<rect x="150" y="50" width="750" height="52" rx="9" fill="var(--sheet)" stroke="var(--lumen)"/>
+<text x="166" y="74" font-family="var(--font-display)" font-size="15" fill="var(--lumen)">silicon core</text>
+<text x="166" y="93" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">fabricated · ns</text>
+<text x="884" y="80" text-anchor="end" font-family="var(--font-mono)" font-size="10" fill="var(--ink-2)">fast compute · navigation · comms · human interface</text>
+<rect x="150" y="150" width="750" height="54" rx="9" fill="var(--sheet)" stroke="var(--chloro)"/>
+<text x="166" y="174" font-family="var(--font-display)" font-size="15" fill="var(--chloro)">grown neural brain</text>
+<text x="166" y="193" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">neural tissue</text>
+<text x="884" y="181" text-anchor="end" font-family="var(--font-mono)" font-size="10" fill="var(--ink-2)">adaptive control · pattern recognition · learning</text>
+<rect x="150" y="212" width="750" height="54" rx="9" fill="var(--sheet)" stroke="var(--chloro)"/>
+<text x="166" y="236" font-family="var(--font-display)" font-size="15" fill="var(--chloro)">autonomic net</text>
+<text x="166" y="255" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">bioelectric + chemical · s–min</text>
+<text x="884" y="243" text-anchor="end" font-family="var(--font-mono)" font-size="10" fill="var(--ink-2)">body-wide homeostasis: grow, heal, throttle</text>
+<rect x="150" y="274" width="750" height="54" rx="9" fill="var(--sheet)" stroke="var(--chloro)"/>
+<text x="166" y="298" font-family="var(--font-display)" font-size="15" fill="var(--chloro)">cellular reflexes</text>
+<text x="166" y="317" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">bioelectric · ms · local</text>
+<text x="884" y="305" text-anchor="end" font-family="var(--font-mono)" font-size="10" fill="var(--ink-2)">seal a breach · grip · flinch</text>
+<rect x="150" y="112" width="750" height="30" rx="7" fill="var(--osteo-soft)" stroke="var(--osteo)" stroke-dasharray="5 3"/>
+<text x="525" y="131" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--osteo)">◄ bio-electronic interface — ions ↔ electrons (§05) ►</text>
+<text x="40" y="80" font-family="var(--font-mono)" font-size="10" fill="var(--lumen)">DRY</text>
+<text x="40" y="250" font-family="var(--font-mono)" font-size="10" fill="var(--chloro)">WET</text>
+<line x1="70" y1="60" x2="70" y2="320" stroke="var(--line-2)"/>
+<text x="126" y="360" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">each layer runs autonomously if the links above go quiet</text>
+</svg>
+      </div>
+      <p class="figcap">The control stack. Reflexes and homeostasis stay <span style="color:var(--chloro)">wet</span> (grown, parallel, self-repairing); fast deterministic compute, navigation and radio stay <span style="color:var(--lumen)">dry</span> (fabricated silicon); the two meet at a <span style="color:var(--osteo)">bio-electronic interface</span>. The design rule: push every task to the layer that is good at it, and let each layer run on its own if the others fall silent.</p>
+    </div>
+  </section>
+
+  <!-- ===== 02 SENSES ===== -->
+  <section class="doc reveal" id="senses">
+    <p class="eyebrow"><span class="num">02</span> Senses <span class="rule"></span></p>
+    <h2>What the ship can feel</h2>
+    <div class="flow">
+      <p>Sensing is the one job biology already does superbly — evolution has built eyes, ears, noses and magnetic compasses far beyond our sensors. A grown vessel can grow real sense organs, distributed as a skin of receptors and concentrated into imaging "eyes" where it needs to look.</p>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Sense</th><th>Organ &amp; how it works</th><th>What it is for</th><th>Real basis</th></tr></thead>
+        <tbody>
+          <tr><td>Sight <span class="rc">opsin eyes</span></td><td>Retinas of photoreceptor cells behind grown crystallin lenses — the same optics as the light-guides that feed the intima.<sup class="cite"><a href="#nref-1">[1]</a></sup></td><td>Navigation, docking, star-tracking, watching the crew &amp; the outside</td><td>Opsins; lens crystallins</td></tr>
+          <tr><td>Touch &amp; hearing <span class="rc">mechano-</span></td><td>Mechanosensitive-channel cells reading strain, pressure, contact and vibration (sound is vibration).<sup class="cite"><a href="#nref-2">[2]</a></sup></td><td>Breach detection, docking contact, structural load, "hearing"</td><td>Piezo/MscL mechanochannels</td></tr>
+          <tr><td>Smell &amp; taste <span class="r">chemo-</span></td><td>Chemoreceptors reading O₂/CO₂/pH, nutrients, and the chemistry of ore and air.</td><td>Metabolism control, sniffing out rich ore, air-quality</td><td>Chemoreceptor cells</td></tr>
+          <tr><td>Magnetic sense <span class="rw">magneto-</span></td><td>Magnetite (Fe₃O₄) magnetosomes in aligned chains — a built-in compass and field sensor (the VESPER organ).<sup class="cite"><a href="#nref-3">[3]</a></sup></td><td>Attitude, navigation, sensing planetary &amp; solar fields</td><td>Magnetotactic bacteria</td></tr>
+          <tr><td>Radiation sense <span class="rw">dosimetry</span></td><td>DNA-damage and melanin-response signalling act as a live dosimeter — the ship <em>feels</em> a solar storm.</td><td>Storm warning, shelter &amp; repair triggering</td><td>DNA-damage response</td></tr>
+          <tr><td>Proprioception <span class="r">self-sense</span></td><td>Stretch receptors through the structure report the shape and motion of the ship's own body.</td><td>Knowing where its parts are — essential for control</td><td>Proprioceptor analogue</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>All of this feeds the wet layers directly (as bioelectric and chemical signals) and, through the interface (§05), the silicon core as digital data.</p>
+  </section>
+
+  <!-- ===== 03 SIGNALS ===== -->
+  <section class="doc reveal" id="signals">
+    <p class="eyebrow"><span class="num">03</span> Signalling <span class="rule"></span></p>
+    <h2>How a signal travels — and why speed is the catch</h2>
+    <div class="flow">
+      <p>Biology already signals electrically — this is not a metaphor. Plants fire action potentials; fungi conduct electrical spikes along their mycelium; bacterial biofilms coordinate with travelling waves of potassium ion-channel signalling; and "cable bacteria" conduct electrons along centimetre-long conductive fibres.<sup class="cite"><a href="#nref-4">[4]</a></sup><sup class="cite"><a href="#nref-5">[5]</a></sup> A grown ship carries three signalling systems layered by speed:</p>
+      <div class="notes-grid">
+        <div class="note cool"><div class="nh">Fast · bioelectric</div><p>Action-potential-analogues along grown nerve-tracts and the mycelial net carry reflexes: breach → seal, contact → grip. Milliseconds to seconds, but <em>local</em>.</p></div>
+        <div class="note grn"><div class="nh">Slow · chemical &amp; hormonal</div><p>Broadcast molecules through the <a href="https://claude.ai/code/artifact/c6dd460f-700a-4b98-820a-0f75b0b1d973#vascular">vasculature</a> set body-wide state — grow here, throttle there. Minutes to hours; global.</p></div>
+        <div class="note warm"><div class="nh">The catch · latency</div><p>Nerve conduction tops out around tens of m/s; plant/fungal signalling is far slower. Across a 10 km ARCA that is <em>seconds to minutes</em> end-to-end — far too slow for fast global control.</p></div>
+      </div>
+      <p>This latency is the whole reason the architecture is layered and hybrid: anything needing millisecond, ship-wide coordination — attitude, engine timing — cannot wait for a wet signal to cross kilometres, so it lives on the <strong>fast silicon bus</strong> (§05) or is handled by <em>local autonomy</em>. The wet nervous system governs what is slow by nature: growth, healing, metabolism, mood.</p>
+    </div>
+  </section>
+
+  <!-- ===== 04 WET ===== -->
+  <section class="doc reveal" id="wet">
+    <p class="eyebrow"><span class="num">04</span> Growing computation <span class="rule"></span></p>
+    <h2>Can it grow a brain? Yes — a certain kind</h2>
+    <div class="flow">
+      <p>Grown computation is real, and it is genuinely good at some things and hopeless at others. GESTALT uses four kinds, each already demonstrated in the lab:</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Kind of organic computer</th><th>What it is</th><th>Real basis</th></tr></thead>
+          <tbody>
+            <tr><td>Neural tissue</td><td>Grown neurons wire into trainable networks — living neural nets that learn. Cultured cortical neurons on an electrode array learned to play <em>Pong</em>.<sup class="cite"><a href="#nref-6">[6]</a></sup></td><td>DishBrain; brain organoids</td></tr>
+            <tr><td>Genetic logic</td><td>Cells run Boolean logic and memory in gene circuits — AND/OR gates, toggle switches, counters. Slow, but astronomically parallel across 10¹⁹ cells.</td><td>Synthetic gene circuits<sup class="cite"><a href="#nref-7">[7]</a></sup></td></tr>
+            <tr><td>Reservoir / physical</td><td>The vascular or mycelial network itself is a dynamical system whose response can be read out as computation ("reservoir computing"; fungal computing).<sup class="cite"><a href="#nref-8">[8]</a></sup></td><td>Reservoir computing; fungal computing</td></tr>
+            <tr><td>Bioelectric / morphogenetic</td><td>Cells use bioelectric networks to store and compute <em>anatomical</em> goals — the substrate of growth &amp; repair decisions.<sup class="cite"><a href="#nref-9">[9]</a></sup></td><td>Levin bioelectric pattern control</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="notes-grid">
+        <div class="note grn"><div class="nh">What the wet brain is great at</div><p>Massively parallel pattern recognition, adaptive &amp; homeostatic control, learning, self-repair, radiation tolerance (it heals), and extreme energy efficiency (a brain runs on ~20 W).</p></div>
+        <div class="note warm"><div class="nh">What it is bad at</div><p>Speed, precision, deterministic timing, high-bandwidth I/O, and exact arithmetic. You would not fly a docking burn or run a radio link on it. <span class="gap">gap</span></p></div>
+      </div>
+      <p>So the wet brain is the ship's <em>intuition and physiology</em> — the thing that keeps it alive, recognises a face or a fault, and learns a crew's habits — not its flight computer.</p>
+    </div>
+  </section>
+
+  <!-- ===== 05 DRY ===== -->
+  <section class="doc reveal" id="dry">
+    <p class="eyebrow"><span class="num">05</span> Silicon &amp; the interface <span class="rule"></span></p>
+    <h2>The dry brain, and how to wire it to the wet</h2>
+    <div class="flow">
+      <p>Some jobs simply demand silicon: a docking burn timed to the millisecond, navigation and clocks, cryptography, a megabit radio link, and — crucially — talking to the <em>digital</em> systems humans and other craft already use. Biology cannot do these well, and it cannot grow a modern transistor: high-performance logic needs a fab. (Cells <em>can</em> biomineralise semiconductors and template quantum dots and magnetite,<sup class="cite"><a href="#nref-10">[10]</a></sup> but not a CPU.) So the vessel carries a <strong>fabricated silicon / neuromorphic core</strong> — an inorganic payload planted with the seed, like a stone in a fruit — and grows its tissue around and into it.</p>
+
+      <p>The hard, interesting part is the <strong>bio-electronic interface</strong>: biology speaks in <em>ions and molecules</em>, electronics in <em>electrons and voltages</em>. Transducing between them is a real and active field.</p>
+
+      <div class="fig" role="img" aria-label="The bio-electronic interface: ionic and chemical signals on the biological side are transduced to electronic signals on the silicon side by organic electrochemical transistors and conducting polymers, microelectrode arrays, electrogenetics, optogenetics with bioluminescence and photodetectors, and genetically encoded conductive nanowires.">
+<svg viewBox="0 0 960 380" role="img">
+<text x="18" y="26" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">The bio-electronic interface — transducing ions ↔ electrons</text>
+<rect x="40" y="60" width="180" height="300" rx="12" fill="var(--chloro-soft)" stroke="var(--chloro)"/>
+<text x="130" y="92" text-anchor="middle" font-family="var(--font-display)" font-size="15" fill="var(--chloro)">BIOLOGY</text>
+<text x="130" y="112" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">ions · molecules</text>
+<rect x="740" y="60" width="180" height="300" rx="12" fill="var(--lumen-soft)" stroke="var(--lumen)"/>
+<text x="830" y="92" text-anchor="middle" font-family="var(--font-display)" font-size="15" fill="var(--lumen)">SILICON</text>
+<text x="830" y="112" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">electrons · volts</text>
+<rect x="360" y="142" width="240" height="30" rx="7" fill="var(--sheet)" stroke="var(--osteo)"/>
+<text x="480" y="161" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--osteo)">OECT / conducting polymer</text>
+<line x1="356" y1="157" x2="230" y2="157" stroke="var(--chloro)" stroke-opacity=".65" stroke-width="1.5"/><path d="M230 157 L238 153 L238 161 Z" fill="var(--chloro)" fill-opacity=".85"/><path d="M356 157 L348 161 L348 153 Z" fill="var(--chloro)" fill-opacity=".85"/>
+<line x1="604" y1="157" x2="730" y2="157" stroke="var(--lumen)" stroke-opacity=".65" stroke-width="1.5"/><path d="M730 157 L722 161 L722 153 Z" fill="var(--lumen)" fill-opacity=".85"/><path d="M604 157 L612 153 L612 161 Z" fill="var(--lumen)" fill-opacity=".85"/>
+<rect x="360" y="192" width="240" height="30" rx="7" fill="var(--sheet)" stroke="var(--osteo)"/>
+<text x="480" y="211" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--osteo)">microelectrode array</text>
+<line x1="356" y1="207" x2="230" y2="207" stroke="var(--chloro)" stroke-opacity=".65" stroke-width="1.5"/><path d="M230 207 L238 203 L238 211 Z" fill="var(--chloro)" fill-opacity=".85"/><path d="M356 207 L348 211 L348 203 Z" fill="var(--chloro)" fill-opacity=".85"/>
+<line x1="604" y1="207" x2="730" y2="207" stroke="var(--lumen)" stroke-opacity=".65" stroke-width="1.5"/><path d="M730 207 L722 211 L722 203 Z" fill="var(--lumen)" fill-opacity=".85"/><path d="M604 207 L612 203 L612 211 Z" fill="var(--lumen)" fill-opacity=".85"/>
+<rect x="360" y="242" width="240" height="30" rx="7" fill="var(--sheet)" stroke="var(--osteo)"/>
+<text x="480" y="261" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--osteo)">electrogenetics</text>
+<line x1="356" y1="257" x2="230" y2="257" stroke="var(--chloro)" stroke-opacity=".65" stroke-width="1.5"/><path d="M230 257 L238 253 L238 261 Z" fill="var(--chloro)" fill-opacity=".85"/><path d="M356 257 L348 261 L348 253 Z" fill="var(--chloro)" fill-opacity=".85"/>
+<line x1="604" y1="257" x2="730" y2="257" stroke="var(--lumen)" stroke-opacity=".65" stroke-width="1.5"/><path d="M730 257 L722 261 L722 253 Z" fill="var(--lumen)" fill-opacity=".85"/><path d="M604 257 L612 253 L612 261 Z" fill="var(--lumen)" fill-opacity=".85"/>
+<rect x="360" y="292" width="240" height="30" rx="7" fill="var(--sheet)" stroke="var(--osteo)"/>
+<text x="480" y="311" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--osteo)">opto: light link</text>
+<line x1="356" y1="307" x2="230" y2="307" stroke="var(--chloro)" stroke-opacity=".65" stroke-width="1.5"/><path d="M230 307 L238 303 L238 311 Z" fill="var(--chloro)" fill-opacity=".85"/><path d="M356 307 L348 311 L348 303 Z" fill="var(--chloro)" fill-opacity=".85"/>
+<line x1="604" y1="307" x2="730" y2="307" stroke="var(--lumen)" stroke-opacity=".65" stroke-width="1.5"/><path d="M730 307 L722 311 L722 303 Z" fill="var(--lumen)" fill-opacity=".85"/><path d="M604 307 L612 303 L612 311 Z" fill="var(--lumen)" fill-opacity=".85"/>
+<rect x="360" y="342" width="240" height="30" rx="7" fill="var(--sheet)" stroke="var(--osteo)"/>
+<text x="480" y="361" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--osteo)">conductive nanowires</text>
+<line x1="356" y1="357" x2="230" y2="357" stroke="var(--chloro)" stroke-opacity=".65" stroke-width="1.5"/><path d="M230 357 L238 353 L238 361 Z" fill="var(--chloro)" fill-opacity=".85"/><path d="M356 357 L348 361 L348 353 Z" fill="var(--chloro)" fill-opacity=".85"/>
+<line x1="604" y1="357" x2="730" y2="357" stroke="var(--lumen)" stroke-opacity=".65" stroke-width="1.5"/><path d="M730 357 L722 361 L722 353 Z" fill="var(--lumen)" fill-opacity=".85"/><path d="M604 357 L612 353 L612 361 Z" fill="var(--lumen)" fill-opacity=".85"/>
+</svg>
+      </div>
+      <p class="figcap">Ions ↔ electrons. Five real transduction routes bridge the wet and dry brains: organic electrochemical transistors &amp; conducting polymers, microelectrode arrays, electrogenetics, opto-genetic/opto-electronic light links, and genetically-encoded conductive nanowires. Each works today at electrode or organoid scale; running them at spacecraft bandwidth &amp; reliability is the frontier.</p>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Interface</th><th>What it does</th><th>Real basis</th></tr></thead>
+          <tbody>
+            <tr><td>OECTs &amp; conducting polymers</td><td>Organic electrochemical transistors (PEDOT:PSS) turn ionic currents into electronic ones and back — the native translator between tissue and chip.</td><td>Organic bioelectronics<sup class="cite"><a href="#nref-11">[11]</a></sup></td></tr>
+            <tr><td>Microelectrode arrays</td><td>Grids of electrodes read and write neural activity directly — how DishBrain is trained.</td><td>MEAs<sup class="cite"><a href="#nref-6">[6]</a></sup></td></tr>
+            <tr><td>Electrogenetics</td><td>Electricity switches gene expression on and off — a voltage the chip sets becomes a biological command.</td><td>Electrogenetic control<sup class="cite"><a href="#nref-12">[12]</a></sup></td></tr>
+            <tr><td>Opto-genetic / opto-electronic</td><td>Light is a clean, galvanically-isolated channel: LEDs drive opsins; grown bioluminescence drives photodetectors.</td><td>Optogenetics<sup class="cite"><a href="#nref-13">[13]</a></sup></td></tr>
+            <tr><td>Conductive nanowires</td><td>Genetically-encoded cytochrome "nanowires" (as in <em>Geobacter</em>/<em>Shewanella</em>) move electrons from cells straight to electrodes.</td><td>Microbial nanowires<sup class="cite"><a href="#nref-14">[14]</a></sup></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout cool"><span class="lab">The honest shape</span><p>The ship <em>grows</em> the sensors, the reflexes, the homeostat and the adaptive brain; it <em>carries and integrates</em> the fast compute and the radios; and the membrane between them — the bio-electronic interface — is exactly where today's science is thin. GESTALT is a cyborg by necessity, not for show.</p></div>
+    </div>
+  </section>
+
+  <!-- ===== 06 COMMS ===== -->
+  <section class="doc reveal" id="comms">
+    <p class="eyebrow"><span class="num">06</span> Communication <span class="rule"></span></p>
+    <h2>Talking — to the crew and to other craft</h2>
+    <div class="flow">
+      <p>Communication splits the same way as everything else: the <em>rich, ambient, human</em> channels can be grown; the <em>fast, long-range, machine</em> channels are electronic.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Channel</th><th>How</th><th>Substrate</th></tr></thead>
+          <tbody>
+            <tr><td>To the crew — ambient</td><td>Bioluminescent displays (light), scent (chemical), and grown resonators (sound) — the ship can glow, signal and "speak". State you can feel without a screen.</td><td><span class="real">grown</span></td></tr>
+            <tr><td>To the crew — digital</td><td>Through the silicon core to ordinary voice, screens and AR — and, further out, direct bioelectric / brain-computer links for a crew that opts in.</td><td>hybrid</td></tr>
+            <tr><td>To other craft &amp; Earth</td><td>High-bandwidth radio &amp; laser links. Biology grows the <em>antenna</em> (magnetosome-based conductive structures, the VESPER organ); the transceiver, modulation, coding &amp; crypto are silicon.</td><td>hybrid</td></tr>
+            <tr><td>Ship-to-fleet protocol</td><td>The dry core speaks standard digital protocols, so a grown ship is fully legible to conventional spacecraft, stations and ground.</td><td><span style="color:var(--lumen)">silicon</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>So a GESTALT vessel can be talked to like a person <em>and</em> queried like a computer: glowing a warning to the crew in the same second it transmits a coded telemetry burst to the fleet.</p>
+    </div>
+  </section>
+
+  <!-- ===== 07 LOOP ===== -->
+  <section class="doc reveal" id="loop">
+    <p class="eyebrow"><span class="num">07</span> A worked loop <span class="rule"></span></p>
+    <h2>Coming in to dock — who does what</h2>
+    <div class="flow">
+      <p>One manoeuvre shows the division of labour end to end: the wet side senses and holds the ship alive, the dry side computes the precise trajectory, and the wet side actuates.</p>
+
+      <div class="fig" role="img" aria-label="A docking control loop: eyes, magnetic sense and proprioception sense the target; the silicon core computes the precise trajectory and timing; commands cross the interface to fire muscles and sphincters through bioelectric reflexes; homeostasis holds pressure and the loop repeats.">
+<svg viewBox="0 0 960 360" role="img">
+<text x="18" y="26" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">Coming in to dock — the sense → compute → act loop</text>
+<rect x="70" y="150" width="190" height="64" rx="9" fill="var(--sheet)" stroke="var(--chloro)"/><text x="165.0" y="172" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--chloro)">SENSE (wet)</text><text x="165.0" y="186" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">eyes · magneto</text><text x="165.0" y="200" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">proprioception</text>
+<rect x="400" y="52" width="200" height="64" rx="9" fill="var(--sheet)" stroke="var(--lumen)"/><text x="500.0" y="81" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--lumen)">COMPUTE (dry)</text><text x="500.0" y="95" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">trajectory &amp; timing</text>
+<rect x="710" y="150" width="190" height="64" rx="9" fill="var(--sheet)" stroke="var(--chloro)"/><text x="805.0" y="172" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--chloro)">ACT (wet)</text><text x="805.0" y="186" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">muscles &amp;</text><text x="805.0" y="200" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">docking sphincters</text>
+<rect x="400" y="250" width="200" height="60" rx="9" fill="var(--sheet)" stroke="var(--chloro)"/><text x="500.0" y="277" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--chloro)">HOMEOSTAT (wet)</text><text x="500.0" y="291" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">hold pressure &amp; air</text>
+<line x1="263" y1="173" x2="393" y2="99" stroke="var(--osteo)" stroke-opacity=".65" stroke-width="1.5"/><path d="M393 99 L388 106 L384 100 Z" fill="var(--osteo)" fill-opacity=".85"/><text x="328" y="132" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">interface</text>
+<line x1="604" y1="96" x2="733" y2="147" stroke="var(--osteo)" stroke-opacity=".65" stroke-width="1.5"/><path d="M733 147 L724 147 L726 141 Z" fill="var(--osteo)" fill-opacity=".85"/><text x="668" y="118" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">interface</text>
+<line x1="801" y1="215" x2="608" y2="273" stroke="var(--chloro)" stroke-opacity=".65" stroke-width="1.5"/><path d="M608 273 L615 267 L617 274 Z" fill="var(--chloro)" fill-opacity=".85"/>
+<line x1="396" y1="278" x2="267" y2="209" stroke="var(--chloro)" stroke-opacity=".65" stroke-width="1.5"/><path d="M267 209 L276 210 L273 216 Z" fill="var(--chloro)" fill-opacity=".85"/><text x="332" y="239" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">loop at kHz</text>
+</svg>
+      </div>
+      <p class="figcap">The sense → compute → act loop of a docking. <span style="color:var(--chloro)">Wet</span> senses and reflexes bracket a <span style="color:var(--lumen)">dry</span> core that does the fast, precise trajectory maths; the <span style="color:var(--osteo)">interface</span> carries commands each way. Nothing here is beyond a single substrate's competence — which is exactly why both are present.</p>
+
+      <div class="pathway">
+        <span class="step">eyes + magneto + proprioception</span> <span class="en">→ interface →</span> <span class="step">silicon core: trajectory &amp; timing</span> <span class="en">→ interface →</span> <b>bioelectric reflex</b>: fire muscles &amp; docking sphincters <span class="en">→</span> <span class="step">homeostat holds pressure</span> <span class="en">→</span> loop at kHz
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 08 REALITY ===== -->
+  <section class="doc reveal" id="reality">
+    <p class="eyebrow"><span class="num">08</span> What is real, and what is a bet <span class="rule"></span></p>
+    <div class="flow">
+      <p>Every <em>component</em> here exists: opsin eyes and mechano/chemo/magneto receptors; bioelectric signalling in plants, fungi and bacteria; neural tissue that learns; gene-circuit logic; OECTs, MEAs, electrogenetics, optogenetics and microbial nanowires; biomineralised semiconductors and magnetosome antennas. That is the <span class="real">green</span>. The bets are in scale, speed and reliability:</p>
+      <div class="notes-grid">
+        <div class="note warm"><div class="nh">Bet 1 · a reliable wet brain</div><p>Scaling grown neural tissue into a large, stable, <em>trainable</em> organ — and keeping it trained and healthy for decades — is far beyond a Pong-playing dish. <span class="gap">gap</span></p></div>
+        <div class="note warm"><div class="nh">Bet 2 · the interface at rate</div><p>The bio-electronic interface works at electrode scale; running it at spacecraft bandwidth and reliability, radiation-hardened, is unproven. <span class="gap">gap</span></p></div>
+        <div class="note warm"><div class="nh">Bet 3 · latency &amp; autonomy</div><p>A km-scale body is latency-limited; making local autonomy add up to coherent whole-ship behaviour is a hard control problem. <span class="gap">gap</span></p></div>
+      </div>
+      <p style="margin-top:20px">The honest thesis: <strong>a GESTALT vessel thinks with two brains.</strong> Grow the one that senses, heals and adapts; fabricate and carry the one that computes and talks; and treat the interface between them as the real frontier — the same reliability wall, in the end, as the <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#wp6">containment</a> and <a href="https://claude.ai/code/artifact/c6dd460f-700a-4b98-820a-0f75b0b1d973#coord">coordination</a> problems the rest of the program keeps running into. It is tested on the ground in the same <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed">Earth Program</a>.</p>
+
+      <div class="refs" id="refs">
+        <h3>References</h3>
+        <p class="refs-note">Representative sources for the claims; each supports a specific mechanism, not the integrated whole.</p>
+        <ol>
+          <li id="nref-1">Opsin phototransduction &amp; lens crystallins — <span class="rt">the molecular basis of biological eyes.</span></li>
+          <li id="nref-2">Piezo &amp; MscL mechanosensitive ion channels — <span class="rt">touch, pressure and hearing at the cell.</span></li>
+          <li id="nref-3">Bazylinski, D.A. &amp; Frankel, R.B. (2004) <span class="rt">"Magnetosome formation in prokaryotes."</span> Nat. Rev. Microbiol.</li>
+          <li id="nref-4">Prindle, A. et al. (2015) <span class="rt">"Ion channels enable electrical communication in bacterial communities."</span> Nature.</li>
+          <li id="nref-5">Pfeffer, C. et al. (2012) <span class="rt">"Filamentous bacteria transport electrons over centimetre distances" (cable bacteria).</span> Nature.</li>
+          <li id="nref-6">Kagan, B.J. et al. (2022) <span class="rt">"In vitro neurons learn and exhibit sentience when embodied in a simulated game-world" (DishBrain).</span> Neuron.</li>
+          <li id="nref-7">Gardner, T.S., Cantor, C.R. &amp; Collins, J.J. (2000) <span class="rt">"Construction of a genetic toggle switch"</span>; synthetic gene logic gates.</li>
+          <li id="nref-8">Tanaka, G. et al. (2019) <span class="rt">"Recent advances in physical reservoir computing"</span>; Adamatzky — fungal computing.</li>
+          <li id="nref-9">Levin, M. (2021) <span class="rt">"Bioelectric signaling: reprogrammable circuits underlying pattern &amp; anatomy."</span> Cell.</li>
+          <li id="nref-10">Biomineralisation of semiconductors &amp; quantum dots — <span class="rt">peptide-templated inorganic nanostructures.</span></li>
+          <li id="nref-11">Rivnay, J. et al. (2018) <span class="rt">"Organic electrochemical transistors" (OECTs, PEDOT:PSS bioelectronics).</span> Nat. Rev. Mater.</li>
+          <li id="nref-12">Weber, W. et al. — <span class="rt">electrogenetics: electronic control of gene expression.</span></li>
+          <li id="nref-13">Boyden, E.S. et al. (2005) <span class="rt">"Millisecond-timescale, genetically targeted optical control of neural activity" (optogenetics).</span> Nat. Neurosci.</li>
+          <li id="nref-14">Reguera, G. et al. (2005) <span class="rt">"Extracellular electron transfer via microbial nanowires" (Geobacter/Shewanella).</span> Nature.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="fbar">
+      <span>◈ GESTALT Program</span><span class="sep">·</span>
+      <span>Nervous System · Cognition, Control &amp; Comms</span><span class="sep">·</span>
+      <span>a wet brain fused to a dry one</span><span class="sep">·</span>
+      <span>grow the senses; carry the compute; bridge them</span>
+    </div>
+  </footer>
+
+</div></div>
+
+<script>
+(function(){
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.08});
+  document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+})();
+</script>
