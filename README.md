@@ -66,6 +66,7 @@ flowchart TD
   GRAVID --> MORE["🛰️ 18 classes<br/>Fleet Registry + Class Reference"]
   SCI["🧬 Compendium — the science<br/>that must be true"] -. underwrites .-> GRAVID
   CELLS["🔬 Cell Atlas — the ~42<br/>cell types it's built from"] -. underwrites .-> GRAVID
+  METAB["🍽️ Metabolism — how it eats<br/>a rock and excretes heat"] -. underwrites .-> GRAVID
   EARTH["🌿 Earth Program — how we'd<br/>find out, on Earth"] -. gates .-> SCI
   NAVIS --> V3D["🛸 3D Models<br/>spin them, slice them open"]
   ARCA --> V3D
@@ -74,7 +75,7 @@ flowchart TD
 
 ---
 
-## The eleven documents
+## The twelve documents
 
 Each document is a self-contained web page and shares one navigation bar linking the whole
 set. **Open** goes to the live, interactive document; **Source** is the HTML in this repo.
@@ -90,8 +91,9 @@ set. **Open** goes to the live, interactive document; **Source** is the HTML in 
 | 7 | **Fleet Class Reference** | A detailed profile of every one of the 18 classes + a comparison table. | [Open](https://claude.ai/code/artifact/7ca9c965-1932-4c5a-b0f1-a99e9febae58) · [Source](docs/gestalt-classref.html) |
 | 8 | **Compendium** | The deep technical reference: organisms, circuits, materials, metabolism, defenses, biomining — 20+ citations. | [Open](https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075) · [Source](docs/gestalt-compendium.html) |
 | 9 | **Cell Atlas** | Cytology of a grown vessel: all ~42 cell types across 8 classes — roles, survival, coordination, distribution, life-cycle, nutrition, and how they'd be engineered, grown & tested. | [Open](https://claude.ai/code/artifact/c6dd460f-700a-4b98-820a-0f75b0b1d973) · [Source](docs/gestalt-cells.html) |
-| 10 | **Earth Program** | The ground R&D roadmap: TRL ladder, six work packages, a 40-year Gantt with budget, gated go/no-go. | [Open](https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed) · [Source](docs/gestalt-earthprogram.html) |
-| 11 | **3D Models** | Interactive, rotatable/zoomable solid models of all seven main forms, with detailed cutaway interiors. | [Open](https://claude.ai/code/artifact/1c6f18ca-eeda-4d83-bd97-fd9c1622823d) · [Source](docs/gestalt-3d.html) |
+| 10 | **Metabolism** | How the vessel ingests rock & light, digests, metabolises and excretes — with a mass-and-energy budget showing it *eats the rock* to grow, and photosynthesises only to breathe. | [Open](https://claude.ai/code/artifact/30f6d8bd-2623-4369-8709-9fa6d7c47444) · [Source](docs/gestalt-metabolism.html) |
+| 11 | **Earth Program** | The ground R&D roadmap: TRL ladder, six work packages, a 40-year Gantt with budget, gated go/no-go. | [Open](https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed) · [Source](docs/gestalt-earthprogram.html) |
+| 12 | **3D Models** | Interactive, rotatable/zoomable solid models of all seven main forms, with detailed cutaway interiors. | [Open](https://claude.ai/code/artifact/1c6f18ca-eeda-4d83-bd97-fd9c1622823d) · [Source](docs/gestalt-3d.html) |
 
 ---
 
@@ -202,6 +204,26 @@ self-maintaining, cancer-proof body.
 
 ---
 
+## How it makes a living
+
+The [Metabolism](docs/gestalt-metabolism.html) document follows nutrition and waste through four
+acts — **ingest, digest, metabolise, excrete** — and turns up the single most counter-intuitive
+fact about grown vessels. A NAVIS grows at ~13 t/day, but photosynthesis on its whole hull can only
+build ~0.45 t/day; matching growth with sunlight would need **29× the hull area**. So the ship does
+*not* photosynthesise its body:
+
+![Energy and area budget — photosynthesis makes 0.45 t/day but growth needs 13; the growth energy comes from the feedstock's organics, not sunlight](assets/figures/metab-energy.png)
+
+*The budget that forces the design. The intima's photosynthesis is a life-support organ that makes the crew's **air**; the **body** is grown by eating the rock — digesting a carbonaceous asteroid's reduced organic carbon (~1.4 MW of chemical energy) and oxidising its minerals. That is why growth is mining-limited, not light-limited.*
+
+The document works this through with diagrams of the two mouths (root and skin), the **mineral gut**
+(bioleaching → separation → refinery → organics → absorption), the two-sap bloodstream, and the four
+waste streams — of which only **heat** truly leaves (the second law), while ~100 t/day of inert
+tailings are re-used as shielding and carbon/water/nitrogen run in closed loops. The one-line
+physiology: *rock and light in; tissue built; heat and spoil out; everything else goes round again.*
+
+---
+
 ## Building it on Earth
 
 None of this is worth anything if it cannot be tested. The [Earth Program](docs/gestalt-earthprogram.html)
@@ -243,8 +265,9 @@ Compendium's canonical-parameter table.
 | Fleet | **18 classes · 4 m SPORE → 40 km LEVIATHAN** | Fleet / Class Reference |
 | Cancer control | **7 layers · ~10¹³× tumour-lineage suppression** | Compendium |
 | Cells in one hull | **~10¹⁹ cells · ~42 cell types across 8 classes** | Cell Atlas |
+| Feeding | **mines ~100 t/day rock → 13 t/day tissue (~9:1); photosynthesis only breathes** | Metabolism |
 | Ground program | **5 phases · 6 work packages · ~40 yr · ~$30–40 B** | Earth Program |
-| This documentation | **11 documents · ~127 cited references** | — |
+| This documentation | **12 documents · ~140 cited references** | — |
 
 ---
 
@@ -294,7 +317,7 @@ organic_spacecraft/
 ├── INTERFACE.md           ← navigation map (read before the source)
 ├── SESSION_LOG.md         ← running progress log
 ├── deepen-roadmap.md      ← the design-loop state + round-by-round history
-├── docs/                  ← the eleven published documents (HTML fragments)
+├── docs/                  ← the twelve published documents (HTML fragments)
 ├── assets/figures/        ← figures extracted from the documents (this README)
 └── viewer/                ← zero-dependency local web viewer (stdlib only)
     ├── catalog.py         document registry (source of truth)

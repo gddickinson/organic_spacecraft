@@ -72,6 +72,13 @@ DOCS = [
         "eight functional classes — their roles, survival, coordination, "
         "distribution, life-cycle and nutrition, the internal ecosystem, and "
         "how each would be engineered, grown and tested."),
+    Doc("metabolism", "gestalt-metabolism.html",
+        "30f6d8bd-2623-4369-8709-9fa6d7c47444",
+        "Metabolism", "Physiology reference", "🍽️",
+        "The metabolic physiology of a grown vessel — how it ingests rock and "
+        "light, digests them into building blocks, metabolises those into "
+        "tissue, and excretes little but heat and spoil, with a mass-and-energy "
+        "budget showing it eats the rock to grow, not the sunlight."),
     Doc("earth", "gestalt-earthprogram.html",
         "bc243583-d959-4284-841a-70ab529d40ed",
         "Earth Program", "R&D roadmap", "🌱",

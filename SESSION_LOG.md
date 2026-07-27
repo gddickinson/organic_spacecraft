@@ -2,6 +2,25 @@
 
 Running progress log. Newest first.
 
+## 2026-07-26 — Metabolism (12th document): ingest → digest → metabolise → excrete
+
+- **New 12th document — Metabolism** (`gestalt-metabolism.html`): the nutrition-
+  and-waste physiology of a grown vessel across four acts. Python-grounded
+  mass-and-energy budget yields the document's thesis: photosynthesis on the hull
+  makes only ~0.45 t/day of biomass (matching 13 t/day growth would need 29× the
+  hull area), so the intima only makes the crew's **air** — the **body** is grown
+  by *eating the rock* (digesting a carbonaceous asteroid's reduced organic
+  carbon, ~1.4 MW, and oxidising its minerals), which is why growth is
+  mining-limited. Covers the two mouths, the mineral gut (bioleaching →
+  separation → refinery → organics → absorption), the two-sap bloodstream, and
+  the four waste streams (only heat truly leaves; ~100 t/day tailings re-used as
+  shielding; C/H₂O/N closed). Five house-style figures (whole-body flow,
+  ingestion, digestive tract, energy budget, excretion streams), 13 citations.
+  Registered in the catalog (slug `metabolism`); canonical nav regenerated to
+  **twelve** entries across every document and all twelve artifacts republished.
+  (Recovered mid-build from a botched in-place figure swap by rebuilding the doc
+  from source and re-injecting figures cleanly.)
+
 ## 2026-07-26 — Cell Atlas (11th document) + richer 3D interiors
 
 - **New 11th document — the Cell Atlas** (`gestalt-cells.html`): a cell-level

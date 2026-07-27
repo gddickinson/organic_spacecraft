@@ -1,0 +1,497 @@
+<style>
+  :root{
+    --ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;
+    --line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);
+    --chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;
+    --chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);
+    --sheet:#0b1714;
+    --font-display:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;
+    --font-body:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;
+    --maxw:1180px;--spine:70ch;
+  }
+  @media (prefers-color-scheme:light){:root{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}}
+  :root[data-theme="dark"]{--ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;--line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);--chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;--chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);--sheet:#0b1714}
+  :root[data-theme="light"]{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}
+
+  *{box-sizing:border-box}body{margin:0}
+  .page{background:radial-gradient(1100px 640px at 82% -6%,var(--osteo-soft),transparent 60%),radial-gradient(900px 520px at 6% 3%,var(--chloro-soft),transparent 55%),var(--ground);color:var(--ink);font-family:var(--font-body);font-size:16.5px;line-height:1.66;letter-spacing:.005em;overflow-x:hidden;min-height:100vh}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  h1,h2,h3,h4{font-family:var(--font-display);font-weight:600;text-wrap:balance;line-height:1.12;margin:0}
+  p{margin:0 0 1.05em}strong{color:var(--ink);font-weight:600}em{color:var(--ink)}
+  a{color:var(--lumen)}
+  .mono{font-family:var(--font-mono)}
+  .chem{font-family:var(--font-mono);font-size:.92em;color:var(--osteo);background:var(--osteo-soft);padding:.06em .4em;border-radius:4px;white-space:nowrap}
+
+  .prog-nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;padding:16px 0 4px}
+  .prog-nav .pn-brand{color:var(--chloro);letter-spacing:.16em;text-transform:uppercase}
+  .prog-nav a{color:var(--ink-3);text-decoration:none;padding:3px 10px;border:1px solid var(--line);border-radius:999px;transition:color .2s,border-color .2s}
+  .prog-nav a:hover{color:var(--ink);border-color:var(--line-2)}
+  .prog-nav a.current{color:var(--lumen);border-color:var(--lumen)}
+
+  header.mast{padding:34px 0 30px;border-bottom:1px solid var(--line-2)}
+  .mast .kick{font-family:var(--font-mono);font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:var(--chloro);margin:0 0 16px}
+  .mast h1{font-size:clamp(2.2rem,6vw,4rem);letter-spacing:-.015em;margin:0 0 8px}
+  .mast h1 .s{color:var(--osteo)}
+  .mast .sub{font-family:var(--font-display);font-style:italic;font-size:clamp(1.05rem,2.3vw,1.4rem);color:var(--ink-2);max-width:62ch}
+
+  .toc{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:26px 0 0}
+  .toc a{display:flex;gap:10px;align-items:baseline;text-decoration:none;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--sheet);transition:border-color .2s}
+  .toc a:hover{border-color:var(--line-2)}
+  .toc .n{font-family:var(--font-mono);font-size:12px;color:var(--chloro)}
+  .toc .t{font-size:14px}
+
+  section.doc{padding:48px 0;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:center;gap:.7em;margin:0 0 16px}
+  .eyebrow .num{color:var(--chloro)}.eyebrow .rule{flex:1;height:1px;background:var(--line)}
+  section.doc h2{font-size:clamp(1.7rem,4vw,2.5rem);letter-spacing:-.01em;margin-bottom:14px}
+  section.doc h3{font-size:1.28rem;margin:30px 0 10px;color:var(--ink)}
+  section.doc h4{font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:22px 0 8px}
+  .flow{max-width:var(--spine)}
+  .flow p,.lead{max-width:var(--spine)}
+  .lead{font-size:1.12em;color:var(--ink-2);margin-bottom:24px}
+
+  .callout{border-left:2px solid var(--chloro);background:var(--chloro-soft);padding:14px 18px;border-radius:0 10px 10px 0;margin:22px 0;max-width:var(--spine)}
+  .callout.warm{border-color:var(--osteo);background:var(--osteo-soft)}
+  .callout.cool{border-color:var(--lumen);background:var(--lumen-soft)}
+  .callout p{margin:0}.callout .lab{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:6px}
+
+  .tbl-wrap{overflow-x:auto;margin:18px 0;border:1px solid var(--line);border-radius:10px}
+  .fig{border:1px solid var(--line-2);border-radius:10px;background:var(--ground-2);padding:10px;margin:16px 0;overflow-x:auto}
+  .fig svg{display:block;width:100%;min-width:720px;height:auto}
+  .figcap{font-size:.82em;color:var(--ink-3);margin:8px 2px 0;line-height:1.5}
+  table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+  thead th{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:600;text-align:left;padding:12px 14px;background:var(--sheet);border-bottom:1px solid var(--line-2)}
+  td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+  tbody tr:last-child td{border-bottom:none}
+  td:first-child{color:var(--ink);font-family:var(--font-display);font-size:14.5px}
+  td .r{font-family:var(--font-mono);font-size:11px;color:var(--chloro)}
+  td .rc{font-family:var(--font-mono);font-size:11px;color:var(--lumen)}
+  td .rw{font-family:var(--font-mono);font-size:11px;color:var(--osteo)}
+
+  .pathway{font-family:var(--font-mono);font-size:12.5px;line-height:1.9;color:var(--ink-2);background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:16px 0;overflow-x:auto}
+  .pathway .step{color:var(--ink)}.pathway .en{color:var(--lumen)}.pathway b{color:var(--osteo)}
+
+  .gap{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;color:var(--osteo);display:inline-block;border:1px solid var(--osteo);border-radius:6px;padding:1px 7px;margin-left:4px}
+  sup.cite{font-size:.62em;line-height:0;vertical-align:super;font-family:var(--font-mono);font-weight:600}
+  sup.cite a{color:var(--lumen);text-decoration:none;padding:0 1px}
+  sup.cite a:hover{text-decoration:underline}
+  .refs{margin-top:18px;border-top:1px solid var(--line);padding-top:18px}
+  .refs h3{font-family:var(--font-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--osteo);margin-bottom:14px}
+  .refs ol{margin:0;padding-left:2.4em;display:grid;gap:8px}
+  .refs li{font-size:.82em;line-height:1.5;color:var(--ink-2);max-width:80ch}
+  .refs li a{color:var(--lumen);text-decoration:none}
+  .refs .rt{color:var(--ink-3);font-style:italic}
+  .refs-note{font-size:.8em;color:var(--ink-3);margin:0 0 14px;max-width:78ch}
+  .real{color:var(--chloro)}
+
+  .notes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:8px}
+  .note{border-left:2px solid var(--line-2);padding:2px 0 2px 16px}
+  .note .nh{font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:7px}
+  .note p{font-size:13px;color:var(--ink-2);margin:0;line-height:1.55}
+  .note.grn{border-color:var(--chloro)}.note.warm{border-color:var(--osteo)}.note.cool{border-color:var(--lumen)}
+
+  footer{padding:34px 0 66px}
+  .fbar{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);border-top:1px solid var(--line);padding-top:20px}
+  .fbar .sep{color:var(--line-2)}
+  .reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
+  ::selection{background:var(--chloro);color:var(--ground)}
+  :focus-visible{outline:2px solid var(--lumen);outline-offset:3px;border-radius:3px}
+</style>
+
+<div class="page"><div class="wrap">
+
+  <nav class="prog-nav" aria-label="GESTALT program documents">
+    <span class="pn-brand">◈ GESTALT Program</span>
+    <a href="https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1">Design Dossier</a>
+    <a href="https://claude.ai/code/artifact/bd2c2c98-84cf-42c9-91ea-f0ec1c749fc5">Starship</a>
+    <a href="https://claude.ai/code/artifact/9b90d7e5-2a71-426a-b2bf-d3a96b32a82e">Habitat</a>
+    <a href="https://claude.ai/code/artifact/94531439-d04d-480e-9d04-bad6fcdacd9a">LICHEN</a>
+    <a href="https://claude.ai/code/artifact/2433fa54-e582-4194-8245-d63acee8fb85">GRAVID</a>
+    <a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Fleet Registry</a>
+    <a href="https://claude.ai/code/artifact/7ca9c965-1932-4c5a-b0f1-a99e9febae58">Class Reference</a>
+    <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075">Compendium</a>
+    <a href="https://claude.ai/code/artifact/c6dd460f-700a-4b98-820a-0f75b0b1d973">Cell Atlas</a>
+    <a href="#" class="current" aria-current="page">Metabolism</a>
+    <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed">Earth Program</a>
+    <a href="https://claude.ai/code/artifact/1c6f18ca-eeda-4d83-bd97-fd9c1622823d">3D Models</a>
+  </nav>
+
+  <header class="mast">
+    <p class="kick">Metabolic Physiology · Nutrition &amp; Waste</p>
+    <h1>Rock In, <span class="s">Ship</span> Out</h1>
+    <p class="sub">A grown vessel makes its body from a carbonaceous asteroid and a star. Here is how it ingests rock and light, digests them into building blocks, metabolises those into tissue, and — recycling almost everything — excretes little but heat and spoil.</p>
+    <nav class="toc" aria-label="Contents">
+      <a href="#strategy"><span class="n">01</span><span class="t">The strategy — two mouths, almost no waste</span></a>
+      <a href="#ingest"><span class="n">02</span><span class="t">Ingestion — rock, ice &amp; light</span></a>
+      <a href="#digest"><span class="n">03</span><span class="t">Digestion — the mineral gut</span></a>
+      <a href="#circulate"><span class="n">04</span><span class="t">Circulation &amp; absorption — the bloodstream</span></a>
+      <a href="#metabolise"><span class="n">05</span><span class="t">Metabolism — two engines &amp; the energy budget</span></a>
+      <a href="#excrete"><span class="n">06</span><span class="t">Excretion — the four waste streams</span></a>
+      <a href="#budget"><span class="n">07</span><span class="t">The whole budget — mass &amp; energy</span></a>
+      <a href="#reality"><span class="n">08</span><span class="t">What is real, and what is a bet</span></a>
+    </nav>
+  </header>
+
+  <p class="lead" style="margin-top:30px">Every other GESTALT document treats the vessel as already grown. This one asks the animal question: <em>how does it make a living?</em> A grown ship has two mouths — a <strong>root</strong> that takes in rock and ice, and a <strong>skin</strong> that takes in light — and its whole physiology is organised around a startling fact established below: <strong>photosynthesis on the hull can only make about half a tonne of biomass a day, but the ship grows at thirteen.</strong> So the intima's photosynthesis is a life-support organ that makes the crew's air; the <em>body itself is grown by eating the rock</em>. What follows is the alimentary physiology in four acts — ingest, digest, metabolise, excrete — grounded in a mass-and-energy budget. Real, demonstrated chemistry is marked <span class="real">green</span>; the integration is marked <span class="gap">gap</span>.</p>
+
+  <!-- ===== 01 STRATEGY ===== -->
+  <section class="doc reveal" id="strategy">
+    <p class="eyebrow"><span class="num">01</span> The strategy <span class="rule"></span></p>
+    <h2>Two mouths, almost no waste</h2>
+    <div class="flow">
+      <p>An animal eats, digests, metabolises and excretes across an open gut: matter flows through it. A spacecraft cannot afford that — in the desert of space, everything thrown away is gone for good. So GESTALT metabolism is built on a single principle: <strong>take in only what cannot be recycled, and excrete only what physics forbids you to keep.</strong> Two things must be taken in continuously — fresh <em>matter</em> (you are building a body from nothing) and fresh <em>energy</em>. Two things must inevitably leave — waste <em>heat</em> (the second law is not negotiable) and inert <em>rock spoil</em> (you cannot use all of an asteroid). Almost everything in between runs in closed loops.</p>
+
+      <div class="fig" role="img" aria-label="A whole-body metabolic flow: light and rock and ice enter; digestion and circulation feed metabolism, which grows tissue; the outputs are waste heat, inert tailings, and small leakage, with carbon, water and nitrogen recycled internally.">
+<svg viewBox="0 0 960 430" role="img">
+<line x1="154" y1="82" x2="192" y2="85" stroke="var(--lumen)" stroke-opacity=".65" stroke-width="1.5"/><path d="M192 85 L184 88 L184 81 Z" fill="var(--lumen)" fill-opacity=".8"/>
+<line x1="374" y1="85" x2="422" y2="86" stroke="var(--chloro)" stroke-opacity=".65" stroke-width="1.5"/><path d="M422 86 L414 89 L414 82 Z" fill="var(--chloro)" fill-opacity=".8"/><text x="398" y="81" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">O₂</text>
+<line x1="154" y1="277" x2="192" y2="277" stroke="var(--osteo)" stroke-opacity=".65" stroke-width="1.5"/><path d="M192 277 L184 281 L184 273 Z" fill="var(--osteo)" fill-opacity=".8"/>
+<line x1="324" y1="277" x2="352" y2="276" stroke="var(--osteo)" stroke-opacity=".65" stroke-width="1.5"/><path d="M352 276 L344 280 L344 273 Z" fill="var(--osteo)" fill-opacity=".8"/>
+<line x1="504" y1="276" x2="532" y2="277" stroke="var(--osteo)" stroke-opacity=".65" stroke-width="1.5"/><path d="M532 277 L524 280 L524 273 Z" fill="var(--osteo)" fill-opacity=".8"/>
+<line x1="684" y1="277" x2="712" y2="276" stroke="var(--lumen)" stroke-opacity=".65" stroke-width="1.5"/><path d="M712 276 L704 280 L704 273 Z" fill="var(--lumen)" fill-opacity=".8"/>
+<line x1="430" y1="306" x2="430" y2="354" stroke="var(--ink-3)" stroke-opacity=".65" stroke-width="1.5"/><path d="M430 354 L426 346 L434 346 Z" fill="var(--ink-3)" fill-opacity=".8"/>
+<line x1="800" y1="306" x2="800" y2="354" stroke="var(--chloro)" stroke-opacity=".65" stroke-width="1.5"/><path d="M800 354 L796 346 L804 346 Z" fill="var(--chloro)" fill-opacity=".8"/>
+<line x1="800" y1="246" x2="800" y2="200" stroke="var(--osteo)" stroke-opacity=".65" stroke-width="1.5"/><path d="M800 200 L804 208 L796 208 Z" fill="var(--osteo)" fill-opacity=".8"/>
+<line x1="796" y1="249" x2="377" y2="88" stroke="var(--chloro)" stroke-opacity=".65" stroke-width="1.5" stroke-dasharray="4 3"/><path d="M377 88 L386 88 L384 94 Z" fill="var(--chloro)" fill-opacity=".8"/><text x="587" y="164" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">C · H₂O · N recycled</text>
+<rect x="40" y="60" width="110" height="44" rx="8" fill="var(--sheet)" stroke="var(--lumen)"/><text x="95.0" y="86" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--lumen)">light</text>
+<rect x="200" y="60" width="170" height="50" rx="8" fill="var(--sheet)" stroke="var(--chloro)"/><text x="285.0" y="82" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--chloro)">intima</text><text x="285.0" y="96" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">photosynthesis → O₂</text>
+<rect x="430" y="66" width="120" height="40" rx="8" fill="var(--sheet)" stroke="var(--chloro)"/><text x="490.0" y="90" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--chloro)">crew air</text>
+<rect x="40" y="255" width="110" height="44" rx="8" fill="var(--sheet)" stroke="var(--osteo)"/><text x="95.0" y="281" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--osteo)">rock · ice</text>
+<rect x="200" y="255" width="120" height="44" rx="8" fill="var(--sheet)" stroke="var(--osteo)"/><text x="260.0" y="281" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--osteo)">ingest</text>
+<rect x="360" y="250" width="140" height="52" rx="8" fill="var(--sheet)" stroke="var(--osteo)"/><text x="430.0" y="273" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--osteo)">digest</text><text x="430.0" y="287" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">the gut</text>
+<rect x="540" y="255" width="140" height="44" rx="8" fill="var(--sheet)" stroke="var(--lumen)"/><text x="610.0" y="281" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--lumen)">circulate</text>
+<rect x="720" y="250" width="160" height="52" rx="8" fill="var(--sheet)" stroke="var(--chloro)"/><text x="800.0" y="273" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--chloro)">metabolise</text><text x="800.0" y="287" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">grow tissue</text>
+<rect x="720" y="362" width="160" height="40" rx="8" fill="var(--sheet)" stroke="var(--chloro)"/><text x="800.0" y="386" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--chloro)">+13 t/day tissue</text>
+<rect x="720" y="150" width="160" height="42" rx="8" fill="var(--sheet)" stroke="var(--osteo)"/><text x="800.0" y="175" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--osteo)">waste heat → radiate</text>
+<rect x="360" y="362" width="140" height="42" rx="8" fill="var(--sheet)" stroke="var(--ink-3)"/><text x="430.0" y="387" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--ink-3)">tailings out</text>
+<text x="18" y="28" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">Whole-body metabolism — two mouths in, heat &amp; spoil out, the rest recycled</text>
+</svg>
+      </div>
+      <p class="figcap">The whole-body flow. Two intakes (<span style="color:var(--lumen)">light</span>, <span style="color:var(--osteo)">rock &amp; ice</span>) cross the boundary; two wastes (<span style="color:var(--osteo)">heat</span>, <span style="color:var(--ink-3)">tailings</span>) leave it. Carbon, water and nitrogen turn in closed internal loops — only leakage needs topping up. The dashed return is the closure that a spacecraft lives or dies by.</p>
+
+      <div class="callout warm"><span class="lab">The headline number</span><p>Grown-vessel biology is often imagined as "a big plant." It is not. To photosynthesise its own 13 t/day of growth, a NAVIS hull would need <strong>~430,000 m² of lit intima — about 29× its entire surface</strong>. It has nowhere near that. The intima instead runs at <em>life-support</em> scale (a few thousand m², making the crew's oxygen). The body is grown by <strong>mining and eating the rock</strong>, which is why growth is set by the digging rate, not the sunshine. §05 does the arithmetic.</p></div>
+    </div>
+  </section>
+
+  <!-- ===== 02 INGEST ===== -->
+  <section class="doc reveal" id="ingest">
+    <p class="eyebrow"><span class="num">02</span> Ingestion <span class="rule"></span></p>
+    <h2>Rock, ice and light</h2>
+    <div class="flow">
+      <p>The vessel ingests through the <strong>RADIX mining root</strong>, which anchors to a resource body (a carbonaceous asteroid, a moon, or planetary regolith) and takes matter in by three methods, and through the <strong>skin and clarified windows</strong>, which take in light. The choice of body matters: a <em>carbonaceous</em> asteroid is not just ore — it is <em>food</em>, carrying up to a few per cent reduced organic carbon left from the birth of the solar system, plus water ice.<sup class="cite"><a href="#mref-1">[1]</a></sup></p>
+
+      <div class="fig" role="img" aria-label="Ingestion: the mining root takes rock in by mechanical boring, chemical bioleaching, and thermal volatile release; the skin and windows take in sunlight; the inputs are minerals, volatiles, organics and light.">
+<svg viewBox="0 0 960 360" role="img">
+<text x="18" y="28" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">Two mouths — the root eats rock &amp; ice, the skin drinks light</text>
+<path d="M40 250 Q60 150 170 150 Q300 150 300 250 Q300 320 170 320 Q40 320 40 250 Z" fill="var(--osteo)" fill-opacity=".14" stroke="var(--osteo)"/>
+<text x="120" y="300" font-family="var(--font-mono)" font-size="10" fill="var(--osteo)">carbonaceous asteroid</text>
+<circle cx="90" cy="190" r="4" fill="var(--lumen)" fill-opacity=".5"/>
+<circle cx="150" cy="215" r="4" fill="var(--lumen)" fill-opacity=".5"/>
+<circle cx="210" cy="185" r="4" fill="var(--lumen)" fill-opacity=".5"/>
+<circle cx="240" cy="250" r="4" fill="var(--lumen)" fill-opacity=".5"/>
+<circle cx="110" cy="255" r="4" fill="var(--lumen)" fill-opacity=".5"/>
+<rect x="360" y="70" width="240" height="90" rx="14" fill="var(--chloro)" fill-opacity=".08" stroke="var(--chloro)"/>
+<text x="480" y="108" text-anchor="middle" font-family="var(--font-display)" font-size="15" fill="var(--ink)">the growing body</text>
+<text x="480" y="130" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">Fe·Si·Ca·P·S · H₂O · CO₂·N · organics · light</text>
+<path d="M380 160 C 340 210, 300 210, 250 235" fill="none" stroke="var(--osteo)" stroke-width="3"/>
+<text x="316" y="196" font-family="var(--font-mono)" font-size="10" fill="var(--osteo)">RADIX root</text>
+<circle cx="330" cy="246" r="3" fill="var(--osteo)"/>
+<text x="344" y="250" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">MECHANICAL — bore &amp; grind the tip</text>
+<circle cx="330" cy="274" r="3" fill="var(--osteo)"/>
+<text x="344" y="278" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">CHEMICAL — acid bioleach (main)</text>
+<circle cx="330" cy="302" r="3" fill="var(--osteo)"/>
+<text x="344" y="306" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">THERMAL — heat ice → volatiles</text>
+<line x1="304" y1="178" x2="355" y2="153" stroke="var(--osteo)" stroke-opacity=".65" stroke-width="1.5"/><path d="M355 153 L349 160 L346 154 Z" fill="var(--osteo)" fill-opacity=".8"/><text x="329" y="162" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">matter</text>
+<circle cx="870" cy="70" r="26" fill="var(--lumen)" fill-opacity=".18" stroke="var(--lumen)"/>
+<text x="870" y="74" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--lumen)">star</text>
+<line x1="828" y1="96" x2="684" y2="150" stroke="var(--lumen)" stroke-opacity=".5" stroke-width="1.2"/>
+<line x1="844" y1="96" x2="700" y2="150" stroke="var(--lumen)" stroke-opacity=".5" stroke-width="1.2"/>
+<line x1="860" y1="96" x2="716" y2="150" stroke="var(--lumen)" stroke-opacity=".5" stroke-width="1.2"/>
+<rect x="600" y="150" width="120" height="60" rx="8" fill="var(--lumen)" fill-opacity=".06" stroke="var(--lumen)"/>
+<text x="660" y="176" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--lumen)">windows +</text>
+<text x="660" y="192" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--lumen)">light-guides</text>
+<line x1="598" y1="176" x2="599" y2="170" stroke="var(--lumen)" stroke-opacity=".65" stroke-width="1.5"/><path d="M599 170 L602 179 L595 178 Z" fill="var(--lumen)" fill-opacity=".8"/><text x="599" y="169" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">light</text>
+</svg>
+      </div>
+      <p class="figcap">The two mouths. The root ingests solids by <strong>mechanical</strong> boring, <strong>chemical</strong> bioleaching (the main route) and <strong>thermal</strong> volatile release;<sup class="cite"><a href="#mref-11">[11]</a></sup> the skin ingests <strong>light</strong>. Between them they bring in minerals, water, carbon and nitrogen — and the energy to use them.</p>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Intake · organ</th><th>Method</th><th>What comes in</th><th>Rate (NAVIS, order-of-magnitude)</th></tr></thead>
+          <tbody>
+            <tr><td>Solids <span class="rw">RADIX root</span></td><td>Chemical bioleaching (acid), mechanical boring at the tip, thermal release of bound volatiles</td><td>Fe, Si, Al, Mg, <strong>Ca, P</strong>, S, trace metals; bound water; <strong>reduced organic carbon</strong></td><td><span class="mono">~70–180 t/day</span> of rock (grade-dependent)</td></tr>
+            <tr><td>Volatiles <span class="rc">root / ice-tap</span></td><td>Thermal sublimation of ice; capture of CO₂, N-bearing species</td><td>H₂O, CO₂, N₂/NH₃, simple organics</td><td>bundled with the solids; ~10% of carbonaceous ore is water</td></tr>
+            <tr><td>Light <span class="rc">windows + intima</span></td><td>Optical: phototropic cap aims clarified windows sunward; light-guides pipe it in</td><td>Photons (energy) → the intima → the crew's O₂</td><td><span class="mono">~6.4 MW</span> intercepted at 1 AU (mostly reflected)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Ingestion is <em>selective</em>: chemoreceptors in the root read the ore and steer the growing tip toward richer seams,<sup class="cite"><a href="#mref-2">[2]</a></sup> exactly as a plant root grows toward nutrients. See the <a href="https://claude.ai/code/artifact/c6dd460f-700a-4b98-820a-0f75b0b1d973#resource">Cell Atlas resource cells</a> for the cell types that do the work.</p>
+    </div>
+  </section>
+
+  <!-- ===== 03 DIGEST ===== -->
+  <section class="doc reveal" id="digest">
+    <p class="eyebrow"><span class="num">03</span> Digestion <span class="rule"></span></p>
+    <h2>The mineral gut</h2>
+    <div class="flow">
+      <p>Rock is not food until it is broken into ions and molecules the tissue can absorb. The root is therefore a <strong>digestive tract</strong>: a sequence of compartments at different pH and redox, each extracting a fraction, exactly like a stomach and intestine.<sup class="cite"><a href="#mref-3">[3]</a></sup> The undigested residue leaves as tailings (§06).</p>
+
+      <div class="fig" role="img" aria-label="The digestive tract: mouth and leach reactor produce acid to dissolve rock; a separation gut extracts wanted ions; a volatile refinery splits water and processes carbon and nitrogen; organics are hydrolysed to sugars and amino acids; the residue leaves as tailings.">
+<svg viewBox="0 0 960 300" role="img">
+<text x="18" y="26" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">The mineral gut — a digestive tract from mouth to spoil</text>
+<rect x="60" y="70" width="164" height="70" rx="9" fill="var(--sheet)" stroke="var(--osteo)"/>
+<text x="142.0" y="92" text-anchor="middle" font-family="var(--font-mono)" font-size="10.5" fill="var(--osteo)">MOUTH · LEACH</text>
+<text x="142.0" y="112" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-2)">secrete H₂SO₄</text>
+<text x="142.0" y="127" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">dissolve rock</text>
+<line x1="228" y1="105" x2="226" y2="105" stroke="var(--ink-3)" stroke-opacity=".65" stroke-width="1.5"/><path d="M226 105 L218 109 L218 101 Z" fill="var(--ink-3)" fill-opacity=".8"/>
+<rect x="232" y="70" width="164" height="70" rx="9" fill="var(--sheet)" stroke="var(--osteo)"/>
+<text x="314.0" y="92" text-anchor="middle" font-family="var(--font-mono)" font-size="10.5" fill="var(--osteo)">SEPARATION</text>
+<text x="314.0" y="112" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-2)">sorb &amp; precipitate</text>
+<text x="314.0" y="127" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">Ca·P·Fe·metals</text>
+<line x1="400" y1="105" x2="398" y2="105" stroke="var(--ink-3)" stroke-opacity=".65" stroke-width="1.5"/><path d="M398 105 L390 109 L390 101 Z" fill="var(--ink-3)" fill-opacity=".8"/>
+<rect x="404" y="70" width="164" height="70" rx="9" fill="var(--sheet)" stroke="var(--lumen)"/>
+<text x="486.0" y="92" text-anchor="middle" font-family="var(--font-mono)" font-size="10.5" fill="var(--lumen)">REFINERY</text>
+<text x="486.0" y="112" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-2)">split water · Sabatier</text>
+<text x="486.0" y="127" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">O₂·H₂·CO₂</text>
+<line x1="572" y1="105" x2="570" y2="105" stroke="var(--ink-3)" stroke-opacity=".65" stroke-width="1.5"/><path d="M570 105 L562 109 L562 101 Z" fill="var(--ink-3)" fill-opacity=".8"/>
+<rect x="576" y="70" width="164" height="70" rx="9" fill="var(--sheet)" stroke="var(--chloro)"/>
+<text x="658.0" y="92" text-anchor="middle" font-family="var(--font-mono)" font-size="10.5" fill="var(--chloro)">ORGANICS</text>
+<text x="658.0" y="112" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-2)">hydrolyse kerogen</text>
+<text x="658.0" y="127" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">→ sugars · amino acids</text>
+<line x1="744" y1="105" x2="742" y2="105" stroke="var(--ink-3)" stroke-opacity=".65" stroke-width="1.5"/><path d="M742 105 L734 109 L734 101 Z" fill="var(--ink-3)" fill-opacity=".8"/>
+<rect x="748" y="70" width="164" height="70" rx="9" fill="var(--sheet)" stroke="var(--chloro)"/>
+<text x="830.0" y="92" text-anchor="middle" font-family="var(--font-mono)" font-size="10.5" fill="var(--chloro)">ABSORB</text>
+<text x="830.0" y="112" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-2)">load the vasculature</text>
+<text x="830.0" y="127" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">→ bloodstream</text>
+<line x1="24" y1="105" x2="52" y2="105" stroke="var(--osteo)" stroke-opacity=".65" stroke-width="1.5"/><path d="M52 105 L44 109 L44 101 Z" fill="var(--osteo)" fill-opacity=".8"/><text x="38" y="101" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">rock in</text>
+<line x1="142" y1="144" x2="142" y2="172" stroke="var(--ink-3)" stroke-opacity=".65" stroke-width="1.5"/><path d="M142 172 L138 164 L146 164 Z" fill="var(--ink-3)" fill-opacity=".8"/>
+<line x1="314" y1="144" x2="314" y2="172" stroke="var(--ink-3)" stroke-opacity=".65" stroke-width="1.5"/><path d="M314 172 L310 164 L318 164 Z" fill="var(--ink-3)" fill-opacity=".8"/>
+<rect x="100" y="182" width="240" height="34" rx="8" fill="var(--ground-2)" stroke="var(--line-2)"/>
+<text x="220" y="203" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--ink-3)">inert tailings → excreted (§06)</text>
+<text x="60" y="58" font-family="var(--font-mono)" font-size="9" fill="var(--osteo)">pH ~1 (acidic)</text>
+<text x="912" y="58" text-anchor="end" font-family="var(--font-mono)" font-size="9" fill="var(--chloro)">neutral · absorbed</text>
+</svg>
+      </div>
+      <p class="figcap">The alimentary canal, from mouth to spoil. Acid leaching is the "gastric" step; a separation gut absorbs the wanted ions; a volatile refinery splits water and handles carbon and nitrogen; the chondritic organics are hydrolysed into the actual food. Everything the body cannot use is voided as inert tailings.</p>
+
+      <h4>The gastric step — bioleaching</h4>
+      <p>Acidophile cells oxidise iron and sulfur to generate sulfuric acid <em>in situ</em> — real, industrial biomining chemistry<sup class="cite"><a href="#mref-3">[3]</a></sup> — and the acid dissolves the surrounding minerals:</p>
+      <div class="pathway">
+        <span class="step">2 FeS₂ + 7 O₂ + 2 H₂O</span> <span class="en">→</span> <span class="step">2 FeSO₄ + 2 <b>H₂SO₄</b></span>  <span style="color:var(--ink-3)">(acid generation)</span><br>
+        <b>H₂SO₄</b> + silicates/carbonates <span class="en">→</span> metal²⁺ ions + <span class="en">CO₂</span> + H₂O  <span style="color:var(--ink-3)">(dissolution → a lixiviant "chyme")</span><br>
+        <span style="color:var(--ink-3)">on Mars:</span> ClO₄⁻ (perchlorate) <span class="en">→</span> Cl⁻ + <span class="en">O₂</span>  <span style="color:var(--ink-3)">(detox — and a bonus of oxygen)</span><sup class="cite"><a href="#mref-4">[4]</a></sup>
+      </div>
+
+      <h4>The intestine — selective absorption &amp; refining</h4>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Gut compartment</th><th>What it does</th><th>Real basis</th></tr></thead>
+          <tbody>
+            <tr><td>Separation gut</td><td>Bio-sorption &amp; selective precipitation pull wanted ions (Ca, P, Fe, trace metals) out of the acidic broth; concentrator cells load them for transport.</td><td>Biosorption / bioaccumulation<sup class="cite"><a href="#mref-5">[5]</a></sup></td></tr>
+            <tr><td>Water refinery</td><td>Electrolysis/photolysis splits water for O₂ and H₂; H₂ drives reduction (Sabatier: CO₂ + 4 H₂ → CH₄ + 2 H₂O).</td><td>Electrolysis; Sabatier<sup class="cite"><a href="#mref-6">[6]</a></sup></td></tr>
+            <tr><td>Carbon &amp; nitrogen desk</td><td>Carbonate → CO₂ feeds the intima; N-species are fixed and nitrified into usable ammonium/nitrate.</td><td>Nitrogen cycle<sup class="cite"><a href="#mref-7">[7]</a></sup></td></tr>
+            <tr><td>Organics digestion</td><td>Hydrolyses/ferments the asteroid's macromolecular organics (kerogen-like matter, amino acids) into simple sugars &amp; amino acids — <strong>the real food</strong>.</td><td>Meteoritic organics<sup class="cite"><a href="#mref-1">[1]</a></sup>; saprophytic digestion</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The chemistry is all demonstrated separately; running it as one continuous <em>living</em> refinery at tonnes-per-day is the <span class="gap">gap</span>. This is the cell-scale subject of the <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075#build">Compendium's biomining protocol</a>.</p>
+    </div>
+  </section>
+
+  <!-- ===== 04 CIRCULATE ===== -->
+  <section class="doc reveal" id="circulate">
+    <p class="eyebrow"><span class="num">04</span> Circulation &amp; absorption <span class="rule"></span></p>
+    <h2>The bloodstream</h2>
+    <div class="flow">
+      <p>Digested feedstock is useless where it is made; it has to reach 10<sup>19</sup> cells, none of them more than ~200 µm from a supply (the <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075#materials">Krogh limit</a>).<sup class="cite"><a href="#mref-12">[12]</a></sup> GESTALT solves this the way trees and animals do — a branching vascular tree obeying Murray's law, carrying <strong>two saps</strong> in opposite directions.</p>
+      <div class="notes-grid">
+        <div class="note grn"><div class="nh">Down-sap · phloem-analogue</div><p>Sugars and amino acids flow <em>out</em> from the intima and the gut to the growing tissue — the delivery of food and building blocks, pushed by contractile pericytes.</p></div>
+        <div class="note cool"><div class="nh">Up-sap · xylem-analogue</div><p>Water and dissolved minerals flow <em>in</em> from the root; some conduit cells die to become hollow pipes, exactly as xylem does.</p></div>
+        <div class="note warm"><div class="nh">Return · waste pickup</div><p>The same network carries spent CO₂, water and nitrogen <em>back</em> toward the intima and the recyclers, so the loops can close (§06).</p></div>
+      </div>
+      <p>The plumbing is sized like the nursery's umbilicals: on the order of <strong>~3 L/s of nutrient sap through a ~10 cm trunk</strong> feeds a whole vessel-scale organism.<sup class="cite"><a href="#mref-8">[8]</a></sup> The cell types that build and pump it are catalogued in the <a href="https://claude.ai/code/artifact/c6dd460f-700a-4b98-820a-0f75b0b1d973#vascular">Cell Atlas</a>.</p>
+    </div>
+  </section>
+
+  <!-- ===== 05 METABOLISE ===== -->
+  <section class="doc reveal" id="metabolise">
+    <p class="eyebrow"><span class="num">05</span> Metabolism <span class="rule"></span></p>
+    <h2>Two engines, and the budget that proves it</h2>
+    <div class="flow">
+      <p>Here is the crux of the whole physiology. GESTALT runs <strong>two metabolisms at once</strong>, and confusing them is the commonest mistake about grown vessels.</p>
+      <div class="notes-grid">
+        <div class="note grn"><div class="nh">Engine 1 · phototrophy → the air</div><p>The intima runs oxygenic photosynthesis: <span class="chem">CO₂ + H₂O + light → sugar + O₂</span>. Sized for <em>life support</em> — it makes the crew's oxygen and some food, on a few thousand m² of lit surface.</p></div>
+        <div class="note warm"><div class="nh">Engine 2 · chemotrophy → the body</div><p>The bulk of the body is grown by <em>eating the rock</em>: digesting its reduced organic carbon and oxidising its reduced minerals (Fe, S) with the intima's oxygen, releasing the energy and carbon to build tissue.</p></div>
+      </div>
+
+      <h4>Why it must be this way — the energy &amp; area budget</h4>
+      <p>The intima produces biomass at roughly the rate of a good algal culture, ~30 g/m²·day.<sup class="cite"><a href="#mref-9">[9]</a></sup> Multiply that by every square metre of hull and you get a number that settles the argument:</p>
+
+      <div class="fig" role="img" aria-label="Energy and area budget bars: photosynthesis on the hull supports about half a tonne per day of biomass, while growth needs thirteen tonnes per day; the growth energy of about one to two and a half megawatts comes from the feedstock's organic chemical energy, not from sunlight.">
+<svg viewBox="0 0 960 360" role="img">
+<text x="18" y="26" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">The budget that forces the design — light breathes, rock grows</text>
+<text x="90" y="66" font-family="var(--font-mono)" font-size="10" fill="var(--ink-2)">Biomass, t/day</text>
+<rect x="90" y="293" width="90" height="7" fill="var(--chloro)" fill-opacity=".25" stroke="var(--chloro)"/>
+<text x="135" y="285" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--chloro)">0.45</text>
+<text x="135" y="316" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">photosynthesis</text>
+<rect x="210" y="90" width="90" height="210" fill="var(--osteo)" fill-opacity=".25" stroke="var(--osteo)"/>
+<text x="255" y="82" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--osteo)">13</text>
+<text x="255" y="316" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">growth (mined)</text>
+<text x="150" y="120" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--osteo)">29× the hull</text>
+<text x="150" y="134" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--osteo)">to close by light</text>
+<line x1="80" y1="300" x2="330" y2="300" stroke="var(--line-2)"/>
+<text x="500" y="66" font-family="var(--font-mono)" font-size="10" fill="var(--ink-2)">Growth energy, MW</text>
+<rect x="500" y="254" width="72" height="46" fill="var(--osteo)" fill-opacity=".22" stroke="var(--osteo)"/>
+<text x="536" y="246" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--osteo)">1.4</text>
+<text x="536" y="316" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">feedstock organics</text>
+<rect x="590" y="215" width="72" height="85" fill="var(--chloro)" fill-opacity=".22" stroke="var(--chloro)"/>
+<text x="626" y="207" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--chloro)">0.8–2.6</text>
+<text x="626" y="316" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">synthesis need</text>
+<rect x="680" y="296" width="72" height="4" fill="var(--lumen)" fill-opacity=".22" stroke="var(--lumen)"/>
+<text x="716" y="288" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--lumen)">0.1</text>
+<text x="716" y="316" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">maintenance</text>
+<rect x="770" y="90" width="72" height="210" fill="var(--ink-3)" fill-opacity=".22" stroke="var(--ink-3)"/>
+<text x="806" y="82" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--ink-3)">6.4</text>
+<text x="806" y="316" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">sunlight (reflected)</text>
+<line x1="490" y1="300" x2="855" y2="300" stroke="var(--line-2)"/>
+<text x="770" y="118" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">mostly reflected —</text>
+<text x="770" y="131" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">not in the account</text>
+</svg>
+      </div>
+      <p class="figcap">The budget that forces the design. <strong>Left:</strong> the intima on the whole hull makes ~0.45 t/day of biomass — but growth is 13 t/day, so ~97% of the body cannot be photosynthetic; matching it with light would take 29× the hull area. <strong>Right:</strong> the ~0.8–2.6 MW to synthesise 13 t/day comes from the feedstock's own organic chemical energy (~1.4 MW) plus mineral oxidation — sunlight (6.4 MW intercepted) is mostly reflected for thermal control and never enters this account.</p>
+
+      <div class="callout"><span class="lab">The resolution</span><p>A grown ship is a <strong>chemoheterotroph that happens to breathe</strong>. Its carbon, its building energy and its bulk matter all arrive through the root, from the asteroid — which is exactly why the <a href="https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1">Dossier's</a> growth curve is <em>mining-limited</em>, not light-limited. Photosynthesis is the lung, not the stomach.</p></div>
+
+      <h4>Anabolism — turning food into tissue</h4>
+      <div class="pathway">
+        sugars + amino acids + Ca²⁺/PO₄³⁻ + Fe/trace <span class="en">→</span> <b>chitin</b> (mycelium) · <b>collagen &amp; hydroxyapatite</b> (bone) · <b>lipids &amp; protein</b> (membranes) · <b>melanin</b> (rind) <span class="en">→</span> deposited along stress lines as the hull grows
+      </div>
+      <p>Maintenance is cheap by comparison: the crew burns ~5 kW, and 24,000 t of mostly low-metabolism structural tissue idles at perhaps ~0.1 MW basal<sup class="cite"><a href="#mref-13">[13]</a></sup> — orders of magnitude below the growth engine, which is why a <em>finished</em> ship costs far less to run than to build (see <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075#params">sustainability</a>). Deep-space classes, past ~3 AU where light thins, must carry stored energy or piped light for even the life-support engine. <span class="gap">gap</span></p>
+    </div>
+  </section>
+
+  <!-- ===== 06 EXCRETE ===== -->
+  <section class="doc reveal" id="excrete">
+    <p class="eyebrow"><span class="num">06</span> Excretion <span class="rule"></span></p>
+    <h2>The four waste streams</h2>
+    <div class="flow">
+      <p>A well-closed organism is defined by how little it throws away. GESTALT has only four exits, and two of them barely count.</p>
+
+      <div class="fig" role="img" aria-label="Four waste streams by whether they can be recycled: heat must be radiated and dominates the energy budget; inert tailings are the dominant mass but are reused as shielding; carbon, water and nitrogen are recycled and only leak; toxics are sequestered as inert mineral stones.">
+<svg viewBox="0 0 960 300" role="img">
+<text x="18" y="26" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">Four exits, ranked by how much truly leaves the body</text>
+<text x="236" y="82" text-anchor="end" font-family="var(--font-mono)" font-size="11" fill="var(--osteo)">Waste heat</text>
+<text x="236" y="95" text-anchor="end" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">~0.5–1 MW radiated</text>
+<rect x="250" y="70" width="460" height="20" rx="4" fill="var(--ground-2)" stroke="var(--line)"/>
+<rect x="250" y="70" width="460" height="20" rx="4" fill="var(--osteo)" fill-opacity=".5" stroke="var(--osteo)"/>
+<text x="722" y="85" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">MUST leave (2nd law)</text>
+<text x="236" y="134" text-anchor="end" font-family="var(--font-mono)" font-size="11" fill="var(--ink-3)">Inert tailings</text>
+<text x="236" y="147" text-anchor="end" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">~100 t/day gangue</text>
+<rect x="250" y="122" width="460" height="20" rx="4" fill="var(--ground-2)" stroke="var(--line)"/>
+<rect x="250" y="122" width="37" height="20" rx="4" fill="var(--ink-3)" fill-opacity=".5" stroke="var(--ink-3)"/>
+<text x="722" y="137" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">big mass — but re-used as shielding</text>
+<text x="236" y="186" text-anchor="end" font-family="var(--font-mono)" font-size="11" fill="var(--chloro)">Metabolic CO₂·H₂O·N</text>
+<text x="236" y="199" text-anchor="end" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">respiration &amp; turnover</text>
+<rect x="250" y="174" width="460" height="20" rx="4" fill="var(--ground-2)" stroke="var(--line)"/>
+<rect x="250" y="174" width="14" height="20" rx="4" fill="var(--chloro)" fill-opacity=".5" stroke="var(--chloro)"/>
+<text x="722" y="189" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">recycled — only leakage lost</text>
+<text x="236" y="238" text-anchor="end" font-family="var(--font-mono)" font-size="11" fill="var(--lumen)">Sequestered toxics</text>
+<text x="236" y="251" text-anchor="end" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">metals · damage</text>
+<rect x="250" y="226" width="460" height="20" rx="4" fill="var(--ground-2)" stroke="var(--line)"/>
+<rect x="250" y="226" width="9" height="20" rx="4" fill="var(--lumen)" fill-opacity=".5" stroke="var(--lumen)"/>
+<text x="722" y="241" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">locked in inert stones</text>
+<text x="250" y="280" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">bar = fraction that truly, permanently leaves the vessel</text>
+</svg>
+      </div>
+      <p class="figcap">Four exits, ranked by how much truly leaves. Only <span style="color:var(--osteo)">heat</span> is unavoidably lost (the second law); <span style="color:var(--ink-3)">tailings</span> are the big mass stream but are re-used, not dumped; carbon/water/nitrogen are <span style="color:var(--chloro)">recycled</span> and only leak; toxics are <span style="color:var(--lumen)">locked away</span>. The interesting engineering is how small the true output is.</p>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Stream</th><th>What &amp; how much</th><th>Fate — and why it can't be kept</th></tr></thead>
+          <tbody>
+            <tr><td>Waste heat <span class="rw">unavoidable</span></td><td>~0.5–1 MW: metabolic heat + the sunlight fraction that is absorbed rather than reflected.</td><td><strong>Radiated</strong> from the radiator bloom — in vacuum there is no other way out. ~1,000–2,900 m² of radiator at 280–320 K. The <em>only</em> stream the second law forbids recycling.<sup class="cite"><a href="#mref-10">[10]</a></sup></td></tr>
+            <tr><td>Inert tailings <span class="rw">dominant mass</span></td><td>~100 t/day of spent silicate gangue — the ~90% of ore left after the useful ~10% is extracted (ore:product ~9:1).</td><td><strong>Re-used, not dumped:</strong> packed as radiation ballast or the habitat's regolith over-blanket — <em>waste becomes shielding</em>. Only the true excess is ejected.</td></tr>
+            <tr><td>Metabolic waste <span class="r">recycled</span></td><td>CO₂, water, spent nitrogen — the outputs of respiration and turnover.</td><td><strong>Not excreted at all</strong> in steady state: CO₂ is re-fixed by the intima, water reclaimed, N re-nitrified. Only unavoidable <em>leakage</em> is lost and re-mined.</td></tr>
+            <tr><td>Sequestered toxics <span class="rc">locked away</span></td><td>Heavy metals, radionuclides, mis-folded biomolecules, radiation-damaged tissue.</td><td><strong>Biomineralised into inert "stones"</strong> and stored or ejected — the kidney-stone strategy — or the region is walled off by <a href="https://claude.ai/code/artifact/c6dd460f-700a-4b98-820a-0f75b0b1d973#defense">compartmentalisation</a>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout cool"><span class="lab">The one-line physiology</span><p>Rock and light in; tissue built; <strong>heat and spoil out; everything else goes round again.</strong> A grown ship is closer to a coral reef or a soil than to a rocket — a slow, near-closed chemistry that only vents what it thermodynamically must.</p></div>
+    </div>
+  </section>
+
+  <!-- ===== 07 BUDGET ===== -->
+  <section class="doc reveal" id="budget">
+    <p class="eyebrow"><span class="num">07</span> The whole budget <span class="rule"></span></p>
+    <h2>Mass and energy, in and out</h2>
+    <div class="flow">
+      <p>Putting the four acts together for a NAVIS growing at 13 t/day. Every figure is order-of-magnitude and grade-dependent; the point is the <em>shape</em> of the budget, not three significant figures.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Ledger</th><th>In</th><th>Out</th></tr></thead>
+          <tbody>
+            <tr><td>Mass <span class="rw">t/day</span></td><td>Rock ~70–180 · bundled water &amp; volatiles · trace make-up N</td><td><strong>Tissue +13</strong> · tailings ~60–165 (→ shielding) · small leakage</td></tr>
+            <tr><td>Energy <span class="rc">MW</span></td><td>Feedstock organics ~1.4 (the growth fuel) · sunlight 6.4 intercepted (mostly reflected)</td><td>Stored in new tissue ~0.8–2.6 · maintenance ~0.1 · <strong>waste heat ~0.5–1 (radiated)</strong></td></tr>
+            <tr><td>Carbon <span class="r">closed</span></td><td>New C from asteroid organics/carbonate</td><td>Locked into tissue; internal CO₂ loop balances respiration ↔ photosynthesis</td></tr>
+            <tr><td>Oxygen / water <span class="r">closed</span></td><td>From split water &amp; photosynthesis</td><td>Crew &amp; oxidation consume; re-fixed &amp; reclaimed — net near-zero</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Over a ~5-year gestation this moves roughly <strong>~200 kt of rock to build a 24 kt ship</strong>, leaving ~190 kt of tailings that become the vessel's own shielding. The throughput — not the sunshine — is what the <a href="https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1">growth curve</a> is really plotting.</p>
+    </div>
+  </section>
+
+  <!-- ===== 08 REALITY ===== -->
+  <section class="doc reveal" id="reality">
+    <p class="eyebrow"><span class="num">08</span> What is real, and what is a bet <span class="rule"></span></p>
+    <div class="flow">
+      <p>Every step here is real chemistry — bioleaching, meteoritic organics as a carbon-and-energy source, water electrolysis and Sabatier, radiative cooling, Murray's-law circulation, biomineralisation. That is the <span class="real">green</span>. The bets are, as always, in the integration and the rate:</p>
+      <div class="notes-grid">
+        <div class="note warm"><div class="nh">Bet 1 · the living refinery</div><p>Running an entire ore-to-tissue processing chain as one <em>living</em> organ, continuously, at ~100 t/day, is far beyond any demonstrated bioreactor. <span class="gap">gap</span></p></div>
+        <div class="note warm"><div class="nh">Bet 2 · the grade &amp; the logistics</div><p>The ~9:1 ore-to-ship ratio means the root must chew and void enormous masses; the numbers assume a rich carbonaceous body close at hand. <span class="gap">gap</span></p></div>
+        <div class="note warm"><div class="nh">Bet 3 · the efficiencies</div><p>Photosynthetic yield, extraction fractions and synthesis costs are all taken optimistic; a factor of a few either way moves the whole timeline. <span class="gap">gap</span></p></div>
+      </div>
+      <p style="margin-top:20px">The honest summary: the <em>metabolism</em> is thermodynamically sound and each reaction is demonstrated — a grown ship eating an asteroid breaks no laws. Making it happen inside one coordinated body, at rate, is the enterprise the <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed">Earth Program</a> exists to test.</p>
+
+      <div class="refs" id="refs">
+        <h3>References</h3>
+        <p class="refs-note">Representative sources for the metabolic claims; each supports a specific mechanism, not the integrated whole.</p>
+        <ol>
+          <li id="mref-1">Pizzarello, S. &amp; Shock, E. (2010) <span class="rt">"The organic composition of carbonaceous meteorites"</span> — kerogen-like macromolecular carbon, amino acids &amp; reduced organics in CI/CM chondrites.</li>
+          <li id="mref-2">Root chemotropism &amp; nutrient foraging — <span class="rt">directed growth toward resource gradients in plants &amp; fungi.</span></li>
+          <li id="mref-3">Rawlings, D.E. &amp; Johnson, D.B. (2007) <span class="rt">"The microbiology of biomining"</span> — Acidithiobacillus, acid generation &amp; bioleaching.</li>
+          <li id="mref-4">Davila, A.F. et al. — <span class="rt">perchlorate reduction (ClO₄⁻ → Cl⁻ + O₂) as detox &amp; oxygen source on Mars.</span></li>
+          <li id="mref-5">Volesky, B. (2001) <span class="rt">"Biosorption and me"</span> — microbial biosorption/bioaccumulation of metal ions.</li>
+          <li id="mref-6">Sabatier reaction &amp; water electrolysis — <span class="rt">CO₂ + 4 H₂ → CH₄ + 2 H₂O; ISRU propellant/oxygen production.</span></li>
+          <li id="mref-7">Kuypers, M.M.M. et al. (2018) <span class="rt">"The microbial nitrogen-cycling network"</span> — fixation, nitrification, closure.</li>
+          <li id="mref-8">GRAVID nursery throughput — <span class="rt">~3 L/s nutrient sap through a ~10 cm umbilical (this program).</span></li>
+          <li id="mref-9">Chisti, Y. (2007) <span class="rt">"Biodiesel from microalgae"</span> — areal biomass productivity of algal cultures (~20–40 g/m²·day).</li>
+          <li id="mref-10">Radiative cooling &amp; the Stefan–Boltzmann law — <span class="rt">P = εσT⁴A; heat rejection is the only exit in vacuum.</span></li>
+          <li id="mref-11">Sercel, J. et al. — <span class="rt">optical mining &amp; volatile extraction from asteroids (thermal release of water).</span></li>
+          <li id="mref-12">Krogh, A. (1919) &amp; Murray, C.D. (1926) <span class="rt">— the diffusion limit and the law of vascular branching.</span></li>
+          <li id="mref-13">Kleiber, M. (1932) <span class="rt">"Body size and metabolism"</span> — metabolic-rate scaling (maintenance vs mass).</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="fbar">
+      <span>◈ GESTALT Program</span><span class="sep">·</span>
+      <span>Metabolic Physiology</span><span class="sep">·</span>
+      <span>ingest → digest → metabolise → excrete</span><span class="sep">·</span>
+      <span>eats a rock · breathes with light · excretes heat &amp; spoil</span>
+    </div>
+  </footer>
+
+</div></div>
+
+<script>
+(function(){
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.08});
+  document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+})();
+</script>
