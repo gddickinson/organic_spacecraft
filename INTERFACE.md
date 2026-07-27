@@ -29,6 +29,8 @@ organic_spacecraft/
 │   ├── gestalt-compendium.html Engineering & Biology Compendium (deep reference)
 │   ├── gestalt-earthprogram.html  Earth Program (ground R&D roadmap)
 │   └── gestalt-3d.html         Interactive 3D models (self-contained WebGL-free engine)
+├── assets/figures/       ← figures for the README, rendered from the docs' own SVGs
+│                            (see viewer note; each is extracted + var-resolved to PNG)
 └── viewer/               ← zero-dependency local web viewer (stdlib only)
     ├── catalog.py        Document registry (source of truth)
     ├── wrap.py           Fragment → standalone HTML + link rewriting

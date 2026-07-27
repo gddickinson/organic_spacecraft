@@ -1,56 +1,294 @@
 # GESTALT — Grown Spacecraft & Habitats
 
-A conceptual design program for **living, grown-from-a-seed spacecraft and
-habitats**: biocomposite hulls, photosynthesizing interiors, and a gated,
-mostly-fundable ground program to find out — cheaply and honestly — whether any
-of it can actually be built.
+**A conceptual design program for living, grown-from-a-seed spacecraft and habitats** —
+biocomposite hulls, photosynthesizing interiors, and a gated, mostly-fundable ground
+program to find out, cheaply and honestly, whether any of it can actually be built.
 
-Everything here is a **concept study**, not flight hardware. Where the science
-is real it is marked and cited; where it is a bet, the bet is named. Every
-quantitative claim is grounded in a Python calculation and, increasingly, tied
-to a real published source.
+![The GESTALT fleet to scale — from a 4 m SPORE lifeboat to a 40 km LEVIATHAN ark](assets/figures/fleet-scale-comparison.png)
 
-## The documents
+*One lineage, four orders of magnitude: every vessel in the fleet, drawn to a common log scale — a 4 m SPORE lifeboat through the 120 m NAVIS starship to a 40 km LEVIATHAN ark. Colour marks role: green = crewed/habitat, amber = infrastructure, cyan = sensing/info.*
 
-Ten cross-linked documents live in [`docs/`](docs/), each carrying the same
-navigation bar linking the whole set:
+> **Everything here is a concept study, not flight hardware.** Where the science is real
+> it is marked and cited; where it is a bet, the bet is named. Every quantitative claim is
+> grounded in a Python calculation and, increasingly, tied to a real published source.
+> In the figures, **green = genuinely living/real science** and an explicit **`gap:`** flags
+> what is unproven.
 
-| Document | What it is |
-|---|---|
-| **Design Dossier** (`gestalt.html`) | The living starship: anatomy, closed-loop metabolism, defenses, growth curve, bioengineering roadmap — with 18 real citations. |
-| **Starship Drawings** (`gestalt-drawings.html`) | Architectural drawing set of the 120 m grown vessel (elevation, sections A/B/C). |
-| **Habitat · ARCA** (`gestalt-habitat.html`) | The million-person habitat drum: sections, layered anatomy, biome map, life-support budget. |
-| **LICHEN** (`gestalt-lichen.html`) | A settlement grown into Moon/Mars regolith: dome anatomy, pressure-balanced over-blanket, perchlorate → O₂ chemistry. |
-| **GRAVID** (`gestalt-gravid.html`) | The nursery organism that gestates the fleet from seeds. |
-| **Fleet Registry** (`gestalt-fleet.html`) | Vehicle classes, a readiness scorecard mapped to the Earth-Program phases, and the containment regime. |
-| **Fleet Class Reference** (`gestalt-classref.html`) | A detailed profile of every one of the 18 grown-vehicle classes: role, spec, seed-to-vessel growth protocol, hardest challenge, plus a master comparison table. |
-| **Compendium** (`gestalt-compendium.html`) | The deep technical reference (organisms, circuits, materials, metabolism, defenses, biomining) — with 20+ real citations. |
-| **Earth Program** (`gestalt-earthprogram.html`) | The ground R&D/testing/prototyping roadmap: TRL ladder, six work packages, a 40-year Gantt with budget, gated go/no-go. |
-| **3D Models** (`gestalt-3d.html`) | Interactive, rotatable/zoomable 3D solid models of all seven main forms, rendered by a self-contained software engine — with a live scale bar, labelled hotspots, and cutaway views that reveal the interior components. |
+---
 
-## Viewing them
+## Contents
 
-A zero-dependency Python viewer serves all documents locally, re-creating the
-web-artifact skeleton and rewriting the cross-document links to local routes so
-navigation works offline:
+- [The idea in one figure](#the-idea-in-one-figure)
+- [Program map](#program-map)
+- [The ten documents](#the-ten-documents)
+- [The living starship](#the-living-starship) · [Worlds you live inside](#worlds-you-live-inside) · [The nursery](#the-nursery-that-grows-the-fleet)
+- [The fleet](#the-fleet) · [The science](#the-science) · [Building it on Earth](#building-it-on-earth) · [See them in 3D](#see-them-in-3d)
+- [By the numbers](#by-the-numbers)
+- [Honest by construction](#honest-by-construction)
+- [Run the viewer](#run-the-viewer) · [Project structure](#project-structure)
 
-```bash
-python3 viewer/app.py --open
+---
+
+## The idea in one figure
+
+A GESTALT vessel is not built and then filled with life — it *is* the life. The hull is a
+living tissue stack, grown like bark, bone and wood, with a photosynthetic skin on the
+inside that makes the crew's air. Read from the vacuum inward:
+
+![The living hull in cross-section — six grown layers from sacrificial epidermis to photosynthetic intima](assets/figures/dossier-hull-anatomy.png)
+
+*Six grown layers over ~5.5 m: a sacrificial epidermis that ablates micrometeoroids, a radiotrophic melanin rind, a low-density mycelial tension scaffold, stress-aligned osteoid trusses, the gas-tight pneumostat membrane that is the actual pressure vessel, and the photosynthetic intima — the crew's atmosphere plant — enclosing a 52 kPa, 34% O₂ habitat.*
+
+The whole organism runs a closed loop: light in, the intima trades the crew's carbon
+dioxide and waste back for oxygen and food.
+
+```mermaid
+flowchart LR
+  LIGHT(["☀️ star / piped light"]) --> INTIMA["🟢 photosynthetic intima"]
+  INTIMA -- "O₂ + food" --> CREW["🧑‍🚀 crew"]
+  CREW -- "CO₂ + waste" --> INTIMA
 ```
 
-then browse <http://127.0.0.1:8731/>. Other options:
+---
 
-```bash
-python3 viewer/app.py            # serve without opening a browser
-python3 viewer/app.py -p 9000    # choose a port
-python3 viewer/app.py --check    # validate every document loads, then exit
+## Program map
+
+The program is one lineage told at ten levels of zoom. A single engineered **seed** is
+gestated by the **GRAVID** nursery into any class of vessel; the **Compendium** is the
+science that all of it must obey, and the **Earth Program** is how you would actually find
+out — on the ground, cheaply, with go/no-go gates.
+
+```mermaid
+flowchart TD
+  SEED(["🌱 a single engineered seed"]) --> GRAVID["🥚 GRAVID — the nursery<br/>that gestates the fleet"]
+  GRAVID --> NAVIS["🌱 NAVIS starship<br/>Dossier + Drawings"]
+  GRAVID --> ARCA["🌍 ARCA habitat<br/>+ 🍄 LICHEN surface domes"]
+  GRAVID --> MORE["🛰️ 18 classes<br/>Fleet Registry + Class Reference"]
+  SCI["🧬 Compendium — the science<br/>that must be true"] -. underwrites .-> GRAVID
+  EARTH["🌿 Earth Program — how we'd<br/>find out, on Earth"] -. gates .-> SCI
+  NAVIS --> V3D["🛸 3D Models<br/>spin them, slice them open"]
+  ARCA --> V3D
+  MORE --> V3D
 ```
 
-Requires only Python 3 (standard library). See [`INTERFACE.md`](INTERFACE.md)
-for the project map and how the viewer modules fit together.
+---
 
-## Note on the source files
+## The ten documents
 
-The files in `docs/` are **artifact fragments** — they begin at `<style>` and
-omit the outer `<!doctype html><head><body>` skeleton, which the publishing host
-(and this viewer) supply. Open them through the viewer rather than directly.
+Each document is a self-contained web page and shares one navigation bar linking the whole
+set. **Open** goes to the live, interactive document; **Source** is the HTML in this repo.
+
+| # | Document | What it is | Links |
+|--:|---|---|---|
+| 1 | **Design Dossier** | The living starship: anatomy, closed-loop metabolism, defenses, growth curve, bioengineering roadmap — 18 citations. | [Open](https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1) · [Source](docs/gestalt.html) |
+| 2 | **Starship Drawings** | Architectural drawing set of the 120 m grown vessel: elevation, sections A/B/C. | [Open](https://claude.ai/code/artifact/bd2c2c98-84cf-42c9-91ea-f0ec1c749fc5) · [Source](docs/gestalt-drawings.html) |
+| 3 | **Habitat · ARCA** | The million-person spin-gravity drum: sections, biomes, life-support budget. | [Open](https://claude.ai/code/artifact/9b90d7e5-2a71-426a-b2bf-d3a96b32a82e) · [Source](docs/gestalt-habitat.html) |
+| 4 | **LICHEN** | A settlement grown into Moon/Mars regolith: dome anatomy, perchlorate → O₂ chemistry. | [Open](https://claude.ai/code/artifact/94531439-d04d-480e-9d04-bad6fcdacd9a) · [Source](docs/gestalt-lichen.html) |
+| 5 | **GRAVID** | The nursery organism that gestates the fleet from seeds. | [Open](https://claude.ai/code/artifact/2433fa54-e582-4194-8245-d63acee8fb85) · [Source](docs/gestalt-gravid.html) |
+| 6 | **Fleet Registry** | Vehicle classes, a readiness scorecard, and the containment regime. | [Open](https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091) · [Source](docs/gestalt-fleet.html) |
+| 7 | **Fleet Class Reference** | A detailed profile of every one of the 18 classes + a comparison table. | [Open](https://claude.ai/code/artifact/7ca9c965-1932-4c5a-b0f1-a99e9febae58) · [Source](docs/gestalt-classref.html) |
+| 8 | **Compendium** | The deep technical reference: organisms, circuits, materials, metabolism, defenses, biomining — 20+ citations. | [Open](https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075) · [Source](docs/gestalt-compendium.html) |
+| 9 | **Earth Program** | The ground R&D roadmap: TRL ladder, six work packages, a 40-year Gantt with budget, gated go/no-go. | [Open](https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed) · [Source](docs/gestalt-earthprogram.html) |
+| 10 | **3D Models** | Interactive, rotatable/zoomable solid models of all seven main forms, with cutaways. | [Open](https://claude.ai/code/artifact/1c6f18ca-eeda-4d83-bd97-fd9c1622823d) · [Source](docs/gestalt-3d.html) |
+
+---
+
+## The living starship
+
+The flagship is **NAVIS** — a crewed explorer grown as a 120 m × 50 m prolate spheroid of
+~24,000 tonnes, crew of 50. The [Design Dossier](docs/gestalt.html) sets out its anatomy,
+metabolism and defenses; the [Starship Drawings](docs/gestalt-drawings.html) give it a
+proper architectural treatment.
+
+![Starship general arrangement — external profile with docking sphincters, phototropic cap, radiator bloom and ISRU root](assets/figures/starship-general-arrangement.png)
+
+*General arrangement (GST·SS·101): the prolate-spheroid hull with its equatorial ring of six docking sphincters, a forward phototropic cap of clarified windows aimed sunward, and — aft — a radiator bloom, a caudal seed organ, and a mining root reaching to a resource body. Body 100 m; ≈120 m including appendages.*
+
+You cannot grow 24,000 tonnes overnight. Biology *could* deposit that mass in ~1.5 years,
+but mining and transport set the real ceiling — so the ship grows on a capped-rate plateau,
+not an exponential runaway:
+
+![Growth curves — grown mass to 24 kt over five years, and the mining-limited deposition rate](assets/figures/dossier-growth-curve.png)
+
+*Left: cumulative grown mass reaching ~24,000 t over ~5 years (~13 t/day average). Right: deposition rate is held at a ~16 t/day mining ceiling — the unconstrained biological peak of ~440 t/day is off-chart and simply cannot be fed that fast.*
+
+---
+
+## Worlds you live inside
+
+Two documents scale the idea up to places people live. **ARCA** is a grown O'Neill drum for
+a million people; **LICHEN** grows a pressurised settlement down into planetary regolith.
+
+![ARCA habitat in longitudinal section — six biomes on the inner surface, lit by an axial sun-cord, gravity fading rim to axis](assets/figures/habitat-longitudinal-section.png)
+
+*ARCA (GST·HAB·102): a 5 km × 10 km spin-drum turning at 0.6 rpm for 1.0 g at the rim. You live on the inner surface across six biomes; an axial sun-cord lights them from within at 0 g, and the endcaps are terraced zero-g farms. Gravity fades smoothly from 1 g at the rim to 0 g on the axis.*
+
+![LICHEN dome in section — a pressure blister under a thick regolith over-blanket, rooted to bedrock and subsurface ice](assets/figures/lichen-dome-section.png)
+
+*LICHEN (GST·LIC·101): a ~500 m-span, ~150 m-rise pressure blister at 52 kPa, buried under a regolith over-blanket (~9 m on Mars, ~21 m on the Moon) that provides both shielding and the ballast that balances the internal pressure. Roots anchor it to bedrock and tap subsurface ice.*
+
+---
+
+## The nursery that grows the fleet
+
+Nothing in the fleet is manufactured — it is **gestated**. [GRAVID](docs/gestalt-gravid.html)
+is a nursery-shipyard organism: cradles bud from a central feedstock spine, each growing a
+vessel from a seed and releasing it from a de-spun dock.
+
+![GRAVID nursery plan — cradles at all stages budding from a feedstock spine, a finished NAVIS hatching](assets/figures/gravid-nursery-plan.png)
+
+*GRAVID (GST·GRV·102): 12–24 cradles gestate in parallel at all stages along a ~1.2 km feedstock spine fed by mining tenders; a near-term cradle holds a nearly-complete hull, and a finished NAVIS hatches from the de-spun dock. Controlled feeding roughly halves wild gestation, to ~2–3 years per ship.*
+
+---
+
+## The fleet
+
+From that one nursery comes a whole ecosystem of grown vehicles — 18 classes, catalogued in
+the [Fleet Registry](docs/gestalt-fleet.html) with per-class detail in the
+[Class Reference](docs/gestalt-classref.html). The [hero image](#gestalt--grown-spacecraft--habitats)
+at the top of this page shows them all to scale.
+
+The fleet's hard limit is not structure but **light** — the interiors are photosynthetic, so
+range is set by how far sunlight can still feed them:
+
+![Sunlight versus distance — solar flux falls as 1/r² and crosses the daylight floor past about 3 AU](assets/figures/fleet-light-vs-distance.png)
+
+*Solar flux falls as 1/r² and drops below the ~150 W/m² daylight floor the intima needs past ~3 AU — which is exactly why deep-space classes must carry piped or stored light, and why the sunward inner system is the fleet's natural habitat.*
+
+---
+
+## The science
+
+The [Compendium](docs/gestalt-compendium.html) is where the concept has to survive contact
+with real biology and physics. Four of its figures:
+
+![Vasculature — a Murray's-law branching tree keeps every cell within diffusion range of a channel](assets/figures/compendium-vasculature.png)
+
+*Keeping metres of hull alive like bone and wood: a space-filling vascular tree obeying Murray's law (r³ = Σ child r³) branches from a metre-wide trunk to ~20 µm capillaries, so every living cell sits within a ~100–200 µm diffusion range of a channel — at only ~1% vascular volume.*
+
+![Cancer control — a defence-in-depth waterfall dropping expected tumour lineages from 10¹² to below one](assets/figures/compendium-cancer-defense.png)
+
+*Growing a whale-and-beyond mass of cells means solving cancer. Seven stacked controls — multi-hit requirement, low mutation rate, redundant tumour-suppressors, a Hayflick cap, enforced apoptosis, immune surveillance, and compartmentalisation with germline re-sync — multiply to ~10¹³× suppression, dropping the expected count of uncontrolled lineages from ~10¹² to below one per lifetime. `gap:` every layer is individually real; stacking all seven intact over a vessel's lifetime is unproven.*
+
+![Nitrogen cycle — a closed loop where only leakage needs new atoms](assets/figures/compendium-nitrogen-cycle.png)
+
+*A closed nitrogen loop at population scale: waste N is ammonified, oxidised through nitrite to nitrate by two microbial guilds, and taken back up into biomass — only what leaks (denitrification) needs new atoms, topped up by nitrogen fixation.*
+
+![Sustainability ladder — how long the system carries life before something must be topped up](assets/figures/compendium-sustainability.png)
+
+*How long can it last? Self-heal in minutes, buffers over days–weeks (ARCA holds a ~140-year O₂ reserve), indefinite closed-loop operation over years–decades, deep-time genome drift held by the CHORUS archive, and a ~10,000-year seed-dormancy wall. Three external inputs reset the clock: light, a resource body, and a genome archive.*
+
+---
+
+## Building it on Earth
+
+None of this is worth anything if it cannot be tested. The [Earth Program](docs/gestalt-earthprogram.html)
+is a real research proposal — five phases, six work packages, a 40-year gated timeline and a
+rough ~$30–40 B budget — built so the riskiest bet fails cheaply and early.
+
+![Integration ladder — from a cm component brick to a gestated 5 m demonstrator, subsystems folded in at each rung](assets/figures/earth-integration-ladder.png)
+
+*The integration ladder: a cm "component brick," then a 1 m² living panel, a 2 m pressurised module, and finally a gestated 5 m demonstrator — with the six subsystems folded into one lineage rung by rung. Amber marks the rung that needs the morphogenesis breakthrough (WP4) to close a full shell.*
+
+---
+
+## See them in 3D
+
+The [3D Models](docs/gestalt-3d.html) document renders all seven main forms as solid models
+in a self-contained, plug-in-free software engine — **drag to rotate, scroll to zoom**, and
+toggle **cutaway** to slice a wedge and see the layered wall and the interior components
+(cores, decks, cradles, shelters). A live **scale bar** reads true size at any zoom, and
+**labelled hotspots** call out each feature.
+
+---
+
+## By the numbers
+
+Every figure below is grounded in a Python calculation and reconciled across documents to the
+Compendium's canonical-parameter table.
+
+| Quantity | Value | From |
+|---|---|---|
+| Seed → vessel mass ratio | **~48,000 : 1** | Compendium |
+| NAVIS starship | **120 m × 50 m · ~24,000 t · crew 50 · grown ~5 yr** | Dossier / Drawings |
+| Living hull wall | **6 grown layers · ~5.5 m total** | Dossier |
+| Habitat atmosphere | **52 kPa · 34% O₂** | Dossier / Habitat |
+| ARCA drum | **Ø5 km × 10 km · 0.6 rpm → 1.0 g · 1,000,000 people** | Habitat |
+| ARCA air / O₂ reserve | **~113 Mt air · ~140-year O₂ buffer** | Habitat |
+| LICHEN dome | **~500 m span · ~150 m rise · 52 kPa** | LICHEN |
+| GRAVID nursery | **12–24 cradles · ~26 t/day each · ~2–3 yr per ship** | GRAVID |
+| Fleet | **18 classes · 4 m SPORE → 40 km LEVIATHAN** | Fleet / Class Reference |
+| Cancer control | **7 layers · ~10¹³× tumour-lineage suppression** | Compendium |
+| Ground program | **5 phases · 6 work packages · ~40 yr · ~$30–40 B** | Earth Program |
+| This documentation | **10 documents · ~108 cited references** | — |
+
+---
+
+## Honest by construction
+
+The program lives or dies on not fooling itself. Three conventions enforce that:
+
+- **Colour = truth.** Across every figure, green marks genuinely living tissue / established
+  science; cyan is engineered systems; amber is structure. An explicit **`gap:`** note names
+  what is unproven (e.g. *stacking all seven cancer controls over a vessel's lifetime is
+  unproven — the same reliability wall as biocontainment*).
+- **Python-grounded.** Numbers are recomputed, not asserted; a shared value that changes in
+  one document is propagated to every other. Past audits caught and fixed real errors (an
+  ARCA atmosphere off by ~7×, a pressure-wall unit slip, a mislabelled section cut).
+- **Cited.** ~108 references across the set tie the real science — Murray's law, the Krogh
+  diffusion limit, Peto's paradox, radiotrophic melanin, MELiSSA/BIOS-3 closure — to named
+  published sources.
+
+> **The single biggest bet** is *directed morphogenesis*: growing a specified metre-scale
+> structure from a seed. It does not exist yet. The Earth Program is organized so that this
+> is the thing you test first and cheapest — everything downstream is gated behind it.
+
+---
+
+## Run the viewer
+
+A zero-dependency Python viewer serves all documents locally, re-creating the web-artifact
+skeleton and rewriting cross-document links to local routes so navigation works offline:
+
+```bash
+python3 viewer/app.py --open      # serve at http://127.0.0.1:8731/ and open a browser
+python3 viewer/app.py             # serve without opening a browser
+python3 viewer/app.py -p 9000     # choose a port
+python3 viewer/app.py --check     # validate every document loads, then exit
+```
+
+Requires only Python 3 (standard library). See [`INTERFACE.md`](INTERFACE.md) for the project
+map and how the viewer modules connect.
+
+---
+
+## Project structure
+
+```
+organic_spacecraft/
+├── README.md              ← you are here
+├── INTERFACE.md           ← navigation map (read before the source)
+├── SESSION_LOG.md         ← running progress log
+├── deepen-roadmap.md      ← the design-loop state + round-by-round history
+├── docs/                  ← the ten published documents (HTML fragments)
+├── assets/figures/        ← figures extracted from the documents (this README)
+└── viewer/                ← zero-dependency local web viewer (stdlib only)
+    ├── catalog.py         document registry (source of truth)
+    ├── wrap.py            fragment → standalone HTML + link rewriting
+    ├── index.py           landing-page builder
+    └── app.py             HTTP server + CLI entry point
+```
+
+### A note on the source files
+
+The files in `docs/` are **artifact fragments** — they begin at `<style>` and omit the outer
+`<!doctype html><head><body>` skeleton, which the publishing host (and this viewer) supply.
+Open them through the viewer rather than directly. The images in
+[`assets/figures/`](assets/figures/) are rendered straight from those documents' own SVG
+figures, so they stay faithful to the source.
+
+---
+
+*GESTALT is a conceptual design study — an exercise in taking one strange idea (grow the
+ship instead of building it) as far as honest physics and biology allow, and being clear
+about where that is.*

@@ -1,0 +1,105 @@
+<svg viewBox="-12.0 -12.0 1026.0 446.0" role="img" aria-label="Four-rung integration and scale-up ladder from component brick to gestated demonstrator, each rung adding a subsystem and ~1000x cells" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
+*{box-sizing:border-box}body{margin:0}
+  .page{background:radial-gradient(1100px 640px at 82% -6%,rgba(84,207,124,.13),transparent 60%),radial-gradient(900px 520px at 6% 3%,rgba(79,214,208,.11),transparent 55%),#0a1512;color:#e2f0e8;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16.5px;line-height:1.66;letter-spacing:.005em;overflow-x:hidden;min-height:100vh}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
+  h1,h2,h3,h4{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-weight:600;text-wrap:balance;line-height:1.12;margin:0}
+  p{margin:0 0 1.05em}strong{color:#e2f0e8}
+  a{color:#4fd6d0}
+
+  .prog-nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.08em;padding:16px 0 4px}
+  .prog-nav .pn-brand{color:#54cf7c;letter-spacing:.16em;text-transform:uppercase}
+  .prog-nav a{color:#7c9689;text-decoration:none;padding:3px 10px;border:1px solid rgba(150,196,176,.16);border-radius:999px;transition:color .2s,border-color .2s}
+  .prog-nav a:hover{color:#e2f0e8;border-color:rgba(150,196,176,.30)}
+  .prog-nav a.current{color:#4fd6d0;border-color:#4fd6d0}
+
+  header.mast{padding:34px 0 30px;border-bottom:1px solid rgba(150,196,176,.30)}
+  .mast .kick{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:#54cf7c;margin:0 0 16px}
+  .mast h1{font-size:clamp(2.2rem,6vw,4rem);letter-spacing:-.015em;margin:0 0 8px}
+  .mast h1 .s{color:#54cf7c}
+  .mast .sub{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-style:italic;font-size:clamp(1.05rem,2.3vw,1.4rem);color:#a9c2b6;max-width:62ch}
+
+  section.doc{padding:46px 0;border-bottom:1px solid rgba(150,196,176,.16)}
+  .eyebrow{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#7c9689;display:flex;align-items:center;gap:.7em;margin:0 0 16px}
+  .eyebrow .num{color:#54cf7c}.eyebrow .rule{flex:1;height:1px;background:rgba(150,196,176,.16)}
+  section.doc h2{font-size:clamp(1.7rem,4vw,2.5rem);letter-spacing:-.01em;margin-bottom:14px}
+  section.doc h3.sub-h{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-size:1.25rem;margin:30px 0 10px;color:#e2f0e8}
+  sup.cite{font-size:.62em;line-height:0;vertical-align:super;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-weight:600}
+  sup.cite a{color:#4fd6d0;text-decoration:none;padding:0 1px}
+  sup.cite a:hover{text-decoration:underline}
+  .refs{margin-top:16px;border-top:1px solid rgba(150,196,176,.16);padding-top:18px;max-width:70ch}
+  .refs ol{margin:0;padding-left:2.4em;display:grid;gap:8px}
+  .refs li{font-size:.82em;line-height:1.5;color:#a9c2b6}
+  .refs .rt{color:#7c9689;font-style:italic}
+  .refs-note{font-size:.82em;color:#7c9689;margin:0 0 14px;max-width:70ch}
+  .flow{max-width:70ch}.lead{font-size:1.12em;color:#a9c2b6;margin-bottom:22px;max-width:70ch}
+
+  .sheet{border:1px solid rgba(150,196,176,.30);border-radius:10px;background:linear-gradient(rgba(120,196,170,.10) 1px,transparent 1px) 0 0/100% 34px,linear-gradient(90deg,rgba(120,196,170,.10) 1px,transparent 1px) 0 0/34px 100%,#0b1714;padding:8px;overflow-x:auto;margin:8px 0 20px}
+  .sheet svg{display:block;height:auto;min-width:860px;width:100%}
+
+  .callout{border-left:2px solid #54cf7c;background:rgba(84,207,124,.13);padding:14px 18px;border-radius:0 10px 10px 0;margin:22px 0;max-width:70ch}
+  .callout.warm{border-color:#e6ac6d;background:rgba(230,172,109,.13)}.callout.cool{border-color:#4fd6d0;background:rgba(79,214,208,.11)}
+  .callout p{margin:0}.callout .lab{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#7c9689;display:block;margin-bottom:6px}
+
+  .tbl-wrap{overflow-x:auto;margin:18px 0;border:1px solid rgba(150,196,176,.16);border-radius:10px}
+  table{border-collapse:collapse;width:100%;min-width:680px;font-size:13.5px}
+  thead th{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#7c9689;font-weight:600;text-align:left;padding:12px 14px;background:#0b1714;border-bottom:1px solid rgba(150,196,176,.30)}
+  td{padding:11px 14px;border-bottom:1px solid rgba(150,196,176,.16);vertical-align:top;color:#a9c2b6}
+  tbody tr:last-child td{border-bottom:none}
+  td:first-child{color:#e2f0e8;font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-size:14.5px}
+  .trl{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;color:#e6ac6d}
+  .crit{color:#e6ac6d;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10px;border:1px solid #e6ac6d;border-radius:5px;padding:1px 6px}
+
+  .notes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:8px}
+  .note{border-left:2px solid rgba(150,196,176,.30);padding:2px 0 2px 16px}
+  .note .nh{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7c9689;margin-bottom:7px}
+  .note p{font-size:13px;color:#a9c2b6;margin:0;line-height:1.55}
+  .note.grn{border-color:#54cf7c}.note.warm{border-color:#e6ac6d}.note.cool{border-color:#4fd6d0}
+
+  footer{padding:34px 0 66px}
+  .fbar{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;color:#7c9689;border-top:1px solid rgba(150,196,176,.16);padding-top:20px}
+  .fbar .sep{color:rgba(150,196,176,.30)}
+  .reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  
+  ::selection{background:#54cf7c;color:#0a1512}
+  :focus-visible{outline:2px solid #4fd6d0;outline-offset:3px;border-radius:3px}
+]]></style><rect x="-12.0" y="-12.0" width="1026.0" height="446.0" fill="#0c1613"/>
+        <!-- axis hint -->
+        <g font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="10" fill="#7c9689">
+          <text x="30" y="250" text-anchor="middle" transform="rotate(-90 30 250)">integration · scale · TRL →</text>
+        </g>
+        <polyline points="150,300 380,238 610,176 840,110" fill="none" style="stroke:#7c9689;stroke-dasharray:5 4" opacity=".5"/>
+        <g>
+          <rect x="62" y="300" width="176" height="80" rx="9" style="fill:#54cf7c;fill-opacity:.13;stroke:#54cf7c"/>
+          <text x="150" y="322" text-anchor="middle" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="14.5" fill="#e2f0e8">Component brick</text>
+          <text x="150" y="339" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">cm coupon · ~g</text>
+          <text x="150" y="352" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9" fill="#7c9689">~10⁹ cells · WP outputs alone</text>
+          <circle cx="122" cy="368" r="3.2" style="fill:#54cf7c"/><circle cx="132" cy="368" r="3.2" fill="none" style="stroke:rgba(150,196,176,.30)"/><circle cx="142" cy="368" r="3.2" fill="none" style="stroke:rgba(150,196,176,.30)"/><circle cx="152" cy="368" r="3.2" fill="none" style="stroke:rgba(150,196,176,.30)"/><circle cx="162" cy="368" r="3.2" fill="none" style="stroke:rgba(150,196,176,.30)"/><circle cx="172" cy="368" r="3.2" fill="none" style="stroke:rgba(150,196,176,.30)"/>
+          <text x="150" y="395" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#54cf7c">Phase 0 · TRL 3–5</text>
+        </g>
+        <g>
+          <rect x="292" y="238" width="176" height="80" rx="9" style="fill:#54cf7c;fill-opacity:.13;stroke:#54cf7c"/>
+          <text x="380" y="260" text-anchor="middle" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="14.5" fill="#e2f0e8">Living panel</text>
+          <text x="380" y="277" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">1 m² · ~4 kg</text>
+          <text x="380" y="290" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9" fill="#7c9689">~6×10¹² cells · 1st co-lineage</text>
+          <circle cx="352" cy="306" r="3.2" style="fill:#54cf7c"/><circle cx="362" cy="306" r="3.2" style="fill:#54cf7c"/><circle cx="372" cy="306" r="3.2" style="fill:#54cf7c"/><circle cx="382" cy="306" r="3.2" style="fill:#54cf7c"/><circle cx="392" cy="306" r="3.2" fill="none" style="stroke:rgba(150,196,176,.30)"/><circle cx="402" cy="306" r="3.2" fill="none" style="stroke:rgba(150,196,176,.30)"/>
+          <text x="380" y="333" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#54cf7c">Phase 1 · TRL 4–6</text>
+        </g>
+        <g>
+          <rect x="522" y="176" width="176" height="80" rx="9" style="fill:#e6ac6d;fill-opacity:.13;stroke:#e6ac6d"/>
+          <text x="610" y="198" text-anchor="middle" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="14.5" fill="#e2f0e8">Pressurised module</text>
+          <text x="610" y="215" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">2 m shell · ~0.2 t</text>
+          <text x="610" y="228" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9" fill="#7c9689">~3×10¹⁴ cells · seed→shell</text>
+          <circle cx="582" cy="244" r="3.2" style="fill:#e6ac6d"/><circle cx="592" cy="244" r="3.2" style="fill:#e6ac6d"/><circle cx="602" cy="244" r="3.2" style="fill:#e6ac6d"/><circle cx="612" cy="244" r="3.2" style="fill:#e6ac6d"/><circle cx="622" cy="244" r="3.2" style="fill:#e6ac6d"/><circle cx="632" cy="244" r="3.2" fill="none" style="stroke:rgba(150,196,176,.30)"/>
+          <text x="610" y="271" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#e6ac6d">Phase 2→3 · TRL 4–6</text>
+        </g>
+        <g>
+          <rect x="752" y="110" width="176" height="80" rx="9" style="fill:#4fd6d0;fill-opacity:.13;stroke:#4fd6d0"/>
+          <text x="840" y="132" text-anchor="middle" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="14.5" fill="#e2f0e8">Gestated demonstrator</text>
+          <text x="840" y="149" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">5 m vessel · ~2.4 t</text>
+          <text x="840" y="162" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9" fill="#7c9689">~3×10¹⁵ cells · fed on simulant</text>
+          <circle cx="812" cy="178" r="3.2" style="fill:#4fd6d0"/><circle cx="822" cy="178" r="3.2" style="fill:#4fd6d0"/><circle cx="832" cy="178" r="3.2" style="fill:#4fd6d0"/><circle cx="842" cy="178" r="3.2" style="fill:#4fd6d0"/><circle cx="852" cy="178" r="3.2" style="fill:#4fd6d0"/><circle cx="862" cy="178" r="3.2" style="fill:#4fd6d0"/>
+          <text x="840" y="205" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#4fd6d0">Phase 3 · TRL →6</text>
+        </g>
+        <text x="480" y="30" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="10.5" fill="#7c9689">◍ = a subsystem (of six) that must live in one lineage at that rung · amber = the rung that needs morphogenesis (WP4) to close a shell</text>
+      </svg>

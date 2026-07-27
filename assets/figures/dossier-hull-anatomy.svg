@@ -1,0 +1,295 @@
+<svg class="diagram" viewBox="-12.0 -12.0 1006.0 626.0" role="img" aria-label="Cross-section of the Gestalt hull showing six living layers between vacuum and the pressurized cabin" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
+/* explicit toggle overrides (must win both directions) */
+  
+  
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0}
+  .page{
+    background:
+      radial-gradient(1100px 620px at 78% -8%, rgba(84,207,124,.14), transparent 60%),
+      radial-gradient(900px 520px at 8% 4%, rgba(79,214,208,.12), transparent 55%),
+      #0a1512;
+    color:#e2f0e8;
+    font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    font-size:17px;line-height:1.65;
+    letter-spacing:.006em;
+    overflow-x:hidden;
+    min-height:100vh;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+  .spine{max-width:66ch}
+
+  /* ---------- type ---------- */
+  h1,h2,h3{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-weight:600;text-wrap:balance;line-height:1.08;margin:0}
+  p{margin:0 0 1.05em}
+  a{color:#4fd6d0}
+  .eyebrow{
+    font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;letter-spacing:.22em;text-transform:uppercase;
+    color:#7c9689;display:flex;align-items:center;gap:.7em;margin:0 0 18px;
+  }
+  .eyebrow .num{color:#54cf7c;font-weight:600}
+  .eyebrow .rule{flex:1;height:1px;background:rgba(150,196,176,.16);min-width:20px}
+  .lede{font-size:1.16em;line-height:1.55;color:#a9c2b6}
+  strong{color:#e2f0e8;font-weight:600}
+  .mono{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  /* ---------- hero ---------- */
+  header.hero{position:relative;padding:82px 0 44px;border-bottom:1px solid rgba(150,196,176,.16)}
+  .kicker{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12.5px;letter-spacing:.28em;text-transform:uppercase;color:#54cf7c;margin:0 0 26px}
+  h1.title{font-size:clamp(3.1rem,10vw,7rem);letter-spacing:-.015em;font-weight:600;margin:0 0 6px}
+  .title .accent{font-style:italic;color:#54cf7c}
+  .binomial{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-style:italic;font-size:clamp(1.05rem,2.4vw,1.5rem);color:#a9c2b6;margin:0 0 26px}
+  .thesis{max-width:56ch;font-size:1.25em;line-height:1.5;color:#e2f0e8}
+  .thesis .em{color:#e6ac6d;font-style:italic;font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif}
+
+  .specstrip{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+    margin-top:46px;border:1px solid rgba(150,196,176,.16);background:rgba(150,196,176,.16);
+    border-radius:12px;overflow:hidden;
+  }
+  .specstrip .cell{background:#0a1512;padding:18px 18px 16px}
+  .specstrip .k{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#7c9689;margin-bottom:9px}
+  .specstrip .v{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-size:clamp(1.5rem,4vw,2.1rem);line-height:1;letter-spacing:-.01em}
+  .specstrip .v .u{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:.5em;color:#7c9689;letter-spacing:0;margin-left:.25em}
+  .specstrip .s{font-size:12.5px;color:#7c9689;margin-top:7px;line-height:1.35}
+
+  /* ---------- section rhythm ---------- */
+  section{padding:66px 0;border-bottom:1px solid rgba(150,196,176,.16)}
+  .sec-head{margin-bottom:30px}
+  .sec-head h2{font-size:clamp(1.9rem,4.6vw,2.9rem);letter-spacing:-.012em}
+  .sec-head .tag{color:#a9c2b6;margin-top:12px;font-size:1.05em;max-width:60ch}
+
+  /* reveal */
+  .reveal{opacity:0;transform:translateY(14px);transition:opacity .7s ease,transform .7s ease}
+  .reveal.in{opacity:1;transform:none}
+  
+
+  /* ---------- cross-section plate ---------- */
+  .plate{background:#0e1c18;border-block:1px solid rgba(150,196,176,.16)}
+  .diagram-wrap{overflow-x:auto;padding-bottom:6px}
+  .diagram{min-width:660px;width:100%;height:auto;display:block}
+  .diagram .band{transition:opacity .25s ease}
+  .diagram.dim .band:not(.hot){opacity:.32}
+  .cap-row{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:22px;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11.5px;color:#7c9689;letter-spacing:.04em}
+  .cap-row .sw{display:inline-flex;align-items:center;gap:7px}
+  .cap-row .dot{width:11px;height:11px;border-radius:3px;border:1px solid rgba(0,0,0,.25)}
+
+  /* ---------- prose columns ---------- */
+  .flow p{max-width:66ch}
+  .callout{
+    border-left:2px solid #54cf7c;background:rgba(84,207,124,.14);
+    padding:16px 20px;border-radius:0 10px 10px 0;margin:26px 0;max-width:66ch;
+  }
+  .callout.warm{border-color:#e6ac6d;background:rgba(230,172,109,.14)}
+  .callout.cool{border-color:#4fd6d0;background:rgba(79,214,208,.12)}
+  .callout p{margin:0}
+  .callout .lab{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7c9689;display:block;margin-bottom:6px}
+
+  /* layer table (anatomy) */
+  .table-wrap{overflow-x:auto;margin:8px 0 4px}
+  table{border-collapse:collapse;width:100%;min-width:560px;font-size:14.5px}
+  th,td{text-align:left;padding:12px 14px;border-bottom:1px solid rgba(150,196,176,.16);vertical-align:top}
+  thead th{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#7c9689;font-weight:600}
+  tbody td:first-child{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-size:16px;color:#e2f0e8}
+  td .mm{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-variant-numeric:tabular-nums;color:#4fd6d0}
+  .swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;vertical-align:baseline;border:1px solid rgba(0,0,0,.25)}
+
+  /* ---------- timeline ---------- */
+  .timeline{position:relative;margin-top:14px;padding-left:0}
+  .tl-item{display:grid;grid-template-columns:132px 1fr;gap:22px;padding:20px 0;border-top:1px solid rgba(150,196,176,.16)}
+  .tl-item:first-child{border-top:none}
+  .tl-when{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12.5px;letter-spacing:.03em;color:#4fd6d0;padding-top:3px}
+  .tl-when .phase{display:block;color:#7c9689;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;margin-top:4px}
+  .tl-body h3{font-size:1.28rem;margin-bottom:5px}
+  .tl-body p{margin:0;color:#a9c2b6;font-size:15px;max-width:62ch}
+  .tl-mass{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11.5px;color:#e6ac6d;margin-top:8px;letter-spacing:.02em}
+
+  /* ---------- numbers cards ---------- */
+  .num-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px;margin-top:8px}
+  .card{background:#0e1c18;border:1px solid rgba(150,196,176,.16);border-radius:14px;padding:22px}
+  .card .ct{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#7c9689;margin-bottom:14px}
+  .card .big{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-size:2.5rem;line-height:1;letter-spacing:-.01em;margin-bottom:4px}
+  .card .big .u{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:.34em;color:#7c9689;letter-spacing:0;margin-left:.3em}
+  .card .big.chloro{color:#54cf7c}.card .big.lumen{color:#4fd6d0}.card .big.osteo{color:#e6ac6d}
+  .card .sub{font-size:13.5px;color:#a9c2b6;margin-bottom:14px}
+  .card .calc{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11.5px;line-height:1.7;color:#7c9689;border-top:1px dashed rgba(150,196,176,.28);padding-top:12px;font-variant-numeric:tabular-nums;overflow-x:auto}
+  .card .calc b{color:#e2f0e8;font-weight:600}
+  .verdict{margin-top:26px;font-size:1.05em;color:#e2f0e8;max-width:64ch}
+  .verdict .em{color:#e6ac6d;font-style:italic;font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif}
+  sup.cite{font-size:.62em;line-height:0;vertical-align:super;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-weight:600}
+  sup.cite a{color:#4fd6d0;text-decoration:none;padding:0 1px}
+  sup.cite a:hover{text-decoration:underline}
+  .refs{margin-top:18px;border-top:1px solid rgba(150,196,176,.16);padding-top:18px}
+  .refs h3{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#e6ac6d;margin-bottom:14px}
+  .refs ol{margin:0;padding-left:2.4em;display:grid;gap:8px}
+  .refs li{font-size:.82em;line-height:1.5;color:#a9c2b6;max-width:78ch}
+  .refs li a{color:#4fd6d0;text-decoration:none}
+  .refs li a:hover{text-decoration:underline}
+  .refs .rt{color:#7c9689;font-style:italic}
+  .refs-note{font-size:.8em;color:#7c9689;margin:0 0 14px;max-width:76ch}
+
+  /* ---------- roadmap ---------- */
+  .chassis{
+    display:grid;grid-template-columns:1fr;gap:0;border:1px solid rgba(150,196,176,.28);border-radius:14px;
+    overflow:hidden;margin:24px 0 34px;background:#0e1c18
+  }
+  .chassis .head{padding:22px 24px;background:rgba(84,207,124,.14);border-bottom:1px solid rgba(150,196,176,.16)}
+  .chassis .head .lab{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#54cf7c;margin-bottom:8px}
+  .chassis .head h3{font-size:1.5rem}
+  .chassis .grid{display:grid;grid-template-columns:repeat(3,1fr)}
+  .chassis .org{padding:20px 24px;border-right:1px solid rgba(150,196,176,.16)}
+  .chassis .org:last-child{border-right:none}
+  .chassis .org .role{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#7c9689;margin-bottom:7px}
+  .chassis .org .who{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-style:italic;font-size:1.12rem;color:#e2f0e8;margin-bottom:6px}
+  .chassis .org .does{font-size:13px;color:#a9c2b6;line-height:1.5}
+
+  .road-table th:nth-child(1){width:19%}
+  .road-table th:nth-child(2){width:30%}
+  .road-table th:nth-child(3){width:26%}
+  .road-table td .real{color:#54cf7c}
+  .road-table td .gap{color:#e6ac6d}
+  .trl{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10px;letter-spacing:.1em;color:#7c9689;display:block;margin-top:5px}
+
+  .phases{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-top:26px}
+  .phase{border:1px solid rgba(150,196,176,.16);border-radius:12px;padding:18px;background:#0e1c18}
+  .phase .ph{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.12em;color:#4fd6d0;margin-bottom:8px}
+  .phase .yr{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-size:1.15rem;margin-bottom:8px}
+  .phase p{font-size:13px;color:#a9c2b6;margin:0;line-height:1.5}
+
+  /* ---------- footer ---------- */
+  footer{padding:52px 0 70px}
+  .disclaimer{border:1px solid rgba(150,196,176,.16);border-radius:14px;padding:24px 26px;background:#0e1c18;max-width:74ch}
+  .disclaimer .lab{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#e6ac6d;margin-bottom:10px}
+  .disclaimer p{font-size:14.5px;color:#a9c2b6;margin:0}
+  .credit{margin-top:28px;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11.5px;letter-spacing:.08em;color:#7c9689;display:flex;flex-wrap:wrap;gap:6px 18px}
+  .credit .sep{color:rgba(150,196,176,.28)}
+
+  
+  ::selection{background:#54cf7c;color:#0a1512}
+  :focus-visible{outline:2px solid #4fd6d0;outline-offset:3px;border-radius:3px}
+]]></style><rect x="-12.0" y="-12.0" width="1006.0" height="626.0" fill="#0c1613"/>
+          <defs>
+            <linearGradient id="voidG" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#070f0d"/><stop offset="1" stop-color="#070f0d" stop-opacity=".6"/>
+            </linearGradient>
+          </defs>
+
+          <!-- depth axis -->
+          <g font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="11" fill="#7c9689">
+            <text x="70" y="52" text-anchor="end" letter-spacing="1.5">DEPTH·m</text>
+            <line x1="86" y1="70" x2="86" y2="455" stroke="rgba(150,196,176,.28)"/>
+            <g text-anchor="end" fill="#7c9689">
+              <text x="70" y="74">0</text><line x1="76" y1="70" x2="86" y2="70" stroke="rgba(150,196,176,.28)"/>
+              <text x="70" y="144">1</text><line x1="76" y1="140" x2="86" y2="140" stroke="rgba(150,196,176,.28)"/>
+              <text x="70" y="214">2</text><line x1="76" y1="210" x2="86" y2="210" stroke="rgba(150,196,176,.28)"/>
+              <text x="70" y="284">3</text><line x1="76" y1="280" x2="86" y2="280" stroke="rgba(150,196,176,.28)"/>
+              <text x="70" y="354">4</text><line x1="76" y1="350" x2="86" y2="350" stroke="rgba(150,196,176,.28)"/>
+              <text x="70" y="424">5</text><line x1="76" y1="420" x2="86" y2="420" stroke="rgba(150,196,176,.28)"/>
+              <text x="70" y="459">5.5</text><line x1="76" y1="455" x2="86" y2="455" stroke="rgba(150,196,176,.28)"/>
+            </g>
+          </g>
+
+          <!-- bands: x 110..470 -->
+          <!-- VACUUM -->
+          <g class="band">
+            <rect x="110" y="20" width="360" height="50" fill="url(#voidG)"/>
+            <circle cx="150" cy="38" r="1" fill="#fff" opacity=".7"/><circle cx="250" cy="52" r="1.2" fill="#fff" opacity=".5"/>
+            <circle cx="360" cy="34" r="1" fill="#fff" opacity=".6"/><circle cx="430" cy="55" r="1" fill="#fff" opacity=".5"/>
+            <text x="120" y="46" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="11" letter-spacing="2" fill="#7c9689">VACUUM · GCR · μ-METEOROIDS</text>
+            <!-- incoming impactor -->
+            <line x1="300" y1="24" x2="322" y2="66" stroke="#e6ac6d" stroke-width="1.4" stroke-dasharray="2 3"/>
+            <circle cx="322" cy="68" r="2.4" fill="#e6ac6d"/>
+          </g>
+
+          <!-- EPIDERMIS 0.5m 70-105 -->
+          <g class="band" data-k="epidermis">
+            <rect x="110" y="70" width="360" height="35" fill="#6f7d6a"/>
+            <path d="M150 72 L160 90 L152 104 M240 70 L248 88 M330 74 L322 100 M410 72 L418 96" stroke="#000" stroke-opacity=".22" fill="none" stroke-width="1"/>
+          </g>
+          <!-- RIND 0.5m 105-140 -->
+          <g class="band" data-k="rind">
+            <rect x="110" y="105" width="360" height="35" fill="#241f1c"/>
+            <g fill="#000" fill-opacity=".35">
+              <circle cx="140" cy="118" r="1.6"/><circle cx="175" cy="128" r="1.6"/><circle cx="215" cy="115" r="1.6"/><circle cx="255" cy="130" r="1.6"/><circle cx="300" cy="120" r="1.6"/><circle cx="345" cy="127" r="1.6"/><circle cx="390" cy="116" r="1.6"/><circle cx="435" cy="129" r="1.6"/>
+            </g>
+          </g>
+          <!-- MYCELIUM 2m 140-280 -->
+          <g class="band" data-k="mycelium">
+            <rect x="110" y="140" width="360" height="140" fill="#c8c2a3"/>
+            <g stroke="#000" stroke-opacity=".16" fill="none" stroke-width="1">
+              <path d="M120 160 C180 150 210 210 290 195 S400 230 460 205"/>
+              <path d="M120 210 C190 235 240 165 320 200 S430 175 462 220"/>
+              <path d="M130 255 C200 240 250 270 330 245 S420 265 460 250"/>
+              <path d="M150 145 C160 190 140 230 175 275"/>
+              <path d="M260 142 C255 195 285 235 270 278"/>
+              <path d="M380 143 C390 195 360 235 385 278"/>
+            </g>
+          </g>
+          <!-- OSTEOID 1m 280-350 -->
+          <g class="band" data-k="osteoid">
+            <rect x="110" y="280" width="360" height="70" fill="#e6ac6d"/>
+            <g stroke="#5b3d18" stroke-opacity=".5" fill="none" stroke-width="2.2" stroke-linecap="round">
+              <path d="M130 348 L165 284 L205 348 L245 284 L285 348 L325 284 L365 348 L405 284 L448 348"/>
+              <path d="M150 316 L430 316" stroke-width="1.6" stroke-opacity=".35"/>
+            </g>
+          </g>
+          <!-- PNEUMOSTAT 1m 350-420 -->
+          <g class="band" data-k="pneumostat">
+            <rect x="110" y="350" width="360" height="70" fill="#7fb6b3"/>
+            <g stroke="#0d3b39" stroke-opacity=".45" stroke-width="1">
+              <line x1="112" y1="360" x2="468" y2="360"/><line x1="112" y1="372" x2="468" y2="372"/>
+              <line x1="112" y1="384" x2="468" y2="384"/><line x1="112" y1="396" x2="468" y2="396"/>
+              <line x1="112" y1="408" x2="468" y2="408"/>
+            </g>
+          </g>
+          <!-- INTIMA 0.5m 420-455 -->
+          <g class="band" data-k="intima">
+            <rect x="110" y="420" width="360" height="35" fill="#54cf7c"/>
+            <g fill="#0a3d1f" fill-opacity=".45">
+              <circle cx="135" cy="437" r="3.2"/><circle cx="170" cy="440" r="3.2"/><circle cx="205" cy="436" r="3.2"/><circle cx="240" cy="439" r="3.2"/><circle cx="275" cy="437" r="3.2"/><circle cx="310" cy="440" r="3.2"/><circle cx="345" cy="436" r="3.2"/><circle cx="380" cy="439" r="3.2"/><circle cx="415" cy="437" r="3.2"/><circle cx="448" cy="440" r="3.2"/>
+            </g>
+          </g>
+          <!-- CABIN -->
+          <g class="band">
+            <rect x="110" y="455" width="360" height="90" fill="#0c1a2a"/>
+            <text x="120" y="500" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="11" letter-spacing="1.5" fill="#9fc4e0">PRESSURIZED HABITAT</text>
+            <text x="120" y="518" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="11" letter-spacing="1.5" fill="#7fa6c4">52 kPa · 34% O₂ · lit by star + bioluminescence</text>
+          </g>
+
+          <!-- labels right column x 500+, leader lines -->
+          <g font-family="system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+            <!-- epidermis -->
+            <line x1="470" y1="87" x2="512" y2="72" stroke="rgba(150,196,176,.28)"/>
+            <text x="518" y="66" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="16" fill="#e2f0e8">Sacrificial epidermis</text>
+            <text x="518" y="84" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="11" fill="#4fd6d0">0.5 m · scute / bark analogue</text>
+            <text x="518" y="100" font-size="12.5" fill="#a9c2b6">Ablative μ-meteoroid facing; regrown</text>
+            <!-- rind -->
+            <line x1="470" y1="122" x2="512" y2="134" stroke="rgba(150,196,176,.28)"/>
+            <text x="518" y="128" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="16" fill="#e2f0e8">Melanized rind</text>
+            <text x="518" y="146" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="11" fill="#4fd6d0">0.5 m · radiotrophic melanin</text>
+            <text x="518" y="162" font-size="12.5" fill="#a9c2b6">Absorbs ionizing radiation + heat</text>
+            <!-- mycelium -->
+            <line x1="470" y1="210" x2="512" y2="210" stroke="rgba(150,196,176,.28)"/>
+            <text x="518" y="204" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="16" fill="#e2f0e8">Mycelial matrix</text>
+            <text x="518" y="222" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="11" fill="#4fd6d0">2.0 m · chitin hyphae ("the wood")</text>
+            <text x="518" y="238" font-size="12.5" fill="#a9c2b6">Low-density tension scaffold</text>
+            <!-- osteoid -->
+            <line x1="470" y1="315" x2="512" y2="304" stroke="rgba(150,196,176,.28)"/>
+            <text x="518" y="298" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="16" fill="#e2f0e8">Osteoid trusses</text>
+            <text x="518" y="316" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="11" fill="#4fd6d0">~1.0 m · collagen–hydroxyapatite</text>
+            <text x="518" y="332" font-size="12.5" fill="#a9c2b6">Stress-aligned bone; self-optimizing</text>
+            <!-- pneumostat -->
+            <line x1="470" y1="385" x2="512" y2="380" stroke="rgba(150,196,176,.28)"/>
+            <text x="518" y="374" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="16" fill="#e2f0e8">Pneumostat membrane</text>
+            <text x="518" y="392" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="11" fill="#4fd6d0">1.0 m · 100s of gas-tight lamellae</text>
+            <text x="518" y="408" font-size="12.5" fill="#a9c2b6">The actual pressure vessel</text>
+            <!-- intima -->
+            <line x1="470" y1="437" x2="512" y2="446" stroke="rgba(150,196,176,.28)"/>
+            <text x="518" y="440" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="16" fill="#e2f0e8">Photosynthetic intima</text>
+            <text x="518" y="458" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="11" fill="#4fd6d0">0.5 m · cyanobacteria / algae</text>
+            <text x="518" y="474" font-size="12.5" fill="#a9c2b6">The crew's atmosphere plant</text>
+          </g>
+        </svg>

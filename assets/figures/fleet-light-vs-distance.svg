@@ -1,0 +1,156 @@
+<svg viewBox="-12.0 -12.0 1046.0 401.0" role="img" aria-label="Sunlight flux and required collector diameter versus orbital distance: direct photosynthesis is viable inside about 3 AU; beyond it the collector to deliver a fixed 15 GW grows without bound" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
+*{box-sizing:border-box}body{margin:0}
+  .page{background:radial-gradient(1100px 640px at 82% -6%,rgba(84,207,124,.13),transparent 60%),radial-gradient(900px 520px at 6% 3%,rgba(79,214,208,.11),transparent 55%),#0a1512;color:#e2f0e8;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;letter-spacing:.005em;overflow-x:hidden;min-height:100vh}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
+  h1,h2,h3{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-weight:600;text-wrap:balance;line-height:1.1;margin:0}
+  p{margin:0 0 1em}strong{color:#e2f0e8;font-weight:600}a{color:#4fd6d0}
+
+  /* program nav */
+  .prog-nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.08em;padding:16px 0 0}
+  .prog-nav .pn-brand{color:#54cf7c;letter-spacing:.16em;text-transform:uppercase}
+  .prog-nav a{color:#7c9689;text-decoration:none;padding:3px 10px;border:1px solid rgba(150,196,176,.16);border-radius:999px;transition:color .2s,border-color .2s}
+  .prog-nav a:hover{color:#e2f0e8;border-color:rgba(150,196,176,.30)}
+  .prog-nav a.current{color:#4fd6d0;border-color:#4fd6d0}
+
+  .masthead{padding:26px 0 26px;border-bottom:1px solid rgba(150,196,176,.30)}
+  .mh-kicker{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:#54cf7c;margin:0 0 16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .mh-kicker .round{color:#e6ac6d;border:1px solid #e6ac6d;border-radius:999px;padding:2px 10px;letter-spacing:.14em}
+  .mh-title{font-size:clamp(2.2rem,6.2vw,4.2rem);letter-spacing:-.015em;margin:0 0 6px}
+  .mh-title .s{color:#54cf7c}
+  .mh-sub{font-size:1.12rem;color:#a9c2b6;max-width:70ch}
+  .mh-sub .em{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-style:italic;color:#e6ac6d}
+
+  .section{padding:44px 0;border-bottom:1px solid rgba(150,196,176,.16)}
+  .sec-eyebrow{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#7c9689;display:flex;align-items:center;gap:.7em;margin:0 0 18px}
+  sup.cite{font-size:.62em;line-height:0;vertical-align:super;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-weight:600}
+  sup.cite a{color:#4fd6d0;text-decoration:none;padding:0 1px}
+  sup.cite a:hover{text-decoration:underline}
+  .refs{margin-top:16px;border-top:1px solid rgba(150,196,176,.16);padding-top:18px}
+  .refs ol{margin:0;padding-left:2.4em;display:grid;gap:8px}
+  .refs li{font-size:.8em;line-height:1.5;color:#a9c2b6;max-width:82ch}
+  .refs .rt{color:#7c9689;font-style:italic}
+  .refs-note{font-size:.8em;color:#7c9689;margin:0 0 14px;max-width:80ch}
+  .tbl-wrap{overflow-x:auto}
+  .section table{width:100%;border-collapse:collapse;font-size:13px;line-height:1.45}
+  .section table th{text-align:left;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#7c9689;border-bottom:1px solid rgba(150,196,176,.30);padding:8px 14px 8px 0;vertical-align:bottom}
+  .section table td{color:#a9c2b6;border-bottom:1px solid rgba(150,196,176,.16);padding:10px 14px 10px 0;vertical-align:top}
+  .section table td b{color:#e2f0e8}
+  .sec-eyebrow .num{color:#54cf7c}.sec-eyebrow .rule{flex:1;height:1px;background:rgba(150,196,176,.16)}
+  .section h2{font-size:clamp(1.5rem,3.6vw,2.2rem);margin-bottom:10px}
+  .section .tag{color:#a9c2b6;max-width:74ch;font-size:14.5px;margin-bottom:22px}
+
+  /* shared platform */
+  .platform{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:rgba(150,196,176,.16);border:1px solid rgba(150,196,176,.16);border-radius:12px;overflow:hidden}
+  .platform .p{background:#0a1512;padding:14px 15px}
+  .platform .pk{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#54cf7c;margin-bottom:6px}
+  .platform .pv{font-size:13px;color:#a9c2b6;line-height:1.45}
+
+  /* scale sheet */
+  .sheet{border:1px solid rgba(150,196,176,.30);border-radius:10px;background:linear-gradient(rgba(120,196,170,.10) 1px,transparent 1px) 0 0/100% 34px,linear-gradient(90deg,rgba(120,196,170,.10) 1px,transparent 1px) 0 0/34px 100%,#0b1714;padding:8px;overflow-x:auto}
+  .sheet svg{display:block;height:auto;min-width:820px;width:100%}
+
+  /* registry */
+  .registry{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:18px}
+  .vessel{border:1px solid rgba(150,196,176,.30);border-radius:14px;background:#0b1714;padding:20px;display:flex;flex-direction:column;gap:14px}
+  .v-head{display:flex;gap:14px;align-items:flex-start}
+  .v-glyph{width:58px;height:46px;flex:none}
+  .v-title{flex:1;min-width:0}
+  .v-title h3{font-size:1.3rem;letter-spacing:-.01em}
+  .v-bi{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-style:italic;color:#a9c2b6;font-size:.92rem;margin-top:1px}
+  .v-tier{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border-radius:999px;white-space:nowrap;border:1px solid rgba(150,196,176,.30);color:#7c9689}
+  .v-tier.t-pod{color:#4fd6d0;border-color:#4fd6d0}
+  .v-tier.t-ship{color:#54cf7c;border-color:#54cf7c}
+  .v-tier.t-mega{color:#e6ac6d;border-color:#e6ac6d}
+  .v-role{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.06em;color:#a9c2b6}
+  .spec{display:grid;grid-template-columns:1fr 1fr;gap:5px 14px;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11.5px;border-block:1px solid rgba(150,196,176,.16);padding:12px 0}
+  .spec .row{display:flex;justify-content:space-between;gap:8px}
+  .spec .k{color:#7c9689}.spec .val{color:#e2f0e8;font-variant-numeric:tabular-nums;text-align:right}
+  .v-anat{font-size:13px;color:#a9c2b6;line-height:1.5}
+  .growth{border-left:2px solid #54cf7c;padding-left:13px}
+  .growth .gh{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#54cf7c;margin-bottom:9px}
+  .growth .g-row{display:grid;grid-template-columns:78px 1fr;gap:10px;font-size:12.5px;margin-bottom:7px;line-height:1.4}
+  .growth .g-row .gk{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10px;letter-spacing:.06em;color:#7c9689;padding-top:2px}
+  .growth .g-row .gv{color:#a9c2b6}
+  .growth .g-row .gv b{color:#e2f0e8;font-weight:600}
+  .v-links{display:flex;gap:8px;flex-wrap:wrap;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px}
+  .v-links a{color:#4fd6d0;text-decoration:none;border-bottom:1px solid rgba(150,196,176,.30)}
+  .v-links .none{color:#7c9689}
+
+  /* dev log */
+  .log-entry{border-left:2px solid #e6ac6d;padding-left:16px;margin-bottom:20px}
+  .log-entry .lh{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.1em;color:#e6ac6d;margin-bottom:6px}
+  .log-entry h3{font-size:1.1rem;margin-bottom:6px}
+  .log-entry p{font-size:13.5px;color:#a9c2b6;margin:0;max-width:74ch}
+  .backlog{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .backlog .b{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;color:#7c9689;border:1px dashed rgba(150,196,176,.30);border-radius:8px;padding:5px 10px}
+
+  .notes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+  .note{border-left:2px solid rgba(150,196,176,.30);padding:2px 0 2px 16px}
+  .note .nh{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7c9689;margin-bottom:7px}
+  .note p{font-size:13px;color:#a9c2b6;margin:0;line-height:1.55}
+  .note.warm{border-color:#e6ac6d}.note.grn{border-color:#54cf7c}.note.cy{border-color:#4fd6d0}
+  footer{padding:24px 0 66px}
+  .fbar{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.06em;color:#7c9689;border-top:1px solid rgba(150,196,176,.16);padding-top:20px}
+  .fbar .sep{color:rgba(150,196,176,.30)}
+  .reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  
+  ::selection{background:#54cf7c;color:#0a1512}
+  :focus-visible{outline:2px solid #4fd6d0;outline-offset:3px;border-radius:3px}
+]]></style><rect x="-12.0" y="-12.0" width="1046.0" height="401.0" fill="#0c1613"/>
+        <rect x="110.0" y="70" width="175.6" height="260" style="fill:#54cf7c;fill-opacity:.06"/>
+        <text x="197.8" y="86" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#54cf7c">direct daylight viable</text>
+        <text x="496.2" y="86" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#e6ac6d">must concentrate or go dark</text>
+        <line x1="110" y1="330" x2="900" y2="330" stroke="rgba(150,196,176,.30)"/>
+        <line x1="110" y1="70" x2="110" y2="330" stroke="rgba(150,196,176,.30)"/>
+        <line x1="900" y1="70" x2="900" y2="330" stroke="rgba(150,196,176,.30)"/>
+        <line x1="110.0" y1="330" x2="110.0" y2="334" stroke="rgba(150,196,176,.30)"/>
+        <text x="110.0" y="345" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8.5" fill="#7c9689">1</text>
+        <line x1="197.8" y1="330" x2="197.8" y2="334" stroke="rgba(150,196,176,.30)"/>
+        <text x="197.8" y="345" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8.5" fill="#7c9689">2</text>
+        <line x1="285.6" y1="330" x2="285.6" y2="334" stroke="rgba(150,196,176,.30)"/>
+        <text x="285.6" y="345" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8.5" fill="#7c9689">3</text>
+        <line x1="373.3" y1="330" x2="373.3" y2="334" stroke="rgba(150,196,176,.30)"/>
+        <text x="373.3" y="345" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8.5" fill="#7c9689">4</text>
+        <line x1="461.1" y1="330" x2="461.1" y2="334" stroke="rgba(150,196,176,.30)"/>
+        <text x="461.1" y="345" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8.5" fill="#7c9689">5</text>
+        <line x1="548.9" y1="330" x2="548.9" y2="334" stroke="rgba(150,196,176,.30)"/>
+        <text x="548.9" y="345" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8.5" fill="#7c9689">6</text>
+        <line x1="636.7" y1="330" x2="636.7" y2="334" stroke="rgba(150,196,176,.30)"/>
+        <text x="636.7" y="345" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8.5" fill="#7c9689">7</text>
+        <line x1="724.4" y1="330" x2="724.4" y2="334" stroke="rgba(150,196,176,.30)"/>
+        <text x="724.4" y="345" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8.5" fill="#7c9689">8</text>
+        <line x1="812.2" y1="330" x2="812.2" y2="334" stroke="rgba(150,196,176,.30)"/>
+        <text x="812.2" y="345" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8.5" fill="#7c9689">9</text>
+        <line x1="900.0" y1="330" x2="900.0" y2="334" stroke="rgba(150,196,176,.30)"/>
+        <text x="900.0" y="345" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8.5" fill="#7c9689">10</text>
+        <text x="505" y="360" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#7c9689">orbital distance (AU)</text>
+        <line x1="110.0" y1="70" x2="110.0" y2="330" stroke="rgba(150,196,176,.16)" stroke-dasharray="2 4"/>
+        <text x="110.0" y="66" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#7c9689">Earth/NEO</text>
+        <line x1="153.9" y1="70" x2="153.9" y2="330" stroke="rgba(150,196,176,.16)" stroke-dasharray="2 4"/>
+        <text x="153.9" y="66" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#7c9689">Mars</text>
+        <line x1="259.2" y1="70" x2="259.2" y2="330" stroke="rgba(150,196,176,.16)" stroke-dasharray="2 4"/>
+        <text x="259.2" y="66" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#7c9689">belt</text>
+        <line x1="478.7" y1="70" x2="478.7" y2="330" stroke="rgba(150,196,176,.16)" stroke-dasharray="2 4"/>
+        <text x="478.7" y="66" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#7c9689">Jupiter</text>
+        <line x1="856.1" y1="70" x2="856.1" y2="330" stroke="rgba(150,196,176,.16)" stroke-dasharray="2 4"/>
+        <text x="856.1" y="66" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#7c9689">Saturn</text>
+        <text x="104" y="333.0" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#4fd6d0">0</text>
+        <text x="104" y="268.0" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#4fd6d0">350</text>
+        <text x="104" y="203.0" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#4fd6d0">700</text>
+        <text x="104" y="138.0" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#4fd6d0">1050</text>
+        <text x="104" y="73.0" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#4fd6d0">1400</text>
+        <text x="30" y="200" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9" fill="#4fd6d0" transform="rotate(-90 30 200)">sunlight flux (W/m²)</text>
+        <line x1="900" y1="330.0" x2="904" y2="330.0" stroke="#e6ac6d"/><text x="908" y="333.0" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#e6ac6d">0</text>
+        <line x1="900" y1="265.0" x2="904" y2="265.0" stroke="#e6ac6d"/><text x="908" y="268.0" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#e6ac6d">10</text>
+        <line x1="900" y1="200.0" x2="904" y2="200.0" stroke="#e6ac6d"/><text x="908" y="203.0" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#e6ac6d">20</text>
+        <line x1="900" y1="135.0" x2="904" y2="135.0" stroke="#e6ac6d"/><text x="908" y="138.0" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#e6ac6d">30</text>
+        <line x1="900" y1="70.0" x2="904" y2="70.0" stroke="#e6ac6d"/><text x="908" y="73.0" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#e6ac6d">40</text>
+        <text x="948" y="200" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9" fill="#e6ac6d" transform="rotate(-90 948 200)">15 GW collector Ø (km)</text>
+        <line x1="110" y1="302.1" x2="900" y2="302.1" stroke="#4fd6d0" stroke-dasharray="5 3" opacity=".6"/>
+        <text x="116" y="298.1" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#4fd6d0">150 W/m² daylight floor</text>
+        <polyline points="110.0,77.2 119.9,125.8 129.8,161.6 139.6,188.7 149.5,209.8 159.4,226.5 169.2,239.9 179.1,250.9 189.0,260.0 198.9,267.6 208.8,274.0 218.6,279.5 228.5,284.2 238.4,288.3 248.2,291.9 258.1,295.0 268.0,297.8 277.9,300.2 287.8,302.4 297.6,304.3 307.5,306.1 317.4,307.6 327.2,309.1 337.1,310.4 347.0,311.5 356.9,312.6 366.7,313.6 376.6,314.5 386.5,315.3 396.4,316.1 406.2,316.8 416.1,317.4 426.0,318.1 435.9,318.6 445.8,319.1 455.6,319.6 465.5,320.1 475.4,320.5 485.2,320.9 495.1,321.3 505.0,321.6 514.9,322.0 524.8,322.3 534.6,322.6 544.5,322.9 554.4,323.1 564.2,323.4 574.1,323.6 584.0,323.8 593.9,324.0 603.8,324.2 613.6,324.4 623.5,324.6 633.4,324.8 643.2,325.0 653.1,325.1 663.0,325.3 672.9,325.4 682.8,325.5 692.6,325.7 702.5,325.8 712.4,325.9 722.2,326.0 732.1,326.1 742.0,326.2 751.9,326.3 761.8,326.4 771.6,326.5 781.5,326.6 791.4,326.7 801.2,326.8 811.1,326.9 821.0,326.9 830.9,327.0 840.8,327.1 850.6,327.2 860.5,327.2 870.4,327.3 880.3,327.4 890.1,327.4 900.0,327.5" fill="none" stroke="#4fd6d0" stroke-width="2.4"/>
+        <polyline points="110.0,305.9 119.9,303.2 129.8,300.5 139.6,297.8 149.5,295.1 159.4,292.4 169.2,289.7 179.1,287.0 189.0,284.3 198.9,281.6 208.8,278.9 218.6,276.2 228.5,273.5 238.4,270.8 248.2,268.1 258.1,265.4 268.0,262.7 277.9,260.0 287.8,257.2 297.6,254.5 307.5,251.8 317.4,249.1 327.2,246.4 337.1,243.7 347.0,241.0 356.9,238.3 366.7,235.6 376.6,232.9 386.5,230.2 396.4,227.5 406.2,224.8 416.1,222.1 426.0,219.4 435.9,216.7 445.8,214.0 455.6,211.3 465.5,208.5 475.4,205.8 485.2,203.1 495.1,200.4 505.0,197.7 514.9,195.0 524.8,192.3 534.6,189.6 544.5,186.9 554.4,184.2 564.2,181.5 574.1,178.8 584.0,176.1 593.9,173.4 603.8,170.7 613.6,168.0 623.5,165.3 633.4,162.6 643.2,159.8 653.1,157.1 663.0,154.4 672.9,151.7 682.8,149.0 692.6,146.3 702.5,143.6 712.4,140.9 722.2,138.2 732.1,135.5 742.0,132.8 751.9,130.1 761.8,127.4 771.6,124.7 781.5,122.0 791.4,119.3 801.2,116.6 811.1,113.9 821.0,111.1 830.9,108.4 840.8,105.7 850.6,103.0 860.5,100.3 870.4,97.6 880.3,94.9 890.1,92.2 900.0,89.5" fill="none" stroke="#e6ac6d" stroke-width="2.4" stroke-dasharray="6 3"/>
+        <text x="680.6" y="143.6" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8.5" fill="#e6ac6d">collector Ø ∝ distance</text>
+        <text x="338.2" y="302.5" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8.5" fill="#4fd6d0">flux ∝ 1/r²</text>
+      </svg>

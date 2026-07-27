@@ -2,6 +2,24 @@
 
 Running progress log. Newest first.
 
+## 2026-07-26 — Detailed illustrated README (+ a broken figure found & fixed)
+
+- **Rewrote `README.md`** into a detailed, illustrated guide: hero, a mermaid program
+  map + closed-loop-metabolism diagram, a per-document tour with real figures, a
+  "by the numbers" table (python-verified), the honesty conventions, and run/structure
+  sections.
+- **Extracted 13 figures** straight from the documents' own inline SVGs into
+  `assets/figures/` as PNGs. Each figure is made self-contained (the docs' CSS
+  variables are resolved to literal dark-theme values, since librsvg does not evaluate
+  `var()`; stray `&` escaped; a dark ground added) and rasterised with `rsvg-convert`,
+  then eyeballed. Class-styled drawing sheets (Starship/Habitat/GRAVID/LICHEN) carry
+  their doc's class rules so they render faithfully.
+- **Found and fixed a real defect:** the Compendium's *defence-in-depth* cancer-control
+  figure was an unfilled `{fig}` placeholder in the published doc. Rebuilt it from
+  scratch as a python-grounded waterfall (10¹² → 0.1 uncontrolled tumour lineages
+  across seven layered controls, ~10¹³× suppression, below the 1-per-lifetime
+  threshold) and republished the Compendium.
+
 ## 2026-07-26 — Two new documents, consistency pass + GitHub
 
 - **Grew to ten documents.** Added the **Fleet Class Reference**

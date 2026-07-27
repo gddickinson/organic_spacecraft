@@ -1,0 +1,125 @@
+<svg viewBox="-12.0 -12.0 1026.0 424.0" role="img" aria-label="The nitrogen cycle as a closed loop: biomass to ammonium to nitrite to nitrate and back to biomass, with denitrification/leak out to an N2 pool and nif fixation topping it back up." xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
+*{box-sizing:border-box}body{margin:0}
+  .page{background:radial-gradient(1100px 640px at 82% -6%,rgba(84,207,124,.13),transparent 60%),radial-gradient(900px 520px at 6% 3%,rgba(79,214,208,.11),transparent 55%),#0a1512;color:#e2f0e8;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16.5px;line-height:1.66;letter-spacing:.005em;overflow-x:hidden;min-height:100vh}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
+  h1,h2,h3,h4{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-weight:600;text-wrap:balance;line-height:1.12;margin:0}
+  p{margin:0 0 1.05em}strong{color:#e2f0e8;font-weight:600}em{color:#e2f0e8}
+  a{color:#4fd6d0}
+  .mono{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace}
+  .chem{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:.92em;color:#e6ac6d;background:rgba(230,172,109,.13);padding:.06em .4em;border-radius:4px;white-space:nowrap}
+
+  .prog-nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.08em;padding:16px 0 4px}
+  .prog-nav .pn-brand{color:#54cf7c;letter-spacing:.16em;text-transform:uppercase}
+  .prog-nav a{color:#7c9689;text-decoration:none;padding:3px 10px;border:1px solid rgba(150,196,176,.16);border-radius:999px;transition:color .2s,border-color .2s}
+  .prog-nav a:hover{color:#e2f0e8;border-color:rgba(150,196,176,.30)}
+  .prog-nav a.current{color:#4fd6d0;border-color:#4fd6d0}
+
+  header.mast{padding:34px 0 30px;border-bottom:1px solid rgba(150,196,176,.30)}
+  .mast .kick{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:#54cf7c;margin:0 0 16px}
+  .mast h1{font-size:clamp(2.2rem,6vw,4rem);letter-spacing:-.015em;margin:0 0 8px}
+  .mast h1 .s{color:#54cf7c}
+  .mast .sub{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-style:italic;font-size:clamp(1.05rem,2.3vw,1.4rem);color:#a9c2b6;max-width:60ch}
+
+  /* table of contents */
+  .toc{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:26px 0 0}
+  .toc a{display:flex;gap:10px;align-items:baseline;text-decoration:none;color:#e2f0e8;border:1px solid rgba(150,196,176,.16);border-radius:10px;padding:12px 14px;background:#0b1714;transition:border-color .2s}
+  .toc a:hover{border-color:rgba(150,196,176,.30)}
+  .toc .n{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;color:#54cf7c}
+  .toc .t{font-size:14px}
+
+  section.doc{padding:48px 0;border-bottom:1px solid rgba(150,196,176,.16)}
+  .eyebrow{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#7c9689;display:flex;align-items:center;gap:.7em;margin:0 0 16px}
+  .eyebrow .num{color:#54cf7c}.eyebrow .rule{flex:1;height:1px;background:rgba(150,196,176,.16)}
+  section.doc h2{font-size:clamp(1.7rem,4vw,2.5rem);letter-spacing:-.01em;margin-bottom:14px}
+  section.doc h3{font-size:1.28rem;margin:30px 0 10px;color:#e2f0e8}
+  section.doc h4{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#e6ac6d;margin:22px 0 8px}
+  .flow{max-width:70ch}
+  .flow p,.lead{max-width:70ch}
+  .lead{font-size:1.12em;color:#a9c2b6;margin-bottom:24px}
+
+  .callout{border-left:2px solid #54cf7c;background:rgba(84,207,124,.13);padding:14px 18px;border-radius:0 10px 10px 0;margin:22px 0;max-width:70ch}
+  .callout.warm{border-color:#e6ac6d;background:rgba(230,172,109,.13)}
+  .callout.cool{border-color:#4fd6d0;background:rgba(79,214,208,.11)}
+  .callout p{margin:0}.callout .lab{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#7c9689;display:block;margin-bottom:6px}
+
+  .tbl-wrap{overflow-x:auto;margin:18px 0;border:1px solid rgba(150,196,176,.16);border-radius:10px}
+  .fig{border:1px solid rgba(150,196,176,.30);border-radius:10px;background:#0e1c18;padding:10px;margin:16px 0;overflow-x:auto}
+  .fig svg{display:block;width:100%;min-width:720px;height:auto}
+  .figcap{font-size:.82em;color:#7c9689;margin:8px 2px 0;line-height:1.5}
+  table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+  thead th{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#7c9689;font-weight:600;text-align:left;padding:12px 14px;background:#0b1714;border-bottom:1px solid rgba(150,196,176,.30)}
+  td{padding:11px 14px;border-bottom:1px solid rgba(150,196,176,.16);vertical-align:top;color:#a9c2b6}
+  tbody tr:last-child td{border-bottom:none}
+  td:first-child{color:#e2f0e8;font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-size:14.5px}
+  td .r{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;color:#54cf7c}
+
+  .pathway{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12.5px;line-height:1.9;color:#a9c2b6;background:#0b1714;border:1px solid rgba(150,196,176,.16);border-radius:10px;padding:16px 18px;margin:16px 0;overflow-x:auto}
+  .pathway .step{color:#e2f0e8}.pathway .en{color:#4fd6d0}.pathway b{color:#e6ac6d}
+
+  .gap{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.06em;color:#e6ac6d;display:inline-block;border:1px solid #e6ac6d;border-radius:6px;padding:1px 7px;margin-left:4px}
+  sup.cite{font-size:.62em;line-height:0;vertical-align:super;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-weight:600}
+  sup.cite a{color:#4fd6d0;text-decoration:none;padding:0 1px}
+  sup.cite a:hover{text-decoration:underline}
+  .refs{margin-top:18px;border-top:1px solid rgba(150,196,176,.16);padding-top:18px}
+  .refs h3{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#e6ac6d;margin-bottom:14px}
+  .refs ol{margin:0;padding-left:2.4em;display:grid;gap:8px}
+  .refs li{font-size:.82em;line-height:1.5;color:#a9c2b6;max-width:80ch}
+  .refs li a{color:#4fd6d0;text-decoration:none}
+  .refs .rt{color:#7c9689;font-style:italic}
+  .refs-note{font-size:.8em;color:#7c9689;margin:0 0 14px;max-width:78ch}
+  .real{color:#54cf7c}
+
+  .notes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:8px}
+  .note{border-left:2px solid rgba(150,196,176,.30);padding:2px 0 2px 16px}
+  .note .nh{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7c9689;margin-bottom:7px}
+  .note p{font-size:13px;color:#a9c2b6;margin:0;line-height:1.55}
+  .note.grn{border-color:#54cf7c}.note.warm{border-color:#e6ac6d}.note.cool{border-color:#4fd6d0}
+
+  footer{padding:34px 0 66px}
+  .fbar{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;color:#7c9689;border-top:1px solid rgba(150,196,176,.16);padding-top:20px}
+  .fbar .sep{color:rgba(150,196,176,.30)}
+  .reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  
+  ::selection{background:#54cf7c;color:#0a1512}
+  :focus-visible{outline:2px solid #4fd6d0;outline-offset:3px;border-radius:3px}
+]]></style><rect x="-12.0" y="-12.0" width="1026.0" height="424.0" fill="#0c1613"/>
+        <line x1="328.3" y1="88.3" x2="411.7" y2="171.7" stroke="#7c9689" stroke-width="1.6"/>
+        <path d="M411.7 171.7 L403.4 168.3 L408.3 163.4 Z" fill="#7c9689"/>
+        <text x="386" y="114" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#7c9689">ammonification</text>
+        <line x1="411.7" y1="228.3" x2="328.3" y2="311.7" stroke="#7c9689" stroke-width="1.6"/>
+        <path d="M328.3 311.7 L331.7 303.4 L336.6 308.3 Z" fill="#7c9689"/>
+        <text x="386" y="286" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#7c9689">nitritation</text>
+        <text x="386" y="296" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#7c9689">Nitrosomonas</text>
+        <line x1="271.7" y1="311.7" x2="188.3" y2="228.3" stroke="#7c9689" stroke-width="1.6"/>
+        <path d="M188.3 228.3 L196.6 231.7 L191.7 236.6 Z" fill="#7c9689"/>
+        <text x="214" y="286" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#7c9689">nitratation</text>
+        <text x="214" y="296" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#7c9689">Nitrobacter</text>
+        <line x1="188.3" y1="171.7" x2="271.7" y2="88.3" stroke="#7c9689" stroke-width="1.6"/>
+        <path d="M271.7 88.3 L268.3 96.6 L263.4 91.7 Z" fill="#7c9689"/>
+        <text x="214" y="114" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#7c9689">assimilation / uptake</text>
+        <circle cx="300" cy="60" r="36" fill="#54cf7c" fill-opacity=".12" stroke="#54cf7c"/>
+        <text x="300" y="58" text-anchor="middle" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="15" fill="#e2f0e8">Biomass</text>
+        <text x="300" y="71" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="7.5" fill="#7c9689">organic N</text>
+        <circle cx="440" cy="200" r="36" fill="#4fd6d0" fill-opacity=".12" stroke="#4fd6d0"/>
+        <text x="440" y="198" text-anchor="middle" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="15" fill="#e2f0e8">NH₄⁺</text>
+        <text x="440" y="211" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="7.5" fill="#7c9689">ammonium</text>
+        <circle cx="300" cy="340" r="36" fill="#4fd6d0" fill-opacity=".12" stroke="#4fd6d0"/>
+        <text x="300" y="338" text-anchor="middle" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="15" fill="#e2f0e8">NO₂⁻</text>
+        <text x="300" y="351" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="7.5" fill="#7c9689">nitrite</text>
+        <circle cx="160" cy="200" r="36" fill="#4fd6d0" fill-opacity=".12" stroke="#4fd6d0"/>
+        <text x="160" y="198" text-anchor="middle" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="15" fill="#e2f0e8">NO₃⁻</text>
+        <text x="160" y="211" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="7.5" fill="#7c9689">nitrate</text>
+        <text x="300" y="196" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="11" fill="#e6ac6d">~13 t N/day</text>
+        <text x="300" y="209" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8" fill="#7c9689">(habitat) cycled</text>
+        <text x="510" y="120" text-anchor="middle" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="13" fill="#e2f0e8">N₂ pool</text>
+        <text x="510" y="133" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="7.5" fill="#7c9689">~71 Mt buffer</text>
+        <line x1="284.0" y1="103.4" x2="440.0" y2="108.6" stroke="#e6ac6d" stroke-width="1.6"/>
+        <path d="M440.0 108.6 L431.6 111.9 L431.9 104.9 Z" fill="#e6ac6d"/>
+        <text x="340" y="96" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="7.5" fill="#e6ac6d">denitrification / leak</text>
+        <line x1="448.5" y1="174.7" x2="465.5" y2="161.3" stroke="#54cf7c" stroke-width="1.6"/>
+        <path d="M465.5 161.3 L461.1 169.2 L456.8 163.7 Z" fill="#54cf7c"/>
+        <text x="506" y="176" text-anchor="middle" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="7.5" fill="#54cf7c">nif fixation</text>
+        <text x="30" y="372" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9" fill="#a9c2b6">loop ~99% closed — nif re-fixes N₂→NH₃ at ~0.13 t N/day to top up leakage (16 ATP per N₂ — costly, so biology recycles)</text>
+        <text x="30" y="387" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9" fill="#a9c2b6">nitrification costs ~4.6 g O₂ per g N (~59 t O₂/day, recovered when biomass respires) · atmospheric N₂ ≈ a millennium's reserve</text>
+        </svg>

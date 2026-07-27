@@ -1,0 +1,123 @@
+<svg viewBox="-12.0 -12.0 1026.0 616.0" role="img" aria-label="Sorted logarithmic size chart of all GESTALT fleet classes from 4 metres to 40 kilometres" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
+*{box-sizing:border-box}body{margin:0}
+  .page{background:radial-gradient(1100px 640px at 82% -6%,rgba(84,207,124,.13),transparent 60%),radial-gradient(900px 520px at 6% 3%,rgba(79,214,208,.11),transparent 55%),#0a1512;color:#e2f0e8;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;letter-spacing:.005em;overflow-x:hidden;min-height:100vh}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
+  h1,h2,h3{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-weight:600;text-wrap:balance;line-height:1.1;margin:0}
+  p{margin:0 0 1em}strong{color:#e2f0e8;font-weight:600}a{color:#4fd6d0}
+
+  /* program nav */
+  .prog-nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.08em;padding:16px 0 0}
+  .prog-nav .pn-brand{color:#54cf7c;letter-spacing:.16em;text-transform:uppercase}
+  .prog-nav a{color:#7c9689;text-decoration:none;padding:3px 10px;border:1px solid rgba(150,196,176,.16);border-radius:999px;transition:color .2s,border-color .2s}
+  .prog-nav a:hover{color:#e2f0e8;border-color:rgba(150,196,176,.30)}
+  .prog-nav a.current{color:#4fd6d0;border-color:#4fd6d0}
+
+  .masthead{padding:26px 0 26px;border-bottom:1px solid rgba(150,196,176,.30)}
+  .mh-kicker{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:#54cf7c;margin:0 0 16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .mh-kicker .round{color:#e6ac6d;border:1px solid #e6ac6d;border-radius:999px;padding:2px 10px;letter-spacing:.14em}
+  .mh-title{font-size:clamp(2.2rem,6.2vw,4.2rem);letter-spacing:-.015em;margin:0 0 6px}
+  .mh-title .s{color:#54cf7c}
+  .mh-sub{font-size:1.12rem;color:#a9c2b6;max-width:70ch}
+  .mh-sub .em{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-style:italic;color:#e6ac6d}
+
+  .section{padding:44px 0;border-bottom:1px solid rgba(150,196,176,.16)}
+  .sec-eyebrow{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#7c9689;display:flex;align-items:center;gap:.7em;margin:0 0 18px}
+  sup.cite{font-size:.62em;line-height:0;vertical-align:super;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-weight:600}
+  sup.cite a{color:#4fd6d0;text-decoration:none;padding:0 1px}
+  sup.cite a:hover{text-decoration:underline}
+  .refs{margin-top:16px;border-top:1px solid rgba(150,196,176,.16);padding-top:18px}
+  .refs ol{margin:0;padding-left:2.4em;display:grid;gap:8px}
+  .refs li{font-size:.8em;line-height:1.5;color:#a9c2b6;max-width:82ch}
+  .refs .rt{color:#7c9689;font-style:italic}
+  .refs-note{font-size:.8em;color:#7c9689;margin:0 0 14px;max-width:80ch}
+  .tbl-wrap{overflow-x:auto}
+  .section table{width:100%;border-collapse:collapse;font-size:13px;line-height:1.45}
+  .section table th{text-align:left;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#7c9689;border-bottom:1px solid rgba(150,196,176,.30);padding:8px 14px 8px 0;vertical-align:bottom}
+  .section table td{color:#a9c2b6;border-bottom:1px solid rgba(150,196,176,.16);padding:10px 14px 10px 0;vertical-align:top}
+  .section table td b{color:#e2f0e8}
+  .sec-eyebrow .num{color:#54cf7c}.sec-eyebrow .rule{flex:1;height:1px;background:rgba(150,196,176,.16)}
+  .section h2{font-size:clamp(1.5rem,3.6vw,2.2rem);margin-bottom:10px}
+  .section .tag{color:#a9c2b6;max-width:74ch;font-size:14.5px;margin-bottom:22px}
+
+  /* shared platform */
+  .platform{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:rgba(150,196,176,.16);border:1px solid rgba(150,196,176,.16);border-radius:12px;overflow:hidden}
+  .platform .p{background:#0a1512;padding:14px 15px}
+  .platform .pk{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#54cf7c;margin-bottom:6px}
+  .platform .pv{font-size:13px;color:#a9c2b6;line-height:1.45}
+
+  /* scale sheet */
+  .sheet{border:1px solid rgba(150,196,176,.30);border-radius:10px;background:linear-gradient(rgba(120,196,170,.10) 1px,transparent 1px) 0 0/100% 34px,linear-gradient(90deg,rgba(120,196,170,.10) 1px,transparent 1px) 0 0/34px 100%,#0b1714;padding:8px;overflow-x:auto}
+  .sheet svg{display:block;height:auto;min-width:820px;width:100%}
+
+  /* registry */
+  .registry{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:18px}
+  .vessel{border:1px solid rgba(150,196,176,.30);border-radius:14px;background:#0b1714;padding:20px;display:flex;flex-direction:column;gap:14px}
+  .v-head{display:flex;gap:14px;align-items:flex-start}
+  .v-glyph{width:58px;height:46px;flex:none}
+  .v-title{flex:1;min-width:0}
+  .v-title h3{font-size:1.3rem;letter-spacing:-.01em}
+  .v-bi{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-style:italic;color:#a9c2b6;font-size:.92rem;margin-top:1px}
+  .v-tier{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border-radius:999px;white-space:nowrap;border:1px solid rgba(150,196,176,.30);color:#7c9689}
+  .v-tier.t-pod{color:#4fd6d0;border-color:#4fd6d0}
+  .v-tier.t-ship{color:#54cf7c;border-color:#54cf7c}
+  .v-tier.t-mega{color:#e6ac6d;border-color:#e6ac6d}
+  .v-role{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.06em;color:#a9c2b6}
+  .spec{display:grid;grid-template-columns:1fr 1fr;gap:5px 14px;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11.5px;border-block:1px solid rgba(150,196,176,.16);padding:12px 0}
+  .spec .row{display:flex;justify-content:space-between;gap:8px}
+  .spec .k{color:#7c9689}.spec .val{color:#e2f0e8;font-variant-numeric:tabular-nums;text-align:right}
+  .v-anat{font-size:13px;color:#a9c2b6;line-height:1.5}
+  .growth{border-left:2px solid #54cf7c;padding-left:13px}
+  .growth .gh{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#54cf7c;margin-bottom:9px}
+  .growth .g-row{display:grid;grid-template-columns:78px 1fr;gap:10px;font-size:12.5px;margin-bottom:7px;line-height:1.4}
+  .growth .g-row .gk{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10px;letter-spacing:.06em;color:#7c9689;padding-top:2px}
+  .growth .g-row .gv{color:#a9c2b6}
+  .growth .g-row .gv b{color:#e2f0e8;font-weight:600}
+  .v-links{display:flex;gap:8px;flex-wrap:wrap;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px}
+  .v-links a{color:#4fd6d0;text-decoration:none;border-bottom:1px solid rgba(150,196,176,.30)}
+  .v-links .none{color:#7c9689}
+
+  /* dev log */
+  .log-entry{border-left:2px solid #e6ac6d;padding-left:16px;margin-bottom:20px}
+  .log-entry .lh{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.1em;color:#e6ac6d;margin-bottom:6px}
+  .log-entry h3{font-size:1.1rem;margin-bottom:6px}
+  .log-entry p{font-size:13.5px;color:#a9c2b6;margin:0;max-width:74ch}
+  .backlog{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .backlog .b{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;color:#7c9689;border:1px dashed rgba(150,196,176,.30);border-radius:8px;padding:5px 10px}
+
+  .notes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+  .note{border-left:2px solid rgba(150,196,176,.30);padding:2px 0 2px 16px}
+  .note .nh{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7c9689;margin-bottom:7px}
+  .note p{font-size:13px;color:#a9c2b6;margin:0;line-height:1.55}
+  .note.warm{border-color:#e6ac6d}.note.grn{border-color:#54cf7c}.note.cy{border-color:#4fd6d0}
+  footer{padding:24px 0 66px}
+  .fbar{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.06em;color:#7c9689;border-top:1px solid rgba(150,196,176,.16);padding-top:20px}
+  .fbar .sep{color:rgba(150,196,176,.30)}
+  .reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  
+  ::selection{background:#54cf7c;color:#0a1512}
+  :focus-visible{outline:2px solid #4fd6d0;outline-offset:3px;border-radius:3px}
+]]></style><rect x="-12.0" y="-12.0" width="1026.0" height="616.0" fill="#0c1613"/>
+        <g class="t-lab3"><circle cx="590" cy="54" r="4" style="fill:#54cf7c;fill-opacity:.55;stroke:#54cf7c"/><text x="600" y="58">crewed / habitat</text><circle cx="710" cy="54" r="4" style="fill:#e6ac6d;fill-opacity:.55;stroke:#e6ac6d"/><text x="720" y="58">infrastructure</text><circle cx="820" cy="54" r="4" style="fill:#4fd6d0;fill-opacity:.55;stroke:#4fd6d0"/><text x="830" y="58">sensing / info</text></g>
+        <g class="thin" opacity=".5" stroke-dasharray="2 4"><line x1="260" y1="88" x2="260" y2="540"/><line x1="380" y1="88" x2="380" y2="540"/><line x1="500" y1="88" x2="500" y2="540"/><line x1="620" y1="88" x2="620" y2="540"/><line x1="740" y1="88" x2="740" y2="540"/><line x1="860" y1="88" x2="860" y2="540"/></g>
+        <g class="t-lab3" text-anchor="middle" fill="#7c9689"><text x="260" y="80">1 m</text><text x="380" y="80">10 m</text><text x="500" y="80">100 m</text><text x="620" y="80">1 km</text><text x="740" y="80">10 km</text><text x="860" y="80">100 km</text></g>
+        <g><text x="60" y="104" class="t-serif" font-size="12">SPORE</text><text x="250" y="104" text-anchor="end" class="t-lab3">4 m</text><line x1="260" y1="100" x2="332.2" y2="100" class="thin" opacity=".4"/><circle cx="332.2" cy="100" r="3.7" style="fill:#54cf7c;fill-opacity:.55;stroke:#54cf7c"/></g>
+        <g><text x="60" y="129" class="t-serif" font-size="12">CHORUS</text><text x="250" y="129" text-anchor="end" class="t-lab3">30 m</text><line x1="260" y1="125" x2="437.3" y2="125" class="thin" opacity=".4"/><circle cx="437.3" cy="125" r="4.6" style="fill:#4fd6d0;fill-opacity:.55;stroke:#4fd6d0"/></g>
+        <g><text x="60" y="154" class="t-serif" font-size="12">RADIX</text><text x="250" y="154" text-anchor="end" class="t-lab3">40 m</text><line x1="260" y1="150" x2="452.2" y2="150" class="thin" opacity=".4"/><circle cx="452.2" cy="150" r="4.8" style="fill:#e6ac6d;fill-opacity:.55;stroke:#e6ac6d"/></g>
+        <g><text x="60" y="179" class="t-serif" font-size="12">VESPER</text><text x="250" y="179" text-anchor="end" class="t-lab3">50 m</text><line x1="260" y1="175" x2="463.9" y2="175" class="thin" opacity=".4"/><circle cx="463.9" cy="175" r="4.9" style="fill:#4fd6d0;fill-opacity:.55;stroke:#4fd6d0"/></g>
+        <g><text x="60" y="204" class="t-serif" font-size="12">TARDIGRADE</text><text x="250" y="204" text-anchor="end" class="t-lab3">50 m</text><line x1="260" y1="200" x2="463.9" y2="200" class="thin" opacity=".4"/><circle cx="463.9" cy="200" r="4.9" style="fill:#4fd6d0;fill-opacity:.55;stroke:#4fd6d0"/></g>
+        <g><text x="60" y="229" class="t-serif" font-size="12">NEREUS</text><text x="250" y="229" text-anchor="end" class="t-lab3">60 m</text><line x1="260" y1="225" x2="473.4" y2="225" class="thin" opacity=".4"/><circle cx="473.4" cy="225" r="5.0" style="fill:#4fd6d0;fill-opacity:.55;stroke:#4fd6d0"/></g>
+        <g><text x="60" y="254" class="t-serif" font-size="12">TESTUDO</text><text x="250" y="254" text-anchor="end" class="t-lab3">100 m</text><line x1="260" y1="250" x2="500.0" y2="250" class="thin" opacity=".4"/><circle cx="500.0" cy="250" r="5.2" style="fill:#e6ac6d;fill-opacity:.55;stroke:#e6ac6d"/></g>
+        <g><text x="60" y="279" class="t-serif" font-size="12">NAVIS</text><text x="250" y="279" text-anchor="end" class="t-lab3">120 m</text><line x1="260" y1="275" x2="509.5" y2="275" class="thin" opacity=".4"/><circle cx="509.5" cy="275" r="5.3" style="fill:#54cf7c;fill-opacity:.55;stroke:#54cf7c"/></g>
+        <g><text x="60" y="304" class="t-serif" font-size="12">AMBER</text><text x="250" y="304" text-anchor="end" class="t-lab3">150 m</text><line x1="260" y1="300" x2="521.1" y2="300" class="thin" opacity=".4"/><circle cx="521.1" cy="300" r="5.4" style="fill:#54cf7c;fill-opacity:.55;stroke:#54cf7c"/></g>
+        <g><text x="60" y="329" class="t-serif" font-size="12">CORAL</text><text x="250" y="329" text-anchor="end" class="t-lab3">500 m</text><line x1="260" y1="325" x2="583.9" y2="325" class="thin" opacity=".4"/><circle cx="583.9" cy="325" r="6.0" style="fill:#54cf7c;fill-opacity:.55;stroke:#54cf7c"/></g>
+        <g><text x="60" y="354" class="t-serif" font-size="12">LICHEN</text><text x="250" y="354" text-anchor="end" class="t-lab3">500 m</text><line x1="260" y1="350" x2="583.9" y2="350" class="thin" opacity=".4"/><circle cx="583.9" cy="350" r="6.0" style="fill:#54cf7c;fill-opacity:.55;stroke:#54cf7c"/></g>
+        <g><text x="60" y="379" class="t-serif" font-size="12">ATLAS</text><text x="250" y="379" text-anchor="end" class="t-lab3">600 m</text><line x1="260" y1="375" x2="593.4" y2="375" class="thin" opacity=".4"/><circle cx="593.4" cy="375" r="6.1" style="fill:#e6ac6d;fill-opacity:.55;stroke:#e6ac6d"/></g>
+        <g><text x="60" y="404" class="t-serif" font-size="12">GRAVID</text><text x="250" y="404" text-anchor="end" class="t-lab3">1 km</text><line x1="260" y1="400" x2="620.0" y2="400" class="thin" opacity=".4"/><circle cx="620.0" cy="400" r="6.3" style="fill:#e6ac6d;fill-opacity:.55;stroke:#e6ac6d"/></g>
+        <g><text x="60" y="429" class="t-serif" font-size="12">MEDUSA</text><text x="250" y="429" text-anchor="end" class="t-lab3">1 km</text><line x1="260" y1="425" x2="629.5" y2="425" class="thin" opacity=".4"/><circle cx="629.5" cy="425" r="6.4" style="fill:#e6ac6d;fill-opacity:.55;stroke:#e6ac6d"/></g>
+        <g><text x="60" y="454" class="t-serif" font-size="12">POMONA</text><text x="250" y="454" text-anchor="end" class="t-lab3">2 km</text><line x1="260" y1="450" x2="656.1" y2="450" class="thin" opacity=".4"/><circle cx="656.1" cy="450" r="6.6" style="fill:#54cf7c;fill-opacity:.55;stroke:#54cf7c"/></g>
+        <g><text x="60" y="479" class="t-serif" font-size="12">SOL-FORGE</text><text x="250" y="479" text-anchor="end" class="t-lab3">5 km</text><line x1="260" y1="475" x2="703.9" y2="475" class="thin" opacity=".4"/><circle cx="703.9" cy="475" r="7.1" style="fill:#e6ac6d;fill-opacity:.55;stroke:#e6ac6d"/></g>
+        <g><text x="60" y="504" class="t-serif" font-size="12">ARCA</text><text x="250" y="504" text-anchor="end" class="t-lab3">10 km</text><line x1="260" y1="500" x2="740.0" y2="500" class="thin" opacity=".4"/><circle cx="740.0" cy="500" r="7.4" style="fill:#54cf7c;fill-opacity:.55;stroke:#54cf7c"/></g>
+        <g><text x="60" y="529" class="t-serif" font-size="12">LEVIATHAN</text><text x="250" y="529" text-anchor="end" class="t-lab3">40 km</text><line x1="260" y1="525" x2="812.2" y2="525" class="thin" opacity=".4"/><circle cx="812.2" cy="525" r="8.1" style="fill:#54cf7c;fill-opacity:.55;stroke:#54cf7c"/></g>
+        <text x="480" y="568" text-anchor="middle" class="t-lab3" font-size="11">Characteristic size (log scale) — from a 4 m SPORE lifeboat to a 40 km LEVIATHAN ark: four orders of magnitude, one lineage.</text>
+      </svg>

@@ -1,0 +1,170 @@
+<svg viewBox="-12.0 -12.0 1026.0 672.0" role="img" aria-label="Vertical section through a LICHEN surface dome on Mars" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
+*{box-sizing:border-box}body{margin:0}
+  .page{background:radial-gradient(1000px 600px at 82% -6%,rgba(84,207,124,.13),transparent 60%),#0a1512;color:#e2f0e8;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;overflow-x:hidden;min-height:100vh}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+  h1,h2,h3{font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;font-weight:600;text-wrap:balance;line-height:1.1;margin:0}
+  p{margin:0 0 1em}strong{color:#e2f0e8}
+
+  .prog-nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;font-size:11px;letter-spacing:.08em;padding:16px 0 4px}
+  .prog-nav .pn-brand{color:#54cf7c;letter-spacing:.16em;text-transform:uppercase}
+  .prog-nav a{color:#7c9689;text-decoration:none;padding:3px 10px;border:1px solid rgba(150,196,176,.16);border-radius:999px;transition:color .2s,border-color .2s}
+  .prog-nav a:hover{color:#e2f0e8;border-color:rgba(150,196,176,.30)}
+  .prog-nav a.current{color:#4fd6d0;border-color:#4fd6d0}
+
+  .masthead{padding:22px 0 24px;border-bottom:1px solid rgba(150,196,176,.30)}
+  .mh-kicker{font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:#54cf7c;margin:0 0 14px}
+  .mh-title{font-size:clamp(2rem,5.6vw,3.6rem);letter-spacing:-.015em;margin:0 0 6px}
+  .mh-title .s{color:#54cf7c}
+  .mh-sub{font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;font-style:italic;color:#a9c2b6;font-size:1.15rem;margin:0 0 18px}
+  .vitals{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;border:1px solid rgba(150,196,176,.16);background:rgba(150,196,176,.16);border-radius:12px;overflow:hidden}
+  .vitals .c{background:#0a1512;padding:14px 15px}
+  .vitals .k{font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#7c9689;margin-bottom:7px}
+  .vitals .v{font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;font-size:1.4rem;line-height:1}
+  .vitals .v .u{font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;font-size:.5em;color:#7c9689;margin-left:.25em}
+  .vitals .s{font-size:12px;color:#7c9689;margin-top:6px;line-height:1.35}
+
+  .plate{padding:40px 0;border-bottom:1px solid rgba(150,196,176,.16)}
+  .plate-head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+  .plate-no{font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;font-size:12px;letter-spacing:.16em;color:#54cf7c}
+  .plate-head h2{font-size:clamp(1.4rem,3.4vw,2.1rem)}
+  .plate-meta{font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;font-size:10.5px;letter-spacing:.1em;color:#7c9689;margin-left:auto;text-align:right;line-height:1.6}
+  .plate-cap{color:#a9c2b6;max-width:74ch;font-size:14.5px;margin:10px 0 20px}
+  sup.cite{font-size:.62em;line-height:0;vertical-align:super;font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;font-weight:600}
+  sup.cite a{color:#4fd6d0;text-decoration:none;padding:0 1px}
+  sup.cite a:hover{text-decoration:underline}
+  .refs{margin-top:16px;border-top:1px solid rgba(150,196,176,.16);padding-top:18px}
+  .refs ol{margin:0;padding-left:2.4em;display:grid;gap:8px}
+  .refs li{font-size:.8em;line-height:1.5;color:#a9c2b6;max-width:82ch}
+  .refs .rt{color:#7c9689;font-style:italic}
+  .refs-note{font-size:.8em;color:#7c9689;margin:0 0 14px;max-width:80ch}
+  .sheet{border:1px solid rgba(150,196,176,.30);border-radius:10px;background:linear-gradient(rgba(120,196,170,.10) 1px,transparent 1px) 0 0/100% 34px,linear-gradient(90deg,rgba(120,196,170,.10) 1px,transparent 1px) 0 0/34px 100%,#0b1714;padding:8px;overflow-x:auto}
+  .sheet svg{display:block;height:auto;min-width:840px;width:100%}
+
+  .edge{fill:none;stroke:#e2f0e8;stroke-width:1.7;stroke-linejoin:round;stroke-linecap:round}
+  .edge2{fill:none;stroke:#a9c2b6;stroke-width:1.1}
+  .thin{fill:none;stroke:#7c9689;stroke-width:.8}
+  .thin2{fill:none;stroke:#a9c2b6;stroke-width:.9}
+  .dim{fill:none;stroke:#7c9689;stroke-width:.7}
+  .f-soil{fill:#6b7d55;fill-opacity:.5}
+  .f-water{fill:#4fd6d0;fill-opacity:.3;stroke:#4fd6d0;stroke-width:.8}
+  .f-ice{fill:#4fd6d0;fill-opacity:.18;stroke:#4fd6d0;stroke-width:1}
+  .f-air{fill:#4fd6d0;fill-opacity:.04}
+  .f-dome{fill:#54cf7c;fill-opacity:.06}
+  .stroke-c{stroke:#54cf7c}.stroke-l{stroke:#4fd6d0}.stroke-o{stroke:#e6ac6d}
+  .fill-c{fill:#54cf7c}.fill-l{fill:#4fd6d0}
+  .t-serif{font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;fill:#e2f0e8;font-size:14px}
+  .t-lab{font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;fill:#a9c2b6;font-size:10px;letter-spacing:.1em}
+  .t-lab3{font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;fill:#7c9689;font-size:9.5px;letter-spacing:.08em}
+  .t-dim{font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;fill:#7c9689;font-size:9.5px}
+  .t-big{font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;fill:#e2f0e8;font-weight:600;font-size:20px}
+  .human{fill:#a9c2b6;opacity:.85}
+
+  .notes{padding:38px 0 18px}
+  .notes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+  .note{border-left:2px solid rgba(150,196,176,.30);padding:2px 0 2px 16px}
+  .note .nh{font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7c9689;margin-bottom:7px}
+  .note p{font-size:13px;color:#a9c2b6;margin:0;line-height:1.55}
+  .note.warm{border-color:#e6ac6d}.note.grn{border-color:#54cf7c}
+  footer{padding:22px 0 60px}
+  .fbar{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;font-size:11px;color:#7c9689;border-top:1px solid rgba(150,196,176,.16);padding-top:18px}
+  .fbar .sep{color:rgba(150,196,176,.30)}
+  .reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  
+  
+  ::selection{background:#54cf7c;color:#0a1512}
+  :focus-visible{outline:2px solid #4fd6d0;outline-offset:3px}
+]]></style><rect x="-12.0" y="-12.0" width="1026.0" height="672.0" fill="#0c1613"/>
+        <!-- sky -->
+        <rect x="0" y="0" width="960" height="300" fill="#3a2418" opacity=".18"/>
+        <text x="60" y="40" class="t-lab3">THIN CO₂ SKY · ~0.6 kPa</text>
+        <!-- ground -->
+        <line x1="0" y1="300" x2="960" y2="300" class="edge2"/>
+        <rect x="0" y="300" width="960" height="220" fill="#7a5a42" fill-opacity=".14"/>
+        <g fill="#7a5a42" fill-opacity=".5"><circle cx="90" cy="340" r="2"/><circle cx="180" cy="380" r="2"/><circle cx="120" cy="430" r="2"/><circle cx="820" cy="350" r="2"/><circle cx="880" cy="410" r="2"/><circle cx="60" cy="470" r="2"/><circle cx="900" cy="470" r="2"/></g>
+        <!-- subsurface ice lens -->
+        <ellipse cx="480" cy="452" rx="150" ry="34" class="f-ice"/>
+        <text x="480" y="456" text-anchor="middle" class="t-lab3">subsurface ice</text>
+
+        <!-- over-blanket (outer, thick) -->
+        <path d="M228 300 A 252 205 0 0 1 732 300" fill="none" stroke="#7a5a42" stroke-width="17"/>
+        <g fill="#7a5a42" fill-opacity=".7"><circle cx="330" cy="150" r="2"/><circle cx="480" cy="103" r="2"/><circle cx="630" cy="150" r="2"/><circle cx="270" cy="235" r="2"/><circle cx="690" cy="235" r="2"/></g>
+        <!-- rind -->
+        <path d="M240 300 A 240 188 0 0 1 720 300" fill="none" stroke="#2a2420" stroke-width="5"/>
+        <!-- membrane -->
+        <path d="M246 300 A 234 182 0 0 1 714 300" fill="none" stroke="#7fb6b3" stroke-width="2.5"/>
+        <!-- interior air -->
+        <path d="M246 300 A 234 182 0 0 1 714 300 Z" class="f-dome"/>
+
+        <!-- floor garden -->
+        <rect x="246" y="298" width="468" height="6" class="f-soil"/>
+        <ellipse cx="400" cy="300" rx="46" ry="5" class="f-water"/>
+        <use href="#tree" x="300" y="284" width="11" height="16.5" class="fill-c" opacity=".8"/>
+        <use href="#tree" x="560" y="284" width="11" height="16.5" class="fill-c" opacity=".8"/>
+        <use href="#tree" x="620" y="286" width="9" height="13.5" class="fill-c" opacity=".8"/>
+        <use href="#human" x="470" y="290" width="4" height="10" class="human"/>
+        <use href="#human" x="500" y="291" width="3.6" height="9" class="human"/>
+
+        <!-- central light shaft -->
+        <line x1="480" y1="120" x2="480" y2="298" class="stroke-l" stroke-width="3" opacity=".5"/>
+        <circle cx="480" cy="118" r="7" class="f-water"/>
+        <g class="stroke-l" opacity=".3"><line x1="480" y1="160" x2="360" y2="298"/><line x1="480" y1="160" x2="600" y2="298"/></g>
+
+        <!-- roots -->
+        <g class="thin2" fill="none">
+          <path d="M250 300 C 245 350 220 380 200 440"/><path d="M710 300 C 715 350 740 380 760 440"/>
+          <path d="M480 300 C 480 360 480 400 480 430" stroke="#7fb6b3"/>
+          <path d="M420 300 C 410 350 380 380 350 430"/><path d="M540 300 C 550 350 580 380 610 430"/>
+        </g>
+
+        <!-- labels -->
+        <g class="t-lab">
+          <line x1="480" y1="102" x2="480" y2="66" class="thin"/><text x="480" y="58" text-anchor="middle" class="t-lab">REGOLITH OVER-BLANKET · shield + ballast</text><text x="480" y="70" text-anchor="middle" class="t-lab3">≈9 m Mars / ≈21 m Moon</text>
+          <line x1="640" y1="176" x2="770" y2="150" class="thin"/><text x="776" y="146" class="t-lab">rind + pressure membrane</text><text x="776" y="158" class="t-lab3">52 kPa · load only ~7.4 MN/m</text>
+          <line x1="480" y1="150" x2="560" y2="120" class="thin"/><text x="566" y="116" class="t-lab3">light shaft + luminous lining</text>
+          <line x1="480" y1="420" x2="600" y2="392" class="thin"/><text x="606" y="388" class="t-lab3">anchor + ice-tap roots</text>
+          <text x="300" y="330" class="t-lab3">MARS 0.38 g (local) — no spin needed</text>
+        </g>
+
+        <!-- dims + scale -->
+        <g class="dim"><line x1="240" y1="486" x2="720" y2="486"/><line x1="240" y1="480" x2="240" y2="492"/><line x1="720" y1="480" x2="720" y2="492"/></g>
+        <text x="480" y="500" text-anchor="middle" class="t-dim">≈ 500 m span · ≈150 m rise</text>
+        <g transform="translate(60 490)"><line x1="0" y1="0" x2="100" y2="0" class="edge2"/><g class="thin"><line x1="0" y1="-4" x2="0" y2="4"/><line x1="100" y1="-4" x2="100" y2="4"/></g><text x="0" y="15" class="t-dim">0</text><text x="100" y="15" class="t-dim" text-anchor="middle">100 m</text></g>
+      
+        <!-- ===== BORDER · NOTES · TITLE BLOCK ===== -->
+        <rect x="8" y="8" width="944" height="626" fill="none" stroke="rgba(150,196,176,.30)" stroke-width="1.5"/>
+        <rect x="14" y="14" width="932" height="614" fill="none" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <line x1="14" y1="548" x2="946" y2="548" stroke="rgba(150,196,176,.30)" stroke-width="1"/>
+        <rect x="616" y="554" width="330" height="72" fill="none" stroke="rgba(150,196,176,.30)" stroke-width="1.2"/>
+        <line x1="616" y1="578" x2="946" y2="578" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <line x1="616" y1="602" x2="946" y2="602" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <text x="624" y="565" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="7" fill="#7c9689">PROJECT · GESTALT — LICHEN Surface Dome</text>
+        <text x="624" y="574" font-family="'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif" font-size="11.5" fill="#e2f0e8">Section Through a Dome</text>
+        <line x1="766" y1="578" x2="766" y2="602" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <line x1="866" y1="578" x2="866" y2="602" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <text x="624" y="587" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="6.5" fill="#7c9689">DRAWING NO.</text>
+        <text x="624" y="598" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="11" fill="#4fd6d0">GST·LIC·101</text>
+        <text x="774" y="587" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="6.5" fill="#7c9689">SCALE</text>
+        <text x="774" y="598" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="9.5" fill="#e2f0e8">1 : 3,300</text>
+        <text x="874" y="587" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="6.5" fill="#7c9689">REV</text>
+        <text x="874" y="598" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="11" fill="#e2f0e8">C</text>
+        <line x1="716" y1="602" x2="716" y2="626" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <line x1="806" y1="602" x2="806" y2="626" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <text x="624" y="611" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="6.5" fill="#7c9689">DATE</text>
+        <text x="624" y="622" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="9.5" fill="#e2f0e8">2026-07</text>
+        <text x="724" y="611" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="6.5" fill="#7c9689">SHEET</text>
+        <text x="724" y="622" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="9.5" fill="#e2f0e8">1 of 3</text>
+        <text x="814" y="611" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="6.5" fill="#e6ac6d">STATUS</text>
+        <text x="814" y="622" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="6.8" fill="#e6ac6d">CONCEPT — NOT FOR CONSTRUCTION</text>
+        <text x="30" y="566" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="10" letter-spacing="2" fill="#e6ac6d">MATERIAL LEGEND · outer → inner</text>
+        <rect x="30" y="573" width="14" height="10" style="fill:#7a5a42;fill-opacity:.55;stroke:#7a5a42"/>
+        <text x="50" y="581" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">Regolith over-blanket</text>
+        <rect x="30" y="588" width="14" height="10" style="fill:#2a2420;fill-opacity:.55;stroke:#2a2420"/>
+        <text x="50" y="596" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">Rind + membrane</text>
+        <rect x="30" y="603" width="14" height="10" style="fill:#7fb6b3;fill-opacity:.55;stroke:#7fb6b3"/>
+        <text x="50" y="611" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">Pressure membrane</text>
+        <rect x="30" y="618" width="14" height="10" style="fill:#6b7d55;fill-opacity:.55;stroke:#6b7d55"/>
+        <text x="50" y="626" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">Soil floor</text>
+        <rect x="290" y="573" width="14" height="10" style="fill:#4fd6d0;fill-opacity:.55;stroke:#4fd6d0"/>
+        <text x="310" y="581" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">Subsurface ice</text>
+</svg>

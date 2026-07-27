@@ -1,0 +1,145 @@
+<svg viewBox="-12.0 -12.0 1026.0 592.0" role="img" aria-label="Plan view of the GRAVID nursery showing cradles at different stages along a feedstock spine" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
+*{box-sizing:border-box}body{margin:0}
+  .page{background:radial-gradient(1000px 600px at 82% -6%,rgba(84,207,124,.13),transparent 60%),#0a1512;color:#e2f0e8;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;overflow-x:hidden;min-height:100vh}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+  h1,h2,h3{font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;font-weight:600;text-wrap:balance;line-height:1.1;margin:0}
+  p{margin:0 0 1em}strong{color:#e2f0e8}
+  .prog-nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;font-size:11px;letter-spacing:.08em;padding:16px 0 4px}
+  .prog-nav .pn-brand{color:#54cf7c;letter-spacing:.16em;text-transform:uppercase}
+  .prog-nav a{color:#7c9689;text-decoration:none;padding:3px 10px;border:1px solid rgba(150,196,176,.16);border-radius:999px;transition:color .2s,border-color .2s}
+  .prog-nav a:hover{color:#e2f0e8;border-color:rgba(150,196,176,.30)}
+  .prog-nav a.current{color:#4fd6d0;border-color:#4fd6d0}
+  .masthead{padding:22px 0 24px;border-bottom:1px solid rgba(150,196,176,.30)}
+  .mh-kicker{font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:#54cf7c;margin:0 0 14px}
+  .mh-title{font-size:clamp(2rem,5.6vw,3.6rem);letter-spacing:-.015em;margin:0 0 6px}
+  .mh-title .s{color:#54cf7c}
+  .mh-sub{font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;font-style:italic;color:#a9c2b6;font-size:1.15rem;margin:0 0 18px}
+  .vitals{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;border:1px solid rgba(150,196,176,.16);background:rgba(150,196,176,.16);border-radius:12px;overflow:hidden}
+  .vitals .c{background:#0a1512;padding:14px 15px}
+  .vitals .k{font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#7c9689;margin-bottom:7px}
+  .vitals .v{font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;font-size:1.4rem;line-height:1}
+  .vitals .v .u{font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;font-size:.5em;color:#7c9689;margin-left:.25em}
+  .vitals .s{font-size:12px;color:#7c9689;margin-top:6px;line-height:1.35}
+  .plate{padding:40px 0;border-bottom:1px solid rgba(150,196,176,.16)}
+  .plate-head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+  .plate-no{font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;font-size:12px;letter-spacing:.16em;color:#54cf7c}
+  .plate-head h2{font-size:clamp(1.4rem,3.4vw,2.1rem)}
+  .plate-meta{font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;font-size:10.5px;letter-spacing:.1em;color:#7c9689;margin-left:auto;text-align:right;line-height:1.6}
+  .plate-cap{color:#a9c2b6;max-width:74ch;font-size:14.5px;margin:10px 0 20px}
+  sup.cite{font-size:.62em;line-height:0;vertical-align:super;font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;font-weight:600}
+  sup.cite a{color:#4fd6d0;text-decoration:none;padding:0 1px}
+  sup.cite a:hover{text-decoration:underline}
+  .refs{margin-top:16px;border-top:1px solid rgba(150,196,176,.16);padding-top:18px}
+  .refs ol{margin:0;padding-left:2.4em;display:grid;gap:8px}
+  .refs li{font-size:.8em;line-height:1.5;color:#a9c2b6;max-width:82ch}
+  .refs .rt{color:#7c9689;font-style:italic}
+  .refs-note{font-size:.8em;color:#7c9689;margin:0 0 14px;max-width:80ch}
+  .sheet{border:1px solid rgba(150,196,176,.30);border-radius:10px;background:linear-gradient(rgba(120,196,170,.10) 1px,transparent 1px) 0 0/100% 34px,linear-gradient(90deg,rgba(120,196,170,.10) 1px,transparent 1px) 0 0/34px 100%,#0b1714;padding:8px;overflow-x:auto}
+  .sheet svg{display:block;height:auto;min-width:840px;width:100%}
+  .edge{fill:none;stroke:#e2f0e8;stroke-width:1.7;stroke-linejoin:round;stroke-linecap:round}
+  .edge2{fill:none;stroke:#a9c2b6;stroke-width:1.1}
+  .thin{fill:none;stroke:#7c9689;stroke-width:.8}
+  .thin2{fill:none;stroke:#a9c2b6;stroke-width:.9}
+  .hid{fill:none;stroke:#7c9689;stroke-width:.8;stroke-dasharray:5 3;opacity:.7}
+  .dim{fill:none;stroke:#7c9689;stroke-width:.7}
+  .f-amn{fill:#4fd6d0;fill-opacity:.05}
+  .f-plac{fill:#e6ac6d;fill-opacity:.12;stroke:#e6ac6d;stroke-width:1}
+  .f-ship{fill:#54cf7c;fill-opacity:.10;stroke:#54cf7c;stroke-width:1.2}
+  .f-umb{fill:#e6ac6d;fill-opacity:.2;stroke:#e6ac6d;stroke-width:1}
+  .stroke-c{stroke:#54cf7c}.stroke-l{stroke:#4fd6d0}.stroke-o{stroke:#e6ac6d}
+  .fill-c{fill:#54cf7c}.fill-l{fill:#4fd6d0}.fill-o{fill:#e6ac6d}
+  .t-serif{font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;fill:#e2f0e8;font-size:14px}
+  .t-lab{font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;fill:#a9c2b6;font-size:10px;letter-spacing:.1em}
+  .t-lab3{font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;fill:#7c9689;font-size:9.5px;letter-spacing:.08em}
+  .t-dim{font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;fill:#7c9689;font-size:9.5px}
+  .human{fill:#a9c2b6;opacity:.85}
+  .notes{padding:38px 0 18px}
+  .notes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+  .note{border-left:2px solid rgba(150,196,176,.30);padding:2px 0 2px 16px}
+  .note .nh{font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7c9689;margin-bottom:7px}
+  .note p{font-size:13px;color:#a9c2b6;margin:0;line-height:1.55}
+  .note.warm{border-color:#e6ac6d}.note.grn{border-color:#54cf7c}
+  footer{padding:22px 0 60px}
+  .fbar{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace;font-size:11px;color:#7c9689;border-top:1px solid rgba(150,196,176,.16);padding-top:18px}
+  .fbar .sep{color:rgba(150,196,176,.30)}
+  .reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  
+  
+  ::selection{background:#54cf7c;color:#0a1512}
+  :focus-visible{outline:2px solid #4fd6d0;outline-offset:3px}
+]]></style><rect x="-12.0" y="-12.0" width="1026.0" height="592.0" fill="#0c1613"/>
+        <!-- spine -->
+        <rect x="120" y="214" width="700" height="26" rx="13" class="f-umb"/>
+        <text x="470" y="206" text-anchor="middle" class="t-lab3">FEEDSTOCK SPINE — refined matter in from ATLAS / RADIX</text>
+
+        <!-- cradles top (stalks + circles), varied sizes = stages -->
+        <g class="edge2">
+          <line x1="190" y1="214" x2="190" y2="182"/><circle cx="190" cy="160" r="22" class="f-plac"/>
+          <line x1="300" y1="214" x2="300" y2="172"/><circle cx="300" cy="140" r="34" class="f-plac"/>
+          <line x1="420" y1="214" x2="420" y2="164"/><circle cx="420" cy="120" r="46" class="f-plac"/>
+          <line x1="540" y1="214" x2="540" y2="176"/><circle cx="540" cy="150" r="30" class="f-plac"/>
+          <line x1="650" y1="214" x2="650" y2="186"/><circle cx="650" cy="166" r="24" class="f-plac"/>
+          <line x1="750" y1="214" x2="750" y2="188"/><circle cx="750" cy="168" r="20" class="f-plac"/>
+        </g>
+        <!-- growing ship dots inside larger cradles -->
+        <g class="f-ship"><ellipse cx="420" cy="120" rx="24" ry="15"/><ellipse cx="300" cy="140" rx="14" ry="9"/><ellipse cx="540" cy="150" rx="11" ry="7"/></g>
+
+        <!-- cradles bottom -->
+        <g class="edge2">
+          <line x1="245" y1="240" x2="245" y2="272"/><circle cx="245" cy="296" r="30" class="f-plac"/>
+          <line x1="360" y1="240" x2="360" y2="266"/>
+          <line x1="475" y1="240" x2="475" y2="278"/><circle cx="475" cy="300" r="34" class="f-plac"/>
+          <line x1="585" y1="240" x2="585" y2="272"/><circle cx="585" cy="296" r="26" class="f-plac"/>
+          <line x1="690" y1="240" x2="690" y2="274"/><circle cx="690" cy="298" r="22" class="f-plac"/>
+        </g>
+        <g class="f-ship"><ellipse cx="475" cy="300" rx="22" ry="14"/><ellipse cx="245" cy="296" rx="18" ry="11"/></g>
+        <!-- hatching cradle (open, releasing a ship) at 360 bottom -->
+        <path d="M338 288 A 30 30 0 1 1 384 288" class="edge2" fill="none"/>
+        <ellipse cx="360" cy="330" rx="26" ry="15" class="f-ship"/>
+        <path d="M360 300 l0 14 M352 308 l8 8 l8 -8" class="stroke-c" fill="none"/>
+
+        <!-- de-spun dock (right) -->
+        <rect x="820" y="212" width="46" height="30" rx="6" class="f-umb"/><text x="843" y="260" text-anchor="middle" class="t-lab3">de-spun dock</text>
+        <!-- ATLAS input (left) -->
+        <path d="M60 227 l50 0" class="stroke-o" stroke-width="5" opacity=".4"/><text x="70" y="216" class="t-lab3">‹ ATLAS</text>
+
+        <!-- labels -->
+        <g class="t-lab">
+          <line x1="420" y1="74" x2="420" y2="46" class="thin"/><text x="420" y="38" text-anchor="middle">near-term cradle — hull nearly complete</text>
+          <line x1="360" y1="330" x2="420" y2="380" class="thin"/><text x="426" y="384">hatching — a finished NAVIS leaves</text>
+          <text x="150" y="120" class="t-lab3">gestation cradles</text><text x="150" y="132" class="t-lab3">×12–24, all stages</text>
+        </g>
+        <g transform="translate(70 400)"><line x1="0" y1="0" x2="120" y2="0" class="edge2"/><g class="thin"><line x1="0" y1="-4" x2="0" y2="4"/><line x1="120" y1="-4" x2="120" y2="4"/></g><text x="0" y="15" class="t-dim">0</text><text x="120" y="15" class="t-dim" text-anchor="middle">200 m</text></g>
+      
+        <!-- ===== BORDER · NOTES · TITLE BLOCK ===== -->
+        <rect x="8" y="8" width="944" height="546" fill="none" stroke="rgba(150,196,176,.30)" stroke-width="1.5"/>
+        <rect x="14" y="14" width="932" height="534" fill="none" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <line x1="14" y1="468" x2="946" y2="468" stroke="rgba(150,196,176,.30)" stroke-width="1"/>
+        <rect x="616" y="474" width="330" height="72" fill="none" stroke="rgba(150,196,176,.30)" stroke-width="1.2"/>
+        <line x1="616" y1="498" x2="946" y2="498" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <line x1="616" y1="522" x2="946" y2="522" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <text x="624" y="485" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="7" fill="#7c9689">PROJECT · GESTALT — GRAVID Nursery-Shipyard</text>
+        <text x="624" y="494" font-family="'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif" font-size="11.5" fill="#e2f0e8">Nursery Plan — The Cradle Frame</text>
+        <line x1="766" y1="498" x2="766" y2="522" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <line x1="866" y1="498" x2="866" y2="522" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <text x="624" y="507" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="6.5" fill="#7c9689">DRAWING NO.</text>
+        <text x="624" y="518" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="11" fill="#4fd6d0">GST·GRV·102</text>
+        <text x="774" y="507" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="6.5" fill="#7c9689">SCALE</text>
+        <text x="774" y="518" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="9.5" fill="#e2f0e8">NTS</text>
+        <text x="874" y="507" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="6.5" fill="#7c9689">REV</text>
+        <text x="874" y="518" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="11" fill="#e2f0e8">C</text>
+        <line x1="716" y1="522" x2="716" y2="546" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <line x1="806" y1="522" x2="806" y2="546" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <text x="624" y="531" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="6.5" fill="#7c9689">DATE</text>
+        <text x="624" y="542" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="9.5" fill="#e2f0e8">2026-07</text>
+        <text x="724" y="531" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="6.5" fill="#7c9689">SHEET</text>
+        <text x="724" y="542" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="9.5" fill="#e2f0e8">2 of 3</text>
+        <text x="814" y="531" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="6.5" fill="#e6ac6d">STATUS</text>
+        <text x="814" y="542" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="6.8" fill="#e6ac6d">CONCEPT — NOT FOR CONSTRUCTION</text>
+        <text x="30" y="486" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="10" letter-spacing="2" fill="#e6ac6d">GENERAL NOTES</text>
+        <text x="30" y="503" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">1  Cradles bud from a central feedstock spine.</text>
+        <text x="30" y="518" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">2  12–24 gestating in parallel, all stages.</text>
+        <text x="30" y="533" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">3  Refined matter from ATLAS; ships leave de-spun dock.</text>
+        <text x="30" y="548" font-family="ui-monospace,'SF Mono','Menlo','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">4  ~1.2 km overall.</text>
+</svg>

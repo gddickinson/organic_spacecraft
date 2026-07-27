@@ -1,0 +1,253 @@
+<svg viewBox="-12.0 -12.0 1026.0 622.0" role="img" aria-label="External side-elevation general arrangement of the Gestalt starship with stations, dimensions, general notes and a drawing title block" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
+*{box-sizing:border-box}
+  body{margin:0}
+  .page{
+    background:
+      radial-gradient(1100px 640px at 82% -6%, rgba(84,207,124,.13), transparent 60%),
+      radial-gradient(900px 520px at 6% 3%, rgba(79,214,208,.11), transparent 55%),
+      #0a1512;
+    color:#e2f0e8;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;
+    letter-spacing:.005em;overflow-x:hidden;min-height:100vh;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
+  h1,h2,h3{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-weight:600;text-wrap:balance;line-height:1.1;margin:0}
+  p{margin:0 0 1em}
+  strong{color:#e2f0e8;font-weight:600}
+  .mono{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace}
+
+  /* ---------- masthead / title block ---------- */
+  .masthead{padding:56px 0 26px;border-bottom:1px solid rgba(150,196,176,.30)}
+  .mh-kicker{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:#54cf7c;margin:0 0 18px}
+  .mh-title{font-size:clamp(2.4rem,7vw,4.6rem);letter-spacing:-.015em;margin:0 0 4px}
+  .mh-title .s{color:#54cf7c}
+  .mh-sub{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;font-style:italic;font-size:clamp(1.05rem,2.3vw,1.4rem);color:#a9c2b6;margin:0 0 26px}
+  .titleblock{
+    display:grid;grid-template-columns:2fr 1fr;gap:0;border:1px solid rgba(150,196,176,.30);border-radius:12px;overflow:hidden;
+    background:#0b1714
+  }
+  .tb-index{padding:20px 22px;border-right:1px solid rgba(150,196,176,.16)}
+  .tb-index .h,.tb-meta .h{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#7c9689;margin-bottom:12px}
+  .idx{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+  .idx li{display:grid;grid-template-columns:58px 1fr;gap:10px;font-size:13.5px}
+  .idx .pl{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11.5px;color:#4fd6d0;letter-spacing:.04em;padding-top:1px}
+  .idx a{color:#e2f0e8;text-decoration:none;border-bottom:1px solid transparent;transition:border-color .2s}
+  .idx a:hover{border-color:rgba(150,196,176,.30)}
+  .tb-meta{padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+  .tb-meta dl{margin:0;display:grid;grid-template-columns:1fr;gap:9px}
+  .tb-meta .row{display:flex;justify-content:space-between;gap:12px;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11.5px;border-bottom:1px dotted rgba(150,196,176,.16);padding-bottom:8px}
+  .tb-meta .row .k{color:#7c9689;letter-spacing:.08em}
+  .tb-meta .row .v{color:#e2f0e8;font-variant-numeric:tabular-nums;text-align:right}
+
+  /* ---------- plates ---------- */
+  .plate{padding:46px 0;border-bottom:1px solid rgba(150,196,176,.16)}
+  .plate-head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+  .plate-no{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:12px;letter-spacing:.16em;color:#54cf7c;white-space:nowrap}
+  .plate-head h2{font-size:clamp(1.5rem,3.6vw,2.3rem);letter-spacing:-.01em}
+  .plate-meta{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10.5px;letter-spacing:.1em;color:#7c9689;margin-left:auto;text-align:right;line-height:1.6}
+  .plate-cap{color:#a9c2b6;max-width:74ch;font-size:14.5px;margin:10px 0 20px}
+  sup.cite{font-size:.62em;line-height:0;vertical-align:super;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-weight:600}
+  sup.cite a{color:#4fd6d0;text-decoration:none;padding:0 1px}
+  sup.cite a:hover{text-decoration:underline}
+  .refs{margin-top:16px;border-top:1px solid rgba(150,196,176,.16);padding-top:18px}
+  .refs ol{margin:0;padding-left:2.4em;display:grid;gap:8px}
+  .refs li{font-size:.8em;line-height:1.5;color:#a9c2b6;max-width:82ch}
+  .refs .rt{color:#7c9689;font-style:italic}
+  .refs-note{font-size:.8em;color:#7c9689;margin:0 0 14px;max-width:80ch}
+
+  .sheet{
+    border:1px solid rgba(150,196,176,.30);border-radius:10px;background:
+      linear-gradient(rgba(120,196,170,.10) 1px,transparent 1px) 0 0/100% 34px,
+      linear-gradient(90deg,rgba(120,196,170,.10) 1px,transparent 1px) 0 0/34px 100%,
+      #0b1714;
+    padding:8px;overflow-x:auto;position:relative
+  }
+  .sheet::before,.sheet::after{content:"";position:absolute;width:12px;height:12px;border:1px solid rgba(150,196,176,.30);opacity:.6}
+  .sheet::before{left:6px;top:6px;border-right:none;border-bottom:none}
+  .sheet::after{right:6px;bottom:6px;border-left:none;border-top:none}
+  .sheet svg{display:block;height:auto}
+  .sheet.big svg{min-width:900px;width:100%}
+  .sheet.med svg{min-width:840px;width:100%}
+
+  /* detail grid */
+  .detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:14px}
+  .detail-card{border:1px solid rgba(150,196,176,.30);border-radius:10px;background:#0b1714;padding:12px 12px 14px}
+  .detail-card .dc-t{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#4fd6d0;margin:2px 2px 8px;display:flex;justify-content:space-between;gap:8px}
+  .detail-card .dc-t .n{color:#e6ac6d}
+  .detail-card svg{display:block;width:100%;height:auto}
+  .detail-card p{font-size:12.5px;color:#a9c2b6;margin:8px 4px 2px;line-height:1.5}
+
+  /* svg drafting classes */
+  .edge{fill:none;stroke:#e2f0e8;stroke-width:1.7;stroke-linejoin:round;stroke-linecap:round}
+  .edge2{fill:none;stroke:#a9c2b6;stroke-width:1.1;stroke-linejoin:round}
+  .thin{fill:none;stroke:#7c9689;stroke-width:.8}
+  .thin2{fill:none;stroke:#a9c2b6;stroke-width:.9}
+  .hid{fill:none;stroke:#7c9689;stroke-width:.8;stroke-dasharray:5 3;opacity:.65}
+  .ctr{fill:none;stroke:#4fd6d0;stroke-width:.8;stroke-dasharray:12 3 2 3;opacity:.5}
+  .dim{fill:none;stroke:#7c9689;stroke-width:.7}
+  .sta{fill:none;stroke:rgba(150,196,176,.30);stroke-width:.7;stroke-dasharray:2 3}
+  .f-hull{fill:#e2f0e8;fill-opacity:.05}
+  .f-atrium{fill:#4fd6d0;fill-opacity:.035}
+  .f-spine{fill:#e6ac6d;fill-opacity:.16;stroke:#e6ac6d;stroke-width:1}
+  .f-res{fill:#e6ac6d;fill-opacity:.10;stroke:#e6ac6d;stroke-width:1.1}
+  .f-girdle{fill:#4fd6d0;fill-opacity:.14;stroke:#4fd6d0;stroke-width:1.1}
+  .f-gut{fill:#e6ac6d;fill-opacity:.10;stroke:#a9c2b6;stroke-width:.9}
+  .f-intima{fill:#54cf7c;fill-opacity:.20;stroke:#54cf7c;stroke-width:1.1}
+  .f-window{fill:#4fd6d0;fill-opacity:.16;stroke:#4fd6d0;stroke-width:1}
+  .stroke-c{stroke:#54cf7c}.stroke-l{stroke:#4fd6d0}.stroke-o{stroke:#e6ac6d}
+  .fill-c{fill:#54cf7c}.fill-l{fill:#4fd6d0}.fill-o{fill:#e6ac6d}
+  .t-serif{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;fill:#e2f0e8;font-size:14px}
+  .t-lab{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;fill:#a9c2b6;font-size:10px;letter-spacing:.1em}
+  .t-lab3{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;fill:#7c9689;font-size:9.5px;letter-spacing:.08em}
+  .t-dim{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;fill:#7c9689;font-size:9.5px;letter-spacing:.03em}
+  .t-big{font-family:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;fill:#e2f0e8;font-weight:600;font-size:24px}
+  .t-acc-c{fill:#54cf7c}.t-acc-l{fill:#4fd6d0}.t-acc-o{fill:#e6ac6d}
+  .human{fill:#a9c2b6;opacity:.85}
+
+  /* notes / footer */
+  .notes{padding:44px 0 20px}
+  .notes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+  .note{border-left:2px solid rgba(150,196,176,.30);padding:2px 0 2px 16px}
+  .note .nh{font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7c9689;margin-bottom:7px}
+  .note p{font-size:13px;color:#a9c2b6;margin:0;line-height:1.55}
+  .note.warm{border-color:#e6ac6d}.note.grn{border-color:#54cf7c}.note.cy{border-color:#4fd6d0}
+  footer{padding:24px 0 66px}
+  .fbar{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;font-size:11px;letter-spacing:.06em;color:#7c9689;border-top:1px solid rgba(150,196,176,.16);padding-top:20px}
+  .fbar .sep{color:rgba(150,196,176,.30)}
+
+  .reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  
+  
+  ::selection{background:#54cf7c;color:#0a1512}
+  :focus-visible{outline:2px solid #4fd6d0;outline-offset:3px;border-radius:3px}
+]]></style><rect x="-12.0" y="-12.0" width="1026.0" height="622.0" fill="#0c1613"/>
+        <!-- centerline / spin axis -->
+        <line x1="70" y1="220" x2="900" y2="220" class="ctr"/>
+        <text x="905" y="223" class="t-lab3">AXIS</text>
+
+        <!-- sun + orientation -->
+        <use href="#sun" x="44" y="150" width="52" height="52" style="fill:#e6ac6d;stroke:#e6ac6d;opacity:.85"/>
+        <text x="70" y="216" text-anchor="middle" class="t-lab3">SUNWARD</text>
+
+        <!-- MAIN BODY ellipse: cx450 cy220 rx300 ry150 -->
+        <ellipse cx="450" cy="220" rx="300" ry="150" class="edge f-hull"/>
+        <!-- surface grain -->
+        <g class="thin" opacity=".5">
+          <path d="M180 160 C 340 120, 560 120, 720 172" fill="none"/>
+          <path d="M165 220 C 360 210, 560 212, 748 220" fill="none"/>
+          <path d="M180 280 C 340 320, 560 320, 720 268" fill="none"/>
+        </g>
+
+        <!-- phototropic cap (prow left) -->
+        <g class="f-window">
+          <circle cx="150" cy="184" r="17"/><circle cx="140" cy="220" r="20"/><circle cx="150" cy="256" r="17"/><circle cx="171" cy="220" r="14"/>
+        </g>
+        <!-- radiator bloom (stern right) -->
+        <g class="edge2" fill="none">
+          <path d="M748 176 C 810 128, 862 130, 872 150 C 838 168, 792 186, 752 196"/>
+          <path d="M752 208 C 822 200, 876 202, 886 214 C 856 226, 800 226, 754 224"/>
+          <path d="M752 236 C 822 244, 876 244, 886 256 C 856 268, 800 268, 754 244"/>
+          <path d="M748 264 C 810 312, 862 314, 872 294 C 838 276, 792 258, 752 246"/>
+          <g class="thin" opacity=".6">
+            <path d="M760 186 C 800 170, 840 158, 862 150" fill="none"/>
+            <path d="M760 254 C 800 270, 840 282, 862 292" fill="none"/>
+          </g>
+        </g>
+        <text x="878" y="150" class="t-lab3">RADIATOR</text><text x="878" y="162" class="t-lab3">BLOOM</text>
+
+        <!-- caudal seed organ (stern-dorsal) -->
+        <g><path d="M700 108 C 726 86, 752 92, 748 118 C 742 138, 712 136, 700 108 Z" class="edge2 f-hull"/></g>
+
+        <!-- mining root / anchor (stern-ventral) to resource body -->
+        <g class="thin2" fill="none">
+          <path d="M690 300 C 740 360, 800 380, 850 396"/>
+          <path d="M712 300 C 760 350, 812 372, 862 384"/>
+          <path d="M666 306 C 700 372, 760 402, 812 414"/>
+        </g>
+        <ellipse cx="878" cy="404" rx="34" ry="24" class="edge2 f-hull"/>
+        <g class="thin" opacity=".6"><path d="M852 398 L864 392 M872 386 L884 398 M866 414 L878 408" /></g>
+        <text x="878" y="446" text-anchor="middle" class="t-lab3">RESOURCE BODY (ISRU)</text>
+
+        <!-- docking sphincters on flank -->
+        <g class="thin2">
+          <g transform="translate(360 78)"><ellipse rx="14" ry="8"/><line x1="-14" y1="0" x2="14" y2="0" class="thin"/><line x1="-7" y1="-4" x2="-7" y2="4" class="thin"/><line x1="7" y1="-4" x2="7" y2="4" class="thin"/></g>
+          <g transform="translate(520 74)"><ellipse rx="14" ry="8"/><line x1="-14" y1="0" x2="14" y2="0" class="thin"/><line x1="-7" y1="-4" x2="-7" y2="4" class="thin"/><line x1="7" y1="-4" x2="7" y2="4" class="thin"/></g>
+          <g transform="translate(440 362)"><ellipse rx="14" ry="8"/><line x1="-14" y1="0" x2="14" y2="0" class="thin"/><line x1="-7" y1="-4" x2="-7" y2="4" class="thin"/><line x1="7" y1="-4" x2="7" y2="4" class="thin"/></g>
+        </g>
+
+        <!-- feature labels -->
+        <g class="t-lab">
+          <line x1="150" y1="184" x2="150" y2="120" class="thin"/><text x="150" y="112" text-anchor="middle">PHOTOTROPIC CAP</text><text x="150" y="100" text-anchor="middle" class="t-lab3">clarified windows</text>
+          <line x1="360" y1="78" x2="360" y2="46" class="thin"/><text x="360" y="38" text-anchor="middle">DOCKING SPHINCTERS (×6)</text>
+          <line x1="724" y1="108" x2="724" y2="72" class="thin"/><text x="724" y="64" text-anchor="middle" class="t-lab3">CAUDAL SEED ORGAN</text>
+        </g>
+
+        <!-- section cut markers A B C -->
+        <g class="sta">
+          <line x1="246" y1="52" x2="246" y2="388"/><line x1="450" y1="40" x2="450" y2="400"/><line x1="620" y1="52" x2="620" y2="388"/>
+        </g>
+        <g class="t-acc-l" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-weight="600" font-size="15">
+          <text x="246" y="415" text-anchor="middle">A</text><text x="450" y="418" text-anchor="middle">B</text><text x="620" y="415" text-anchor="middle">C</text>
+        </g>
+        <g class="t-lab3"><text x="246" y="428" text-anchor="middle">St.1.6</text><text x="450" y="431" text-anchor="middle">St.5</text><text x="620" y="428" text-anchor="middle">St.7.8</text></g>
+
+        <!-- beam dimension Ø50 (witness + arrowheads) -->
+        <g class="dim">
+          <line x1="150" y1="70" x2="26" y2="70" class="thin" opacity=".5"/>
+          <line x1="150" y1="370" x2="26" y2="370" class="thin" opacity=".5"/>
+          <line x1="30" y1="70" x2="30" y2="370"/>
+          <path d="M30 70 l-3.2 8 l6.4 0 z" style="fill:#7c9689"/>
+          <path d="M30 370 l-3.2 -8 l6.4 0 z" style="fill:#7c9689"/>
+        </g>
+        <text x="22" y="224" class="t-dim" transform="rotate(-90 22 224)" text-anchor="middle">Ø 50 m</text>
+
+        <!-- length dimension 100 m (witness + arrowheads) -->
+        <g class="dim">
+          <line x1="150" y1="232" x2="150" y2="458" class="thin" opacity=".5"/>
+          <line x1="750" y1="232" x2="750" y2="458" class="thin" opacity=".5"/>
+          <line x1="150" y1="452" x2="750" y2="452"/>
+          <path d="M150 452 l8 -3.2 l0 6.4 z" style="fill:#7c9689"/>
+          <path d="M750 452 l-8 -3.2 l0 6.4 z" style="fill:#7c9689"/>
+        </g>
+        <text x="450" y="466" text-anchor="middle" class="t-dim">MAIN BODY 100 m — L.O.A. ≈ 120 m incl. appendages</text>
+
+        <!-- scale bar + human -->
+        <g transform="translate(70 400)">
+          <line x1="0" y1="0" x2="120" y2="0" class="edge2"/>
+          <g class="thin"><line x1="0" y1="-4" x2="0" y2="4"/><line x1="60" y1="-4" x2="60" y2="4"/><line x1="120" y1="-4" x2="120" y2="4"/></g>
+          <text x="0" y="16" class="t-dim">0</text><text x="60" y="16" class="t-dim" text-anchor="middle">10</text><text x="120" y="16" class="t-dim" text-anchor="middle">20 m</text>
+        </g>
+        <use href="#human" x="210" y="352" width="7" height="17.5" class="human"/>
+        <text x="222" y="366" class="t-lab3">1.8 m</text>
+      
+        <!-- ===== DRAWING BORDER · GENERAL NOTES · TITLE BLOCK ===== -->
+        <rect x="8" y="8" width="944" height="576" fill="none" stroke="rgba(150,196,176,.30)" stroke-width="1.5"/>
+        <rect x="14" y="14" width="932" height="564" fill="none" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <line x1="14" y1="498" x2="946" y2="498" stroke="rgba(150,196,176,.30)" stroke-width="1"/>
+        <text x="30" y="516" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="10" letter-spacing="2" fill="#e6ac6d">GENERAL NOTES</text>
+        <text x="30" y="533" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">1  All dimensions in metres unless noted. Stations at 10 m.</text>
+        <text x="30" y="548" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">2  Body is a prolate spheroid: Ø(x) = 50·√(1 − (x/50)²) m.</text>
+        <text x="30" y="563" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">3  Section cuts A–A, B–B, C–C — see PLATE III.</text>
+        <text x="30" y="578" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#a9c2b6">4  Living materials — see PLATE IV (hull section) &amp; References.</text>
+        <rect x="616" y="504" width="330" height="72" fill="none" stroke="rgba(150,196,176,.30)" stroke-width="1.2"/>
+        <line x1="616" y1="528" x2="946" y2="528" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <line x1="616" y1="552" x2="946" y2="552" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <text x="624" y="515" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="7.5" fill="#7c9689">PROJECT · GESTALT — Grown Starship (NAVIS class)</text>
+        <text x="624" y="524" font-family="'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" font-size="12" fill="#e2f0e8">General Arrangement — External Profile</text>
+        <line x1="766" y1="528" x2="766" y2="552" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <line x1="866" y1="528" x2="866" y2="552" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <text x="624" y="537" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="6.5" fill="#7c9689">DRAWING NO.</text>
+        <text x="624" y="548" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="11" fill="#4fd6d0">GST·SS·101</text>
+        <text x="774" y="537" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="6.5" fill="#7c9689">SCALE</text>
+        <text x="774" y="548" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="11" fill="#e2f0e8">1 : 600</text>
+        <text x="874" y="537" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="6.5" fill="#7c9689">REV</text>
+        <text x="874" y="548" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="11" fill="#e2f0e8">C</text>
+        <line x1="716" y1="552" x2="716" y2="576" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <line x1="806" y1="552" x2="806" y2="576" stroke="rgba(150,196,176,.16)" stroke-width="0.8"/>
+        <text x="624" y="561" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="6.5" fill="#7c9689">DATE</text>
+        <text x="624" y="572" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#e2f0e8">2026-07</text>
+        <text x="724" y="561" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="6.5" fill="#7c9689">SHEET</text>
+        <text x="724" y="572" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9.5" fill="#e2f0e8">2 of 6</text>
+        <text x="814" y="561" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="6.5" fill="#e6ac6d">STATUS</text>
+        <text x="814" y="572" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="6.8" fill="#e6ac6d">CONCEPT — NOT FOR CONSTRUCTION</text>
+</svg>
