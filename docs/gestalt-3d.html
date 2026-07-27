@@ -60,7 +60,7 @@
 
   <p class="kick">Interactive · drag to rotate · scroll to zoom · cutaway</p>
   <h1>GESTALT Fleet — 3D Models</h1>
-  <p class="sub">Rotatable solid models of the main grown-vehicle forms, rendered live in the browser (no plug-ins). Drag to orbit, scroll or pinch to zoom. Toggle <strong>cutaway</strong> to slice a wedge and see the layered wall and <strong>interior components</strong> — cores, decks, cradles, shelters. A live <strong>scale bar</strong> (top-left) reads true size at any zoom, and <strong>labels</strong> call out each feature.</p>
+  <p class="sub">Rotatable solid models of the main grown-vehicle forms, rendered live in the browser (no plug-ins). Drag to orbit, scroll or pinch to zoom. Toggle <strong>cutaway</strong> to slice a wedge and see the layered wall and a detailed <strong>interior</strong> — multi-level decks, habitation compartments, a vascular core, bridge and power nodes, ARCA's terraced farms and settlements, GRAVID's embryos at two growth stages, roots, and shelter pods. A live <strong>scale bar</strong> (top-left) reads true size at any zoom, and <strong>labels</strong> call out each feature.</p>
 
   <div class="bar">
     <div class="seg" id="models"></div>
@@ -154,9 +154,15 @@ function bandColor(my){ return Math.abs(my)<0.18?AMBER : (my<-1.45?CYAN:null); }
 function navis(cut){
   var prof=spheroidProfile(2.0,1.0,26), parts=[];
   if(cut){ parts=hollowShell(prof,44,GREEN,0.13); recolor(parts[0],bandColor);
-    parts.push(cyl(0,0,0,0.11,1.45,14,CYAN));          // central vascular trunk
-    parts.push(disk(0.7,-0.7,22,AMBER), disk(0.78,0,22,AMBER), disk(0.7,0.7,22,AMBER)); // three decks
-    parts.push(sphere(0,-1.55,0,0.22,9,12,WARM)); }    // metabolic / power node
+    parts.push(cyl(0,0,0,0.09,1.55,12,CYAN));           // central vascular trunk
+    for(var d=0;d<5;d++){ var dy=-1.3+d*0.65, dr=0.80*Math.sqrt(max(0.03,1-(dy/2)*(dy/2)));
+      parts.push(cyl(0,dy,0,dr,0.03,20,AMBER)); }        // five thick decks
+    parts.push(cyl(0,0,0,0.42,0.02,18,GREEN));           // a photosynthetic garden deck amidships
+    parts.push(sphere(0,1.35,0,0.17,9,12,CYAN));         // forward bridge pod
+    parts.push(sphere(0,-1.55,0,0.22,9,12,WARM));        // aft metabolic / power node
+    parts.push(sphere(0.20,0.05,0.42,0.11,8,10,CYAN),
+               sphere(-0.20,0.68,0.40,0.10,8,10,GREEN),
+               sphere(0.02,-0.62,0.48,0.11,8,10,AMBER)); } // habitation compartments at the opening
   else{ var b=lathe(prof,44,GREEN); recolor(b,bandColor); parts=[b]; }
   parts.push(recolor(lathe([[0.3,-2.0],[0.7,-2.35],[1.15,-2.75]],26,WARM),function(){return WARM;})); // radiator bloom
   parts.push(lathe([[0.16,-2.5],[0.08,-3.0],[0.001,-3.55]],14,CYAN)); // mining root
@@ -168,7 +174,11 @@ function habitat(cut){
   var R=1.0,L=4.0,sn=6,prof=[[0,-L/2],[R,-L/2]]; for(var i=1;i<sn;i++)prof.push([R,-L/2+i*(L/sn)]); prof.push([R,L/2],[0,L/2]);
   if(cut){ var p=hollowShell(prof,48,GREEN,0.06); recolor(p[0],function(my){return Math.abs(my)>L/2-0.06?AMBER:null;});
     p.push(cyl(0,0,0,0.05,L/2-0.12,12,CYAN));           // axial sun-cord light guide
-    p.push(disk(0.85,-1.4,26,AMBER), disk(0.85,1.4,26,AMBER)); // de-spun end terraces
+    p.push(cyl(0,-1,0,0.09,0.02,10,CYAN), cyl(0,0,0,0.09,0.02,10,CYAN), cyl(0,1,0,0.09,0.02,10,CYAN)); // light nodes on the cord
+    var tr=[[0.9,1.35],[0.62,1.58],[0.36,1.80]];         // stepped farm terraces at each de-spun cap
+    for(var t=0;t<tr.length;t++){ p.push(cyl(0,tr[t][1],0,tr[t][0],0.02,26,AMBER), cyl(0,-tr[t][1],0,tr[t][0],0.02,26,AMBER)); }
+    p.push(sphere(0.15,-0.4,0.85,0.07,7,8,GREEN), sphere(-0.15,0.3,0.85,0.07,7,8,AMBER),
+           sphere(0.0,-1.0,0.86,0.06,7,8,GREEN), sphere(0.12,0.9,0.85,0.06,7,8,GREEN)); // settlements on the inner land
     return merge.apply(null,p); }
   var m=lathe(prof,48,GREEN); recolor(m,function(my){return Math.abs(my)>L/2-0.06?AMBER:null;}); return m;
 }
@@ -176,7 +186,13 @@ function dome(cut){
   var R=1.7,H=1.0,N=18,prof=[]; for(var i=0;i<=N;i++){var t=i/N*PI/2; prof.push([R*cos(t),H*sin(t)]);}
   var ground=trans(lathe([[2.4,0],[0,0]],44,ROCK),0,-0.02,0);
   if(cut){ var p=hollowShell(prof,44,GREEN,0.14);
-    var inner=[cyl(0,0.4,0,0.06,0.4,10,AMBER), sphere(0,0.35,0,0.32,9,14,GREEN)]; // support mast + habitat pod
+    var inner=[cyl(0,0.5,0,0.05,0.5,10,AMBER),             // central support mast
+      sphere(0,0.42,0,0.26,9,14,GREEN),                    // central habitat pod
+      cyl(0,0.12,0,1.15,0.02,30,AMBER),                    // lower floor plate
+      cyl(0,0.45,0,0.72,0.02,24,AMBER),                    // upper gallery floor
+      sphere(0.5,0.12,0.55,0.12,8,10,GREEN), sphere(-0.5,0.12,0.5,0.11,8,10,CYAN), // side habitat pods
+      lathe([[0.12,-0.02],[0.05,-0.5],[0.001,-1.05]],10,CYAN),  // central taproot to ice
+      trans(lathe([[0.08,-0.02],[0.03,-0.4],[0.001,-0.7]],8,CYAN),0.5,0,0.4)]; // lateral anchor root
     return merge.apply(null,[ground].concat(p).concat(inner)); }
   return merge(ground, lathe(prof,44,GREEN));
 }
@@ -184,10 +200,12 @@ function nursery(cut){
   var parts=[lathe([[0,-2.1],[0.13,-2.1],[0.13,2.1],[0,2.1]],20,CYAN)], n=5;
   for(var i=0;i<n;i++){var y=-1.5+i*0.75, r=0.42+0.08*sin(i*1.3);
     var s=(i===n-1?GREEN:AMBER);
-    if(cut && i===n-1){ // slice the near-hatching cradle to show a ship inside
+    if(cut && (i===n-1 || i===n-2)){ // slice the two most-developed cradles — a ship at two growth stages
+      var stage=(i===n-1)?1.0:0.55, er=r*0.5*stage;
       parts=parts.concat(hollowShell(spheroidProfile(r,r*0.95,14),22,GREEN,0.4).map(function(m){return trans(m,0.62,y,0);}));
-      var emb=recolor(trans(lathe(spheroidProfile(r*0.5,r*0.34,12),16,GREEN),0.62,y,0),function(my){return Math.abs(my-y)<0.05?AMBER:null;});
-      parts.push(emb); // embryo ship (a mini NAVIS) gestating inside
+      parts.push(recolor(trans(lathe(spheroidProfile(er,er*0.68,12),16,GREEN),0.62,y,0),function(my){return Math.abs(my-y)<0.04?AMBER:null;})); // embryo ship
+      parts.push(cyl(0.62,y,0,0.028,er*0.9,8,CYAN));      // umbilical / vascular core feeding it
+      parts.push(sphere(0.62,y-r*0.9,0,0.05,7,8,CYAN));   // placental root where the cradle meets the spine
     } else parts.push(sphere(0.62,y,0,r,10,18,s));
     parts.push(sphere(-0.62,y+0.35,0,r*0.9,10,18,AMBER));}
   return merge.apply(null,parts);
@@ -195,8 +213,10 @@ function nursery(cut){
 function spore(cut){ // small egg-ovoid, 1-2 person pod
   var pr=[],A=1.2,B=0.85,N=22; for(var i=0;i<=N;i++){var t=i/N, y=(t*2-1)*A, r=B*Math.sqrt(max(0,1-(y/A)*(y/A)))*(1+0.18*(y/A)); pr.push([max(r,1e-3),y]);}
   if(cut){ var p=hollowShell(pr,32,GREEN,0.16);
-    p.push(sphere(0,-0.35,0,0.30,9,14,CYAN)); // torpor gland
-    p.push(disk(0.5,0.15,18,AMBER));          // cabin floor
+    p.push(sphere(0,-0.35,0,0.28,9,14,CYAN));    // torpor gland
+    p.push(cyl(0,0.12,0,0.5,0.02,18,AMBER));     // cabin floor
+    p.push(sphere(0.1,0.35,0.3,0.14,8,10,GREEN)); // the hibernating occupant
+    p.push(sphere(0,-0.72,0,0.13,8,10,WARM));    // life-support node
     return merge.apply(null,p); }
   return lathe(pr,32,GREEN);
 }
@@ -205,7 +225,9 @@ function leviathan(cut){ // siphonophore ark: spine + 12 drums budded on alterna
   for(var i=0;i<12;i++){ var row=i>>1, side=(i%2)?1:-1, y=-2.35+row*0.94, x=side*0.78;
     if(cut && i===0){ // slice the nearest drum to show one world inside
       parts=parts.concat(hollowShell([[0,-0.34],[0.44,-0.34],[0.44,0.34],[0,0.34]],20,GREEN,0.14).map(function(m){return trans(m,x,y,0);}));
-      parts.push(cyl(x,y,0,0.05,0.26,8,CYAN)); // drum axial light-core
+      parts.push(cyl(x,y,0,0.05,0.26,8,CYAN));            // drum axial light-core
+      parts.push(cyl(x,y,0,0.30,0.02,18,AMBER));          // internal land / deck ring
+      parts.push(sphere(x,y,0.30,0.06,7,8,GREEN), sphere(x-0.10,y-0.12,0.28,0.05,7,8,GREEN)); // interior structures
     } else {
       parts.push(trans(lathe([[0,-0.34],[0.44,-0.34],[0.44,0.34],[0,0.34]],20,GREEN), x,y,0));
     }
@@ -217,7 +239,10 @@ function testudo(cut){ // tortoise: heavily-armoured oblate shell
   pr.unshift([B*0.999,0]); // base rim
   var base=trans(lathe([[B,0],[0,0]],40,GREEN),0,-0.01,0); // green underside (shelter)
   if(cut){ var p=hollowShell(pr,40,SHELL,0.34);
-    p.push(sphere(0,0.26,0,0.45,10,16,GREEN)); // living shelter within
+    p.push(sphere(0,0.28,0,0.42,10,16,GREEN));   // living shelter dome within
+    p.push(cyl(0,0.05,0,0.7,0.02,26,AMBER));     // shelter floor
+    p.push(cyl(0,0.16,0,0.04,0.16,8,CYAN));      // core
+    p.push(sphere(0.15,0.1,0.32,0.09,8,10,GREEN), sphere(-0.18,0.1,0.3,0.08,8,10,CYAN)); // crew pods
     return merge.apply(null,[base].concat(p)); } // thick armour cutaway
   var shell=recolor(lathe(pr,40,SHELL),function(){return SHELL;});
   return merge(base,shell);
