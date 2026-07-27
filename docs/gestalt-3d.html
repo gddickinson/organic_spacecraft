@@ -152,10 +152,11 @@ function hollowShell(prof, seg, hull, wall){ // returns parts for a cutaway holl
 
 // ---------- models (make(cut) -> mesh) ----------
 function spheroidProfile(A,B,N){ var pr=[]; for(var i=0;i<=N;i++){var y=(i/N*2-1)*A, r=B*Math.sqrt(max(0,1-(y/A)*(y/A))); pr.push([max(r,1e-3),y]);} return pr; }
+function navisProfile(A,B,N){ var pr=[]; for(var i=0;i<=N;i++){var y=(i/N*2-1)*A, t=y/A, r=B*Math.sqrt(max(0,1-t*t))*(1-0.14*t); pr.push([max(r,1e-3),y]);} return pr; } // fore-tapered: A<C<B
 function bandColor(my){ return Math.abs(my)<0.18?AMBER : (my<-1.45?CYAN:null); }
 
 function navis(cut){
-  var prof=spheroidProfile(2.0,1.0,26), parts=[];
+  var prof=navisProfile(2.0,1.0,30), parts=[];
   if(cut){ parts=hollowShell(prof,44,GREEN,0.13); recolor(parts[0],bandColor);
     parts.push(cyl(0,0,0,0.09,1.55,12,CYAN));           // central vascular trunk
     for(var d=0;d<5;d++){ var dy=-1.3+d*0.65, dr=0.80*Math.sqrt(max(0.03,1-(dy/2)*(dy/2)));
@@ -166,11 +167,27 @@ function navis(cut){
     parts.push(sphere(0.20,0.05,0.42,0.11,8,10,CYAN),
                sphere(-0.20,0.68,0.40,0.10,8,10,GREEN),
                sphere(0.02,-0.62,0.48,0.11,8,10,AMBER)); } // habitation compartments at the opening
-  else{ var b=lathe(prof,44,GREEN); recolor(b,bandColor); parts=[b]; }
-  parts.push(recolor(lathe([[0.3,-2.0],[0.7,-2.35],[1.15,-2.75]],26,WARM),function(){return WARM;})); // radiator bloom
-  parts.push(lathe([[0.16,-2.5],[0.08,-3.0],[0.001,-3.55]],14,CYAN)); // mining root
-  parts.push(sphere(0,-3.7,0,0.3,10,16,ROCK)); // resource anchor
-  parts.push(sphere(0,2.05,0,0.24,9,14,CYAN));  // phototropic cap
+  else{ var b=lathe(prof,44,GREEN); recolor(b,bandColor); parts=[b];
+    parts.push(recolor(lathe([[1.0,0.05],[1.05,0],[1.0,-0.05]],40,AMBER),function(){return AMBER;})); // equatorial docking ridge
+    for(var s=0;s<6;s++){ var th=s*Math.PI/3, cx=Math.cos(th), cz=Math.sin(th);
+      parts.push(sphere(cx,0,cz,0.10,6,8,AMBER));                  // docking sphincter (×6)
+      parts.push(sphere(cx*1.03,0,cz*1.03,0.055,5,6,CYAN)); }      // recessed hatch
+    for(var w=0;w<5;w++){ var wt=w*2*Math.PI/5+0.3;
+      parts.push(sphere(0.77*Math.cos(wt),1.1,0.77*Math.sin(wt),0.075,6,7,CYAN)); } // clarified windows
+  }
+  // aft — caudal seed organ, petalled radiator bloom, branching mining root, anchor
+  parts.push(sphere(0,-2.06,0,0.22,8,12,AMBER));         // caudal seed organ
+  parts.push(recolor(lathe([[0.3,-2.0],[0.75,-2.35],[1.18,-2.72]],26,WARM),function(){return WARM;})); // radiator bloom
+  for(var pI=0;pI<8;pI++){ var pt=pI*Math.PI/4; parts.push(sphere(1.05*Math.cos(pt),-2.6,1.05*Math.sin(pt),0.12,5,7,WARM)); } // petal tips
+  parts.push(lathe([[0.16,-2.5],[0.08,-3.05],[0.001,-3.5]],14,CYAN)); // mining-root trunk
+  parts.push(sphere(0,-3.42,0,0.11,5,7,CYAN));           // root hub
+  for(var rI=0;rI<3;rI++){ var rt=rI*2*Math.PI/3; parts.push(sphere(0.13*Math.cos(rt),-3.6,0.13*Math.sin(rt),0.06,4,6,CYAN)); } // rootlets
+  parts.push(sphere(0,-3.72,0,0.3,10,16,ROCK));          // resource anchor
+  // fore — phototropic cap, eye-lens, sensor mast
+  parts.push(sphere(0,2.05,0,0.24,9,14,CYAN));           // phototropic cap
+  parts.push(sphere(0,2.2,0,0.11,6,8,CYAN));             // eye-lens
+  parts.push(cyl(0,2.4,0,0.02,0.14,8,CYAN));             // sensor / comms mast
+  parts.push(sphere(0,2.56,0,0.045,5,6,AMBER));          // mast tip
   return merge.apply(null,parts);
 }
 function habitat(cut){
@@ -253,7 +270,7 @@ function testudo(cut){ // tortoise: heavily-armoured oblate shell
 
 var MODELS={
  navis:{name:"NAVIS · GESTALT",bi:"Navis viva",make:navis,fit:1.0,tilt:0.35,
-   desc:"The crewed explorer — a 24,000 t prolate-spheroid organism, 100 m by 50 m. Green photosynthetic hull, amber equatorial docking band, a warm radiator bloom and cyan mining root at the aft pole reaching a rock anchor, and the phototropic light-cap forward. Cutaway shows the metre-thick living wall and the lit interior.",
+   desc:"The crewed explorer — a 24,000 t fore-tapered prolate-spheroid organism, 120 m by 50 m. Green photosynthetic hull with an equatorial ridge of six docking sphincters and clarified windows; forward, a phototropic cap with an eye-lens and a sensor/comms mast; aft, a caudal seed organ, an eight-petal radiator bloom and a branching mining root reaching a rock anchor. Cutaway shows the metre-thick living wall, decks and lit interior.",
    link:"285ef29f-751e-4767-b5a6-9cd178faddb1",linktext:"Open the Design Dossier →",
    specs:[["Length","≈120 m"],["Beam","50 m"],["Grown mass","24,000 t"],["Crew","50"]],scaleM:25,hot:[[0.72,0.7,0.5,"Photosynthetic hull"],[0.95,0,0.28,"Docking sphincters ×6"],[0.8,-2.45,0.3,"Radiator bloom"],[0,-3.65,0,"Mining root + anchor"],[0,2.08,0,"Phototropic light-cap"]]},
  arca:{name:"ARCA",bi:"Arca viva",make:habitat,fit:0.92,tilt:0.5,
