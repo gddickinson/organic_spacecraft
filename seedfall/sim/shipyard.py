@@ -1,0 +1,225 @@
+"""The shipyard: validating a design, costing it, and waiting for it.
+
+A fabricated hull is welded in weeks for a great deal of money. A grown hull is
+gestated over months or years for very little money and a great deal of
+phosphate. A GRAVID nursery in-system roughly halves the wait, which is the
+entire reason anyone builds one.
+"""
+
+from __future__ import annotations
+
+import itertools
+from dataclasses import dataclass, field
+
+from ..core.save import register
+from ..data.chassis import CHASSIS_BY_ID, Chassis, accepts_family
+from ..data.colonies import COLONIES_BY_ID
+from ..data.parts import part, part_value
+from .ship import Ship, build_layers, make_ship, stats
+
+_uid = itertools.count(1)
+
+
+@register
+@dataclass
+class BuildJob:
+    id: int
+    chassis_id: str
+    fitted: list[str]
+    name: str
+    system_id: int
+    system_name: str
+    need: int
+    days: float = 0.0
+
+
+def slot_usage(fitted) -> dict[str, int]:
+    used: dict[str, int] = {}
+    for pid in fitted:
+        p = part(pid)
+        if p:
+            used[p.slot] = used.get(p.slot, 0) + 1
+    return used
+
+
+def validate(chassis: Chassis, fitted) -> tuple[bool, list[str], bool]:
+    """Returns ``(ok, errors, brownout)``. A power deficit is legal but costly."""
+    errs: list[str] = []
+    for slot, n in slot_usage(fitted).items():
+        cap = chassis.slots.get(slot, 0)
+        if n > cap:
+            errs.append(f"{n} {slot} parts fitted; the hull has {cap}.")
+    for pid in fitted:
+        p = part(pid)
+        if p is None:
+            errs.append(f"Unknown part {pid}.")
+        elif not accepts_family(chassis, p.family):
+            errs.append(f"{p.name} will not graft to a {chassis.family} hull.")
+
+    mock = Ship(uid=0, name="", chassis=chassis.id, fitted=list(fitted))
+    s = stats(mock)
+    brownout = s.draw > s.power
+    return (not errs), errs, brownout
+
+
+def cost_of(chassis: Chassis, fitted) -> dict[str, float]:
+    """Full bill of materials for a hull plus its fittings."""
+    cost: dict[str, float] = {"credits": 0}
+    for key, n in chassis.cost.items():
+        cost[key] = cost.get(key, 0) + n
+    for pid in fitted:
+        p = part(pid)
+        if p:
+            for key, n in p.cost.items():
+                cost[key] = cost.get(key, 0) + n
+    return cost
+
+
+def build_days(chassis: Chassis, game, system_id: int) -> int:
+    """Days in the cradle or the slip, after nursery help and research."""
+    speed = 1 + game.bonuses.get("growth", 0)
+    helped = any(c.online and c.system_id == system_id
+                 and COLONIES_BY_ID[c.class_id].effects.get("gestation")
+                 for c in game.colonies)
+    if helped and chassis.family != "fabricated":
+        speed += 0.9
+    if chassis.family == "fabricated":
+        speed += 0.4
+    return max(4, round(chassis.grow / speed))
+
+
+def affordable(game, cost: dict) -> tuple[bool, list[tuple[str, float, float]]]:
+    """Do we have the money and the matter? Hold and depot both count."""
+    missing = []
+    for key, n in cost.items():
+        have = (game.credits if key == "credits"
+                else game.stores.get(key, 0) + game.ship.cargo.get(key, 0))
+        if have < n:
+            missing.append((key, n, int(have)))
+    return (not missing), missing
+
+
+def pay(game, cost: dict) -> None:
+    for key, n in cost.items():
+        if key == "credits":
+            game.credits -= n
+            continue
+        owed = n
+        from_store = min(game.stores.get(key, 0), owed)
+        game.stores[key] = game.stores.get(key, 0) - from_store
+        owed -= from_store
+        if owed > 0:
+            game.ship.cargo[key] = game.ship.cargo.get(key, 0) - owed
+            if game.ship.cargo[key] <= 0.0001:
+                game.ship.cargo.pop(key, None)
+
+
+def can_build_here(game, system, chassis: Chassis) -> tuple[bool, str]:
+    """Where can this hull be laid down?"""
+    if system is None:
+        return False, "Nowhere to build."
+    yard_here = any(c.online and c.system_id == system.id
+                    and COLONIES_BY_ID[c.class_id].effects.get("build_here")
+                    for c in game.colonies)
+    services = system.port.services if system.port else ()
+    if chassis.family == "fabricated":
+        if "shipyard" in services or yard_here:
+            return True, ""
+        return False, "Fabricated hulls need a shipyard or a fabricator yard."
+    if "gestation" in services or yard_here:
+        return True, ""
+    return False, "Grown hulls need a nursery — a fleet hub, or a GRAVID of your own."
+
+
+def start_build(game, chassis_id: str, fitted, system, name: str | None = None):
+    chassis = CHASSIS_BY_ID[chassis_id]
+    ok, errs, _ = validate(chassis, fitted)
+    if not ok:
+        return None, errs[0]
+    here, why = can_build_here(game, system, chassis)
+    if not here:
+        return None, why
+    if chassis.tech and chassis.tech not in game.research.unlocked:
+        return None, "That hull is not yet researched."
+    cost = cost_of(chassis, fitted)
+    can, missing = affordable(game, cost)
+    if not can:
+        key, need, have = missing[0]
+        return None, f"Short of {key}: need {need:g}, have {have}."
+
+    pay(game, cost)
+    job = BuildJob(id=next(_uid), chassis_id=chassis_id, fitted=list(fitted),
+                   name=name or chassis.name, system_id=system.id,
+                   system_name=system.name, need=build_days(chassis, game, system.id))
+    game.building.append(job)
+    return job, ""
+
+
+def tick_builds(game, days: float) -> list[Ship]:
+    """Advance the slips. Completed hulls join the fleet where they were built."""
+    done = []
+    for job in game.building:
+        job.days += days
+        if job.days >= job.need:
+            done.append(job)
+    if not done:
+        return []
+    game.building = [j for j in game.building if j not in done]
+    launched = []
+    for job in done:
+        ship = make_ship(job.chassis_id, job.fitted, job.name)
+        build_layers(ship, game.bonuses)
+        ship.docked_at = job.system_id
+        game.fleet.append(ship)
+        launched.append(ship)
+    return launched
+
+
+def refit_cost(chassis: Chassis, old_fitted, new_fitted):
+    """You pay for what you add; removed parts sell back at half."""
+    removed = list(old_fitted)
+    added = []
+    for pid in new_fitted:
+        if pid in removed:
+            removed.remove(pid)
+        else:
+            added.append(pid)
+    cost: dict[str, float] = {"credits": 0}
+    for pid in added:
+        p = part(pid)
+        if p:
+            for key, n in p.cost.items():
+                cost[key] = cost.get(key, 0) + n
+    refund = round(sum(part_value(part(pid)) * 0.5 for pid in removed if part(pid)))
+    cost["credits"] = max(0, cost.get("credits", 0) - refund)
+    return cost, added, removed, refund
+
+
+def apply_refit(game, ship: Ship, new_fitted) -> tuple[bool, str]:
+    chassis = CHASSIS_BY_ID[ship.chassis]
+    ok, errs, _ = validate(chassis, new_fitted)
+    if not ok:
+        return False, errs[0]
+    cost, *_ = refit_cost(chassis, ship.fitted, new_fitted)
+    can, missing = affordable(game, cost)
+    if not can:
+        key, need, have = missing[0]
+        return False, f"Short of {key}: need {need:g}, have {have}."
+    pay(game, cost)
+
+    fractions = [l.hp / l.max if l.max else 1 for l in ship.layers]
+    ship.fitted = list(new_fitted)
+    ship.disabled = []
+    build_layers(ship, game.bonuses)
+    for i, L in enumerate(ship.layers):
+        if i < len(fractions):
+            L.hp = round(L.max * fractions[i])
+    return True, ""
+
+
+def scrap_value(ship: Ship) -> int:
+    chassis = CHASSIS_BY_ID[ship.chassis]
+    cost = cost_of(chassis, ship.fitted)
+    v = cost.get("credits", 0) * 0.45
+    v += sum(n * 60 for key, n in cost.items() if key != "credits")
+    return round(v)

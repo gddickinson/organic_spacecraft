@@ -10,6 +10,12 @@ HTML documents (published as web artifacts) plus a small Python viewer for
 reading them offline. Every quantitative claim in the documents is grounded in
 Python calculations and cited to real published sources.
 
+Alongside the documents the repository carries three working companions: Python
+simulations of the designs' major systems (`sim/`), exportable 3D models
+(`models3d/`), and **SEEDFALL** (`seedfall/`) — a playable PyQt6 space
+exploration, trading and combat RPG whose every system is drawn from these
+documents.
+
 ## Layout
 
 ```
@@ -46,6 +52,13 @@ organic_spacecraft/
 │   ├── build.py          mesh builders per design (trimesh) -> coloured scene
 │   ├── render.py         static preview render
 │   └── run.py            CLI entry point (`python -m models3d.run`)
+├── seedfall/             ← SEEDFALL, the playable PyQt6 RPG (see seedfall/INTERFACE.md)
+│   ├── core/             seeded RNG, formatting, save codec, the Game + clock
+│   ├── data/             content tables: hulls, parts, tech tree, factions, lore
+│   ├── world/            sector, planet and market generation
+│   ├── sim/              game rules: ships, combat, colonies, research, the Bloom
+│   ├── ui/               PyQt6 views, one per screen, plus theme and widgets
+│   └── tests/            `python -m seedfall.tests`
 └── viewer/               ← zero-dependency local web viewer (stdlib only; /models 3D gallery)
     ├── catalog.py        Document registry (source of truth)
     ├── wrap.py           Fragment → standalone HTML + link rewriting
@@ -90,6 +103,15 @@ python3 viewer/app.py            # serve at http://127.0.0.1:8731
 python3 viewer/app.py --open     # and open a browser
 python3 viewer/app.py --check    # validate all docs load, then exit
 python3 viewer/app.py -p 9000    # choose a port
+```
+
+Routes: `/` index · `/d/<slug>` a document · `/models` the 3D gallery.
+
+The game is a separate desktop application, not part of the viewer:
+
+```
+python -m seedfall               # play SEEDFALL (needs PyQt6)
+python -m seedfall.tests         # its simulation + interface suites
 ```
 
 No third-party dependencies; standard library only. All viewer modules are kept

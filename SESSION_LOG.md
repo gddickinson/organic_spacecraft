@@ -2,6 +2,50 @@
 
 Running progress log. Newest first.
 
+## 2026-07-27 — SEEDFALL: the programme as a playable RPG (PyQt6)
+
+- **New `seedfall/` package**: a native desktop space exploration / trading /
+  combat RPG — a modern Starflight with a Civilization layer — built entirely on
+  the thirteen documents. PyQt6, 53 modules, every file under the 500-line limit,
+  no server and no build step. `python -m seedfall`.
+- **The documents are the mechanics, not the flavour.** The Class Reference
+  becomes 21 hull chassis; the Dossier's six-layer hull becomes the damage model
+  (shots ablate epidermis → rind → mycelium → osteoid, and the crew only starts
+  dying when the pneumostat opens); Metabolism becomes the economy, with
+  phosphorus scarce because chondrite is 0.1% P; the Cell Atlas becomes the
+  fittings; the Nervous System becomes a cognition branch where you must *buy*
+  silicon because nobody can grow a processor; the Compendium becomes a 58-node,
+  ten-branch tech tree; and the Registry's six named containment failures become
+  the six factions — including the Bloom, a lineage with its Hayflick counter cut
+  out, which simply grows.
+- **Design intent — many paths.** Grown / fabricated / hybrid hull families with
+  real trade-offs (grown heals but gestates for months and eats phosphate;
+  fabricated is instant, expensive and never repairs itself). Combat on a
+  five-band range track where destruction is only one win condition: resolve lets
+  a TESTUDO with no weapons at all win by outlasting, which is the programme's
+  actual doctrine. Five simultaneous victory conditions (Containment, Exodus,
+  Concord, Genesis, Dominion).
+- **Built first as a browser build, then ported to PyQt6 and the web build
+  retired**, so there is exactly one implementation of the rules and no chance of
+  the two drifting apart. The `/game` viewer route was removed with it.
+- **Tested headlessly, and it mattered.** `python -m seedfall.tests` runs 21
+  simulation checks and 15 interface checks; the interface suite builds the real
+  `MainWindow` on Qt's `offscreen` platform and paints every screen and tab,
+  including a live engagement. Between the two builds the suites caught nine real
+  defects, several of them unplayable: sector generation that could **strand the
+  player with nothing in jump range** (fixed with a lane-relaxation pass
+  guaranteeing every star has a neighbour within a starting jump); combat that
+  **never terminated** because armour could fully null a weapon (armour now floors
+  at 15% leak-through, plus late-onset resolve attrition and a turn cap); weapon
+  mounts beyond the first doing nothing (added the full-salvo order); hulls so
+  large relative to damage that an escape pod drove off a battleship (hull scale
+  retuned — fights now run ~18 turns and span destroyed / driven-off / lost);
+  derived ship stats being written into save files; a negative ice-harvest rate
+  from the reaction organ's fuel draw; and a clipped HUD caption.
+- `seedfall/INTERFACE.md` documents the module map, the one-directional layer
+  rule (`data → world → sim → ui`), and the constants that will bite anyone
+  retuning it. Root `INTERFACE.md` and `README.md` updated.
+
 ## 2026-07-26 — Working 3D models (glTF/OBJ/STL) + an interactive viewer
 
 - **New `models3d/` package**: builds solid, colour-coded 3D meshes of the

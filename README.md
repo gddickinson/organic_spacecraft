@@ -25,6 +25,7 @@ program to find out, cheaply and honestly, whether any of it can actually be bui
 - [The fleet](#the-fleet) · [The science](#the-science) · [Building it on Earth](#building-it-on-earth) · [See them in 3D](#see-them-in-3d)
 - [By the numbers](#by-the-numbers)
 - [Honest by construction](#honest-by-construction)
+- [SEEDFALL — play the programme](#seedfall--play-the-programme)
 - [Run the viewer](#run-the-viewer) · [Project structure](#project-structure)
 
 ---
@@ -361,6 +362,54 @@ The program lives or dies on not fooling itself. Three conventions enforce that:
 
 ---
 
+## SEEDFALL — play the programme
+
+**SEEDFALL** (`seedfall/`) is a space exploration, trading and combat RPG built
+on these documents — a modern Starflight with a Civilization layer. It is a
+native desktop application in PyQt6: no browser, no server, no build step.
+
+```bash
+pip install PyQt6
+python3 -m seedfall               # title screen
+python3 -m seedfall --new         # straight into a new chronicle
+```
+
+You command a grown starship in the Verge, fifty years after one 120 kg seed was
+thrown at an asteroid. Eleven months ago something germinated without a licence,
+with its Hayflick counter cut out. Nobody has told you what to do about it.
+
+**The documents are the game systems.** Nothing here is decoration:
+
+| Document | Becomes |
+|---|---|
+| Fleet Class Reference | 21 hull chassis — NAVIS, RADIX, MEDUSA, TESTUDO, LEVIATHAN and the rest, each with its real role, crew, mass and gestation time |
+| Design Dossier | The damage model: shots ablate the **sacrificial epidermis**, then the melanised rind, the mycelial matrix, the osteoid trusses — and only when the **pneumostat** opens does the crew start dying |
+| Metabolism | The economy. Phosphorus is 0.1% of chondrite and bone accepts no substitute, so it is the scarcest thing on the market; a hull digs ~18× its own mass in rock |
+| Cell Atlas | The fittings — mining roots, separation guts, intima blooms, radiator blooms, light-guides, torpor glands |
+| Nervous System | The cognition branch: a wet bioelectric net for homeostasis and a bought silicon core for arithmetic, because **nobody can grow a processor** |
+| Compendium | A 58-node research tree across ten branches, from mycelial matrix to parallel growth fronts |
+| Fleet Registry | The containment regime — reproduction licences, Hayflick counters, CHORUS consensus — and the six named ways it fails, one per faction |
+
+**Many ways to play.** Grow hulls from seeds, or buy fabricated ones from the
+Concordat of Yards, or graft the two together. Combat is fought on a five-band
+range track, and killing is only one way to win it: TESTUDO doctrine carries a
+thousand grams per square centimetre of regrowing carapace and no weapons at
+all, and a hull that simply refuses to die will break the other side's will to
+keep paying for the ammunition. Five endings are open at once — **Containment**,
+**Exodus**, **Concord**, **Genesis** and **Dominion** — and none is locked behind
+another.
+
+```bash
+python3 -m seedfall.tests         # 21 simulation + 15 interface checks
+```
+
+The interface suite builds the real window on Qt's offscreen platform and paints
+every screen, so the rules and the GUI are both covered without a display.
+
+See [`seedfall/INTERFACE.md`](seedfall/INTERFACE.md) for the module map.
+
+---
+
 ## Run the viewer
 
 A zero-dependency Python viewer serves all documents locally, re-creating the web-artifact
@@ -388,11 +437,20 @@ organic_spacecraft/
 ├── deepen-roadmap.md      ← the design-loop state + round-by-round history
 ├── docs/                  ← the thirteen published documents (HTML fragments)
 ├── assets/figures/        ← figures extracted from the documents (this README)
+├── sim/                   ← Python simulations of the designs' major systems
+├── models3d/              ← exportable 3D models (glTF / OBJ / STL)
+├── seedfall/              ← SEEDFALL, the playable RPG (see seedfall/INTERFACE.md)
+│   ├── core/              seeded RNG, formatting, save codec, the Game + clock
+│   ├── data/              hulls, parts, tech tree, factions, colonies, lore
+│   ├── world/             sector, planet and market generation
+│   ├── sim/               ships, combat, colonies, research, the Bloom
+│   ├── ui/                PyQt6 views, one per screen
+│   └── tests/             python -m seedfall.tests
 └── viewer/                ← zero-dependency local web viewer (stdlib only)
     ├── catalog.py         document registry (source of truth)
     ├── wrap.py            fragment → standalone HTML + link rewriting
     ├── index.py           landing-page builder
-    └── app.py             HTTP server + CLI entry point
+    └── app.py             HTTP server + CLI entry point (/, /d/<slug>, /models)
 ```
 
 ### A note on the source files

@@ -1,0 +1,319 @@
+"""A port: the market, the services counter, and whoever is looking for a berth."""
+
+from __future__ import annotations
+
+from PyQt6.QtWidgets import QGridLayout, QSpinBox, QWidget
+
+from ..core.util import credits as cr
+from ..core.util import num, pct
+from ..data.commodities import BY_ID, COMMODITIES, bulk_of
+from ..data.factions import FACTIONS_BY_ID, standing
+from ..sim.crew import daily_wages, recruit_pool
+from ..sim.ship import add_cargo, cargo_free, cargo_used, hull_pct
+from ..world.economy import (apply_sale, apply_trade, buy_price, demands,
+                             price_note, sell_price)
+from . import theme
+from .widgets import (Card, Panel, Pill, TabBar, View, button, label,
+                      mono_label, note, spacer)
+
+
+class PortView(View):
+    def __init__(self, win):
+        super().__init__(win)
+        self.tab = "market"
+        self._pool = None
+        self._pool_system = None
+
+    def build(self) -> None:
+        g = self.game
+        sys = g.system
+        if not sys.port:
+            self.head("No port here", "Nothing in this system will sell you anything.")
+            self.buttons(button("Back to system", lambda: self.win.go("system")))
+            return
+
+        fac = FACTIONS_BY_ID.get(sys.port.faction)
+        rep = g.rep.get(fac.id, 0) if fac else 0
+        band, tint = standing(rep)
+        self.head(f"{sys.name} · {sys.port.name}",
+                  f"{fac.name if fac else 'Independent'} — standing: {band} "
+                  f"({'+' if rep > 0 else ''}{round(rep)})")
+
+        tabs = TabBar([("market", "Market"), ("services", "Services"),
+                       ("crew", "Berths")], self.tab)
+        tabs.changed.connect(self._switch)
+        self.col.addWidget(tabs)
+
+        if self.tab == "services":
+            self._services(sys, fac, rep)
+        elif self.tab == "crew":
+            self._berths(sys)
+        else:
+            self._market(sys, fac, rep)
+
+    def _switch(self, tid: str) -> None:
+        self.tab = tid
+        self.refresh()
+
+    # ── market ─────────────────────────────────────────────────────────────
+
+    def _market(self, sys, fac, rep) -> None:
+        g = self.game
+        m = sys.market
+        wants = ", ".join(BY_ID[c].name for c in demands(m))
+        self.col.addWidget(note(
+            f"This port is short of: {wants}.   Hold: {round(cargo_used(g.ship))}/"
+            f"{round(g.ship_stats.cargo)} t."))
+
+        panel = Panel()
+        grid = QWidget()
+        gl = QGridLayout(grid)
+        gl.setContentsMargins(0, 0, 0, 0)
+        gl.setHorizontalSpacing(12)
+        gl.setVerticalSpacing(6)
+        for i, head in enumerate(("Commodity", "Buy", "Sell", "Local", "Aboard", "")):
+            gl.addWidget(mono_label(head), 0, i)
+
+        row = 1
+        for c in COMMODITIES:
+            bp = buy_price(m, c.id, rep, g.ship_stats.trade)
+            sp = sell_price(m, c.id, rep, g.ship_stats.trade)
+            held = g.ship.cargo.get(c.id, 0)
+            if bp is None and held <= 0:
+                continue
+            note_text, note_tint = price_note(m, c.id)
+
+            name = label(c.name)
+            name.setToolTip(c.blurb)
+            gl.addWidget(name, row, 0)
+            gl.addWidget(label(cr(bp) if bp else "—"), row, 1)
+            gl.addWidget(label(cr(sp) if sp else "—"), row, 2)
+            gl.addWidget(Pill(note_text, note_tint), row, 3)
+            gl.addWidget(label(f"{held:g}" if held else "—"), row, 4)
+
+            actions = QWidget()
+            from PyQt6.QtWidgets import QHBoxLayout
+            ah = QHBoxLayout(actions)
+            ah.setContentsMargins(0, 0, 0, 0)
+            ah.setSpacing(4)
+            qty = QSpinBox()
+            qty.setRange(1, 9999)
+            qty.setValue(10)
+            qty.setFixedWidth(66)
+            ah.addWidget(qty)
+            ah.addWidget(button("Buy", lambda cid=c.id, q=qty: self._buy(cid, q.value()),
+                                enabled=bp is not None))
+            ah.addWidget(button("Sell", lambda cid=c.id, q=qty: self._sell(cid, q.value()),
+                                enabled=held > 0))
+            gl.addWidget(actions, row, 5)
+            row += 1
+
+        panel.add(grid)
+        self.col.addWidget(panel)
+
+    def _buy(self, cid: str, units: int) -> None:
+        g = self.game
+        sys = g.system
+        rep = g.rep.get(sys.port.faction, 0)
+        price = buy_price(sys.market, cid, rep, g.ship_stats.trade)
+        if price is None:
+            return
+        room = int(cargo_free(g.ship, g.ship_stats) / bulk_of(cid))
+        afford = int(g.credits // price)
+        n = min(units, room, afford, sys.market.stock[cid].units)
+        if n <= 0:
+            why = ("Not enough credits." if afford < 1 else
+                   "No room in the hold." if room < 1 else "The port has none left.")
+            self.win.toast(why, "warn")
+            return
+        g.credits -= n * price
+        add_cargo(g.ship, cid, n)
+        apply_trade(sys.market, cid, n)
+        if not BY_ID[cid].legal:
+            g.adjust_rep(sys.port.faction, -3)
+        g.add_log(f"Bought {n} {BY_ID[cid].short} at {cr(price)} — {cr(n * price)}.")
+        self.win.refresh()
+
+    def _sell(self, cid: str, units: int) -> None:
+        g = self.game
+        sys = g.system
+        rep = g.rep.get(sys.port.faction, 0)
+        price = sell_price(sys.market, cid, rep, g.ship_stats.trade)
+        n = min(units, g.ship.cargo.get(cid, 0))
+        if n <= 0:
+            return
+        fac = FACTIONS_BY_ID.get(sys.port.faction)
+        if not BY_ID[cid].legal and (not fac or cid not in fac.sells):
+            g.adjust_rep(sys.port.faction, -8)
+            self.win.toast("They took it. They also logged who sold it.", "osteo")
+        g.credits += n * price
+        add_cargo(g.ship, cid, -n)
+        apply_sale(sys.market, cid, n)
+        g.adjust_rep(sys.port.faction, min(2, n * 0.05))
+        g.add_log(f"Sold {round(n)} {BY_ID[cid].short} at {cr(price)} — "
+                  f"{cr(round(n * price))}.", "good")
+        self.win.refresh()
+
+    # ── services ───────────────────────────────────────────────────────────
+
+    def _services(self, sys, fac, rep) -> None:
+        g = self.game
+        st = g.ship_stats
+        damage = sum(l.max - l.hp for l in g.ship.layers)
+        repair_cost = round(damage * (26 if st.family == "fabricated" else 15))
+
+        dock = Panel("Drydock")
+        dock.add(label(f"Hull integrity {pct(hull_pct(g.ship))}. " + (
+            "A grown hull will close this on its own, given weeks and biomass. "
+            "Paying for it is faster." if st.regen > 0 else
+            "A fabricated hull will not close this on its own. Somebody has to be "
+            "holding the torch."), "", wrap=True))
+        dock.add_buttons(
+            button("No damage" if damage < 1 else f"Full repair — {cr(repair_cost)}",
+                   lambda: self._repair(repair_cost), kind="primary",
+                   enabled=damage >= 1 and g.credits >= repair_cost),
+            button(f"Clear {len(g.ship.disabled)} fault(s)", self._clear_faults)
+            if g.ship.disabled else None)
+
+        vp = buy_price(sys.market, "volatiles", rep, st.trade) or 40
+        bunker = Panel("Bunkering")
+        bunker.add(label("Reaction mass is volatiles. Every jump burns roughly a "
+                         "tonne per light-year.", "", wrap=True))
+        bunker.add(note(f"Aboard: {round(g.ship.cargo.get('volatiles', 0))} t."))
+        bunker.add_buttons(button(f"Take on 40 t — ~{cr(vp * 40)}",
+                                  lambda: self._buy("volatiles", 40)))
+
+        data_held = g.ship.cargo.get("survey", 0)
+        office = Panel("Survey Office")
+        office.add(label(f"{fac.short if fac else 'The port'} buys charted orbits, ore "
+                         "grades and spectra. Selling them here raises your standing "
+                         "as well as your balance.", "", wrap=True))
+        office.add(note(f"{round(data_held)} data set(s) aboard."))
+        office.add_buttons(button("Sell all survey data", self._sell_data,
+                                  kind="primary", enabled=data_held >= 1))
+
+        rep_panel = Panel("Standing")
+        rep_panel.add(label(fac.doctrine if fac else
+                            "This port answers to nobody in particular.", "", wrap=True))
+        for fid, value in g.rep.items():
+            f = FACTIONS_BY_ID.get(fid)
+            if not f or f.hidden:
+                continue
+            band, tint = standing(value)
+            rep_panel.add_row(f.short, f"{band} · {round(value)}", tint)
+
+        self.row(dock, bunker)
+        self.row(office, rep_panel)
+
+        if "research" in sys.port.services:
+            lib = Panel("Fleet Library")
+            lib.add(label("A hub keeps a copy of the canon. Two weeks reading it is "
+                          "worth as much as a month of your own instruments.", "",
+                          wrap=True))
+            lib.add_buttons(button(f"Study for a fortnight — {cr(4000)}",
+                                   self._study, enabled=g.credits >= 4000))
+            self.col.addWidget(lib)
+
+    def _repair(self, cost: int) -> None:
+        g = self.game
+        g.credits -= cost
+        for l in g.ship.layers:
+            l.hp = l.max
+        g.ship.disabled = []
+        g.add_log("Hull restored to specification in dock.", "good")
+        self.win.refresh()
+
+    def _clear_faults(self) -> None:
+        self.game.ship.disabled = []
+        self.win.toast("Systems restored.", "chloro")
+        self.win.refresh()
+
+    def _sell_data(self) -> None:
+        g = self.game
+        sys = g.system
+        n = g.ship.cargo.get("survey", 0)
+        if n < 1:
+            return
+        rep = g.rep.get(sys.port.faction, 0)
+        price = sell_price(sys.market, "survey", rep, g.ship_stats.trade) or 250
+        g.credits += round(n * price)
+        add_cargo(g.ship, "survey", -n)
+        g.adjust_rep(sys.port.faction, min(6, n * 0.4))
+        g.research.banked += n * 6
+        g.add_log(f"Sold {round(n)} survey sets for {cr(round(n * price))}.", "good")
+        self.win.refresh()
+
+    def _study(self) -> None:
+        g = self.game
+        g.credits -= 4000
+        g.research.banked += 220
+        g.advance_days(14)
+        if self.win.check_ending():
+            return
+        self.win.toast("220 points banked.", "chloro")
+        self.win.refresh()
+
+    # ── berths ─────────────────────────────────────────────────────────────
+
+    def _berths(self, sys) -> None:
+        g = self.game
+        if self._pool is None or self._pool_system != sys.id:
+            self._pool = recruit_pool(g.rng("recruit"), sys.port.level)
+            self._pool_system = sys.id
+
+        self.col.addWidget(note(
+            f"Bridge wages run {cr(round(daily_wages(g.officers)))} a day. Six roles; "
+            "you may keep as many as you can pay."))
+
+        bridge = Panel("Your bridge")
+        if g.officers:
+            for o in list(g.officers):
+                w = QWidget()
+                from PyQt6.QtWidgets import QHBoxLayout
+                h = QHBoxLayout(w)
+                h.setContentsMargins(0, 2, 0, 2)
+                text = f"{o.name} — {o.role_name}"
+                if o.trait_name:
+                    text += f" · {o.trait_name}"
+                h.addWidget(label(text))
+                h.addStretch(1)
+                h.addWidget(Pill(f"level {o.level}", "lumen"))
+                h.addWidget(button("Pay off", lambda _=False, off=o: self._dismiss(off)))
+                bridge.add(w)
+        else:
+            bridge.add(note("Nobody on the bridge but you."))
+        self.col.addWidget(bridge)
+
+        cards = []
+        for o in self._pool:
+            card = Card(selectable=False)
+            card.add(label(o.name, "h3"))
+            card.add(label(o.role_name, "sub"))
+            text = o.note + (f" · {o.trait_name}: {o.trait_note}" if o.trait_name else "")
+            card.add(label(text, "", wrap=True))
+            card.add(note(f"level {o.level} · {cr(o.wage)}/month"))
+            card.add(button("Sign on", lambda _=False, who=o: self._hire(who),
+                            kind="primary"))
+            cards.append(card)
+        if cards:
+            self.col.addWidget(label("Looking for a berth", "h3"))
+            self.grid(cards, cols=3)
+
+    def _hire(self, officer) -> None:
+        g = self.game
+        if any(x.stat == officer.stat for x in g.officers):
+            self.win.toast("That station is already crewed. Pay off the incumbent "
+                           "first.", "warn")
+            return
+        if g.credits < officer.wage:
+            self.win.toast("Not enough credits for the signing fee.", "warn")
+            return
+        g.credits -= officer.wage
+        g.officers.append(officer)
+        self._pool = [o for o in self._pool if o is not officer]
+        g.add_log(f"{officer.name} signed on as {officer.role_name}.", "good")
+        self.win.refresh()
+
+    def _dismiss(self, officer) -> None:
+        self.game.officers = [o for o in self.game.officers if o is not officer]
+        self.win.refresh()
