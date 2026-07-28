@@ -225,3 +225,21 @@ GLOSSARY = [
      "homeostasis, a fabricated silicon core for arithmetic and radio. Nobody "
      "can grow a processor."),
 ]
+
+
+#: What other hulls are called, by whose colours they fly. Lived in
+#: `sim/encounters.py` until traffic needed it too — and `sim/traffic` cannot
+#: import `sim/encounters`, because encounters now asks traffic who is
+#: actually in the system. A name pool is data; this is where it belongs.
+HULL_NAMES = {
+    "charter": ["Patient Ledger", "Quiet Increment", "Second Signature",
+                "Long Consent", "Held Breath"],
+    "concordat": ["Rolled Plate", "Hard Union", "Tolerance Stack",
+                  "Nine Millimetres", "Certified"],
+    "freeholds": ["Margin Call", "Nobody's Business", "Cut and Run",
+                  "Posted Price", "Third Owner"],
+    "sanhedrin": ["Enumerating", "Cold Inference", "Substrate Question",
+                  "Nine Ninths"],
+    "bloom": ["Unlicensed Mass", "Ninth Instar", "Uncounted", "Still Growing",
+              "No Second Clause"],
+}

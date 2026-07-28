@@ -56,6 +56,27 @@ an empty tank from becoming a deadlock. Local work (survey, extract, dig, land)
 flies the ship alongside first, so a player who never opens the helm still gets a
 coherent transit; the helm is where you choose a better one.
 
+**The Verge is not empty.** Nothing gave another hull a *position*: encounters
+were rolled the instant you arrived and thrown away, consorts followed you
+implicitly, and faction ventures were a number in a ledger. So the sector
+looked deserted in the one view that should look busiest, and "a Concordat
+patrol jumped me at Loam Span" arrived with no warning it could have given.
+
+`sim/traffic.py` derives a handful of hulls per system — traders, patrols,
+prospectors, couriers, and the occasional unmarked hull — each with a name, a
+faction, an errand and a position that moves with the clock along its leg.
+**Derived, not stored**, like anchorages: persistent identity with no
+migration, at the price that derivation must never touch `game.rng()`, which
+advances with the save and would reshuffle the sector on every reload.
+
+The payoff is that the chart *predicts*. `roll_encounter` weighs who is
+actually present, so the hull that turns onto you is one you could have
+plotted first — by name — and a system with something running dark is
+measurably more dangerous to arrive in (18% of arrivals contested against 6%,
+same system, same day). Busyness follows the port: a capital works five hulls,
+unclaimed space one, and a system the Bloom has eaten fewer than either,
+because the traffic left.
+
 **A berth is a place.** A player asked why the helm shows only the star and
 the planets, and how they would ever navigate back to a shipyard. They could
 not: a `Port` hung off a `System` with **no position at all** — no body, no
@@ -307,6 +328,7 @@ seedfall/
 │   ├── flight.py       the helm: orbits, intercepts, routing, transfer burns
 │   ├── survey.py       what a way of looking costs, finds, and is blind to
 │   ├── anchorage.py    quays, hubs and holdings — places you can put in
+│   ├── traffic.py      other hulls: where they are and what they are doing
 │   ├── lifespan.py     ageing, decline, and the end of a career
 │   ├── upkeep.py       what each lineage eats, and what going short costs
 │   ├── minigames.py    the docking control loop and the decoding bench
@@ -322,6 +344,7 @@ seedfall/
 │   ├── survey_panel.py the four methods as cards, each stating its blind spot
 │   ├── crossing_panel.py  the four ways to fly it, costed on both clocks
 │   ├── anchorage_panel.py where you can put in, and how to get back to it
+│   ├── traffic_panel.py   who else is out here, and which of them runs dark
 │   ├── port_view.py    market, services, recruitment
 │   ├── ship_view.py    layer stack, fittings, crew, hold
 │   ├── yard_view.py    hull designer, build queue, fleet management

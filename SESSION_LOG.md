@@ -2,6 +2,51 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: the sector stops being empty, and the chart starts predicting
+
+Follow-on from the helm complaint. Quays got positions last cycle; ships had
+none at all — encounters were rolled the instant you arrived and thrown away,
+consorts followed you implicitly, ventures were a number in a ledger.
+
+- **Traffic has somewhere to be.** A handful of hulls per system — traders,
+  patrols, prospectors, couriers and the occasional unmarked hull — each with
+  a name, a faction, an errand and a position that moves along its leg with
+  the clock. Busyness follows the port: a capital works five, unclaimed space
+  one, a bloomed system fewer than either, because the traffic left.
+- **Derived, not stored**, like anchorages. Persistent identity with no
+  migration, at the price that derivation must never touch `game.rng()` —
+  that advances with the save, so a reload would hand you a different sector.
+- **The chart predicts now, which is the whole point.** `roll_encounter`
+  weighs who is actually present, so the hull that turns onto you is one you
+  could have plotted first, by name. Measured: 18% of arrivals contested where
+  something runs dark against 6% where nothing does — same system, same day.
+- **Two hulls with the same name.** The pools hold four or five names each and
+  a capital works five hulls, so the chart showed *Long Consent* twice — which
+  makes "the hull you plotted" meaningless exactly when it starts to matter.
+- **`position()` defaulted to the wrong system.** It fell back to
+  `game.system`, so asking about traffic anywhere else indexed one system's
+  body list with another's indices and raised `IndexError` — on the very call
+  `hostiles()` makes to sort. A hull carries its own system id now.
+- **Labels piled into a smear** where traffic converges on the quay. A hull is
+  named on the chart only where there is room; the panel names them all.
+- **Three of my own checks were weaker than they read**, and only trying to
+  break them showed it:
+  - "what is on the chart is what stops you" verified a linked id and nothing
+    else — it passed with the name assignment deleted. It now asserts the ship
+    you meet *is* the hull you plotted.
+  - "running dark makes a system more dangerous" measured a **confound**:
+    unmarked hulls appear in portless and bloomed systems, which were already
+    the dangerous ones, so it passed with my contribution set to zero.
+    Rewritten to hold the system fixed and vary only the traffic.
+  - "hulls move" looked at one system whose hulls all held station, measured
+    nothing, and passed. It scans fourteen systems now.
+  - And one mutation of mine was inadequate rather than the check being wrong:
+    running dark has two effects and zeroing the danger term left the
+    guaranteed-encounter path, so the check was right to survive it.
+- `HULL_NAMES` moved from `sim/encounters.py` to `data/lore.py` — encounters
+  asks traffic who is present, so traffic cannot import encounters.
+- 491 checks green, every file under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a quay is a place, not a screen you switch to
 
 A player at the helm: *"the map only shows the sun and planets. What about

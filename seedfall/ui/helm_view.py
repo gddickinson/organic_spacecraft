@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import QVBoxLayout, QSizePolicy, QWidget
 from ..core.util import duration, num
 from ..sim import anchorage as anchorage_sim
 from ..sim import flight
+from ..sim import traffic as traffic_sim
 from ..sim import transit as transit_sim
 from ..world.planets import BODY_KINDS
 from . import theme
@@ -173,6 +174,33 @@ class OrbitChart(QWidget):
             p.drawText(QRectF(mark.x() + 7, mark.y() - 7, 120, 13),
                        Qt.AlignmentFlag.AlignLeft, place.name)
 
+        # Other hulls. The Verge looked empty in the one view where it should
+        # look busiest — nothing else had a position to draw.
+        labelled: list = []
+        for hull in traffic_sim.in_system(g):
+            at = self._to_screen(*traffic_sim.position(g, hull))
+            tint = QColor(theme.tint("warn" if hull.hostile else "lumen"))
+            p.setPen(QPen(tint, 1.2))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            if hull.hostile:                       # a cross, and no label
+                p.drawLine(QPointF(at.x() - 3.5, at.y() - 3.5),
+                           QPointF(at.x() + 3.5, at.y() + 3.5))
+                p.drawLine(QPointF(at.x() - 3.5, at.y() + 3.5),
+                           QPointF(at.x() + 3.5, at.y() - 3.5))
+            else:
+                p.drawEllipse(at, 2.6, 2.6)
+                # Traffic converges on the quay, so labels piled on top of one
+                # another and read as one illegible smear. Name a hull only
+                # where there is room; the panel below names them all.
+                room = all(abs(at.x() - x) > 58 or abs(at.y() - y) > 11
+                           for x, y in labelled)
+                if room:
+                    labelled.append((at.x(), at.y()))
+                    p.setFont(QFont(theme.mono_family(), 6))
+                    p.setPen(QColor(169, 194, 182, 150))
+                    p.drawText(QRectF(at.x() + 5, at.y() - 6, 110, 12),
+                               Qt.AlignmentFlag.AlignLeft, hull.name)
+
         self._draw_course(p, g, s, cx, cy)
 
         # the ship
@@ -218,6 +246,7 @@ class HelmView(View):
         stack.setSpacing(10)
         stack.addWidget(chart, 1)
         stack.addWidget(self._where(g))
+        stack.addWidget(self._who(g))
         self.row(left, self._plot(g))
         self.buttons(
             button("System overview", lambda: self.win.go("system")),
@@ -235,6 +264,10 @@ class HelmView(View):
         """
         self.target = body_index
         self.refresh()
+
+    def _who(self, g):
+        from .traffic_panel import who_else
+        return who_else(self, g)
 
     def _where(self, g):
         from .anchorage_panel import where_to_put_in

@@ -3,22 +3,11 @@
 from __future__ import annotations
 
 from ..data.chassis import CHASSIS_BY_ID, accepts_family
+from ..data.lore import HULL_NAMES
 from ..data.factions import FACTIONS_BY_ID, is_hostile
 from ..data.parts import parts_available
 from ..data.tech import TECH
 from .ship import add_cargo, build_layers, make_ship, stats
-
-HULL_NAMES = {
-    "charter": ["Patient Ledger", "Quiet Increment", "Second Signature",
-                "Long Consent", "Held Breath"],
-    "concordat": ["Rolled Plate", "Hard Union", "Tolerance Stack",
-                  "Nine Millimetres", "Certified"],
-    "freeholds": ["Margin Call", "Nobody's Business", "Cut and Run",
-                  "Posted Price", "Third Owner"],
-    "sanhedrin": ["Enumerating", "Cold Inference", "Substrate Question", "Nine Ninths"],
-    "bloom": ["Unlicensed Mass", "Ninth Instar", "Uncounted", "Still Growing",
-              "No Second Clause"],
-}
 
 PERSONALITY = {
     "charter": "cautious", "concordat": "balanced", "freeholds": "balanced",
@@ -134,9 +123,19 @@ def make_enemy(rng, faction_id: str, difficulty: float = 1.0) -> dict:
 
 
 def roll_encounter(game, system, rng):
-    """Does anything happen when you arrive? Returns an encounter dict or None."""
-    danger = system.bloom * 0.9 + (0.04 if system.port else 0.14)
-    if not rng.chance(min(0.62, danger)):
+    """Does anything happen when you arrive? Returns an encounter dict or None.
+
+    Weighted by who is *actually in the system*. Traffic gave other hulls a
+    position, and a chart showing an unmarked hull loitering at the outer
+    bodies should mean something — otherwise it is decoration, and the patrol
+    that jumps you arrives with no warning it could possibly have given.
+    """
+    from . import traffic as traffic_sim
+
+    dark = traffic_sim.hostiles(game, system)
+    danger = (system.bloom * 0.9 + (0.04 if system.port else 0.14)
+              + 0.09 * len(dark))
+    if not rng.chance(min(0.7, danger)):
         return None
 
     if system.bloom > 0.25 and rng.chance(system.bloom):
@@ -148,17 +147,40 @@ def roll_encounter(game, system, rng):
                      "no discernible bow.",
         }
 
+    # Something running dark on the chart is the likeliest thing to meet you.
+    if dark and rng.chance(0.55):
+        hull = dark[0]
+        enemy = make_enemy(rng, "freeholds", 1 + rng.float(0, 2))
+        enemy["ship"].name = hull.name
+        return {
+            "enemy": enemy, "no_parley": False, "hull_id": hull.id,
+            "intro": f"The unmarked hull you plotted at "
+                     f"{system.bodies[hull.from_body].name} closes without "
+                     "answering. No colours, no transponder, no hail.",
+        }
+
     candidates = [f for f in ("freeholds", "concordat", "sanhedrin", "charter")
                   if is_hostile(f, game.rep.get(f, 0)) or rng.chance(0.10)]
     if not candidates:
         return None
-    fid = rng.pick(candidates)
-    return {
-        "enemy": make_enemy(rng, fid, 1 + rng.float(0, 2)),
-        "no_parley": False,
-        "intro": f"A {FACTIONS_BY_ID[fid].short} hull lights you up and does not "
-                 "answer the hail.",
-    }
+    # A power with a hull actually here is likelier to be the one that stops
+    # you than one whose nearest ship is three jumps away.
+    present = set(traffic_sim.present_factions(game, system))
+    weighted = [(3 if f in present else 1, f) for f in candidates]
+    fid = rng.weighted(weighted)
+    theirs = next((h for h in traffic_sim.in_system(game, system)
+                   if h.faction == fid and not h.hostile), None)
+    enemy = make_enemy(rng, fid, 1 + rng.float(0, 2))
+    if theirs is not None:
+        enemy["ship"].name = theirs.name
+        intro = (f"The {FACTIONS_BY_ID[fid].short} hull you had plotted — "
+                 f"{theirs.name} — turns onto you and does not answer the "
+                 "hail.")
+    else:
+        intro = (f"A {FACTIONS_BY_ID[fid].short} hull lights you up and does "
+                 "not answer the hail.")
+    return {"enemy": enemy, "no_parley": False,
+            "hull_id": theirs.id if theirs else None, "intro": intro}
 
 
 # ── flavour events ─────────────────────────────────────────────────────────
