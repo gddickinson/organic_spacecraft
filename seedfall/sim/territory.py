@@ -128,11 +128,16 @@ def answer(game, system, power: str, choice: str) -> dict:
             game.demand.choice = choice
         return {"ok": False, "why": "You hold nothing there."}
 
+    from . import grudge as grudge_sim
+    where = system.name
     if choice == "levy":
         for col in held:
             col.tithe_to = power
             col.defiant = False
         game.adjust_rep(power, 3)
+        grudge_sim.note(game, power, "trade",
+                        f"you paid the levy on {where} rather than argue", 0.8,
+                        tags=["politics", "territory"])
     elif choice == "cede":
         for col in held:
             body = next((b for b in system.bodies if b.id == col.body_id), None)
@@ -140,6 +145,9 @@ def answer(game, system, power: str, choice: str) -> dict:
                 body.colony = None
         game.colonies = [c for c in game.colonies if c not in held]
         game.adjust_rep(power, 12)
+        grudge_sim.note(game, power, "kindness",
+                        f"you handed {where} over when we asked", 1.2,
+                        tags=["politics", "territory"])
         loyalty.record(game, "colony_lost", scale=len(held))
     else:                                    # defy
         for col in held:
@@ -147,6 +155,9 @@ def answer(game, system, power: str, choice: str) -> dict:
             col.defiant = True
         game.adjust_rep(power, -18)
         allegiance.charge(game, power, -6)   # their enemies approve
+        grudge_sim.note(game, power, "trespass",
+                        f"you refused us {where} to our face", 1.5,
+                        tags=["politics", "territory"])
         loyalty.record(game, "defied_power")
 
     if game.demand is not None:

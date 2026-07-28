@@ -50,13 +50,19 @@ def cargo_cost(game, sysm, cid: str, amount: float,
 
     Falls back to the commodity's own price when the port stocks none of it —
     you would have to fetch it, which is not cheaper.
+
+    The player's quote goes through `market.quote_buy`, which is the same
+    helper the till uses. Calling `buy_price` here instead left the board
+    quoting the plain price while the counter charged the one this power's
+    memory of you decides — a difference of nearly nine hundred credits on a
+    single cargo, which `test_cargo` caught the day the grudge landed.
     """
     from ..world.economy import buy_price
-    rep = trade = 0.0
-    if for_player:
-        rep = game.rep.get(sysm.port.faction, 0) if sysm.port else 0
-        trade = game.ship_stats.trade
-    price = buy_price(sysm.market, cid, rep, trade) if sysm.market else None
+    if for_player and sysm.market and sysm.port:
+        from . import market as market_sim
+        price = market_sim.quote_buy(game, sysm, cid)
+    else:
+        price = buy_price(sysm.market, cid, 0.0, 0.0) if sysm.market else None
     if price is None:
         price = BY_ID[cid].base * 1.1
     return price * amount
@@ -130,6 +136,12 @@ def generate(rng, game, sysm) -> list[Contract]:
     if not sysm.port:
         return []
     faction = sysm.port.faction
+    # A power that holds enough against you stops putting work your way. That
+    # is a harder wall than a poor price, which is why the threshold sits well
+    # past mild annoyance — see `sim/grudge.COLD_SHOULDER`.
+    from . import grudge as grudge_sim
+    if not grudge_sim.will_deal(game, faction)[0]:
+        return []
     count = 2 + sysm.port.level
     out: list[Contract] = []
 

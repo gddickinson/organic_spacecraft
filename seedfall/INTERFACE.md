@@ -184,6 +184,7 @@ seedfall/
 │   ├── legacy.py       life after an ending: epochs, pressure, situations
 │   ├── telemetry.py    what the instrument windows read, band by band
 │   ├── memory.py       minds: what everyone remembers about you
+│   ├── grudge.py       what a power's memory costs you, and why
 │   ├── voice.py        speech, written by the game or by a model
 │   ├── manual.py       resolves the manual's facts from the tables themselves
 │   ├── options.py      player settings, every one of which does something
@@ -288,6 +289,7 @@ seedfall/
     ├── test_legacy.py  7 aftermath checks — an ending is a turn, not a stop
     ├── test_instruments.py 5 checks — a gauge agrees with the ship and itself
     ├── test_voices.py  8 checks — the game speaks with no model reachable
+    ├── test_grudges.py 9 checks — memory reaches the price and the board
     ├── test_bridge.py  6 checks — the protocol answers, always, and stays local
     ├── test_manual.py  13 checks — the manual cannot go stale, options cannot lie
     ├── test_tutorial.py 8 checks — it will not take your word for it
@@ -345,6 +347,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   13, with a quarter of sectors under eight. Opening the rest means a better
   drive. `sim/reach.py` computes that component and the chart states it; a
   shipyard is always within reach, so nobody is permanently trapped.
+- **One helper feeds the quote and the till.** `market.quote_buy` /
+  `quote_sell` apply the grudge bias, and `note_prices`, `trade.buy/sell` and
+  `contracts.cargo_cost` all read them. Pricing a contract's cargo with the raw
+  `buy_price` while the counter charged the adjusted one put the board's quote
+  nearly nine hundred credits out, which `test_cargo` caught the day grudges
+  landed. If you add a place that shows a price, use the helper.
 - **The tutorial never diverts navigation.** Everything else you can be
   part-way through — a battle, a trench, an aftermath question — is guarded in
   `window.go()`. The tutorial deliberately is not: a tutorial that stops you
@@ -968,6 +976,13 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   socket died silently and the caller was left reading an empty line. A
   boundary has to be total; a caller on a pipe can catch neither a traceback
   nor a hang-up.
+- **`test_grudges.py`** holds memory to *changing behaviour* rather than
+  colouring speech: a quay prices you by what it remembers, a power that holds
+  enough against you stops posting work, and feeling travels between powers
+  close on the relations matrix. The rule underneath is that `because()` must
+  name the memories responsible for whatever `feeling()` returns — nothing in
+  this game may dislike you for a reason it cannot state. Making the price bias
+  and the cold shoulder inert fails two checks here and one efficacy lever.
 - **`test_voices.py`** exists to prove the language model is optional in the
   way it claims to be. `llm.complete` is replaced with something that raises,
   so a check that reaches for a model fails loudly, and what is measured is the

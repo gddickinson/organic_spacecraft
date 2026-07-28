@@ -372,3 +372,30 @@ def _cut_dig_points() -> float:
             dig_sim.work(game, site, "cut", rng)
         total += site.points
     return total / runs
+
+
+def _grudge_cost() -> float:
+    """What a power's memory of you costs at the counter, over a full hold.
+
+    Measured in credits: buy fifty tonnes of everything a quay stocks after it
+    has watched you kill one of its hulls. With the feature switched off the
+    memory is inert and the bill is the plain one.
+    """
+    from ..sim import grudge as grudge_sim
+    from ..sim import market as market_sim
+    total = 0.0
+    runs = 6
+    for index in range(runs):
+        game = new_game(f"lever-grudge-{index}")
+        port = next((s for s in game.galaxy.systems if s.port and s.market),
+                    None)
+        if port is None:
+            continue
+        game.location_id = port.id
+        grudge_sim.note(game, port.port.faction, "kill",
+                        "you destroyed one of ours", 1.6)
+        for cid in list(port.market.stock)[:8]:
+            price = market_sim.quote_buy(game, port, cid)
+            if price:
+                total += price * 50
+    return total / runs

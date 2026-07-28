@@ -25,6 +25,7 @@ from ..sim import mining, notes as notes_sim
 from ..sim import research as research_sim
 from ..sim import responses as response_sim
 from ..sim import stations, territory as territory_sim
+from ..sim import grudge as grudge_sim
 from ..sim import transit as transit_sim
 from ..sim import weather as weather_sim
 from ..sim import works as works_sim
@@ -32,7 +33,7 @@ from ..sim.ship import build_layers, make_ship, stats
 from ..world.economy import buy_price
 from . import captain_ai
 from .efficacy import Lever
-from .probes import (_ground_odds, _forecast_reach, _seat_worth, _overture_honesty, _annex_research, _bench_overdraw, _hard_burn_hull, _wasted_ground,
+from .probes import (_grudge_cost, _ground_odds, _forecast_reach, _seat_worth, _overture_honesty, _annex_research, _bench_overdraw, _hard_burn_hull, _wasted_ground,
                      _chart_spread, _contract_net, _cut_dig_points,
                      _desk_runs, _kill_goodwill, _levied_output,
                      _note_evidence, _smuggling_purse,
@@ -401,6 +402,11 @@ LEVERS: list[Lever] = [
           "evidence on the bench speeds a programme",
           patch=(inquiry, "draw", lambda _r, _t, _d, _rate=1.0: (1.0, [])),
           probe=_days_to_first_tech, direction="lower"),
+
+    Lever("grudge-prices",
+          "a power that remembers you badly charges you more",
+          patch=(grudge_sim, "price_bias", lambda _g, _f: 1.0),
+          probe=_grudge_cost, direction="lower"),
 ]
 
 LEVERS_BY_ID = {lever.id: lever for lever in LEVERS}

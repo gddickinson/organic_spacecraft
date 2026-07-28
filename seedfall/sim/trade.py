@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from ..data.commodities import BY_ID, bulk_of
 from . import customs as customs_sim
+from . import market as market_sim
 from . import diplomacy as dip_sim
 from . import loyalty as loyalty_sim
 from .ship import add_cargo, cargo_free
@@ -32,8 +33,7 @@ def buy(game, cid: str, units: int) -> dict:
     system = game.system
     if not system.port:
         return {"ok": False, "why": "No port here."}
-    rep = game.rep.get(system.port.faction, 0)
-    price = buy_price(system.market, cid, rep, game.ship_stats.trade)
+    price = market_sim.quote_buy(game, system, cid)
     if price is None:
         return {"ok": False, "why": "They do not stock it."}
 
@@ -66,8 +66,7 @@ def sell(game, cid: str, units: int) -> dict:
         return {"ok": False,
                 "why": "Not over this counter. Not on this station."}
 
-    rep = game.rep.get(system.port.faction, 0)
-    price = sell_price(system.market, cid, rep, game.ship_stats.trade)
+    price = market_sim.quote_sell(game, system, cid)
     n = min(units, game.ship.cargo.get(cid, 0))
     if n <= 0 or price is None:
         return {"ok": False, "why": "Nothing aboard to sell."}

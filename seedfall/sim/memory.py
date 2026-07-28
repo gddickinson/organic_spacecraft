@@ -42,6 +42,15 @@ FLOOR = 0.05
 #: How many memories a mind keeps before the faintest are dropped.
 KEEP = 60
 
+#: Doing the same thing again reinforces the memory rather than making a new
+#: one, with diminishing returns. Without this, brokering the same pair eight
+#: times wrote eight identical memories and pinned the power at the cap — the
+#: readout said +100 and could not say which of the eight mattered.
+AGAIN = 0.45
+
+#: However often you repeat something, one event tops out here.
+MOST = 2.6
+
 #: What each kind of memory does to an impression, per unit of salience.
 WEIGHT = {
     "kindness": 14.0, "trade": 5.0, "rescue": 22.0, "contract": 8.0,
@@ -86,6 +95,15 @@ class Mind:
     def remember(self, day: int, kind: str, text: str, salience: float = 1.0,
                  tags=None, about: str = "player",
                  source: str = "direct") -> Memory:
+        # The same thing again is the same memory, held harder — and it moves
+        # the day forward, because what you remember about a repeated thing is
+        # the last time it happened.
+        for existing in self.memories:
+            if existing.kind == kind and existing.text == text:
+                existing.salience = min(
+                    MOST, existing.salience + salience * AGAIN)
+                existing.day = day
+                return existing
         made = Memory(id=next(_uid), day=day, kind=kind, text=text,
                       salience=max(0.05, salience), tags=list(tags or []),
                       about=about, source=source)

@@ -88,6 +88,7 @@ class DiplomacyView(View):
         p.add(label(f"“{fac.creed}”", "sub"))
         p.add(label(fac.doctrine, "", wrap=True))
         p.add_row("Standing", f"{band} ({rep:+.0f})", tint)
+        self._memory(p, g, fid)
 
         agenda = AGENDAS.get(fid)
         if agenda:
@@ -155,6 +156,35 @@ class DiplomacyView(View):
                                  lambda _=False, a=action.id: self._do(a, fid),
                                  kind="primary" if ok else "", enabled=ok))
         return p
+
+    def _memory(self, p: Panel, g, fid: str) -> None:
+        """What they hold against you, and what it costs — by name and by day.
+
+        Standing is a number that decays. This is the specific list, so a power
+        that will not put work your way can be asked why and answer.
+        """
+        from ..core.util import stardate
+        from ..sim import grudge as grudge_sim
+        held = grudge_sim.feeling(g, fid)
+        if abs(held) < 6 and not grudge_sim.because(g, fid):
+            return
+        p.add(spacer(3), mono_label("What they remember"))
+        p.add_row("Their feeling", f"{held:+.0f}",
+                  "warn" if held < -20 else ("chloro" if held > 20 else ""))
+        bias = grudge_sim.price_bias(g, fid)
+        if abs(bias - 1.0) > 0.005:
+            p.add_row("Their prices to you",
+                      f"{(bias - 1) * 100:+.0f}% on what you buy",
+                      "warn" if bias > 1 else "chloro")
+        deals, why = grudge_sim.will_deal(g, fid)
+        if not deals:
+            p.add(label(why, "", "warn", wrap=True))
+        for entry in grudge_sim.because(g, fid):
+            tint = "warn" if entry["weight"] < 0 else "chloro"
+            when = ("" if entry["kind"] == "inherited"
+                    else f"{stardate(entry['day'])} · ")
+            p.add(label(f"{when}{entry['text']} ({entry['weight']:+.0f})",
+                        "", tint, wrap=True))
 
     def _set_partner(self, fid: str) -> None:
         self.partner = fid

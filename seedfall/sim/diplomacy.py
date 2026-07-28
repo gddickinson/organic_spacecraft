@@ -237,8 +237,46 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
         game.adjust_rep(faction, gain)
         lines.append(f"{FACTIONS_BY_ID[faction].short} standing +{gain:.0f}.")
 
+    _remember(game, action_id, action, faction, other)
     game.add_log(f"{action.name} — {FACTIONS_BY_ID[faction].short}.", "good")
     return {"ok": True, "action": action, "lines": lines}
+
+
+#: What each overture is, as the power on the other end of it remembers it.
+_AS_REMEMBERED = {
+    "tribute": ("gift", "you paid tribute when you did not have to", 1.0),
+    "relief": ("kindness", "you sent relief when we were short", 1.3),
+    "intel": ("gift", "you handed over intelligence that was worth having", 1.0),
+    "broker": ("alliance", "you sat us down with {other}", 1.4),
+    "treaty": ("alliance", "we signed with you", 1.6),
+    "denounce": ("betrayal", "you denounced us in open session", 1.5),
+}
+
+
+def _remember(game, action_id: str, action, faction: str,
+              other: str | None) -> None:
+    """A power remembers the overture, and the target of a denunciation
+    remembers it rather better.
+
+    Standing is a number that decays. This is a dated thing an envoy can name,
+    and `sim/grudge.py` turns it into a price and into whether they will put
+    work your way.
+    """
+    from . import grudge as grudge_sim
+    entry = _AS_REMEMBERED.get(action_id)
+    if entry is None:
+        return
+    kind, text, weight = entry
+    named = FACTIONS_BY_ID.get(other or "")
+    body = text.format(other=named.short if named else "them")
+    if action_id == "denounce":
+        # The one that lands on somebody else.
+        if other:
+            grudge_sim.note(game, other, kind, body, weight,
+                            tags=["politics", "denounce"])
+        return
+    grudge_sim.note(game, faction, kind, body, weight,
+                    tags=["politics", action_id])
 
 
 def agenda_bonus(game, faction: str, commodity: str) -> float:

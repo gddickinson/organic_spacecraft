@@ -2,6 +2,39 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: grudges that cost something, and can say why
+
+- **Task #53, and the loop's stated first priority.** Memory existed but only
+  coloured what an envoy said. Measured before starting: a decade of play left
+  exactly *one* mind holding anything — the Charter, from contracts — so
+  grudges would have been dead content for three powers out of four.
+- `sim/grudge.py` turns memory into behaviour. A quay **prices you by what it
+  remembers** (bounded at 18% either way, so memory is felt without replacing
+  the market); a power that holds enough against you **stops posting work**,
+  which is a harder wall than a poor price; and feeling **travels** between
+  powers close on the relations matrix, which is what makes that matrix
+  something to think about rather than a readout.
+- The rule that keeps it honest: `because()` names the memories responsible for
+  whatever `feeling()` returns, with dates, and the diplomacy screen prints
+  them. Nothing in this game may dislike you for a reason it cannot state.
+- **Widened what writes memory**, which is what made the feature reach real
+  play: every overture, a denunciation (which lands on the power denounced),
+  and each of the three answers to a territorial demand. A played decade now
+  leaves all four powers holding specific, dated, legible reasons.
+- **A defect I created and the suite caught the same run**: `contracts.
+  cargo_cost` priced the board's quote with the raw `buy_price` while the till
+  went through the new helper — nearly nine hundred credits apart on one
+  cargo. Both read `market.quote_buy` now.
+- **A defect found by playing rather than by checking**: brokering the same
+  pair eight times wrote eight identical memories and pinned the power at the
+  +100 cap, so the readout could not say which of them mattered. Repeating
+  something now reinforces one memory with diminishing returns and moves its
+  date forward, which is both truer and legible: "you sat us down with
+  Concordat +37.7 · relief +31.0 · tribute +25.9".
+- An efficacy lever switches the price bias off; the harness reports it inert
+  when it is.
+- Suites: 54 — 442 checks green. 235 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a tutorial that will not take your word for it
 
 - **Asked for an optional tutorial at the start.** Eight lessons — survey

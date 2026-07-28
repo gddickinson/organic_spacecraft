@@ -141,14 +141,46 @@ def book(game) -> dict:
     return game.register
 
 
+def quote_buy(game, system, cid: str):
+    """What this quay would actually charge *you*, memory included.
+
+    One helper rather than a bias applied at the till, because a screen that
+    quotes one number and charges another is the defect this project keeps
+    finding. `note_prices`, `trade.buy` and the port screen all read this.
+    """
+    if not system.market or not system.port:
+        return None
+    from . import grudge as grudge_sim
+    rep = game.rep.get(system.port.faction, 0)
+    raw = buy_price(system.market, cid, rep, game.ship_stats.trade)
+    if raw is None:
+        return None
+    return max(1, round(raw * grudge_sim.price_bias(game, system.port.faction)))
+
+
+def quote_sell(game, system, cid: str):
+    """What this quay would actually pay you, memory included."""
+    if not system.market or not system.port:
+        return None
+    from . import grudge as grudge_sim
+    rep = game.rep.get(system.port.faction, 0)
+    raw = sell_price(system.market, cid, rep, game.ship_stats.trade)
+    if raw is None:
+        return None
+    # A power that remembers you badly charges more and pays less, so the
+    # bias is inverted on the way out.
+    bias = grudge_sim.price_bias(game, system.port.faction)
+    return max(1, round(raw / bias)) if bias else raw
+
+
 def note_prices(game, system, rep: float = 0.0, trade: float = 0.0) -> None:
     """Write down what this port is paying. Called on arrival at a market."""
     if not system.market:
         return
     quote = Quote(system_id=system.id, day=game.day)
     for cid in system.market.stock:
-        b = buy_price(system.market, cid, rep, trade)
-        s = sell_price(system.market, cid, rep, trade)
+        b = quote_buy(game, system, cid)
+        s = quote_sell(game, system, cid)
         if b is not None:
             quote.buy[cid] = b
         if s is not None:
