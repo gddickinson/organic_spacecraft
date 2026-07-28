@@ -290,6 +290,7 @@ seedfall/
     ├── test_instruments.py 5 checks — a gauge agrees with the ship and itself
     ├── test_voices.py  8 checks — the game speaks with no model reachable
     ├── test_grudges.py 9 checks — memory reaches the price and the board
+    ├── test_gunnery.py 5 checks — what a weapon delivers is what the bridge said
     ├── test_bridge.py  6 checks — the protocol answers, always, and stays local
     ├── test_manual.py  13 checks — the manual cannot go stale, options cannot lie
     ├── test_tutorial.py 8 checks — it will not take your word for it
@@ -363,6 +364,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   doing the thing it is describing is worse than none, in a game whose premise
   is that there is no track. A check walks all twelve screens with a lesson
   open and fails if any of them diverts.
+- **Nothing may touch a widget after emitting a signal that could delete it.**
+  Almost every card handler rebuilds its own screen, and `View.refresh`
+  unparents the old widgets — which frees the C++ object immediately. `Card`
+  emitted inline and then called `super().mousePressEvent(ev)` on a corpse,
+  which aborted the process: clicking a body or a technology killed the game.
+  `Card` defers the emit by one turn of the event loop. If you add a widget
+  whose click rebuilds anything, do the same.
+- **Clicking is not the same as pressing a button.** `test_verbs` drives every
+  `QPushButton` on every screen, and Qt emits those safely after the press
+  completes — so the crash above lived behind full control coverage. There is
+  now a check that clicks `Card`s specifically.
 - **`credits` is a builtin.** So is `id`, `type`, `input` and `format`. Calling
   one by mistake does not raise `NameError` — `credits(x)` calls the
   interpreter's easter-egg `_Printer` and fails two suites away as
@@ -980,6 +992,13 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   socket died silently and the caller was left reading an empty line. A
   boundary has to be total; a caller on a pipe can catch neither a traceback
   nor a hang-up.
+- **`test_gunnery.py`** exists because combat had one outcome. `_fire` floors
+  damage at `max(dmg * 0.15, dmg - armour)` so that something always gets
+  through, and `_apply_to_layers` then discarded anything at or below half a
+  point — which swallowed the floor whole for the only weapon a new captain
+  owns. Measured: 360 engagements, 100% driven-off, both hulls at 100%. The
+  read panel had been reporting the correct 0.45 a turn the whole time, which
+  is how one rule with two implementations hides.
 - **`test_reach.py`'s "a pocket is a long project and not a trap"** is the
   check carrying a design decision. Generation was *not* changed to close the
   gaps, because playing a two-system pocket showed evidence still accumulates,

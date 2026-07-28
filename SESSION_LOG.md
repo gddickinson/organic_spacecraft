@@ -2,6 +2,40 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a fight with one outcome, and a crash on every card
+
+- **The task list was clear, so I went looking by playing.** The chronicle
+  suite claimed to do everything and had never fired a shot: encounters were
+  rolled on arrival and thrown away. Wiring combat into it produced thirty
+  engagements in a decade — and every single one ended the same way.
+- **Combat had exactly one outcome.** Measured over 360 engagements with the
+  test captain: 100% "driven-off", both hulls at 100%, median 34 turns. No
+  kills, no routs, no parleys, no damage at all.
+- The cause was one rule with two implementations. `_fire` floors damage at
+  `max(dmg * 0.15, dmg - armour)` — the comment says "something always gets
+  through, or two well-armoured hulls would shoot at each other until the sun
+  went out" — and `_apply_to_layers` then ran `while left > 0.5`, discarding
+  anything smaller. For a three-damage weapon the floor is 0.45, so it was
+  swallowed entirely: **the Photic Flash Organ, the only armament a new
+  captain starts with, dealt exactly nothing to any armoured hull**, forever,
+  while the log said "hits for 0" and the read panel correctly reported 0.45 a
+  turn. The honest number was on screen; the ledger delivered none of it.
+- Fixed the guard to an epsilon, and stopped the bridge reporting a landed hit
+  as zero — thirty turns of "hits for 0" reads exactly like a broken weapon.
+  A check now compares what the read panel says a shot lands against what the
+  guns actually deliver.
+- **Then a player hit a hard crash and sent it.** Clicking any card — a body on
+  the System screen, a node on Research — aborted the process:
+  `Card.mousePressEvent` emitted `clicked` inline, the handler rebuilt the
+  screen, `View.refresh` unparented the old widgets and freed them, and the
+  next statement called `super().mousePressEvent(ev)` on a deleted object.
+  The emit is deferred by one turn of the event loop now.
+- **Why nothing caught it**: `test_verbs` drives every `QPushButton` on every
+  screen, and Qt emits those safely after the press completes. Cards have a
+  hand-written `mousePressEvent`, and nothing had ever clicked one. There is a
+  check that does now, and it fails when the inline emit is put back.
+- Suites: 55 — 451 checks green. 236 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: costing the way out of a pocket
 
 - **Task #44, and the measurement changed what I built.** A quarter of sectors

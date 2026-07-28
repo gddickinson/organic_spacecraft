@@ -148,8 +148,15 @@ def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng,
     to.taken += dealt
     to.resolve -= dealt * 0.10
     frm.resolve += dealt * 0.03
-    _say(b, f"{w.name} hits {_who(b, to)} for {round(dealt)}.",
-         "good" if frm is b.player else "bad")
+    # "hits for 0" thirty turns running is what a swallowed floor looked like
+    # from the bridge, and it reads identically to a weapon that is working.
+    # Below a point, say what is actually happening instead of rounding it away.
+    if dealt < 1:
+        _say(b, f"{w.name} glances off {_who(b, to)} — their armour takes "
+                f"almost all of it.", "dim")
+    else:
+        _say(b, f"{w.name} hits {_who(b, to)} for {round(dealt)}.",
+             "good" if frm is b.player else "bad")
     _apply_traits(b, frm, to, w, rng)
 
 
@@ -184,8 +191,16 @@ def _apply_to_layers(b: Battle, to: Side, dmg: float, traits, rng) -> float:
         if nxt > 0:
             idx = nxt
 
+    # The guard is an epsilon, not half a point of damage. At 0.5 it silently
+    # swallowed the armour floor above — `max(dmg * 0.15, dmg - armour)` is
+    # 0.45 for a three-damage weapon — so the Photic Flash Organ, which is the
+    # only armament a new captain starts with, dealt *exactly nothing* to any
+    # armoured hull while the log said "hits for 0" every turn. Measured over
+    # 360 engagements: every one ended on morale with both hulls at 100%.
+    # The loop still terminates: each pass either empties a layer or exhausts
+    # what is left.
     left, total, first = dmg, 0.0, True
-    while left > 0.5 and idx < len(layers):
+    while left > 0.001 and idx < len(layers):
         L = layers[idx]
         if L.hp <= 0:
             idx += 1

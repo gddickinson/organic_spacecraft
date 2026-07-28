@@ -333,4 +333,57 @@ def run(suite: Suite) -> bool:
         assert kind == "RuntimeError" and "deliberate" in message
         return f"trapped {kind} from inside a slot"
 
+    @check("clicking a card does not destroy the game")
+    def _():
+        """A crash a player hit within a minute of starting.
+
+        Cards are how you select a body, a technology or a hull, and almost
+        every handler on one rebuilds the screen it lives on — which unparents
+        the old widgets and frees them there and then. `Card.mousePressEvent`
+        emitted inline, so the very next statement touched a deleted C++ object
+        and aborted the process.
+
+        Nothing in the suite had ever clicked a card. `test_verbs` clicks
+        *buttons*, whose signal Qt emits safely after the press completes, so
+        every control was covered except the one kind that crashed.
+        """
+        from PyQt6.QtCore import QEvent, QPointF, Qt
+        from PyQt6.QtGui import QMouseEvent
+        from ..ui.widgets import Card
+
+        def press(card):
+            card.mousePressEvent(QMouseEvent(
+                QEvent.Type.MouseButtonPress, QPointF(4, 4),
+                Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton,
+                Qt.KeyboardModifier.NoModifier))
+            for _ in range(3):
+                app.processEvents()
+
+        _game, win = window("cards", "map")
+        clicked, screens = 0, []
+        with _Trap() as trap:
+            for screen, *_rest in NAV:
+                win.go(screen)
+                app.processEvents()
+                found = [c for c in win.views[screen].findChildren(Card)
+                         if c._selectable]
+                if not found:
+                    continue
+                screens.append(f"{screen}:{len(found)}")
+                for index in range(min(5, len(found))):
+                    # Re-read after every click: the screen rebuilds itself and
+                    # the old cards are gone, which is the whole point.
+                    live = [c for c in win.views[screen].findChildren(Card)
+                            if c._selectable]
+                    if index >= len(live):
+                        break
+                    press(live[index])
+                    clicked += 1
+        win.close()
+        assert not trap.caught, (
+            "clicking a card raised:\n      "
+            + "\n      ".join(trap.caught[:5]))
+        assert clicked >= 8, f"only {clicked} cards were clickable anywhere"
+        return f"{clicked} cards clicked across {', '.join(screens)}"
+
     return True

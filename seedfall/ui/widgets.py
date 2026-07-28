@@ -218,9 +218,21 @@ class Card(QFrame):
             "border-radius: 3px; }")
 
     def mousePressEvent(self, ev):  # noqa: N802
-        if self._selectable and ev.button() == Qt.MouseButton.LeftButton:
-            self.clicked.emit()
+        """Emit *after* the event has finished being delivered.
+
+        Almost every handler on a card rebuilds the screen it lives on, and
+        `View.refresh` unparents the old widgets — which destroys the C++
+        object there and then. Emitting inline meant the very next statement,
+        `super().mousePressEvent(ev)`, touched a freed Card and aborted the
+        process: clicking a body on the System screen or a node on the
+        Research screen killed the game outright.
+
+        Deferring by one turn of the event loop lets Qt finish with the widget
+        before anything can delete it. Nothing below this line may touch self.
+        """
         super().mousePressEvent(ev)
+        if self._selectable and ev.button() == Qt.MouseButton.LeftButton:
+            QTimer.singleShot(0, self.clicked.emit)
 
 
 class TabBar(QWidget):

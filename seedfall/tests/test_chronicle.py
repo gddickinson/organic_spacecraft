@@ -194,7 +194,8 @@ def run(suite: Suite) -> bool:
         # thing is not.
         game = new_game("chronicle-cover")
         summary = chronicle.play(game, years=10)
-        did = {"charted a system": summary["charted"] > 0,
+        did = {"fought something": bool(summary.get("fights")),
+               "charted a system": summary["charted"] > 0,
                "planted a colony": summary["colonies"] > 0,
                "finished a contract": summary["contracts"] > 0,
                "filed a field note": summary["notes"] > 0,
@@ -202,8 +203,9 @@ def run(suite: Suite) -> bool:
                "flew for years": summary["days"] > 365 * 5}
         missing = [what for what, done in did.items() if not done]
         assert not missing, f"the chronicle never: {missing}"
-        return " · ".join(f"{k} {summary[k]}" for k in
-                          ("charted", "colonies", "contracts", "notes",
-                           "treaties"))
+        return (" · ".join(f"{k} {summary[k]}" for k in
+                           ("charted", "colonies", "contracts", "notes",
+                            "treaties"))
+                + f" · {len(summary['fights'])} engagements")
 
     return True

@@ -320,6 +320,38 @@ def _refuel(game) -> bool:
     return extract(game, ice, 40, "cut").get("ok", False)
 
 
+def _fight(game, encounter, rng) -> str:
+    """Actually take the engagement, with the captain the tactical suite uses.
+
+    The chronicle claimed to do everything and never once fired: encounters
+    were generated on arrival and thrown away, so a decade of play exercised
+    none of the positional model, none of the stations, and none of the
+    aftermath. Four encounters a decade is not many — which is exactly why
+    nobody noticed.
+    """
+    from ..sim import aftermath as aftermath_sim
+    from ..sim import combat as combat_sim
+    from ..sim import consorts as consort_sim
+    from .captain_ai import orders
+
+    battle = combat_sim.start(
+        game.ship, game.ship_stats, encounter["enemy"],
+        bonuses=game.bonuses, officers=game.officers,
+        rep=game.rep.get(encounter["enemy"].get("faction"), 0),
+        no_parley=encounter.get("no_parley", False), game=game,
+        rng=rng, fleet=consort_sim.escorts_of(game))
+    battle.enemy_faction = encounter["enemy"].get("faction")
+    guard = 0
+    while not battle.over and guard < 80:
+        guard += 1
+        combat_sim.take_turn(battle, orders(battle), rng)
+    if not battle.over:
+        battle.over = True
+        battle.result = "driven-off"
+    aftermath_sim.resolve(game, battle, rng)
+    return battle.result or "unresolved"
+
+
 def _move_on(game, rng, plan) -> bool:
     near = _reachable(game)
     if not near:
@@ -346,7 +378,12 @@ def _move_on(game, rng, plan) -> bool:
             quote = jump_quote(game, target)
             if game.ship.cargo.get("volatiles", 0) < quote["fuel"]:
                 continue
-            if jump_to(game, target.id).get("ok"):
+            arrived = jump_to(game, target.id)
+            if arrived.get("ok"):
+                if arrived.get("encounter") and not game.dead:
+                    plan["fights"] = plan.get("fights", [])
+                    plan["fights"].append(
+                        _fight(game, arrived["encounter"], rng))
                 return True
         # Nothing in reach of the tank. Refuel and try the same list again —
         # the first version returned True here, so a broke captain "moved on"
@@ -395,6 +432,7 @@ def play(game, years: int = 10, on_beat=None, stipend: float = STIPEND) -> dict:
         if not _move_on(game, rng, plan):
             game.advance_days(30)
     return {"rounds": rounds, "days": game.day - start, "dead": game.dead,
+            "fights": list(plan.get("fights", [])),
             "victory": game.victory,
             "charted": len(getattr(game, "charts_made", {})),
             "colonies": len(game.colonies),
