@@ -193,6 +193,24 @@ def instar_at(game, system_id: int) -> Instar | None:
     return next((i for i in state.instars if i.system_id == system_id), None)
 
 
+def engage_instar(game, inst: "Instar") -> dict:
+    """An encounter against a roaming mass, scaled by how big it has grown.
+
+    Instars arrived, seeded a system, ate colonies and moved on, and there was
+    no way to do anything about one: `kill_instar` was called by nothing at all
+    and the provocation table paid seventy for a kill that could not happen.
+    """
+    from . import encounters
+    rng = game.rng(f"instar-{inst.id}")
+    enemy = encounters.make_enemy(rng, "bloom", 1.0 + inst.mass * 1.4)
+    return {
+        "enemy": enemy, "no_parley": True, "instar": inst.id,
+        "intro": ("The mass does not manoeuvre so much as decide where it "
+                  "would rather be. It has no bridge to hail and nothing that "
+                  "wants anything."),
+    }
+
+
 def kill_instar(game, inst: Instar) -> None:
     from . import responses
     responses.provoke(game, "instar")

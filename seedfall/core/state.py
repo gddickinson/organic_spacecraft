@@ -113,6 +113,10 @@ class Game:
 
     def adjust_rep(self, faction_id: str, delta: float) -> None:
         self.rep[faction_id] = max(-100, min(100, self.rep.get(faction_id, 0) + delta))
+        # An officer who believes in the licence takes your standing with the
+        # Charter personally. The function doing this existed from the day
+        # convictions were written and was called by nothing.
+        loyalty_sim.align(self, faction_id, delta)
 
     # ── derived values ─────────────────────────────────────────────────────
 
@@ -125,6 +129,10 @@ class Game:
         self.colony_fx = colony_sim.effects(self)
         self.ship_stats = stats(self.ship, self.bonuses, self.officers)
         self.ship_stats.diplomacy += self.colony_fx.get("diplomacy", 0)
+        # A signed treaty is berthing rights and a tariff line, which is worth
+        # something at every quay. The function computing it existed from the
+        # day treaties were added and was called by nothing at all.
+        self.ship_stats.trade += dip_sim.treaty_bonus(self)
         return self.ship_stats
 
     # ── the clock ──────────────────────────────────────────────────────────

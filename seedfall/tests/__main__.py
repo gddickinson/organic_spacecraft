@@ -12,7 +12,8 @@ def main(argv: list[str] | None = None) -> int:
     wanted = [a for a in argv if not a.startswith("-")] or ["sim", "xeno", "play", "combat", "flight", "empire", "crew",
                                        "missions", "explore", "mining", "research", "trade",
                                        "ground", "politics", "design", "orders",
-                                       "assessment", "balance", "bloom", "verbs", "ui"]
+                                       "assessment", "balance", "bloom", "reachable",
+                                       "verbs", "ui"]
     ok = True
 
     if "sim" in wanted:
@@ -127,6 +128,12 @@ def main(argv: list[str] | None = None) -> int:
         from . import test_bloom_arc
         suite = Suite("bloom")
         test_bloom_arc.run(suite)
+        ok &= suite.report()
+
+    if "reachable" in wanted:
+        from . import test_reachable
+        suite = Suite("reachable")
+        test_reachable.run(suite)
         ok &= suite.report()
 
     if "verbs" in wanted:

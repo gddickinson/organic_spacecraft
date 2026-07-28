@@ -2,6 +2,42 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: nothing written and never called
+
+- **Three cycles running, a feature shipped a number the game never read** — a
+  levy counter, a death reason, a Bloom growth multiplier. The `Game`-fields
+  check catches persistent state; this is the other half. `test_reachable.py`
+  walks the package and fails on any public function called from nowhere at
+  all.
+- **It found three real holes, not just dead code.**
+  - **Treaties bought nothing.** `treaty_bonus()` promised that signing made
+    everyone easier to trade with and was called by nobody, so a treaty cost
+    goods, paid standing, and added a label. It is folded into the trade bonus
+    now: four treaties move it 0.00 → 0.12.
+  - **Instars could not be killed.** `kill_instar()` was called from nowhere,
+    so roaming masses seeded systems and ate colonies with no counterplay
+    whatever — and the provocation table paid seventy for a kill nobody could
+    make. A mass in your system is now announced and can be intercepted.
+  - **Convictions never felt your standing.** `loyalty.align()` — a
+    Charter-raised officer taking your Charter standing personally — existed
+    from the day convictions were written and was called by nothing. It runs
+    from `adjust_rep` now.
+- **And fourteen genuinely dead functions removed**, including
+  `planets.extraction_rate`, orphaned when mining was rewritten.
+- **Two things the check taught me about itself.** `return None` is not a
+  result — counting it flagged every early-exit function, and the self-check
+  caught that on its first run. And restricting the scan to value-returning
+  functions missed `kill_instar` entirely, which mutates and returns nothing;
+  widening it to every public function added exactly one more finding and no
+  noise at all.
+- **What it does not catch, stated in the check itself.** A function called
+  only from a readout, or only by the suite, passes. The Bloom's growth
+  multiplier was consumed by `summary()` from the day it was written while
+  contributing nothing to the simulation — I verified this check would have
+  passed on it. Reachability is a floor, not a guarantee.
+- Suites: 22 of them, **4 reachable** (new) among them — 190 checks green.
+  139 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: the Bloom starts paying attention
 
 - **The arc had two ends and nothing between them.** Growth is detected, it

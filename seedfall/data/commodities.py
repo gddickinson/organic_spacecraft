@@ -94,11 +94,6 @@ def bulk_of(cid: str) -> float:
     return c.bulk if c else 1.0
 
 
-def name_of(cid: str) -> str:
-    c = BY_ID.get(cid)
-    return c.name if c else cid
-
-
 CATEGORIES = {
     "bulk": ("Bulk", "osteo"),
     "strategic": ("Strategic", "lumen"),

@@ -225,6 +225,7 @@ seedfall/
     ├── test_assessment.py 6 read checks — honesty, arcs, robustness
     ├── test_balance.py 7 balance checks — measured by playing the fights
     ├── test_bloom_arc.py 7 Bloom checks — provocation, answers, study
+    ├── test_reachable.py 4 reachability checks — nothing written and uncalled
     ├── test_verbs.py   7 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
     └── test_ui.py      22 interface checks, rendered on Qt's offscreen platform
@@ -450,6 +451,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   it a little; burning removes the thing you would have studied. That conflict
   is the setting's central tension and `STUDY_FLOOR` is what keeps a burnt-out
   system from paying twice.
+- **A public function nobody calls is a feature that does not exist.**
+  `test_reachable.py` walks the tree and fails on any public module-level
+  function called from nowhere at all. Be clear about its limit: it will not
+  catch one that is called only from a readout or only by the suite. The
+  Bloom's growth multiplier was consumed by `summary()` from the day it was
+  written while contributing nothing to the simulation, and this check would
+  have passed on it. Reachability is a floor, not a guarantee.
+- **`return None` is not a result.** Counting it made the analysis flag every
+  early-exit function; the self-check caught that on its first run, which is
+  the argument for the self-check existing.
 - **Colony effects are a closed vocabulary.** `test_sim.py` asserts that every
   key in a `ColonyClass.effects` is one the game actually reads, so a typo in a
   station definition fails the suite instead of silently doing nothing.
@@ -528,6 +539,10 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   checks they fire in order and never twice, and — the one that matters —
   measures actual spread with and without them, because a multiplier nothing
   reads looks exactly like one that works.
+- **`test_reachable.py`** found the three things this cycle fixed: treaties
+  that bought no trade advantage, instars that could not be killed, and
+  officers whose convictions never felt your standing move. It carries a
+  self-check, because an analysis that cannot fail is worse than none.
 - **`test_flight.py`** holds the helm to its promises: that a seed grows one
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that

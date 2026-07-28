@@ -81,13 +81,6 @@ def available(game) -> list[tuple]:
     return out
 
 
-def shortfall(res, tech_id: str) -> list[str]:
-    """The kinds this programme wants and does not have enough of."""
-    wanted = needs(tech_id)
-    return [kind for kind, amount in wanted.items()
-            if held(res, kind) < amount * 0.06]
-
-
 def draw(res, tech_id: str, days: float) -> tuple[float, list[str]]:
     """Spend evidence for a spell's work. Returns (fraction served, missing).
 

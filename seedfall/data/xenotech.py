@@ -156,11 +156,6 @@ def by_culture(culture_id: str) -> list[XenoTech]:
     return [x for x in XENOTECH if x.culture == culture_id]
 
 
-def site_kinds(culture_id: str) -> tuple[str, ...]:
-    c = CULTURES_BY_ID.get(culture_id)
-    return c.sites if c else ()
-
-
 #: What a dig at a fresh site is worth, before survey quality and lab bonuses.
 DIG_YIELD = (28, 46)
 

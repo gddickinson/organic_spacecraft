@@ -19,6 +19,7 @@ from ..sim import stations as st_mod
 from ..sim import tactical as tac
 from ..sim import combat as combat_sim
 from ..sim import consorts as consort_sim
+from ..sim import bloom as bloom_sim
 from ..sim import inquiry
 from . import assessment_panel
 from ..sim import loyalty as loyalty_sim
@@ -45,6 +46,8 @@ class BattleView(View):
             # the varied initial aspect the tactical model was built for unused.
             rng=g.rng("engagement"), fleet=consort_sim.escorts_of(g))
         self.win.battle.intro = encounter.get("intro", "")
+        # Carried so the outcome can strike the roaming mass off the board.
+        self.win.battle.instar = encounter.get("instar")
 
     def build(self) -> None:
         b = self.win.battle
@@ -287,6 +290,15 @@ class BattleView(View):
         b = self.win.battle
         g = self.game
         fid = b.enemy_faction
+
+        killed = getattr(b, "instar", None)
+        if killed is not None and b.result in ("destroyed", "driven-off"):
+            roaming = next((i for i in bloom_sim.ensure(g).instars
+                            if i.id == killed), None)
+            if roaming is not None:
+                bloom_sim.kill_instar(g, roaming)
+                lines_extra = "The mass is scattered. It will not reach anywhere."
+                g.add_log(lines_extra, "good")
 
         loyalty_sim.record(g, {"destroyed": "victory", "driven-off": "victory",
                                "parley": "parley", "lost": "defeat",

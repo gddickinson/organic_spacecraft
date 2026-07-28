@@ -40,10 +40,6 @@ def tint(name: str) -> str:
     return TINTS.get(name, INK2)
 
 
-def qcolor(name: str) -> QColor:
-    return QColor(tint(name))
-
-
 def _first_family(candidates: list[str], fallback: str) -> str:
     have = set(QFontDatabase.families())
     for c in candidates:
@@ -62,20 +58,6 @@ def mono_family() -> str:
     return _first_family(
         ["SF Mono", "Menlo", "Cascadia Mono", "Consolas", "DejaVu Sans Mono",
          "Courier New"], "monospace")
-
-
-def serif(size: int = 15, bold: bool = False, italic: bool = False) -> QFont:
-    f = QFont(serif_family(), size)
-    f.setBold(bold)
-    f.setItalic(italic)
-    return f
-
-
-def mono(size: int = 9, spacing: float = 1.6) -> QFont:
-    f = QFont(mono_family(), size)
-    f.setCapitalization(QFont.Capitalization.AllUppercase)
-    f.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, spacing)
-    return f
 
 
 def stylesheet() -> str:

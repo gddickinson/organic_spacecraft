@@ -32,11 +32,6 @@ def parts_available(slot: str, chassis: Chassis, unlocked) -> list[Part]:
             and (p.tech is None or p.tech in unlocked)]
 
 
-def parts_unlocked(unlocked) -> list[Part]:
-    """Parts whose research prerequisite is met, regardless of hull."""
-    return [p for p in PARTS if p.tech is None or p.tech in unlocked]
-
-
 def part_value(p: Part) -> int:
     """Credit-equivalent of a part, for resale and insurance valuation."""
     v = float(p.cost.get("credits", 0))

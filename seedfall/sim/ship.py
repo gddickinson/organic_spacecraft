@@ -227,11 +227,6 @@ def hull_pct(ship: Ship) -> float:
     return hull_total(ship) / m if m > 0 else 0.0
 
 
-def outer_layer(ship: Ship) -> HullLayer | None:
-    """Outermost layer with any hit points left — what a shot lands on."""
-    return next((l for l in ship.layers if l.hp > 0), None)
-
-
 def is_destroyed(ship: Ship) -> bool:
     return all(l.hp <= 0 for l in ship.layers)
 
@@ -291,5 +286,3 @@ def add_cargo(ship: Ship, cid: str, units: float) -> None:
         ship.cargo.pop(cid, None)
 
 
-def has_cargo(ship: Ship, cid: str, units: float = 1) -> bool:
-    return ship.cargo.get(cid, 0) >= units

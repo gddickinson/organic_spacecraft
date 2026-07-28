@@ -69,6 +69,17 @@ class SystemView(View):
                                 "specifically.", "", "bad", wrap=True))
             self.col.addWidget(p)
 
+        roaming = bloom_sim.instar_at(self.game, sys.id)
+        if roaming is not None:
+            p = Panel("There is a mass in this system", "bad")
+            p.add(label("A detached instar is here — the same thing that eats "
+                        "colonies, moving under its own decision. It will move "
+                        "on when it is finished.", "", wrap=True))
+            p.add_row("Mass", f"{roaming.mass:.1f}", "warn")
+            p.add(note("Nothing aboard it will answer a hail."))
+            p.add_buttons(button("Intercept it", self._intercept, kind="danger"))
+            self.col.addWidget(p)
+
         heart = bloom_sim.heart_system(self.game)
         if heart is not None and heart.id == sys.id:
             st = bloom_sim.summary(self.game)
@@ -381,6 +392,15 @@ class SystemView(View):
             lines.append(note(f"Roughly {round(res['left'])} of it left."))
         self.win.dialog("The heart", lines, [("Log it", None)])
         self.win.refresh()
+
+    def _intercept(self) -> None:
+        g = self.game
+        roaming = bloom_sim.instar_at(g, g.system.id)
+        if roaming is None:
+            self.win.toast("It has already moved on.", "warn")
+            return
+        self.win.views["battle"].begin(bloom_sim.engage_instar(g, roaming))
+        self.win.go("battle")
 
     def _study_bloom(self) -> None:
         g = self.game

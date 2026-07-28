@@ -7,10 +7,6 @@ def clamp(v: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, v))
 
 
-def lerp(a: float, b: float, t: float) -> float:
-    return a + (b - a) * t
-
-
 def num(v: float) -> str:
     """Thousands-separated integer."""
     return f"{round(v):,}"
@@ -52,10 +48,6 @@ def duration(days: float) -> str:
 
 def pct(v: float) -> str:
     return f"{round(v * 100)}%"
-
-
-def plural(n: int, one: str, many: str | None = None) -> str:
-    return one if n == 1 else (many or one + "s")
 
 
 def cost_line(cost: dict) -> str:

@@ -222,8 +222,3 @@ def survey_body(body: Body, quality: float, rng) -> dict:
     return found
 
 
-def extraction_rate(body: Body, resource: str, rig_power: float) -> float:
-    """Tonnes per day a mining or harvesting rig pulls off this body."""
-    grade = body.resources.get(resource, 0.0)
-    left = max(0.0, 1 - body.depleted)
-    return grade * rig_power * left

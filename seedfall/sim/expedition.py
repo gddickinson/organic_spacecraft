@@ -162,10 +162,6 @@ def say(exp: Expedition, text: str, kind: str = "") -> None:
 
 # ── movement ───────────────────────────────────────────────────────────────
 
-def can_move(exp: Expedition, dx: int, dy: int) -> bool:
-    return exp.tile(exp.x + dx, exp.y + dy) is not None and not exp.over
-
-
 def move(exp: Expedition, dx: int, dy: int, officers, rng) -> dict:
     """Step one tile. Costs supply, may spring a hazard."""
     dest = exp.tile(exp.x + dx, exp.y + dy)

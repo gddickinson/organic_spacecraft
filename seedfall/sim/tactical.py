@@ -134,15 +134,6 @@ def advance(body: Body2D) -> None:
     body.y = max(-ARENA, min(ARENA, body.y))
 
 
-def opening(a: Body2D, b: Body2D) -> float:
-    """Closing (negative) or opening (positive) rate between two bodies."""
-    before = separation(a, b)
-    pa, pb = a.copy(), b.copy()
-    advance(pa)
-    advance(pb)
-    return separation(pa, pb) - before
-
-
 def initial_layout(rng, band: int = 3) -> tuple[Body2D, Body2D]:
     """Put two ships on the plot at a plausible opening range and aspect."""
     gap = (band + 0.5) * BAND_UNITS

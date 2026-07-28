@@ -103,10 +103,6 @@ def incorporated(game) -> list[XenoTech]:
     return [t for t in XENOTECH if is_incorporated(game, t.id)]
 
 
-def known(game) -> list[XenoTech]:
-    return [t for t in XENOTECH if is_known(game, t.id)]
-
-
 def culture_standing(game, culture_id: str) -> tuple[int, int]:
     """(incorporated, total) for a culture — how far you have got with them."""
     techs = by_culture(culture_id)
