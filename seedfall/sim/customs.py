@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from ..data.commodities import BY_ID
 from ..data.contraband import (CLEARANCES, REGIMES_BY_FACTION, SEIZURES)
+from . import officials as officials_sim
 
 #: Scrutiny at or above this and they are waiting for you.
 BURNED = 1.0
@@ -127,6 +128,11 @@ def value(game, faction: str | None) -> float:
     return total
 
 
+def tonnage_of(carrying) -> float:
+    """Total tonnes in a seizure list, for the lines that quote it."""
+    return sum(t for _cid, t in carrying)
+
+
 def inspect(game, rng, approach: float = 0.0) -> dict:
     """Come alongside with a dirty hold and find out.
 
@@ -141,6 +147,15 @@ def inspect(game, rng, approach: float = 0.0) -> dict:
     out = {"searched": False, "caught": False, "faction": faction,
            "regime": reg, "seized": [], "fine": 0.0, "goods": carrying}
     if not carrying or not reg:
+        return out
+
+    # A harbourmaster who owes you discretion signs the inspection off
+    # without anybody opening a hold. This is what `wave_through` buys, and
+    # the only place it is read.
+    if officials_sim.anywhere(game, "wave_through"):
+        out["waved"] = True
+        out["copy"] = ("The inspection is signed off at the desk. Nobody "
+                       "comes aboard, and nobody says why.")
         return out
 
     out["searched"] = True
@@ -166,6 +181,12 @@ def inspect(game, rng, approach: float = 0.0) -> dict:
     out["fine"] = fine
     game.credits -= fine
     game.adjust_rep(faction, -max(4, min(22, worth / 2500)))
+    # And it costs you with the person who runs the quay, not only with the
+    # power. They signed the order; they are the one you have to face next
+    # time you want a berth.
+    officials_sim.adjust(
+        game, game.system, -max(6.0, min(30.0, worth / 1800)),
+        f"You were boarded here and {tonnage_of(carrying):.0f} t was seized.")
     add_heat(game, faction, 0.45)
     tonnage = sum(t for _c, t in carrying)
     game.add_log(f"Boarded at {port.name}: {tonnage:.0f} t seized for "

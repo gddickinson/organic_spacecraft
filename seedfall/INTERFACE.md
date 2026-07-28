@@ -56,6 +56,27 @@ an empty tank from becoming a deadlock. Local work (survey, extract, dig, land)
 flies the ship alongside first, so a player who never opens the helm still gets a
 coherent transit; the helm is where you choose a better one.
 
+**There is somebody behind the counter.** A quay was a bag of services.
+`sim/memory.py` has carried a `port` mind kind since it was written and a
+fresh chronicle's store was empty and stayed empty — nothing ever put a person
+where you dock fifty times.
+
+`sim/officials.py` splits them in two, deliberately. **Who they are is
+derived**: name, temperament and which lever could exist against them, seeded
+from the port id, stable for the chronicle, no migration — the rule
+`anchorage` and `traffic` obey. **What passed between you is stored**, on the
+mind that already persists: regard, memories, levers found, favours running.
+
+The politics is in the ceiling. Trading squarely makes somebody *helpful* and
+stops — `DEALING_CAP` is a wall patience cannot climb. Past it you need either
+something they want or something they would rather you did not say. Leaning on
+a lever works whatever they think of you, costs **more** regard than asking as
+a friend (`LEAN_MULTIPLIER`), spends the lever, and drops the ceiling honest
+dealing can ever reach again (`CAP_PER_LEAN`) — you can trade your way back
+into being useful, never back into being liked. Five favours, each read
+somewhere real: a search that does not happen, a wider and richer contract
+board, goods at the office rate, a berth regardless, a word before a claim.
+
 **The powers come to you now.** Diplomacy ran one way: six actions, all
 player→faction, and the powers themselves did exactly one thing — `drift`,
 pulling their grievances back toward a baseline. So the four of them were a
@@ -332,6 +353,7 @@ seedfall/
 │   ├── charts.py       what each power pays for a survey, and what for
 │   ├── surveys.py      the four ways of looking, and what each cannot see
 │   ├── approaches.py   the powers coming to you: what each wants, and why
+│   ├── officials.py    harbourmasters: tempers, levers and favours
 │   ├── lineages.py     what a crew member is made of: span, upkeep, ageing
 │   ├── crossings.py    how hard to fly a jump, and which clock pays for it
 │   ├── fieldnotes.py   the eight things the ground can tell you
@@ -401,6 +423,7 @@ seedfall/
 │   ├── flight.py       the helm: orbits, intercepts, routing, transfer burns
 │   ├── survey.py       what a way of looking costs, finds, and is blind to
 │   ├── approach.py     a power's envoy: caused, costed, and answerable
+│   ├── officials.py    who runs the quay, what they think, what you know
 │   ├── anchorage.py    quays, hubs and holdings — places you can put in
 │   ├── traffic.py      other hulls: where they are and what they are doing
 │   ├── doctrine.py     the battle computer: what unattended seats decide
@@ -425,6 +448,7 @@ seedfall/
 │   ├── doctrine_panel.py  what the seats you are not in intend this turn
 │   ├── firing_panel.py    mount by mount: ready, or exactly what is stopping it
 │   ├── envoy_view.py      a power's proposition, with all three answers costed
+│   ├── official_panel.py  the desk: who is there, and both ways of asking
 │   ├── tactical_plot.py   the engagement from above, arcs included
 │   ├── port_view.py    market, services, recruitment
 │   ├── ship_view.py    layer stack, fittings, crew, hold

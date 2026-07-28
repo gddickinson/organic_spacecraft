@@ -11,7 +11,7 @@ from ..data.factions import FACTIONS_BY_ID, standing
 from ..sim import diplomacy as dip
 from ..sim import ventures as venture_sim
 from . import ventures_panel
-from .widgets import (Panel, Pill, TabBar, View, button, label, mono_label,
+from .widgets import (defer, Panel, Pill, TabBar, View, button, label, mono_label,
                       note, spacer)
 
 
@@ -114,7 +114,13 @@ class DiplomacyView(View):
             combo.addItem(FACTIONS_BY_ID[o].name, o)
         if self.partner in others:
             combo.setCurrentIndex(others.index(self.partner))
-        combo.activated.connect(lambda _i, cb=combo: self._set_partner(cb.currentData()))
+        # Deferred: `_set_partner` rebuilds this screen, which frees the combo
+        # while its own popup container is still delivering the mouse release
+        # that dismissed it. Qt then filters an event on freed memory and the
+        # process segfaults in `QComboBoxPrivateContainer::eventFilter`.
+        combo.activated.connect(
+            lambda _i, cb=combo: defer(
+                lambda: self._set_partner(cb.currentData())))
         h.addWidget(combo, 1)
         p.add(partner_row)
 

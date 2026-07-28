@@ -131,6 +131,12 @@ def _pick_target(rng, game, sysm, far: bool):
     return rng.pick(pool or systems)
 
 
+#: What "first sight of the board" is worth: an extra posting, and the pick
+#: of them scaled up, because you are seeing the work before it is picked over.
+EARLY_EXTRA = 2
+EARLY_SCALE = 1.18
+
+
 def generate(rng, game, sysm) -> list[Contract]:
     """The board at a port. Bigger ports post more, and post better."""
     if not sysm.port:
@@ -143,6 +149,13 @@ def generate(rng, game, sysm) -> list[Contract]:
     if not grudge_sim.will_deal(game, faction)[0]:
         return []
     count = 2 + sysm.port.level
+    # A harbourmaster who shows you the board before it is posted is worth a
+    # wider choice and a better class of work. The only place `word_first` is
+    # read, and the only thing that makes it worth asking for.
+    from . import officials as officials_sim
+    early = officials_sim.favour_running(game, sysm, "word_first") > 0
+    if early:
+        count += EARLY_EXTRA
     out: list[Contract] = []
 
     for _ in range(count):
@@ -156,7 +169,8 @@ def generate(rng, game, sysm) -> list[Contract]:
                      title="", posting=rng.pick(POSTINGS[kind]),
                      rep=d.rep, deadline=deadline)
 
-        if not shape(rng, game, sysm, c, faction):
+        if not shape(rng, game, sysm, c, faction,
+                     EARLY_SCALE if early else 1.0):
             continue
         out.append(c)
     return out

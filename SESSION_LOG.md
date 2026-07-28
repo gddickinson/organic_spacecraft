@@ -2,6 +2,55 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: somebody behind the counter, and a segfault from a combo box
+
+**A crash first.** A player segfaulted the game choosing from a drop-down. The
+stack named it exactly: `QComboBoxPrivateContainer::eventFilter` — the popup
+was still delivering the mouse release that dismissed it when the handler
+called `refresh()` and freed the combo underneath it. `widgets.defer` exists
+for precisely this and `options_view` already used it; `diplomacy_view` and
+`yard_view` did not. Both defer now.
+
+525 checks had missed it because the driver sets `currentIndex`
+programmatically, which never opens a popup and never takes that path. So the
+new check tests the *invariant* rather than the path: **after emitting its own
+signal, a control must still exist.** Writing it walked straight into the bug
+under test — collecting the combos once and firing each in turn meant the
+first deferred rebuild freed the rest, and the check itself died of a
+use-after-delete. A fresh window per combo, the pattern `drive()` already used.
+
+**And the cycle's feature: harbourmasters.** A quay was a bag of services with
+nobody in it, while `memory.py` had supported a `port` mind since the day it
+was written and never had one attached.
+
+- **Derived identity, stored relationship.** Name, temper and the lever that
+  could exist are seeded from the port; regard, memories, levers found and
+  favours running live on the mind that persists.
+- **Trading has a ceiling.** Squareness makes somebody helpful and stops. Past
+  that you need what they want or what they fear — which is the whole point,
+  because a relationship you can grind is not politics.
+- **Leaning is a different transaction, not a cheaper one.** The first cut had
+  it cheaper *and* unconditional, which made the lever strictly better than
+  the relationship and deleted the decision. It now costs 1.6× asking, spends
+  the lever, and permanently lowers the ceiling: 300 dealings afterwards reach
+  36 where somebody who never leant reaches 48.
+- **Every favour is read somewhere** — a search skipped, a board of 5 → 7 with
+  better work on it, goods 12% inside the posted price. Checked against the
+  systems they change rather than asserted.
+- **A stranger read as "cold"** because `START_REGARD` sat inside the cold
+  band. Somebody you have never met is not hostile; they are doing their job.
+- **The `office` state was invisible to the save codec** — an attribute hung
+  on a dataclass at runtime rather than a field, so every harbourmaster forgot
+  you, your levers and your favours on reload. Found by the check, not by
+  reading.
+- **A tautological check of my own**, again: it asserted
+  `after_cap == before_cap - CAP_PER_LEAN`, reading the very constant whose
+  effect it claimed to test, and passed with that constant zeroed. Rewritten
+  to compare two measured outcomes.
+- Being boarded now costs you with the person who signed the order, not only
+  with the power.
+- 525 checks green, every file under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: the powers stop being a vending machine
 
 Diplomacy was the top standing priority and I had spent three cycles on

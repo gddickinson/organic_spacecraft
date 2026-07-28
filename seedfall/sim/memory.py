@@ -89,6 +89,12 @@ class Mind:
     memories: list = field(default_factory=list)
     met: int = 0               # times the player has dealt with them
     first_met: int = -1
+    #: Office-holder state, for minds that run somewhere: regard, levers
+    #: found, favours running. A real field rather than an attribute hung on
+    #: at runtime — as an attribute it was invisible to the save codec, so a
+    #: harbourmaster forgot you, your levers and your favours on every reload.
+    #: See `sim/officials.py`.
+    office: dict = field(default_factory=dict)
 
     # ── holding ────────────────────────────────────────────────────────────
 

@@ -15,7 +15,7 @@ from ..sim import plans as plans_sim
 from ..sim import shipyard
 from ..sim.ship import Ship, hull_pct, stats
 from .plans_panel import ShipPlan
-from .widgets import (Card, Panel, Pill, TabBar, View, button, label,
+from .widgets import (defer, Card, Panel, Pill, TabBar, View, button, label,
                       mono_label, note, spacer)
 
 
@@ -179,8 +179,12 @@ class YardView(View):
                 combo.addItem(f"— add {SLOT_LABEL[slot].lower()} —", None)
                 for o in options:
                     combo.addItem(f"{o.name} · {cr(o.cost.get('credits', 0))}", o.id)
+                # Deferred for the same reason as every other combo: `_add`
+                # rebuilds the panel and frees this box while its popup is
+                # still handling the click that chose the item.
                 combo.activated.connect(
-                    lambda _idx, cb=combo: self._add(cb.currentData()))
+                    lambda _idx, cb=combo: defer(
+                        lambda: self._add(cb.currentData())))
                 p.add(combo)
         return p
 

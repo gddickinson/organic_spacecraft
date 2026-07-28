@@ -11,6 +11,7 @@ from ..data.factions import FACTIONS_BY_ID, standing
 from ..sim import allegiance
 from ..sim import chains as chain_sim
 from ..sim import services as services_sim
+from ..sim import officials as officials_sim
 from ..sim import trade as trade_sim
 from ..sim import loyalty as loyalty_sim
 from ..sim import customs as customs_sim
@@ -60,7 +61,8 @@ class PortView(BerthsMixin, View):
                   f"({'+' if rep > 0 else ''}{round(rep)})")
 
         tabs = TabBar([("market", "Market"), ("contracts", "Contracts"),
-                       ("services", "Services"), ("crew", "Berths")], self.tab)
+                       ("services", "Services"), ("crew", "Berths"),
+                       ("desk", "The desk")], self.tab)
         tabs.changed.connect(self._switch)
         self.col.addWidget(tabs)
 
@@ -70,8 +72,41 @@ class PortView(BerthsMixin, View):
             self._services(sys, fac, rep)
         elif self.tab == "crew":
             self._berths(sys)
+        elif self.tab == "desk":
+            self._desk(sys)
         else:
             self._market(sys, fac, rep)
+
+    def _desk(self, sysm) -> None:
+        """Whoever runs this quay, and what they will do for you."""
+        from .official_panel import what_to_ask, whos_here
+        self.row(whos_here(self, self.game, sysm),
+                 what_to_ask(self, self.game, sysm))
+
+    def learn_about(self, sysm) -> None:
+        res = officials_sim.learn_lever(
+            self.game, sysm, "a bosun who talks when the shift ends")
+        if not res.get("ok"):
+            self.win.toast(res.get("why", "Nothing to learn."), "warn")
+            return
+        self.win.dialog("You hear something",
+                        [res["text"],
+                         note("It is not much. It is enough.")],
+                        [("Keep it to yourself", None)])
+        self.win.save()
+        self.refresh()
+
+    def ask_favour(self, sysm, favour_id: str, lean: bool) -> None:
+        res = officials_sim.ask(self.game, sysm, favour_id, lean)
+        if not res.get("ok"):
+            self.win.toast(res.get("why", "They will not."), "warn")
+            return
+        self.win.toast(
+            ("They do it, and they remember how you asked."
+             if res["leant"] else "They do it."),
+            "warn" if res["leant"] else "")
+        self.win.save()
+        self.refresh()
 
     def _switch(self, tid: str) -> None:
         self.tab = tid

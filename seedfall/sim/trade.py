@@ -13,6 +13,7 @@ from __future__ import annotations
 from ..data.commodities import BY_ID, bulk_of
 from . import customs as customs_sim
 from . import market as market_sim
+from . import officials as officials_sim
 from . import diplomacy as dip_sim
 from . import loyalty as loyalty_sim
 from .ship import add_cargo, cargo_free
@@ -28,6 +29,11 @@ BUY_TAINT = 3.0
 SELL_TAINT = 8.0
 
 
+#: What "a quiet price" is worth: goods move at the office rate, which is
+#: about twelve per cent inside the posted one, in whichever direction helps.
+QUIET_SHARE = 0.88
+
+
 def buy(game, cid: str, units: int) -> dict:
     """Take `units` off the local market, as many as can be paid for and stowed."""
     system = game.system
@@ -36,6 +42,9 @@ def buy(game, cid: str, units: int) -> dict:
     price = market_sim.quote_buy(game, system, cid)
     if price is None:
         return {"ok": False, "why": "They do not stock it."}
+    # The office rate rather than the posted one, if somebody owes you that.
+    if officials_sim.anywhere(game, "quiet_price"):
+        price *= QUIET_SHARE
 
     room = int(cargo_free(game.ship, game.ship_stats) / bulk_of(cid))
     afford = int(game.credits // price)
@@ -50,6 +59,7 @@ def buy(game, cid: str, units: int) -> dict:
     game.credits -= n * price
     add_cargo(game.ship, cid, n)
     apply_trade(system.market, cid, n)
+    officials_sim.dealt_with(game, system, min(2.0, n * price / 9000))
     if not BY_ID[cid].legal:
         game.adjust_rep(system.port.faction, -BUY_TAINT)
     game.add_log(f"Bought {n} {BY_ID[cid].short} at {price:,} — "
@@ -67,6 +77,8 @@ def sell(game, cid: str, units: int) -> dict:
                 "why": "Not over this counter. Not on this station."}
 
     price = market_sim.quote_sell(game, system, cid)
+    if price is not None and officials_sim.anywhere(game, "quiet_price"):
+        price /= QUIET_SHARE          # the same twelve per cent, your way
     n = min(units, game.ship.cargo.get(cid, 0))
     if n <= 0 or price is None:
         return {"ok": False, "why": "Nothing aboard to sell."}
@@ -84,6 +96,9 @@ def sell(game, cid: str, units: int) -> dict:
                            scale=min(2.0, n * price / 6000))
     add_cargo(game.ship, cid, -n)
     apply_sale(system.market, cid, n)
+    # Trading here is dealing with whoever runs the quay. This and `buy` are
+    # the only routes by which a harbourmaster comes to know you at all.
+    officials_sim.dealt_with(game, system, min(2.0, n * price / 9000))
     game.adjust_rep(system.port.faction,
                     min(2, n * 0.05)
                     * dip_sim.agenda_bonus(game, system.port.faction, cid))

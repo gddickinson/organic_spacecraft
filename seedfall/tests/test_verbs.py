@@ -329,6 +329,58 @@ def run(suite: Suite) -> bool:
                             + "\n      ".join(broken[:6]))
         return f"{total} controls with nothing left aboard, all clean"
 
+    @check("a control survives its own signal")
+    def _():
+        """The rule `widgets.defer` exists for, tested where it actually bites.
+
+        A player segfaulted the game choosing from a combo box. The handler
+        called `refresh()`, which freed the combo while its own popup
+        container was still delivering the mouse release that dismissed it —
+        Qt then filtered an event on freed memory and the process died in
+        `QComboBoxPrivateContainer::eventFilter`.
+
+        524 checks missed it because the driver sets `currentIndex`
+        programmatically, which never opens a popup and never takes that path.
+        So test the invariant instead of the path: **after emitting its own
+        signal, the widget must still exist.** With `defer` the rebuild
+        happens on the next turn of the loop and it does; without, it is a
+        corpse before the emit returns.
+        """
+        from PyQt6 import sip
+        from PyQt6.QtWidgets import QComboBox
+
+        checked, dead = 0, []
+        for screen, *_rest in NAV:
+            _game, probe = window(f"sig-{screen}", screen)
+            count = len(probe.findChildren(QComboBox))
+            probe.close()
+            # A fresh window per combo. Collecting them once and firing each in
+            # turn walked straight into the bug under test: the first deferred
+            # rebuild frees every other combo in the list, and the next
+            # `setCurrentIndex` is a use-after-delete in the *check*.
+            for index in range(count):
+                _g, win = window(f"sig-{screen}-{index}", screen)
+                combos = win.findChildren(QComboBox)
+                if index >= len(combos):
+                    win.close()
+                    continue
+                combo = combos[index]
+                if combo.count() < 2:
+                    win.close()
+                    continue
+                combo.setCurrentIndex(1)
+                combo.activated.emit(1)
+                if sip.isdeleted(combo):
+                    dead.append(f"{screen}: a combo was freed by its own "
+                                "`activated` handler")
+                checked += 1
+                for _ in range(3):
+                    app.processEvents()
+                win.close()
+        assert not dead, "\n      ".join(dead)
+        assert checked > 0, "no combo boxes found on any screen to test"
+        return f"{checked} combo boxes, every one alive after its own signal"
+
     @check("an exception inside a Qt slot is actually caught")
     def _():
         # The whole check rests on this. Qt prints a traceback for an exception
