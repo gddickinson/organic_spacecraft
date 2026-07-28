@@ -229,6 +229,45 @@ def options_here(exp: Expedition):
     return FEATURES[t.feature].options
 
 
+#: A failed attempt springs a hazard this often.
+HAZARD_ON_FAILURE = 0.4
+
+#: What a spoiled attempt is worth, as a share.
+SPOILED = 0.0
+
+
+def odds_for(exp: Expedition, index: int, officers) -> dict:
+    """The chance, the officer, the prize and the risk, before you try it.
+
+    The screen said "(science, difficulty 3)" and stopped there. Resolution is
+    `1d6 + level >= difficulty + 2`, so that same string is a one-in-three with
+    a green officer and five-in-six with a level-three one — and the reward was
+    unpacked into a discarded variable, so nobody was ever told what success
+    paid.
+    """
+    options = options_here(exp)
+    if index >= len(options):
+        return {}
+    label, stat, difficulty, reward = options[index]
+    if not stat:
+        return {"label": label, "chance": 1.0, "stat": None, "level": 0,
+                "reward": reward, "low": 0, "high": 0, "hazard": 0.0,
+                "who": None}
+
+    holder = max((o for o in officers if o.stat == stat),
+                 key=lambda o: o.level, default=None)
+    level = holder.level if holder else 0
+    # 1d6 + level >= difficulty + 2  →  the die must show this or better.
+    need = difficulty + 2 - level
+    faces = 6 - max(1, min(7, need)) + 1
+    chance = max(0.0, min(1.0, faces / 6))
+    low, high = REWARD_SCALE.get(reward, (0, 0))
+    return {"label": label, "chance": chance, "stat": stat, "level": level,
+            "who": holder.name if holder else None, "reward": reward,
+            "low": low, "high": high,
+            "hazard": HAZARD_ON_FAILURE * (1 - chance)}
+
+
 def attempt(exp: Expedition, index: int, officers, rng) -> dict:
     """Try one of the options a feature offers."""
     t = exp.here

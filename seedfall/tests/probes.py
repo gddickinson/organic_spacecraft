@@ -20,6 +20,28 @@ from ..sim import inquiry
 
 # ── the desk finds runs your own notes cannot ──────────────────────────────
 
+def _ground_odds() -> float:
+    """How much the ground screen foretells about the options it offers."""
+    from ..core.rng import RNG as _RNG
+    from ..data.expedition import FEATURES
+    from ..sim import expedition as exp_sim
+    game = new_game("lever-ground")
+    body = next(b for s in game.galaxy.systems for b in s.bodies
+                if b.kind not in ("gas", "star"))
+    system = next(s for s in game.galaxy.systems if body in s.bodies)
+    party = exp_sim.generate(_RNG("lg"), system, body,
+                             [o.id for o in game.officers], 400)
+    told = 0.0
+    for fid in FEATURES:
+        party.here.feature = fid
+        party.here.resolved = False
+        for index in range(len(exp_sim.options_here(party))):
+            said = exp_sim.odds_for(party, index, game.officers)
+            told += len([v for v in (said.get("chance"), said.get("reward"),
+                                     said.get("hazard")) if v not in (None, "")])
+    return told
+
+
 def _forecast_reach() -> float:
     """How much of a colony's output the seed dialog foretells."""
     from ..data.colonies import colonies_for

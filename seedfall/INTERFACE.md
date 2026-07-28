@@ -262,13 +262,14 @@ seedfall/
     ├── test_overtures.py 5 checks — the preview is what the overture does
     ├── test_seats.py   6 seat checks — what taking a station is worth
     ├── test_founding.py 5 checks — the seed dialog says what will grow
+    ├── test_attempts.py 6 checks — the odds shown are the odds rolled
     ├── captain_bot.py  the long-game captain the playability checks fly
     ├── probes.py       the newer efficacy probes, split out of levers.py
     ├── test_dig.py     6 dig checks — strata, methods, banking, backfilling
     ├── test_resume.py  5 resume checks — anything half-done survives a save
     ├── efficacy.py     the harness: neutralise a feature, measure the world
     ├── levers.py       one entry per claim the game makes about a number
-    ├── test_efficacy.py 30 checks — every feature has to move something
+    ├── test_efficacy.py 31 checks — every feature has to move something
     ├── test_reachable.py 4 reachability checks — nothing written and uncalled
     ├── test_verbs.py   10 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
@@ -523,6 +524,13 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **A ground option states its odds, its prize and its risk.** The screen
+  listed "(science, difficulty 3)" and nothing else. Resolution is
+  `1d6 + officer level >= difficulty + 2`, so that same string is a
+  one-in-three with a green officer and five-in-six with a level-three one; the
+  reward was unpacked into a discarded variable; and a failure springs a hazard
+  40% of the time, unstated. `expedition.odds_for()` gives all four, and the
+  ground game is nothing but a sequence of these choices.
 - **The seed dialog says what will grow.** It showed each class's cost and
   gestation and never its yield — the one thing that separates them. Measured
   on one rocky body: fourteen classes from 2.6 t of ore a day (RADIX Mine,
@@ -849,6 +857,11 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   them home, and fails unless the shelf, the provenance and the evidence all
   survive — including across a save. It also checks every note is reachable and
   that the draw prefers ones you lack, so no written discovery is unfindable.
+- **`test_attempts.py`** rolls each option six hundred times and fails unless
+  the empirical success rate matches the quoted chance — the resolution lives
+  in `attempt` and the quote in `odds_for`, and the point is that they cannot
+  drift. Dropping the `+2` from the quote makes it report "said 67% rolled
+  32%".
 - **`test_founding.py`** plants all fourteen classes a body will take, matures
   each, and fails unless the yield, upkeep, effects and gestation are what the
   dialog forecast. Its fixture stocks every commodity rather than a guessed

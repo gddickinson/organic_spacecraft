@@ -32,7 +32,7 @@ from ..sim.ship import build_layers, make_ship, stats
 from ..world.economy import buy_price
 from . import captain_ai
 from .efficacy import Lever
-from .probes import (_forecast_reach, _seat_worth, _overture_honesty, _annex_research, _bench_overdraw, _hard_burn_hull, _wasted_ground,
+from .probes import (_ground_odds, _forecast_reach, _seat_worth, _overture_honesty, _annex_research, _bench_overdraw, _hard_burn_hull, _wasted_ground,
                      _chart_spread, _contract_net, _cut_dig_points,
                      _desk_runs, _kill_goodwill, _levied_output,
                      _note_evidence, _smuggling_purse,
@@ -241,6 +241,11 @@ def _crossing_days() -> float:
     return total / runs
 
 LEVERS: list[Lever] = [
+    Lever("ground-odds",
+          "the ground screen says what an attempt is worth trying",
+          patch=(expedition_sim, "odds_for", lambda _e, _i, _o: {}),
+          probe=_ground_odds, direction="lower"),
+
     Lever("colony-forecast",
           "the seed dialog says what will grow",
           patch=(colony_sim_for_lever, "forecast",

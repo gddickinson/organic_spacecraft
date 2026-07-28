@@ -90,6 +90,21 @@ class ZoneMap(QWidget):
         p.end()
 
 
+def _prize(odds: dict) -> str:
+    """What success pays, in words rather than a range of zeroes."""
+    reward = odds.get("reward")
+    if reward == "lore":
+        return "a field note"
+    if reward in (None, "none"):
+        return "nothing"
+    low, high = odds.get("low", 0), odds.get("high", 0)
+    if not high:
+        return str(reward)
+    if reward == "credits":
+        return f"{low:,}–{high:,} credits"
+    return f"{low}–{high} {reward}"
+
+
 class ExpeditionView(View):
     # The zone map is rebuilt with the rest of the screen. Caching it on the
     # view does not work: refresh() destroys the container it sits in, and Qt
@@ -171,9 +186,27 @@ class ExpeditionView(View):
             p.add(spacer(4))
             p.add(label(f.name, "h3", f.tint))
             p.add(label(f.blurb, "", wrap=True))
-            for i, (text, stat, difficulty, _reward) in enumerate(f.options):
-                hint = (f"  ({stat}, difficulty {difficulty})" if stat else "")
-                p.add_buttons(button(text + hint,
+            # The odds, who would take it, what it pays and what a failure
+            # risks. The screen used to say "(science, difficulty 3)", which is
+            # a one-in-three with a green officer and five-in-six with a good
+            # one, and never named the prize at all.
+            for i, (text, stat, _difficulty, _reward) in enumerate(f.options):
+                odds = exp_sim.odds_for(exp, i, self._party())
+                p.add(spacer(3))
+                p.add(label(text, "h3", "chloro" if odds["chance"] >= 0.6
+                            else ("warn" if odds["chance"] < 0.35 else "")))
+                if stat:
+                    who = odds["who"] or "nobody aboard"
+                    p.add_row(f"{odds['chance']:.0%} — {who} on {stat}",
+                              _prize(odds),
+                              "chloro" if odds["chance"] >= 0.6 else "warn")
+                    if odds["hazard"] > 0.01:
+                        p.add_row("If it goes wrong",
+                                  f"{odds['hazard']:.0%} chance of springing "
+                                  "something", "warn")
+                else:
+                    p.add_row("Safe", "nothing gained and nothing risked", "dim")
+                p.add_buttons(button(text,
                                      lambda _=False, k=i: self._attempt(k)))
         elif t.feature:
             p.add(note("Dealt with."))

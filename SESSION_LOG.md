@@ -2,6 +2,37 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: the odds on the ground
+
+- **The expedition screen said "(science, difficulty 3)" and stopped.**
+  Resolution is `1d6 + officer level >= difficulty + 2`, so that exact string
+  is a one-in-three attempt with a green officer and a five-in-six with a
+  level-three one — the same nine characters either way. The reward was
+  unpacked into a variable named `_reward` and discarded, so the player was
+  never told what success paid. And a failure springs a hazard 40% of the time,
+  costing supply, the rover and sometimes an officer, which was also unstated.
+- **The ground game is nothing but a sequence of these choices**, which is what
+  made this the one worth doing: every tile with a feature on it is a decision
+  between two or three options and the screen gave a stat name and a number
+  with no scale attached to it.
+- **`expedition.odds_for()` gives the chance, the officer who would take it,
+  the prize and the risk**, and the panel reads "83% — Marek Nazari on
+  engineering · 900–3,400 credits · If it goes wrong: 7% chance of springing
+  something". Reading a flight recorder with nobody on comms is 33% with a 27%
+  chance of springing something; stripping the salvage next to it is 83%. That
+  is the decision, and it was invisible.
+- **The check rolls each option six hundred times** and fails unless the
+  empirical rate matches the quote, because the resolution lives in `attempt`
+  and the quote in `odds_for` and the whole point is that they cannot drift.
+  Worst discrepancy across nine options: 3.0%. Dropping the `+2` from the quote
+  makes it report "said 67% rolled 32%".
+- **Eighth cycle running where the defect was a readout.** Seven of the eight
+  now have a preview or forecast function in the sim with a check pinning it to
+  what actually happens: contracts, freight, mining, the bench, overtures,
+  seats, colonies, and now ground options.
+- Suites: 44, **6 attempts** (new) among them — 355 checks green. 186 modules,
+  all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: what will grow there
 
 - **Seventh cycle running the defect is a readout, and this time I went looking
