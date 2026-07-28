@@ -31,7 +31,7 @@ from ..sim.ship import build_layers, make_ship, stats
 from ..world.economy import buy_price
 from . import captain_ai
 from .efficacy import Lever
-from .probes import (_hard_burn_hull, _wasted_ground,
+from .probes import (_bench_overdraw, _hard_burn_hull, _wasted_ground,
                      _chart_spread, _contract_net, _cut_dig_points,
                      _desk_runs, _kill_goodwill, _levied_output,
                      _note_evidence, _smuggling_purse,
@@ -240,6 +240,11 @@ def _crossing_days() -> float:
     return total / runs
 
 LEVERS: list[Lever] = [
+    Lever("bench-pacing",
+          "the bench eats what the screen says it will",
+          patch=(inquiry, "span_of", lambda _t, _r, _rate: 60.0),
+          probe=_bench_overdraw, direction="higher"),
+
     Lever("burn-heat",
           "a hard burn leaves the hull hot",
           patch=(flight_sim, "burn_heat", lambda _b, _s: 0.0),
@@ -357,7 +362,7 @@ LEVERS: list[Lever] = [
 
     Lever("research-evidence",
           "evidence on the bench speeds a programme",
-          patch=(inquiry, "draw", lambda _r, _t, _d: (1.0, [])),
+          patch=(inquiry, "draw", lambda _r, _t, _d, _rate=1.0: (1.0, [])),
           probe=_days_to_first_tech, direction="lower"),
 ]
 

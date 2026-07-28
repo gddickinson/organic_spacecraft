@@ -257,13 +257,14 @@ seedfall/
     ├── test_freight.py 7 freight checks — the desk, its floor, and a career
     ├── test_workings.py 7 mining checks — the rig stops when the hold is full
     ├── test_burns.py   7 burn checks — heat, cooking, and a real profile choice
+    ├── test_bench.py   5 bench checks — the draw matches what the screen says
     ├── captain_bot.py  the long-game captain the playability checks fly
     ├── probes.py       the newer efficacy probes, split out of levers.py
     ├── test_dig.py     6 dig checks — strata, methods, banking, backfilling
     ├── test_resume.py  5 resume checks — anything half-done survives a save
     ├── efficacy.py     the harness: neutralise a feature, measure the world
     ├── levers.py       one entry per claim the game makes about a number
-    ├── test_efficacy.py 25 checks — every feature has to move something
+    ├── test_efficacy.py 26 checks — every feature has to move something
     ├── test_reachable.py 4 reachability checks — nothing written and uncalled
     ├── test_verbs.py   10 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
@@ -518,6 +519,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **What the bench says a programme will eat is what it eats.** `needs()` is
+  documented as the end-to-end total and the screen prints it as "26 wanted";
+  `draw()` then spent `total / 60` a day while a careful programme runs about
+  128 days, so the bench ate 2.1x the advertised figure on every track. The
+  sixty was a duration nobody had checked. The draw is paced over
+  `span_of()` — the programme's real expected length at the current rate — so
+  the two agree.
+- **A quote is priced for the approach in hand.** Running parallel tracks costs
+  "three benches' worth of material" by its own blurb, and the readout quoted
+  the careful number. `needs()` takes the `Research` and applies the approach's
+  draw, so the shelves are read against what this programme will actually take.
 - **The four burn profiles are a decision because a hard burn arrives hot.**
   Measured: a system flown end to end took 55 days coasting and 10 on hard
   burns, and the hard burn cost about three hundred credits of reaction mass
@@ -795,6 +807,9 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   them home, and fails unless the shelf, the provenance and the evidence all
   survive — including across a save. It also checks every note is reachable and
   that the draw prefers ones you lack, so no written discovery is unfindable.
+- **`test_bench.py`** runs programmes to completion on every approach and
+  fails unless what was quoted is what came off the shelves. Restoring the
+  hardcoded sixty makes it report "the bench takes 2.06x what it advertises".
 - **`test_burns.py`** flies a whole system on each profile and fails unless
   burning hard is both faster and materially worse for the hull, and unless a
   single burn from cold costs nothing. It also pins what the helm quotes

@@ -40,14 +40,33 @@ def mix_for(tech_id: str) -> dict:
     return dict(BRANCH_MIX.get(tech.branch, DEFAULT_MIX))
 
 
-def needs(tech_id: str) -> dict:
-    """How much of each kind a programme will consume end to end."""
+def needs(tech_id: str, res=None) -> dict:
+    """How much of each kind a programme will consume end to end.
+
+    It said that and did not do it. `draw()` spent `total / 60` a day while a
+    careful programme runs about 128 days, so the bench actually ate 2.1x what
+    the screen advertised — measured at "wanted 26, used 56" on every track.
+    The sixty was a duration nobody had checked against the real one.
+
+    Pass the `Research` to price it for the approach in hand: running parallel
+    tracks costs three benches' worth of material and the readout should say so.
+    """
     tech = TECH_BY_ID.get(tech_id)
     if tech is None:
         return {}
     mix = mix_for(tech_id)
-    return {kind: tech.cost * min(MAX_SHARE, share) * 0.5
+    pull = approach_of(res).draw if res is not None else 1.0
+    return {kind: tech.cost * min(MAX_SHARE, share) * 0.5 * pull
             for kind, share in mix.items()}
+
+
+def span_of(tech_id: str, res, rate: float) -> float:
+    """Days a programme is expected to run at this rate, for pacing the draw."""
+    tech = TECH_BY_ID.get(tech_id)
+    if tech is None:
+        return 60.0
+    approach = approach_of(res)
+    return max(1.0, tech.cost / max(0.01, rate * approach.speed))
 
 
 def approach_of(res):
@@ -81,20 +100,23 @@ def available(game) -> list[tuple]:
     return out
 
 
-def draw(res, tech_id: str, days: float) -> tuple[float, list[str]]:
+def draw(res, tech_id: str, days: float,
+         rate: float = 1.0) -> tuple[float, list[str]]:
     """Spend evidence for a spell's work. Returns (fraction served, missing).
 
     A programme runs at the pace of its scarcest input, so a bench with charts
     and no specimens gets some of the way and then waits — which is a nudge to
     go and do something else, not a dead end.
     """
-    approach = approach_of(res)
-    wanted = needs(tech_id)
+    wanted = needs(tech_id, res)
     if not wanted:
         return 1.0, []
+    # Paced over how long the programme will actually run, so what the bench
+    # consumes end to end is what `needs()` said it would.
+    span = span_of(tech_id, res, rate)
     served, missing = [], []
     for kind, total in wanted.items():
-        per_day = total / 60.0 * approach.draw
+        per_day = total / span
         want = per_day * days
         if want <= 0:
             continue

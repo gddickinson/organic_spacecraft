@@ -51,7 +51,7 @@ def tick(res: Research, days: float, rate: float, rng=None) -> str | None:
         res.banked += gained
         return None
 
-    served, missing = inquiry.draw(res, res.current, days)
+    served, missing = inquiry.draw(res, res.current, days, rate)
     approach = inquiry.approach_of(res)
     res.progress += (gained * approach.speed * served) + res.banked
     res.banked = 0.0

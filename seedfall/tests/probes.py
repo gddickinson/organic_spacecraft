@@ -20,6 +20,31 @@ from ..sim import inquiry
 
 # ── the desk finds runs your own notes cannot ──────────────────────────────
 
+def _bench_overdraw() -> float:
+    """How much more the bench eats than the screen says it will."""
+    from ..sim import inquiry
+    from ..sim import research as research_sim
+    from ..data.inquiry import EVIDENCE
+    kinds = [e.id for e in EVIDENCE]
+    wanted = used = 0.0
+    for index in range(5):
+        game = new_game(f"lever-bench-{index}")
+        for kind in kinds:
+            inquiry.add(game.research, kind, 8000)
+        tech = next(t for t in research_sim.researchable(game.research.unlocked))
+        research_sim.set_project(game.research, tech.id)
+        inquiry.set_approach(game.research, "careful")
+        asked = inquiry.needs(tech.id, game.research)
+        before = {k: inquiry.held(game.research, k) for k in kinds}
+        guard = 0
+        while tech.id not in game.research.unlocked and guard < 400:
+            guard += 1
+            game.advance_days(10)
+        wanted += sum(asked.values())
+        used += sum(before[k] - inquiry.held(game.research, k) for k in kinds)
+    return used / max(1.0, wanted)
+
+
 def _hard_burn_hull() -> float:
     """Hull lost touring a system on hard burns and then sitting a month."""
     from ..sim import flight

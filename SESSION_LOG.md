@@ -2,6 +2,39 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a bench that eats what it says
+
+- **Measured the research bench for the first time.** Most of it is sound: the
+  approaches are a real decision (careful 112 days, parallel 75, push 58 with
+  setbacks), a starved bench crawls at 180 days but is never a dead end, and
+  evidence saturates per project at about 160 units — which is correct, because
+  it is *consumed*, so across 61 techs you need some ten thousand of it.
+- **But the readout was out by a factor of two.** `needs()` is documented as
+  "how much of each kind a programme will consume end to end" and the screen
+  prints it as "26 wanted". `draw()` then spent `total / 60` a day, while a
+  careful programme runs about 128 days — so the bench ate **2.1x** what it
+  advertised, on every track, for every technology. The sixty was a duration
+  nobody had checked against the real one.
+- **And it ignored the approach.** Running parallel tracks costs, in its own
+  blurb, "three benches' worth of material" — and the shelves were read against
+  the careful figure. The screen now quotes ×1.9 for parallel because that is
+  what parallel takes.
+- **Fixed by pacing the draw over the programme's actual expected length**
+  rather than a constant. Wanted and used now agree within 7%, and the panel
+  reads "Hardware 40 held · 64 wanted" in amber when you are short.
+- **A false alarm of my own, checked before it became a finding.** A test
+  showed the bench *gaining* survey evidence during a run — 400 stocked, 28
+  spent, 426 left — which looked like something generating evidence out of
+  nothing. It was my arithmetic: a chronicle opens with 55 survey and 25
+  specimen already on the shelves, so `stock=400` starts at 455. Idle time
+  generates nothing, as it should.
+- **And one stale lever.** Adding a `rate` argument to `draw()` broke the
+  existing `research-evidence` lever, whose patch was a three-argument lambda.
+  The efficacy harness reported it as a signature error rather than silently
+  passing, which is the whole reason it checks its own substitutions.
+- Suites: 39, **5 bench** (new) among them — 323 checks green. 181 modules, all
+  under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a hard burn that costs something
 
 - **Set out to build a launch-window planner, and the measurement killed it.**

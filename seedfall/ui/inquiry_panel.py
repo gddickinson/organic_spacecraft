@@ -17,7 +17,7 @@ def lockers(game) -> Panel:
     p.add(note("A programme is fed by evidence, and the four kinds come from "
                "four different parts of the job. A propulsion programme cannot "
                "be fed by botany."))
-    wanted = inquiry.needs(res.current) if res.current else {}
+    wanted = inquiry.needs(res.current, res) if res.current else {}
     for kind in EVIDENCE:
         have = inquiry.held(res, kind.id)
         need = wanted.get(kind.id, 0.0)
