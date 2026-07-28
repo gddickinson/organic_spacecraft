@@ -223,6 +223,7 @@ seedfall/
     ├── test_orders.py  8 orders checks — reachability, urgency, unread state
     ├── test_assessment.py 6 read checks — honesty, arcs, robustness
     ├── test_balance.py 7 balance checks — measured by playing the fights
+    ├── test_verbs.py   7 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
     └── test_ui.py      22 interface checks, rendered on Qt's offscreen platform
 ```
@@ -427,6 +428,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **Every low-tier weapon in the game is grown-family.** A fabricated hull at
   tier one can mount none of them, which is why faction warships used to arrive
   unarmed. `encounters._weapon_pool` raises the tier until something fits.
+- **Qt swallows exceptions raised inside a slot.** It prints a traceback to
+  stderr and carries on, so `button.click()` returns perfectly happily and a
+  test that only clicks sees nothing wrong. This is why fleeing and hailing
+  could be broken for a whole cycle while `test_ui.py` rendered every screen
+  and passed. `test_verbs.py` installs a `sys.excepthook` to catch them; if
+  that trap ever stops working every verb check goes quietly green, so there is
+  a check for the trap itself.
+- **Rendering a screen does not press its buttons.** `test_ui.py` proves the
+  screens draw; `test_verbs.py` proves the verbs run. They are different
+  claims and a refactor can break the second without touching the first.
 - **Colony effects are a closed vocabulary.** `test_sim.py` asserts that every
   key in a `ColonyClass.effects` is one the game actually reads, so a typo in a
   station definition fails the suite instead of silently doing nothing.
@@ -496,6 +507,11 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   that waiting is not a way to beat a battleship, and that fleeing and hailing
   both actually run — the last because splitting them into `parley.py` left
   them calling names that no longer existed and nothing drove either path.
+- **`test_verbs.py`** clicks every enabled control in the game — 210 of them
+  across the standing screens, an engagement, an expedition, all four port
+  tabs and both mini-games — each on a fresh game, and again with a wrecked
+  hull that has no money, no crew and no air. It fails against last cycle's
+  parley regression, which is what it was written for.
 - **`test_flight.py`** holds the helm to its promises: that a seed grows one
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that

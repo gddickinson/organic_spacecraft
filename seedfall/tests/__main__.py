@@ -12,7 +12,7 @@ def main(argv: list[str] | None = None) -> int:
     wanted = [a for a in argv if not a.startswith("-")] or ["sim", "xeno", "play", "combat", "flight", "empire", "crew",
                                        "missions", "explore", "mining", "research", "trade",
                                        "ground", "politics", "design", "orders",
-                                       "assessment", "balance", "ui"]
+                                       "assessment", "balance", "verbs", "ui"]
     ok = True
 
     if "sim" in wanted:
@@ -122,6 +122,16 @@ def main(argv: list[str] | None = None) -> int:
         suite = Suite("balance")
         test_balance.run(suite)
         ok &= suite.report()
+
+    if "verbs" in wanted:
+        try:
+            from . import test_verbs
+        except ImportError as err:
+            print(f"── verbs ───\n  skipped: {err}\n")
+        else:
+            suite = Suite("verbs")
+            if test_verbs.run(suite):
+                ok &= suite.report()
 
     if "ui" in wanted:
         try:

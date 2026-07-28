@@ -2,6 +2,36 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: every verb in the game, driven once
+
+- **Rendering a screen does not press its buttons.** Splitting `combat.py` last
+  cycle left fleeing and hailing calling names that no longer existed, and
+  nothing noticed — `test_ui.py` draws every screen and passed throughout. The
+  new suite clicks **210 enabled controls**: the ten standing screens, an
+  engagement in progress, a party on the ground, all four port tabs, and both
+  mini-games, each on a fresh game because clicking one control can end the
+  fight or spend the money the next one needs.
+- **The trap that made the bug invisible is worth stating.** Qt *swallows*
+  exceptions raised inside a slot — it prints a traceback to stderr and carries
+  on, so `button.click()` returns perfectly happily and the obvious version of
+  this check sees nothing at all. Catching them needs a `sys.excepthook`. I
+  verified the whole thing by reintroducing last cycle's bug: it reports
+  `battle/'Hail them': NameError name 'is_destroyed' is not defined`.
+- **And a check for the trap itself**, because if the hook ever stops working
+  every verb check goes quietly green whatever is broken.
+- **Also driven on a wreck**: the same controls with no money, no crew, no air
+  and a hull open to space — 78 of them stay enabled in states their handlers
+  were never written for. All clean, which is a genuinely reassuring answer
+  rather than a vacuous one.
+- **What it did not find is worth saying too.** No new bugs: 210 controls in
+  five contexts, plus 78 on a wrecked ship, all ran without raising. The value
+  this cycle is the check, not a fix.
+- Suites: 27 simulation, 5 xenotech, 14 playability, 5 tactical, 5 flight,
+  6 empire, 7 crew, 7 missions, 8 exploration, 7 mining, 8 research, 8 trade,
+  7 ground, 8 politics, 6 design, 8 orders, 6 assessment, 7 balance,
+  **7 verbs** (new), 23 interface — 179 checks green in about seventy seconds.
+  135 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: difficulty that means something
 
 - **Encounter difficulty was very nearly decorative**, and three separate
