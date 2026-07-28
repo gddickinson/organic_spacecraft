@@ -15,20 +15,15 @@ from ..core.util import num, pct
 from ..data.chassis import CHASSIS_BY_ID
 from ..data.factions import FACTIONS_BY_ID
 from ..data.part_types import BANDS
+from ..sim import aftermath as aftermath_sim
 from ..sim import stations as st_mod
 from ..sim import tactical as tac
 from ..sim import combat as combat_sim
 from ..sim import consorts as consort_sim
-from ..sim import bloom as bloom_sim
-from ..sim import inquiry
 from . import assessment_panel
-from ..sim import loyalty as loyalty_sim
 from ..data.consorts import ORDERS as CONSORT_ORDERS
 from ..data.consorts import ORDERS_BY_ID as CONSORT_ORDERS_BY_ID
-from ..sim import research as research_sim
-from ..sim.fieldwork import seize_notes
-from ..sim import contracts as contract_sim
-from ..sim.ship import add_cargo, cargo_free, hull_pct, is_destroyed
+from ..sim.ship import hull_pct, is_destroyed
 from . import theme
 from .widgets import (Bar, Panel, Pill, TabBar, View, button, label,
                       mono_label, note, spacer)
@@ -287,35 +282,10 @@ class BattleView(View):
         self.win.refresh()
 
     def _finish(self) -> None:
+        """Read out what the engagement left behind. The rules are in `sim`."""
         b = self.win.battle
         g = self.game
-        fid = b.enemy_faction
-
-        killed = getattr(b, "instar", None)
-        if killed is not None and b.result in ("destroyed", "driven-off"):
-            roaming = next((i for i in bloom_sim.ensure(g).instars
-                            if i.id == killed), None)
-            if roaming is not None:
-                bloom_sim.kill_instar(g, roaming)
-                lines_extra = "The mass is scattered. It will not reach anywhere."
-                g.add_log(lines_extra, "good")
-
-        loyalty_sim.record(g, {"destroyed": "victory", "driven-off": "victory",
-                               "parley": "parley", "lost": "defeat",
-                               "escaped": "defeat"}.get(b.result, ""))
-        if b.result == "destroyed" and fid == "bloom":
-            loyalty_sim.record(g, "bloom_kill")
-        elif b.result == "destroyed" and fid in ("charter", "concordat"):
-            loyalty_sim.record(g, "kill_licensed")
-
-        # Consorts lost in the action are lost for good, whatever the outcome.
-        dead = consort_sim.losses(b)
-        if dead:
-            gone = {c.uid for c in dead}
-            g.fleet = [s for s in g.fleet if s.uid not in gone]
-            for c in dead:
-                g.add_log(f"{c.name} was lost with all hands.", "bad")
-            loyalty_sim.record(g, "consort_lost", scale=len(dead))
+        out = aftermath_sim.resolve(g, b, g.rng("seize"))
 
         if b.result == "lost":
             self.win.battle = None
@@ -324,67 +294,54 @@ class BattleView(View):
                 self.win.go("system")
             return
 
-        lines: list[str] = []
-        if dead:
-            lines.append("Lost in the action: "
-                         + ", ".join(c.name for c in dead) + ".")
-        if b.result == "destroyed":
-            loot = b.loot or {}
-            g.credits += loot.get("credits", 0)
-            research_sim.grant(g.research, loot.get("research", 0))
-            salvage = 25 + loot.get("research", 0) * 0.8
-            inquiry.add(g.research, "hardware", salvage)
-            lines.append(f"{round(salvage)} units of their hardware came off "
-                         "the wreck intact.")
-            lines.append(f"Salvage: {cr(loot.get('credits', 0))} and "
-                         f"{loot.get('research', 0)} points of research.")
-            room = cargo_free(g.ship, g.ship_stats)
-            for cid, n in list(b.enemy.ship.cargo.items()):
-                take = min(n, room)
-                if take > 0.5:
-                    add_cargo(g.ship, cid, take)
-                    room -= take
-                    lines.append(f"{round(take)} t of {cid} pulled out of the wreck.")
-            for c in contract_sim.note_kill(g, fid):
-                lines.append(f"Bounty progress: {c.title} "
-                             f"({int(c.progress)}/{int(c.amount)})"
-                             + (" — paid." if c.done else "."))
-            seized = seize_notes(g, fid, g.rng("seize")) if fid else None
-            if seized:
-                lines.append(f"Their xenology files came out intact: "
-                             f"{round(seized['points'])} points toward "
-                             f"{seized['tech'].name}.")
-                if seized["incorporated"]:
-                    lines.append(f"{seized['tech'].name} is now yours.")
-            if fid and fid != "bloom":
-                g.adjust_rep(fid, -14)
-                lines.append(f"{FACTIONS_BY_ID[fid].short} standing has fallen.")
-            elif fid == "bloom":
-                g.adjust_rep("charter", 4)
-                lines.append("The Charter notes the kill approvingly.")
-        elif b.result == "parley":
-            if fid:
-                g.adjust_rep(fid, 8)
-                lines.append(f"{FACTIONS_BY_ID[fid].short} standing has improved.")
-            g.credits += 400
-            lines.append("They pay a courtesy for the trouble.")
-        elif b.result == "driven-off":
-            research_sim.grant(g.research, 10)
-            lines.append("They broke first. Your hull held and theirs did not want "
-                         "to find out how long.")
-            if fid and fid != "bloom":
-                g.adjust_rep(fid, -4)
-
-        g.add_log(f"Engagement with {b.enemy_name}: {b.result}.",
-                  "good" if b.result in ("destroyed", "parley", "driven-off") else "warn")
         titles = {"destroyed": "They are gone", "driven-off": "They broke off",
                   "escaped": "Clear", "parley": "Stood down",
                   "routed": "You have nothing left",
                   "stalemate": "Neither of you could finish it"}
-        body = [b.log[-1][1]] + [note(l) for l in lines]
+        body = [b.log[-1][1]] + [note(l) for l in self._aftermath_lines(out)]
         self.win.dialog(titles.get(b.result, "Engagement over"), body,
                         [("Back to the bridge", None)])
         self.win.end_combat()
+
+    @staticmethod
+    def _aftermath_lines(out: dict) -> list[str]:
+        """Turn what happened into what the bridge is told."""
+        lines: list[str] = []
+        if out["dead"]:
+            lines.append("Lost in the action: " + ", ".join(out["dead"]) + ".")
+        if out["result"] == "destroyed":
+            lines.append(f"{round(out['salvage'])} units of their hardware came "
+                         "off the wreck intact.")
+            lines.append(f"Salvage: {cr(out['credits'])} and "
+                         f"{out['research']} points of research.")
+            for cid, take in out["recovered"].items():
+                lines.append(f"{round(take)} t of {cid} pulled out of the wreck.")
+            for c in out["bounties"]:
+                lines.append(f"Bounty progress: {c.title} "
+                             f"({int(c.progress)}/{int(c.amount)})"
+                             + (" — paid." if c.done else "."))
+            seized = out["seized"]
+            if seized:
+                lines.append("Their xenology files came out intact: "
+                             f"{round(seized['points'])} points toward "
+                             f"{seized['tech'].name}.")
+                if seized["incorporated"]:
+                    lines.append(f"{seized['tech'].name} is now yours.")
+        elif out["result"] == "driven-off":
+            lines.append("They broke first. Your hull held and theirs did not "
+                         "want to find out how long.")
+        elif out["result"] == "parley" and out["fee"]:
+            lines.append("They pay a courtesy for the trouble.")
+
+        for fid, delta in out["standing"]:
+            short = FACTIONS_BY_ID[fid].short
+            lines.append(f"{short} standing "
+                         + ("has fallen." if delta < 0 else f"+{delta:g}."))
+        if out["pleased"]:
+            # The half that never existed: everyone glad to see them lose one.
+            lines.append("Word travels — "
+                         + aftermath_sim.phrase_pleased(out["pleased"]) + ".")
+        return lines
 
 
 class TacticalPlot(QWidget):

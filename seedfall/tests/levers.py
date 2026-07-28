@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from ..core.rng import RNG
 from ..core.state import new_game
+from ..sim import aftermath as aftermath_sim
 from ..sim import allegiance
 from ..sim import bloom as bloom_sim
 from ..sim import charts as chart_sim
@@ -230,6 +231,24 @@ def _crossing_days() -> float:
     return total / runs
 
 
+# ── a kill is noticed by more than its victim ──────────────────────────────
+
+def _kill_goodwill() -> float:
+    """Standing gained with everyone else when a power loses a hull."""
+    from .test_aftermath import _at_war, _fought
+    from ..sim import aftermath as aftermath_sim
+    total = 0.0
+    for index in range(6):
+        game, battle, rng = _fought(f"lever-kill-{index}", result="destroyed")
+        _at_war(game)
+        victim = battle.enemy_faction
+        before = {p: game.rep.get(p, 0) for p in dip.POWERS}
+        aftermath_sim.resolve(game, battle, rng)
+        total += sum(game.rep.get(p, 0) - before[p]
+                     for p in dip.POWERS if p != victim)
+    return total / 6
+
+
 # ── a chart is worth what is in the system ─────────────────────────────────
 
 def _chart_spread() -> float:
@@ -323,6 +342,11 @@ def _cut_dig_points() -> float:
 
 
 LEVERS: list[Lever] = [
+    Lever("kill-goodwill",
+          "a power's enemies are glad to hear it lost a hull",
+          patch=(aftermath_sim, "_pleased", lambda _g, _f, _w: []),
+          probe=_kill_goodwill, direction="lower"),
+
     Lever("chart-contents",
           "a chart is priced on what is in the system",
           patch=(chart_sim, "components",

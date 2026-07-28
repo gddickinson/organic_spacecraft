@@ -53,6 +53,10 @@ class Battle:
     game: object | None = None      # for Bloom adaptation; never saved
     pending_order: str | None = None
     consorts: list = field(default_factory=list)
+    #: Set once `sim/aftermath.resolve()` has paid the engagement out. Both the
+    #: screen and a headless driver can reach the end of a fight; neither
+    #: should be able to collect the salvage twice.
+    settled: bool = False
 
     @property
     def range_units(self) -> float:

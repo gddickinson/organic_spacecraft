@@ -2,6 +2,49 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: what a fight leaves behind
+
+- **I said last cycle I would take the `test_reachable` task next unless a
+  bigger hole turned up, so I measured it first.** Across 473 public functions
+  the bare-name matcher currently masks *zero* real orphans — the five
+  candidates are my own scratch matcher's false positives (aliased imports,
+  re-exports, decorators, callables passed as arguments). So that task would
+  prevent a future defect rather than fix a live one, and it lost again to
+  something that was actually broken. Worth saying plainly rather than quietly
+  reordering.
+- **Every consequence of an engagement lived in `ui/battle_view.py`.** The
+  salvage, the loot, the cargo pulled off the wreck, bounty progress, seized
+  xenology files, instar kills, consorts lost, loyalty, and every standing
+  change that follows from shooting at somebody. `sim/combat.py` held a loot
+  dict and nothing else. That breaks the one-directional rule the project is
+  built on, and it meant nothing headless could resolve a fight: every balance
+  run that fought a battle collected no loot, no standing, no bounty credit.
+- **It is `sim/aftermath.resolve()` now** and the view reads what it returns.
+  `battle_view.py` went from 468 lines to 425 and stopped importing six sim
+  modules it no longer needs.
+- **A kill told only its victim.** Destroying a Concordat hull was −14 with the
+  Concordat and nothing to anybody else, in a sector whose entire politics is a
+  relations matrix. It now pays the victim's rivals a share on the same
+  severity ramp `allegiance` uses: measured, a Concordat kill gives the
+  Freeholds +3.4 (they are at −45) and the Charter +0.6 (at −20), and leaves
+  the Dry Choir cold (+5). At peace nobody gloats at all.
+- **A Bloom kill used to please the Charter alone, hardcoded, in a screen.**
+  All four powers approve of one less instar now.
+- **The check the project never had:** no module under `sim/`, `data/`,
+  `world/` or `core/` may import Qt. 93 modules, clean — but it was never
+  verified, and the rule it protects had just been broken in spirit for the
+  whole life of the combat screen.
+- **And the sharper one:** the same engagement is played out twice, once
+  through the sim and once through the view, and the credits, standing and
+  research must come out identical. Paying a 250-credit bonus from the screen
+  fails it and prints both ledgers side by side.
+- **Found and did not fix:** 17 more sites across four view modules still write
+  `game.credits` and `game.rep` directly. Same defect, spread thinner. That is
+  a four-file refactor and would have meant starting a second thing, so it is
+  queued rather than half-done.
+- Suites: 32, **8 aftermath** (new) among them — 273 checks green. 166 modules,
+  all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a chart worth the flying
 
 - **Exploring was the worst-paying thing in the game by about fifty to one.**
