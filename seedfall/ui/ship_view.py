@@ -10,14 +10,22 @@ from ..data.commodities import BY_ID
 from ..data.part_types import SLOT_LABEL, SLOT_ORDER
 from ..data.parts import part
 from ..sim import loyalty as loyalty_sim
+from ..sim import plans as plans_sim
 from ..sim.actions import transfer
 from ..sim import trade as trade_sim
 from ..sim.ship import cargo_used, hull_pct, is_breached
-from .widgets import (Bar, Panel, Pill, View, button, label, mono_label, note,
-                      spacer)
+from .plans_panel import ShipPlan
+from .widgets import (Bar, Panel, Pill, TabBar, View, button, label,
+                      mono_label, note, spacer)
 
 
 class ShipView(View):
+    def __init__(self, win):
+        super().__init__(win)
+        self.tab = "readout"
+        self.plan = None
+        self._caption = None
+
     def build(self) -> None:
         g = self.game
         ship = g.ship
@@ -29,11 +37,87 @@ class ShipView(View):
             sub += f" · {ch.binomial}"
         self.head(f"{ch.name} «{ship.name}»", sub)
 
+        tabs = TabBar([("readout", "Readout"), ("plans", "Plans")], self.tab)
+        tabs.changed.connect(self._switch)
+        self.col.addWidget(tabs)
+
+        if self.tab == "plans":
+            self._plans(ship, ch, st)
+            return
+
         self.row(self._layers(ship), self._performance(st, ch))
         self.row(self._fitted(ship), self._crew())
         self.col.addWidget(self._hold(ship, st))
         self.buttons(button("Refit or build", lambda: self.win.go("yard"),
                             kind="primary"))
+
+    def _switch(self, tid: str) -> None:
+        self.tab = tid
+        self.refresh()
+
+    # ── plans ──────────────────────────────────────────────────────────────
+
+    def _plans(self, ship, ch, st) -> None:
+        """The ship as a shape, with the numbers hung off the piece you click."""
+        self.col.addWidget(note(
+            "Drag to turn her over, scroll to close in, click any piece to "
+            "read it. Everything here is the ship as fitted — refit and the "
+            "model changes, because the model is the fitted list."))
+        self.plan = ShipPlan(plans_sim.build(self.game, ship,
+                                            cutaway=self._cut), height=460)
+        self.plan.picked.connect(self._picked)
+        self.col.addWidget(self.plan, 1)
+        self._caption = note(self._legend(ship, ch, st))
+        self.col.addWidget(self._caption)
+        self.row(self._anatomy(ship, ch), self._stowage(ship, st))
+        self.buttons(
+            button("Turn", lambda: self.plan.turn(0.5)),
+            button("Cutaway" if not self._cut else "Skin on", self._toggle_cut),
+            button("Refit or build", lambda: self.win.go("yard"),
+                   kind="primary"))
+
+    _cut = False
+
+    def _toggle_cut(self) -> None:
+        ShipView._cut = not ShipView._cut
+        self.refresh()
+
+    def _picked(self, tag: str) -> None:
+        if self._caption is not None:
+            name, detail = self.plan.describe(tag)
+            self._caption.setText(
+                f"{name} — {detail}" if name else
+                self._legend(self.game.ship, CHASSIS_BY_ID[self.game.ship.chassis],
+                             self.game.ship_stats))
+
+    def _legend(self, ship, ch, st) -> str:
+        return (f"{len(ship.fitted)} fittings · hull {pct(hull_pct(ship))} · "
+                f"hold {mass(cargo_used(ship))} of {mass(st.cargo)} · "
+                f"{len(self.game.officers)} of {ch.crew} berths filled")
+
+    def _anatomy(self, ship, ch) -> Panel:
+        p = Panel("Anatomy")
+        p.add(note("What is where, outermost layer first. A breach reads on "
+                   "the model as well as in the list."))
+        for name, fraction, _tint in plans_sim.layer_health(ship):
+            p.add_row(name, pct(fraction),
+                      tint="warn" if fraction < 0.35 else None)
+        return p
+
+    def _stowage(self, ship, st) -> Panel:
+        p = Panel("Stowage")
+        used = cargo_used(ship)
+        fill = used / max(1.0, st.cargo)
+        p.add_row("Hold", f"{mass(used)} of {mass(st.cargo)}")
+        p.add(Bar(fill, "warn" if fill > 0.95 else "chloro"))
+        if not ship.cargo:
+            p.add(note("Empty. The hold draws as an outline until there is "
+                       "something in it."))
+        for cid, tonnes in sorted(ship.cargo.items(), key=lambda kv: -kv[1]):
+            if tonnes > 0:
+                c = BY_ID.get(cid)
+                p.add_row(c.name if c else cid, mass(tonnes))
+        return p
 
     def _layers(self, ship) -> Panel:
         p = Panel("Hull layers")

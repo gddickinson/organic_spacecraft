@@ -125,6 +125,7 @@ seedfall/
 │   ├── rng.py          seeded mulberry32 + pick/weighted/gauss/shuffle helpers
 │   ├── util.py         formatting (credits, mass, stardate, duration) and clamp
 │   ├── save.py         generic dataclass ⇄ JSON codec, @register, atomic write
+│   ├── solid.py        a tiny 3D kit: primitives, projection, flat shading
 │   └── state.py        the Game object, advance_days(), new_game(), load_game()
 ├── data/               static content tables — pure data, no logic
 │   ├── commodities.py  14 tradeable goods
@@ -170,6 +171,7 @@ seedfall/
 │   ├── diplomacy.py    standing, the relations matrix, treaties, brokering
 │   ├── expedition.py   the ground game: zone map, movement, attempts, hauls
 │   ├── reach.py        what you can get to at all, and what a drive would open
+│   ├── plans.py        the ship as solids: hull, fittings, hold, berths
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
 │   ├── assessment.py   reading an engagement: who wins, why, what to do
 │   ├── chains.py       commissions: work that escalates and closes doors
@@ -265,6 +267,7 @@ seedfall/
     ├── test_founding.py 5 checks — the seed dialog says what will grow
     ├── test_attempts.py 6 checks — the odds shown are the odds rolled
     ├── test_reach.py   6 reach checks — the chart's wall is a real wall
+    ├── test_plans.py   8 plan checks — the model is the ship, and it is solid
     ├── chronicle.py    one captain, one save, a decade of doing everything
     ├── test_chronicle.py 3 checks — that decade, through every screen
     ├── capture.py      renders every screen offscreen, for the README
@@ -886,6 +889,14 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   in `attempt` and the quote in `odds_for`, and the point is that they cannot
   drift. Dropping the `+2` from the quote makes it report "said 67% rolled
   32%".
+- **`test_plans.py`** holds the ship model to being built out of the actual
+  ship, and holds the renderer to the one thing a software rasteriser gets
+  wrong silently. A face wound the wrong way is culled when it should be drawn,
+  and the symptom is not a crash or a blank screen: the ship renders as a
+  handsome x-ray of its own far wall with the cargo floating in front of the
+  hull, and roughly half the faces cull either way so the count says nothing.
+  Two checks cover it — one on the normals of every primitive, one that puts a
+  box inside a sphere and insists the sphere occludes it.
 - **`test_reach.py`** walks the reachable component with `jump_quote` rather
   than re-deriving it, so the chart and the Set course button cannot drift, and
   fits each drive the chart offers before believing what it claims to open.

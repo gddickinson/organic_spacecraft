@@ -11,8 +11,10 @@ from ..data.chassis import (CHASSIS, CHASSIS_BY_ID, FAMILY_LABEL,
 from ..data.part_types import SLOT_LABEL, SLOT_ORDER
 from ..data.parts import part, parts_available
 from ..sim import loading
+from ..sim import plans as plans_sim
 from ..sim import shipyard
 from ..sim.ship import Ship, hull_pct, stats
+from .plans_panel import ShipPlan
 from .widgets import (Card, Panel, Pill, TabBar, View, button, label,
                       mono_label, note, spacer)
 
@@ -45,6 +47,7 @@ class YardView(View):
         self._ensure_design()
         if self.tab == "build":
             self._hull_picker()
+        self.col.addWidget(self._plan())
         self.row(self._slot_editor(), self._preview(sysm))
 
     def _switch(self, tid: str) -> None:
@@ -125,6 +128,25 @@ class YardView(View):
         self.refresh()
 
     # ── slot editor ────────────────────────────────────────────────────────
+
+    def _plan(self) -> ShipPlan:
+        """The ship as it would be, not as it is.
+
+        `design_fitted` is already the prospective parts list and the model is
+        a function of exactly that, so the shape on screen is what you would
+        be flying if you paid. On the build tab the hull is somebody else's
+        entirely, so it gets a mock with an empty hold.
+        """
+        g = self.game
+        if self.tab == "build":
+            subject = Ship(uid=0, name="", chassis=self.design_chassis,
+                           fitted=list(self.design_fitted))
+        else:
+            subject = g.ship
+        plan = ShipPlan(plans_sim.build(g, subject,
+                                        fitted=list(self.design_fitted)),
+                        height=300)
+        return plan
 
     def _slot_editor(self) -> Panel:
         ch = CHASSIS_BY_ID[self.design_chassis]

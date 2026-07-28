@@ -418,7 +418,7 @@ keep paying for the ammunition. Five endings are open at once — **Containment*
 another.
 
 ```bash
-python3 -m seedfall.tests         # 45 suites, 366 checks
+python3 -m seedfall.tests         # 46 suites, 374 checks
 python3 -m seedfall.tests.capture # re-render the README screenshots
 ```
 
@@ -426,7 +426,7 @@ The suite plays the game rather than inspecting it: it flies trading careers, wo
 to the bottom, fights engagements to a result, and clicks every control in the game on a
 fresh chronicle each time. The interface suite builds the real window on Qt's offscreen
 platform and paints every screen, so the rules and the GUI are both covered without a
-display. **191 modules, every one under 500 lines.**
+display. **196 modules, every one under 500 lines.**
 
 See [`seedfall/README.md`](seedfall/README.md) for the illustrated tour and
 [`seedfall/INTERFACE.md`](seedfall/INTERFACE.md) for the module map.

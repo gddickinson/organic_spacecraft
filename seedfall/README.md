@@ -21,7 +21,7 @@ pip install PyQt6
 python -m seedfall                  # title screen
 python -m seedfall --new            # straight into a new chronicle
 python -m seedfall --seed verge-7   # a specific sector
-python -m seedfall.tests            # 45 suites, 366 checks
+python -m seedfall.tests            # 46 suites, 374 checks
 ```
 
 No network, no server, no browser. Saves live in `~/.seedfall/save.json`.
@@ -272,7 +272,7 @@ Four rules the suite enforces rather than states:
   claims to change a number is switched off by an efficacy harness that fails if the
   measurement does not move.
 
-**191 modules, every one under 500 lines. 45 suites, 366 checks.**
+**196 modules, every one under 500 lines. 46 suites, 374 checks.**
 
 ---
 

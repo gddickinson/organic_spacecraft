@@ -2,6 +2,39 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: 3D ship plans (asked for)
+
+- **Asked for 3D plans of the ship so a player can see what is going on with
+  it — fittings, changes, storage, crew.** Everything on the ship screen was
+  already true and none of it was a picture: you could read that a Polyp
+  Laboratory was fitted and the ablative layer was at 41% and have no idea what
+  you were flying.
+- **A software renderer, not OpenGL.** `core/solid.py` is primitives, a
+  painter's-algorithm depth sort and flat shading; `ui/plans_panel.py` fills the
+  polygons with QPainter. No new dependency — and, the point, it renders
+  identically offscreen, so the suite can look at the ship instead of taking its
+  word. `models3d/` stays what it was: a trimesh export tool the game cannot
+  import. The shape vocabulary is shared, so the two read as the same ship.
+- `data/hullforms.py` gives each of the five families a silhouette, a faceting
+  and a set of mounts; `sim/plans.py` assembles the model from the *actual*
+  ship — chassis, every fitted part at its slot, the hold filled from the floor
+  with what is really aboard, one berth per crewman lit if somebody is in it.
+  Because the model is a function of the fitted list, the shipyard can hand it
+  `design_fitted` and show the refit before you buy it.
+- **The bug it shipped with, and how it was caught.** The ellipsoid was wound
+  inside-out. Half the faces cull either way, so the count looked right and the
+  ship drew as an x-ray of its own far wall with the cargo floating in front —
+  which looked deliberate. Found by rendering it and looking, then pinned by two
+  checks: normals on every primitive, and a box inside a sphere that the sphere
+  must occlude. Both fail when the winding is put back.
+- Two further defects found by looking: mounts written as a radius buried every
+  fitting inside the beam (the hull is tapered, so where the skin is depends on
+  height), and drawing every family at one resolution made them the same ship in
+  different colours — a Yards hull is 6×8 facets now, welded plate against a
+  gestated 16×24.
+- `test_reachable` caught two helpers I wrote and never called. Deleted.
+- Suites: 46 — 374 checks green. 196 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: the chart now says what you can get to
 
 - **The chart answered the wrong question.** It drew a dashed ring at the jump
