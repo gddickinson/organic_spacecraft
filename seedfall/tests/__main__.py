@@ -13,7 +13,8 @@ def main(argv: list[str] | None = None) -> int:
                                        "missions", "explore", "mining", "research", "trade",
                                        "ground", "politics", "design", "orders",
                                        "assessment", "balance", "bloom", "reachable",
-                                       "efficacy", "transit", "dig", "resume", "verbs", "ui"]
+                                       "efficacy", "transit", "customs", "dig",
+                                       "resume", "verbs", "ui"]
     ok = True
 
     if "sim" in wanted:
@@ -146,6 +147,12 @@ def main(argv: list[str] | None = None) -> int:
         from . import test_transit
         suite = Suite("transit")
         test_transit.run(suite)
+        ok &= suite.report()
+
+    if "customs" in wanted:
+        from . import test_customs
+        suite = Suite("customs")
+        test_customs.run(suite)
         ok &= suite.report()
 
     if "dig" in wanted:

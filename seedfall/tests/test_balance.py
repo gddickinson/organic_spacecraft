@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from ..core.rng import RNG
 from ..core.state import new_game
+from ..data.tech import TECH
 from ..sim import combat, encounters
 from ..sim.ship import build_layers, make_ship, stats
 from . import captain_ai
@@ -80,6 +81,43 @@ def run(suite: Suite) -> None:
         assert not naked, (
             f"{len(naked)} unarmed warships, e.g. {sorted(set(naked))[:4]}")
         return "288 hulls across four factions and six difficulties, all armed"
+
+    @check("warships carry no civilian kit, and the player still can")
+    def _():
+        # Adding two smuggling parts put them straight into the NPC outfit
+        # pool, changed what every enemy in the game was carrying, and broke
+        # the assessment check — a feature about trade silently re-tuning
+        # combat. The flag exists so the next civilian part cannot do it
+        # again; the second half is here so flagging one cannot quietly
+        # delete it from the shipyard instead.
+        from ..data.chassis import CHASSIS_BY_ID
+        from ..data.parts import PARTS, parts_available
+
+        civilian = {p.id for p in PARTS if p.civilian}
+        assert civilian, "nothing is marked civilian; the flag reads as dead"
+
+        seen = set()
+        for faction in ("charter", "concordat", "freeholds", "sanhedrin"):
+            for scale in (0.5, 2.0, 4.0):
+                for index in range(8):
+                    enemy = encounters.make_enemy(
+                        RNG(f"civ-{faction}-{scale}-{index}"), faction, scale)
+                    seen.update(enemy["ship"].fitted)
+        strayed = sorted(seen & civilian)
+        assert not strayed, f"warships turned up carrying {strayed}"
+
+        # And every one of them is still buildable by somebody.
+        every_tech = [t.id for t in TECH]
+        buyable = set()
+        for chassis in CHASSIS_BY_ID.values():
+            for slot in chassis.slots:
+                buyable.update(p.id for p in
+                               parts_available(slot, chassis, every_tech))
+        orphaned = sorted(civilian - buyable)
+        assert not orphaned, (
+            f"civilian parts no hull in the game can fit: {orphaned}")
+        return (f"{len(civilian)} civilian part(s), on no warship in 96 "
+                f"encounters and fittable by the player")
 
     @check("a heavier threat arrives in a heavier hull")
     def _():

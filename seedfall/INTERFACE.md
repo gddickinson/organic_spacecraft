@@ -141,6 +141,7 @@ seedfall/
 │   ├── factions.py     6 powers + reputation bands
 │   ├── lifeforms.py    xenobiology generation tables + anomalies
 │   ├── strata.py       the four layers of a dig, 3 methods, finds and spoils
+│   ├── contraband.py   who outlaws what, how hard they look, what they say
 │   └── lore.py         intro, victories, endings, name pools, glossary
 ├── world/              generated content
 │   ├── galaxy.py       sector generation, lane relaxation, distance/transit
@@ -175,6 +176,7 @@ seedfall/
 │   ├── parley.py       breaking off and talking your way out
 │   ├── transit.py      standing the watches of a crossing
 │   ├── dig.py          working a site stratum by stratum, banking as you go
+│   ├── customs.py      the contraband run: the unposted price and the search
 │   ├── responses.py    provocation, the Bloom's answers, and studying a mass
 │   ├── market.py       supply shocks, and the prices you wrote down
 │   ├── ventures.py     what the powers do on their own account
@@ -207,6 +209,7 @@ seedfall/
 │   ├── helm_view.py    orbit chart and burn planner
 │   ├── minigame_view.py    docking approach and decoding bench
 │   ├── dig_view.py     the trench: the stratum you are on and how to take it
+│   ├── blackmarket_panel.py  the quiet word on the quay, and the tip-off
 │   └── battle_view.py  combat screen and post-engagement resolution
 └── tests/              python -m seedfall.tests
     ├── harness.py      a tiny check runner (no pytest dependency)
@@ -227,18 +230,19 @@ seedfall/
     ├── test_design.py  6 design checks — loading, overloading, stranding
     ├── test_orders.py  8 orders checks — reachability, urgency, unread state
     ├── test_assessment.py 6 read checks — honesty, arcs, robustness
-    ├── test_balance.py 7 balance checks — measured by playing the fights
+    ├── test_balance.py 8 balance checks — measured by playing the fights
     ├── test_bloom_arc.py 7 Bloom checks — provocation, answers, study
     ├── test_transit.py 6 crossing checks — watches, aborting, tension
+    ├── test_customs.py 9 contraband checks — the premium, the search, heat
     ├── test_dig.py     6 dig checks — strata, methods, banking, backfilling
     ├── test_resume.py  5 resume checks — anything half-done survives a save
     ├── efficacy.py     the harness: neutralise a feature, measure the world
     ├── levers.py       one entry per claim the game makes about a number
-    ├── test_efficacy.py 15 checks — every feature has to move something
+    ├── test_efficacy.py 16 checks — every feature has to move something
     ├── test_reachable.py 4 reachability checks — nothing written and uncalled
-    ├── test_verbs.py   8 verb checks — every control in the game, clicked
+    ├── test_verbs.py   9 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
-    └── test_ui.py      23 interface checks, rendered on Qt's offscreen platform
+    └── test_ui.py      24 interface checks, rendered on Qt's offscreen platform
 ```
 
 ## How the layers connect
@@ -489,6 +493,25 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **Contraband needs both halves or it is not a trade.** A good that is
+  outlawed somewhere has no posted price there and therefore a much better
+  unposted one (`customs.premium`), and the same power opens your hold at the
+  dock (`customs.inspect`). Shipping only the search would be a tax nobody
+  would choose to pay; shipping only the premium is what the game already had,
+  and measurement said it beat honest trade outright.
+- **Scrutiny is the brake.** Selling into a black market and being cleared both
+  raise a per-faction heat that thins what they will pay, thickens the search,
+  and decays on the clock. Without it one dock is an unlimited money printer.
+  `COOLING` was tuned by playing careers, not chosen: at the first value a run
+  put on more heat than a month shed, so every career ended down.
+- **Mitigations multiply, they do not subtract.** Standing, a clean approach and
+  a concealed hold each take a share off the odds. Subtracting them let a
+  fitted-out hull with good standing drive the risk under the floor and stop
+  being a smuggler at all.
+- **A part that is kit for a trade is marked `civilian`** and NPC loadouts skip
+  it. Adding two smuggling parts put them straight into the enemy outfit pool
+  and broke the combat-assessment check — a feature about trade silently
+  re-tuning every encounter in the game.
 - **A dig banks per layer, not at the end.** `dig.work()` credits understanding
   as each stratum comes out, so a trench abandoned after the casing is worth the
   casing. That is the whole reason backfilling is a choice rather than a way of
@@ -592,6 +615,11 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`test_transit.py`** flies the same crossings under a hurried policy and a
   careful one and fails unless hurrying genuinely saves days and genuinely
   costs hull. An option that is best on every axis is not a decision.
+- **`test_customs.py`** flies whole smuggling careers and fails unless the run
+  pays, unless committing to it (a concealed hold, standing, a clean approach)
+  pays markedly better than a bare hull, and unless hammering one dock stops
+  paying. It also pins the shape of the risk: every mitigation stacked must
+  still leave you catchable.
 - **`test_dig.py`** works sites to the bottom under all three methods and fails
   unless the choice is genuine: care must yield most in total, cutting must be
   fastest and cost hull, and working briskly must beat care *per day* — an

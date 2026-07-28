@@ -2,6 +2,51 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a run worth making
+
+- **Contraband was free money and nobody had noticed.** Unlicensed seed was the
+  dearest good in the table and flagged illegal, and neither fact did anything.
+  The Freeholds both sold it and bought it, so a hold full of it never had to
+  cross anybody else's space; nobody ever looked in the hold; and the standing
+  penalty for selling it did not apply at the ports where you sold it. Measured
+  across six sectors before writing a line: +971 to +2,118 the tonne against
+  +997 to +1,680 for the best legal arbitrage anywhere in the sector.
+- **The Charter's entire identity is the licensing regime**, and you could fly
+  a hold of unlicensed seed through their space unexamined. Both halves are in
+  now: a power that outlaws a good has no posted price for it and a much better
+  unposted one, and that same power opens your hold at the dock.
+- **Neither half is worth having alone.** A premium nobody can seize is what
+  the game already had. A search with nothing worth carrying through it is a
+  tax nobody would choose to pay. The run now goes Freeholds → Charter space,
+  which is the one direction it never went before.
+- **The first cut was a trap and playing it said so.** Both careers — bare hull
+  and fully fitted out — ended down: heat went on faster than it came off, so
+  the premium fell under the buy price and the odds pinned at the ceiling.
+  Retuned the cooling rate and the fine against measured careers rather than
+  taste. Now: bare hull +188k over eight runs, fitted out +402k with half the
+  seizures. Committing to the trade roughly doubles it.
+- **Mitigations multiply rather than subtract.** My first version subtracted
+  them, so a void hold plus a manifest loom plus Trusted standing drove the
+  odds under the floor — a smuggler who could not be caught. They now take a
+  share each: 21% bare down to 9% fully fitted out, and never zero.
+- **The screens found a bug I had written myself.** Rendering the quiet word on
+  a Concordat quay showed the posted market *also* still listing Unlicensed
+  Seed with a live Sell button — you could hand contraband over the desk at the
+  station whose boarding party exists to stop you. The market now reads "seized
+  on sight" with no counter, and the check that pins it names the defect
+  exactly when I put the button back.
+- **And one I caused elsewhere.** Two new parts went straight into the NPC
+  outfit pool, so enemy warships started rolling smugglers' false manifests and
+  the combat-assessment check went red — a feature about trade silently
+  re-tuning every encounter. Parts that are kit for a trade are now marked
+  `civilian` and NPC loadouts skip them. The guard checks both directions:
+  never on a warship, still fittable by the player.
+- **`test_verbs` could not see the quiet quay**, the same blind spot the trench
+  was in last cycle. Added it: 21 controls with a hold full of contraband, all
+  clean.
+- Suites: 28, **9 customs** (new) among them — 236 checks green. 155 modules,
+  all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a dig you work
 
 - **Excavating was one call.** Press the button, lose twelve days, receive a

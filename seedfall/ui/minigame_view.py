@@ -5,6 +5,8 @@ from __future__ import annotations
 from PyQt6.QtWidgets import QHBoxLayout, QWidget
 
 from ..core.util import credits as cr
+from ..data.commodities import BY_ID
+from ..sim import customs as customs_sim
 from ..sim import minigames as mg
 from ..sim import xeno as xeno_sim
 from . import theme
@@ -97,7 +99,31 @@ class DockingView(View):
                       "warn")
         self.win.docking = None
         g.flags["docked_at"] = sysm.id
+        self._customs(res["grade"] if res["won"] else 0.0)
         self.win.go("port")
+
+    def _customs(self, approach: float) -> None:
+        """They come aboard before you are made fast, or they do not."""
+        g = self.game
+        out = customs_sim.inspect(g, g.rng("customs"), approach)
+        if not out["searched"]:
+            return
+        reg = out["regime"]
+        if not out["caught"]:
+            self.win.dialog(
+                "Boarded", [label(reg.notice, "", wrap=True),
+                            note(reg.waved), note(out["line"])],
+                [("Carry on", None)])
+            return
+        seized = ", ".join(f"{t:g} t of {BY_ID[c].short}"
+                           for c, t in out["seized"])
+        self.win.dialog(
+            out["headline"],
+            [label(reg.notice, "", wrap=True),
+             label(out["detail"], "", wrap=True),
+             note(f"Seized: {seized}."),
+             note(f"Fined {cr(round(out['fine']))}, and they will remember.")],
+            [("Nothing to say", None)])
 
     def _log(self, d) -> Panel:
         p = Panel("Approach log")

@@ -96,6 +96,7 @@ class Stats:
     can_dive: bool = False
     has_drift: bool = False
     trade: float = 0
+    conceal: float = 0
     diplomacy: float = 0
     morale: float = 0
     mass: float = 0
@@ -133,7 +134,7 @@ def build_layers(ship: Ship, bonus: dict | None = None) -> Ship:
 
 _FX_KEYS = ("power draw jump speed evade sensor scan cargo berths regen vent "
             "heatCap mine drink graze phos research accuracy armour o2 morale "
-            "crewGuard flak repair colony dive drift refine").split()
+            "crewGuard flak repair colony dive drift refine conceal").split()
 
 
 def stats(ship: Ship, bonus: dict | None = None, officers=()) -> Stats:
@@ -201,6 +202,7 @@ def stats(ship: Ship, bonus: dict | None = None, officers=()) -> Stats:
         can_dive=fx["dive"] > 0,
         has_drift=fx["drift"] > 0,
         trade=bonus.get("trade", 0) + com * 0.03,
+        conceal=fx["conceal"],
         diplomacy=bonus.get("diplomacy", 0) + com * 0.05,
         morale=fx["morale"] + med * 0.1,
         mass=ch.mass_t + loading.laden(ship),

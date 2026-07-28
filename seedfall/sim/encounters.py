@@ -62,7 +62,8 @@ def _outfit(rng, chassis, tier: int, difficulty: float = 1.0) -> list[str]:
     for slot, n in chassis.slots.items():
         if slot == "weapon":
             continue
-        pool = parts_available(slot, chassis, unlocked)
+        pool = [p for p in parts_available(slot, chassis, unlocked)
+                if not p.civilian]
         if not pool:
             continue
         want = max(0, n - (1 if rng.chance(0.4) else 0))

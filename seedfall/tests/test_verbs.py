@@ -22,6 +22,7 @@ from ..core.rng import RNG
 from ..core.state import new_game
 from ..sim import encounters
 from ..sim import minigames
+from ..sim import customs as customs_sim
 from ..sim import dig as dig_sim
 from ..sim import expedition as expedition_sim
 from ..sim import ventures as venture_sim
@@ -88,6 +89,21 @@ def _stocked(seed: str):
     build_layers(escort, game.bonuses)
     game.fleet.append(escort)
     venture_sim.start(game, RNG(f"v-{seed}"), "charter")
+    return game
+
+
+def _dirty(seed: str):
+    """Stocked, and parked on a dock that will seize what is in the hold.
+
+    The quiet word and the vent control only exist in this state, so the
+    ordinary port sweep never touches either of them.
+    """
+    game = _stocked(seed)
+    dest = next((s for s in game.galaxy.systems if s.port
+                 and customs_sim.outlaws(s.port.faction, "wildseed")), None)
+    if dest is not None:
+        game.location_id = dest.id
+    game.ship.cargo["wildseed"] = 24
     return game
 
 
@@ -206,6 +222,14 @@ def run(suite: Suite) -> bool:
         assert not broken, ("controls that raised on the ground:\n      "
                             + "\n      ".join(broken[:6]))
         return f"{total} controls on an expedition, all clean"
+
+    @check("every control on a dirty quay runs")
+    def _():
+        total, broken = drive("port", "market", state=_dirty)
+        assert total >= 6, f"only {total} controls on a dirty quay"
+        assert not broken, ("controls that raised with contraband aboard:\n      "
+                            + "\n      ".join(broken[:6]))
+        return f"{total} controls with a hold full of contraband, all clean"
 
     @check("every control in an open trench runs")
     def _():

@@ -225,6 +225,19 @@ MODULES: list[Part] = [
          {"berths": 60, "cargo": 40, "o2": 40},
          "Sixty bunks and a chiller, in the volume a grown liner would give to "
          "resin glands. Passengers arrive tired rather than young."),
+    Part("void_hold", "Sealed Void", "utility", "any", "monocoque",
+         34, {"credits": 14000, "alloy": 18, "spidroin": 12},
+         {"conceal": 0.28, "cargo": -14, "draw": 3},
+         "A compartment that is not on the plans, lined against sequencing and "
+         "kept at the temperature of the hull around it. It costs you fourteen "
+         "tonnes of declared hold to hide rather less than that, which is the "
+         "arithmetic of the trade.", civilian=True),
+    Part("false_manifest", "Manifest Loom", "compute", "any", "aicore",
+         12, {"credits": 26000, "silicon": 14, "magnetite": 6},
+         {"conceal": 0.22, "draw": 4},
+         "Keeps a second set of books that agrees with the first everywhere a "
+         "customs officer is likely to look. It is not a lie so much as a very "
+         "carefully maintained set of true statements.", civilian=True),
     Part("smelter_bay", "Smelter Bay", "utility", "fabricated", "monocoque",
          110, {"credits": 16000, "alloy": 44, "silicon": 10},
          {"mine": 1.2, "refine": 1, "draw": 12, "heatCap": 10},

@@ -266,6 +266,44 @@ def run(suite) -> bool:
         win.game = game
         return " → ".join(stages)
 
+    @check("a port gives no counter for what it seizes")
+    def _():
+        # Found by playing it: the quiet word was on the quay and the posted
+        # market *also* still listed Unlicensed Seed with a live Sell button,
+        # so you could hand contraband over the desk at the very station whose
+        # boarding party exists to stop you.
+        from PyQt6.QtWidgets import QPushButton
+
+        from ..sim import customs as customs_sim
+        g2 = new_game("counter-ui")
+        dest = next((s for s in g2.galaxy.systems if s.port
+                     and customs_sim.outlaws(s.port.faction, "wildseed")), None)
+        assert dest, "no port in this sector outlaws anything"
+        g2.location_id = dest.id
+        g2.ship.cargo["wildseed"] = 20
+        win.game = g2
+        view = win.views["port"]
+        view.tab = "market"
+        win.go("port")
+        view.grab()
+
+        sells = [b for b in view.findChildren(QPushButton)
+                 if b.text() == "Sell" and b.isEnabled()]
+        from PyQt6.QtWidgets import QLabel
+        rows = [w for w in view.findChildren(QLabel)
+                if w.text().lower() == "seized on sight"]   # Pill upper-cases
+        assert rows, "the market does not say the good is seized here"
+        held = {c for c in g2.ship.cargo}
+        assert "wildseed" in held
+        # Every enabled Sell must belong to a good the port will actually take.
+        legal_held = [c for c in held
+                      if not customs_sim.outlaws(dest.port.faction, c)]
+        assert len(sells) == len(legal_held), (
+            f"{len(sells)} live Sell buttons for {len(legal_held)} sellable "
+            "good(s) aboard — contraband has a posted counter")
+        win.game = game
+        return "contraband listed as seized on sight, with no counter"
+
     @check("a relic site shows up in the system view")
     def _():
         g2 = new_game("relic-ui")

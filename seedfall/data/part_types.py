@@ -57,6 +57,11 @@ class Part:
     blurb: str
     wpn: Weapon | None = None
     ability: Ability | None = None
+    #: Kit for a trade rather than a fight. NPC loadouts skip these: a Yards
+    #: patrol boat rolling a smuggler's false manifest is nonsense, and letting
+    #: new civilian parts into the enemy pool silently re-tunes every
+    #: encounter in the game — which is exactly what adding two of them did.
+    civilian: bool = False
 
 
 SLOT_LABEL = {

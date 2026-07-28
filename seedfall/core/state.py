@@ -12,6 +12,7 @@ from ..data.factions import FACTIONS
 from ..data.tech import STARTING_TECH, bonuses
 from ..sim import colony as colony_sim
 from ..sim import crew as crew_sim
+from ..sim import customs as customs_sim
 from ..sim import inquiry as inquiry_sim
 from ..sim import market as market_sim
 from ..sim import diplomacy as dip_sim
@@ -72,6 +73,8 @@ class Game:
     decoding: object | None = None
     decoding_tech: str | None = None
     faction_power: dict = field(default_factory=dict)
+    #: Per-faction memory of what you have been caught carrying. Decays.
+    scrutiny: dict = field(default_factory=dict)
     register: dict = field(default_factory=dict)
     commissions: list = field(default_factory=list)
     rumours: list = field(default_factory=list)
@@ -168,6 +171,8 @@ class Game:
             self.recompute()
             from ..data.tech import TECH_BY_ID
             self.add_log(f"Research complete: {TECH_BY_ID[done].name}.", "good")
+
+        customs_sim.cool(self, n)
 
         _gains, events = colony_sim.tick(self, n)
         for kind, text in events:

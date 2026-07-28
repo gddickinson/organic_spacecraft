@@ -10,6 +10,8 @@ from ..data.commodities import BY_ID, COMMODITIES, bulk_of
 from ..data.factions import FACTIONS_BY_ID, standing
 from ..sim import chains as chain_sim
 from ..sim import loyalty as loyalty_sim
+from ..sim import customs as customs_sim
+from . import blackmarket_panel
 from . import commissions_panel
 from . import register_panel
 from . import rumours_panel
@@ -96,12 +98,19 @@ class PortView(BerthsMixin, View):
 
         row = 1
         for c in COMMODITIES:
+            # A good this power seizes has no counter here. Leaving the posted
+            # sell price up let you hand unlicensed seed over the desk at a
+            # Yards station for a receipt, which is the exact thing the
+            # boarding party is there to stop.
+            banned = customs_sim.outlaws(sys.port.faction, c.id)
             bp = buy_price(m, c.id, rep, g.ship_stats.trade)
-            sp = sell_price(m, c.id, rep, g.ship_stats.trade)
+            sp = (None if banned
+                  else sell_price(m, c.id, rep, g.ship_stats.trade))
             held = g.ship.cargo.get(c.id, 0)
             if bp is None and held <= 0:
                 continue
-            note_text, note_tint = price_note(m, c.id)
+            note_text, note_tint = (("seized on sight", "warn") if banned
+                                    else price_note(m, c.id))
 
             name = label(c.name)
             name.setToolTip(c.blurb)
@@ -124,13 +133,45 @@ class PortView(BerthsMixin, View):
             ah.addWidget(button("Buy", lambda cid=c.id, q=qty: self._buy(cid, q.value()),
                                 enabled=bp is not None))
             ah.addWidget(button("Sell", lambda cid=c.id, q=qty: self._sell(cid, q.value()),
-                                enabled=held > 0))
+                                enabled=held > 0 and not banned))
             gl.addWidget(actions, row, 5)
             row += 1
 
         panel.add(grid)
         self.col.addWidget(panel)
+        quiet = blackmarket_panel.offer(g, sys, self._sell_quietly, self._dump)
+        if quiet is not None:
+            self.col.addWidget(quiet)
+        tip = blackmarket_panel.tipoff(g, sys)
+        if tip is not None:
+            self.col.addWidget(tip)
         self.col.addWidget(register_panel.register(g, sys))
+
+    def _sell_quietly(self, cid: str) -> None:
+        g = self.game
+        faction = g.system.port.faction
+        price = customs_sim.premium(g, faction, cid)
+        held = g.ship.cargo.get(cid, 0.0)
+        tonnes = min(held, customs_sim.absorbs(g, faction))
+        if not price or tonnes <= 0:
+            return
+        take = round(price * tonnes)
+        g.credits += take
+        add_cargo(g.ship, cid, -tonnes)
+        customs_sim.add_heat(g, faction, 0.18)
+        g.add_log(f"Sold {tonnes:g} t of {BY_ID[cid].short} off the books at "
+                  f"{g.system.port.name} — {cr(take)}.", "warn")
+        self.win.toast("Nobody signed anything." if tonnes >= held else
+                       f"They took {tonnes:g} t. That is what they can move.",
+                       "osteo")
+        self.win.refresh()
+
+    def _dump(self, cid: str) -> None:
+        if not self.win.confirm("Vent the hold",
+                                "It goes to space and it is not coming back."):
+            return
+        customs_sim.jettison(self.game, cid)
+        self.win.refresh()
 
     def _buy(self, cid: str, units: int) -> None:
         g = self.game
@@ -158,6 +199,9 @@ class PortView(BerthsMixin, View):
     def _sell(self, cid: str, units: int) -> None:
         g = self.game
         sys = g.system
+        if customs_sim.outlaws(sys.port.faction, cid):
+            self.win.toast("Not over this counter. Not on this station.", "warn")
+            return
         rep = g.rep.get(sys.port.faction, 0)
         price = sell_price(sys.market, cid, rep, g.ship_stats.trade)
         n = min(units, g.ship.cargo.get(cid, 0))

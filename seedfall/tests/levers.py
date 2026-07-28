@@ -9,7 +9,7 @@ from __future__ import annotations
 from ..core.rng import RNG
 from ..core.state import new_game
 from ..sim import bloom as bloom_sim
-from ..sim import combat, consorts, diplomacy as dip
+from ..sim import combat, consorts, customs as customs_sim, diplomacy as dip
 from ..sim import dig as dig_sim
 from ..sim import encounters
 from ..sim import expedition as expedition_sim
@@ -227,6 +227,18 @@ def _crossing_days() -> float:
     return total / runs
 
 
+# ── somebody looks in the hold ─────────────────────────────────────────────
+
+def _smuggling_purse() -> float:
+    """What six contraband runs leave in the purse."""
+    from ..tests.test_customs import _career
+    total = 0.0
+    runs = 8
+    for index in range(runs):
+        total += _career(f"lever-smug-{index}", 6, False, RNG(f"ls-{index}"))
+    return total / runs
+
+
 # ── hurrying a dig costs you the find ──────────────────────────────────────
 
 def _cut_dig_points() -> float:
@@ -259,6 +271,11 @@ def _cut_dig_points() -> float:
 
 
 LEVERS: list[Lever] = [
+    Lever("customs-search",
+          "somebody looks in the hold",
+          patch=(customs_sim, "chance", lambda _g, _f, _a=0.0: 0.0),
+          probe=_smuggling_purse, direction="higher"),
+
     Lever("dig-spoilage",
           "hurrying a dig takes the find apart on the way out",
           patch=(dig_sim, "spoil_chance", lambda _s, _m: 0.0),
