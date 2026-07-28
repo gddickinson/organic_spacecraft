@@ -31,7 +31,7 @@ from ..sim.ship import build_layers, make_ship, stats
 from ..world.economy import buy_price
 from . import captain_ai
 from .efficacy import Lever
-from .probes import (_annex_research, _bench_overdraw, _hard_burn_hull, _wasted_ground,
+from .probes import (_overture_honesty, _annex_research, _bench_overdraw, _hard_burn_hull, _wasted_ground,
                      _chart_spread, _contract_net, _cut_dig_points,
                      _desk_runs, _kill_goodwill, _levied_output,
                      _note_evidence, _smuggling_purse,
@@ -240,6 +240,13 @@ def _crossing_days() -> float:
     return total / runs
 
 LEVERS: list[Lever] = [
+    Lever("overture-preview",
+          "the screen foretells what an overture moves",
+          patch=(dip, "preview",
+                 lambda _g, _a, _f, _o=None: {"standing": [], "relations": None,
+                                              "gain": 0}),
+          probe=_overture_honesty, direction="lower"),
+
     Lever("work-gates",
           "a colony work names a technology that exists",
           patch=(works_sim, "available",

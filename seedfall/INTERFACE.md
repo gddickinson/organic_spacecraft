@@ -259,13 +259,14 @@ seedfall/
     ├── test_burns.py   7 burn checks — heat, cooking, and a real profile choice
     ├── test_bench.py   5 bench checks — the draw matches what the screen says
     ├── test_works.py   5 works checks — nothing gated behind a phantom tech
+    ├── test_overtures.py 5 checks — the preview is what the overture does
     ├── captain_bot.py  the long-game captain the playability checks fly
     ├── probes.py       the newer efficacy probes, split out of levers.py
     ├── test_dig.py     6 dig checks — strata, methods, banking, backfilling
     ├── test_resume.py  5 resume checks — anything half-done survives a save
     ├── efficacy.py     the harness: neutralise a feature, measure the world
     ├── levers.py       one entry per claim the game makes about a number
-    ├── test_efficacy.py 27 checks — every feature has to move something
+    ├── test_efficacy.py 28 checks — every feature has to move something
     ├── test_reachable.py 4 reachability checks — nothing written and uncalled
     ├── test_verbs.py   10 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
@@ -520,6 +521,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **An overture says what it buys, not only what it costs.** The diplomacy
+  screen listed a name, a blurb and a price and never a benefit: tribute at
+  12,000 credits for +9 standing read the same as relief at 40 t of biomass
+  for +11, which is about six times better per credit. `dip.preview()` is a
+  pure function returning what will move — the target, third parties, and the
+  relations matrix — and the screen draws it.
+- **A treaty's cost with the signatory's enemies is now stated.** It charges
+  standing through `allegiance` and said so nowhere: you signed, and two other
+  powers thought less of you for a reason the game never mentioned. In a sector
+  at war that is six points with each of the other three.
 - **Nothing is gated behind a technology that does not exist.** "Build a
   xenology annex" — 100 days, 11,000 credits, +0.5 research a day and +0.04
   diplomacy — was gated on `tech="xenolinguistics"`, which is in neither the
@@ -819,6 +830,10 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   them home, and fails unless the shelf, the provenance and the evidence all
   survive — including across a save. It also checks every note is reachable and
   that the draw prefers ones you lack, so no written discovery is unfindable.
+- **`test_overtures.py`** performs every overture and fails unless the standing
+  and the matrix move exactly as previewed, and unless previewing moves nothing
+  at all. Hiding the treaty's rivals again makes it report "said {charter:
+  14}, did {charter: 14, concordat: -1, freeholds: -2.2}".
 - **`test_works.py`** builds every work on every colony class that will take
   it and fails unless each changes what its table says it changes, unless every
   work is buildable by somebody, and unless every gate names a real technology.

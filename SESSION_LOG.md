@@ -2,6 +2,38 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: what an overture buys
+
+- **Measured the six diplomatic overtures.** They all work and they are
+  properly differentiated: tribute 12,000 credits for +9 standing, intelligence
+  6 survey sets for +7, relief 40 t of biomass for +11, treaty 30,000 for +14
+  and a signature, denounce free but −14 with the target, broker 20,000 to move
+  the relations matrix +28. Only brokering repairs the matrix and only
+  denouncing tears it, which is exactly as designed.
+- **The screen showed the price and never the benefit.** Relief is about six
+  times better per credit than tribute (193 a point against 1,333) and three
+  times better than intelligence, and a player had no way to see any of it —
+  three overtures, three costs, no numbers on the other side.
+- **And a treaty had a cost stated nowhere at all.** Beyond its 30,000 it
+  charges standing with the signatory's enemies through `allegiance`. You
+  signed, and two other powers thought less of you for a reason the game never
+  mentioned. In a sector at war it is six points with each of the other three.
+- **`dip.preview()` is a pure function** returning what an overture will move —
+  the target, third parties, and the matrix — and the screen draws it under
+  each one, with the cooldown. A treaty now reads "Charter +14, Freeholds −2,
+  Concordat −1" before you commit rather than after.
+- **The check that matters is the honesty one:** perform every overture and
+  fail unless standing and matrix move exactly as previewed. Hiding the
+  treaty's rivals again makes it report "said {charter: 14}, did {charter: 14,
+  concordat: −1, freeholds: −2.2}". There is a second check that previewing
+  moves nothing, because a preview that quietly performs is worse than none.
+- **Nothing was wrong with the diplomacy sim itself** and I have not touched
+  it. This cycle is entirely about the screen telling the truth about what it
+  offers — the fifth time that has been the defect, after the contract fee, the
+  freight spread, the mining rate and the research bench.
+- Suites: 41, **5 overtures** (new) among them — 335 checks green. 183 modules,
+  all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a work nobody could build
 
 - **Measured colony works for the first time, and got it wrong twice before

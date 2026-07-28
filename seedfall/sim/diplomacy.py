@@ -124,6 +124,47 @@ def available(game, faction: str) -> list[tuple]:
     return out
 
 
+def preview(game, action_id: str, faction: str,
+            other: str | None = None) -> dict:
+    """What an overture will move, without moving it.
+
+    The screen listed a cost and never a benefit, so tribute at twelve
+    thousand credits for nine points of standing looked the same as relief at
+    forty tonnes of biomass for eleven — about six times better per credit.
+    And a treaty quietly charged standing with the signatory's enemies, which
+    was stated nowhere.
+    """
+    from . import allegiance
+
+    action = ACTIONS_BY_ID.get(action_id)
+    if action is None:
+        return {}
+    gain = action.gain * (1 + game.ship_stats.diplomacy)
+    out = {"standing": [], "relations": None, "gain": gain}
+
+    if action_id == "denounce":
+        if other is None:
+            return out
+        out["standing"].append((other, -14.0))
+        for power in POWERS:
+            if power != other and relation(game, power, other) < -15:
+                out["standing"].append((power, 6.0))
+        out["relations"] = (faction, other, -8.0)
+    elif action_id == "broker":
+        if other is None:
+            return out
+        out["standing"] = [(faction, gain), (other, gain)]
+        out["relations"] = (faction, other, 28.0)
+    elif action_id == "treaty":
+        out["standing"] = [(faction, gain)]
+        # The half nobody was told about.
+        out["standing"] += [(power, -cost)
+                            for power, cost in allegiance.price(game, faction, 8)]
+    else:
+        out["standing"] = [(faction, gain)]
+    return out
+
+
 def _spend(game, action) -> None:
     if action.cost_credits:
         game.credits -= action.cost_credits

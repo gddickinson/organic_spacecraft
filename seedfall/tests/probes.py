@@ -20,6 +20,29 @@ from ..sim import inquiry
 
 # ── the desk finds runs your own notes cannot ──────────────────────────────
 
+def _overture_honesty() -> float:
+    """Share of an overture's real standing movement the screen foretells."""
+    from ..data.diplomacy import ACTIONS
+    from ..sim import diplomacy as dip_sim
+    told = real = 0.0
+    for action in ACTIONS:
+        game = new_game(f"lever-dip-{action.id}")
+        game.credits = 5_000_000
+        for key in ("biomass", "volatiles", "survey"):
+            game.stores[key] = 100_000
+        for power in dip_sim.POWERS:
+            game.rep[power] = 70.0
+        other = "concordat" if action.id in ("broker", "denounce") else None
+        said = dip_sim.preview(game, action.id, "charter", other)
+        before = {p: game.rep.get(p, 0) for p in dip_sim.POWERS}
+        if not dip_sim.perform(game, action.id, "charter", other).get("ok"):
+            continue
+        told += sum(abs(v) for _p, v in said.get("standing", []))
+        real += sum(abs(game.rep.get(p, 0) - before[p])
+                    for p in dip_sim.POWERS)
+    return told / max(0.001, real)
+
+
 def _annex_research() -> float:
     """Research a day from colony works a captain can actually build."""
     from ..data.colonies import COLONIES

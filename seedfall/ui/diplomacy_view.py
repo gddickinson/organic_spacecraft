@@ -128,6 +128,24 @@ class DiplomacyView(View):
                 cost.append(f"{action.cost_goods[1]} {action.cost_goods[0]}")
             if cost:
                 p.add_row("Cost", " · ".join(cost))
+            # What it buys, and what it costs you elsewhere. The screen used to
+            # show a price and no benefit, so tribute at twelve thousand for
+            # nine points read the same as relief at forty tonnes for eleven.
+            partner = self.partner if action.id in needs_partner else None
+            moved = dip.preview(g, action.id, fid, partner)
+            for power, delta in moved.get("standing", []):
+                p.add_row(FACTIONS_BY_ID[power].short,
+                          f"{delta:+.0f} standing",
+                          "chloro" if delta > 0 else "warn")
+            rel = moved.get("relations")
+            if rel:
+                a, b, delta = rel
+                p.add_row(f"{FACTIONS_BY_ID[a].short} ↔ "
+                          f"{FACTIONS_BY_ID[b].short}",
+                          f"{delta:+.0f} between them",
+                          "chloro" if delta > 0 else "warn")
+            if action.cooldown:
+                p.add_row("Then not again for", f"{action.cooldown} days", "dim")
             if not ok:
                 p.add(label(why, "", "warn"))
             label_text = action.name
