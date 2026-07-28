@@ -34,6 +34,10 @@ def build(view, game) -> Panel:
                   "chloro" if chance > 0.65 else ("warn" if chance < 0.4 else ""))
         if venture.other:
             p.add_row("Against", FACTIONS_BY_ID[venture.other].name)
+        raised = venture_sim.hulls(game, venture.power)
+        if raised:
+            p.add_row("Levies behind them", f"{raised} — it shows in the odds",
+                      "warn")
         if venture.place is not None:
             p.add_row("Over", game.galaxy.systems[venture.place].name)
 

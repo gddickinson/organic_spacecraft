@@ -13,6 +13,7 @@ from ..core.util import credits as cr
 from ..core.util import duration, num
 from ..data.factions import FACTIONS_BY_ID
 from ..sim import intel as intel_sim
+from . import orders_panel
 from ..sim import rumours as rumour_sim
 from ..sim.actions import distress_call, is_stranded, jump_quote, jump_to
 from ..world.galaxy import distance
@@ -202,6 +203,8 @@ class MapView(View):
                   f"{known['counts'][2]} visited · "
                   f"{known['charted']} charted"
                   + (f" · {leads['held']} lead(s) to follow" if leads["held"] else ""))
+
+        self.col.addWidget(orders_panel.build(self, g))
 
         if self.selected is None:
             self.selected = g.location_id

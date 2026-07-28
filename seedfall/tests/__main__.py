@@ -11,7 +11,7 @@ def main(argv: list[str] | None = None) -> int:
     argv = argv if argv is not None else sys.argv[1:]
     wanted = [a for a in argv if not a.startswith("-")] or ["sim", "xeno", "play", "combat", "flight", "empire", "crew",
                                        "missions", "explore", "mining", "research", "trade",
-                                       "ground", "politics", "design", "ui"]
+                                       "ground", "politics", "design", "orders", "ui"]
     ok = True
 
     if "sim" in wanted:
@@ -102,6 +102,12 @@ def main(argv: list[str] | None = None) -> int:
         from . import test_design
         suite = Suite("design")
         test_design.run(suite)
+        ok &= suite.report()
+
+    if "orders" in wanted:
+        from . import test_orders
+        suite = Suite("orders")
+        test_orders.run(suite)
         ok &= suite.report()
 
     if "ui" in wanted:

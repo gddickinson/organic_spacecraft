@@ -356,17 +356,22 @@ class MainWindow(QMainWindow):
         if g.dead:
             key = g.ending or "lost"
             name = "Overgrown" if key == "overgrown" else "The chronicle ends"
-            self._ending(name, ENDINGS.get(key, ENDINGS["lost"]))
+            # The game has always known why; it simply never said.
+            self._ending(name, ENDINGS.get(key, ENDINGS["lost"]),
+                         g.death_reason)
             return True
         return False
 
-    def _ending(self, heading: str, text: str) -> None:
+    def _ending(self, heading: str, text: str, cause: str = "") -> None:
         g = self.game
         stats_line = (f"Stardate {g.day} days · {len(g.discovered['systems'])} systems "
                       f"visited · {g.discovered['lifeforms']} organisms catalogued · "
                       f"{len(g.colonies)} colonies planted.")
-        self.dialog(heading, [text, label(stats_line, "note", wrap=True)],
-                    [("Begin again", "again")])
+        body = [text]
+        if cause:
+            body.append(label(cause, "", "warn", wrap=True))
+        body.append(label(stats_line, "note", wrap=True))
+        self.dialog(heading, body, [("Begin again", "again")])
         state_mod.clear_save()
         from .title import start_new_chronicle
         start_new_chronicle(self)

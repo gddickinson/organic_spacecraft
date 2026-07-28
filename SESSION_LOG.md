@@ -2,6 +2,36 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: an audit, not a sixteenth system
+
+- **The seam was discoverability.** Fifteen cycles each added a system that was
+  perfectly obvious to whoever had just built it. A first-time captain got a
+  sector chart, one line of log — "The Patient Increment is under way" — and no
+  indication that commissions, consorts, colony works, the research bench or
+  the register existed. Checking every screen on turn one for a trace of each
+  system found three entirely invisible and several behind tabs nobody had a
+  reason to open.
+- **Standing orders** are the fix: twenty conditions worth acting on, each with
+  a predicate and a screen it points at, the four most pressing shown above the
+  chart. A brand-new captain is now told that a commission is on offer, nothing
+  is on the bench, nothing here has been surveyed and there is word going
+  round. Ten years into a game the same panel leads with the Bloom.
+- **Placement was the whole point and I got it wrong first.** The panel went in
+  below the chart and the system detail, where a first-time player would never
+  scroll to find it — the exact problem it was written to solve. It reads
+  compactly now and sits directly under the heading.
+- **A check for state written but never read found two more seams.** A levy
+  venture incremented a counter that nothing anywhere consulted: the venture
+  succeeded, the save grew a number, and the sector was exactly as before.
+  Levies now make everything that power tries next easier, which is visible on
+  the diplomacy desk. And `death_reason` had been recorded on every death since
+  the game was written and never shown — the game always knew why you died and
+  simply never said.
+- Suites: 27 simulation, 5 xenotech, 14 playability, 5 tactical, 5 flight,
+  6 empire, 7 crew, 7 missions, 8 exploration, 7 mining, 8 research, 8 trade,
+  7 ground, 8 politics, 6 design, **8 orders** (new), 23 interface — 159 checks
+  green. 129 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: mass is the price of everything
 
 - **Fitted mass was free.** A NAVIS carrying 267 tonnes of armour and reactors

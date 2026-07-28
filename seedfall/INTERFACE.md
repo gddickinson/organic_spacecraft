@@ -169,6 +169,7 @@ seedfall/
 │   ├── inquiry.py      evidence, approaches, setbacks and breakthroughs
 │   ├── intel.py        how well a system is known, and what a chart is worth
 │   ├── loading.py      fitted mass against what the hull is rated to shift
+│   ├── orders.py       which standing orders apply — the discoverability index
 │   ├── market.py       supply shocks, and the prices you wrote down
 │   ├── ventures.py     what the powers do on their own account
 │   ├── weather.py      the front overhead during a landing
@@ -217,6 +218,7 @@ seedfall/
     ├── test_ground.py  7 ground checks — weather, sight, being pinned
     ├── test_politics.py 8 politics checks — ventures, sides, the Concord
     ├── test_design.py  6 design checks — loading, overloading, stranding
+    ├── test_orders.py  8 orders checks — reachability, urgency, unread state
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
     └── test_ui.py      22 interface checks, rendered on Qt's offscreen platform
 ```
@@ -390,6 +392,15 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   costing speed is a trade; a full hold leaving a captain unable to reach the
   nearest system is the stranding deadlock this project has hit twice.
   `test_design.py` checks the laden jump against the nearest neighbour.
+- **A new system is not finished until `data/orders.py` can point at it.**
+  Fifteen cycles each added something perfectly discoverable to whoever had
+  just built it; a new captain saw a chart, one log line, and no sign any of it
+  existed. Every entry there needs a predicate of the same id in
+  `sim/orders.py`, and `test_orders.py` fails on either half being missing.
+- **Anything persistent on `Game` needs a reader.** `test_orders.py` walks the
+  dataclass fields and fails on any that nothing loads — it caught a levy
+  counter that incremented and changed nothing, and a death reason the game
+  recorded and never showed.
 - **Colony effects are a closed vocabulary.** `test_sim.py` asserts that every
   key in a `ColonyClass.effects` is one the game actually reads, so a typo in a
   station definition fails the suite instead of silently doing nothing.
@@ -445,6 +456,10 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   is penalised for it, then maxes one out and fails if it is not. It also
   checks that a fully laden starting hull can still reach its nearest
   neighbour.
+- **`test_orders.py`** builds ten game states and demands every standing order
+  fire in at least one of them, calls every predicate unguarded so a broken one
+  cannot hide behind the panel's exception guard, and checks that acting on an
+  order makes it go quiet.
 - **`test_flight.py`** holds the helm to its promises: that a seed grows one
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that

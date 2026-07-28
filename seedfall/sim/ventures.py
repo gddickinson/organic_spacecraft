@@ -135,6 +135,11 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
 
 # ── the player leaning on it ───────────────────────────────────────────────
 
+def hulls(game, power: str) -> int:
+    """Completed levies. A power with more hulls gets its way more often."""
+    return int(getattr(game, "faction_power", {}).get(power, 0))
+
+
 def odds(game, venture) -> float:
     """How likely this is to come off, given who is leaning on it."""
     chance = BASE_ODDS
@@ -142,6 +147,9 @@ def odds(game, venture) -> float:
         chance += SWAY
     elif venture.stance == "opposed":
         chance -= SWAY
+    # A levy that came off is not a number in a save file: the hulls it bought
+    # make everything that power tries next a little easier.
+    chance += min(0.18, hulls(game, venture.power) * 0.06)
     # A power nobody can stand has a harder time of everything.
     standing = sum(dip.relation(game, venture.power, p)
                    for p in dip.POWERS if p != venture.power)
@@ -243,6 +251,8 @@ def _apply(game, venture, rng) -> list[tuple[str, str]]:
         if state is None:
             state = game.faction_power = {}
         state[venture.power] = state.get(venture.power, 0) + 1
+        out.append(("", f"{FACTIONS_BY_ID[venture.power].short} is a harder "
+                        "power to argue with than it was."))
     elif kind.id == "concession" and venture.place is not None:
         system = game.galaxy.systems[venture.place]
         if system.faction is None:
