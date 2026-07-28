@@ -2,6 +2,38 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: the Bloom starts paying attention
+
+- **The arc had two ends and nothing between them.** Growth is detected, it
+  spreads on a timer, and eventually you burn into the heart. Five stages,
+  roaming instars and weapon-family resistance were all in place, and none of
+  it responded to *you*.
+- **Provocation is the middle.** Burning a system, clearing one, killing an
+  instar and striking the heart all cost it something, and it keeps count.
+  Past each threshold it answers: it grows harder, then it hardens
+  specifically against whatever family you have been using, then it detaches a
+  seeding wave, and finally it starts sending masses after your hull across
+  nine light years without stopping at the colonies on the way. Provocation
+  bleeds away if you leave it alone, so this is a response to a campaign rather
+  than a doom counter.
+- **Study or burn, not both.** Nine days alongside a living mass yields
+  xenolith and readings scaled by how much of it there is — and it grows while
+  you watch. Burning it removes exactly the thing you would have studied. The
+  setting has always described that tension and the game had never once made
+  you feel it; the system screen now offers both buttons side by side with what
+  each is worth.
+- **I nearly shipped the levy bug again.** `growth_multiplier()` was computed
+  from the responses and read by nothing whatever — the Bloom would have
+  "answered" by printing a line and changing nothing at all. It is now consumed
+  in `threat.tick`, and the check measures actual spread with and without,
+  because a multiplier nobody reads looks exactly like one that works. It fails
+  against the unwired version: "spread 35.0 against 35.0".
+- Suites: 27 simulation, 5 xenotech, 14 playability, 5 tactical, 5 flight,
+  6 empire, 7 crew, 7 missions, 8 exploration, 7 mining, 8 research, 8 trade,
+  7 ground, 8 politics, 6 design, 8 orders, 6 assessment, 7 balance,
+  **7 bloom** (new), 7 verbs, 23 interface — 186 checks green. 138 modules, all
+  under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: every verb in the game, driven once
 
 - **Rendering a screen does not press its buttons.** Splitting `combat.py` last

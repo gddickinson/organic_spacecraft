@@ -12,6 +12,7 @@ from ..world.galaxy import distance
 from .colony import bloom_attack, ward_at
 from . import loyalty
 from . import bloom as bloom_sim
+from . import responses as response_sim
 from . import diplomacy as dip_sim
 
 SPREAD_INTERVAL = 30    # days between growth ticks
@@ -37,13 +38,16 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
         held = [s for s in systems if s.bloom > 0.02]
 
         stage = bloom_sim.ensure(game).definition
+        provoked = response_sim.growth_multiplier(game)
         for s in held:
             # A monitor both slows the growth and burns back what it can reach.
             # A fully-watched system holds its line and slowly loses ground; it
             # will not clear a heavy infestation on its own, which is what the
             # guns on your own hull are for.
             ward = ward_at(game, s.id)
-            growth = ((0.025 + s.bloom * 0.035) * stage.growth * (1 - ward)
+            # Everything it has answered makes it grow harder from here on.
+            growth = ((0.025 + s.bloom * 0.035) * stage.growth * provoked
+                      * (1 - ward)
                       - ward * (0.020 + s.bloom * 0.030))
             s.bloom = max(0.0, min(1.0, s.bloom + growth))
             for col in bloom_attack(game, s, rng):

@@ -15,6 +15,7 @@ from ..sim import crew as crew_sim
 from ..sim import inquiry as inquiry_sim
 from ..sim import market as market_sim
 from ..sim import diplomacy as dip_sim
+from ..sim import responses as response_sim
 from ..sim import ventures as venture_sim
 from ..sim import loyalty as loyalty_sim
 from ..sim import research as research_sim
@@ -235,6 +236,9 @@ class Game:
             self.add_log(f"Xenotechnology incorporated: {tech.name}.", "good")
 
         for kind, text in threat_sim.tick(self, n, r):
+            self.add_log(text, kind)
+        response_sim.decay(self, n)
+        for kind, text in response_sim.check(self, r):
             self.add_log(text, kind)
         if self.overgrown and not self.victory:
             self.dead = True

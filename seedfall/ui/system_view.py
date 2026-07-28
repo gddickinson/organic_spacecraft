@@ -9,6 +9,7 @@ from ..core.util import cost_line, duration, num, pct
 from ..data.factions import FACTIONS_BY_ID
 from ..sim import colony as colony_sim
 from ..sim import mining
+from ..sim import responses as response_sim
 from ..sim.actions import burn_bloom, dive, extract, strike_heart, survey
 from . import mining_panel
 from ..sim import bloom as bloom_sim
@@ -43,7 +44,29 @@ class SystemView(View):
                         "here has been converted. It is not attacking anything. It "
                         "is eating, and there is more of it than there was last "
                         "month.", "", wrap=True))
-            p.add_buttons(button("Burn it back", self._cleanse, kind="danger"))
+            # The choice the setting has always described: the mass worth
+            # understanding is the mass worth destroying, and not both.
+            can_study, why = response_sim.can_study(self.game, sys)
+            if can_study:
+                worth = response_sim.study_value(self.game, sys)
+                p.add(spacer(3))
+                p.add_row("Nine days alongside would yield",
+                          f"{round(worth['xenolith'])} t xenolith · "
+                          f"{round(worth['readings'])} readings", "xeno")
+                p.add(note("It grows while you watch. Burning it afterwards "
+                           "costs you nothing you have already taken."))
+            p.add_buttons(
+                button("Burn it back", self._cleanse, kind="danger"),
+                button("Study the mass", self._study_bloom,
+                       enabled=can_study, tip=why or None))
+
+            reaction = response_sim.summary(self.game)
+            if reaction["fired"]:
+                p.add(spacer(3), mono_label("It has been paying attention"))
+                p.add_row("Growing", f"×{reaction['growth']:.2f} faster", "warn")
+                if reaction["hunting"]:
+                    p.add(label("It is sending masses after your hull "
+                                "specifically.", "", "bad", wrap=True))
             self.col.addWidget(p)
 
         heart = bloom_sim.heart_system(self.game)
@@ -357,6 +380,24 @@ class SystemView(View):
         else:
             lines.append(note(f"Roughly {round(res['left'])} of it left."))
         self.win.dialog("The heart", lines, [("Log it", None)])
+        self.win.refresh()
+
+    def _study_bloom(self) -> None:
+        g = self.game
+        res = response_sim.study(g, g.system)
+        if not res.get("ok"):
+            self.win.toast(res["why"], "warn")
+            return
+        if self.win.check_ending():
+            return
+        if not res.get("dead"):
+            self.win.dialog(
+                "Nine days alongside",
+                [note(f"{round(res['xenolith'])} t of xenolith aboard and "
+                      f"{round(res['readings'])} of readings on the bench."),
+                 note("The mass is larger than it was. Everything you learned "
+                      "came from letting it be.")],
+                [("Understood", None)])
         self.win.refresh()
 
     def _cleanse(self) -> None:

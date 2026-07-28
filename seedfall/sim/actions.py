@@ -8,6 +8,7 @@ from __future__ import annotations
 from ..world.galaxy import distance, transit_days
 from ..world.planets import survey_body
 from . import mining
+from . import responses
 from .inquiry import add as _add_evidence
 from . import inquiry
 from . import research as research_sim
@@ -278,6 +279,7 @@ def burn_bloom(game) -> dict:
     game.advance_days(6)
     apply_damage(game.ship, res["backlash"] * 0.5)
     game.adjust_rep("charter", 6)
+    responses.provoke(game, "cleared" if res["cleared"] else "burn")
     game.add_log(f"Burned back the growth at {system.name}. Took "
                  f"{round(res['backlash'] * 0.5)} in return."
                  + (" The system is clean." if res["cleared"] else ""),

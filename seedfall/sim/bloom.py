@@ -39,6 +39,8 @@ class BloomState:
     heart_system: int | None = None
     heart_found: bool = False
     beats: list[str] = field(default_factory=list)
+    provocation: float = 0.0
+    responses: list[str] = field(default_factory=list)
 
     @property
     def definition(self):
@@ -192,6 +194,8 @@ def instar_at(game, system_id: int) -> Instar | None:
 
 
 def kill_instar(game, inst: Instar) -> None:
+    from . import responses
+    responses.provoke(game, "instar")
     state = ensure(game)
     if inst in state.instars:
         state.instars.remove(inst)
@@ -215,6 +219,8 @@ def reveal_heart(game) -> tuple[str, str] | None:
 
 
 def strike_heart(game, firepower: float, rng) -> dict:
+    from . import responses
+    responses.provoke(game, "heart")
     """Burn the original germination. It takes several visits."""
     state = ensure(game)
     if state.heart_hp <= 0:
