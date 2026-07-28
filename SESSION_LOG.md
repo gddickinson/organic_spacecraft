@@ -2,6 +2,33 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: costing the way out of a pocket
+
+- **Task #44, and the measurement changed what I built.** A quarter of sectors
+  open with fewer than eight of 42 systems reachable and one in eight with
+  three or fewer, which looked like a generation defect. Before touching
+  generation I played a two-system pocket for twenty-five years: evidence still
+  accumulates in the hundreds, both its markets sell magnetite, the whole
+  fourteen-technology chain to the Foldrunner is open from inside, and one
+  pocket earned 71,000 of the 78,000 credits needed in under seven years.
+  **The wall is a gate, not a lock.** Changing generation would have been
+  fixing the wrong thing.
+- **The actual defect was the project's signature one**: the chart named a way
+  out — "a Foldrunner Coil would open 40 more, once researched" — and stopped
+  there, which is the same shape as a contract fee with no cargo cost beside
+  it. Measured, that way out is twelve technologies, 4,990 research points,
+  78,000 credits and 20 tonnes of magnetite. A project, not a purchase.
+- `reach.plan()` costs it and the chart prints it: what is still to research
+  and for how many points, the credits and how far short you are, and **each
+  material with the reachable ports that stock it** — because whether the
+  pocket can supply its own way out is the thing that decides whether you are
+  working toward something or waiting for nothing.
+- The check that carries the finding asks it continuously rather than once: 24
+  walled sectors, the smallest two systems, every one able to supply its own
+  exit. Making one material unobtainable fails it, so if generation ever
+  produces a real trap the decision not to change generation gets revisited.
+- Suites: 54 — 445 checks green. 235 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: grudges that cost something, and can say why
 
 - **Task #53, and the loop's stated first priority.** Memory existed but only

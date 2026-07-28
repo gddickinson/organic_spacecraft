@@ -237,7 +237,62 @@ class MapView(View):
         # What the ring never said: how much of the sector this drive can
         # actually get to, and what the next one would open.
         self.col.addWidget(note(reach_sim.note(self.game)))
+        wall = self._way_out()
+        if wall is not None:
+            self.col.addWidget(wall)
         self.col.addWidget(self._info())
+
+    def _way_out(self):
+        """What getting past the wall would actually take, item by item.
+
+        Naming a drive and stopping there is the same defect as a contract fee
+        with no cargo cost beside it. Measured, the way out of a small pocket
+        is twelve technologies, five thousand research points, seventy-eight
+        thousand credits and twenty tonnes of magnetite — a project, not a
+        purchase — and whether the ports you *can* reach sell those materials
+        is the thing that decides whether it is a project at all.
+        """
+        from ..core.util import credits as cr
+        from ..data.tech import TECH_BY_ID
+        plan = reach_sim.plan(self.game)
+        if not plan or plan["step"]["gain"] <= 0:
+            return None
+        step = plan["step"]
+        p = Panel(f"Getting past the wall — {step['part'].name}")
+        p.add(self.hint(
+            "It opens the rest of the sector. This is what it takes, and "
+            "whether the ports you can already reach can supply it."))
+        p.add_row("Opens", f"{step['gain']} more systems "
+                           f"({plan['within']} → {step['within']})")
+        if plan["tech"]:
+            done = len(plan["tech"])
+            p.add_row("Still to research",
+                      f"{done} technolog{'y' if done == 1 else 'ies'} · "
+                      f"{plan['points']:,} points",
+                      "osteo")
+            p.add(note(", ".join(
+                TECH_BY_ID[t].name for t in plan["tech"][:6]
+                if t in TECH_BY_ID) + (" …" if done > 6 else "")))
+        short = plan["have_credits"] - plan["credits"]
+        p.add_row("Credits", f"{cr(plan['credits'])} "
+                             f"({'have it' if short >= 0 else f'{cr(-short)} short'})",
+                  "chloro" if short >= 0 else "osteo")
+        for material in plan["materials"]:
+            where = ", ".join(material["sold_at"][:2]) or "nowhere you can reach"
+            p.add_row(f"{material['need']:g} t {material['id']}",
+                      f"have {material['have']:g} · sold at {where}",
+                      "warn" if material["short"] else "")
+        p.add_row("Yard", ", ".join(plan["yards"][:2]) or "none in reach",
+                  "warn" if not plan["yards"] else "")
+        if plan["reachable"]:
+            p.add(label("Everything it needs can be had from where you are. "
+                        "It is a long project and it is not a trap.", "",
+                        "chloro", wrap=True))
+        else:
+            p.add(label("Something it needs is not for sale anywhere you can "
+                        "reach. Mine it, or take it off somebody.", "",
+                        "warn", wrap=True))
+        return p
 
     def _info(self) -> Panel:
         g = self.game

@@ -113,6 +113,81 @@ def next_step(game) -> dict | None:
     return next((row for row in opens(game) if row["gain"] > 0), None)
 
 
+def chain_for(tech_id: str, known) -> list:
+    """Every technology still needed for this one, itself included."""
+    from ..data.tech import TECH_BY_ID
+    held, want, stack = set(known), set(), [tech_id]
+    while stack:
+        current = stack.pop()
+        if current in held or current in want:
+            continue
+        entry = TECH_BY_ID.get(current)
+        if entry is None:
+            continue
+        want.add(current)
+        stack.extend(entry.reqs)
+    return sorted(want)
+
+
+def sold_within(game, commodity: str, ids=None) -> list:
+    """Which reachable ports stock this, by name. Empty means fetch it."""
+    within = ids if ids is not None else component(game)
+    return [s.name for s in game.galaxy.systems
+            if s.id in within and s.market
+            and commodity in s.market.stock]
+
+
+def requirements(game, part_id: str) -> dict:
+    """Everything a drive would take, and whether this pocket can supply it.
+
+    The chart used to name a way out — "a Foldrunner Coil would open 40 more"
+    — and stop there. Measured, that way out is fourteen technologies and five
+    thousand research points and seventy-eight thousand credits and twenty
+    tonnes of magnetite, which is a project rather than a purchase. A captain
+    walled into two systems deserves to know which of those they can actually
+    get from where they are standing, because the answer decides whether they
+    are working toward something or waiting for nothing.
+    """
+    from ..data.tech import TECH_BY_ID
+    part = PARTS_BY_ID.get(part_id)
+    if part is None:
+        return {}
+    within = component(game)
+    known = set(game.research.unlocked)
+
+    needed = chain_for(part.tech, known) if part.tech else []
+    points = sum(TECH_BY_ID[t].cost for t in needed if t in TECH_BY_ID)
+
+    materials = []
+    for key, amount in part.cost.items():
+        if key == "credits":
+            continue
+        have = (game.stores.get(key, 0) + game.ship.cargo.get(key, 0))
+        where = sold_within(game, key, within)
+        materials.append({"id": key, "need": amount, "have": round(have, 1),
+                          "sold_at": where, "short": have < amount and not where})
+
+    credits = part.cost.get("credits", 0)
+    yards = [s.name for s in game.galaxy.systems
+             if s.id in within and s.port
+             and "shipyard" in getattr(s.port, "services", ())]
+    return {
+        "part": part, "tech": needed, "points": points,
+        "credits": credits, "have_credits": round(game.credits),
+        "materials": materials, "yards": yards,
+        "reachable": bool(yards) and not any(m["short"] for m in materials),
+        "within": len(within),
+    }
+
+
+def plan(game) -> dict:
+    """What it would take to get out of here, if there is anywhere to get to."""
+    step = next_step(game)
+    if step is None:
+        return {}
+    return {"step": step, **requirements(game, step["part"].id)}
+
+
 def note(game) -> str:
     """One line for the chart, stating the wall and what would move it."""
     now = horizon(game)

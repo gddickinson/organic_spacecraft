@@ -345,8 +345,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   guarantee the sector is traversable: flood-filling from the start at starting
   jump range reaches between 2 and all 42 systems depending on the seed, median
   13, with a quarter of sectors under eight. Opening the rest means a better
-  drive. `sim/reach.py` computes that component and the chart states it; a
-  shipyard is always within reach, so nobody is permanently trapped.
+  drive. `sim/reach.py` computes that component, and `reach.plan()` costs the
+  way out: the technologies still needed and their research points, the
+  credits, and each material with the reachable ports that stock it. **A pocket
+  is a long project and not a trap** — measured across 24 walled sectors, the
+  smallest of them two systems, every one could supply its own way out. A check
+  keeps asking rather than trusting that measurement.
 - **One helper feeds the quote and the till.** `market.quote_buy` /
   `quote_sell` apply the grudge bias, and `note_prices`, `trade.buy/sell` and
   `contracts.cargo_cost` all read them. Pricing a contract's cargo with the raw
@@ -976,6 +980,13 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   socket died silently and the caller was left reading an empty line. A
   boundary has to be total; a caller on a pipe can catch neither a traceback
   nor a hang-up.
+- **`test_reach.py`'s "a pocket is a long project and not a trap"** is the
+  check carrying a design decision. Generation was *not* changed to close the
+  gaps, because playing a two-system pocket showed evidence still accumulates,
+  both its markets sell magnetite, and it earned 71,000 of the 78,000 credits
+  in under seven years. The wall is a gate, not a lock — so the fix was making
+  the gate legible rather than removing it. If a future change makes a pocket
+  genuinely unsupplyable, that check fails and the decision gets revisited.
 - **`test_grudges.py`** holds memory to *changing behaviour* rather than
   colouring speech: a quay prices you by what it remembers, a power that holds
   enough against you stops posting work, and feeling travels between powers

@@ -418,7 +418,7 @@ keep paying for the ammunition. Five endings are open at once — **Containment*
 another.
 
 ```bash
-python3 -m seedfall.tests         # 54 suites, 442 checks
+python3 -m seedfall.tests         # 54 suites, 445 checks
 python3 -m seedfall.tests.capture # re-render the README screenshots
 ```
 

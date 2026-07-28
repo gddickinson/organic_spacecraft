@@ -144,6 +144,98 @@ def run(suite: Suite) -> None:
         assert checked, "nothing was ever offered to check"
         return f"{checked} forecasts fitted and re-flooded, all exact"
 
+    @check("the way out is costed, and every figure in it is true")
+    def _():
+        # The chart named a drive and stopped. Measured, the way out of a
+        # small pocket is twelve technologies, five thousand research points,
+        # seventy-eight thousand credits and twenty tonnes of magnetite — a
+        # project rather than a purchase — and saying so is the difference
+        # between working toward something and waiting for nothing.
+        from ..data.tech import TECH_BY_ID
+        checked = 0
+        for index in range(6):
+            game = new_game(f"reach-plan-{index}")
+            plan = reach_sim.plan(game)
+            if not plan:
+                continue
+            part = plan["part"]
+
+            # The chain is exactly what is missing, and nothing already held.
+            for tech in plan["tech"]:
+                assert tech not in game.research.unlocked, (
+                    f"{tech} is already known and still listed as needed")
+            assert part.tech in plan["tech"] or not part.tech
+            assert plan["points"] == sum(TECH_BY_ID[t].cost
+                                         for t in plan["tech"]), "points differ"
+
+            # Every prerequisite of everything listed is either held or listed.
+            for tech in plan["tech"]:
+                for need in TECH_BY_ID[tech].reqs:
+                    assert (need in plan["tech"]
+                            or need in game.research.unlocked), (
+                        f"{tech} needs {need}, which is neither held nor listed")
+
+            # The materials, and where they are said to be sold.
+            for material in plan["materials"]:
+                assert material["need"] == part.cost[material["id"]]
+                for where in material["sold_at"]:
+                    system = next(s for s in game.galaxy.systems
+                                  if s.name == where)
+                    assert system.market and material["id"] in system.market.stock
+                    assert system.id in reach_sim.component(game), (
+                        f"{where} is named and cannot be reached")
+            assert plan["credits"] == part.cost.get("credits", 0)
+            checked += 1
+        assert checked >= 4, f"only {checked} sectors had a wall to cost"
+        return f"{checked} plans, every technology, price and quay verified"
+
+    @check("a pocket is a long project and not a trap")
+    def _():
+        # The question behind the whole feature, asked continuously rather
+        # than answered once: can a captain walled into a handful of systems
+        # actually buy their way out from where they are standing? Measured
+        # across seeds — including the two-system ones.
+        walled, fundable, tightest = 0, 0, 99
+        for index in range(24):
+            game = new_game(f"reach-trap-{index}")
+            plan = reach_sim.plan(game)
+            if not plan or plan["step"]["gain"] <= 0:
+                continue
+            walled += 1
+            tightest = min(tightest, plan["within"])
+            if plan["reachable"]:
+                fundable += 1
+            else:
+                missing = [m["id"] for m in plan["materials"] if m["short"]]
+                assert plan["yards"], (
+                    f"seed {index}: {plan['within']} systems and no yard — "
+                    "the drive could never be fitted")
+                assert not missing, (
+                    f"seed {index}: {plan['within']} systems and nowhere to "
+                    f"buy {missing}")
+        assert walled >= 12, f"only {walled} of 24 sectors were walled"
+        assert fundable == walled, f"{walled - fundable} pockets are traps"
+        return (f"{walled} walled sectors, smallest {tightest} systems, "
+                f"every one of them able to supply its own way out")
+
+    @check("the plan appears only when there is a wall to get past")
+    def _():
+        # A sector with nothing beyond the wall must not offer a way past it.
+        open_ones = 0
+        for index in range(10):
+            game = new_game(f"reach-when-{index}")
+            horizon = reach_sim.horizon(game)
+            plan = reach_sim.plan(game)
+            if horizon["whole"]:
+                open_ones += 1
+                assert not plan or plan["step"]["gain"] == 0, (
+                    "a sector with nothing beyond it offered a way out")
+            elif plan:
+                assert plan["step"]["gain"] > 0
+                assert plan["within"] == horizon["within"]
+        return (f"{10 - open_ones} walled and {open_ones} whole sectors, "
+                "each offered the right thing")
+
     @check("the line the chart prints says the true numbers")
     def _():
         for index in range(8):
