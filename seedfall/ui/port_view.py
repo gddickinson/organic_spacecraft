@@ -9,8 +9,9 @@ from ..core.util import num, pct
 from ..data.commodities import BY_ID, COMMODITIES, bulk_of
 from ..data.factions import FACTIONS_BY_ID, standing
 from ..sim.crew import daily_wages, recruit_pool
-from ..sim.actions import buy_field_notes, xeno_notes_price
+from ..sim.fieldwork import buy_field_notes, xeno_notes_price
 from ..sim import xeno as xeno_sim
+from ..sim import contracts as contract_sim
 from ..sim.ship import add_cargo, cargo_free, cargo_used, hull_pct
 from ..world.economy import (apply_sale, apply_trade, buy_price, demands,
                              price_note, sell_price)
@@ -41,12 +42,14 @@ class PortView(View):
                   f"{fac.name if fac else 'Independent'} — standing: {band} "
                   f"({'+' if rep > 0 else ''}{round(rep)})")
 
-        tabs = TabBar([("market", "Market"), ("services", "Services"),
-                       ("crew", "Berths")], self.tab)
+        tabs = TabBar([("market", "Market"), ("contracts", "Contracts"),
+                       ("services", "Services"), ("crew", "Berths")], self.tab)
         tabs.changed.connect(self._switch)
         self.col.addWidget(tabs)
 
-        if self.tab == "services":
+        if self.tab == "contracts":
+            self._contracts(sys)
+        elif self.tab == "services":
             self._services(sys, fac, rep)
         elif self.tab == "crew":
             self._berths(sys)
@@ -154,6 +157,80 @@ class PortView(View):
         g.adjust_rep(sys.port.faction, min(2, n * 0.05))
         g.add_log(f"Sold {round(n)} {BY_ID[cid].short} at {cr(price)} — "
                   f"{cr(round(n * price))}.", "good")
+        self.win.refresh()
+
+    # ── contracts ──────────────────────────────────────────────────────────
+
+    def _contracts(self, sysm) -> None:
+        g = self.game
+        # A board is generated once per port and keeps until it is worked out.
+        key = str(sysm.id)
+        if key not in g.boards:
+            g.boards[key] = contract_sim.generate(g.rng("board"), g, sysm)
+        board = [c for c in g.boards[key]
+                 if not c.accepted and c.deadline > g.day]
+        g.boards[key] = board
+
+        mine = contract_sim.active(g)
+        self.col.addWidget(note(
+            f"{len(mine)} of {contract_sim.MAX_ACTIVE} contracts in hand. Nothing "
+            "here is required — the endings are open whether you take work or "
+            "not — but standing is worth more than the fee."))
+
+        if mine:
+            held = Panel("In hand")
+            for c in mine:
+                d = c.definition
+                left = c.days_left(g.day)
+                held.add(spacer(3))
+                held.add(label(c.title, "h3", d.tint))
+                bits = [f"{d.name} · {FACTIONS_BY_ID[c.issuer].short}",
+                        f"{cr(c.reward)}", f"{left} day(s) left"]
+                if c.amount > 1 and c.kind in ("survey", "bounty"):
+                    bits.append(f"{int(c.progress)}/{int(c.amount)} done")
+                held.add(note(" · ".join(bits)))
+                if left < 30:
+                    held.add(label("Running out of time.", "", "warn"))
+                held.add_buttons(button("Abandon it",
+                                        lambda _=False, x=c: self._abandon(x),
+                                        kind="danger"))
+            self.col.addWidget(held)
+
+        if not board:
+            self.col.addWidget(Panel("The board is empty").add(
+                note("Nothing posted here at the moment. Boards refresh as the "
+                     "postings expire.")))
+            return
+
+        cards = []
+        for c in board:
+            d = c.definition
+            card = Card(selectable=False)
+            card.add(label(c.title, "h3", d.tint))
+            card.add(Pill(d.name, d.tint))
+            card.add(label(c.posting, "", wrap=True))
+            card.add(note(f"{cr(c.reward)} · {c.days_left(g.day)} days · "
+                          f"standing +{c.rep}"))
+            card.add(button("Take it", lambda _=False, x=c: self._accept(x),
+                            kind="primary"))
+            cards.append(card)
+        self.col.addWidget(label("Posted", "h3"))
+        self.grid(cards, cols=2)
+
+    def _accept(self, contract) -> None:
+        ok, why = contract_sim.accept(self.game, contract)
+        if not ok:
+            self.win.toast(why, "warn")
+            return
+        self.game.add_log(f"Contract taken: {contract.title}.", "good")
+        self.win.refresh()
+
+    def _abandon(self, contract) -> None:
+        if not self.win.confirm("Abandon the contract",
+                                f"{contract.title}. Walking away costs standing "
+                                "with the issuer."):
+            return
+        contract_sim.abandon(self.game, contract)
         self.win.refresh()
 
     # ── services ───────────────────────────────────────────────────────────

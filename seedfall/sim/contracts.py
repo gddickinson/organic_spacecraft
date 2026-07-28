@@ -1,0 +1,242 @@
+"""Contracts — optional work, posted at ports.
+
+A contract is a promise with a deadline attached. Accepting one costs nothing;
+failing one costs standing. Progress is checked whenever the clock moves and
+whenever you dock, so a contract completes the moment its terms are met rather
+than when you remember to hand it in.
+"""
+
+from __future__ import annotations
+
+import itertools
+from dataclasses import dataclass, field
+
+from ..core.save import register
+from ..core.util import credits as cr
+from ..data.commodities import BY_ID
+from ..data.contracts import CARGO_WANTED, KINDS, POSTINGS
+from ..data.factions import FACTIONS_BY_ID
+from ..world.galaxy import distance
+
+_uid = itertools.count(1)
+
+MAX_ACTIVE = 6
+
+
+@register
+@dataclass
+class Contract:
+    id: int
+    kind: str
+    issuer: str                 # faction id
+    issued_at: int              # system id where it was posted
+    title: str
+    posting: str
+    target_system: int | None = None
+    target_body: str | None = None
+    commodity: str | None = None
+    amount: float = 0.0
+    progress: float = 0.0
+    reward: int = 0
+    rep: int = 0
+    deadline: int = 0           # absolute day
+    accepted: bool = False
+    done: bool = False
+    failed: bool = False
+
+    @property
+    def definition(self):
+        return KINDS[self.kind]
+
+    def days_left(self, day: int) -> int:
+        return self.deadline - day
+
+
+# ── generation ─────────────────────────────────────────────────────────────
+
+def _pick_target(rng, game, sysm, far: bool):
+    """A system that is somewhere worth going, and reachable in principle."""
+    systems = [s for s in game.galaxy.systems
+               if s.id != sysm.id and s.bloom < 0.4]
+    if not systems:
+        return sysm
+    systems.sort(key=lambda s: distance(s, sysm))
+    pool = systems[len(systems) // 2:] if far else systems[:max(3, len(systems) // 3)]
+    return rng.pick(pool or systems)
+
+
+def generate(rng, game, sysm) -> list[Contract]:
+    """The board at a port. Bigger ports post more, and post better."""
+    if not sysm.port:
+        return []
+    faction = sysm.port.faction
+    count = 2 + sysm.port.level
+    out: list[Contract] = []
+
+    for _ in range(count):
+        kind = rng.weighted([
+            (4, "deliver"), (4, "prospect"), (3, "survey"),
+            (2, "bounty"), (2, "relic"), (2, "expedition"),
+        ])
+        d = KINDS[kind]
+        deadline = game.day + rng.int(*d.deadline)
+        c = Contract(id=next(_uid), kind=kind, issuer=faction, issued_at=sysm.id,
+                     title="", posting=rng.pick(POSTINGS[kind]),
+                     rep=d.rep, deadline=deadline)
+
+        if kind in ("deliver", "prospect"):
+            c.commodity = rng.pick(CARGO_WANTED)
+            c.amount = rng.int(20, 80)
+            base = BY_ID[c.commodity].base
+            c.reward = round(c.amount * (base * 0.55 + d.rate * 0.4))
+            if kind == "deliver":
+                target = _pick_target(rng, game, sysm, far=rng.chance(0.5))
+                c.target_system = target.id
+                c.title = (f"Carry {c.amount:g} t of {BY_ID[c.commodity].name} "
+                           f"to {target.name}")
+            else:
+                c.title = (f"Supply {c.amount:g} t of {BY_ID[c.commodity].name}")
+        elif kind == "survey":
+            target = _pick_target(rng, game, sysm, far=True)
+            c.target_system = target.id
+            c.amount = min(len(target.bodies), rng.int(2, 4))
+            c.reward = round(d.rate * c.amount * rng.float(0.8, 1.4))
+            c.title = f"Survey {c.amount:g} bodies at {target.name}"
+        elif kind == "bounty":
+            c.commodity = rng.pick(["freeholds", "concordat", "sanhedrin", "bloom"])
+            if c.commodity == faction:
+                c.commodity = "bloom"
+            c.amount = rng.int(1, 2)
+            c.reward = round(d.rate * c.amount * rng.float(0.8, 1.5))
+            enemy = FACTIONS_BY_ID[c.commodity].short
+            c.title = f"Destroy {c.amount:g} {enemy} hull(s)"
+        elif kind == "relic":
+            c.commodity = "xenolith"
+            c.amount = rng.int(1, 3)
+            c.reward = round(d.rate * c.amount * rng.float(0.9, 1.3))
+            c.title = f"Deliver {c.amount:g} intact xenolith(s)"
+        else:                                   # expedition
+            target = _pick_target(rng, game, sysm, far=rng.chance(0.6))
+            landable = [b for b in target.bodies if b.kind not in ("gas", "star")]
+            if not landable:
+                continue
+            body = rng.pick(landable)
+            c.target_system = target.id
+            c.target_body = body.id
+            c.amount = 1
+            c.reward = round(d.rate * rng.float(0.8, 1.5))
+            c.title = f"Put a party on {body.name}"
+
+        # Distance and urgency both pay.
+        if c.target_system is not None:
+            ly = distance(game.galaxy.systems[c.target_system], sysm)
+            c.reward = round(c.reward * (1 + ly / 40))
+        out.append(c)
+    return out
+
+
+# ── the player's book ──────────────────────────────────────────────────────
+
+def accept(game, contract: Contract) -> tuple[bool, str]:
+    active = [c for c in game.contracts if not c.done and not c.failed]
+    if len(active) >= MAX_ACTIVE:
+        return False, f"You are already carrying {MAX_ACTIVE} contracts."
+    contract.accepted = True
+    game.contracts.append(contract)
+    return True, ""
+
+
+def abandon(game, contract: Contract) -> None:
+    contract.failed = True
+    game.adjust_rep(contract.issuer, -contract.rep)
+
+
+def _cargo_held(game, cid: str) -> float:
+    return game.ship.cargo.get(cid, 0) + game.stores.get(cid, 0)
+
+
+def check(game) -> list[tuple[Contract, str]]:
+    """Advance every accepted contract. Returns (contract, outcome) events."""
+    events: list[tuple[Contract, str]] = []
+    for c in list(game.contracts):
+        if c.done or c.failed:
+            continue
+        if game.day > c.deadline:
+            c.failed = True
+            game.adjust_rep(c.issuer, -c.rep)
+            events.append((c, "expired"))
+            continue
+
+        if c.kind == "deliver":
+            if (game.location_id == c.target_system
+                    and _cargo_held(game, c.commodity) >= c.amount):
+                _take_cargo(game, c.commodity, c.amount)
+                _pay(game, c)
+                events.append((c, "done"))
+        elif c.kind in ("prospect", "relic"):
+            here = game.system.port and game.location_id == c.issued_at
+            if here and _cargo_held(game, c.commodity) >= c.amount:
+                _take_cargo(game, c.commodity, c.amount)
+                _pay(game, c)
+                events.append((c, "done"))
+        elif c.kind == "survey":
+            target = game.galaxy.systems[c.target_system]
+            c.progress = sum(1 for b in target.bodies if b.surveyed)
+            if c.progress >= c.amount:
+                _pay(game, c)
+                events.append((c, "done"))
+        elif c.kind == "expedition":
+            if c.progress >= 1:
+                _pay(game, c)
+                events.append((c, "done"))
+    return events
+
+
+def note_kill(game, faction_id: str | None) -> list[Contract]:
+    """Combat tells the book when something has been destroyed."""
+    hit = []
+    for c in game.contracts:
+        if c.done or c.failed or c.kind != "bounty":
+            continue
+        if faction_id and c.commodity == faction_id:
+            c.progress += 1
+            if c.progress >= c.amount:
+                _pay(game, c)
+            hit.append(c)
+    return hit
+
+
+def note_landing(game, system_id: int, body_id: str) -> list[Contract]:
+    """A landing party reports in against any ground contract."""
+    hit = []
+    for c in game.contracts:
+        if c.done or c.failed or c.kind != "expedition":
+            continue
+        if c.target_system == system_id and c.target_body == body_id:
+            c.progress = 1
+            hit.append(c)
+    return hit
+
+
+def _take_cargo(game, cid: str, amount: float) -> None:
+    from .ship import add_cargo
+    from_ship = min(game.ship.cargo.get(cid, 0), amount)
+    add_cargo(game.ship, cid, -from_ship)
+    rest = amount - from_ship
+    if rest > 0:
+        game.stores[cid] = max(0.0, game.stores.get(cid, 0) - rest)
+
+
+def _pay(game, c: Contract) -> None:
+    c.done = True
+    game.credits += c.reward
+    game.adjust_rep(c.issuer, c.rep)
+
+
+def active(game) -> list[Contract]:
+    return [c for c in game.contracts if not c.done and not c.failed]
+
+
+def summary(c: Contract, day: int) -> str:
+    left = c.days_left(day)
+    return f"{cr(c.reward)} · {left} day(s) left"

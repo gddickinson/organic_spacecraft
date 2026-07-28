@@ -14,6 +14,7 @@ from ..data import chassis as chassis_data
 from ..data import parts as parts_data
 from ..data.xenotech import CULTURES, XENOTECH, XENOTECH_BY_ID
 from ..sim import actions
+from ..sim import fieldwork
 from ..sim import xeno as xeno_sim
 from ..world import galaxy
 from .harness import Suite
@@ -78,11 +79,11 @@ def run(suite: Suite) -> None:
         g.location_id = sysm.id
         body = sysm.bodies[idx]
         body.relic_found = True
-        first = actions.excavate(g, idx)
+        first = fieldwork.excavate(g, idx)
         assert first["ok"], first.get("why")
         assert first["points"] > 0, "a dig taught us nothing"
         assert body.digs == 1, "the site does not remember being worked"
-        second = actions.excavate(g, idx)
+        second = fieldwork.excavate(g, idx)
         assert second["points"] < first["points"], (
             f"returning to a worked site paid the same: "
             f"{first['points']:.0f} then {second['points']:.0f}")

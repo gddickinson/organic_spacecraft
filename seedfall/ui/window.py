@@ -173,6 +173,7 @@ class MainWindow(QMainWindow):
     def _make_views(self) -> None:
         from .battle_view import BattleView
         from .codex_view import CodexView
+        from .expedition_view import ExpeditionView
         from .empire_view import EmpireView
         from .map_view import MapView
         from .port_view import PortView
@@ -185,6 +186,7 @@ class MainWindow(QMainWindow):
             "map": MapView, "system": SystemView, "port": PortView,
             "ship": ShipView, "yard": YardView, "tech": TechView,
             "empire": EmpireView, "codex": CodexView, "battle": BattleView,
+            "ground": ExpeditionView,
         }
         for vid, cls in classes.items():
             view = cls(self)
@@ -198,6 +200,10 @@ class MainWindow(QMainWindow):
         if self.battle is not None and not self.battle.over and view_id != "battle":
             self.toast("You are under fire. Finish the engagement first.", "warn")
             view_id = "battle"
+        elif (getattr(self.game, "expedition", None) is not None
+              and view_id not in ("ground", "battle")):
+            self.toast("A party is on the ground. Bring them up first.", "warn")
+            view_id = "ground"
         if self.current is not None:
             self.views[self.current].hide()
         self.current = view_id

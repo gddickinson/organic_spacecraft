@@ -13,7 +13,7 @@ from ..core.util import credits as cr
 from ..core.util import num, pct
 from ..data.xenotech import CULTURES, CULTURES_BY_ID, XENOTECH_BY_ID, by_culture
 from ..sim import xeno as xeno_sim
-from ..sim.actions import analyse, has_laboratory
+from ..sim.fieldwork import analyse, has_laboratory
 from .widgets import (Panel, Pill, View, button, label, mono_label, note, spacer)
 
 

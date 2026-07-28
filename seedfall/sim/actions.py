@@ -12,8 +12,6 @@ from .crew import grant_xp
 from .encounters import roll_encounter, roll_event
 from .ship import add_cargo, apply_damage, cargo_free, hull_pct
 from .threat import cleanse
-from . import xeno as xeno_sim
-from ..data.xenotech import CULTURES_BY_ID, XENOTECH_BY_ID
 
 
 def jump_quote(game, target) -> dict:
@@ -185,150 +183,6 @@ def dive(game, body_index: int) -> dict:
     return {"ok": True, "found": found, "contact": contact}
 
 
-def has_laboratory(game) -> bool:
-    """A polyp lab aboard, or a reef or reactivated array in this system."""
-    from ..data.colonies import COLONIES_BY_ID
-    if "polyp_lab" in game.ship.fitted and "polyp_lab" not in game.ship.disabled:
-        return True
-    if "ossuary_archive" in game.ship.fitted:
-        return True
-    for c in game.colonies:
-        if not (c.online and c.system_id == game.location_id):
-            continue
-        fx = COLONIES_BY_ID[c.class_id].effects
-        if fx.get("medical") or fx.get("xenoyard"):
-            return True
-    return False
-
-
-def excavate(game, body_index: int) -> dict:
-    """Dig a relic site. Yields understanding, relics, and occasionally a hole."""
-    body = game.system.bodies[body_index]
-    if not body.relic or not body.relic_found:
-        return {"ok": False, "why": "Nothing here has been found worth digging."}
-    tech = XENOTECH_BY_ID.get(body.relic)
-    if tech is None:
-        return {"ok": False, "why": "The site is unreadable."}
-
-    r = game.rng("dig")
-    days = 12 + r.int(0, 8)
-    game.advance_days(days)
-    if game.dead:
-        return {"ok": True, "dead": True}
-
-    lab = has_laboratory(game)
-    worked = body.digs
-    # Each return trip to the same site yields less; the easy material goes first.
-    fatigue = max(0.25, 1 - worked * 0.28)
-    points = xeno_sim.dig_value(r, game.ship_stats.scan, lab) * fatigue
-    _points, done = xeno_sim.add_study(game, tech.id, points)
-    body.digs += 1
-
-    relics = 0
-    if r.chance(0.55 * fatigue):
-        room = cargo_free(game.ship, game.ship_stats)
-        relics = min(r.int(1, 2), int(room / 0.2))
-        if relics > 0:
-            add_cargo(game.ship, "xenolith", relics)
-
-    research_sim.grant(game.research, round(points * 0.5))
-    grant_xp(game.officers, "science", 30)
-
-    mishap = None
-    if r.chance(0.16):
-        dmg = r.int(20, 70)
-        apply_damage(game.ship, dmg)
-        mishap = ("The face collapsed onto the lander. Nobody was lost and the "
-                  f"hull took {dmg}.")
-
-    game.add_log(f"Excavated {tech.name} at {body.name}: "
-                 f"{round(points)} points of understanding.",
-                 "good" if done else "")
-    return {"ok": True, "tech": tech, "points": points, "relics": relics,
-            "days": days, "incorporated": done, "lab": lab, "mishap": mishap,
-            "exhausted": fatigue <= 0.3}
-
-
-def analyse(game, tech_id: str, count: int) -> dict:
-    """Take relics apart in a laboratory to understand a specific technology."""
-    tech = XENOTECH_BY_ID.get(tech_id)
-    if tech is None:
-        return {"ok": False, "why": "No such technology."}
-    if xeno_sim.is_incorporated(game, tech_id):
-        return {"ok": False, "why": f"{tech.name} is already yours."}
-    held = game.ship.cargo.get("xenolith", 0)
-    n = min(count, int(held))
-    if n < 1:
-        return {"ok": False, "why": "No relics aboard to take apart."}
-
-    lab = has_laboratory(game)
-    days = 4 + n * 2
-    game.advance_days(days)
-    if game.dead:
-        return {"ok": True, "dead": True}
-
-    add_cargo(game.ship, "xenolith", -n)
-    points = xeno_sim.analyse_value(n, lab, game.ship_stats.research)
-    _p, done = xeno_sim.add_study(game, tech_id, points)
-    grant_xp(game.officers, "science", 20 * n)
-    game.add_log(f"Analysed {n} relic(s) toward {tech.name}: "
-                 f"{round(points)} points.", "good" if done else "")
-    return {"ok": True, "tech": tech, "points": points, "used": n,
-            "days": days, "incorporated": done, "lab": lab}
-
-
-def buy_field_notes(game, tech_id: str) -> dict:
-    """Somebody else's excavation notes, for sale at a port."""
-    tech = XENOTECH_BY_ID.get(tech_id)
-    if tech is None:
-        return {"ok": False, "why": "No such technology."}
-    if xeno_sim.is_incorporated(game, tech_id):
-        return {"ok": False, "why": f"{tech.name} is already yours."}
-    sysm = game.system
-    if not sysm.port:
-        return {"ok": False, "why": "No port here."}
-    price = xeno_notes_price(game, tech)
-    if game.credits < price:
-        return {"ok": False, "why": f"They want {round(price)} credits for it."}
-
-    game.credits -= price
-    r = game.rng("notes")
-    points = tech.study * r.float(0.16, 0.28)
-    _p, done = xeno_sim.add_study(game, tech_id, points)
-    game.adjust_rep(sysm.port.faction, 1)
-    game.add_log(f"Bought field notes on {tech.name}: {round(points)} points.",
-                 "good" if done else "")
-    return {"ok": True, "tech": tech, "points": points, "price": price,
-            "incorporated": done}
-
-
-def xeno_notes_price(game, tech) -> int:
-    """What a port charges for notes — the Dry Choir has the best and knows it."""
-    base = tech.study * 26
-    fac = game.system.port.faction if game.system.port else None
-    if fac == "sanhedrin":
-        base *= 0.8
-    elif fac == "freeholds":
-        base *= 0.95
-    elif fac == "charter":
-        base *= 1.15
-    return round(base * (1 - game.ship_stats.trade * 0.4))
-
-
-def seize_notes(game, faction_id: str, rng) -> dict | None:
-    """Salvage from a kill: somebody else's understanding, taken intact."""
-    odds = {"sanhedrin": 0.55, "freeholds": 0.30, "concordat": 0.18,
-            "charter": 0.22, "bloom": 0.05}
-    if not rng.chance(odds.get(faction_id, 0.15)):
-        return None
-    target = xeno_sim.best_unfinished(game)
-    if target is None:
-        return None
-    points = target.study * rng.float(0.10, 0.22)
-    _p, done = xeno_sim.add_study(game, target.id, points)
-    return {"tech": target, "points": points, "incorporated": done}
-
-
 def burn_bloom(game) -> dict:
     """Burn out a Bloom mass. Expensive, and it fights back."""
     system = game.system
@@ -348,6 +202,66 @@ def burn_bloom(game) -> dict:
         res["dead"] = True
     res["ok"] = True
     return res
+
+
+def is_stranded(game) -> bool:
+    """No fuel for any reachable system, and no way to make any here."""
+    from ..world.galaxy import in_range
+    reach = in_range(game.galaxy.systems, game.system, game.ship_stats.jump)
+    fuel = game.ship.cargo.get("volatiles", 0)
+    if any(fuel >= jump_quote(game, s)["fuel"] for s in reach):
+        return False
+    if game.system.port and game.system.market:
+        # A port can always sell you fuel, if you can pay for anything at all.
+        cheapest = min((jump_quote(game, s)["fuel"] for s in reach), default=99)
+        from ..world.economy import buy_price
+        price = buy_price(game.system.market, "volatiles",
+                          game.rep.get(game.system.port.faction, 0)) or 40
+        if game.credits >= price * (cheapest - fuel):
+            return False
+    # Can we make our own out of ice in this system?
+    if game.ship_stats.drink > 0 and any(
+            b.resources.get("volatiles", 0) > 0.05 for b in game.system.bodies):
+        return False
+    return bool(reach)
+
+
+def distress_call(game) -> dict:
+    """Broadcast for a tow. Somebody always comes; nobody comes for free."""
+    from ..world.galaxy import nearest_port
+    if not is_stranded(game):
+        return {"ok": False, "why": "You are not stranded — you can still move."}
+    port = nearest_port(game.galaxy.systems, game.system)
+    if port is None:
+        return {"ok": False, "why": "There is no port left in the Verge to answer."}
+
+    faction = port.port.faction
+    days = 20 + game.rng("tow").int(5, 25)
+    game.advance_days(days)
+    if game.dead:
+        return {"ok": True, "dead": True}
+    game.location_id = port.id
+    port.visited = True
+    game.adjust_rep(faction, -12)
+    add_cargo(game.ship, "volatiles", 20)
+    game.credits = max(0.0, game.credits - 2000)
+    game.add_log(f"Answered by {faction}. Towed to {port.name}; they logged it, "
+                 "and they will remember.", "warn")
+    return {"ok": True, "port": port, "days": days, "faction": faction}
+
+
+def launch_exodus(game) -> dict:
+    """Take the ark and go. This ends the chronicle."""
+    ark = (game.ship if game.ship.chassis == "leviathan"
+           else next((s for s in game.fleet if s.chassis == "leviathan"), None))
+    if ark is None:
+        return {"ok": False, "why": "You have no LEVIATHAN. Twelve drums, or nothing."}
+    berths = sum(c.pop for c in game.colonies if c.online)
+    game.flags["exodus_launched"] = True
+    game.add_log("The trunk meristem stood down. The Verge is a light behind you.",
+                 "good")
+    game.advance_days(1)
+    return {"ok": True, "ark": ark, "carried": berths}
 
 
 def transfer(game, cid: str, units: float, to_ship: bool) -> float:

@@ -7,6 +7,7 @@ from ..core.util import duration, num, pct
 from ..data.commodities import BY_ID
 from ..data.lore import VICTORIES
 from ..sim.threat import victory_progress
+from ..sim.actions import launch_exodus
 from .widgets import Panel, Pill, View, button, label, mono_label, note, spacer
 
 
@@ -26,6 +27,9 @@ class EmpireView(View):
             button("Wait a year", lambda: self._wait(365)),
             label("Colonies yield while you wait. So does the Bloom.", "note"))
 
+        ark = self._exodus()
+        if ark is not None:
+            self.col.addWidget(ark)
         self.row(self._colonies(), self._victories())
         self.col.addWidget(self._depot())
 
@@ -38,6 +42,36 @@ class EmpireView(View):
         self.win.toast(f"{duration(days)} passed. Treasury {cr(gain)}.",
                        "chloro" if gain >= 0 else "osteo")
         self.win.refresh()
+
+    def _exodus(self) -> Panel | None:
+        """Offered only once a LEVIATHAN exists — it ends the chronicle."""
+        g = self.game
+        has_ark = (g.ship.chassis == "leviathan"
+                   or any(s.chassis == "leviathan" for s in g.fleet))
+        if not has_ark or g.flags.get("exodus_launched"):
+            return None
+        pop = sum(c.pop for c in g.colonies if c.online)
+        p = Panel("The ark is ready", "osteo")
+        p.add(label(
+            "Twelve drums, ten million berths and a course out. Launching ends "
+            "the chronicle here: you concede the Verge and carry the biology "
+            "somewhere it can start again with better rules.", "", wrap=True))
+        p.add_row("Citizens who would sail", num(round(pop)))
+        p.add_buttons(button("Launch the Exodus", self._launch, kind="danger"))
+        return p
+
+    def _launch(self) -> None:
+        if not self.win.confirm(
+                "Launch the Exodus",
+                "The trunk meristem stands down and the ark leaves. This ends "
+                "the chronicle — there is no coming back to the Verge.",
+                "Go", "Stay"):
+            return
+        res = launch_exodus(self.game)
+        if not res.get("ok"):
+            self.win.toast(res["why"], "warn")
+            return
+        self.win.check_ending()
 
     def _colonies(self) -> Panel:
         g = self.game

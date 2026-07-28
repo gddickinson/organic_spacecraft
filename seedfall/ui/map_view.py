@@ -11,10 +11,10 @@ from PyQt6.QtWidgets import QSizePolicy, QWidget
 
 from ..core.util import duration, num
 from ..data.factions import FACTIONS_BY_ID
-from ..sim.actions import jump_quote, jump_to
+from ..sim.actions import distress_call, is_stranded, jump_quote, jump_to
 from ..world.galaxy import distance
 from . import theme
-from .widgets import Panel, View, button, label, mono_label, note
+from .widgets import Panel, View, button, label, mono_label, note, spacer
 
 FACTION_COLOUR = {k: theme.tint(v) for k, v in theme.FACTION_TINT.items()}
 
@@ -229,7 +229,32 @@ class MapView(View):
             panel.add_buttons(button(
                 f"Set course — {duration(q['days'])}" if q["in_range"] else "Out of range",
                 self._jump, kind="primary", enabled=q["in_range"]))
+
+        if is_stranded(g):
+            panel.add(spacer(4))
+            panel.add(label(
+                "You cannot reach anywhere, cannot buy reaction mass and cannot "
+                "make any here. Somebody will come if you ask — and they will "
+                "remember that you asked.", "", "warn", wrap=True))
+            panel.add_buttons(button("Broadcast distress", self._distress,
+                                     kind="danger"))
         return panel
+
+    def _distress(self) -> None:
+        res = distress_call(self.game)
+        if not res.get("ok"):
+            self.win.toast(res["why"], "warn")
+            return
+        if self.win.check_ending():
+            return
+        self.win.dialog(
+            "Answered",
+            [f"A {res['faction']} tender reached you after {res['days']} days and "
+             f"towed you to {res['port'].name}. They took two thousand credits, "
+             "left twenty tonnes of reaction mass, and logged the whole thing."],
+            [("Log it", None)])
+        self.selected = self.game.location_id
+        self.win.refresh()
 
     def _jump(self) -> None:
         res = jump_to(self.game, self.selected)

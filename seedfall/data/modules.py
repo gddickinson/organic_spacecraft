@@ -144,11 +144,14 @@ MODULES: list[Part] = [
          "that neither is in charge. The cyborg thesis, fitted as a component."),
 
     # ── UTILITY ─────────────────────────────────────────────────────────────
+    # Ice processing is the root's third ingest route in the metabolism
+    # document — and without it a captain can strand with ore but no fuel.
     Part("mining_root", "Mining Root", "utility", "grown", "bioleach",
          60, {"credits": 4800, "biomass": 14, "ore": 16},
-         {"mine": 3.2, "phos": 0.10, "draw": 3},
+         {"mine": 3.2, "phos": 0.10, "drink": 0.8, "draw": 3},
          "Acidophile cells secreting sulfuric acid at the rock face, pH about "
-         "one. It dissolves the asteroid and drinks the result."),
+         "one. It dissolves the asteroid and drinks the result, and it will "
+         "melt and crack ice for water when there is no rock worth having."),
     Part("separation_gut", "Separation Gut", "utility", "grown", "separation",
          70, {"credits": 11000, "biomass": 18, "ore": 24},
          {"mine": 1.4, "phos": 0.36, "draw": 4},

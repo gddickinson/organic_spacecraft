@@ -16,6 +16,7 @@ from ..sim import research as research_sim
 from ..sim import shipyard as shipyard_sim
 from ..sim import threat as threat_sim
 from ..sim import xeno as xeno_sim
+from ..sim import contracts as contract_sim
 from ..sim.ship import (Ship, build_layers, is_breached, make_ship, repair_tick,
                         stats)
 from ..world.economy import tick_market
@@ -53,6 +54,9 @@ class Game:
     log: list = field(default_factory=list)
     discovered: dict = field(default_factory=dict)
     xeno_study: dict[str, float] = field(default_factory=dict)
+    expedition: object | None = None
+    contracts: list = field(default_factory=list)
+    boards: dict = field(default_factory=dict)
     bloom_clock: float = 0.0
     bloom_total: float = 0.0
     victory: str | None = None
@@ -176,6 +180,13 @@ class Game:
 
         # Notes banked against a technology whose prerequisites have since been
         # met can finally be made sense of.
+        for contract, outcome in contract_sim.check(self):
+            if outcome == "done":
+                self.add_log(f"Contract complete: {contract.title}. "
+                             f"Paid {round(contract.reward):,} credits.", "good")
+            else:
+                self.add_log(f"Contract expired: {contract.title}.", "bad")
+
         for tech in xeno_sim.settle(self):
             self.add_log(f"Xenotechnology incorporated: {tech.name}.", "good")
 

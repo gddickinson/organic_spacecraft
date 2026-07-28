@@ -13,7 +13,8 @@ from ..data.factions import FACTIONS_BY_ID
 from ..data.part_types import BANDS
 from ..sim import combat as combat_sim
 from ..sim import research as research_sim
-from ..sim.actions import seize_notes
+from ..sim.fieldwork import seize_notes
+from ..sim import contracts as contract_sim
 from ..sim.ship import add_cargo, cargo_free, hull_pct
 from . import theme
 from .widgets import (Bar, Panel, Pill, View, button, label, mono_label, note,
@@ -214,6 +215,10 @@ class BattleView(View):
                     add_cargo(g.ship, cid, take)
                     room -= take
                     lines.append(f"{round(take)} t of {cid} pulled out of the wreck.")
+            for c in contract_sim.note_kill(g, fid):
+                lines.append(f"Bounty progress: {c.title} "
+                             f"({int(c.progress)}/{int(c.amount)})"
+                             + (" — paid." if c.done else "."))
             seized = seize_notes(g, fid, g.rng("seize")) if fid else None
             if seized:
                 lines.append(f"Their xenology files came out intact: "

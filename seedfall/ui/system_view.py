@@ -8,7 +8,8 @@ from PyQt6.QtWidgets import QVBoxLayout, QWidget
 from ..core.util import cost_line, duration, num, pct
 from ..data.factions import FACTIONS_BY_ID
 from ..sim import colony as colony_sim
-from ..sim.actions import burn_bloom, dive, excavate, extract, survey
+from ..sim.actions import burn_bloom, dive, extract, survey
+from ..sim.fieldwork import excavate, launch_expedition
 from ..sim import xeno as xeno_sim
 from ..data.xenotech import CULTURES_BY_ID, XENOTECH_BY_ID
 from ..world.planets import BODY_KINDS
@@ -162,6 +163,8 @@ class SystemView(View):
             if (b.relic and b.relic_found
                 and not xeno_sim.is_incorporated(g, b.relic)) else None,
             button("Plant a seed", self._colonise),
+            button("Land a party", self._land)
+            if (b.surveyed and BODY_KINDS[b.kind][2]) else None,
         )
         return panel
 
@@ -223,6 +226,35 @@ class SystemView(View):
                         [text, note(f"{len(res['found']['lifeforms'])} organism(s) "
                                     "catalogued.")], [("Surface", None)])
         self.win.refresh()
+
+    def _land(self) -> None:
+        from ..data.expedition import SUPPLY_LOADS
+        g = self.game
+        if not g.officers:
+            self.win.toast("Nobody aboard to send down.", "warn")
+            return
+        body = g.system.bodies[self.selected]
+        held = int(g.ship.cargo.get("biomass", 0))
+        choices = []
+        for i, (label, tonnes, days) in enumerate(SUPPLY_LOADS):
+            mark = "" if held >= tonnes else "  — not enough biomass"
+            choices.append((f"{label}: {tonnes} t → {days} days{mark}", i))
+        choices.append(("Stay in orbit", None))
+        load = self.win.dialog(
+            f"Land on {body.name}",
+            ["Biomass goes down as supplies. The party is on its own until it "
+             "walks back to the lander, and nothing is banked until it does.",
+             note(f"{held} t of biomass in the hold. Three days to descend.")],
+            choices)
+        if load is None:
+            return
+        res = launch_expedition(g, self.selected, [o.id for o in g.officers], load)
+        if not res.get("ok"):
+            self.win.toast(res["why"], "warn")
+            return
+        if self.win.check_ending():
+            return
+        self.win.go("ground")
 
     def _excavate(self) -> None:
         res = excavate(self.game, self.selected)

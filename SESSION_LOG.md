@@ -2,6 +2,36 @@
 
 Running progress log. Newest first.
 
+## 2026-07-27 — SEEDFALL: playability audit, then the ground game
+
+- **Playability audit first, and it found two showstoppers.** `exodus_launched`
+  was read by the victory check and set by nothing, so one of the five endings
+  could never fire. And a captain could deadlock: broke, no fuel, ore in the hold
+  and no way to convert one into the other away from a port. Both fixed — there
+  is now a `launch_exodus` action, the mining root cracks ice for reaction mass
+  (which is its third ingest route in the metabolism document anyway), and a
+  distress beacon will get you towed for standing and money if there is genuinely
+  no ice either.
+- **A new `playability` suite** exists so neither class of defect returns: every
+  ending must fire from conditions a player can actually reach, twelve destitute
+  starts must all be recoverable, and a plain survey-and-sell run must stay
+  solvent for five years.
+- **Ground expeditions — a game within the game.** A lander puts a party on a 7×7
+  zone revealed one tile at a time. Supply is the clock; terrain costs days and
+  springs hazards; site features (worked stone, downed hulls, vents, sealed
+  caches, standing arrays) offer choices resolved against an officer's stat.
+  Nothing is banked until the party walks back to the lander. Known ground costs
+  one day to re-cross, which is the difference between tension and a death trap —
+  the first cut had seven expeditions in eight stranding, and now it is one.
+- **Contracts.** Six kinds — delivery, prospecting, survey commission, bounty,
+  antiquities, ground contract — posted per port, priced by distance, checked on
+  the clock so they close the moment their terms are met. Failing one costs
+  standing. Nothing requires taking any of them.
+- Two real bugs caught by rendering the screens: a zone map cached on the view was
+  destroyed with its container on every refresh, and the research card grid sized
+  its columns to content so the third column was clipped.
+- Suites: 27 simulation, 5 xenotech, 7 playability, 17 interface.
+
 ## 2026-07-27 — SEEDFALL: alien technology as its own progression
 
 - **Four alien cultures, twelve technologies, found rather than researched.** The

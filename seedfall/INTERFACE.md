@@ -19,6 +19,19 @@ from the Cell Atlas, and the reproduction-licence containment regime from the
 Fleet Registry. The other four technologies exist so that the grown fleet has
 something to be measured against.
 
+**There is a game on the ground.** Landing a party opens a 7×7 zone map revealed
+one tile at a time. Moving costs days of supply (known ground is cheap to
+re-cross, which is what makes coming home survivable); terrain springs hazards
+that officers' skills mitigate; site features offer choices resolved against a
+named stat. Nothing is banked until the party is back on the lander, and running
+out of supply in the field costs most of the haul. How much biomass you commit at
+launch buys how long they can stay.
+
+**Contracts are optional work with deadlines.** Six kinds, posted per port and
+scaled by distance. They are checked on the clock and complete the moment their
+terms are met rather than when you remember to hand them in. Nothing in the game
+requires taking one — the five endings are open from turn one.
+
 **Alien technology is a separate progression from research.** Four cultures —
 the Abyssals, the Ossuary, the Weft and the Tessellate — left twelve
 technologies scattered across the sector as buried sites. None can be reasoned
@@ -96,6 +109,9 @@ seedfall/
 │   ├── encounters.py   NPC generation and transit events
 │   ├── threat.py       Bloom growth and spread, cleansing, victory checks
 │   ├── xeno.py         study points, incorporation, alien passive bonuses
+│   ├── contracts.py    generation, acceptance, progress, expiry
+│   ├── expedition.py   the ground game: zone map, movement, attempts, hauls
+│   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
 │   └── actions.py      player actions spanning modules (jump/survey/mine/dive)
 ├── ui/                 PyQt6 presentation — never mutates state directly
 │   ├── theme.py        palette, fonts, the global stylesheet
@@ -112,6 +128,7 @@ seedfall/
 │   ├── empire_view.py  colonies, depot, victory progress, waiting
 │   ├── codex_view.py   class reference, powers, glossary, about
 │   ├── xeno_view.py    the xenology desk (hosted as a Research tab)
+│   ├── expedition_view.py  the landing zone: fogged map, party, field log
 │   └── battle_view.py  combat screen and post-engagement resolution
 └── tests/              python -m seedfall.tests
     ├── harness.py      a tiny check runner (no pytest dependency)
