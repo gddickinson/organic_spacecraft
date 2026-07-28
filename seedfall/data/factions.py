@@ -51,7 +51,8 @@ FACTIONS: list[Faction] = [
         "including the one in yours.",
         ("ore", "volatiles", "magnetite", "trehalose"),
         ("alloy", "silicon", "ore"),
-        ("pike", "bastion", "longshot", "halyard"), 0),
+        ("pike", "bastion", "longshot", "halyard", "portcullis",
+         "hammerfall", "awl", "kiln"), 0),
     Faction(
         "freeholds", "The Freeholds", "Freeholds", "osteo", "hybrid",
         "Whatever flies, flies for us.",
@@ -62,7 +63,7 @@ FACTIONS: list[Faction] = [
         "Verge where an unlicensed seed has a posted price.",
         ("xenopharma", "alloy", "silicon", "survey", "xenolith"),
         ("wildseed", "volatiles", "ore", "alloy", "licence"),
-        ("graft", "palimpsest", "pike"), 0),
+        ("graft", "palimpsest", "pike", "midden", "awl"), 0),
     Faction(
         "sanhedrin", "The Dry Choir", "Dry Choir", "xeno", "fabricated",
         "Substrate is an implementation detail.",
@@ -73,7 +74,7 @@ FACTIONS: list[Faction] = [
         "that theirs cannot, and they have never explained why.",
         ("survey", "xenolith", "trehalose"),
         ("silicon", "magnetite"),
-        ("meridian", "longshot"), -10),
+        ("cantor", "ordinal", "lattice", "theorem"), -10),
     Faction(
         "abyssals", "The Abyssals", "Abyssals", "lumen", "xeno",
         "(no rendering)",

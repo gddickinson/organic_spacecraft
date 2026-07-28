@@ -13,7 +13,8 @@ from dataclasses import dataclass, field
 
 from ..core.save import register
 from ..core.util import clamp
-from ..data.chassis import CHASSIS_BY_ID, LAYER_SETS, Chassis
+from ..data.chassis import (BASE_POWER, CHASSIS_BY_ID, LAYER_SETS, NO_REGEN,
+                            Chassis)
 from ..data.commodities import bulk_of
 from ..data.parts import part
 
@@ -87,6 +88,7 @@ class Stats:
     o2_days: float = 14
     crew_guard: float = 0
     flak: int = 0
+    refine: float = 0
     can_colonise: bool = False
     can_dive: bool = False
     has_drift: bool = False
@@ -128,7 +130,7 @@ def build_layers(ship: Ship, bonus: dict | None = None) -> Ship:
 
 _FX_KEYS = ("power draw jump speed evade sensor scan cargo berths regen vent "
             "heatCap mine drink graze phos research accuracy armour o2 morale "
-            "crewGuard flak repair colony dive drift").split()
+            "crewGuard flak repair colony dive drift refine").split()
 
 
 def stats(ship: Ship, bonus: dict | None = None, officers=()) -> Stats:
@@ -154,8 +156,9 @@ def stats(ship: Ship, bonus: dict | None = None, officers=()) -> Stats:
     sci, tac = skill("science"), skill("tactical")
     med, com = skill("medicine"), skill("comms")
 
-    # Power discipline: draw more than you generate and everything sags.
-    power = fx["power"] + (4 if ch.family == "fabricated" else 6)
+    # Power discipline: draw more than you generate and everything sags. A
+    # synthetic hull is mostly reactor and carries the largest hotel load.
+    power = fx["power"] + BASE_POWER.get(ch.family, 5)
     draw = fx["draw"]
     brownout = clamp(power / max(1, draw), 0.35, 1) if draw > power else 1.0
 
@@ -173,7 +176,7 @@ def stats(ship: Ship, bonus: dict | None = None, officers=()) -> Stats:
         heat_cap=40 + fx["heatCap"] + eng * 4,
         vent=6 + fx["vent"] + eng * 1.5,
         regen=((1 + fx["regen"] + bonus.get("regen", 0) + eng * 0.05)
-               * (0 if ch.family == "fabricated" else 1)
+               * (0 if ch.family in NO_REGEN else 1)
                + ((0.5 + eng * 0.05) if fx["repair"] else 0)),
         mine=fx["mine"] * brownout,
         drink=fx["drink"] * brownout,
@@ -182,6 +185,7 @@ def stats(ship: Ship, bonus: dict | None = None, officers=()) -> Stats:
         research=(fx["research"] + sci * 0.3) * (1 + bonus.get("research", 0)),
         o2_days=14 + fx["o2"] + med * 6,
         crew_guard=clamp(fx["crewGuard"] + med * 0.05, 0, 0.85),
+        refine=fx["refine"],
         can_colonise=fx["colony"] > 0,
         can_dive=fx["dive"] > 0,
         has_drift=fx["drift"] > 0,

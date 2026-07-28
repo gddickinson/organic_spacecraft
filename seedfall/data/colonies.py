@@ -127,6 +127,7 @@ COLONIES: list[ColonyClass] = [
         "lit from the axis by fifteen gigawatts of piped starlight. A million "
         "people living on the inside, under a sky made of the far side of their "
         "own world.", "Arca viva", {"megastructure": True}),
+    # ── stations nobody grew ────────────────────────────────────────────
     ColonyClass(
         "fab_yard", "Fabricator Yard", "fabricated", "monocoque",
         ("asteroid", "moon", "rocky"), 60,
@@ -136,6 +137,68 @@ COLONIES: list[ColonyClass] = [
         "not grow, heal, or surprise you, and it can put a corvette in the water "
         "in three weeks. The Concordat licenses these to anyone who can pay.",
         "", {"build_here": True, "fabricate": True}),
+    ColonyClass(
+        "orbital_dock", "Orbital Drydock", "fabricated", "whipple",
+        ("asteroid", "moon", "rocky", "gas"), 80,
+        {"credits": 58000, "alloy": 130, "silicon": 28},
+        {"credits": 140}, {"alloy": 0.4}, 600,
+        "Four slipways, a plate mill and a gantry crane you can see from the "
+        "next orbit. It lays down welded hulls and charges everyone else in the "
+        "system for the privilege of being repaired.",
+        "", {"build_here": True, "drydock": True}),
+    ColonyClass(
+        "refinery", "Refinery Platform", "fabricated", "monocoque",
+        ("asteroid", "moon", "rocky"), 70,
+        {"credits": 32000, "alloy": 60, "silicon": 12},
+        {"alloy": 2.2, "credits": 40}, {"ore": 3.0}, 300,
+        "Roasters, a flotation circuit and a caster. It eats three tonnes of "
+        "your ore for every two of alloy it hands back, which is a poor trade "
+        "until you notice what alloy sells for.",
+        "", {"fabricate": True}),
+    ColonyClass(
+        "monitor_station", "Monitor Station", "fabricated", "railgun",
+        ("asteroid", "moon", "rocky", "comet", "ice", "gas"), 110,
+        {"credits": 64000, "alloy": 210, "silicon": 30},
+        {}, {"alloy": 0.3, "credits": 30}, 120,
+        "Batteries, a fire-control mast and standing orders to burn anything "
+        "that germinates without a licence. It cannot chase, but nothing "
+        "unlicensed takes root in a system it is watching.",
+        "", {"ward": 0.6, "watch": True}),
+    ColonyClass(
+        "skimmer", "Helium Skimmer", "fabricated", "plasmadrive",
+        ("gas",), 90,
+        {"credits": 27000, "alloy": 52, "silicon": 10},
+        {"volatiles": 3.6, "credits": 30}, {"credits": 15}, 120,
+        "A scoop on a very long tether, trailing through the upper cloud deck "
+        "and coming back up heavy. Cheaper than a comet and it never runs out.",
+        "", {}),
+    ColonyClass(
+        "free_port", "Free Port", "hybrid", "oect",
+        ("asteroid", "moon", "rocky", "comet", "ice", "gas"), 140,
+        {"credits": 74000, "alloy": 90, "biomass": 60, "ore": 120},
+        {"credits": 260}, {"biomass": 0.2}, 5000,
+        "A Yards frame with habitat grown through it, a market floor, and a "
+        "harbourmaster who asks nothing. Opens a port in a system that had "
+        "none — which is worth rather more than the docking fees.",
+        "", {"port": True, "diplomacy": 0.03}),
+    ColonyClass(
+        "relay_choir", "Relay Choir", "synthetic", "synthmind",
+        ("asteroid", "moon", "comet", "ice", "rocky", "gas"), 100,
+        {"credits": 52000, "silicon": 60, "magnetite": 20},
+        {"research": 3.0, "survey": 0.10}, {"credits": 25}, 0,
+        "A cold rack of Dry Choir substrate that thinks about the system it sits "
+        "in and tells you what it concluded. Nobody has established whether it "
+        "is also telling anyone else.",
+        "", {"sensor": 4.0, "watch": True}),
+    ColonyClass(
+        "xeno_array", "Reactivated Array", "xeno", "xenoalloy",
+        ("rocky", "moon", "ice", "asteroid"), 260,
+        {"credits": 96000, "xenolith": 3, "silicon": 50, "biomass": 40},
+        {"research": 4.2, "xenolith": 0.01}, {"credits": 40}, 40,
+        "A kilometre of buried lattice, dug out and persuaded to run again. It "
+        "is still faintly warm, still faintly listening, and it will lay down "
+        "hulls to a plan nobody in the Verge wrote.",
+        "responsum", {"xenoyard": True, "sensor": 3.0}),
 ]
 
 COLONIES_BY_ID: dict[str, ColonyClass] = {c.id: c for c in COLONIES}

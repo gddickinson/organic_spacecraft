@@ -382,7 +382,7 @@ with its Hayflick counter cut out. Nobody has told you what to do about it.
 
 | Document | Becomes |
 |---|---|
-| Fleet Class Reference | 21 hull chassis — NAVIS, RADIX, MEDUSA, TESTUDO, LEVIATHAN and the rest, each with its real role, crew, mass and gestation time |
+| Fleet Class Reference | the 12 grown hulls — NAVIS, RADIX, MEDUSA, TESTUDO, LEVIATHAN and the rest, each with its real role, crew, mass and gestation time |
 | Design Dossier | The damage model: shots ablate the **sacrificial epidermis**, then the melanised rind, the mycelial matrix, the osteoid trusses — and only when the **pneumostat** opens does the crew start dying |
 | Metabolism | The economy. Phosphorus is 0.1% of chondrite and bone accepts no substitute, so it is the scarcest thing on the market; a hull digs ~18× its own mass in rock |
 | Cell Atlas | The fittings — mining roots, separation guts, intima blooms, radiator blooms, light-guides, torpor glands |
@@ -390,8 +390,12 @@ with its Hayflick counter cut out. Nobody has told you what to do about it.
 | Compendium | A 58-node research tree across ten branches, from mycelial matrix to parallel growth fronts |
 | Fleet Registry | The containment regime — reproduction licences, Hayflick counters, CHORUS consensus — and the six named ways it fails, one per faction |
 
-**Many ways to play.** Grow hulls from seeds, or buy fabricated ones from the
-Concordat of Yards, or graft the two together. Combat is fought on a five-band
+**Five technologies, thirty-five hulls, nineteen stations.** Grow hulls from
+seeds; buy welded ones from the Concordat of Yards; graft the two together in a
+Freehold yard; fly crewless Dry Choir synthetics that think faster than their own
+guns can be aimed; or reactivate something nobody in the Verge designed. A grown
+hull refuses a fusion lance and a Yards hull refuses an intima, so the family you
+commit to shapes what you can fit. Combat is fought on a five-band
 range track, and killing is only one way to win it: TESTUDO doctrine carries a
 thousand grams per square centimetre of regrowing carapace and no weapons at
 all, and a hull that simply refuses to die will break the other side's will to

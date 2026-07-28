@@ -126,6 +126,17 @@ class Game:
 
         repair_tick(self.ship, n, st)
 
+        # A smelter bay turns ore into alloy on the way home, which is the
+        # difference between hauling rock and hauling money.
+        if st.refine > 0:
+            ore = self.ship.cargo.get("ore", 0)
+            smelted = min(ore, st.refine * 1.5 * n)
+            if smelted > 0.01:
+                self.ship.cargo["ore"] = ore - smelted
+                if self.ship.cargo["ore"] <= 0.0001:
+                    self.ship.cargo.pop("ore", None)
+                self.ship.cargo["alloy"] = self.ship.cargo.get("alloy", 0) + smelted * 0.45
+
         for sys in self.galaxy.systems:
             if sys.market:
                 tick_market(sys.market, n, r)

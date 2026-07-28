@@ -56,6 +56,7 @@ class Port:
     faction: str
     capital: bool = False
     independent: bool = False
+    player_built: bool = False
 
 
 @register

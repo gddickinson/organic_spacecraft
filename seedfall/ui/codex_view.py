@@ -6,7 +6,8 @@ Everything here is drawn from the GESTALT documents this game sits inside.
 from __future__ import annotations
 
 from ..core.util import duration, mass, num
-from ..data.chassis import CHASSIS, FAMILY_LABEL, FAMILY_TINT
+from ..data.chassis import (CHASSIS, FAMILY_LABEL, FAMILY_NOTE,
+                            FAMILY_ORDER, FAMILY_TINT, by_family)
 from ..data.colonies import COLONIES
 from ..data.factions import FACTIONS, standing
 from ..data.lore import GLOSSARY, INTRO
@@ -37,24 +38,38 @@ class CodexView(View):
 
     def _classes(self) -> None:
         known = self.game.research.unlocked
-        cards = []
-        for c in CHASSIS:
-            have = not c.tech or c.tech in known
-            card = Card(selectable=False)
-            card.add(label(c.name, "h3", FAMILY_TINT[c.family] if have else "dim"))
-            card.add(Pill(FAMILY_LABEL[c.family], FAMILY_TINT[c.family]))
-            card.add(label(f"{c.binomial} · {c.tier}" if c.binomial else c.tier, "sub"))
-            card.add(label(c.blurb, "", wrap=True))
-            card.add(note(f"{c.role} · crew {num(c.crew)} · {mass(c.mass_t)} · "
-                          f"hull {num(c.hull)} · hold {num(c.cargo)} t · "
-                          f"jump {c.jump:g} ly · {duration(c.grow)} to build"))
-            if not have:
-                card.add(Pill(f"needs {c.tech}", "dim"))
-            cards.append(card)
-        self.grid(cards, cols=2)
+        self.col.addWidget(note(
+            f"{len(CHASSIS)} hull classes across five technologies. A grown hull "
+            "heals and eats phosphate; a fabricated one is welded in weeks and "
+            "never mends; the other three each break that trade differently."))
+        for family in FAMILY_ORDER:
+            hulls = by_family(family)
+            if not hulls:
+                continue
+            self.col.addWidget(spacer(6))
+            self.col.addWidget(label(f"{FAMILY_LABEL[family]} — {len(hulls)}",
+                                     "h3", FAMILY_TINT[family]))
+            self.col.addWidget(note(FAMILY_NOTE[family]))
+            self.grid([self._hull_card(c, known) for c in hulls], cols=2)
+
+    def _hull_card(self, c, known) -> Card:
+        have = not c.tech or c.tech in known
+        card = Card(selectable=False)
+        card.add(label(c.name, "h3", FAMILY_TINT[c.family] if have else "dim"))
+        card.add(label(f"{c.binomial} · {c.tier}" if c.binomial else c.tier, "sub"))
+        card.add(label(c.blurb, "", wrap=True))
+        card.add(note(f"{c.role} · crew {num(c.crew)} · {mass(c.mass_t)} · "
+                      f"hull {num(c.hull)} · hold {num(c.cargo)} t · "
+                      f"jump {c.jump:g} ly · {duration(c.grow)} to build"))
+        if not have:
+            card.add(Pill(f"needs {c.tech}", "dim"))
+        return card
 
     def _colonies(self) -> None:
         known = self.game.research.unlocked
+        self.col.addWidget(note(
+            f"{len(COLONIES)} station and colony classes. Plant one and walk "
+            "away; it yields every day, wherever you happen to be."))
         cards = []
         for c in COLONIES:
             have = not c.tech or c.tech in known

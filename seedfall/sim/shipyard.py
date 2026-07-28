@@ -12,7 +12,8 @@ import itertools
 from dataclasses import dataclass, field
 
 from ..core.save import register
-from ..data.chassis import CHASSIS_BY_ID, Chassis, accepts_family
+from ..data.chassis import (BUILD_NEED, CHASSIS_BY_ID, Chassis,
+                            accepts_family)
 from ..data.colonies import COLONIES_BY_ID
 from ..data.parts import part, part_value
 from .ship import Ship, build_layers, make_ship, stats
@@ -81,9 +82,9 @@ def build_days(chassis: Chassis, game, system_id: int) -> int:
     helped = any(c.online and c.system_id == system_id
                  and COLONIES_BY_ID[c.class_id].effects.get("gestation")
                  for c in game.colonies)
-    if helped and chassis.family != "fabricated":
+    if helped and chassis.family not in ("fabricated", "synthetic"):
         speed += 0.9
-    if chassis.family == "fabricated":
+    if chassis.family in ("fabricated", "synthetic"):
         speed += 0.4
     return max(4, round(chassis.grow / speed))
 
@@ -114,21 +115,34 @@ def pay(game, cost: dict) -> None:
                 game.ship.cargo.pop(key, None)
 
 
+_BUILD_REFUSAL = {
+    "shipyard": "This hull is welded, not grown — it needs a shipyard or a "
+                "fabricator yard.",
+    "gestation": "Grown hulls need a nursery — a fleet hub, or a GRAVID of your own.",
+    "xenoyard": "Nobody in the Verge knows how to lay this down. You need a "
+                "reactivated xeno array of your own.",
+}
+
+
 def can_build_here(game, system, chassis: Chassis) -> tuple[bool, str]:
     """Where can this hull be laid down?"""
     if system is None:
         return False, "Nowhere to build."
-    yard_here = any(c.online and c.system_id == system.id
-                    and COLONIES_BY_ID[c.class_id].effects.get("build_here")
-                    for c in game.colonies)
+    need = BUILD_NEED.get(chassis.family, "shipyard")
     services = system.port.services if system.port else ()
-    if chassis.family == "fabricated":
-        if "shipyard" in services or yard_here:
+
+    def colony_offers(key: str) -> bool:
+        return any(c.online and c.system_id == system.id
+                   and COLONIES_BY_ID[c.class_id].effects.get(key)
+                   for c in game.colonies)
+
+    if need == "xenoyard":
+        if colony_offers("xenoyard"):
             return True, ""
-        return False, "Fabricated hulls need a shipyard or a fabricator yard."
-    if "gestation" in services or yard_here:
+        return False, _BUILD_REFUSAL["xenoyard"]
+    if need in services or colony_offers("build_here"):
         return True, ""
-    return False, "Grown hulls need a nursery — a fleet hub, or a GRAVID of your own."
+    return False, _BUILD_REFUSAL[need]
 
 
 def start_build(game, chassis_id: str, fitted, system, name: str | None = None):

@@ -239,6 +239,13 @@ TECH: list[Tech] = [
        "Yards-standard inference silicon. Faster and more precise than anything "
        "wet, and it has never once had an opinion about being switched off.",
        research=0.10),
+    _t("dronework", "Autonomous Munitions", "fabrication", 3, ["pdc", "aicore"], 520,
+       "Small things that undock in formation and do not need telling twice. "
+       "Cheaper per kill than a gun and far harder to argue with at range."),
+    _t("synthmind", "Synthetic Cognition", "fabrication", 4, ["aicore", "ecm"], 900,
+       "The Dry Choir's own stack, sold at a price nobody has explained: a hull "
+       "that needs no air, no sleep and no persuading, and has been running the "
+       "same argument since before the Bloom.", research=0.15, scan=0.10),
     _t("nanolam", "Nanolaminate Armour", "fabrication", 4, ["whipple", "silkbone"], 900,
        "Alternating metal and ceramic at nanometre pitch, cracks arrested at "
        "every interface. The best plate anyone rolls, and it still will not grow "
@@ -278,6 +285,11 @@ TECH: list[Tech] = [
        "What lives at a hundred and fifty megapascals under twenty kilometres of "
        "ice, and the still-unanswered question of whether we had any business "
        "going to look.", research=0.18),
+    _t("xenoalloy", "Xenolith Metallurgy", "xenology", 3, ["xenobiology", "whipple"], 620,
+       "Reading a worked xenolith closely enough to lay one down again. The "
+       "lattice knits overnight and the spar grows along stress lines nobody "
+       "chose. It works; the paper explaining why is still unwritten.",
+       hull=0.10),
     _t("firstcontact", "First Contact Protocol", "xenology", 4,
        ["abyssal", "consensus"], 1100,
        "A method for speaking to something that shares no ancestor with you, and "

@@ -6,7 +6,8 @@ from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QInputDialog, QWidget
 
 from ..core.util import credits as cr
 from ..core.util import duration, num, pct
-from ..data.chassis import CHASSIS, CHASSIS_BY_ID, FAMILY_LABEL, FAMILY_TINT
+from ..data.chassis import (CHASSIS, CHASSIS_BY_ID, FAMILY_LABEL,
+                            FAMILY_NOTE, FAMILY_ORDER, FAMILY_TINT)
 from ..data.part_types import SLOT_LABEL, SLOT_ORDER
 from ..data.parts import part, parts_available
 from ..sim import shipyard
@@ -21,6 +22,7 @@ class YardView(View):
         self.tab = "refit"
         self.design_chassis = None
         self.design_fitted: list[str] = []
+        self.hull_family = "all"
 
     # ── frame ──────────────────────────────────────────────────────────────
 
@@ -49,6 +51,10 @@ class YardView(View):
         self.design_chassis = None
         self.refresh()
 
+    def _families_present(self) -> list[str]:
+        buildable = self._buildable()
+        return [f for f in FAMILY_ORDER if any(c.family == f for c in buildable)]
+
     def _ensure_design(self) -> None:
         if self.design_chassis is not None:
             return
@@ -67,8 +73,31 @@ class YardView(View):
     # ── hull picker ────────────────────────────────────────────────────────
 
     def _hull_picker(self) -> None:
+        buildable = self._buildable()
+        families = [f for f in FAMILY_ORDER if any(c.family == f for c in buildable)]
+        if self.hull_family not in families:
+            self.hull_family = families[0] if families else "grown"
+
+        tabs = TabBar([("all", f"All ({len(buildable)})")]
+                      + [(f, f"{FAMILY_LABEL[f]} "
+                             f"({sum(1 for c in buildable if c.family == f)})")
+                         for f in families],
+                      self.hull_family)
+        tabs.changed.connect(self._pick_family)
+        self.col.addWidget(tabs)
+
+        if self.hull_family != "all":
+            self.col.addWidget(note(FAMILY_NOTE[self.hull_family]))
+        else:
+            self.col.addWidget(note(
+                "A grown hull needs a nursery and months of gestation, and costs "
+                "almost nothing in credits. A fabricated hull is welded in weeks "
+                "for a great deal of money."))
+
+        shown = [c for c in buildable
+                 if self.hull_family == "all" or c.family == self.hull_family]
         cards = []
-        for c in self._buildable():
+        for c in shown:
             card = Card()
             card.add(label(c.name, "h3", FAMILY_TINT[c.family]))
             card.add(Pill(FAMILY_LABEL[c.family], FAMILY_TINT[c.family]))
@@ -77,11 +106,17 @@ class YardView(View):
             card.set_selected(c.id == self.design_chassis)
             card.clicked.connect(lambda _=False, cid=c.id: self._pick_hull(cid))
             cards.append(card)
-        self.col.addWidget(note(
-            "A grown hull needs a nursery and months of gestation, and costs almost "
-            "nothing in credits. A fabricated hull is welded in weeks for a great "
-            "deal of money."))
         self.grid(cards, cols=3)
+
+    def _pick_family(self, fid: str) -> None:
+        self.hull_family = fid
+        # Follow the filter through to the design, or you end up reading
+        # synthetic hull cards while editing the SPORE you had selected before.
+        shown = [c for c in self._buildable() if fid == "all" or c.family == fid]
+        if shown and not any(c.id == self.design_chassis for c in shown):
+            self.design_chassis = shown[0].id
+            self.design_fitted = []
+        self.refresh()
 
     def _pick_hull(self, cid: str) -> None:
         self.design_chassis = cid

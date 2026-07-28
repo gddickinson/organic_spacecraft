@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 
 from ..core.save import register
 from ..data.colonies import COLONIES_BY_ID, colonies_for
+from ..world.economy import make_market
+from ..world.galaxy import Port
 
 _uid = itertools.count(1)
 
@@ -116,6 +118,11 @@ def tick(game, days: float) -> tuple[dict, list]:
                 col.online = True
                 col.pop = c.pop
                 events.append(("good", f"{col.name} has matured and is online."))
+                if c.effects.get("port"):
+                    opened = open_harbour(game, game.galaxy.systems[col.system_id])
+                    if opened:
+                        events.append(("good", f"{opened.name} now has a market "
+                                               "flying your colours."))
             continue
 
         affordable = True
@@ -150,6 +157,31 @@ def tick(game, days: float) -> tuple[dict, list]:
     return gains, events
 
 
+def open_harbour(game, system):
+    """A Free Port puts a market where there was none. Returns the system, or
+    None if the system already had a harbour of its own."""
+    if system.port is not None:
+        return None
+    system.port = Port("outpost", "Free Port", 2, ("market", "repair", "recruit"),
+                       "freeholds", independent=True, player_built=True)
+    system.market = make_market(game.rng("harbour"), system)
+    return system
+
+
+def close_harbour(game, system) -> bool:
+    """Take the harbour away again if the last Free Port there is gone."""
+    if not (system.port and system.port.player_built):
+        return False
+    still = any(c.online and c.system_id == system.id
+                and COLONIES_BY_ID[c.class_id].effects.get("port")
+                for c in game.colonies)
+    if still:
+        return False
+    system.port = None
+    system.market = None
+    return True
+
+
 def effects(game) -> dict:
     """Aggregate colony effects the rest of the game asks about."""
     out = {"sensor_by_system": {}, "build_systems": set(), "watch_systems": set(),
@@ -175,18 +207,35 @@ def effects(game) -> dict:
     return out
 
 
+def ward_at(game, system_id: int) -> float:
+    """How strongly a system is defended against unlicensed growth, 0..0.9."""
+    total = sum(COLONIES_BY_ID[c.class_id].effects.get("ward", 0.0)
+                for c in game.colonies
+                if c.online and c.system_id == system_id)
+    return min(0.9, total)
+
+
 def bloom_attack(game, system, rng) -> list[Colony]:
-    """The Bloom eats colonies it reaches."""
+    """The Bloom eats colonies it reaches — unless something is shooting back.
+
+    A station that wards the system also has guns pointed at its own perimeter,
+    so it is markedly harder to overgrow than the farm next door. It is not
+    immortal: given years enough, the Bloom gets everything unattended.
+    """
     here = [c for c in game.colonies if c.system_id == system.id]
+    system_ward = ward_at(game, system.id)
     lost = []
     for col in here:
-        if rng.chance(0.30 * system.bloom):
+        own = COLONIES_BY_ID[col.class_id].effects.get("ward", 0.0)
+        guard = min(0.92, system_ward + own * 0.5)
+        if rng.chance(0.30 * system.bloom * (1 - guard)):
             body = next((b for b in system.bodies if b.id == col.body_id), None)
             if body:
                 body.colony = None
             lost.append(col)
     if lost:
         game.colonies = [c for c in game.colonies if c not in lost]
+        close_harbour(game, system)
     return lost
 
 

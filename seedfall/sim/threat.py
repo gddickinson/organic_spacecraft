@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from ..data.lore import VICTORIES
 from ..world.galaxy import distance
-from .colony import bloom_attack
+from .colony import bloom_attack, ward_at
 
 SPREAD_INTERVAL = 30    # days between growth ticks
 
@@ -33,7 +33,14 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
         held = [s for s in systems if s.bloom > 0.02]
 
         for s in held:
-            s.bloom = min(1.0, s.bloom + 0.025 + s.bloom * 0.035)
+            # A monitor both slows the growth and burns back what it can reach.
+            # A fully-watched system holds its line and slowly loses ground; it
+            # will not clear a heavy infestation on its own, which is what the
+            # guns on your own hull are for.
+            ward = ward_at(game, s.id)
+            growth = ((0.025 + s.bloom * 0.035) * (1 - ward)
+                      - ward * (0.020 + s.bloom * 0.030))
+            s.bloom = max(0.0, min(1.0, s.bloom + growth))
             for col in bloom_attack(game, s, rng):
                 events.append(("bad", f"{col.name} has been overgrown and is lost."))
 
@@ -41,7 +48,7 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
         for s in [x for x in held if x.bloom > 0.6]:
             clean = sorted((t for t in systems if t.bloom < 0.02 and distance(s, t) < 11),
                            key=lambda t: distance(s, t))
-            if clean and rng.chance(0.14):
+            if clean and rng.chance(0.14 * (1 - ward_at(game, clean[0].id))):
                 clean[0].bloom = 0.10
                 events.append(("bad", f"Unlicensed growth detected at {clean[0].name}."))
 

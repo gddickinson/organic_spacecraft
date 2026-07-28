@@ -11,6 +11,7 @@ from ..core import save as save_mod
 from ..core.rng import RNG
 from ..core.state import Game, has_save, load_game, new_game
 from ..data import chassis as chassis_data
+from ..data.hull_types import BUILD_NEED, LAYER_SETS, NO_REGEN
 from ..data import parts as parts_data
 from ..data import tech as tech_data
 from ..data.colonies import COLONIES
@@ -195,6 +196,116 @@ def run(suite: Suite) -> None:
         ok, _, _ = shipyard.validate(pike, ["intima_bloom"])
         assert not ok, "grafted an intima onto a Yards hull"
         return "slot limits and family rules enforced"
+
+    @check("every technology family is complete and coherent")
+    def _():
+        report = []
+        for family in chassis_data.FAMILY_ORDER:
+            hulls = chassis_data.by_family(family)
+            assert hulls, f"{family} has no hulls"
+            layers = LAYER_SETS.get(family)
+            assert layers, f"{family} has no layer stack"
+            total = sum(l.w for l in layers)
+            assert abs(total - 1.0) < 1e-6, f"{family} layer weights sum to {total}"
+            assert any(l.critical for l in layers), f"{family} has no critical layer"
+            assert family in BUILD_NEED, f"{family} has no build requirement"
+            assert family in chassis_data.FAMILY_LABEL, f"{family} has no label"
+            assert family in chassis_data.FAMILY_TINT, f"{family} has no tint"
+            report.append(f"{family}:{len(hulls)}")
+        return " ".join(report)
+
+    @check("hull families accept and refuse the right parts")
+    def _():
+        cases = [
+            ("navis", "intima_bloom", True), ("navis", "fusion_lance", False),
+            ("navis", "coherent_beam", False),
+            ("pike", "railgun", True), ("pike", "intima_bloom", False),
+            ("ordinal", "coherent_beam", True), ("ordinal", "railgun", True),
+            ("ordinal", "intima_bloom", False),
+            ("antiphon", "xeno_lattice", True), ("antiphon", "intima_bloom", False),
+            ("palimpsest", "intima_bloom", True), ("palimpsest", "railgun", True),
+            ("palimpsest", "coherent_beam", False),
+        ]
+        for hull, pid, want in cases:
+            ch = chassis_data.CHASSIS_BY_ID[hull]
+            got = chassis_data.accepts_family(ch, parts_data.PARTS_BY_ID[pid].family)
+            assert got is want, f"{hull} + {pid}: expected {want}, got {got}"
+        return f"{len(cases)} graft rules hold"
+
+    @check("only the mechanical families refuse to heal")
+    def _():
+        healing, inert = [], []
+        for c in chassis_data.CHASSIS:
+            st = stats(make_ship(c.id, []))
+            (inert if st.regen == 0 else healing).append(c.family)
+        assert set(inert) <= NO_REGEN, f"unexpected non-healing family: {set(inert)}"
+        assert not (set(healing) & NO_REGEN), f"{set(healing) & NO_REGEN} healed"
+        return f"{len(inert)} inert hulls, {len(healing)} that mend"
+
+    @check("every station class is plantable and its effects are understood")
+    def _():
+        known_effects = {"gestation", "build_here", "sensor", "watch", "drift",
+                         "diplomacy", "medical", "vault", "megastructure",
+                         "fabricate", "ward", "port", "xenoyard", "drydock"}
+        kinds = {"asteroid", "comet", "rocky", "ocean", "gas", "moon", "ice", "star"}
+        for c in COLONIES:
+            assert c.sites, f"{c.id} can be planted nowhere"
+            bad_sites = set(c.sites) - kinds
+            assert not bad_sites, f"{c.id} lists unknown site {bad_sites}"
+            bad_fx = set(c.effects) - known_effects
+            assert not bad_fx, f"{c.id} has unhandled effect {bad_fx}"
+            assert c.family in chassis_data.FAMILY_LABEL, f"{c.id} odd family"
+        fams = {c.family for c in COLONIES}
+        return f"{len(COLONIES)} classes across {len(fams)} technologies"
+
+    @check("a Free Port opens a market where there was none")
+    def _():
+        g = new_game("harbour-seed")
+        g.research.unlocked.append("oect")
+        g.ship.fitted.append("seed_bay")
+        g.credits = 999999
+        for k in ("alloy", "biomass", "ore"):
+            g.stores[k] = 999
+        g.recompute()
+        target = next(s for s in g.galaxy.systems if s.port is None and s.bloom < 0.1)
+        g.location_id = target.id
+        col, why = colony_sim.found(g, target, target.bodies[0], "free_port")
+        assert col, why
+        assert target.port is None, "harbour opened before the station matured"
+        g.advance_days(col.need + 5)
+        assert target.port is not None, "matured Free Port opened no harbour"
+        assert target.market is not None, "harbour has no market"
+        assert target.port.player_built, "harbour not marked as yours"
+        price = economy.buy_price(target.market, "ore")
+        assert price and price > 0, "market carries no prices"
+        return f"{target.name} now trades ore at {price}"
+
+    @check("a Monitor Station holds the Bloom off")
+    def _():
+        # Averaged over trials: a single unlucky roll should not decide whether
+        # a game mechanic is judged to work.
+        def mean_bloom(warded: bool, years: int, trials: int = 8) -> float:
+            total = 0.0
+            for t in range(trials):
+                g = new_game(f"ward-{t}")
+                # A partially-infested system, not the origin: that one is
+                # already pinned at 1.0, where a ward has nothing to hold back.
+                hot = next((s for s in g.galaxy.systems if 0.1 < s.bloom < 0.6), None)
+                if hot is None:
+                    continue
+                if warded:
+                    g.colonies.append(colony_sim.Colony(
+                        id=900 + t, class_id="monitor_station", name="watch",
+                        system_id=hot.id, body_id=hot.bodies[0].id, need=1,
+                        days=1, online=True))
+                threat.tick(g, 365 * years, RNG(f"ward-run-{t}"))
+                total += hot.bloom
+            return total / trials
+
+        bare, guarded = mean_bloom(False, 2), mean_bloom(True, 2)
+        assert guarded < bare - 0.05, (
+            f"ward barely mattered: {bare:.2f} unwatched vs {guarded:.2f} watched")
+        return f"2 years: {bare:.2f} unwatched → {guarded:.2f} watched (8 trials each)"
 
     @check("combat always terminates and spans real outcomes")
     def _():

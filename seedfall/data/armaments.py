@@ -163,4 +163,25 @@ ARMAMENTS: list[Part] = [
          "thing you truly must get rid of; this buys a few more minutes of "
          "ignoring that.",
          ability=Ability("vent", "Emergency Vent", 4)),
+    Part("mass_driver", "Mass Driver", "weapon", "fabricated", "railgun",
+         120, {"credits": 27000, "alloy": 58, "silicon": 12}, {"draw": 12},
+         "A coilgun long enough to need its own keel, throwing unrefined slag "
+         "at the horizon. The ammunition is whatever you were standing on.",
+         wpn=Weapon(41, (3, 4), 9, -0.05, ("ore", 2))),
+    Part("drone_bay", "Drone Bay", "weapon", "fabricated", "dronework",
+         70, {"credits": 23000, "alloy": 30, "silicon": 20}, {"draw": 6},
+         "Racks of small autonomous things that undock, form up, and do not "
+         "come back. Banned in two jurisdictions and standard in the other four.",
+         wpn=Weapon(27, (1, 3), 3, 0.08, ("alloy", 1), ("seeking",))),
+    Part("coherent_beam", "Coherent Beam", "weapon", "synthetic", "synthmind",
+         90, {"credits": 44000, "silicon": 34, "alloy": 24}, {"draw": 20},
+         "A phased optical array firing on a solution computed after the shot "
+         "was already in flight. It does not miss so much as decline to.",
+         wpn=Weapon(33, (2, 4), 15, 0.20, None, ("pierce",))),
+    Part("phase_screen", "Phase Screen", "defence", "synthetic", "synthmind",
+         46, {"credits": 26000, "silicon": 22, "magnetite": 8},
+         {"evade": 0.16, "armour": 3, "draw": 9},
+         "The hull is somewhere in a cloud of plausible hulls. Gunnery officers "
+         "describe shooting at it as demoralising.",
+         ability=Ability("jam", "Fold the Screen", 3)),
 ]

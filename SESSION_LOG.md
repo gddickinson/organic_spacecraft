@@ -2,6 +2,47 @@
 
 Running progress log. Newest first.
 
+## 2026-07-27 — SEEDFALL: five technologies, not one
+
+- **Hull roster 21 → 35, stations 12 → 19**, across five technology families
+  rather than three. The GESTALT grown fleet is now one option among several
+  instead of the only real choice.
+- **Two new families.** *Synthetic* — Dry Choir vessels (CANTOR, LATTICE,
+  ORDINAL, THEOREM): crewless, no atmosphere plant, a photonic skin over a
+  spaceframe wrapped around a substrate vault, superb instruments and no
+  self-repair whatsoever. *Xeno* — REVENANT and ANTIPHON, laid down to a plan
+  nobody in the Verge wrote; they mend like a grown hull and ring audibly when
+  something large moves nearby.
+- **Seven new fabricated hulls** filling the gaps the Yards line had — TENDER
+  (tug), AWL (smuggler), KILN (mobile refinery), CARAVEL (passenger liner),
+  SPINDLE (deep survey), PORTCULLIS (system monitor), HAMMERFALL (siege) — plus
+  the MIDDEN hybrid ship-breaker.
+- **Eight new stations spanning the technologies**: Orbital Drydock, Refinery
+  Platform, Monitor Station and Helium Skimmer (fabricated), Free Port (hybrid),
+  Relay Choir (synthetic) and Reactivated Array (xeno).
+- **Two new station mechanics.** A **Free Port** opens a market in a system that
+  had none, which is worth considerably more than its docking fees. A **Monitor
+  Station** wards its system: it slows the Bloom, burns back what it can reach,
+  and — since it is the thing with the guns — defends itself far better than the
+  farm next door. Averaged over eight trials, two unattended years take a system
+  from 0.24 to 0.75 infestation; watched, it falls to 0.20.
+- **Three new technologies** (Autonomous Munitions, Synthetic Cognition, Xenolith
+  Metallurgy) and ten new parts, including a smelter bay that turns ore into
+  alloy in the hold on the way home.
+- **Structural change**: hulls moved out of `data/chassis.py` into
+  `hull_types.py` (layer stacks and the family rules), `hulls_grown.py` and
+  `hulls_built.py`, with `chassis.py` reduced to the registry. Every import site
+  in the game was left untouched, and no file crossed 500 lines.
+- **Six new checks** covering the new ground: every family complete and coherent
+  (layer weights summing to one, a critical layer, a build requirement, a tint);
+  the graft rules that let a hybrid take an intima and refuse a coherent beam;
+  only the mechanical families refusing to heal; every station's effect keys
+  drawn from a closed vocabulary; the Free Port opening a real market; and the
+  monitor ward. That last one caught two real bugs — the station was being eaten
+  by the Bloom before its ward could apply, and the hull picker kept editing a
+  SPORE while showing you synthetic hull cards. Suite now 27 simulation + 15
+  interface checks.
+
 ## 2026-07-27 — SEEDFALL: the programme as a playable RPG (PyQt6)
 
 - **New `seedfall/` package**: a native desktop space exploration / trading /

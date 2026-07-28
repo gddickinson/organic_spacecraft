@@ -206,4 +206,36 @@ MODULES: list[Part] = [
          {"repair": 1, "draw": 5},
          "Manipulators, plate stock and a very patient welding crew. Fabricated "
          "hulls do not heal, so somebody has to be holding the torch."),
+    Part("swarm_logic", "Swarm Logic Core", "compute", "synthetic", "dronework",
+         26, {"credits": 22000, "silicon": 18, "alloy": 8},
+         {"accuracy": 0.16, "research": 0.5, "draw": 6, "sensor": 0.6},
+         "Eleven hundred small minds voting on where to be. It is not clever, "
+         "individually, and collectively it does not need to be."),
+    Part("cold_ledger", "Cold Ledger", "compute", "synthetic", "synthmind",
+         30, {"credits": 38000, "silicon": 30},
+         {"accuracy": 0.22, "jump": 1.2, "research": 1.4, "draw": 7},
+         "The Dry Choir's own inference stack, sold sealed. It answers "
+         "navigation problems before the question finishes and declines to "
+         "discuss anything else."),
+    Part("cryo_hold", "Cryogenic Berths", "utility", "fabricated", "monocoque",
+         48, {"credits": 9800, "alloy": 26, "silicon": 6},
+         {"berths": 60, "cargo": 40, "o2": 40},
+         "Sixty bunks and a chiller, in the volume a grown liner would give to "
+         "resin glands. Passengers arrive tired rather than young."),
+    Part("smelter_bay", "Smelter Bay", "utility", "fabricated", "monocoque",
+         110, {"credits": 16000, "alloy": 44, "silicon": 10},
+         {"mine": 1.2, "refine": 1, "draw": 12, "heatCap": 10},
+         "An arc furnace and a caster in the hold. Turns ore into alloy on the "
+         "way home, which is the difference between hauling rock and hauling "
+         "money."),
+    Part("survey_boom", "Survey Boom", "sensor", "fabricated", "aicore",
+         44, {"credits": 15000, "alloy": 20, "silicon": 14},
+         {"sensor": 3.0, "scan": 0.26, "research": 0.5, "draw": 5},
+         "A kilometre of unfolded truss holding the instruments far enough from "
+         "the reactor to hear anything at all."),
+    Part("xeno_lattice", "Xenolith Lattice", "defence", "xeno", "xenoalloy",
+         50, {"credits": 30000, "xenolith": 1, "silicon": 12},
+         {"armour": 9, "regen": 0.20, "hullMul": 0.10},
+         "Grown to a pattern read off a relic. It knits overnight, it rings when "
+         "struck, and the ringing is somehow load-bearing."),
 ]
