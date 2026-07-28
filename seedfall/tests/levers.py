@@ -31,7 +31,7 @@ from ..sim.ship import build_layers, make_ship, stats
 from ..world.economy import buy_price
 from . import captain_ai
 from .efficacy import Lever
-from .probes import (_bench_overdraw, _hard_burn_hull, _wasted_ground,
+from .probes import (_annex_research, _bench_overdraw, _hard_burn_hull, _wasted_ground,
                      _chart_spread, _contract_net, _cut_dig_points,
                      _desk_runs, _kill_goodwill, _levied_output,
                      _note_evidence, _smuggling_purse,
@@ -240,6 +240,14 @@ def _crossing_days() -> float:
     return total / runs
 
 LEVERS: list[Lever] = [
+    Lever("work-gates",
+          "a colony work names a technology that exists",
+          patch=(works_sim, "available",
+                 lambda _g, _c: [(w, False, "off") for w in
+                                 __import__("seedfall.data.works",
+                                            fromlist=["WORKS"]).WORKS]),
+          probe=_annex_research, direction="lower"),
+
     Lever("bench-pacing",
           "the bench eats what the screen says it will",
           patch=(inquiry, "span_of", lambda _t, _r, _rate: 60.0),

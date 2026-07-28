@@ -81,7 +81,10 @@ WORKS: list[Work] = [
          "Benches, a clean room and somewhere to put things nobody understands "
          "yet. Findings go up the chain to your own people first.",
          days=100, cost={"credits": 11000, "alloy": 22},
-         tech="xenolinguistics",
+         # Was "xenolinguistics", which is in neither the research tree nor the
+         # xenotechnologies — so no colony in the game could ever build this,
+         # measured at 0 of 19 classes with everything unlocked.
+         tech="xenobiology",
          yield_add={"research": 0.5}, effects={"diplomacy": 0.04}),
 
     Work("harbour", "Open a free harbour",

@@ -74,7 +74,7 @@ def _stocked(seed: str):
     game = new_game(seed)
     game.credits = 900000
     game.ship.fitted.append("seed_bay")
-    for tech in ("bioleach", "melanin", "oect", "intima", "xenolinguistics"):
+    for tech in ("bioleach", "melanin", "oect", "intima", "xenobiology"):
         game.research.unlocked.append(tech)
     game.recompute()
     for key in ("alloy", "ore", "biomass", "volatiles", "phosphate"):

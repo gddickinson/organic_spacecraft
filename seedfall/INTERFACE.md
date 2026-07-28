@@ -258,13 +258,14 @@ seedfall/
     ├── test_workings.py 7 mining checks — the rig stops when the hold is full
     ├── test_burns.py   7 burn checks — heat, cooking, and a real profile choice
     ├── test_bench.py   5 bench checks — the draw matches what the screen says
+    ├── test_works.py   5 works checks — nothing gated behind a phantom tech
     ├── captain_bot.py  the long-game captain the playability checks fly
     ├── probes.py       the newer efficacy probes, split out of levers.py
     ├── test_dig.py     6 dig checks — strata, methods, banking, backfilling
     ├── test_resume.py  5 resume checks — anything half-done survives a save
     ├── efficacy.py     the harness: neutralise a feature, measure the world
     ├── levers.py       one entry per claim the game makes about a number
-    ├── test_efficacy.py 26 checks — every feature has to move something
+    ├── test_efficacy.py 27 checks — every feature has to move something
     ├── test_reachable.py 4 reachability checks — nothing written and uncalled
     ├── test_verbs.py   10 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
@@ -519,6 +520,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **Nothing is gated behind a technology that does not exist.** "Build a
+  xenology annex" — 100 days, 11,000 credits, +0.5 research a day and +0.04
+  diplomacy — was gated on `tech="xenolinguistics"`, which is in neither the
+  research tree nor the xenotechnologies. It was buildable by 0 of 19 colony
+  classes with everything in the game unlocked. One entry in the whole content
+  set was wrong; `test_works.py` now checks all 131 gated entries across works,
+  colonies, parts and chassis, plus every tech prerequisite.
+- **A test fixture was part of why it hid.** `test_verbs` appended the phantom
+  id to `research.unlocked`, so the sweep that clicks every control saw a work
+  no real chronicle could reach. A fixture that invents content is a fixture
+  that stops the suite noticing content is missing.
 - **What the bench says a programme will eat is what it eats.** `needs()` is
   documented as the end-to-end total and the screen prints it as "26 wanted";
   `draw()` then spent `total / 60` a day while a careful programme runs about
@@ -807,6 +819,9 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   them home, and fails unless the shelf, the provenance and the evidence all
   survive — including across a save. It also checks every note is reachable and
   that the draw prefers ones you lack, so no written discovery is unfindable.
+- **`test_works.py`** builds every work on every colony class that will take
+  it and fails unless each changes what its table says it changes, unless every
+  work is buildable by somebody, and unless every gate names a real technology.
 - **`test_bench.py`** runs programmes to completion on every approach and
   fails unless what was quoted is what came off the shelves. Restoring the
   hardcoded sixty makes it report "the bench takes 2.06x what it advertises".

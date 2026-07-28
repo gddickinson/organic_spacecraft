@@ -2,6 +2,37 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a work nobody could build
+
+- **Measured colony works for the first time, and got it wrong twice before
+  getting it right.** First pass compared each work across a *different* seed,
+  so I was comparing different colonies on different bodies. Second pass fixed
+  the seed and still showed four works with large negative yields — building a
+  garrison apparently cutting output 29%. That was market drift: I was pricing
+  the yield in credits at a market whose prices move over the 70–140 days of
+  construction. Measured in tonnes, every work does exactly what its table
+  says. Sixth measurement artefact of this project; caught before it became a
+  finding.
+- **Then a real one, and it took a third correction to see.** `annex` was
+  offered by no colony. My first reachability sweep had not unlocked the tech
+  it wants, so `available()` returned it as *not ok* and my filter dropped it —
+  seventh artefact. Unlocking everything in the game and running it again:
+  **buildable by 0 of 19 classes.**
+- **"Build a xenology annex" was gated on a technology that does not exist.**
+  A hundred days, eleven thousand credits and twenty-two alloy, granting half a
+  research point a day and four points of diplomacy, behind
+  `tech="xenolinguistics"` — which is in neither the sixty-one-node research
+  tree nor the twelve xenotechnologies. Nobody could ever build it.
+- **It is the only broken gate in the whole content set.** Works, colonies,
+  parts, chassis and every tech prerequisite: 131 gated entries, one wrong.
+  Pointed at `xenobiology`, and there is now a check over all of them.
+- **A test fixture was part of why it hid.** `test_verbs` appended the phantom
+  id to `research.unlocked`, so the sweep that clicks every control in the game
+  saw a work no real chronicle could reach. A fixture that invents content is a
+  fixture that stops the suite noticing content is missing — that is fixed too.
+- Suites: 40, **5 works** (new) among them — 329 checks green. 182 modules, all
+  under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a bench that eats what it says
 
 - **Measured the research bench for the first time.** Most of it is sound: the

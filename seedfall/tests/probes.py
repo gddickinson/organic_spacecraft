@@ -20,6 +20,30 @@ from ..sim import inquiry
 
 # ── the desk finds runs your own notes cannot ──────────────────────────────
 
+def _annex_research() -> float:
+    """Research a day from colony works a captain can actually build."""
+    from ..data.colonies import COLONIES
+    from ..data.tech import TECH
+    from ..sim import works as works_sim
+    from ..sim.colony import Colony
+    total = 0.0
+    game = new_game("lever-works")
+    game.credits = 9_000_000
+    for key in ("alloy", "ore", "biomass", "volatiles", "phosphate"):
+        game.stores[key] = 900_000
+    game.research.unlocked.extend(t.id for t in TECH)
+    game.recompute()
+    for klass in COLONIES:
+        colony = Colony(id=1, class_id=klass.id, name=klass.name,
+                        system_id=game.location_id, body_id="0", need=1,
+                        online=True, pop=klass.pop)
+        buildable = [w.id for w, ok, _why in works_sim.available(game, colony)
+                     if ok]
+        colony.works.extend(buildable)
+        total += works_sim.yields_of(colony).get("research", 0.0)
+    return total
+
+
 def _bench_overdraw() -> float:
     """How much more the bench eats than the screen says it will."""
     from ..sim import inquiry
