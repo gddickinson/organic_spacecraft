@@ -2,6 +2,34 @@
 
 Running progress log. Newest first.
 
+## 2026-07-27 — SEEDFALL: combat becomes positional, with crew stations
+
+- **A real plane.** Ships now carry a position, heading and speed. The five range
+  bands survive — every weapon is specified in them — but the band is *derived*
+  from an actual separation rather than stored, so all the existing band logic
+  kept working while closing became a manoeuvre instead of a menu pick.
+- **Firing arcs.** Every mount fires through fore, broadside or turret, derived
+  from what it is: fixed lances look forward, point defence and anything
+  self-guiding traverses. A mount outside its arc refuses to fire and says how
+  many degrees off it is, so turning to bring a gun to bear is a decision worth a
+  turn.
+- **Three crew stations, one of you.** Each turn you take Helm, Gunnery or
+  Engineering personally; your officers hold the other two at their own level.
+  Directed gunnery shoots markedly better than automatic. Engineering routes
+  power to the mounts or the drive, patches the outermost breach, or dumps heat.
+  Twelve orders across the three.
+- **The enemy uses the same geometry** — it steers for the range its mounts want
+  and comes about when its fixed arcs are pointing the wrong way. It does not
+  cheat the plot.
+- **A tactical plot** on the battle screen: range rings, both hulls drawn as
+  headings, the line of sight labelled with the range, your forward arc sketched,
+  and a per-mount readout saying "bears", "60° off arc" or "out of range".
+- Modules split to stay under the line limit: `tactical`, `stations`,
+  `battle_state`, `enemy_ai` and `abilities` came out of `combat`. Two interface
+  bugs fixed on the way — a nav hint reading "keys 1–90", and a salvo control
+  duplicated between the fire row and the gunnery station.
+- Suites: 27 simulation, 5 xenotech, 14 playability, 2 tactical, 21 interface.
+
 ## 2026-07-27 — SEEDFALL: diplomacy with two axes
 
 - **A relations matrix between the powers.** Standing with a faction was a number

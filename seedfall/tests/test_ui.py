@@ -128,6 +128,26 @@ def run(suite) -> bool:
         game.location_id = port_sys.id
         return "body kinds covered: " + ", ".join(sorted(kinds))
 
+    @check("the tactical plot draws and station orders drive it")
+    def _():
+        from ..sim import encounters, stations as st_mod
+        enemy = encounters.make_enemy(RNG("plot-ui"), "freeholds", 2)
+        win.begin_combat({"enemy": enemy, "intro": "plot test"}, "system")
+        view = win.views["battle"]
+        view.grab()
+        b = win.battle
+        start_range = b.range_units
+        for order in ("close", "salvo", "route_guns", "comeabout", "damage_control"):
+            if b.over:
+                break
+            view._act({"type": "station", "order": order})
+            view.grab()
+        assert b.turn > 1, "no station order advanced the turn"
+        assert abs(b.range_units - start_range) > 0, "nothing moved on the plot"
+        win.battle = None
+        win.go("map")
+        return f"plot drew across {len(st_mod.STATIONS)} stations"
+
     @check("battle screen renders a live engagement and takes a turn")
     def _():
         enemy = encounters.make_enemy(RNG("ui-battle"), "freeholds", 2)

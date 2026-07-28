@@ -19,6 +19,19 @@ from the Cell Atlas, and the reproduction-licence containment regime from the
 Fleet Registry. The other four technologies exist so that the grown fleet has
 something to be measured against.
 
+**Combat is positional.** Ships carry a heading and a speed on a real plane.
+The five range bands still exist — weapons are specified in them — but the band
+is *derived* from an actual separation rather than stored, so closing is a
+manoeuvre rather than a menu pick. Every mount has a firing arc (fore, broadside,
+turret) and will refuse to fire outside it, which makes turning to bring a gun to
+bear a real decision.
+
+**And you can only sit in one seat.** Each turn you take one station personally —
+Helm, Gunnery or Engineering — and your officers hold the other two at their own
+level, which is competent and worse than you. Directed gunnery shoots markedly
+better than automatic; engineering routes power, patches the outermost breach or
+dumps heat; the helm decides what will bear next turn.
+
 **The Bloom is an antagonist, not a timer.** Five named stages advanced by the
 sector-wide burden: past Motile it keeps roaming instars in the field that prefer
 your colonies to empty ground; past Adaptive it builds resistance (up to 55%) to
@@ -135,7 +148,12 @@ seedfall/
 ├── sim/                game rules — never import Qt
 │   ├── ship.py         Ship model, stats(), layer stack, cargo, repair
 │   ├── shipyard.py     design validation, costing, build queue, refit
-│   ├── combat.py       five-band tactical combat, layer damage, resolve
+│   ├── combat.py       turn resolution, firing, damage, endings
+│   ├── battle_state.py the Side and Battle shapes, shared by resolver/AI/UI
+│   ├── tactical.py     the plane: positions, headings, firing arcs, bands
+│   ├── stations.py     helm / gunnery / engineering orders
+│   ├── enemy_ai.py     how the other side fights — same geometry, no cheating
+│   ├── abilities.py    defensive abilities, returning their own log lines
 │   ├── colony.py       founding, daily yields, aggregate colony effects
 │   ├── research.py     project selection and point accrual
 │   ├── crew.py         officers, recruitment, experience, morale

@@ -150,8 +150,8 @@ class MainWindow(QMainWindow):
             self.nav_buttons[vid] = b
             v.addWidget(b)
         v.addStretch(1)
-        v.addWidget(label(f"  keys 1–{min(9, len(NAV))}"
-                  + ("0" if len(NAV) > 9 else ""), "note"))
+        v.addWidget(label("  keys 1–9, 0" if len(NAV) > 9
+                  else f"  keys 1–{len(NAV)}", "note"))
         return rail
 
     def _build_log(self) -> QWidget:

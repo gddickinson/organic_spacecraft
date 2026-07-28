@@ -4,13 +4,19 @@ not shooting at all."""
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QHBoxLayout, QWidget
+import math
+
+from PyQt6.QtCore import QPointF, QRectF
+from PyQt6.QtGui import QColor, QFont, QPainter, QPen, QPolygonF
+from PyQt6.QtWidgets import QHBoxLayout, QSizePolicy, QWidget
 
 from ..core.util import credits as cr
 from ..core.util import num, pct
 from ..data.chassis import CHASSIS_BY_ID
 from ..data.factions import FACTIONS_BY_ID
 from ..data.part_types import BANDS
+from ..sim import stations as st_mod
+from ..sim import tactical as tac
 from ..sim import combat as combat_sim
 from ..sim import research as research_sim
 from ..sim.fieldwork import seize_notes
@@ -42,6 +48,13 @@ class BattleView(View):
         if b.intro and b.turn == 1:
             self.col.addWidget(label(b.intro, "", wrap=True))
 
+        holder = QWidget()
+        hh = QHBoxLayout(holder)
+        hh.setContentsMargins(0, 0, 0, 0)
+        hh.setSpacing(14)
+        hh.addWidget(self._plot(b), 0)
+        hh.addWidget(self._readout(b), 1)
+        self.col.addWidget(holder)
         self.col.addWidget(self._band_track(b))
         self.row(self._ship_panel(b, b.player, self.game.ship.name),
                  self._ship_panel(b, b.enemy, b.enemy_name))
@@ -49,6 +62,9 @@ class BattleView(View):
         self.col.addWidget(self._log(b))
 
     # ── display ────────────────────────────────────────────────────────────
+
+    def _plot(self, b) -> QWidget:
+        return TacticalPlot(b)
 
     def _band_track(self, b) -> QWidget:
         w = QWidget()
@@ -100,11 +116,34 @@ class BattleView(View):
             p.add(label(", ".join(flags), "", "warn"))
         return p
 
+    def _readout(self, b) -> Panel:
+        p = Panel("Plot")
+        p.add_row("Range", f"{round(b.range_units)} · {BANDS[b.band].lower()}")
+        p.add_row("Your speed", f"{round(b.player.body.speed)}")
+        p.add_row("Their speed", f"{round(b.enemy.body.speed)}")
+        rel = tac.relative_bearing(b.player.body, b.enemy.body)
+        p.add_row("Target bearing", f"{round(rel)}° off the bow")
+        p.add(spacer(4), mono_label("Mounts"))
+        if not b.player.st.weapons:
+            p.add(note("No armament fitted."))
+        for w in b.player.st.weapons:
+            arc = tac.arc_of(w)
+            bears, gap = st_mod.bears_on(b.player, b.enemy, w)
+            ranged = w.wpn.bears_at(b.band) <= 0.5
+            if bears and ranged:
+                statusd, tint = "bears", "chloro"
+            elif not bears:
+                statusd, tint = f"{round(gap)}° off arc", "warn"
+            else:
+                statusd, tint = "out of range", "osteo"
+            p.add_row(f"{w.name} · {tac.arc_name(arc)}", statusd, tint)
+        return p
+
     def _orders(self, b) -> Panel:
         st = b.player.st
         p = Panel("Orders")
 
-        p.add(mono_label("Fire"))
+        p.add(mono_label("Fire a single mount"))
         fire_row = QWidget()
         fh = QHBoxLayout(fire_row)
         fh.setContentsMargins(0, 0, 0, 0)
@@ -113,11 +152,6 @@ class BattleView(View):
             fh.addWidget(note("No armament fitted. Charter doctrine, or an oversight "
                               "— either way you must outlast them, talk them down, "
                               "or run."))
-        if len(st.weapons) > 1:
-            fh.addWidget(button("Full salvo", lambda: self._act({"type": "salvo"}),
-                                kind="primary",
-                                tip="Fire every mount that will bear. More damage, "
-                                    "far more heat and ammunition."))
         for w in st.weapons:
             pen = w.wpn.bears_at(b.band)
             fh.addWidget(button(w.name + (" (long shot)" if pen > 0 else ""),
@@ -143,13 +177,28 @@ class BattleView(View):
             ah.addStretch(1)
             p.add(ab_row)
 
-        p.add(spacer(3), mono_label("Manoeuvre"))
+        p.add(spacer(4), mono_label("Stations — you may take one this turn"))
+        p.add(note("The officers hold the other two at their own level, which is "
+                   "competent and not as good as you."))
+        for sid, name, stat, blurb in st_mod.STATIONS:
+            level = st_mod.officer_level(b.officers, stat)
+            p.add(spacer(3))
+            p.add(label(f"{name}  ·  officer level {level}", "h3",
+                        "chloro" if sid == b.player.station else ""))
+            p.add(note(blurb))
+            row = QWidget()
+            h = QHBoxLayout(row)
+            h.setContentsMargins(0, 0, 0, 0)
+            h.setSpacing(6)
+            for order in st_mod.orders_for(sid):
+                h.addWidget(button(order.name, tip=order.blurb,
+                                   on_click=lambda _=False, o=order.id:
+                                       self._act({"type": "station", "order": o})))
+            h.addStretch(1)
+            p.add(row)
+
+        p.add(spacer(4), mono_label("Other"))
         p.add_buttons(
-            button("Close", lambda: self._act({"type": "move", "dir": -1}),
-                   enabled=b.band > 0),
-            button("Open range", lambda: self._act({"type": "move", "dir": 1}),
-                   enabled=b.band < 4),
-            button("Brace and vent", lambda: self._act({"type": "brace"})),
             button("Hail them", lambda: self._act({"type": "hail"})),
             button("Disengage", lambda: self._act({"type": "flee"}), kind="flat")
             if b.fleeable else None)
@@ -255,3 +304,76 @@ class BattleView(View):
         self.win.dialog(titles.get(b.result, "Engagement over"), body,
                         [("Back to the bridge", None)])
         self.win.end_combat()
+
+
+class TacticalPlot(QWidget):
+    """The engagement from above: two hulls, their headings, and the arcs.
+
+    Range bands are drawn as rings around your ship so the abstract numbers the
+    weapons are specified in have somewhere to live on the picture.
+    """
+
+    SIZE = 380
+
+    def __init__(self, battle):
+        super().__init__()
+        self.b = battle
+        self.setFixedSize(self.SIZE, self.SIZE)
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+
+    def _scale(self):
+        span = max(tac.BAND_UNITS * 5.2, self.b.range_units * 2.3)
+        return (self.SIZE / 2 - 14) / (span / 2)
+
+    def _pt(self, body, origin, s) -> QPointF:
+        return QPointF(self.SIZE / 2 + (body.x - origin.x) * s,
+                       self.SIZE / 2 + (body.y - origin.y) * s)
+
+    def paintEvent(self, _ev):  # noqa: N802
+        b = self.b
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.fillRect(self.rect(), QColor("#060f0d"))
+        s = self._scale()
+        mid = b.player.body
+
+        # range rings, one per band
+        for band in range(1, 5):
+            r = tac.BAND_UNITS * band * s
+            p.setPen(QPen(QColor(150, 196, 176, 34), 1))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawEllipse(QPointF(self.SIZE / 2, self.SIZE / 2), r, r)
+
+        self._draw_ship(p, b.player, mid, s, theme.tint("chloro"), True)
+        self._draw_ship(p, b.enemy, mid, s, theme.tint("warn"), False)
+
+        # the line of sight, labelled with the range
+        a = self._pt(b.player.body, mid, s)
+        c = self._pt(b.enemy.body, mid, s)
+        p.setPen(QPen(QColor(150, 196, 176, 60), 1, Qt.PenStyle.DashLine))
+        p.drawLine(a, c)
+        p.setFont(QFont(theme.mono_family(), 8))
+        p.setPen(QColor(theme.INK3))
+        p.drawText(QRectF((a.x() + c.x()) / 2 - 40, (a.y() + c.y()) / 2 - 14, 80, 14),
+                   Qt.AlignmentFlag.AlignHCenter, f"{round(b.range_units)}")
+        p.end()
+
+    def _draw_ship(self, p, side, origin, s, colour, mine: bool) -> None:
+        pos = self._pt(side.body, origin, s)
+        rad = math.radians(side.body.heading)
+        nose = QPointF(pos.x() + math.sin(rad) * 13, pos.y() - math.cos(rad) * 13)
+        left = QPointF(pos.x() + math.sin(rad + 2.5) * 9,
+                       pos.y() - math.cos(rad + 2.5) * 9)
+        right = QPointF(pos.x() + math.sin(rad - 2.5) * 9,
+                        pos.y() - math.cos(rad - 2.5) * 9)
+        p.setPen(QPen(QColor(colour), 1.6))
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.drawPolygon(QPolygonF([nose, left, right]))
+
+        if mine:
+            # sketch the forward arc so turning to bear is legible
+            p.setPen(QPen(QColor(colour).darker(160), 1, Qt.PenStyle.DotLine))
+            for sign in (1, -1):
+                edge = math.radians(side.body.heading + sign * 60)
+                p.drawLine(pos, QPointF(pos.x() + math.sin(edge) * 46,
+                                        pos.y() - math.cos(edge) * 46))

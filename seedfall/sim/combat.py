@@ -13,6 +13,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..core.util import clamp
+from .battle_state import Battle, Side
+from . import stations as st_mod
+from . import tactical as tac
+from .abilities import use_ability as _fire_ability
+from .enemy_ai import enemy_turn as _enemy_turn
 from ..data.part_types import BANDS
 from ..data.parts import part
 from .ship import (Ship, Stats, add_cargo, hull_pct, is_breached, is_destroyed,
@@ -23,64 +28,25 @@ MAX_TURNS = 40
 GRIND_TURN = 9      # turns of clean fighting before either side starts wanting out
 
 #: personality -> (close preference, fire chance, flee chance)
-STYLES = {
-    "aggressive": (0.55, 0.90, 0.05),
-    "balanced": (0.35, 0.80, 0.18),
-    "cautious": (0.15, 0.65, 0.40),
-    "feral": (0.80, 0.95, 0.00),
-}
-
-
-@dataclass
-class Side:
-    ship: Ship
-    st: Stats
-    personality: str = "balanced"
-    resolve: float = 100.0
-    blind: int = 0
-    jammed: int = 0
-    grappled: int = 0
-    interpose: int = 0
-    braced: bool = False
-    cd: dict = field(default_factory=dict)
-    dealt: float = 0.0
-    taken: float = 0.0
-
-
-@dataclass
-class Battle:
-    player: Side
-    enemy: Side
-    enemy_name: str
-    enemy_faction: str | None
-    band: int = 3
-    turn: int = 1
-    over: bool = False
-    result: str | None = None
-    log: list = field(default_factory=list)
-    intro: str = ""
-    loot: dict = field(default_factory=dict)
-    no_parley: bool = False
-    fleeable: bool = True
-    rep: float = 0.0
-    bonuses: dict = field(default_factory=dict)
-    officers: list = field(default_factory=list)
-    game: object | None = None      # for Bloom adaptation; never saved
-
-
 def start(player_ship, player_stats, enemy, *, bonuses=None, officers=(),
-          rep=0.0, no_parley=False, band=3, game=None) -> Battle:
+          rep=0.0, no_parley=False, band=3, game=None, rng=None) -> Battle:
     b = Battle(
         player=Side(player_ship, player_stats, "player"),
         enemy=Side(enemy["ship"], enemy["stats"], enemy.get("personality", "balanced")),
         enemy_name=enemy.get("name", "Unknown contact"),
         enemy_faction=enemy.get("faction"),
-        band=band, no_parley=no_parley, rep=rep,
+        no_parley=no_parley, rep=rep,
         bonuses=dict(bonuses or {}), officers=list(officers), game=game,
         loot=dict(enemy.get("loot", {})),
     )
     b.enemy.resolve = enemy.get("resolve", 100)
-    _say(b, f"{b.enemy_name} closes to {BANDS[b.band].lower()} range.", "warn")
+    if rng is not None:
+        b.player.body, b.enemy.body = tac.initial_layout(rng, band)
+    else:
+        b.player.body = tac.Body2D(0, 0, 0, 0)
+        b.enemy.body = tac.Body2D(0, -(band + 0.5) * tac.BAND_UNITS, 180, 0)
+    _say(b, f"{b.enemy_name} at {BANDS[b.band].lower()} range, "
+            f"{round(b.range_units)} units off.", "warn")
     return b
 
 
@@ -104,6 +70,11 @@ def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng) -> None:
     if pen > 0.6:
         _say(b, f"{_who(b, frm)} cannot bring the {w.name} to bear at this range.", "dim")
         return
+    in_arc, gap = st_mod.bears_on(frm, to, w)
+    if not in_arc:
+        _say(b, f"The {w.name} will not train that far — {round(gap)}° outside its "
+                f"{tac.arc_name(tac.arc_of(w)).lower()} arc.", "dim")
+        return
 
     if w.wpn.ammo:
         cid, per = w.wpn.ammo
@@ -121,8 +92,11 @@ def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng) -> None:
         return
 
     evade = 0.0 if seeking else to.st.evade + (0.08 if to.braced else 0)
+    directed = frm.station == "gunnery"
+    officers = b.officers if frm is b.player else ()
     acc = (frm.st.accuracy + w.wpn.acc - pen - frm.blind * 0.3 - frm.jammed * 0.25
-           + (frm.ship.morale - 0.7) * 0.15)
+           + (frm.ship.morale - 0.7) * 0.15
+           + st_mod.accuracy_modifier(frm, directed, officers))
     if not rng.chance(clamp(acc - evade, 0.05, 0.95)):
         _say(b, f"{w.name} misses {_who(b, to)}.", "dim")
         return
@@ -169,7 +143,8 @@ def _salvo(b: Battle, frm: Side, to: Side, rng) -> None:
     matter if they all speak at once. The cost is heat and ammunition, which is
     why a single aimed shot stays a real option.
     """
-    bearing = [w for w in frm.st.weapons if w.wpn.bears_at(b.band) <= 0.5]
+    bearing = [w for w in frm.st.weapons
+               if w.wpn.bears_at(b.band) <= 0.5 and st_mod.bears_on(frm, to, w)[0]]
     if not bearing:
         _say(b, f"{_who(b, frm)} has nothing that will bear at this range.", "dim")
         return
@@ -257,88 +232,7 @@ def _disable(b: Battle, to: Side, rng, verb: str = "A surge knocks out") -> None
 
 # ── abilities ──────────────────────────────────────────────────────────────
 
-def use_ability(b: Battle, s: Side, ability_id: str, rng) -> bool:
-    if s.cd.get(ability_id, 0) > 0:
-        return False
-    if not any(p.ability.id == ability_id for p in s.st.abilities):
-        return False
-    ab = next(p.ability for p in s.st.abilities if p.ability.id == ability_id)
-    s.cd[ability_id] = ab.cd
-
-    if ability_id == "regrow":
-        healed = 0.0
-        for L in reversed(s.ship.layers):
-            if L.hp >= L.max:
-                continue
-            gain = min(L.max - L.hp, L.max * 0.30)
-            L.hp += gain
-            healed += gain
-            break
-        _say(b, f"{_who(b, s)} floods a blastema into the wound — "
-                f"{round(healed)} regrown.", "good")
-    elif ability_id == "seal":
-        s.st.armour += 4
-        _say(b, f"{_who(b, s)} irises its bulkheads shut and gives up the "
-                "breached compartment.", "good")
-    elif ability_id == "interpose":
-        s.interpose = 2
-        _say(b, f"{_who(b, s)} turns its carapace into the fire.", "good")
-    elif ability_id == "shed":
-        ep = s.ship.layers[0]
-        ep.hp = min(ep.max, ep.hp + round(ep.max * 0.5))
-        s.braced = True
-        _say(b, f"{_who(b, s)} sheds its epidermis whole and grows the next one "
-                "behind it.", "good")
-    elif ability_id == "vent":
-        s.ship.heat = max(0.0, s.ship.heat - 45)
-        _say(b, f"{_who(b, s)} dumps its heat sinks. The hull glows.", "good")
-    elif ability_id == "jam":
-        (b.enemy if s is b.player else b.player).jammed = 2
-        _say(b, f"{_who(b, s)} floods the guidance bands with nonsense.", "good")
-    else:
-        return False
-    return True
-
-
 # ── turn resolution ────────────────────────────────────────────────────────
-
-def _enemy_turn(b: Battle, rng) -> None:
-    e = b.enemy
-    close, fire_p, flee_p = STYLES.get(e.personality, STYLES["balanced"])
-
-    if e.resolve <= 0 or (hull_pct(e.ship) < 0.25 and rng.chance(flee_p)):
-        if not e.grappled:
-            _finish(b, "driven-off")
-            return
-        _say(b, f"{b.enemy_name} tries to break away and cannot — the grapple holds.",
-             "good")
-
-    if e.ship.heat > e.st.heat_cap and any(p.ability.id == "vent" for p in e.st.abilities):
-        if use_ability(b, e, "vent", rng):
-            return
-    if hull_pct(e.ship) < 0.5 and rng.chance(0.55):
-        for aid in ("regrow", "interpose", "seal"):
-            if any(p.ability.id == aid for p in e.st.abilities) and not e.cd.get(aid):
-                if use_ability(b, e, aid, rng):
-                    return
-
-    usable = [w for w in e.st.weapons if w.wpn.bears_at(b.band) <= 0.25]
-    if usable and rng.chance(fire_p):
-        # Hot or badly hurt, they pick one shot; otherwise they empty the broadside.
-        restrained = e.ship.heat > e.st.heat_cap * 0.7 or rng.chance(0.25)
-        if restrained or len(usable) == 1:
-            _fire(b, e, b.player, rng.pick(usable).id, rng)
-        else:
-            _salvo(b, e, b.player, rng)
-        return
-
-    if e.st.weapons:
-        want = round(sum((w.wpn.bands[0] + w.wpn.bands[1]) / 2
-                         for w in e.st.weapons) / len(e.st.weapons))
-    else:
-        want = 4
-    b.band = int(clamp(b.band + (-1 if want < b.band else 1), 0, 4))
-    _say(b, f"{b.enemy_name} manoeuvres to {BANDS[b.band].lower()} range.", "dim")
 
 
 def take_turn(b: Battle, action: dict, rng) -> Battle:
@@ -347,6 +241,38 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
         return b
     b.player.braced = False
     kind = action.get("type")
+
+    # Legacy orders map onto the stations so older callers keep working.
+    if kind == "move":
+        b.player.station = "helm"
+        b.player.helm_order = "close" if action.get("dir", 1) < 0 else "open"
+        kind = "station"
+    elif kind in ("fire", "salvo"):
+        b.player.station = "gunnery"
+    elif kind == "brace":
+        b.player.station = "engineering"
+    elif kind == "station":
+        order = st_mod.ORDERS_BY_ID.get(action.get("order", ""))
+        if order is None:
+            return b
+        b.player.station = order.station
+        if order.station == "helm":
+            b.player.helm_order = order.id
+        b.pending_order = order.id
+
+    if kind == "station":
+        _run_stations(b, rng)
+        if not b.over and isDestroyedSafe(b.enemy.ship):
+            return _finish(b, "destroyed")
+        if not b.over:
+            broke = _enemy_turn(b, rng, _say, _fire, _salvo, use_ability)
+        if broke:
+            return _finish(b, broke)
+        if not b.over and isDestroyedSafe(b.player.ship):
+            return _finish(b, "lost")
+        if not b.over:
+            _end_of_turn(b, rng)
+        return b
 
     if kind == "fire":
         _fire(b, b.player, b.enemy, action["weapon_id"], rng)
@@ -373,12 +299,61 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
     if not b.over and is_destroyed(b.enemy.ship):
         return _finish(b, "destroyed")
     if not b.over:
-        _enemy_turn(b, rng)
+        broke = _enemy_turn(b, rng, _say, _fire, _salvo, use_ability)
+        if broke:
+            return _finish(b, broke)
     if not b.over and is_destroyed(b.player.ship):
         return _finish(b, "lost")
     if not b.over:
         _end_of_turn(b, rng)
     return b
+
+
+def isDestroyedSafe(ship) -> bool:      # noqa: N802 - thin alias for readability
+    return is_destroyed(ship)
+
+
+def use_ability(b: Battle, s: Side, ability_id: str, rng) -> bool:
+    """Fire a defensive ability and log what it did."""
+    fired, message, kind = _fire_ability(b, s, ability_id, rng)
+    if fired and message:
+        _say(b, f"{_who(b, s)} {message}", kind)
+    return fired
+
+
+def _run_stations(b: Battle, rng) -> None:
+    """Resolve the player's chosen seat, then the two the officers hold."""
+    order_id = getattr(b, "pending_order", None)
+    order = st_mod.ORDERS_BY_ID.get(order_id or "")
+    seat = b.player.station
+
+    helm_text = st_mod.run_helm(b.player, b.enemy,
+                                order.id if order and order.station == "helm" else None,
+                                seat == "helm", b.officers)
+    eng_text = st_mod.run_engineering(
+        b.player, order.id if order and order.station == "engineering" else None,
+        seat == "engineering", b.officers)
+
+    if order and order.station == "gunnery":
+        if order.id == "salvo":
+            _salvo(b, b.player, b.enemy, rng)
+        elif order.id == "aimed":
+            usable = [w for w in b.player.st.weapons
+                      if w.wpn.bears_at(b.band) <= 0.5
+                      and st_mod.bears_on(b.player, b.enemy, w)[0]]
+            if usable:
+                best = max(usable, key=lambda w: w.wpn.dmg)
+                _fire(b, b.player, b.enemy, best.id, rng)
+            else:
+                _say(b, "Nothing will bear for an aimed shot.", "dim")
+    elif seat != "gunnery":
+        # The gunner keeps working while you are elsewhere, less well.
+        _salvo(b, b.player, b.enemy, rng)
+
+    bits = [t for t in (helm_text, eng_text) if t]
+    if bits:
+        _say(b, f"{b.player.ship.name}: {', '.join(bits)}.", "dim")
+    b.pending_order = None
 
 
 def _end_of_turn(b: Battle, rng) -> None:
@@ -430,7 +405,9 @@ def _flee(b: Battle, rng) -> Battle:
     if rng.chance(chance):
         return _finish(b, "escaped")
     _say(b, "The burn is not enough — they are still with you.", "warn")
-    _enemy_turn(b, rng)
+    broke = _enemy_turn(b, rng, _say, _fire, _salvo, use_ability)
+    if broke:
+        return _finish(b, broke)
     if is_destroyed(b.player.ship):
         return _finish(b, "lost")
     if not b.over:
@@ -448,7 +425,9 @@ def _hail(b: Battle, rng) -> Battle:
     if rng.chance(chance):
         return _finish(b, "parley")
     _say(b, "They hear you out and keep firing.", "warn")
-    _enemy_turn(b, rng)
+    broke = _enemy_turn(b, rng, _say, _fire, _salvo, use_ability)
+    if broke:
+        return _finish(b, broke)
     if is_destroyed(b.player.ship):
         return _finish(b, "lost")
     if not b.over:
