@@ -177,6 +177,7 @@ seedfall/
 │   ├── plans.py        the ship as solids: hull, fittings, hold, berths
 │   ├── beginning.py    turning an opening choice into a chronicle
 │   ├── legacy.py       life after an ending: epochs, pressure, situations
+│   ├── telemetry.py    what the instrument windows read, band by band
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
 │   ├── assessment.py   reading an engagement: who wins, why, what to do
 │   ├── chains.py       commissions: work that escalates and closes doors
@@ -275,6 +276,7 @@ seedfall/
     ├── test_plans.py   8 plan checks — the model is the ship, and it is solid
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
     ├── test_legacy.py  7 aftermath checks — an ending is a turn, not a stop
+    ├── test_instruments.py 5 checks — a gauge agrees with the ship and itself
     ├── chronicle.py    one captain, one save, a decade of doing everything
     ├── test_chronicle.py 3 checks — that decade, through every screen
     ├── capture.py      renders every screen offscreen, for the README

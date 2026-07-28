@@ -2,6 +2,29 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: pop-out instruments (asked for)
+
+- **Asked for pop-up windows for monitoring ship systems and sensors, with
+  good graphics.** Six of them — power, heat, integrity, hold, crew and a
+  scope — each in its own window, staying on top, re-reading the live game
+  every nine-tenths of a second. Windows rather than another tab on purpose:
+  the point is watching heat while you fly, and a tab cannot do that.
+- Painted, not assembled from labels: `ui/gauges.py` draws a 240° dial with
+  ticks and a needle, a segmented stack for the hull and the hold, and a scope
+  with a sweep, range rings, bodies on the inner third and stars in sensor
+  range on the outer. All QPainter, so it renders identically offscreen and the
+  suite can look at it.
+- `sim/telemetry.py` holds the readings so the layer rule stands and the checks
+  can ask what an instrument *says* without painting it. Each reading carries
+  its own band — good, watch, bad — from the sim's thresholds rather than the
+  panel's opinion.
+- **The defect, found by looking**: the crew dial drew a needle over "0/0 d"
+  while its own caption on the same face read "124 days of air", because `Dial`
+  paints `now`/`cap` and the crew reading supplied neither. Every dial-able
+  reading carries them now, and a check holds all three to agreeing with
+  themselves.
+- Suites: 49 — 396 checks green. 206 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: ten endings, and a game that carries on past them
 
 - **Asked for a wider range of endings, and for the game to continue after any

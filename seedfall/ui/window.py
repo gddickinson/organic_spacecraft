@@ -47,6 +47,7 @@ class MainWindow(QMainWindow):
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
 
+        self.monitors: dict = {}
         self.hud = self._build_hud()
         outer.addWidget(self.hud)
         outer.addWidget(hrule())
@@ -128,7 +129,14 @@ class MainWindow(QMainWindow):
         self.breach_pill = Pill("breached", "warn")
         self.breach_pill.hide()
         h.addWidget(self.breach_pill)
+        # Instruments pop out into their own windows, so a player can watch
+        # heat or the scope while flying rather than switching to a tab.
+        h.addWidget(button("▣ Instruments", self.instruments, kind="flat"))
         return bar
+
+    def instruments(self) -> None:
+        from .monitors import chooser
+        chooser(self).exec()
 
     def _build_nav(self) -> QWidget:
         rail = QWidget()
