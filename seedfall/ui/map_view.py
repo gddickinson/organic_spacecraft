@@ -16,6 +16,7 @@ from ..sim import intel as intel_sim
 from . import orders_panel
 from ..sim import rumours as rumour_sim
 from ..sim import reach as reach_sim
+from ..sim import anchorage as anchorage_sim
 from ..sim.actions import distress_call, is_stranded, jump_quote, jump_to
 from ..world.galaxy import distance
 from . import theme
@@ -340,6 +341,13 @@ class MapView(View):
                                  g.ship.cargo.get("volatiles", 0) < q["fuel"]) else "")
         panel.add_row("Port", (sys.port.name + (" (capital)" if sys.port.capital else ""))
                       if sys.port else "none")
+        # What the berth actually offers. "How would I navigate back to a
+        # shipyard" is unanswerable if the chart will not say which systems
+        # have one.
+        if sys.port:
+            panel.add_row("Offers", ", ".join(
+                anchorage_sim.SERVICE_NAMES.get(x, x)
+                for x in sys.port.services))
         panel.add_row("Your holdings",
                       num(len([c for c in g.colonies if c.system_id == sys.id])))
 

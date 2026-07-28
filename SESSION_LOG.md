@@ -2,6 +2,51 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a quay is a place, not a screen you switch to
+
+A player at the helm: *"the map only shows the sun and planets. What about
+other known ships or stations, the fleet hub and other shipyards? I think the
+game starts at a shipyard but it is hard to tell... How would I navigate back
+to a shipyard if it is not on the map?"*
+
+They were right, and the reason was worse than a missing marker.
+
+- **A `Port` had no position at all.** No body, no orbit, no coordinates — it
+  hung off a `System` as a bag of services. The quay you were standing on was
+  nowhere in space, and docking was a screen you switched to from the chart.
+  So the one view you actually fly from could not show you the one place you
+  most need to fly back to. That is why nothing was drawn: there was nothing
+  to draw.
+- **An anchorage is now anchored to a body**, so it inherits a real orbit that
+  moves with the clock — and every intercept, burn profile and transfer quote
+  works on it unchanged, because flying to a quay *is* flying to the body it
+  orbits. No special case anywhere in `sim/flight`.
+- **Derived, never stored**, like `ship.stats()`. One source of truth, no save
+  migration, and no way for a stored quay to disagree with its port.
+- **The helm answers the question now.** Quays, capitals and your own holdings
+  are drawn and labelled; the header says *"In orbit of Loam Span I, alongside
+  Fleet Hub"* rather than a bare body name; and a panel lists everywhere you
+  can put in with a course and a fuel bill. `offering(game, "shipyard")` is
+  the literal answer to "how do I get back to a shipyard".
+- **The confusion was real and measurable.** A fresh chronicle starts in a
+  system *with* a Fleet Hub but 4.26 AU off it, not at it — which is exactly
+  why the player could not tell whether they had started at a shipyard.
+- **Two layout defects caught by rendering it.** Three columns fitted a wide
+  desktop and silently dropped the third at any ordinary window size, so the
+  new panel was invisible at 1400px; it is stacked under the chart now. And
+  the sector chart named a port without saying what it offers, which makes
+  "which of these has a yard" unanswerable.
+- **A tautological check, caught by trying to break it.** The stability check
+  passed with the anchor deliberately broken, because my mutation was still
+  deterministic — the property could not fail given the function's signature.
+  Rewritten to something that genuinely can: the berth must survive time, RNG
+  draws *and* a save/reload, which is the real risk for derived state. It now
+  fails against a truly wandering anchor.
+- **Not done, and not pretended:** known hulls are still not plotted. Nothing
+  in the game gives another ship a persistent position, so that is a separate
+  piece of work rather than a marker.
+- 484 checks green, every file under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: two clocks, and four kinds of person to feel them
 
 The player asked for time to matter — ageing over long crossings, hibernation,

@@ -56,6 +56,29 @@ an empty tank from becoming a deadlock. Local work (survey, extract, dig, land)
 flies the ship alongside first, so a player who never opens the helm still gets a
 coherent transit; the helm is where you choose a better one.
 
+**A berth is a place.** A player asked why the helm shows only the star and
+the planets, and how they would ever navigate back to a shipyard. They could
+not: a `Port` hung off a `System` with **no position at all** — no body, no
+orbit, no coordinates. The quay you were standing on was nowhere in space, and
+docking was a screen you switched to from the chart, so the one view you fly
+from could not show you the one place you most need to fly back to.
+
+`sim/anchorage.py` gives each one somewhere to be, anchored to a body — which
+means it inherits a real orbit that moves with the clock, and every intercept,
+burn profile and transfer quote works on it unchanged, because flying to a
+quay *is* flying to the body it orbits. Anchorages are **derived, never
+stored**, like `ship.stats()`: one source of truth, no migration, and no way
+for a saved quay to disagree with the port it belongs to. The price of that
+choice is that derivation must not depend on the clock or the RNG, which is
+what `test_anchorage` pins.
+
+The helm now draws quays (▣), capitals (◈) and your own holdings (⬡) with
+labels, says in words where the hull is standing, and lists everything you can
+put in at with a course and a fuel bill. `offering(game, "shipyard")` answers
+the original question directly. Known *hulls* are still not plotted — nothing
+in the game gives another ship a persistent position, so that is honestly a
+separate piece of work rather than a marker.
+
 **Time is relative, and there are two clocks.** `Game.day` is the Verge's:
 every deadline, market, colony, faction and hull-in-a-yard runs on it.
 `Game.ship_day` is proper time — what the hull and the people in it actually
@@ -283,6 +306,7 @@ seedfall/
 │   ├── works.py        colony development: what a settlement becomes
 │   ├── flight.py       the helm: orbits, intercepts, routing, transfer burns
 │   ├── survey.py       what a way of looking costs, finds, and is blind to
+│   ├── anchorage.py    quays, hubs and holdings — places you can put in
 │   ├── lifespan.py     ageing, decline, and the end of a career
 │   ├── upkeep.py       what each lineage eats, and what going short costs
 │   ├── minigames.py    the docking control loop and the decoding bench
@@ -297,6 +321,7 @@ seedfall/
 │   ├── system_view.py  bodies, survey, extraction, diving, colonising
 │   ├── survey_panel.py the four methods as cards, each stating its blind spot
 │   ├── crossing_panel.py  the four ways to fly it, costed on both clocks
+│   ├── anchorage_panel.py where you can put in, and how to get back to it
 │   ├── port_view.py    market, services, recruitment
 │   ├── ship_view.py    layer stack, fittings, crew, hold
 │   ├── yard_view.py    hull designer, build queue, fleet management

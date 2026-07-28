@@ -11,9 +11,10 @@ import math
 
 from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import (QColor, QFont, QPainter, QPainterPath, QPen)
-from PyQt6.QtWidgets import QSizePolicy, QWidget
+from PyQt6.QtWidgets import QVBoxLayout, QSizePolicy, QWidget
 
 from ..core.util import duration, num
+from ..sim import anchorage as anchorage_sim
 from ..sim import flight
 from ..sim import transit as transit_sim
 from ..world.planets import BODY_KINDS
@@ -142,6 +143,36 @@ class OrbitChart(QWidget):
             p.drawText(QRectF(pos.x() - 55, pos.y() + 7, 110, 13),
                        Qt.AlignmentFlag.AlignHCenter, b.name.split()[-1])
 
+        # Quays, hubs and your own holdings. They sit at the body they orbit,
+        # so they are drawn just outside its marker rather than on top of it —
+        # a chart that showed only the sun and the planets was the whole
+        # complaint that started this.
+        for place in anchorage_sim.in_system(g):
+            if place.body_index >= len(g.system.bodies):
+                continue
+            body = g.system.bodies[place.body_index]
+            at = self._to_screen(*flight.position(body, g.day))
+            mark = QPointF(at.x() + 11, at.y() - 11)
+            tint = QColor(theme.tint("lumen" if place.kind == "holding"
+                                     else "chloro"))
+            p.setPen(QPen(tint, 1.3))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            if place.kind == "holding":
+                p.drawEllipse(mark, 4.5, 4.5)
+            else:
+                p.drawRect(QRectF(mark.x() - 4, mark.y() - 4, 8, 8))
+            if place.kind == "hub":                    # a capital gets a pip
+                p.setBrush(tint)
+                p.drawEllipse(mark, 1.6, 1.6)
+                p.setBrush(Qt.BrushStyle.NoBrush)
+            if place.here:
+                p.setPen(QPen(tint, 1.0, Qt.PenStyle.DashLine))
+                p.drawEllipse(mark, 8, 8)
+            p.setFont(QFont(theme.mono_family(), 7))
+            p.setPen(tint)
+            p.drawText(QRectF(mark.x() + 7, mark.y() - 7, 120, 13),
+                       Qt.AlignmentFlag.AlignLeft, place.name)
+
         self._draw_course(p, g, s, cx, cy)
 
         # the ship
@@ -166,9 +197,10 @@ class HelmView(View):
     def build(self) -> None:
         g = self.game
         here = flight.current_body(g)
-        self.head(f"Helm — {g.system.name}",
-                  f"Holding at {here.name}" if here
-                  else "Holding at the system edge, under no acceleration")
+        # `where_am_i` rather than the body name: a captain could not tell
+        # they had launched from a fleet hub except by opening the shipyard
+        # window, which is not an answer to "where am I".
+        self.head(f"Helm — {g.system.name}", anchorage_sim.where_am_i(g))
 
         if self.target >= len(g.system.bodies):
             self.target = 0
@@ -177,7 +209,16 @@ class HelmView(View):
         chart.target = self.target
         chart.burn = self.burn
         chart.picked.connect(self._pick)
-        self.row(chart, self._plot(g))
+        # Chart and the places you can put in share the left column: three
+        # columns fits a wide desktop and silently drops the third one at any
+        # ordinary window size, which is how it was first written.
+        left = QWidget()
+        stack = QVBoxLayout(left)
+        stack.setContentsMargins(0, 0, 0, 0)
+        stack.setSpacing(10)
+        stack.addWidget(chart, 1)
+        stack.addWidget(self._where(g))
+        self.row(left, self._plot(g))
         self.buttons(
             button("System overview", lambda: self.win.go("system")),
             button("Sector chart", lambda: self.win.go("map")))
@@ -185,6 +226,19 @@ class HelmView(View):
     def _pick(self, index: int) -> None:
         self.target = index
         self.refresh()
+
+    def course_to(self, body_index: int) -> None:
+        """Aim at a body by index. What a quay's `Set course` calls.
+
+        A quay's position *is* its body's position, so setting course for one
+        is setting course for the other — no special case anywhere in flight.
+        """
+        self.target = body_index
+        self.refresh()
+
+    def _where(self, g):
+        from .anchorage_panel import where_to_put_in
+        return where_to_put_in(self, g)
 
     def _plot(self, g) -> Panel:
         body = g.system.bodies[self.target]
