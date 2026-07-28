@@ -78,12 +78,18 @@ def separation(a, b, day: int) -> float:
     return math.hypot(ax - bx, ay - by)
 
 
+#: Where a jump leaves you: inside the system, not beyond its outermost orbit.
+#: Parking at the true edge taxed every first survey with a long transfer and
+#: made the early game knife-edge.
+ARRIVAL_RADIUS = R_OUTER * 0.45
+
+
 def ship_position(game) -> tuple[float, float]:
-    """Where the ship is: at a body, or holding at the system edge."""
+    """Where the ship is: at a body, or holding where the jump left you."""
     body = current_body(game)
     if body is not None:
         return position(body, game.day)
-    return 0.0, -(R_OUTER + 1.5)
+    return 0.0, -ARRIVAL_RADIUS
 
 
 def current_body(game):

@@ -25,6 +25,7 @@ NAV = [
     ("yard", "⚙  Shipyard"),
     ("tech", "⌘  Research"),
     ("empire", "◈  Holdings"),
+    ("diplomacy", "⚖  Diplomacy"),
     ("codex", "§  Codex"),
 ]
 
@@ -141,13 +142,16 @@ class MainWindow(QMainWindow):
         for i, (vid, text) in enumerate(NAV):
             b = button(f"{text}", kind="nav")
             b.setCheckable(True)
-            b.setShortcut(str(i + 1))
-            b.setToolTip(f"Shortcut: {i + 1}")
+            # 1-9 then 0 for a tenth; str(10) is not a key Qt can bind.
+            key = str(i + 1) if i < 9 else "0"
+            b.setShortcut(key)
+            b.setToolTip(f"Shortcut: {key}")
             b.clicked.connect(lambda _=False, v_=vid: self.go(v_))
             self.nav_buttons[vid] = b
             v.addWidget(b)
         v.addStretch(1)
-        v.addWidget(label("  keys 1–8", "note"))
+        v.addWidget(label(f"  keys 1–{min(9, len(NAV))}"
+                  + ("0" if len(NAV) > 9 else ""), "note"))
         return rail
 
     def _build_log(self) -> QWidget:
@@ -177,6 +181,7 @@ class MainWindow(QMainWindow):
     def _make_views(self) -> None:
         from .battle_view import BattleView
         from .codex_view import CodexView
+        from .diplomacy_view import DiplomacyView
         from .expedition_view import ExpeditionView
         from .helm_view import HelmView
         from .minigame_view import DecodingView, DockingView
@@ -193,6 +198,7 @@ class MainWindow(QMainWindow):
             "ship": ShipView, "yard": YardView, "tech": TechView,
             "empire": EmpireView, "codex": CodexView, "battle": BattleView,
             "ground": ExpeditionView, "helm": HelmView,
+            "diplomacy": DiplomacyView,
             "docking": DockingView, "decoding": DecodingView,
         }
         for vid, cls in classes.items():

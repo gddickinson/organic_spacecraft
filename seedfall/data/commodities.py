@@ -66,7 +66,7 @@ COMMODITIES: list[Commodity] = [
         "Compounds refined from surveyed lifeforms. Some cure things. Some are "
         "sold before anyone establishes which."),
     Commodity(
-        "survey", "Survey Data", "Data", 300, 0.40, "information", True,
+        "survey", "Survey Data", "Data", 460, 0.40, "information", True,
         "Charted orbits, ore grades, spectra. Every faction buys it and every "
         "faction believes the copy they bought is exclusive.", bulk=0.1),
     Commodity(

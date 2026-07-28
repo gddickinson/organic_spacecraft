@@ -2,6 +2,31 @@
 
 Running progress log. Newest first.
 
+## 2026-07-27 — SEEDFALL: diplomacy with two axes
+
+- **A relations matrix between the powers.** Standing with a faction was a number
+  that went up when you sold them charts. There is now a second axis: how the
+  four powers regard *each other*, starting hostile in four of six pairs (the
+  Concordat and the Freeholds at -45 over stolen frames; the Charter and the
+  Freeholds at -35 over forged licences).
+- **Six overtures**, each with a cooldown and a standing floor: tribute,
+  intelligence, relief supplies, treaties, denouncement (which buys you standing
+  with everyone who dislikes your target) and **brokering**, the only action that
+  moves faction-to-faction relations at all — and it requires both parties to
+  think well of you first.
+- **Faction agendas**: each power is chronically short of something (the Charter
+  of phosphate, the Yards of ore, the Dry Choir of recordings) and pays extra
+  standing for it.
+- **Concord is now a diplomatic achievement**: all four powers at Kin *and* all
+  six pairs at peace, rather than four separate grinds against one meter.
+- **Two balance defects found by playing.** The naive survey-and-sell strategy
+  was sitting on exactly zero credits after five years — in-system flight costs
+  had quietly made it unviable — which also made the solvency check flaky. Fixed
+  by moving the jump arrival point inside the system rather than beyond its outer
+  orbit, and repricing survey data from 300 to 460; the check now asserts a floor
+  rather than merely "not in debt". Also: ten nav destinations were binding a
+  shortcut to a nonexistent "10" key.
+
 ## 2026-07-27 — SEEDFALL: the Bloom becomes an antagonist
 
 - **The problem, measured first**: a BASTION with five mounts cleared the whole

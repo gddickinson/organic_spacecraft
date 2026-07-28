@@ -19,6 +19,22 @@ from the Cell Atlas, and the reproduction-licence containment regime from the
 Fleet Registry. The other four technologies exist so that the grown fleet has
 something to be measured against.
 
+**The Bloom is an antagonist, not a timer.** Five named stages advanced by the
+sector-wide burden: past Motile it keeps roaming instars in the field that prefer
+your colonies to empty ground; past Adaptive it builds resistance (up to 55%) to
+whatever weapon family you keep using, and forgets what you stop using. At
+Kessel's Reach, found by surveying the origin system, is the First Instar — the
+original husk with a Charter serial still on it. Containment requires the sector
+clean *and* that husk dead, which takes about twenty burn passes from a
+battleship.
+
+**Diplomacy has two axes.** Your standing with each power, and how the powers
+regard *each other* — a relations matrix that starts hostile in most pairs.
+Tribute, intelligence and relief move the first; only brokering moves the second,
+and brokering requires both parties to think well of you already. Concord needs
+all four at Kin **and** all six pairs at peace, so it is a diplomatic achievement
+rather than four grinds.
+
 **Getting anywhere is a decision.** A jump drops you at the system edge, not
 alongside anything. Bodies sit on real orbits that keep moving while you fly, so
 the range to a target depends on when you leave. Four burn profiles trade
@@ -126,7 +142,9 @@ seedfall/
 │   ├── encounters.py   NPC generation and transit events
 │   ├── threat.py       Bloom growth and spread, cleansing, victory checks
 │   ├── xeno.py         study points, incorporation, alien passive bonuses
+│   ├── bloom.py        stages, roaming instars, resistance, the First Instar
 │   ├── contracts.py    generation, acceptance, progress, expiry
+│   ├── diplomacy.py    standing, the relations matrix, treaties, brokering
 │   ├── expedition.py   the ground game: zone map, movement, attempts, hauls
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
 │   ├── flight.py       the helm: orbits, transfer burns, in-system incidents
@@ -148,6 +166,7 @@ seedfall/
 │   ├── codex_view.py   class reference, powers, glossary, about
 │   ├── xeno_view.py    the xenology desk (hosted as a Research tab)
 │   ├── expedition_view.py  the landing zone: fogged map, party, field log
+│   ├── diplomacy_view.py   relations matrix and the overture desk
 │   ├── helm_view.py    orbit chart and burn planner
 │   ├── minigame_view.py    docking approach and decoding bench
 │   └── battle_view.py  combat screen and post-engagement resolution

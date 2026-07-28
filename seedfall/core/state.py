@@ -58,6 +58,7 @@ class Game:
     expedition: object | None = None
     contracts: list = field(default_factory=list)
     boards: dict = field(default_factory=dict)
+    diplomacy: object | None = None
     bloom_state: object | None = None
     bloom_clock: float = 0.0
     bloom_total: float = 0.0

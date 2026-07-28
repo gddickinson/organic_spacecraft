@@ -11,6 +11,7 @@ from ..data.lore import VICTORIES
 from ..world.galaxy import distance
 from .colony import bloom_attack, ward_at
 from . import bloom as bloom_sim
+from . import diplomacy as dip_sim
 
 SPREAD_INTERVAL = 30    # days between growth ticks
 
@@ -92,8 +93,9 @@ def victory_progress(game) -> dict[str, tuple[float, float, bool]]:
     """id -> (have, need, achieved)."""
     total = len(game.galaxy.systems)
     infested = len(bloom_systems(game))
-    kin = sum(1 for f in ("charter", "concordat", "freeholds", "sanhedrin")
-              if game.rep.get(f, 0) >= 70)
+    concord = dip_sim.concord_progress(game)
+    kin = len(concord["kin"]) + len(concord["peace"])
+    kin_need = concord["kin_need"] + concord["peace_need"]
     online = [c for c in game.colonies if c.online]
     pop = sum(c.pop for c in online)
     has_ark = (game.ship.chassis == "leviathan"
@@ -104,7 +106,7 @@ def victory_progress(game) -> dict[str, tuple[float, float, bool]]:
                         infested == 0 and bloom_sim.heart_dead(game)
                         and game.day > 30),
         "exodus": (1 if has_ark else 0, 1, has_ark and game.flags.get("exodus_launched")),
-        "concord": (kin, 4, kin >= 4),
+        "concord": (kin, kin_need, concord["done"]),
         "genesis": (1 if game.flags.get("contact_made") else 0, 1,
                     bool(game.flags.get("contact_made"))
                     and "firstcontact" in game.research.unlocked),

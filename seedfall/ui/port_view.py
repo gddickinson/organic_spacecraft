@@ -12,6 +12,7 @@ from ..sim.crew import daily_wages, recruit_pool
 from ..sim.fieldwork import buy_field_notes, xeno_notes_price
 from ..sim import xeno as xeno_sim
 from ..sim import contracts as contract_sim
+from ..sim import diplomacy as dip_sim
 from ..sim.ship import add_cargo, cargo_free, cargo_used, hull_pct
 from ..world.economy import (apply_sale, apply_trade, buy_price, demands,
                              price_note, sell_price)
@@ -154,7 +155,9 @@ class PortView(View):
         g.credits += n * price
         add_cargo(g.ship, cid, -n)
         apply_sale(sys.market, cid, n)
-        g.adjust_rep(sys.port.faction, min(2, n * 0.05))
+        g.adjust_rep(sys.port.faction,
+                     min(2, n * 0.05)
+                     * dip_sim.agenda_bonus(g, sys.port.faction, cid))
         g.add_log(f"Sold {round(n)} {BY_ID[cid].short} at {cr(price)} — "
                   f"{cr(round(n * price))}.", "good")
         self.win.refresh()

@@ -63,9 +63,15 @@ def run(suite: Suite) -> None:
         assert res["ok"], res.get("why")
         fired["exodus"] = threat.check_victory(g)
 
+        # Concord needs the powers fond of you AND of each other.
+        from ..sim import diplomacy as dip
         g = _stocked()
-        for f in ("charter", "concordat", "freeholds", "sanhedrin"):
+        for f in dip.POWERS:
             g.rep[f] = 75
+        state = dip.ensure(g)
+        for i, a in enumerate(dip.POWERS):
+            for b in dip.POWERS[i + 1:]:
+                state.relations[dip._key(a, b)] = 60.0
         fired["concord"] = threat.check_victory(g)
 
         g = _stocked()
@@ -295,6 +301,61 @@ def run(suite: Suite) -> None:
         assert threat.check_victory(g) == "containment", "killing it did not win"
         return f"heart took {strikes} passes from a battleship"
 
+    @check("diplomacy moves both standing and the powers' own relations")
+    def _():
+        from ..sim import diplomacy as dip
+        g = _stocked("dip-test")
+        g.ship.cargo["survey"] = 40
+        g.stores["biomass"] = 400
+        g.recompute()
+
+        before = g.rep["concordat"]
+        res = dip.perform(g, "tribute", "concordat")
+        assert res["ok"], res.get("why")
+        assert g.rep["concordat"] > before, "a tribute bought nothing"
+        again = dip.perform(g, "tribute", "concordat")
+        assert not again["ok"], "no cooldown on tributes"
+
+        # denouncing pleases the denounced party's enemies
+        rivals = dip.rivals_of(g, "freeholds")
+        assert rivals, "no power dislikes the Freeholds at all"
+        friend = rivals[0]
+        f_before = g.rep[friend]
+        d = dip.perform(g, "denounce", "charter", "freeholds")
+        assert d["ok"], d.get("why")
+        assert g.rep["freeholds"] < 0, "denouncing cost nothing with the target"
+        assert g.rep[friend] >= f_before, "their enemies did not notice"
+
+        # brokering is the only thing that moves faction-to-faction relations
+        g.rep["charter"] = 80
+        g.rep["concordat"] = 80
+        pair_before = dip.relation(g, "charter", "concordat")
+        b = dip.perform(g, "broker", "charter", "concordat")
+        assert b["ok"], b.get("why")
+        pair_after = dip.relation(g, "charter", "concordat")
+        assert pair_after > pair_before, (
+            f"brokering did not thaw them: {pair_before} -> {pair_after}")
+        return (f"tribute, denouncement and brokering all bite; "
+                f"charter/concordat {pair_before:+.0f} → {pair_after:+.0f}")
+
+    @check("Concord needs the powers at peace, not just fond of you")
+    def _():
+        from ..sim import diplomacy as dip
+        g = _stocked("concord")
+        for power in dip.POWERS:
+            g.rep[power] = 85
+        assert threat.check_victory(g) is None, (
+            "Concord fired with the powers still at each other's throats")
+        state = dip.ensure(g)
+        for i, a in enumerate(dip.POWERS):
+            for b in dip.POWERS[i + 1:]:
+                state.relations[dip._key(a, b)] = 60.0
+        assert threat.check_victory(g) == "concord", (
+            "peace between all of them still did not win")
+        prog = dip.concord_progress(g)
+        return (f"{len(prog['kin'])} kin and {len(prog['peace'])} pairs at peace "
+                "required")
+
     @check("the helm moves the ship and never traps it")
     def _():
         from ..sim import flight
@@ -367,7 +428,7 @@ def run(suite: Suite) -> None:
     @check("a plain trading run stays solvent for five years")
     def _():
         results = []
-        for seed in ("run-a", "run-b", "run-c", "run-d"):
+        for seed in ("run-a", "run-b", "run-c", "run-d", "run-e", "run-f"):
             g = _bot(seed, years=5)
             results.append(g)
         broke = [g for g in results if g.credits < 0]
@@ -375,6 +436,11 @@ def run(suite: Suite) -> None:
         assert not broke, f"{len(broke)} runs ended in debt"
         assert not dead, f"{len(dead)} runs died surveying empty systems"
         mean = sum(g.credits for g in results) / len(results)
+        # A floor, not just "not negative": the naive strategy sat on exactly
+        # zero for a while, which made this check flaky and the early game
+        # knife-edge. Survey data has to cover a wage bill and a fuel bill.
+        assert mean > 500, (
+            f"the naive strategy barely breaks even — mean {mean:,.0f}")
         return (f"{len(results)} runs, none dead or in debt, "
                 f"mean treasury {round(mean):,}")
 
