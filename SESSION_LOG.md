@@ -2,6 +2,50 @@
 
 Running progress log. Newest first.
 
+## 2026-07-27 — SEEDFALL: the fleet joins the fight
+
+- **Escorts existed and did nothing.** `combat.py` contained no reference to
+  `game.fleet` at all, so a second hull you had designed, paid for and fitted
+  sat in a berth while you fought alone. Hulls can now be ordered to sail in
+  company: they follow the flag, deploy onto the tactical plane, and fight.
+- **A consort is a `Side`.** Subclassing the existing side means `_fire`, the
+  layer model and every arc check work on one unmodified. What a consort adds
+  is a standing order and a captain who follows it — you have one pair of hands
+  and they stay on your own helm.
+- **Three orders that are genuinely different bargains.** *Screen* spends the
+  escort to keep you whole; *flank* spends patience getting behind something;
+  *concentrate* spends everyone's safety to end it quickly. Measured over 24
+  fights each: the flag took 50 damage alone and 12 with two screens, while
+  flankers put out 34 to a screen's 3. Screening consorts also physically sit
+  between you and the enemy, which weights the fire they draw.
+- **Losses are permanent.** A consort below 22% hull breaks off; one that dies
+  is struck from the fleet whatever the outcome, so bringing a hull to a fight
+  is a real wager rather than free damage.
+- **Two older bugs found while testing.** `_fire()` measured its range band
+  between the flag and the enemy rather than between the two hulls actually
+  shooting, which was invisible with two sides and wrong the moment a consort
+  fired from a flank. And the Bloom's resisted-hit branch called an undefined
+  `say()` — a `NameError` that crashed any late-game Bloom fight where a
+  bearing mount hit tissue that had learned that weapon family. It needed
+  stage 4, accumulated resistance, a mount in arc and a 25% roll, which is why
+  nothing had tripped it.
+- **The varied opening aspect was unreachable.** `tac.initial_layout()`, built
+  last cycle to vary how an engagement starts, was never used in play: the
+  battle screen called `combat.start()` without an rng, so every fight in the
+  game began with the enemy dead ahead at band 3. Now seeded from the game's
+  own stream. Measured across 40 fights, outcomes are unchanged — it buys
+  variety, not difficulty.
+- **My test captain was the problem, twice.** Driving fights with a repeated
+  "salvo" reported the player dealing *zero* damage, which looked like combat
+  was broken; the ship's mounts were all broadside and the order never turned
+  it beam-on. Fixing that to steer toward the target still failed, because
+  closing puts the target at 0° — outside a broadside arc entirely. Combat was
+  behaving correctly the whole time. The arc-aware pilot now lives in
+  `tests/captain_ai.py` so the next change to combat is measured against a
+  captain that can actually fight.
+- Suites: 27 simulation, 5 xenotech, 14 playability, **5 tactical**, 5 flight,
+  22 interface — 78 checks green. 87 modules, all under 500 lines.
+
 ## 2026-07-27 — SEEDFALL: the helm learns to lead a moving target
 
 - **Transfers now aim where the body will be.** The helm panel told the player

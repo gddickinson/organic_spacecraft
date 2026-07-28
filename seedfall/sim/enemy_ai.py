@@ -8,6 +8,7 @@ like anybody else.
 
 from __future__ import annotations
 
+from . import consorts
 from . import stations as st_mod
 from . import tactical as tac
 from .ship import hull_pct, is_destroyed
@@ -40,14 +41,19 @@ def enemy_turn(b, rng, _say, _fire, _salvo, use_ability) -> str | None:
                 if use_ability(b, e, aid, rng):
                     return
 
-    usable = [w for w in e.st.weapons if w.wpn.bears_at(b.band) <= 0.25]
+    # Who they shoot at. A screening consort is trying to be the answer.
+    mark = consorts.choose_target(b, rng)
+    band = tac.band_for(tac.separation(e.body, mark.body))
+    usable = [w for w in e.st.weapons if w.wpn.bears_at(band) <= 0.25]
     if usable and rng.chance(fire_p):
+        if mark is not b.player:
+            _say(b, f"{b.enemy_name} shifts its guns onto {mark.name}.", "dim")
         # Hot or badly hurt, they pick one shot; otherwise they empty the broadside.
         restrained = e.ship.heat > e.st.heat_cap * 0.7 or rng.chance(0.25)
         if restrained or len(usable) == 1:
-            _fire(b, e, b.player, rng.pick(usable).id, rng)
+            _fire(b, e, mark, rng.pick(usable).id, rng)
         else:
-            _salvo(b, e, b.player, rng)
+            _salvo(b, e, mark, rng)
         return
 
     # Nothing bears: steer for the range its mounts want, and turn onto us if

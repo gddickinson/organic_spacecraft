@@ -18,6 +18,7 @@ from . import stations as st_mod
 from . import tactical as tac
 from .abilities import use_ability as _fire_ability
 from .enemy_ai import enemy_turn as _enemy_turn
+from . import consorts as consort_sim
 from ..data.part_types import BANDS
 from ..data.parts import part
 from .ship import (Ship, Stats, add_cargo, hull_pct, is_breached, is_destroyed,
@@ -29,7 +30,8 @@ GRIND_TURN = 9      # turns of clean fighting before either side starts wanting 
 
 #: personality -> (close preference, fire chance, flee chance)
 def start(player_ship, player_stats, enemy, *, bonuses=None, officers=(),
-          rep=0.0, no_parley=False, band=3, game=None, rng=None) -> Battle:
+          rep=0.0, no_parley=False, band=3, game=None, rng=None,
+          fleet=()) -> Battle:
     b = Battle(
         player=Side(player_ship, player_stats, "player"),
         enemy=Side(enemy["ship"], enemy["stats"], enemy.get("personality", "balanced")),
@@ -45,6 +47,11 @@ def start(player_ship, player_stats, enemy, *, bonuses=None, officers=(),
     else:
         b.player.body = tac.Body2D(0, 0, 0, 0)
         b.enemy.body = tac.Body2D(0, -(band + 0.5) * tac.BAND_UNITS, 180, 0)
+
+    if fleet:
+        consort_sim.deploy(b, list(fleet), rng, bonuses)
+        names = ", ".join(c.name for c in b.consorts)
+        _say(b, f"In company: {names}.", "good")
     _say(b, f"{b.enemy_name} at {BANDS[b.band].lower()} range, "
             f"{round(b.range_units)} units off.", "warn")
     return b
@@ -57,16 +64,24 @@ def _say(b: Battle, text: str, kind: str = "") -> None:
 
 
 def _who(b: Battle, s: Side) -> str:
-    return b.player.ship.name if s is b.player else b.enemy_name
+    if s is b.player:
+        return b.player.ship.name
+    if s is b.enemy:
+        return b.enemy_name
+    return getattr(s, "name", None) or s.ship.name
 
 
 # ── shooting ───────────────────────────────────────────────────────────────
 
-def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng) -> None:
+def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng,
+          scale: float = 1.0) -> None:
     w = part(weapon_id)
     if w is None or w.wpn is None:
         return
-    pen = w.wpn.bears_at(b.band)
+    # The band is between these two hulls. For the flag and its enemy that is
+    # b.band; for a consort out on a flank it is emphatically not.
+    band = tac.band_for(tac.separation(frm.body, to.body))
+    pen = w.wpn.bears_at(band)
     if pen > 0.6:
         _say(b, f"{_who(b, frm)} cannot bring the {w.name} to bear at this range.", "dim")
         return
@@ -101,7 +116,7 @@ def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng) -> None:
         _say(b, f"{w.name} misses {_who(b, to)}.", "dim")
         return
 
-    dmg = w.wpn.dmg * rng.float(*VARIANCE)
+    dmg = w.wpn.dmg * rng.float(*VARIANCE) * scale
     if to.braced:
         dmg *= 0.72
     if to.interpose > 0:
@@ -120,8 +135,8 @@ def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng) -> None:
         if resist > 0:
             dmg *= 1 - resist
             if rng.chance(0.25):
-                say(b, f"The tissue shrugs off much of the {w.name} — it has "
-                       f"seen this before.", "warn")
+                _say(b, f"The tissue shrugs off much of the {w.name} — it has "
+                        f"seen this before.", "warn")
 
     dealt = _apply_to_layers(b, to, dmg, w.wpn.traits, rng)
     if b.game is not None and b.enemy_faction == "bloom" and to is b.enemy:
@@ -143,8 +158,9 @@ def _salvo(b: Battle, frm: Side, to: Side, rng) -> None:
     matter if they all speak at once. The cost is heat and ammunition, which is
     why a single aimed shot stays a real option.
     """
+    band = tac.band_for(tac.separation(frm.body, to.body))
     bearing = [w for w in frm.st.weapons
-               if w.wpn.bears_at(b.band) <= 0.5 and st_mod.bears_on(frm, to, w)[0]]
+               if w.wpn.bears_at(band) <= 0.5 and st_mod.bears_on(frm, to, w)[0]]
     if not bearing:
         _say(b, f"{_who(b, frm)} has nothing that will bear at this range.", "dim")
         return
@@ -262,6 +278,7 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
 
     if kind == "station":
         _run_stations(b, rng)
+        _run_consorts(b, rng)
         if not b.over and isDestroyedSafe(b.enemy.ship):
             return _finish(b, "destroyed")
         if not b.over:
@@ -296,6 +313,7 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
     elif kind == "flee":
         return _flee(b, rng)
 
+    _run_consorts(b, rng)
     if not b.over and is_destroyed(b.enemy.ship):
         return _finish(b, "destroyed")
     if not b.over:
@@ -307,6 +325,18 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
     if not b.over:
         _end_of_turn(b, rng)
     return b
+
+
+def _run_consorts(b: Battle, rng) -> None:
+    """Your consorts manoeuvre to their standing orders and shoot."""
+    if not b.consorts or b.over:
+        return
+    before = {c.uid for c in b.consorts if not c.out}
+    consort_sim.run(b, rng, _say, _fire)
+    for c in b.consorts:
+        if c.uid in before and is_destroyed(c.ship):
+            _say(b, f"{c.name} breaks apart.", "bad")
+            b.player.resolve -= 12
 
 
 def isDestroyedSafe(ship) -> bool:      # noqa: N802 - thin alias for readability

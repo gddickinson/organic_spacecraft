@@ -165,6 +165,7 @@ seedfall/
 │   ├── diplomacy.py    standing, the relations matrix, treaties, brokering
 │   ├── expedition.py   the ground game: zone map, movement, attempts, hauls
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
+│   ├── consorts.py     escorts: standing orders, screening, who draws fire
 │   ├── flight.py       the helm: orbits, intercepts, routing, transfer burns
 │   ├── minigames.py    the docking control loop and the decoding bench
 │   └── actions.py      player actions spanning modules (jump/survey/mine/dive)
@@ -193,7 +194,8 @@ seedfall/
     ├── test_sim.py     27 simulation checks
     ├── test_xeno.py    5 alien-technology checks
     ├── test_play.py    14 playability checks — can the game be won and lost
-    ├── test_combat.py  2 tactical checks — arcs, headings, crew stations
+    ├── test_combat.py  5 tactical checks — arcs, stations, consorts
+    ├── captain_ai.py   a competent test pilot: steers until its arcs bear
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
     └── test_ui.py      22 interface checks, rendered on Qt's offscreen platform
 ```
@@ -234,6 +236,15 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`GRIND_TURN` / `MAX_TURNS` in `sim/combat.py`** stop two well-armoured hulls
   grinding forever. Armour is also floored at 15% damage leak-through for the
   same reason.
+- **Driving a fight with one repeated order measures nothing.** Combat is
+  positional: a hull whose mounts are all on the beam never fires while it
+  steers straight at the enemy, so a test that only ever says "salvo" reports
+  zero damage and looks like a balance problem. Use `tests/captain_ai.py`,
+  which picks the helm order that suits the arcs the ship actually carries.
+- **A consort is a `Side`.** `sim/consorts.py` subclasses it, so `_fire`,
+  `_apply_to_layers` and the arc checks work on one without changes. What that
+  buys is also the constraint: anything that assumes a battle has exactly two
+  sides — `_who()` did — has to learn otherwise.
 - **Save identity**: `game.ship` must be the same object as its entry in
   `game.fleet`. `load_game()` re-links them after decoding; damage would
   otherwise apply to a copy.
@@ -275,6 +286,9 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`test_sim.py`** drives the rules headlessly: sector generation and
   determinism, every chassis and part, tech-tree reachability, trade, colonies,
   building, combat outcome distributions, Bloom pacing, save round-trip.
+- **`test_combat.py`** covers arcs and crew stations, and holds the consorts to
+  the bargain their orders describe: screening must measurably pull fire off
+  the flag, and flankers must shoot markedly more than screens do.
 - **`test_flight.py`** holds the helm to its promises: that a seed grows one
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that

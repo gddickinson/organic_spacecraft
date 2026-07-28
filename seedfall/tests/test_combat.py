@@ -76,3 +76,116 @@ def run(suite: Suite) -> None:
         assert "will not train" in after_lines, (
             "firing outside the arc was not refused")
         return f"a fixed mount {round(gap)}° off the target refuses to fire"
+
+    @check("consorts fight, and screening pulls fire off the flag")
+    def _():
+        from ..core.state import new_game
+        from ..sim import combat, consorts as cs, encounters
+        from ..sim.ship import build_layers, make_ship, stats as ship_stats
+        from . import captain_ai
+
+        def run(count, order):
+            flag_taken = consort_dealt = 0.0
+            for seed in range(24):
+                g = new_game(f"consort-{seed}")
+                r = RNG(f"consort-{seed}")
+                p = make_ship("navis", ["slug_battery", "mag_lance",
+                                        "reaction_organ", "opsin_eyes",
+                                        "chemo_gut"])
+                build_layers(p, g.bonuses)
+                p.cargo = {"ore": 600, "alloy": 600}
+                fleet = []
+                for i in range(count):
+                    e = make_ship("vesper", ["mag_lance", "reaction_organ",
+                                             "opsin_eyes"], f"Escort {i + 1}")
+                    build_layers(e, g.bonuses)
+                    e.cargo = {"ore": 200, "alloy": 200}
+                    e.escort = True
+                    fleet.append(e)
+                b = combat.start(p, ship_stats(p),
+                                 encounters.make_enemy(r, "freeholds", 1.2),
+                                 rng=r, game=g, fleet=fleet)
+                for c in b.consorts:
+                    c.order = order
+                for _ in range(60):
+                    if b.over:
+                        break
+                    combat.take_turn(b, captain_ai.orders(b), r)
+                flag_taken += b.player.taken
+                consort_dealt += sum(c.dealt for c in b.consorts)
+            return flag_taken / 24, consort_dealt / 24
+
+        alone, _ = run(0, "screen")
+        screened, screen_guns = run(2, "screen")
+        flanked, flank_guns = run(2, "flank")
+
+        assert screened < alone * 0.6, (
+            f"two screening consorts barely helped: {alone:.0f} → {screened:.0f}")
+        assert flank_guns > screen_guns * 2, (
+            f"flanking consorts should shoot more than screening ones "
+            f"({flank_guns:.0f} vs {screen_guns:.0f})")
+        assert flanked > screened, (
+            "flankers should not screen as well as screens do")
+        return (f"flag took {alone:.0f} alone → {screened:.0f} screened; "
+                f"flank guns {flank_guns:.0f} vs screen {screen_guns:.0f}")
+
+    @check("a consort lost in action is gone from the fleet for good")
+    def _():
+        from ..core.state import new_game
+        from ..sim import combat, consorts as cs
+        from ..sim.ship import build_layers, make_ship
+
+        g = new_game("loss")
+        doomed = make_ship("vesper", ["mag_lance", "reaction_organ",
+                                      "opsin_eyes"], "Doomed")
+        build_layers(doomed, g.bonuses)
+        doomed.escort = True
+        g.fleet.append(doomed)
+        assert cs.escorts_of(g) == [doomed], "escort not recognised"
+
+        for layer in doomed.layers:      # kill it outright
+            layer.hp = 0
+        assert cs.escorts_of(g) == [], "a wreck is still sailing in company"
+
+        gone = {doomed.uid}
+        g.fleet = [s for s in g.fleet if s.uid not in gone]
+        assert doomed not in g.fleet, "the wreck stayed in the fleet"
+        return "escort recognised, then removed once destroyed"
+
+    @check("an adaptive Bloom's resisted hit does not crash the fight")
+    def _():
+        # The resisted-hit branch called an undefined `say`, so a late-game
+        # Bloom engagement raised NameError the moment a bearing mount landed
+        # a hit on tissue that had learned that weapon family.
+        from ..core.state import new_game
+        from ..sim import bloom as bloom_sim, combat, encounters, tactical as tac
+        from ..sim.ship import make_ship, stats as ship_stats
+
+        class Always(RNG):
+            def chance(self, p):
+                return True
+
+            def float(self, lo=0.0, hi=1.0):
+                return hi
+
+        g = new_game("resisted")
+        bloom_sim.ensure(g).stage = 4
+        p = make_ship("navis", ["slug_battery", "reaction_organ", "opsin_eyes",
+                                "chemo_gut"])
+        p.cargo = {"ore": 900, "alloy": 900}
+        w = ship_stats(p).weapons[0]
+        for _ in range(80):
+            bloom_sim.record_damage(g, w.family, 500)
+        assert bloom_sim.resistance(g, w.family) > 0, "no resistance to test with"
+
+        b = combat.start(p, ship_stats(p),
+                         encounters.make_enemy(RNG("e"), "bloom", 1.6),
+                         rng=RNG("s"), game=g)
+        b.enemy_faction = "bloom"
+        # A broadside mount, on the beam, inside its band envelope.
+        b.player.body = tac.Body2D(0, 0, 0, 0)
+        b.enemy.body = tac.Body2D(tac.BAND_UNITS * 2.5, 0, 270, 0)
+        combat._fire(b, b.player, b.enemy, w.id, Always("d"))
+        assert any("shrugs off" in text for _t, text, _k in b.log), (
+            "the resisted-hit branch never ran, so it was not exercised")
+        return f"resisted hit logged at {bloom_sim.resistance(g, w.family):.0%}"

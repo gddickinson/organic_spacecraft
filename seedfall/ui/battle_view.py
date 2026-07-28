@@ -18,13 +18,16 @@ from ..data.part_types import BANDS
 from ..sim import stations as st_mod
 from ..sim import tactical as tac
 from ..sim import combat as combat_sim
+from ..sim import consorts as consort_sim
+from ..data.consorts import ORDERS as CONSORT_ORDERS
+from ..data.consorts import ORDERS_BY_ID as CONSORT_ORDERS_BY_ID
 from ..sim import research as research_sim
 from ..sim.fieldwork import seize_notes
 from ..sim import contracts as contract_sim
-from ..sim.ship import add_cargo, cargo_free, hull_pct
+from ..sim.ship import add_cargo, cargo_free, hull_pct, is_destroyed
 from . import theme
-from .widgets import (Bar, Panel, Pill, View, button, label, mono_label, note,
-                      spacer)
+from .widgets import (Bar, Panel, Pill, TabBar, View, button, label,
+                      mono_label, note, spacer)
 
 
 class BattleView(View):
@@ -34,7 +37,10 @@ class BattleView(View):
             g.ship, g.ship_stats, encounter["enemy"],
             bonuses=g.bonuses, officers=g.officers,
             rep=g.rep.get(encounter["enemy"].get("faction"), 0),
-            no_parley=encounter.get("no_parley", False), game=g)
+            no_parley=encounter.get("no_parley", False), game=g,
+            # Without an rng the opening is always bow-on at band 3, which left
+            # the varied initial aspect the tactical model was built for unused.
+            rng=g.rng("engagement"), fleet=consort_sim.escorts_of(g))
         self.win.battle.intro = encounter.get("intro", "")
 
     def build(self) -> None:
@@ -56,6 +62,8 @@ class BattleView(View):
         hh.addWidget(self._readout(b), 1)
         self.col.addWidget(holder)
         self.col.addWidget(self._band_track(b))
+        if b.consorts:
+            self.col.addWidget(self._company(b))
         self.row(self._ship_panel(b, b.player, self.game.ship.name),
                  self._ship_panel(b, b.enemy, b.enemy_name))
         self.col.addWidget(self._orders(b) if not b.over else self._outcome(b))
@@ -138,6 +146,39 @@ class BattleView(View):
                 statusd, tint = "out of range", "osteo"
             p.add_row(f"{w.name} · {tac.arc_name(arc)}", statusd, tint)
         return p
+
+    def _company(self, b) -> Panel:
+        """The hulls sailing with you, and what you have told them to do."""
+        p = Panel("In company")
+        p.add(note("A consort follows its standing order until you change it. "
+                   "You are not flying it — you are telling its captain what "
+                   "you want to happen."))
+        for consort in b.consorts:
+            hull = consort_sim.hull_fraction(consort.ship)
+            if is_destroyed(consort.ship):
+                state, tint = "lost", "bad"
+            elif consort.withdrawn:
+                state, tint = "fallen out of the line", "warn"
+            else:
+                state, tint = f"{pct(hull)} integrity", (
+                    "chloro" if hull > 0.5 else "warn")
+            p.add(spacer(3))
+            p.add(label(consort.name, "h3", "lumen"))
+            p.add_row(CHASSIS_BY_ID[consort.ship.chassis].name, state, tint)
+            if consort.out:
+                continue
+            p.add_row("Dealt", f"{round(consort.dealt)} · taken "
+                               f"{round(consort.taken)}")
+            row = TabBar([(o.id, o.name) for o in CONSORT_ORDERS], consort.order)
+            row.changed.connect(
+                lambda oid, c=consort: self._set_consort_order(c, oid))
+            p.add(row)
+            p.add(note(CONSORT_ORDERS_BY_ID[consort.order].blurb))
+        return p
+
+    def _set_consort_order(self, consort, order_id: str) -> None:
+        consort.order = order_id
+        self.refresh()
 
     def _orders(self, b) -> Panel:
         st = b.player.st
@@ -243,6 +284,14 @@ class BattleView(View):
         g = self.game
         fid = b.enemy_faction
 
+        # Consorts lost in the action are lost for good, whatever the outcome.
+        dead = consort_sim.losses(b)
+        if dead:
+            gone = {c.uid for c in dead}
+            g.fleet = [s for s in g.fleet if s.uid not in gone]
+            for c in dead:
+                g.add_log(f"{c.name} was lost with all hands.", "bad")
+
         if b.result == "lost":
             self.win.battle = None
             g.die("Destroyed in action.")
@@ -251,6 +300,9 @@ class BattleView(View):
             return
 
         lines: list[str] = []
+        if dead:
+            lines.append("Lost in the action: "
+                         + ", ".join(c.name for c in dead) + ".")
         if b.result == "destroyed":
             loot = b.loot or {}
             g.credits += loot.get("credits", 0)
@@ -323,6 +375,10 @@ class TacticalPlot(QWidget):
 
     def _scale(self):
         span = max(tac.BAND_UNITS * 5.2, self.b.range_units * 2.3)
+        for consort in self.b.consorts:
+            if not consort.out:
+                span = max(span, tac.separation(self.b.player.body,
+                                                consort.body) * 2.4)
         return (self.SIZE / 2 - 14) / (span / 2)
 
     def _pt(self, body, origin, s) -> QPointF:
@@ -344,6 +400,10 @@ class TacticalPlot(QWidget):
             p.setBrush(Qt.BrushStyle.NoBrush)
             p.drawEllipse(QPointF(self.SIZE / 2, self.SIZE / 2), r, r)
 
+        for consort in b.consorts:
+            if consort.out:
+                continue
+            self._draw_ship(p, consort, mid, s, theme.tint("lumen"), True)
         self._draw_ship(p, b.player, mid, s, theme.tint("chloro"), True)
         self._draw_ship(p, b.enemy, mid, s, theme.tint("warn"), False)
 

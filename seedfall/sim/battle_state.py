@@ -52,6 +52,7 @@ class Battle:
     officers: list = field(default_factory=list)
     game: object | None = None      # for Bloom adaptation; never saved
     pending_order: str | None = None
+    consorts: list = field(default_factory=list)
 
     @property
     def range_units(self) -> float:

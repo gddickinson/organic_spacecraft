@@ -55,6 +55,8 @@ class Ship:
     o2: float = 1.0
     disabled: list[str] = field(default_factory=list)
     docked_at: int | None = None
+    #: Sails with the flag and fights alongside it, rather than sitting berthed.
+    escort: bool = False
 
     @property
     def chassis_def(self) -> Chassis:

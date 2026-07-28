@@ -281,7 +281,8 @@ class YardView(View):
 
         p = Panel("Hulls")
         p.add(note("You command one hull at a time. The rest wait where they were "
-                   "built."))
+                   "built — unless you order them to sail in company, in which "
+                   "case they follow your flag and fight beside it."))
         for s in list(g.fleet):
             ch = CHASSIS_BY_ID[s.chassis]
             active = s.uid == g.ship.uid
@@ -294,7 +295,14 @@ class YardView(View):
             h.addStretch(1)
             if active:
                 h.addWidget(Pill("flagship", "chloro"))
+            elif getattr(s, "escort", False):
+                h.addWidget(Pill("in company", "lumen"))
+                h.addWidget(button("Send to berth",
+                                   lambda _=False, sh=s: self._set_escort(sh, False)))
             elif here:
+                h.addWidget(button("Sail with me",
+                                   lambda _=False, sh=s: self._set_escort(sh, True),
+                                   kind="primary"))
                 h.addWidget(button("Take command",
                                    lambda _=False, sh=s: self._switch_ship(sh)))
                 h.addWidget(button(f"Scrap · {cr(shipyard.scrap_value(s))}",
@@ -303,6 +311,16 @@ class YardView(View):
                 h.addWidget(label("berthed elsewhere", "dim"))
             p.add(row)
         self.col.addWidget(p)
+
+    def _set_escort(self, ship: Ship, sailing: bool) -> None:
+        ship.escort = sailing
+        if sailing:
+            ship.docked_at = None
+            self.game.add_log(f"{ship.name} will sail in company.", "good")
+        else:
+            ship.docked_at = self.game.system.id
+            self.game.add_log(f"{ship.name} puts in at {self.game.system.name}.", "")
+        self.win.refresh()
 
     def _switch_ship(self, ship: Ship) -> None:
         g = self.game
