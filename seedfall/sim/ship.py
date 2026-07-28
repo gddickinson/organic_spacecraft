@@ -288,3 +288,38 @@ def add_cargo(ship: Ship, cid: str, units: float) -> None:
         ship.cargo.pop(cid, None)
 
 
+
+
+#: Share of a hull's combat vent rate that the radiators shed per day at rest.
+#:
+#: A combat turn is minutes and a day is a day, so this is not a physical
+#: ratio — it is the rate that makes heat a state you fly in rather than one
+#: that has gone by the time you arrive. At 0.5 a hard burn cleared in four
+#: days and never stacked with the next one; at 0.14 it takes a fortnight, so
+#: a captain who keeps burning hard keeps flying hot.
+#:
+#: Heat used to be a one-way ratchet outside combat: nothing added it but a
+#: flight incident and nothing shed it, so a ship sat at thirty for twelve
+#: hundred days with a vent rated at twenty-four a turn.
+REST_VENT = 0.14
+
+
+#: Damage a day per point of heat over the cap. The radiators complaining,
+#: which is what the hard burn's blurb promised and nothing delivered.
+COOK = 0.05
+
+
+def cool(ship: Ship, stats, days: float) -> dict:
+    """Shed heat on the clock, and cook the hull while it is over the cap."""
+    out = {"shed": 0.0, "cooked": 0.0}
+    if days <= 0 or ship.heat <= 0:
+        return out
+    over = ship.heat - stats.heat_cap
+    if over > 0:
+        # Only the excess cooks, and only for as long as it is excess.
+        out["cooked"] = min(over, over * COOK * days)
+        apply_damage(ship, out["cooked"])
+    shed = min(ship.heat, stats.vent * REST_VENT * days)
+    ship.heat -= shed
+    out["shed"] = shed
+    return out

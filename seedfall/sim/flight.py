@@ -30,6 +30,11 @@ class Burn:
     fuel: float      # multiplier on reaction mass
     risk: float      # extra chance of something going wrong
     blurb: str
+    #: Heat the burn leaves in the hull. The hard burn's blurb promised the
+    #: radiators would complain and nothing ever happened; the four profiles
+    #: collapsed to "always hard burn", because saving nineteen days cost about
+    #: three hundred credits of reaction mass and 1.2% of a hull that heals.
+    heat: float = 0.0
 
 
 BURNS = [
@@ -40,12 +45,16 @@ BURNS = [
          "Let the orbit do the work. It costs nothing but the calendar, and "
          "the calendar is not free."),
     Burn("economy", "Economy transfer", 1.55, 0.55, 0.00,
-         "A minimum-energy arc. Cheap, slow, and the textbook answer."),
+         "A minimum-energy arc. Cheap, slow, and the textbook answer.",
+         heat=0.06),
     Burn("standard", "Standard transfer", 1.00, 1.00, 0.04,
-         "The burn the flight plan assumes. Nobody writes home about it."),
+         "The burn the flight plan assumes. Nobody writes home about it.",
+         heat=0.18),
     Burn("hard", "Hard burn", 0.58, 2.10, 0.14,
          "Throw reaction mass at the problem. The crew will feel it and the "
-         "radiators will complain."),
+         "radiators will complain — and you arrive hot, which matters if "
+         "anybody is waiting.",
+         heat=0.62),
 ]
 BURNS_BY_ID = {b.id: b for b in BURNS}
 
@@ -151,7 +160,9 @@ def intercept(game, body, burn_id: str = "standard") -> dict:
             "aim": (tx, ty), "arrival_day": game.day + days,
             "lead": math.hypot(tx - nx, ty - ny), "passes": passes,
             "legs": legs, "detour": au - math.hypot(tx - sx, ty - sy),
-            "risk": burn.risk + min(0.10, au * 0.012) + _heat_risk(sx, sy, tx, ty)}
+            "risk": (burn.risk + min(0.10, au * 0.012)
+                     + _heat_risk(sx, sy, tx, ty)
+                     + hot_risk(game))}
 
 
 def quote(game, body, burn_id: str = "standard") -> dict:
@@ -207,6 +218,26 @@ def _closest_point(sx: float, sy: float, tx: float, ty: float) -> tuple[float, f
     return sx + dx * t, sy + dy * t
 
 
+def burn_heat(burn, stats) -> float:
+    """Heat a profile leaves in the hull, as a share of what it can hold."""
+    return burn.heat * stats.heat_cap
+
+
+#: How much a hull already running hot adds to the risk of a burn.
+HOT_RISK = 0.28
+
+
+def hot_risk(game) -> float:
+    """A hull with heat still in it is a worse thing to burn hard in.
+
+    This is what makes the profiles a decision. Without it a hard burn saved
+    nineteen days for three hundred credits of reaction mass and 1.2% of a
+    hull that heals itself, and nobody would ever have coasted.
+    """
+    cap = getattr(game.ship_stats, "heat_cap", 0) or 1
+    return HOT_RISK * min(1.0, max(0.0, game.ship.heat / cap))
+
+
 def _heat_risk(sx: float, sy: float, tx: float, ty: float) -> float:
     """Working close to the star is hot however carefully you route."""
     deep = min(math.hypot(sx, sy), math.hypot(tx, ty))
@@ -252,9 +283,16 @@ def travel_to(game, body_index: int, burn_id: str = "standard") -> dict:
     if game.dead:
         return {"ok": True, "dead": True}
     game.orbit_body = body.id
+    # The heat goes in on arrival, not departure: it is the braking burn that
+    # leaves you hot. Adding it at the start let the radiators shed the lot
+    # during the crossing, which is the opposite of the point.
+    burnt = burn_heat(q["burn"], game.ship_stats)
+    if burnt:
+        game.ship.heat += burnt
 
     out = {"ok": True, "already": False, "days": q["days"], "fuel": q["fuel"],
-           "body": body, "burn": q["burn"], "incident": None}
+           "body": body, "burn": q["burn"], "incident": None,
+           "heat": round(burnt, 1), "hot": game.ship.heat > game.ship_stats.heat_cap}
     r = game.rng("burn")
     if r.chance(q["risk"]):
         out["incident"] = _incident(game, r, q["burn"])

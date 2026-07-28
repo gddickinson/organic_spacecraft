@@ -17,6 +17,7 @@ from ..sim import customs as customs_sim, diplomacy as dip
 from ..sim import dig as dig_sim
 from ..sim import encounters
 from ..sim import expedition as expedition_sim
+from ..sim import flight as flight_sim
 from ..sim import freight as freight_sim_for_lever
 from ..sim import inquiry, loading, loyalty, market as market_sim
 from ..sim import mining, notes as notes_sim
@@ -30,7 +31,7 @@ from ..sim.ship import build_layers, make_ship, stats
 from ..world.economy import buy_price
 from . import captain_ai
 from .efficacy import Lever
-from .probes import (_wasted_ground,
+from .probes import (_hard_burn_hull, _wasted_ground,
                      _chart_spread, _contract_net, _cut_dig_points,
                      _desk_runs, _kill_goodwill, _levied_output,
                      _note_evidence, _smuggling_purse,
@@ -239,6 +240,11 @@ def _crossing_days() -> float:
     return total / runs
 
 LEVERS: list[Lever] = [
+    Lever("burn-heat",
+          "a hard burn leaves the hull hot",
+          patch=(flight_sim, "burn_heat", lambda _b, _s: 0.0),
+          probe=_hard_burn_hull, direction="lower"),
+
     Lever("rig-stops",
           "a rig stops when the hold is full",
           patch=(mining, "days_of_room",

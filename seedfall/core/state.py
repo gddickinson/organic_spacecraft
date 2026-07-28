@@ -28,8 +28,8 @@ from ..sim import chains as chain_sim
 from ..sim import contracts as contract_sim
 from ..sim import territory as territory_sim
 from ..data.territory import SEIZED as TERRITORY_SEIZED
-from ..sim.ship import (Ship, build_layers, is_breached, make_ship, repair_tick,
-                        stats)
+from ..sim.ship import (Ship, build_layers, cool, is_breached, make_ship,
+                        repair_tick, stats)
 from ..world.economy import tick_market
 from ..world.galaxy import Galaxy, generate_sector
 from . import save as save_mod
@@ -192,6 +192,10 @@ class Game:
             self.add_log(f"{ship.name} is complete and standing by.", "good")
 
         repair_tick(self.ship, n, st)
+        cooked = cool(self.ship, st, n)
+        if cooked["cooked"] > 1:
+            self.add_log("The radiators cannot keep up. The hull is cooking.",
+                         "warn")
 
         # A smelter bay turns ore into alloy on the way home, which is the
         # difference between hauling rock and hauling money.

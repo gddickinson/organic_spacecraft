@@ -20,6 +20,24 @@ from ..sim import inquiry
 
 # ── the desk finds runs your own notes cannot ──────────────────────────────
 
+def _hard_burn_hull() -> float:
+    """Hull lost touring a system on hard burns and then sitting a month."""
+    from ..sim import flight
+    from ..sim.ship import hull_pct
+    lost = 0.0
+    for index in range(10):
+        game = new_game(f"lever-burn-{index}")
+        game.ship.cargo = {"volatiles": 600}
+        before = hull_pct(game.ship)
+        for body in range(1, len(game.system.bodies)):
+            result = flight.travel_to(game, body, "hard")
+            if not result.get("ok") or result.get("dead"):
+                break
+        game.advance_days(30)
+        lost += before - hull_pct(game.ship)
+    return lost / 10
+
+
 def _wasted_ground() -> float:
     """Depletion spent per tonne actually lifted, working a nearly full hold."""
     from ..sim.actions import extract

@@ -2,6 +2,43 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a hard burn that costs something
+
+- **Set out to build a launch-window planner, and the measurement killed it.**
+  A leg's cost varies 1.9x on average and up to 5x as the bodies move, which
+  looked like the missing decision in piloting. Then I measured the orbital
+  periods: **1,486 to 9,855 days**. The windows are four to twenty-seven years
+  apart, and waiting 1,400 days to save 3 t of volatiles — about 120 credits —
+  is not a trade anyone would take. I had `window()` and `hold()` written and
+  deleted them rather than ship a feature nobody would use. A decorative
+  feature is exactly what the efficacy harness exists to catch, and I would
+  rather catch it before writing the screen.
+- **What the measuring found instead.** Flying a system end to end took 55 days
+  coasting and 10 on hard burns. The hard burn cost about three hundred credits
+  of reaction mass and 1.2% of a hull that heals itself, so the four profiles
+  collapsed to "always hard burn". Its own blurb promised that "the crew will
+  feel it and the radiators will complain", and a burn never touched heat.
+- **Heat was a one-way ratchet.** Nothing outside combat added it and nothing
+  shed it: a ship sat at thirty for twelve hundred days with radiators rated at
+  twenty-four a turn. The only thing that ever generated heat outside a fight
+  was one flight incident, and it followed you around for ever.
+- **So: a burn leaves heat, and heat is a state you fly in.** Hard burn arrives
+  at 62% of cap; a hot hull is riskier to burn again in; over the cap the
+  radiators stop keeping up and the hull cooks. Measured over a four-leg tour
+  plus a month sitting: coast 89 days and no hull, economy 59 days for 6 t,
+  hard 41 days for 24 t and **11% of the hull**. One hard burn from cold is
+  still free — it arrives under the cap. It is the habit that costs.
+- **`REST_VENT` is written down as what it is:** not a physical ratio but the
+  rate that makes heat a state you fly in rather than one that has gone by the
+  time you arrive. At 0.5 a hard burn cleared in four days and never stacked;
+  at 0.14 it takes a fortnight.
+- **The efficacy harness rejected my first lever**, correctly: it patched the
+  `BURNS` list, which `travel_to` never reads (it goes through `BURNS_BY_ID`),
+  and it demanded a callable target. Routing the heat through `burn_heat()`
+  fixed both and is better code.
+- Suites: 38, **7 burns** (new) among them — 317 checks green. 180 modules, all
+  under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a rig that knows when to stop
 
 - **Mining, measured for the first time.** It pays 11–104 credits a day and the

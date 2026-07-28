@@ -256,13 +256,14 @@ seedfall/
     ├── test_cargo.py   6 cargo-contract checks — the board offers no traps
     ├── test_freight.py 7 freight checks — the desk, its floor, and a career
     ├── test_workings.py 7 mining checks — the rig stops when the hold is full
+    ├── test_burns.py   7 burn checks — heat, cooking, and a real profile choice
     ├── captain_bot.py  the long-game captain the playability checks fly
     ├── probes.py       the newer efficacy probes, split out of levers.py
     ├── test_dig.py     6 dig checks — strata, methods, banking, backfilling
     ├── test_resume.py  5 resume checks — anything half-done survives a save
     ├── efficacy.py     the harness: neutralise a feature, measure the world
     ├── levers.py       one entry per claim the game makes about a number
-    ├── test_efficacy.py 24 checks — every feature has to move something
+    ├── test_efficacy.py 25 checks — every feature has to move something
     ├── test_reachable.py 4 reachability checks — nothing written and uncalled
     ├── test_verbs.py   10 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
@@ -517,6 +518,19 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **The four burn profiles are a decision because a hard burn arrives hot.**
+  Measured: a system flown end to end took 55 days coasting and 10 on hard
+  burns, and the hard burn cost about three hundred credits of reaction mass
+  and 1.2% of a hull that heals itself. Nobody would ever have coasted — and
+  its own blurb promised the radiators would complain. A burn now leaves heat
+  in the hull (62% of cap on a hard burn), a hot hull is riskier to burn again
+  in, and over the cap the radiators stop keeping up and the hull cooks. One
+  hard burn from cold is free; a habit of them costs 11% of the hull.
+- **Heat is no longer a one-way ratchet.** Nothing outside combat added it and
+  nothing shed it, so a ship sat at thirty for twelve hundred days with vents
+  rated at twenty-four a turn. `ship.cool()` runs on the clock. `REST_VENT` is
+  not a physical ratio — it is the rate that makes heat a state you fly in
+  rather than one that has gone by the time you arrive.
 - **A rig stops when the hold is full.** `extract()` used to compute the whole
   spell's haul, take `min(raised, cargo_free)` and deplete the body for the
   full duration anyway. Measured: sixty days with an empty hold took 106.2 t
@@ -781,6 +795,10 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   them home, and fails unless the shelf, the provenance and the evidence all
   survive — including across a save. It also checks every note is reachable and
   that the draw prefers ones you lack, so no written discovery is unfindable.
+- **`test_burns.py`** flies a whole system on each profile and fails unless
+  burning hard is both faster and materially worse for the hull, and unless a
+  single burn from cold costs nothing. It also pins what the helm quotes
+  against what the hull actually arrives at.
 - **`test_workings.py`** works the same body with an empty hold and a full one
   and fails unless the second costs proportionally less ground. Its
   proportionality check measures the room to leave from the haul the spell

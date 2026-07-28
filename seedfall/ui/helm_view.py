@@ -196,6 +196,10 @@ class HelmView(View):
         p.add_row("Range now", f"{flight.distance_to(g, body):.2f} AU")
         p.add_row("Reaction mass aboard",
                   f"{round(g.ship.cargo.get('volatiles', 0))} t")
+        cap = g.ship_stats.heat_cap
+        p.add_row("Hull heat", f"{round(g.ship.heat)} / {round(cap)}",
+                  "warn" if g.ship.heat > cap else
+                  ("osteo" if g.ship.heat > cap * 0.5 else ""))
 
         if at:
             p.add(spacer(4))
@@ -227,6 +231,11 @@ class HelmView(View):
             p.add_row(f"{q['days']} days · {q['fuel']:g} t",
                       f"risk {q['risk']:.0%}",
                       "warn" if q["risk"] > 0.15 else "")
+            arriving = g.ship.heat + flight.burn_heat(burn, g.ship_stats)
+            if burn.heat:
+                p.add_row("Arrives at",
+                          f"{round(arriving)} / {round(g.ship_stats.heat_cap)} heat",
+                          "warn" if arriving > g.ship_stats.heat_cap else "")
             p.add_buttons(button(f"Burn — {q['days']} d",
                                  lambda _=False, bid=burn.id: self._burn(bid),
                                  kind="primary" if burn.id == "standard" else "",
@@ -236,6 +245,9 @@ class HelmView(View):
                    "target will be, not where it is. The crosshair on the chart "
                    "is the aim point; the amber arc is the ground it covers "
                    "while you are under way."))
+        p.add(note("A hard burn arrives hot, and a hot hull is a worse thing to "
+                   "burn again in. Over the cap the radiators stop keeping up "
+                   "and the hull cooks. Sitting still sheds it."))
         return p
 
     def _plot_burn(self, burn_id: str) -> None:
