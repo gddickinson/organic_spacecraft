@@ -19,6 +19,8 @@ from dataclasses import dataclass, field
 
 from ..core.rng import RNG
 from ..core.save import register
+from ..data.lineages import LINEAGES_BY_ID
+from ..data.lineages import of_stock as lineage_of_stock
 from ..data.beginnings import (CREW_SLOTS, DEFAULT_HULL, ORIGINS_BY_ID,
                                POSTINGS_BY_ID, STOCKS_BY_ID)
 from ..data.chassis import CHASSIS, CHASSIS_BY_ID
@@ -154,7 +156,8 @@ def preview(choices: Choices) -> dict:
         "credits": max(0, 18000 + origin.credits),
         "tech": sorted(known),
         "standing": standing,
-        "cargo": dict(_opening_hold(origin)),
+        "cargo": dict(forecast_hold(origin, choices.stock,
+                                    launch_crew(choices, chassis))),
         "evidence": dict(origin.evidence),
         "trait": origin.trait,
         "flags": dict(origin.flags),
@@ -163,10 +166,53 @@ def preview(choices: Choices) -> dict:
     }
 
 
-def _opening_hold(origin) -> dict:
-    hold = {"ore": 12, "volatiles": 20, "biomass": 18}
+#: The default opening's complement. This was a bare literal inside
+#: `new_game`, so the opening screen had no way to know it and quoted the
+#: chassis's full berths instead — fifty against the thirty-four that actually
+#: sail. It only started to matter when provisioning began depending on how
+#: many mouths there are.
+DEFAULT_CREW = 34
+
+
+def launch_crew(choices, chassis) -> int:
+    """How many are aboard on day one. Both the screen and the game ask."""
+    return DEFAULT_CREW if is_default(choices) else chassis.crew
+
+
+#: Days of crew upkeep a hull is provisioned with on day one. Enough for a
+#: long crossing, not enough to ignore.
+PROVISION_DAYS = 220
+
+
+def opening_hold(stock_id: str = "wet", crew: int = 0) -> dict:
+    """What is in the hold on day one. The *only* place that decides it.
+
+    The opening screen used to forecast this and `new_game` used to build it,
+    separately, from two copies of the same literal — so the day provisioning
+    started depending on the crew's lineage, the screen promised 18 tonnes of
+    biomass and the hull opened with 20.5. Both call this now.
+
+    A Dry Choir hull stocked with food and no silicon is a captain punished on
+    day one for a choice made on the character screen, so the provisioning is
+    whatever this particular crew actually eats.
+
+    This is the *base* hold only. An origin's own stores are added on top by
+    `apply`, so adding them here as well handed a journeyman sixty tonnes of
+    alloy against the thirty the screen promised.
+    """
+    hold = {"ore": 12, "volatiles": 20}
+    for commodity, rate in LINEAGES_BY_ID[
+            lineage_of_stock(stock_id)].upkeep.items():
+        hold[commodity] = round(
+            hold.get(commodity, 0) + rate * max(0, crew) * PROVISION_DAYS, 1)
+    return hold
+
+
+def forecast_hold(origin, stock_id: str = "wet", crew: int = 0) -> dict:
+    """What the screen should promise: the base hold plus what the origin adds."""
+    hold = opening_hold(stock_id, crew)
     for key, amount in origin.stores.items():
-        hold[key] = hold.get(key, 0) + amount
+        hold[key] = round(hold.get(key, 0) + amount, 1)
     return hold
 
 

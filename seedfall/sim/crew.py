@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 
 from ..core.save import register
 from ..data import convictions
+from ..data import lineages
 from . import loyalty
 from ..data.lore import CREW_FIRST, CREW_LAST, CREW_ROLES
 
@@ -45,6 +46,13 @@ class Officer:
     trait_note: str = ""
     conviction: str | None = None
     loyalty: float = convictions.START
+    #: What they are made of, and how far through their run they are. See
+    #: `data/lineages.py` — everyone used to be the same thing and immortal.
+    lineage: str | None = None
+    age: float | None = None
+    #: Fractional levels shed to decline, carried so it is a slope not a step.
+    wear: float = 0.0
+    retired: bool = False
 
     @property
     def label(self) -> str:
@@ -91,9 +99,27 @@ def starting_crew(rng) -> list[Officer]:
     return crew
 
 
+def hiring_lineage(rng) -> str:
+    """What a quay's next candidate is made of.
+
+    Mostly wet, because most of the Verge is. A graft turns up often enough to
+    matter: they cost more to keep and they outlive the rest of the bridge by
+    seventy years, which is a real reason to take one on before a long run.
+    """
+    pool = lineages.recruitable()
+    return rng.weighted([(6 if l.id == "wet" else 2, l.id) for l in pool])
+
+
 def recruit_pool(rng, port_level: int) -> list[Officer]:
     """Candidates on offer. Bigger ports attract better officers."""
-    return [make_officer(rng, None, port_level) for _ in range(2 + port_level)]
+    out = []
+    for _ in range(2 + port_level):
+        officer = make_officer(rng, None, port_level)
+        # Left unset an officer is assumed to be of the captain's own stock,
+        # which is right for the crew you launched with and wrong for a quay.
+        officer.lineage = hiring_lineage(rng)
+        out.append(officer)
+    return out
 
 
 def grant_xp(officers, stat: str, amount: float) -> list[Officer]:

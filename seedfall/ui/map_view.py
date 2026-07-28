@@ -348,9 +348,11 @@ class MapView(View):
                 button("Enter system", lambda: self.win.go("system"), kind="primary"),
                 button("Dock", lambda: self.win.go("port")) if sys.port else None)
         else:
-            panel.add_buttons(button(
-                f"Set course — {duration(q['days'])}" if q["in_range"] else "Out of range",
-                self._jump, kind="primary", enabled=q["in_range"]))
+            # The four ways to fly it, each stating what it costs on both
+            # clocks. A bare "Set course" could not say that a hard burn buys
+            # the crew four years of their lives back.
+            from .crossing_panel import how_to_fly
+            panel.add(how_to_fly(self, g, sys))
 
         if is_stranded(g):
             panel.add(spacer(4))
@@ -385,8 +387,9 @@ class MapView(View):
             return
         self.win.refresh()
 
-    def _jump(self) -> None:
-        res = jump_to(self.game, self.selected)
+    def _jump(self, crossing: str = "steady") -> None:
+        self.crossing = crossing
+        res = jump_to(self.game, self.selected, crossing)
         if not res["ok"]:
             self.win.toast(res["why"], "warn")
             return

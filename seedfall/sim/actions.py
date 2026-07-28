@@ -5,6 +5,8 @@ The GUI calls these and reacts to what comes back; none of them touch Qt.
 
 from __future__ import annotations
 
+from ..data.crossings import CROSSINGS_BY_ID
+from ..data.crossings import DEFAULT as CROSSING_DEFAULT
 from ..world.galaxy import distance, transit_days
 from ..world.planets import survey_body
 from . import charts as chart_sim
@@ -21,18 +23,28 @@ from .threat import cleanse
 from . import flight
 
 
-def jump_quote(game, target) -> dict:
-    """Can we make this jump, and what will it cost?"""
+def jump_quote(game, target, crossing: str = CROSSING_DEFAULT) -> dict:
+    """Can we make this jump, what will it cost, and whose clock pays.
+
+    `days` is always *sector* time. `ship_days` is what the crew lives
+    through, which is the smaller number on anything but a steady transit —
+    see `data/crossings.py`.
+    """
     ly = distance(game.system, target)
     st = game.ship_stats
+    how = CROSSINGS_BY_ID.get(crossing) or CROSSINGS_BY_ID[CROSSING_DEFAULT]
+    base = transit_days(ly, st.speed)
+    days = max(1, round(base * how.days))
     return {"ly": ly, "in_range": ly <= st.jump,
-            "days": transit_days(ly, st.speed),
-            "fuel": max(1, round(ly * 0.9))}
+            "days": days,
+            "ship_days": max(1, round(days / how.dilation)),
+            "dilation": how.dilation, "crossing": how,
+            "fuel": max(1, round(ly * 0.9 * how.fuel))}
 
 
-def jump_to(game, system_id: int) -> dict:
+def jump_to(game, system_id: int, crossing: str = CROSSING_DEFAULT) -> dict:
     target = game.galaxy.systems[system_id]
-    q = jump_quote(game, target)
+    q = jump_quote(game, target, crossing)
     if not q["in_range"]:
         return {"ok": False, "why": f"Out of reach — {q['ly']:.1f} ly against a "
                                     f"{game.ship_stats.jump:.1f} ly range."}
@@ -44,7 +56,7 @@ def jump_to(game, system_id: int) -> dict:
     add_cargo(game.ship, "volatiles", -q["fuel"])
     game.location_id = system_id
     flight.arrive_in_system(game)
-    game.advance_days(q["days"])
+    game.advance_days(q["days"], q["dilation"])
     if game.dead:
         return {"ok": True, "days": q["days"], "dead": True}
 

@@ -56,6 +56,40 @@ an empty tank from becoming a deadlock. Local work (survey, extract, dig, land)
 flies the ship alongside first, so a player who never opens the helm still gets a
 coherent transit; the helm is where you choose a better one.
 
+**Time is relative, and there are two clocks.** `Game.day` is the Verge's:
+every deadline, market, colony, faction and hull-in-a-yard runs on it.
+`Game.ship_day` is proper time — what the hull and the people in it actually
+live through. They agree until you fly a crossing hard, and `advance_days(n,
+dilation)` is the only place either is written.
+
+The split is a design statement, not bookkeeping. **Sector time**: markets,
+ventures, diplomacy, colonies, contracts, the Bloom. **Ship time**: research,
+repair, cooling, refining, ageing, upkeep, morale, wages. So a hard burn buys
+your crew their remaining years back and costs you everything you would have
+got done in the years you skipped — a `data/crossings.py` choice between a
+long coast, a steady transit, a hard burn and a relativistic run, at 1× to 11×
+dilation and 0.45× to 5× the reaction mass.
+
+**Who is aboard, and what time does to them.** Everyone used to be the same
+thing: immortal, breathing, eating nothing — while the opening screen sold a
+**Dry Choir** lineage on "no air to run out of" and the daily tick asphyxiated
+your recordings on exactly the same schedule as a wet crew. A lineage
+(`data/lineages.py`) is a substrate, and it decides three things:
+
+| Lineage | Prime / span | Ages at | Eats per head per day | Breathes |
+|---|---|---|---|---|
+| Wet | 52 / 96 y | 1.00× | biomass (a tonne a head a year) | yes |
+| Grafted | 88 / 164 y | 0.58× | biomass + magnetite | yes |
+| Dry Choir | 240 / 620 y | 0.14× | silicon + magnetite, 16× the power | **no** |
+| Xenoform | 380 / 900 y | 0.07× | volatiles + a trace of xenolith | no |
+
+Upkeep is drawn from commodities the economy already trades, deliberately: a
+bill payable in a currency nobody sells is a tax, not a decision. A hull is
+provisioned on day one with 220 days of *its own* crew's consumption, so a
+Choir captain is not punished for a choice made on the character screen.
+Going short is slow — six days of grace, then it costs people or levels
+depending on what ran out.
+
 **How you look at a body decides what you find.** Surveying used to be one
 button: three days, no cost, no risk, the same kind of answer for a comet as for
 an ocean world — while thirteen sensor fittings and a drone technology existed
@@ -181,6 +215,8 @@ seedfall/
 │   ├── territory.py    what a power says when its claim lands on your ground
 │   ├── charts.py       what each power pays for a survey, and what for
 │   ├── surveys.py      the four ways of looking, and what each cannot see
+│   ├── lineages.py     what a crew member is made of: span, upkeep, ageing
+│   ├── crossings.py    how hard to fly a jump, and which clock pays for it
 │   ├── fieldnotes.py   the eight things the ground can tell you
 │   └── lore.py         intro, victories, endings, name pools, glossary
 ├── world/              generated content
@@ -247,6 +283,8 @@ seedfall/
 │   ├── works.py        colony development: what a settlement becomes
 │   ├── flight.py       the helm: orbits, intercepts, routing, transfer burns
 │   ├── survey.py       what a way of looking costs, finds, and is blind to
+│   ├── lifespan.py     ageing, decline, and the end of a career
+│   ├── upkeep.py       what each lineage eats, and what going short costs
 │   ├── minigames.py    the docking control loop and the decoding bench
 │   └── actions.py      player actions spanning modules (jump/survey/mine/dive)
 ├── ui/                 PyQt6 presentation — never mutates state directly
@@ -258,6 +296,7 @@ seedfall/
 │   ├── map_view.py     custom-painted sector chart and jump control
 │   ├── system_view.py  bodies, survey, extraction, diving, colonising
 │   ├── survey_panel.py the four methods as cards, each stating its blind spot
+│   ├── crossing_panel.py  the four ways to fly it, costed on both clocks
 │   ├── port_view.py    market, services, recruitment
 │   ├── ship_view.py    layer stack, fittings, crew, hold
 │   ├── yard_view.py    hull designer, build queue, fleet management

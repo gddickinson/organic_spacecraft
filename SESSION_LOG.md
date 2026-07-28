@@ -2,6 +2,62 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: two clocks, and four kinds of person to feel them
+
+The player asked for time to matter — ageing over long crossings, hibernation,
+lifespans, and different needs for wet crew, cyborgs and synthetics — then
+added the thing that reframes it: *"Don't forget that time is relative."*
+
+- **A lineage is a substrate.** Everyone aboard used to be the same thing:
+  immortal, breathing, eating nothing. Four lineages now, differing in span
+  (96 to 900 years), ageing rate (1.00× to 0.07×), what they consume, and
+  whether the atmosphere plant matters to them at all.
+- **The Choir stops suffocating.** The opening screen sells a Dry Choir
+  lineage on "no air to run out of", and the daily tick killed recordings by
+  asphyxiation on exactly the same schedule as a wet crew. The purest form of
+  the defect this project keeps finding: a screen promising a consequence the
+  simulation never read. A wet crew now dies in 120 airless days; a Choir crew
+  does not notice.
+- **Two clocks.** `Game.day` is the Verge's and drives every deadline, market,
+  colony and faction. `Game.ship_day` is proper time and drives ageing,
+  upkeep, repair, refining, wages and the research bench. `advance_days(n,
+  dilation)` writes both. The split is what stops a hard burn being free: at
+  dilation 6 a year of clock ages the crew 0.14 years instead of 1.0 and eats
+  a sixth of the food — and banks 320 fewer research points.
+- **Four ways to fly a crossing**, from a long coast (1.55× days, 0.45× fuel,
+  clocks agree) to a relativistic run (11× dilation, 5× fuel). The map states
+  all four costs before you commit: days out here, days lived aboard, reaction
+  mass, what the crew eats and what it does to their span.
+- **Provisioning follows the crew.** A hull launches with 220 days of what
+  *its own* lineage eats, so a Choir captain is not punished on day one for a
+  choice made on the character screen.
+- **Two promises I broke and fixed.** Provisioning by lineage made the opening
+  screen's forecast wrong twice — first the biomass (the screen quoted the
+  chassis's fifty berths against the thirty-four that actually sail; `crew =
+  34` was a bare literal inside `new_game` that the screen had no way to read)
+  and then the alloy (routing `new_game` through the same helper double-counted
+  the origin's stores, which `apply` already adds). Both are now one function
+  with one caller each, which is the only durable fix for that class.
+- **A ten-minute hang, from my own new control.** The suite stopped dead on
+  `system/'Close pass'` against a wrecked hull: the survey flies seventeen days,
+  the crew dies, the ending dialog returns nothing, and the fall-through starts
+  a *new* chronicle — which opens the opening dialog and waits forever for an
+  answer nobody was going to give. `interact.py` had already learned this from
+  the shipyard's name prompt; `test_verbs` now neutralises modals too.
+- **A dead promise, wired up.** Three colony classes advertise sensor reach and
+  `colony.effects` had tallied it per system since the day they were written —
+  nothing ever read the tally. Surveys gave the number teeth, so a relay node
+  now doubles what you can sweep from where you are.
+- **My own measurement errors, twice.** A check that overrode `ship_stats` and
+  another that overrode `colony_fx`: both are *derived*, both are rebuilt by
+  `recompute`, and both threw the override away mid-check — so the check
+  measured a sharp instrument for the forecast and a blunt one for the survey,
+  then blamed the forecast. And an airless-crew check that advanced 120 days in
+  one call, letting `repair_tick` heal the life layer so the air came back.
+- All four new time checks proven to bite by reintroducing the bug. 477 checks
+  green. `core/state.py` crossed 500 lines the day time stopped being uniform,
+  so the daily tick moved to `core/clock.py`.
+
 ## 2026-07-28 — SEEDFALL: four ways to look at a world, and three that never paid
 
 Answering a question from the player: *"how are surveys carried out? They seem

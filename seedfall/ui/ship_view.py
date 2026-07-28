@@ -9,7 +9,9 @@ from ..data.chassis import CHASSIS_BY_ID, FAMILY_LABEL
 from ..data.commodities import BY_ID
 from ..data.part_types import SLOT_LABEL, SLOT_ORDER
 from ..data.parts import part
+from ..sim import lifespan as lifespan_sim
 from ..sim import loyalty as loyalty_sim
+from ..sim import upkeep as upkeep_sim
 from ..sim import plans as plans_sim
 from ..sim.actions import transfer
 from ..sim import trade as trade_sim
@@ -213,11 +215,14 @@ class ShipView(View):
         p.add(spacer(4))
         if g.officers:
             mood = loyalty_sim.summary(g)
+            p.add_row("Upkeep a day", ", ".join(
+                f"{v:.2f} t {k}" for k, v in sorted(upkeep_sim.demand(g).items()))
+                or "nothing")
             p.add_row("Bridge loyalty", f"{mood['mean']:.0f}"
                       + (f" · {mood['restless']} restless" if mood["restless"] else ""),
                       "warn" if mood["restless"] else "")
             p.add(spacer(3))
-            for o in g.officers:
+            for o in lifespan_sim.active(g.officers):
                 row = QWidget()
                 h = QHBoxLayout(row)
                 h.setContentsMargins(0, 0, 0, 0)
@@ -227,6 +232,13 @@ class ShipView(View):
                 h.addWidget(Pill(band, tint))
                 h.addWidget(Pill(f"lvl {o.level}", "lumen"))
                 p.add(row)
+                # What they are made of and how far through their run. Nobody
+                # aged at all until there were two clocks; now a long crossing
+                # is something you can watch happen to people.
+                where = lifespan_sim.stage(o, g)
+                p.add(label(lifespan_sim.note(o, g), "note",
+                            "warn" if where in ("declining", "past their span")
+                            else ""))
                 conviction = loyalty_sim.conviction_of(o)
                 if conviction is not None:
                     p.add(label(conviction.name, "note"))

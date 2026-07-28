@@ -186,7 +186,28 @@ def run(suite: Suite) -> bool:
 
     def drive(screen: str, tab: str | None = None,
               state=None) -> tuple[int, list]:
-        """Click every enabled control on this screen, one per fresh game."""
+        """Click every enabled control on this screen, one per fresh game.
+
+        Modal dialogs are neutralised for the duration. A control can kill the
+        chronicle — a survey that flies a wrecked hull for seventeen days will
+        — and an ending whose dialog returns nothing falls through to starting
+        a new chronicle, which opens the *opening* dialog. That runs its own
+        event loop and waits for an answer nobody is going to give: the suite
+        stopped dead for ten minutes on one button. `interact.py` learned the
+        same lesson from the shipyard's name prompt.
+        """
+        from PyQt6.QtWidgets import QDialog, QInputDialog
+        held_exec, held_text = QDialog.exec, QInputDialog.getText
+        QDialog.exec = lambda self, *a, **k: 0
+        QInputDialog.getText = staticmethod(lambda *a, **k: ("Test Hull", True))
+        try:
+            return _drive(screen, tab, state)
+        finally:
+            QDialog.exec = held_exec
+            QInputDialog.getText = held_text
+
+    def _drive(screen: str, tab: str | None = None,
+               state=None) -> tuple[int, list]:
         _game, win = window(f"{screen}-probe", screen, tab, state)
         labels = [b.text() for b in controls(win, screen)]
         win.close()

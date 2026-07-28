@@ -14,6 +14,7 @@ from ..data.tech import STARTING_TECH, bonuses
 from ..sim import allegiance
 from ..sim import colony as colony_sim
 from ..sim import crew as crew_sim
+from ..sim import lifespan as lifespan_sim
 from ..sim import customs as customs_sim
 from ..sim import inquiry as inquiry_sim
 from ..sim import market as market_sim
@@ -30,6 +31,7 @@ from ..sim import xeno as xeno_sim
 from ..sim import chains as chain_sim
 from ..sim import contracts as contract_sim
 from ..sim import territory as territory_sim
+from ..sim import upkeep as upkeep_sim
 from ..data.territory import SEIZED as TERRITORY_SEIZED
 from ..sim.ship import (Ship, build_layers, cool, is_breached, make_ship,
                         repair_tick, stats)
@@ -125,6 +127,13 @@ class Game:
     #: Sub-day remainder carried by `advance_days`, so the calendar stays
     #: whole without losing the fractions callers pass.
     _part_day: float = 0.0
+    #: Proper time: days the hull and the people in it have actually lived.
+    #: `day` is the Verge's clock and drives every deadline; this one drives
+    #: ageing, upkeep, repair and research. They diverge whenever a crossing
+    #: is flown at dilation, which is the whole point — time is relative, and
+    #: a crew that skipped four years did not do four years of work either.
+    ship_day: int = 0
+    _part_ship: float = 0.0
 
     # Derived, never saved — recomputed by recompute() on load.
     bonuses: dict = field(default_factory=dict, compare=False,
@@ -184,167 +193,15 @@ class Game:
 
     # ── the clock ──────────────────────────────────────────────────────────
 
-    def advance_days(self, n: float) -> None:
+    def advance_days(self, n: float, dilation: float = 1.0) -> None:
         """The only clock in the game, and the only place `day` is written.
 
-        Callers pass fractions — a short local transit, a burn quoted to a
-        tenth of a day — and `day` used to take them, drifting to a float.
-        Everything downstream assumes a whole number: `day % 365` for the
-        stardate, contract deadlines, chart dates, the day a memory was
-        formed. The display helper crashed outright on the first fractional
-        day (`format code 'd' for object of type 'float'`), which is how this
-        was found — by mining something in a running window.
-
-        The fraction is carried rather than dropped, so no time is lost or
-        invented over a long chronicle.
+        The work lives in `core/clock.py`; see it for the sector-time versus
+        ship-time split. This stays the single entry point so nothing else
+        ever writes the calendar.
         """
-        if self.dead or self.victory:
-            return
-        r = self.rng("tick")
-        # The epsilon is not decoration: a hundred tenth-days sum to
-        # 9.999999999999998, so taking the whole part naively loses a day
-        # every ten. Over a chronicle of thousands of days that is a real
-        # drift in every deadline the game holds.
-        carried = self._part_day + float(n)
-        whole = int(carried + 1e-9)
-        self._part_day = max(0.0, carried - whole)
-        n = whole
-        self.day += n
-        st = self.ship_stats
-
-        rate = st.research + 0.25 + self.colony_fx.get("research", 0)
-        self.research.last_event = None
-        done = research_sim.tick(self.research, n, rate, r)
-        if self.research.last_event == "setback":
-            self.add_log("The programme has gone backwards — a result nobody "
-                         "could replicate, and a season spent on it.", "bad")
-        elif self.research.last_event == "breakthrough":
-            self.add_log("A breakthrough on the bench. Weeks of work fell out "
-                         "in an afternoon.", "good")
-        if getattr(self.research, "starved", None) and not done:
-            short = ", ".join(self.research.starved)
-            if r.chance(0.25):
-                self.add_log(f"The bench is short of {short}; the programme is "
-                             "marking time.", "warn")
-        if done:
-            self.recompute()
-            from ..data.tech import TECH_BY_ID
-            self.add_log(f"Research complete: {TECH_BY_ID[done].name}.", "good")
-
-        customs_sim.cool(self, n)
-
-        for colony, power in territory_sim.seizures(self, n, r):
-            self.add_log(TERRITORY_SEIZED.format(colony=colony.name), "bad")
-
-        _gains, events = colony_sim.tick(self, n)
-        for kind, text in events:
-            self.add_log(text, kind)
-
-        for ship in shipyard_sim.tick_builds(self, n):
-            self.add_log(f"{ship.name} is complete and standing by.", "good")
-
-        repair_tick(self.ship, n, st)
-        cooked = cool(self.ship, st, n)
-        if cooked["cooked"] > 1:
-            self.add_log("The radiators cannot keep up. The hull is cooking.",
-                         "warn")
-
-        # A smelter bay turns ore into alloy on the way home, which is the
-        # difference between hauling rock and hauling money.
-        if st.refine > 0:
-            ore = self.ship.cargo.get("ore", 0)
-            smelted = min(ore, st.refine * 1.5 * n)
-            if smelted > 0.01:
-                self.ship.cargo["ore"] = ore - smelted
-                if self.ship.cargo["ore"] <= 0.0001:
-                    self.ship.cargo.pop("ore", None)
-                self.ship.cargo["alloy"] = self.ship.cargo.get("alloy", 0) + smelted * 0.45
-
-        for sys in self.galaxy.systems:
-            if sys.market:
-                tick_market(sys.market, n, r)
-        for kind, text in market_sim.tick(self, n, r):
-            self.add_log(text, kind)
-        market_sim.apply_to_markets(self)
-        for kind, text in venture_sim.tick(self, n, r):
-            self.add_log(text, kind)
-        dip_sim.drift(self, n)
-
-        # Payroll. Miss it and the crew notices immediately.
-        wages = crew_sim.daily_wages(self.officers) * n
-        paid = self.credits >= wages
-        if paid:
-            self.credits -= wages
-        elif r.chance(0.3):
-            self.add_log("Payroll missed. The bridge is very quiet.", "bad")
-
-        # Air. The intima makes it; without one you are drawing on a tank.
-        life_layer = next((l for l in self.ship.layers if l.life), None)
-        air_ok = (not is_breached(self.ship)
-                  and (life_layer is None or life_layer.hp > life_layer.max * 0.2))
-        if air_ok:
-            self.ship.o2 = min(1.0, self.ship.o2 + 0.06 * n)
-        else:
-            self.ship.o2 -= n / max(1, st.o2_days)
-            if self.ship.o2 <= 0:
-                self.ship.o2 = 0
-                lost = max(1, round(self.ship.crew * 0.08 * n))
-                self.ship.crew = max(0, self.ship.crew - lost)
-                self.add_log(f"Air is gone. {lost} of the crew did not make it.", "bad")
-                loyalty_sim.record(self, "crew_death")
-                if self.ship.crew <= 0:
-                    self.die("Nobody left aboard to hold the watch.")
-                    return
-
-        crew_sim.morale_tick(self.ship, n, paid, is_breached(self.ship), st.morale)
-        crew_sim.grant_xp(self.officers, "*", n * 1.5)
-        if is_breached(self.ship):
-            loyalty_sim.record(self, "breach", scale=min(2.0, n / 10))
-        for kind, text in loyalty_sim.tick(self, n, paid):
-            self.add_log(text, kind)
-
-        # Notes banked against a technology whose prerequisites have since been
-        # met can finally be made sense of.
-        for contract, outcome in contract_sim.check(self):
-            if outcome == "done":
-                self.add_log(f"Contract complete: {contract.title}. "
-                             f"Paid {round(contract.reward):,} credits.", "good")
-                if contract.cost:
-                    self.add_log("Word gets round who you work for — "
-                                 f"{allegiance.phrase(contract.cost)}.", "warn")
-                for kind, text in chain_sim.on_contract_done(self, contract):
-                    self.add_log(text, kind)
-            else:
-                self.add_log(f"Contract expired: {contract.title}.", "bad")
-                for kind, text in chain_sim.on_contract_failed(self, contract):
-                    self.add_log(text, kind)
-
-        for tech in xeno_sim.settle(self):
-            self.add_log(f"Xenotechnology incorporated: {tech.name}.", "good")
-
-        for kind, text in threat_sim.tick(self, n, r):
-            self.add_log(text, kind)
-        memory_sim.tick(self, n)
-        for kind, text in legacy_sim.tick(self, n, r):
-            self.add_log(text, kind)
-        response_sim.decay(self, n)
-        for kind, text in response_sim.check(self, r):
-            self.add_log(text, kind)
-        # Endings are checked before the Bloom is allowed to kill you, because
-        # one of them is surviving it: Ruin fires when the sector is lost and
-        # you are still flying, and the old order set `dead` first so it could
-        # never fire at all.
-        win = threat_sim.check_victory(self)
-        if win and not self.victory and not legacy_sim.in_epoch(self):
-            self.victory = win
-        # Inside an epoch the Bloom is no longer the clock — the epoch's own
-        # pressure is. Without this the Ruin aftermath killed you on its first
-        # tick, because the sector is still ninety-five per cent overgrown by
-        # definition and `overgrown` fires every time.
-        if self.overgrown and not self.victory and not legacy_sim.in_epoch(self):
-            self.dead = True
-            self.ending = "overgrown"
-        self.recompute()
+        from . import clock
+        clock.advance_days(self, n, dilation)
 
     def die(self, reason: str = "") -> None:
         """Loss — unless a TARDIGRADE vault is holding a copy of the lineage."""
@@ -394,16 +251,21 @@ def new_game(seed: str | None = None, systems: int = 42, choices=None) -> Game:
              else beginning_sim.start_system(galaxy, choices.posting))
 
     if beginning_sim.is_default(choices):
+        chassis = CHASSIS_BY_ID["navis"]
         ship = make_ship("navis", list(START_FIT), choices.name)
-        ship.crew = 34
     else:
         chassis = CHASSIS_BY_ID[choices.hull]
         known = set(STARTING_TECH) | set(
             beginning_sim.ORIGINS_BY_ID[choices.origin].tech)
         ship = make_ship(chassis.id,
                          beginning_sim.fit_for(chassis, known), choices.name)
-        ship.crew = chassis.crew
-    ship.cargo = {"ore": 12, "volatiles": 20, "biomass": 18}
+    ship.crew = beginning_sim.launch_crew(choices, chassis)
+    # Provisioned for what this crew actually consumes — `opening_hold` is the
+    # one place that decides, so the opening screen's forecast cannot drift
+    # away from what the hold actually contains. It did, within an hour of
+    # provisioning starting to depend on lineage.
+    ship.cargo = beginning_sim.opening_hold(
+        getattr(choices, "stock", None) or "wet", ship.crew)
 
     game = Game(
         seed=seed_str, galaxy=galaxy, ship=ship, fleet=[ship],
@@ -450,6 +312,11 @@ def load_game() -> Game | None:
         if f.uid == game.ship.uid:
             game.fleet[i] = game.ship
             break
+    # A chronicle saved before there were two clocks has lived every day the
+    # Verge has. Left at zero, a twenty-year captain's crew would be younger
+    # than the chronicle and their whole span would come back.
+    if not game.ship_day and game.day:
+        game.ship_day = game.day
     game.recompute()
     return game
 
