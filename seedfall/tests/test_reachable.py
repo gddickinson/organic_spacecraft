@@ -14,6 +14,14 @@ it is written.
 Finding it also turned up two genuine holes rather than dead code — treaties
 that bought no trade advantage despite the function promising one, and instars
 that could never be killed because nothing called `kill_instar`.
+
+Known floor: names are matched bare, so a `dig.summary` nobody calls is masked
+by any other module's `summary` being called. Measured across the package that
+currently hides one orphan, not a class of them — resolving calls to their
+defining module means following aliased imports and re-exports, which throws
+five false alarms if done naively. Worth doing properly, not worth bolting on.
+A function called only from a readout also passes: it is consumed, even if the
+readout is never opened.
 """
 
 from __future__ import annotations

@@ -188,6 +188,7 @@ class MainWindow(QMainWindow):
         from .ship_view import ShipView
         from .system_view import SystemView
         from .tech_view import TechView
+        from .dig_view import DigView
         from .transit_view import TransitView
         from .yard_view import YardView
 
@@ -198,7 +199,7 @@ class MainWindow(QMainWindow):
             "ground": ExpeditionView, "helm": HelmView,
             "diplomacy": DiplomacyView,
             "docking": DockingView, "decoding": DecodingView,
-            "transit": TransitView,
+            "transit": TransitView, "dig": DigView,
         }
         for vid, cls in classes.items():
             view = cls(self)
@@ -217,6 +218,7 @@ class MainWindow(QMainWindow):
                         lambda self, value: setattr(self.game, name, value))
 
     transit = _on_game("transit")
+    dig = _on_game("dig")
     docking = _on_game("docking")
     decoding = _on_game("decoding")
     decoding_tech = _on_game("decoding_tech")
@@ -226,6 +228,10 @@ class MainWindow(QMainWindow):
         if self.battle is not None and not self.battle.over and view_id != "battle":
             self.toast("You are under fire. Finish the engagement first.", "warn")
             view_id = "battle"
+        elif self.dig is not None and not self.dig.over \
+                and view_id not in ("dig", "battle"):
+            self.toast("There is a trench open. Work it or backfill it.", "warn")
+            view_id = "dig"
         elif self.transit is not None and not self.transit.over \
                 and view_id not in ("transit", "battle"):
             self.toast("You are under way. Fly it or cut the burn.", "warn")

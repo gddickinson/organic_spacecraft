@@ -22,6 +22,7 @@ from ..core.rng import RNG
 from ..core.state import new_game
 from ..sim import encounters
 from ..sim import minigames
+from ..sim import dig as dig_sim
 from ..sim import expedition as expedition_sim
 from ..sim import ventures as venture_sim
 from ..sim.ship import build_layers, make_ship
@@ -131,6 +132,14 @@ def run(suite: Suite) -> bool:
         elif screen == "decoding":
             win.decoding = minigames.start_decoding(
                 game.rng("decode"), "a xenolith", game.ship_stats, game.officers)
+        elif screen == "dig":
+            from ..data.xenotech import XENOTECH
+            body = next((b for b in game.system.bodies if b.relic),
+                        game.system.bodies[0])
+            body.relic = body.relic or XENOTECH[0].id
+            body.relic_found = True
+            game.dig = dig_sim.begin(
+                game, game.system.bodies.index(body))["dig"]
         if tab is not None:
             setattr(win.views[screen], "tab", tab)
         win.go(screen)
@@ -197,6 +206,17 @@ def run(suite: Suite) -> bool:
         assert not broken, ("controls that raised on the ground:\n      "
                             + "\n      ".join(broken[:6]))
         return f"{total} controls on an expedition, all clean"
+
+    @check("every control in an open trench runs")
+    def _():
+        # A trench is only reachable with a dig on the game, so the standing
+        # screens never touch it — the same blind spot the flee and hail
+        # regression lived in.
+        total, broken = drive("dig")
+        assert total >= 4, f"only {total} controls found in a trench"
+        assert not broken, ("controls that raised in the trench:\n      "
+                            + "\n      ".join(broken[:6]))
+        return f"{total} controls in a trench, all clean"
 
     @check("every control behind every port tab runs")
     def _():

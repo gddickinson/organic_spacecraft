@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import QVBoxLayout, QWidget
 from ..core.util import cost_line, duration, num, pct
 from ..data.factions import FACTIONS_BY_ID
 from ..sim import colony as colony_sim
+from ..sim import dig as dig_sim
 from ..sim import mining
 from ..sim import responses as response_sim
 from ..sim.actions import burn_bloom, dive, extract, strike_heart, survey
@@ -349,28 +350,12 @@ class SystemView(View):
         self.win.go("ground")
 
     def _excavate(self) -> None:
-        res = excavate(self.game, self.selected)
+        res = dig_sim.begin(self.game, self.selected)
         if not res.get("ok"):
             self.win.toast(res["why"], "warn")
             return
-        if self.win.check_ending():
-            return
-        tech = res["tech"]
-        lines = [f"{res['days']} days in the trench. {round(res['points'])} points "
-                 f"of understanding toward {tech.name}."]
-        if res["lab"]:
-            lines.append(note("A laboratory on hand made the difference."))
-        if res["relics"]:
-            lines.append(note(f"{res['relics']} relic(s) crated and stowed."))
-        if res["mishap"]:
-            lines.append(note(res["mishap"]))
-        if res["exhausted"]:
-            lines.append(note("The site is close to worked out."))
-        if res["incorporated"]:
-            lines.append(f"{tech.name} is now yours. {tech.grants}")
-        self.win.dialog("Excavation" + (" — incorporated" if res["incorporated"]
-                                        else ""), lines, [("Log it", None)])
-        self.win.refresh()
+        self.win.dig = res["dig"]
+        self.win.go("dig")
 
     def _heart(self) -> None:
         if not self.win.confirm(

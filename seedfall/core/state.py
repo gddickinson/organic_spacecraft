@@ -67,6 +67,7 @@ class Game:
     shocks: list = field(default_factory=list)
     ventures: list = field(default_factory=list)
     transit: object | None = None
+    dig: object | None = None
     docking: object | None = None
     decoding: object | None = None
     decoding_tech: str | None = None

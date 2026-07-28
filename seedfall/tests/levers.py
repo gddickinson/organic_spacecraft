@@ -9,7 +9,9 @@ from __future__ import annotations
 from ..core.rng import RNG
 from ..core.state import new_game
 from ..sim import bloom as bloom_sim
-from ..sim import combat, consorts, diplomacy as dip, encounters
+from ..sim import combat, consorts, diplomacy as dip
+from ..sim import dig as dig_sim
+from ..sim import encounters
 from ..sim import expedition as expedition_sim
 from ..sim import inquiry, loading, loyalty, market as market_sim
 from ..sim import mining, research as research_sim
@@ -225,7 +227,43 @@ def _crossing_days() -> float:
     return total / runs
 
 
+# ── hurrying a dig costs you the find ──────────────────────────────────────
+
+def _cut_dig_points() -> float:
+    """Understanding banked cutting straight down through a site.
+
+    Cutting is the roughest method, so it is where the spoil roll bites
+    hardest — a probe on the careful method would barely move.
+    """
+    from ..data.xenotech import XENOTECH
+    total = 0.0
+    runs = 12
+    for index in range(runs):
+        game = new_game(f"lever-dig-{index}")
+        body = game.system.bodies[0]
+        body.relic = XENOTECH[0].id
+        body.relic_found = True
+        body.digs = 0
+        started = dig_sim.begin(game, 0)
+        if not started["ok"]:
+            continue
+        site = started["dig"]
+        game.dig = site
+        rng = RNG(f"dig-{index}")
+        guard = 0
+        while not site.over and guard < 10:
+            guard += 1
+            dig_sim.work(game, site, "cut", rng)
+        total += site.points
+    return total / runs
+
+
 LEVERS: list[Lever] = [
+    Lever("dig-spoilage",
+          "hurrying a dig takes the find apart on the way out",
+          patch=(dig_sim, "spoil_chance", lambda _s, _m: 0.0),
+          probe=_cut_dig_points, direction="higher"),
+
     Lever("bloom-provocation",
           "a provoked Bloom grows faster",
           patch=(response_sim, "growth_multiplier", lambda _g: 1.0),

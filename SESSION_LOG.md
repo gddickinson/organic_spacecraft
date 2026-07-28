@@ -2,6 +2,47 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a dig you work
+
+- **Excavating was one call.** Press the button, lose twelve days, receive a
+  number of points, and occasionally read that the face collapsed. Everything
+  the setting says about Abyssal sites — that they are layered, that they are
+  fragile, that the interesting part is always under the part that is easy to
+  reach — was written in the codex and present nowhere in the game.
+- **A site now has four strata**: spoil and overburden, the casing, the works,
+  and whatever it was for. Each holds more of the site's understanding than the
+  one above it and each is more fragile, so the value and the risk both climb
+  together as you go down.
+- **Three ways to take a layer**, and the choice is real rather than a difficulty
+  slider. Working properly takes a fortnight and loses almost nothing; cutting
+  straight down takes four days, spoils most of what is in a deep layer, and can
+  bring the face in on the party. Measured over sixty digs: careful 138 points in
+  56 days, brisk 121 in 28, cut 47 in 16.
+- **That produces an actual strategy** rather than a dominant option: cut through
+  the overburden, which holds 8% of the value and spoils at 5%, then work the
+  deep strata properly, where cutting spoils at the 85% cap. The screen shows all
+  three numbers side by side, so the decision is legible before you commit.
+- **Understanding banks per layer, not at the end** — which is the whole point.
+  A trench abandoned after the casing is worth the casing, so backfilling is a
+  choice rather than a way of throwing the dig away. Restoring bank-at-the-end
+  passes every other dig check and fails that one alone; I verified that by
+  putting the old behaviour back and watching exactly one check go red.
+- **A dig lives on the `Game`**, so last cycle's rule held on its first new
+  case — `test_resume` picked it up as a guarded activity with no prompting.
+- **`test_verbs` could not see the trench**, since it is only reachable with a
+  dig open. Added it: four controls, all clean. That is the same blind spot the
+  flee-and-hail NameError lived in.
+- **Found a hole in `test_reachable` by falling into it.** I wrote a `summary()`
+  in `dig.py` that nothing calls, and the check passed — it matches bare names,
+  so any other module's `summary` covers for it. Measured the blast radius
+  before reacting: across 433 public functions it currently masks exactly that
+  one, and resolving calls to their defining module throws five false alarms
+  unless aliased imports and re-exports are followed properly. So: deleted the
+  dead function, wrote the limitation into the check's own docstring, and queued
+  the real fix rather than bolting it on mid-cycle.
+- Suites: 26, **6 dig** (new) among them — 223 checks green. 151 modules, all
+  under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: put it down and pick it up again
 
 - **A save taken mid-approach lost the approach.** `docking`, `decoding` and
@@ -29,7 +70,7 @@ Running progress log. Newest first.
 - **My first version of that check flagged five things that were never state**
   — `self.views`, `self.current`, `self.toast` and friends — because it matched
   every `self.X` in the method rather than the ones with a finished state.
-- Suites: 25, **5 resume** (new) among them — 228 checks green. 147 modules,
+- Suites: 25, **5 resume** (new) among them — 215 checks green. 147 modules,
   all under 500 lines.
 
 ## 2026-07-28 — SEEDFALL: a crossing you fly

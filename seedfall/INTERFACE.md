@@ -140,6 +140,7 @@ seedfall/
 │   ├── colonies.py     19 colony and station classes
 │   ├── factions.py     6 powers + reputation bands
 │   ├── lifeforms.py    xenobiology generation tables + anomalies
+│   ├── strata.py       the four layers of a dig, 3 methods, finds and spoils
 │   └── lore.py         intro, victories, endings, name pools, glossary
 ├── world/              generated content
 │   ├── galaxy.py       sector generation, lane relaxation, distance/transit
@@ -173,6 +174,7 @@ seedfall/
 │   ├── orders.py       which standing orders apply — the discoverability index
 │   ├── parley.py       breaking off and talking your way out
 │   ├── transit.py      standing the watches of a crossing
+│   ├── dig.py          working a site stratum by stratum, banking as you go
 │   ├── responses.py    provocation, the Bloom's answers, and studying a mass
 │   ├── market.py       supply shocks, and the prices you wrote down
 │   ├── ventures.py     what the powers do on their own account
@@ -204,6 +206,7 @@ seedfall/
 │   ├── diplomacy_view.py   relations matrix and the overture desk
 │   ├── helm_view.py    orbit chart and burn planner
 │   ├── minigame_view.py    docking approach and decoding bench
+│   ├── dig_view.py     the trench: the stratum you are on and how to take it
 │   └── battle_view.py  combat screen and post-engagement resolution
 └── tests/              python -m seedfall.tests
     ├── harness.py      a tiny check runner (no pytest dependency)
@@ -227,14 +230,15 @@ seedfall/
     ├── test_balance.py 7 balance checks — measured by playing the fights
     ├── test_bloom_arc.py 7 Bloom checks — provocation, answers, study
     ├── test_transit.py 6 crossing checks — watches, aborting, tension
+    ├── test_dig.py     6 dig checks — strata, methods, banking, backfilling
     ├── test_resume.py  5 resume checks — anything half-done survives a save
     ├── efficacy.py     the harness: neutralise a feature, measure the world
     ├── levers.py       one entry per claim the game makes about a number
-    ├── test_efficacy.py 13 checks — every feature has to move something
+    ├── test_efficacy.py 15 checks — every feature has to move something
     ├── test_reachable.py 4 reachability checks — nothing written and uncalled
-    ├── test_verbs.py   7 verb checks — every control in the game, clicked
+    ├── test_verbs.py   8 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
-    └── test_ui.py      22 interface checks, rendered on Qt's offscreen platform
+    └── test_ui.py      23 interface checks, rendered on Qt's offscreen platform
 ```
 
 ## How the layers connect
@@ -485,8 +489,13 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **A dig banks per layer, not at the end.** `dig.work()` credits understanding
+  as each stratum comes out, so a trench abandoned after the casing is worth the
+  casing. That is the whole reason backfilling is a choice rather than a way of
+  throwing the dig away, and it is what `test_dig.py` pins: restoring
+  bank-at-the-end passes every other dig check and fails that one alone.
 - **Anything you can be in the middle of belongs on the `Game`.** The window
-  exposes `transit`, `docking`, `decoding` and `decoding_tech` as properties
+  exposes `transit`, `docking`, `decoding`, `dig` and `decoding_tech` as properties
   over game fields; holding them on the window loses them over a save, which
   docking and decoding did unnoticed for many cycles. `test_resume.py` reads
   the guard in `window.go()`, takes every activity with an `.over` flag, and
@@ -583,6 +592,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`test_transit.py`** flies the same crossings under a hurried policy and a
   careful one and fails unless hurrying genuinely saves days and genuinely
   costs hull. An option that is best on every axis is not a decision.
+- **`test_dig.py`** works sites to the bottom under all three methods and fails
+  unless the choice is genuine: care must yield most in total, cutting must be
+  fastest and cost hull, and working briskly must beat care *per day* — an
+  option nobody would ever pick is not an option. It also names the floor it
+  found: `test_reachable.py` matches bare names, so `dig.summary` — written this
+  cycle and called by nothing — was masked by other modules' `summary`.
 - **`test_resume.py`** saves mid-approach, mid-exchange and mid-crossing and
   demands all three come back identical — including the decoding secret, since
   a code regenerated on load would let a player save, guess, reload and guess
