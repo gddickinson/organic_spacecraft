@@ -11,6 +11,7 @@ from ..data.part_types import SLOT_LABEL, SLOT_ORDER
 from ..data.parts import part
 from ..sim import loyalty as loyalty_sim
 from ..sim.actions import transfer
+from ..sim import trade as trade_sim
 from ..sim.ship import cargo_used, hull_pct, is_breached
 from .widgets import (Bar, Panel, Pill, View, button, label, mono_label, note,
                       spacer)
@@ -177,7 +178,22 @@ class ShipView(View):
         h.addWidget(label(f"{round(n * 10) / 10:g}", "dim"))
         h.addWidget(button("→ hold" if to_ship else "→ depot",
                            lambda: self._move(cid, n, to_ship)))
+        if not to_ship:
+            # Somewhere to put cargo you cannot sell and cannot carry. Without
+            # this a full hold and an empty tank is a hard stranding: no room
+            # to mine ice for reaction mass, no mass to jump on.
+            h.addWidget(button("vent", lambda: self._vent(cid),
+                               kind="danger", tip="Put it over the side"))
         return row
+
+    def _vent(self, cid: str) -> None:
+        name = BY_ID[cid].name if cid in BY_ID else cid
+        if not self.win.confirm("Vent the hold",
+                                f"All the {name} goes over the side. It is not "
+                                "coming back."):
+            return
+        trade_sim.jettison(self.game, cid)
+        self.win.refresh()
 
     def _move(self, cid: str, n: float, to_ship: bool) -> None:
         moved = transfer(self.game, cid, n, to_ship)

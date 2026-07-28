@@ -2,6 +2,57 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a rig that knows when to stop
+
+- **Mining, measured for the first time.** It pays 11–104 credits a day and the
+  four methods are a real decision: boring lifts most and takes 0.81 of a body,
+  bioleach lifts nearly as much per day for 0.13. Over a body's life, leaching
+  wins. That part was already right.
+- **The fifth measurement artefact of this project nearly became a finding.**
+  I measured the panel's quoted rate against the actual haul and got 36–54% —
+  "the screen lies". It does not: my probe had loaded 300 t of volatiles to
+  fund the bore's upkeep, leaving 40 t of hold. With room, quoted matches
+  actual at 101%. Checked before claiming, which is the only reason it did not
+  go in the log as a bug.
+- **But it led straight to a real one.** Working a body for sixty days with an
+  empty hold takes 106.2 t and works it out by 0.384. With the hold 97% full it
+  takes 10.2 t — and works the body out by the **identical 0.384**. Ninety-six
+  tonnes raised and thrown away, a third of a body spent to recover a tenth of
+  what the rig lifted, sixty days gone, and nothing anywhere said so.
+- **The working stops when there is nowhere to put what it raises.** Time and
+  depletion both follow what was actually lifted: 10 t in 3 days for 0.019 of
+  the body instead of 60 days for 0.384. Ten seconds of arithmetic on the panel
+  now says "25 t in 14 days — the hold fills first".
+- **A second bug, found by the regression check rather than by me.** Everything
+  that can refuse a working ran *after* `flight.ensure_at()`, so being told
+  there was no room cost twelve days of flying out to the body first. The check
+  asserted no time passes on a refusal and reported "12 days spent on a refused
+  working".
+- **And a vacuous check of mine, caught the same way.** The proportionality
+  check picked a hold fill fraction blind, and on that seed the body raised
+  less than the hold anyway, so no capping happened and it passed measuring
+  nothing. It now computes the room to leave from the haul the spell would
+  actually raise, and asserts capping occurred before drawing any conclusion
+  from it.
+- **And then my own fix deadlocked the game, which the playability bot caught
+  by hanging.** Refusing to work a body with a full hold is correct — but it
+  left a captain with a full hold and an empty tank unable to mine ice for
+  reaction mass, unable to jump, and with no way to dump anything: the only
+  jettison in the game was on the contraband panel, which appears solely when
+  carrying contraband at a hostile port. The bot span forever because `extract`
+  refused without advancing the clock, so the five-year limit never arrived.
+  The full suite went from five minutes to never finishing, which is how I
+  found it.
+- **`trade.jettison()` is general now** and the hold has a vent control, so the
+  affordance the bot needed is one a player has too. The project already holds
+  that an empty tank must not be a deadlock; this is the same rule from the
+  other side, and there is a check for it.
+- **`test_play.py` crossed 500 lines**, so the long-game captain moved to
+  `captain_bot.py` — it is the thing that catches deadlocks and deserves to be
+  findable.
+- Suites: 37, **7 workings** (new) among them — 309 checks green. 179 modules,
+  all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: somewhere to take a cargo
 
 - **Took the task I deferred last cycle**, and the measuring went four rounds

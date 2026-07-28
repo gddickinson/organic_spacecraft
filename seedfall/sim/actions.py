@@ -152,9 +152,15 @@ def survey(game, body_index: int) -> dict:
 def extract(game, body_index: int, days: int,
             method_id: str = mining.DEFAULT_METHOD) -> dict:
     """Work a body for a spell. How you work it is most of the decision."""
-    flight.ensure_at(game, body_index)
     body = game.system.bodies[body_index]
     st = game.ship_stats
+    # Everything that can refuse the working is checked before the ship flies
+    # out to it. Flying alongside costs days, and spending them to be told
+    # there is nowhere to put the ore is the worst of both.
+    if cargo_free(game.ship, st) < 1:
+        return {"ok": False,
+                "why": "No room in the hold for anything it would raise."}
+    flight.ensure_at(game, body_index)
     if st.mine <= 0 and st.drink <= 0:
         return {"ok": False, "why": "No mining root or harvest tendril fitted."}
 
@@ -164,6 +170,17 @@ def extract(game, body_index: int, days: int,
         return {"ok": False, "why": "Nothing fitted that can work it that way."}
     if not mining.reachable(body, method.id):
         return {"ok": False, "why": "Nothing that reaches is worth the trouble."}
+    # The working stops when the hold is full. It used to run the whole spell
+    # regardless, taking min(raised, room) and depleting the body just the
+    # same: sixty days and 38% of a body spent to recover ten tonnes of a
+    # hundred and six, with nothing on the screen to warn you.
+    room = cargo_free(game.ship, st)
+    asked = days
+    days = mining.days_of_room(body, method.id, st, room, days)
+    if days <= 0:
+        return {"ok": False,
+                "why": "No room in the hold for anything it would raise."}
+
     afford, why = mining.can_afford(game, method.id, days)
     if not afford:
         return {"ok": False, "why": why}
@@ -207,7 +224,8 @@ def extract(game, body_index: int, days: int,
     if event and event["kind"] == "mishap":
         game.add_log(f"{event['mishap'].name} at {body.name}.", "bad")
     return {"ok": True, "got": got, "days": days, "method": method,
-            "event": event, "wear": wear}
+            "event": event, "wear": wear, "asked": asked,
+            "cut_short": days < asked, "room": room}
 
 
 def dive(game, body_index: int) -> dict:

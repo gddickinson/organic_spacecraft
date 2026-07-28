@@ -20,6 +20,31 @@ from ..sim import inquiry
 
 # ── the desk finds runs your own notes cannot ──────────────────────────────
 
+def _wasted_ground() -> float:
+    """Depletion spent per tonne actually lifted, working a nearly full hold."""
+    from ..sim.actions import extract
+    total = 0.0
+    runs = 0
+    for index in range(6):
+        game = new_game(f"lever-rig-{index}")
+        for body in game.system.bodies:
+            body.surveyed = True
+        i = max(range(len(game.system.bodies)),
+                key=lambda n: sum(game.system.bodies[n].resources.values()))
+        game.ship.cargo = {"alloy": game.ship_stats.cargo * 0.92}
+        body = game.system.bodies[i]
+        before = body.depleted
+        result = extract(game, i, 60, "cut")
+        if not result.get("ok") or result.get("dead"):
+            continue
+        lifted = sum(result.get("got", {}).values())
+        if lifted <= 0:
+            continue
+        total += (body.depleted - before) / lifted
+        runs += 1
+    return total / max(1, runs)
+
+
 def _desk_runs() -> float:
     """Runs a captain can see from a port, knowing only the port they are on.
 

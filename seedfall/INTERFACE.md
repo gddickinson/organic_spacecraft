@@ -255,12 +255,14 @@ seedfall/
     ├── test_layers.py  5 layer checks — no Qt below, no ledger above
     ├── test_cargo.py   6 cargo-contract checks — the board offers no traps
     ├── test_freight.py 7 freight checks — the desk, its floor, and a career
+    ├── test_workings.py 7 mining checks — the rig stops when the hold is full
+    ├── captain_bot.py  the long-game captain the playability checks fly
     ├── probes.py       the newer efficacy probes, split out of levers.py
     ├── test_dig.py     6 dig checks — strata, methods, banking, backfilling
     ├── test_resume.py  5 resume checks — anything half-done survives a save
     ├── efficacy.py     the harness: neutralise a feature, measure the world
     ├── levers.py       one entry per claim the game makes about a number
-    ├── test_efficacy.py 23 checks — every feature has to move something
+    ├── test_efficacy.py 24 checks — every feature has to move something
     ├── test_reachable.py 4 reachability checks — nothing written and uncalled
     ├── test_verbs.py   10 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
@@ -515,6 +517,27 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **A rig stops when the hold is full.** `extract()` used to compute the whole
+  spell's haul, take `min(raised, cargo_free)` and deplete the body for the
+  full duration anyway. Measured: sixty days with an empty hold took 106.2 t
+  and worked the body out by 0.384; with the hold 97% full it took 10.2 t and
+  worked it out by the *identical* 0.384. Ninety-six tonnes raised and thrown
+  away, a third of the body spent, and nothing said so. The working now ends
+  when there is nowhere to put what it raises, and time and depletion both
+  follow what was actually lifted.
+- **A full hold must not be a stranding.** Refusing to work a body with
+  nowhere to put the ore is right, and on its own it deadlocks: no room to mine
+  ice for reaction mass, no mass to jump on, and the only way to dump anything
+  was the contraband panel, which appears solely when carrying contraband at a
+  hostile port. `trade.jettison()` is general now and the hold has a vent
+  control. The project already holds that an empty tank must not be a deadlock;
+  this is the same rule from the other side.
+- **Everything that can refuse a working is checked before the ship flies out
+  to it.** `flight.ensure_at()` came first, so a refusal cost twelve days of
+  flying and gave nothing back. The regression check caught that, not me.
+- **The panel forecasts the spell.** It quoted tonnes a day and offered "Work
+  it — 30 days" with no notion of what that came to; now it says "25 t in 14
+  days — the hold fills first".
 - **The freight desk is an information tool with a floor under it.** Within a
   starting jump only 5% of lane/goods pairs show a positive spread, and the
   runs that do exist are invisible — finding one means visiting every
@@ -758,6 +781,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   them home, and fails unless the shelf, the provenance and the evidence all
   survive — including across a save. It also checks every note is reachable and
   that the draw prefers ones you lack, so no written discovery is unfindable.
+- **`test_workings.py`** works the same body with an empty hold and a full one
+  and fails unless the second costs proportionally less ground. Its
+  proportionality check measures the room to leave from the haul the spell
+  would actually raise: the first version picked a fill fraction blind and
+  passed on a seed where no capping happened at all, which is the vacuous-check
+  failure this project has shipped before.
 - **`test_freight.py`** flies eight two-year careers with the desk and eight
   without, and fails unless the desk wins and unless the desk-following career
   is profitable at all. It also pins the threshold that made the desk honest

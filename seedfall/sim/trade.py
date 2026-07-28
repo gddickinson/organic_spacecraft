@@ -110,3 +110,24 @@ def sell_survey_data(game) -> dict:
     game.research.banked += n * 6
     game.add_log(f"Sold {round(n)} survey sets for {took:,}.", "good")
     return {"ok": True, "units": n, "price": price, "took": took}
+
+
+def jettison(game, cid: str, tonnes: float | None = None) -> dict:
+    """Put cargo over the side.
+
+    The only way to dump anything used to be the contraband panel, which shows
+    up solely when you are carrying contraband at a port that outlaws it. So a
+    full hold and no reaction mass was a hard stranding: you cannot mine ice
+    for fuel with nowhere to put it, and you cannot jump without the fuel. The
+    project already holds that an empty tank must not be a deadlock; a full
+    hold is the same rule from the other side.
+    """
+    held = game.ship.cargo.get(cid, 0.0)
+    if held <= 0:
+        return {"ok": False, "why": "None of that aboard."}
+    going = held if tonnes is None else min(held, tonnes)
+    add_cargo(game.ship, cid, -going)
+    good = BY_ID.get(cid)
+    game.add_log(f"Vented {going:.0f} t of {good.short if good else cid} "
+                 "to space.", "warn")
+    return {"ok": True, "tonnes": going, "left": held - going}

@@ -146,6 +146,29 @@ def deplete(game, body, method_id: str, days: int, rig: float) -> None:
                         + days * 0.0016 * rig * method.depletion_mul)
 
 
+def raise_rate(body, method_id: str, stats) -> float:
+    """Tonnes a day this rig lifts off this body, all seams together."""
+    rigs = {"ore": stats.mine, "phosphate": stats.phos,
+            "volatiles": stats.drink, "biomass": stats.graze}
+    return sum(rate_for(body, method_id, cid, rig) for cid, rig in rigs.items())
+
+
+def days_of_room(body, method_id: str, stats, room: float, days: int) -> int:
+    """How long the working actually lasts before the hold is full.
+
+    A rig used to run the whole spell whether or not there was anywhere to put
+    what it raised: `extract` took `min(amount, cargo_free)` and depleted the
+    body for the full duration regardless. Measured, that meant sixty days and
+    38% of a body's remaining yield spent to recover ten tonnes out of a
+    hundred and six, with nothing on the screen to warn you.
+    """
+    rate = raise_rate(body, method_id, stats)
+    if rate <= 0 or room <= 0:
+        return 0 if room <= 0 else days
+    import math
+    return max(1, min(days, math.ceil(room / rate)))
+
+
 def summary(body, method_id: str) -> dict:
     found = seams(body)
     within = reachable(body, method_id)

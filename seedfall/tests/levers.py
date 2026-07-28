@@ -30,7 +30,8 @@ from ..sim.ship import build_layers, make_ship, stats
 from ..world.economy import buy_price
 from . import captain_ai
 from .efficacy import Lever
-from .probes import (_chart_spread, _contract_net, _cut_dig_points,
+from .probes import (_wasted_ground,
+                     _chart_spread, _contract_net, _cut_dig_points,
                      _desk_runs, _kill_goodwill, _levied_output,
                      _note_evidence, _smuggling_purse,
                      _spread_standing)
@@ -238,6 +239,12 @@ def _crossing_days() -> float:
     return total / runs
 
 LEVERS: list[Lever] = [
+    Lever("rig-stops",
+          "a rig stops when the hold is full",
+          patch=(mining, "days_of_room",
+                 lambda _b, _m, _s, _r, days: days),
+          probe=_wasted_ground, direction="higher"),
+
     Lever("freight-desk",
           "the harbourmaster names his own power's ports",
           patch=(freight_sim_for_lever, "from_desk", lambda _g, _h: []),

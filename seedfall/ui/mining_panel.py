@@ -6,6 +6,7 @@ from ..core.util import pct
 from ..data.commodities import BY_ID
 from ..data.mining import METHODS_BY_ID
 from ..sim import mining
+from ..sim.ship import cargo_free
 from .widgets import Panel, Pill, TabBar, button, label, mono_label, note, spacer
 
 
@@ -72,6 +73,27 @@ def build(view, game, body, method_id: str) -> Panel:
                   "osteo")
     if not ok:
         p.add(label(why, "", "warn"))
+
+    # What a spell actually raises, and whether the hold can take it. The
+    # panel used to quote t/day and nothing else, so a captain with a full
+    # hold spent sixty days and a third of the body to recover ten tonnes.
+    room = cargo_free(game.ship, st)
+    p.add(spacer(4), mono_label("If you work it"))
+    for spell in (30, 90):
+        lasts = mining.days_of_room(body, method.id, st, room, spell)
+        raised = mining.raise_rate(body, method.id, st) * lasts
+        if lasts <= 0:
+            p.add_row(f"{spell} days", "no room in the hold at all", "warn")
+            continue
+        short = lasts < spell
+        p.add_row(f"{spell} days",
+                  f"{raised:.0f} t in {lasts} day(s)"
+                  + (" — the hold fills first" if short else ""),
+                  "warn" if short else "chloro")
+    if room < 20:
+        p.add(label("There is almost nowhere to put it. Sell or dump "
+                    "something before putting a rig down.", "", "warn",
+                    wrap=True))
 
     p.add_buttons(
         button("Work it — 30 days", lambda: view.run_extract(30),
