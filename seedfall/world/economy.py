@@ -20,6 +20,10 @@ class Stock:
     supply: float      # > 1 locally abundant (cheap), < 1 locally short (dear)
     units: int
     trend: float
+    #: Set by sim.market from live shocks; multiplies supply when pricing. It
+    #: is kept apart from supply so the daily drift cannot quietly erase a
+    #: blight, and so the shock can end cleanly.
+    shock: float = 1.0
 
 
 @register
@@ -63,7 +67,7 @@ def buy_price(market: Market, cid: str, rep: float = 0, trade_bonus: float = 0):
     c = BY_ID.get(cid)
     if s is None or c is None or s.supply <= 0:
         return None
-    scarcity = 1 / max(0.25, s.supply)
+    scarcity = 1 / max(0.25, s.supply * getattr(s, "shock", 1.0))
     raw = c.base * (0.55 + 0.55 * scarcity)
     return max(1, round(raw * price_mod(rep) * (1 - trade_bonus * 0.5)))
 
@@ -113,13 +117,14 @@ def price_note(market: Market, cid: str) -> tuple[str, str]:
     s = market.stock.get(cid)
     if s is None or s.supply <= 0:
         return "unavailable", "dim"
-    if s.supply > 1.6:
+    supply = s.supply * getattr(s, "shock", 1.0)
+    if supply > 1.6:
         return "glut", "chloro"
-    if s.supply > 1.15:
+    if supply > 1.15:
         return "plentiful", "chloro"
-    if s.supply < 0.5:
+    if supply < 0.5:
         return "acute shortage", "warn"
-    if s.supply < 0.8:
+    if supply < 0.8:
         return "short", "osteo"
     return "steady", "dim"
 
@@ -128,5 +133,5 @@ def demands(market: Market, limit: int = 3) -> list[str]:
     """What this port is unusually keen to buy."""
     legal = [(cid, s) for cid, s in market.stock.items()
              if BY_ID.get(cid) and BY_ID[cid].legal]
-    legal.sort(key=lambda kv: kv[1].supply)
+    legal.sort(key=lambda kv: kv[1].supply * getattr(kv[1], "shock", 1.0))
     return [cid for cid, _ in legal[:limit]]

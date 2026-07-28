@@ -11,8 +11,10 @@ from ..data.factions import FACTIONS_BY_ID, standing
 from ..sim import chains as chain_sim
 from ..sim import loyalty as loyalty_sim
 from . import commissions_panel
+from . import register_panel
 from . import rumours_panel
 from ..sim import intel as intel_sim
+from ..sim import market as market_sim
 from ..sim import rumours as rumour_sim
 from .berths_panel import BerthsMixin
 from ..sim.fieldwork import buy_field_notes, xeno_notes_price
@@ -45,6 +47,8 @@ class PortView(BerthsMixin, View):
         fac = FACTIONS_BY_ID.get(sys.port.faction)
         rep = g.rep.get(fac.id, 0) if fac else 0
         band, tint = standing(rep)
+        # Standing at a quay means writing down what it is paying today.
+        market_sim.note_prices(g, sys, rep, g.ship_stats.trade)
         self.head(f"{sys.name} · {sys.port.name}",
                   f"{fac.name if fac else 'Independent'} — standing: {band} "
                   f"({'+' if rep > 0 else ''}{round(rep)})")
@@ -76,6 +80,10 @@ class PortView(BerthsMixin, View):
         self.col.addWidget(note(
             f"This port is short of: {wants}.   Hold: {round(cargo_used(g.ship))}/"
             f"{round(g.ship_stats.cargo)} t."))
+
+        news = register_panel.local_news(g, sys)
+        if news is not None:
+            self.col.addWidget(news)
 
         panel = Panel()
         grid = QWidget()
@@ -122,6 +130,7 @@ class PortView(BerthsMixin, View):
 
         panel.add(grid)
         self.col.addWidget(panel)
+        self.col.addWidget(register_panel.register(g, sys))
 
     def _buy(self, cid: str, units: int) -> None:
         g = self.game

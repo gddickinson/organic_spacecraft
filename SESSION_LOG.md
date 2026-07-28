@@ -2,6 +2,37 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a market with news in it
+
+- **Prices drifted and nothing ever happened.** Markets already responded to
+  what you personally bought and sold, but no event ever struck one. Seven
+  kinds of **shock** now do: a blight through the growing stacks, the yards
+  downing tools, a convoy that never arrived, a seam coming in, the Concordat
+  dumping a stockpile, a quarantine, somebody quietly rearming. Each names
+  itself, moves local supply hard, and lifts after a season or two.
+- **Shocks are kept apart from supply on purpose.** The daily drift pulls
+  supply back toward equilibrium, so folding a blight into it would let the
+  drift quietly erase the blight — and expiring it could never restore the
+  original price. `Stock.shock` is a separate multiplier, recomputed wholesale
+  from the live shocks each tick.
+- **The register makes information worth having.** You write down what a port
+  pays only while standing in it, and what you wrote goes stale: full
+  confidence today, half at two hundred days, worthless at four hundred. The
+  market screen now tells you where your own notes say to take what is in your
+  hold, how far it is, and how old the note is. Nothing reads a distant market
+  directly — that is the entire mechanic.
+- **News only reaches you from places you know.** A shock at a system you have
+  never visited and hold no colony in happens silently.
+- **The regression check that mattered most** puts a shock on a market, checks
+  the price moves, then expires it and checks the price comes *back*. Written
+  the obvious way — adjust the multiplier when a shock is live — an expired
+  shock never lifts, and a long game accumulates permanent distortions across
+  the sector. I verified the check fails against that version.
+- Suites: 27 simulation, 5 xenotech, 14 playability, 5 tactical, 5 flight,
+  6 empire, 7 crew, 7 missions, 8 exploration, 7 mining, 8 research,
+  **8 trade** (new), 23 interface — 130 checks green. 116 modules, all under
+  500 lines.
+
 ## 2026-07-28 — SEEDFALL: research grows inputs
 
 - **Research was one pool.** Everything you did anywhere fed a single number

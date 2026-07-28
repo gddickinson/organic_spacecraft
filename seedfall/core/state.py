@@ -13,6 +13,7 @@ from ..data.tech import STARTING_TECH, bonuses
 from ..sim import colony as colony_sim
 from ..sim import crew as crew_sim
 from ..sim import inquiry as inquiry_sim
+from ..sim import market as market_sim
 from ..sim import loyalty as loyalty_sim
 from ..sim import research as research_sim
 from ..sim import shipyard as shipyard_sim
@@ -60,6 +61,8 @@ class Game:
     xeno_study: dict[str, float] = field(default_factory=dict)
     expedition: object | None = None
     contracts: list = field(default_factory=list)
+    shocks: list = field(default_factory=list)
+    register: dict = field(default_factory=dict)
     commissions: list = field(default_factory=list)
     rumours: list = field(default_factory=list)
     charts: list = field(default_factory=list)
@@ -171,6 +174,9 @@ class Game:
         for sys in self.galaxy.systems:
             if sys.market:
                 tick_market(sys.market, n, r)
+        for kind, text in market_sim.tick(self, n, r):
+            self.add_log(text, kind)
+        market_sim.apply_to_markets(self)
 
         # Payroll. Miss it and the crew notices immediately.
         wages = crew_sim.daily_wages(self.officers) * n

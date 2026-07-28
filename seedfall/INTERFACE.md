@@ -168,6 +168,7 @@ seedfall/
 │   ├── chains.py       commissions: work that escalates and closes doors
 │   ├── inquiry.py      evidence, approaches, setbacks and breakthroughs
 │   ├── intel.py        how well a system is known, and what a chart is worth
+│   ├── market.py       supply shocks, and the prices you wrote down
 │   ├── mining.py       seams, depth, and how hard you work a body
 │   ├── rumours.py      leads that point somewhere before you have been
 │   ├── consorts.py     escorts: standing orders, screening, who draws fire
@@ -209,6 +210,7 @@ seedfall/
     ├── test_explore.py 8 exploration checks — the intel ladder, rumours
     ├── test_mining.py  7 mining checks — seams, methods, wear, exhaustion
     ├── test_research.py 8 research checks — evidence, approaches, setbacks
+    ├── test_trade.py   8 trade checks — shocks, the register, staleness
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
     └── test_ui.py      22 interface checks, rendered on Qt's offscreen platform
 ```
@@ -345,6 +347,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **An evidence kind nothing grants is an empty locker.** The same greping
   check as the convictions: every kind in `EVIDENCE` must appear as a literal
   in a `sim/` or `ui/` call to `inquiry.add`.
+- **`Stock.shock` is kept apart from `Stock.supply` on purpose.** The daily
+  drift pulls supply toward equilibrium; if a blight were folded into supply
+  the drift would quietly erase it, and expiring it could never restore the
+  original price. `market.apply_to_markets()` recomputes every row from the
+  live shocks wholesale rather than adjusting, so an expired shock lifts
+  cleanly and two overlapping ones cannot drift out of step.
+- **The register is memory, not observation.** `market.note_prices()` writes
+  down what a port pays only while you are standing in it, and
+  `market.confidence()` decays what you wrote. Nothing should ever read a
+  distant market directly — that is the whole mechanic.
 - **Colony effects are a closed vocabulary.** `test_sim.py` asserts that every
   key in a `ColonyClass.effects` is one the game actually reads, so a typo in a
   station definition fails the suite instead of silently doing nothing.
@@ -382,6 +394,11 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   not — the second must reach the first technology in well under three quarters
   the time, or the evidence model is decoration — and checks that a captain who
   picks a project on turn one and does nothing else still gets there.
+- **`test_trade.py`** puts a shock on a market, checks the price moves, then
+  expires it and checks the price comes back — the failure mode being a sector
+  that accumulates permanent distortions over a long game. It also formats
+  every shock's text to catch an unfilled field, which would otherwise crash a
+  port screen months into somebody's game.
 - **`test_flight.py`** holds the helm to its promises: that a seed grows one
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that
