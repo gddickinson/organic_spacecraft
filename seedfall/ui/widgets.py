@@ -129,6 +129,10 @@ class Panel(QFrame):
         self.box = QVBoxLayout(self)
         self.box.setContentsMargins(15, 13, 15, 13)
         self.box.setSpacing(7)
+        # Side by side, the shorter panel used to have its rows dragged apart
+        # to fill the taller one's height. The frame still matches; the content
+        # stays where it was put.
+        self.box.setAlignment(ALIGN_TOP)
         if heading:
             self.box.addWidget(title(heading, tint))
 

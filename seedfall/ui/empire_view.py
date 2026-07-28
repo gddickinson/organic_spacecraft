@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from ..core.util import credits as cr
+from ..data.works import WORKS_BY_ID
+from ..sim import works as works_sim
+from . import works_panel
 from ..core.util import duration, num, pct
 from ..data.commodities import BY_ID
 from ..data.lore import VICTORIES
@@ -13,6 +16,28 @@ from .widgets import Panel, Pill, View, button, label, mono_label, note, spacer
 
 
 class EmpireView(View):
+    focus: int | None = None
+
+    def begin_work(self, col, work_id: str) -> None:
+        res = works_sim.begin(self.game, col, work_id)
+        if not res.get("ok"):
+            self.win.toast(res["why"], "warn")
+            return
+        self.win.refresh()
+
+    def abandon_work(self, col) -> None:
+        if not self.win.confirm(
+                "Abandon the work",
+                f"Everything committed to it at {col.name} is spent. "
+                "This cannot be undone."):
+            return
+        works_sim.cancel(self.game, col)
+        self.win.refresh()
+
+    def _focus(self, colony_id: int) -> None:
+        self.focus = None if self.focus == colony_id else colony_id
+        self.refresh()
+
     def build(self) -> None:
         g = self.game
         online = [c for c in g.colonies if c.online]
@@ -32,6 +57,10 @@ class EmpireView(View):
         if ark is not None:
             self.col.addWidget(ark)
         self.row(self._colonies(), self._victories())
+        focused = next((c for c in g.colonies
+                        if c.id == self.focus and c.online), None)
+        if focused is not None:
+            self.col.addWidget(works_panel.build(self, g, focused))
         self.col.addWidget(self._depot())
 
     def _wait(self, days: int) -> None:
@@ -91,7 +120,7 @@ class EmpireView(View):
                       else f"{max(0, c.need - round(c.days))} d",
                       "chloro" if c.online else "osteo")
             if c.online:
-                yields = definition.yields
+                yields = works_sim.yields_of(c)
                 if yields:
                     line = " · ".join(f"{cr(v)}/day" if k == "credits"
                                       else f"{v:g} {k}/day" for k, v in yields.items())
@@ -104,6 +133,20 @@ class EmpireView(View):
                 p.add_bar(c.days / c.need if c.need else 0, "osteo")
             if c.starving > 0:
                 p.add(label("Upkeep unmet — production has stopped.", "", "warn"))
+            if c.online:
+                done = len(works_sim.done(c))
+                job = getattr(c, "job", None)
+                if job:
+                    p.add_row("Under way",
+                              f"{WORKS_BY_ID[job].name} · "
+                              f"{pct(works_sim.progress(c))}", "lumen")
+                elif done:
+                    p.add_row("Works", ", ".join(w.name for w in works_sim.done(c)),
+                              "chloro")
+                p.add_buttons(button(
+                    "Develop" if self.focus != c.id else "Hide works",
+                    lambda _=False, cid=c.id: self._focus(cid),
+                    kind="primary" if self.focus == c.id else ""))
             p.add(spacer(3))
 
         if g.building:

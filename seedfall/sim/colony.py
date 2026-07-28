@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 
 from ..core.save import register
 from ..data.colonies import COLONIES_BY_ID, colonies_for
+from . import works
 from ..world.economy import make_market
 from ..world.galaxy import Port
 
@@ -30,6 +31,9 @@ class Colony:
     online: bool = False
     pop: float = 0.0
     starving: float = 0.0
+    works: list = field(default_factory=list)   # finished works, by id
+    job: str | None = None                      # the work under way
+    job_days: float = 0.0
 
     @property
     def definition(self):
@@ -126,7 +130,7 @@ def tick(game, days: float) -> tuple[dict, list]:
             continue
 
         affordable = True
-        for key, n in c.upkeep.items():
+        for key, n in works.upkeep_of(col).items():
             owed = n * days
             have = game.credits if key == "credits" else game.stores.get(key, 0)
             if have < owed:
@@ -143,7 +147,18 @@ def tick(game, days: float) -> tuple[dict, list]:
             continue
         col.starving = 0
 
-        for key, n in c.yields.items():
+        finished = works.advance(game, col, days)
+        events.extend(finished)
+        # A work can grant the port effect just as a colony class can, and a
+        # harbour that never opens is not a harbour. Maturation is not the only
+        # moment a settlement becomes somewhere you can tie up.
+        if finished and works.effects_of(col).get("port"):
+            opened = open_harbour(game, game.galaxy.systems[col.system_id])
+            if opened:
+                events.append(("good", f"{opened.name} now has a market "
+                                       "flying your colours."))
+
+        for key, n in works.yields_of(col).items():
             amount = n * days
             if key == "credits":
                 game.credits += amount
@@ -152,8 +167,9 @@ def tick(game, days: float) -> tuple[dict, list]:
             else:
                 game.stores[key] = game.stores.get(key, 0) + amount
                 gains[key] = gains.get(key, 0) + amount
-        if c.pop:
-            col.pop = min(c.pop, col.pop + c.pop * 0.0008 * days)
+        ceiling = works.pop_ceiling(col)
+        if ceiling:
+            col.pop = min(ceiling, col.pop + ceiling * 0.0008 * days)
     return gains, events
 
 
@@ -190,7 +206,7 @@ def effects(game) -> dict:
     for col in game.colonies:
         if not col.online:
             continue
-        e = col.definition.effects
+        e = works.effects_of(col)
         out["count"] += 1
         out["pop"] += col.pop
         if e.get("sensor"):
@@ -209,7 +225,7 @@ def effects(game) -> dict:
 
 def ward_at(game, system_id: int) -> float:
     """How strongly a system is defended against unlicensed growth, 0..0.9."""
-    total = sum(COLONIES_BY_ID[c.class_id].effects.get("ward", 0.0)
+    total = sum(works.effects_of(c).get("ward", 0.0)
                 for c in game.colonies
                 if c.online and c.system_id == system_id)
     return min(0.9, total)

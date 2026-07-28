@@ -2,6 +2,44 @@
 
 Running progress log. Newest first.
 
+## 2026-07-27 — SEEDFALL: colonies that keep growing
+
+- **A colony was a purchase, not a place.** Plant it, wait out the gestation,
+  and it emitted the same numbers forever; the only thing that could ever
+  change was starving to death when upkeep went unpaid. Colonies now undertake
+  **works** — commitments of material and time that change what the settlement
+  *is*.
+- **Eight works, one at a time, four to a colony.** Deepen the workings (ore
+  ×1.7, and it costs more to run), raise a garrison, lay a slipway, erect a
+  sensor mast, ring the habitat, build a xenology annex, open a free harbour,
+  sink a lineage vault. Some are gated on family or research, some only offered
+  to colonies that already produce the right thing. Material is charged up
+  front, which is the point: it is the reason to fly ore somewhere rather than
+  sell it.
+- **Everything reads through one layer.** `sim/works.py` combines the class
+  definition with the finished works, so ward, build sites, sensors, diplomacy
+  and population all feel a work without anything else knowing works exist.
+  Verified end to end: garrison 0.00 → 0.28 ward, slipway opens a build site,
+  mast adds 2 ly of sensor.
+- **A bug I predicted, then confirmed, then fixed.** The `port` effect was only
+  read when a colony matured, so a harbour *built later* granted the effect and
+  opened no market — the system stayed portless. Now handled where the work
+  completes. The regression check fails without the fix.
+- **A layout fault the screenshot caught.** Panels sit side by side and are
+  given equal height; the shorter one had its rows dragged apart to fill the
+  space. In the first render of the new empire screen the colony rows were
+  spread over 600px of nothing. Panels now pack their contents to the top while
+  the frame still matches its neighbour.
+- **My first attempt to test that fault measured the wrong thing.** I asserted
+  on the *gaps* between rows, and it passed with the fix disabled — because the
+  spare height goes into stretching the row widgets themselves, not the space
+  between them. Comparing each row against its own size hint shows it plainly:
+  120px rows asking for 18–31px. Both new interface checks now fail without
+  their fix and pass with it, verified in both directions.
+- Suites: 27 simulation, 5 xenotech, 14 playability, 5 tactical, 5 flight,
+  **6 empire** (new), 23 interface — 85 checks green. 91 modules, all under
+  500 lines.
+
 ## 2026-07-27 — SEEDFALL: the fleet joins the fight
 
 - **Escorts existed and did nothing.** `combat.py` contained no reference to

@@ -166,6 +166,7 @@ seedfall/
 │   ├── expedition.py   the ground game: zone map, movement, attempts, hauls
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
 │   ├── consorts.py     escorts: standing orders, screening, who draws fire
+│   ├── works.py        colony development: what a settlement becomes
 │   ├── flight.py       the helm: orbits, intercepts, routing, transfer burns
 │   ├── minigames.py    the docking control loop and the decoding bench
 │   └── actions.py      player actions spanning modules (jump/survey/mine/dive)
@@ -196,6 +197,7 @@ seedfall/
     ├── test_play.py    14 playability checks — can the game be won and lost
     ├── test_combat.py  5 tactical checks — arcs, stations, consorts
     ├── captain_ai.py   a competent test pilot: steers until its arcs bear
+    ├── test_empire.py  6 colony checks — works, effects, costs, persistence
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
     └── test_ui.py      22 interface checks, rendered on Qt's offscreen platform
 ```
@@ -275,6 +277,14 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **Study banked past a prerequisite is kept, not lost.** You can dig up the
   Phase Loom before you understand the Null Seam; `xeno.settle()` runs on the
   clock and incorporates anything whose moment has arrived.
+- **A colony's numbers come from `sim/works.py`, not its class.** `yields_of`,
+  `upkeep_of`, `effects_of` and `pop_ceiling` combine the class definition with
+  whatever the settlement has since built. Read `col.definition.yields`
+  directly and you will report what the colony produced the day it was planted.
+- **Anything a work grants that needs an action, not just a number, has to be
+  triggered where the work completes.** Opening a harbour was read only at
+  maturation, so a colony that built one afterwards had the `port` effect and
+  no market.
 - **Colony effects are a closed vocabulary.** `test_sim.py` asserts that every
   key in a `ColonyClass.effects` is one the game actually reads, so a typo in a
   station definition fails the suite instead of silently doing nothing.
@@ -289,6 +299,10 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`test_combat.py`** covers arcs and crew stations, and holds the consorts to
   the bargain their orders describe: screening must measurably pull fire off
   the flag, and flankers must shoot markedly more than screens do.
+- **`test_empire.py`** plants a colony, matures it and develops it: that a
+  finished work changes production, that its effects reach ward, build sites
+  and sensors, that material is charged up front, and that works survive a
+  save.
 - **`test_flight.py`** holds the helm to its promises: that a seed grows one
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that

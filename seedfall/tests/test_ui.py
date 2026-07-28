@@ -29,7 +29,7 @@ _use_offscreen()
 
 def run(suite) -> bool:
     try:
-        from PyQt6.QtWidgets import QApplication
+        from PyQt6.QtWidgets import QApplication, QHBoxLayout, QWidget
     except ImportError as err:
         print(f"── interface ───\n  skipped: PyQt6 not available ({err})\n")
         return False
@@ -111,6 +111,43 @@ def run(suite) -> bool:
         assert not squashed, ("squashed on the first frame: "
                              + ", ".join(squashed))
         return f"{len(NAV)} screens fit at once; tallest {tallest[0]} at {tallest[1]}px"
+
+    @check("a short panel keeps its rows together beside a tall one")
+    def _():
+        # Panels sit side by side in a row and are given the same height. The
+        # shorter one used to have its rows dragged apart to fill the space,
+        # which read as a rendering fault rather than a layout one.
+        from ..ui.widgets import Panel
+        app = QApplication.instance()
+        host = QWidget()
+        h = QHBoxLayout(host)
+        short, tall = Panel("Short"), Panel("Tall")
+        for i in range(3):
+            short.add_row(f"key {i}", f"value {i}")
+        for i in range(24):
+            tall.add_row(f"key {i}", f"value {i}")
+        h.addWidget(short, 1)
+        h.addWidget(tall, 1)
+        host.resize(700, 640)
+        host.show()
+        for _ in range(3):
+            app.processEvents()
+
+        # The spare height goes into the rows themselves rather than the gaps
+        # between them, so compare each row against the height it asked for.
+        rows = [short.box.itemAt(i).widget() for i in range(short.box.count())]
+        rows = [r for r in rows if r is not None and r.sizeHint().height() > 0]
+        stretch = max((r.height() - r.sizeHint().height() for r in rows),
+                      default=0)
+        tall_rows = len(rows)
+        panel_height = short.height()
+        host.close()
+        assert rows, "the short panel had no rows to measure"
+        assert stretch <= 8, (
+            f"a row was stretched {stretch}px past the height it asked for "
+            f"to fill the taller panel")
+        return (f"{tall_rows} rows within {stretch}px of their hints "
+                f"in a panel {panel_height}px tall")
 
     @check("every tabbed screen renders all of its tabs")
     def _():
