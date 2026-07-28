@@ -2,6 +2,41 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: ten endings, and a game that carries on past them
+
+- **Asked for a wider range of endings, and for the game to continue after any
+  of them with more play afterwards.** There were five victories, one loss and
+  death, and reaching one showed a dialog and called `clear_save()`.
+- **Five more endings**, each measured off machinery that already existed:
+  **Lineage** (four grown hulls of your own gestation, signed for), **Xenarchy**
+  (all twelve alien technologies incorporated), **The Cartel** (most of the
+  sector's prices in your register, and a purse), **Apostasy** (a synthetic hull
+  with nobody aboard, at Kin with the Choir), and **Ruin** — outliving the
+  sector, which required checking endings *before* letting the Bloom kill you,
+  since the old order set `dead` first and Ruin could never fire.
+- **Every ending now opens an epoch.** `data/epochs.py` rewrites the world once
+  and starts a new clock in place of the Bloom: containment leaves four powers
+  with no common enemy and a cleared sector to divide; concord leaves a unified
+  Verge with something on a heading toward it; dominion makes you a power, with
+  secession. Forty situations across the ten, each a choice whose answers state
+  what they do — and `legacy.apply` reads the same dict the card was rendered
+  from. An epoch closes badly at full pressure or well after four years held,
+  and the next one can follow; the chronicle keeps all of them.
+- A situation waiting on an answer is a field on the `Game` with an `.over`
+  flag, like a battle or an open trench, so the navigation guard diverts to it
+  and it survives a save.
+- **The checks found two things.** The Cartel ending was unreachable by
+  construction — 25 systems' prices demanded, 17 to 24 markets in a sector,
+  which is the same defect as a work gated behind a technology that does not
+  exist; it is a share of what exists now. And `test_play`'s standing "every
+  ending can actually fire" check caught that five new endings had been added
+  without extending it.
+- Two of my own measurement errors, caught before they became findings:
+  measuring a card that buys time while the gauge sat at its floor of zero
+  ("said −9, moved 0"), and a fixture that priced the first thirty systems
+  rather than the twenty that have markets.
+- Suites: 48 — 391 checks green. 203 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: an opening worth choosing (asked for)
 
 - **Asked for more choices at the start: ship, crew, starting place, race and

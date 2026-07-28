@@ -130,6 +130,8 @@ seedfall/
 ├── data/               static content tables — pure data, no logic
 │   ├── commodities.py  14 tradeable goods
 │   ├── beginnings.py   stocks, origins and postings — who you are before day one
+│   ├── epochs.py       what the Verge becomes after each of the ten endings
+│   ├── scenarios.py    40 situations an epoch puts in front of you
 │   ├── chassis.py      the hull registry — assembles and re-exports the rest
 │   ├── hull_types.py   layer stacks, the Chassis record, family rules (ACCEPTS)
 │   ├── hulls_grown.py  the 12 GESTALT classes
@@ -174,6 +176,7 @@ seedfall/
 │   ├── reach.py        what you can get to at all, and what a drive would open
 │   ├── plans.py        the ship as solids: hull, fittings, hold, berths
 │   ├── beginning.py    turning an opening choice into a chronicle
+│   ├── legacy.py       life after an ending: epochs, pressure, situations
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
 │   ├── assessment.py   reading an engagement: who wins, why, what to do
 │   ├── chains.py       commissions: work that escalates and closes doors
@@ -271,6 +274,7 @@ seedfall/
     ├── test_reach.py   6 reach checks — the chart's wall is a real wall
     ├── test_plans.py   8 plan checks — the model is the ship, and it is solid
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
+    ├── test_legacy.py  7 aftermath checks — an ending is a turn, not a stop
     ├── chronicle.py    one captain, one save, a decade of doing everything
     ├── test_chronicle.py 3 checks — that decade, through every screen
     ├── capture.py      renders every screen offscreen, for the README
@@ -901,6 +905,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   in `attempt` and the quote in `odds_for`, and the point is that they cannot
   drift. Dropping the `+2` from the quote makes it report "said 67% rolled
   32%".
+- **`test_legacy.py`** covers the ten endings and the epoch each one opens.
+  Its sharpest check performs all 120 answers across the forty situations and
+  compares each against the effect its card printed — the card and
+  `legacy.apply` read the same dict, and this is what keeps them one dict. It
+  caught the Cartel ending being unreachable by construction: the threshold
+  asked for prices from 25 systems and a sector has only 17 to 24 markets.
 - **`test_beginnings.py`** pins the invariant the whole suite rests on: a
   `new_game()` with no choices must be *exactly* the game as it shipped, because
   three hundred and eighty checks are written against that opening and a default

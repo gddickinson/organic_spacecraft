@@ -27,6 +27,7 @@ NAV = [
     ("empire", "◈  Holdings"),
     ("diplomacy", "⚖  Diplomacy"),
     ("codex", "§  Codex"),
+    ("legacy", "∞  Aftermath"),
 ]
 
 
@@ -189,6 +190,7 @@ class MainWindow(QMainWindow):
         from .system_view import SystemView
         from .tech_view import TechView
         from .dig_view import DigView
+        from .legacy_view import LegacyView
         from .demand_view import DemandView
         from .transit_view import TransitView
         from .yard_view import YardView
@@ -200,7 +202,7 @@ class MainWindow(QMainWindow):
             "ground": ExpeditionView, "helm": HelmView,
             "diplomacy": DiplomacyView,
             "docking": DockingView, "decoding": DecodingView,
-            "transit": TransitView, "dig": DigView,
+            "transit": TransitView, "dig": DigView, "legacy": LegacyView,
             "demand": DemandView,
         }
         for vid, cls in classes.items():
@@ -221,6 +223,8 @@ class MainWindow(QMainWindow):
 
     transit = _on_game("transit")
     dig = _on_game("dig")
+    situation = _on_game("situation")
+    legacy = _on_game("legacy")
     demand = _on_game("demand")
     docking = _on_game("docking")
     decoding = _on_game("decoding")
@@ -236,6 +240,10 @@ class MainWindow(QMainWindow):
             self.toast("A power is waiting on an answer about your holding.",
                        "warn")
             view_id = "demand"
+        elif self.situation is not None and not self.situation.over \
+                and view_id not in ("legacy", "battle"):
+            self.toast("Something is waiting on an answer.", "warn")
+            view_id = "legacy"
         elif self.dig is not None and not self.dig.over \
                 and view_id not in ("dig", "battle"):
             self.toast("There is a trench open. Work it or backfill it.", "warn")
@@ -382,7 +390,7 @@ class MainWindow(QMainWindow):
         g = self.game
         if g.victory:
             name = next((v[1] for v in VICTORIES if v[0] == g.victory), "Ending")
-            self._ending(name, ENDINGS.get(g.victory, ""))
+            self._ending(name, ENDINGS.get(g.victory, ""), ending=g.victory)
             return True
         if g.dead:
             key = g.ending or "lost"
@@ -393,7 +401,17 @@ class MainWindow(QMainWindow):
             return True
         return False
 
-    def _ending(self, heading: str, text: str, cause: str = "") -> None:
+    def _ending(self, heading: str, text: str, cause: str = "",
+                ending: str = "") -> None:
+        """An ending is a turn in the sector's history, not necessarily a stop.
+
+        Every ending opens an epoch — the world is rewritten once and a new
+        clock starts in place of the Bloom — so the dialog offers to carry on
+        as well as to begin again.
+        """
+        from ..data.epochs import EPOCHS_BY_ID
+        from ..sim import legacy as legacy_sim
+
         g = self.game
         stats_line = (f"Stardate {g.day} days · {len(g.discovered['systems'])} systems "
                       f"visited · {g.discovered['lifeforms']} organisms catalogued · "
@@ -402,7 +420,20 @@ class MainWindow(QMainWindow):
         if cause:
             body.append(label(cause, "", "warn", wrap=True))
         body.append(label(stats_line, "note", wrap=True))
-        self.dialog(heading, body, [("Begin again", "again")])
+
+        epoch = EPOCHS_BY_ID.get(ending)
+        choices = [("Begin again", "again")]
+        if epoch is not None:
+            body.append(label(f"What follows: {epoch.name}. {epoch.pressure}",
+                              "", "chloro", wrap=True))
+            choices.insert(0, (f"Carry on into {epoch.name}", "carry"))
+
+        picked = self.dialog(heading, body, choices)
+        if picked == "carry" and epoch is not None:
+            legacy_sim.begin(g, ending)
+            self.save()
+            self.go("legacy")
+            return
         state_mod.clear_save()
         from .title import start_new_chronicle
         start_new_chronicle(self)

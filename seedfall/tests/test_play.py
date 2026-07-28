@@ -88,6 +88,48 @@ def run(suite: Suite) -> None:
                 online=True, pop=1_000_000 if i == 0 else 10_000))
         fired["dominion"] = threat.check_victory(g)
 
+        # Lineage: four grown hulls of your own, and the licence to sign them.
+        g = _stocked()
+        for i in range(4):
+            hull = make_ship("navis", [], f"Cutting {i}")
+            build_layers(hull, g.bonuses)
+            g.fleet.append(hull)
+        fired["lineage"] = threat.check_victory(g)
+
+        # Xenarchy: all twelve alien technologies incorporated.
+        from ..data.xenotech import XENOTECH
+        from ..sim import xeno as xeno_sim
+        g = _stocked()
+        for tech in XENOTECH:
+            g.xeno_study[tech.id] = tech.study * 2
+            xeno_sim.incorporate(g, tech.id)
+        fired["xenarch"] = threat.check_victory(g)
+
+        # The Cartel: most of the sector's prices written down, and a purse.
+        from ..sim import market as market_sim
+        g = _stocked()
+        for system in g.galaxy.systems:
+            if system.market:
+                market_sim.note_prices(g, system, 0, 0)
+        g.credits = 2_000_000
+        fired["cartel"] = threat.check_victory(g)
+
+        # Apostasy: a synthetic hull, nobody aboard, the Choir at Kin.
+        g = _stocked()
+        g.ship.chassis = "cantor"
+        g.officers = []
+        g.rep["sanhedrin"] = 80
+        g.recompute()
+        fired["apostasy"] = threat.check_victory(g)
+
+        # Ruin: the sector lost, and you still flying. It must fire *before*
+        # the Bloom is allowed to kill you, which is why the order in
+        # `advance_days` puts the victory check first.
+        g = _stocked()
+        for system in g.galaxy.systems:
+            system.bloom = 0.95
+        fired["ruin"] = threat.check_victory(g)
+
         for vid, *_ in VICTORIES:
             assert fired.get(vid) == vid, (
                 f"{vid} did not fire when its conditions were met "

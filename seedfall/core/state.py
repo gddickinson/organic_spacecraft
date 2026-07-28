@@ -20,6 +20,7 @@ from ..sim import market as market_sim
 from ..sim import diplomacy as dip_sim
 from ..sim import responses as response_sim
 from ..sim import ventures as venture_sim
+from ..sim import legacy as legacy_sim
 from ..sim import loyalty as loyalty_sim
 from ..sim import research as research_sim
 from ..sim import shipyard as shipyard_sim
@@ -92,6 +93,12 @@ class Game:
     beginning: object | None = None
     #: Substrate bonuses from the stock, folded in by `recompute`.
     stock_fx: dict = field(default_factory=dict)
+    #: Life after an ending: which epoch, how much pressure, what has been
+    #: answered. See `sim/legacy.py`.
+    legacy: object | None = None
+    #: A situation waiting on an answer. Like a battle or an open trench, it is
+    #: something you can be in the middle of, so it lives here.
+    situation: object | None = None
     commissions: list = field(default_factory=list)
     rumours: list = field(default_factory=list)
     charts: list = field(default_factory=list)
@@ -286,16 +293,25 @@ class Game:
 
         for kind, text in threat_sim.tick(self, n, r):
             self.add_log(text, kind)
+        for kind, text in legacy_sim.tick(self, n, r):
+            self.add_log(text, kind)
         response_sim.decay(self, n)
         for kind, text in response_sim.check(self, r):
             self.add_log(text, kind)
-        if self.overgrown and not self.victory:
+        # Endings are checked before the Bloom is allowed to kill you, because
+        # one of them is surviving it: Ruin fires when the sector is lost and
+        # you are still flying, and the old order set `dead` first so it could
+        # never fire at all.
+        win = threat_sim.check_victory(self)
+        if win and not self.victory and not legacy_sim.in_epoch(self):
+            self.victory = win
+        # Inside an epoch the Bloom is no longer the clock — the epoch's own
+        # pressure is. Without this the Ruin aftermath killed you on its first
+        # tick, because the sector is still ninety-five per cent overgrown by
+        # definition and `overgrown` fires every time.
+        if self.overgrown and not self.victory and not legacy_sim.in_epoch(self):
             self.dead = True
             self.ending = "overgrown"
-
-        win = threat_sim.check_victory(self)
-        if win:
-            self.victory = win
         self.recompute()
 
     def die(self, reason: str = "") -> None:

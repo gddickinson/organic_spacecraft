@@ -8,7 +8,9 @@ because the one thing anybody removed from it was the instruction to stop.
 from __future__ import annotations
 
 from ..data.lore import VICTORIES
+from ..data.chassis import CHASSIS_BY_ID
 from ..world.galaxy import distance
+from .ship import hull_pct
 from .colony import bloom_attack, ward_at
 from . import loyalty
 from . import bloom as bloom_sim
@@ -16,6 +18,16 @@ from . import responses as response_sim
 from . import diplomacy as dip_sim
 
 SPREAD_INTERVAL = 30    # days between growth ticks
+
+#: Thresholds for the endings that are counted rather than flagged.
+LINEAGE_HULLS = 4          # grown hulls of your own, still flying
+#: Share of the sector's *markets* whose prices you have written down. Not an
+#: absolute count: a sector has 17 to 24 markets across seeds, so the first
+#: version of this asked for 25 and was unreachable in every one of them —
+#: the same defect as a work gated behind a technology that does not exist.
+CARTEL_SHARE = 0.9
+CARTEL_PURSE = 1_500_000
+RUIN_SHARE = 0.9           # of the sector held by the Bloom, and you alive
 
 
 def bloom_systems(game):
@@ -109,6 +121,22 @@ def victory_progress(game) -> dict[str, tuple[float, float, bool]]:
     has_ark = (game.ship.chassis == "leviathan"
                or any(s.chassis == "leviathan" for s in game.fleet))
 
+    # Five more ways to finish, each measured off machinery that already
+    # exists. None of them is gated behind any of the others.
+    from ..data.xenotech import XENOTECH
+    from . import xeno as xeno_sim
+    grown_line = [s for s in game.fleet
+                  if CHASSIS_BY_ID.get(s.chassis)
+                  and CHASSIS_BY_ID[s.chassis].family == "grown"]
+    understood = [t for t in XENOTECH if xeno_sim.is_incorporated(game, t.id)]
+    markets = [s for s in game.galaxy.systems if s.market]
+    priced = len([k for k in game.register if str(k).isdigit()])
+    cartel_need = max(1, int(len(markets) * CARTEL_SHARE))
+    crewless = (CHASSIS_BY_ID.get(game.ship.chassis)
+                and CHASSIS_BY_ID[game.ship.chassis].family == "synthetic"
+                and not game.officers)
+    drowned = len(bloom_systems(game))
+
     return {
         "containment": (total - infested, total,
                         infested == 0 and bloom_sim.heart_dead(game)
@@ -119,6 +147,18 @@ def victory_progress(game) -> dict[str, tuple[float, float, bool]]:
                     bool(game.flags.get("contact_made"))
                     and "firstcontact" in game.research.unlocked),
         "dominion": (min(len(online), 12), 12, len(online) >= 12 and pop >= 1_000_000),
+        "lineage": (len(grown_line), LINEAGE_HULLS,
+                    len(grown_line) >= LINEAGE_HULLS
+                    and "licence" in game.research.unlocked),
+        "xenarch": (len(understood), len(XENOTECH),
+                    len(understood) >= len(XENOTECH)),
+        "cartel": (min(priced, cartel_need), cartel_need,
+                   priced >= cartel_need and game.credits >= CARTEL_PURSE),
+        "apostasy": (1 if crewless else 0, 1,
+                     bool(crewless) and game.rep.get("sanhedrin", 0) >= 75),
+        "ruin": (drowned, total,
+                 drowned >= total * RUIN_SHARE and not game.dead
+                 and hull_pct(game.ship) > 0.25),
     }
 
 

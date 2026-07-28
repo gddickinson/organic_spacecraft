@@ -48,9 +48,58 @@ VICTORIES = [
     ("dominion", "Dominion", "steel", "Hold twelve colonies and a million citizens",
      "Never mind the philosophy. Own the rocks, own the ice, own the lanes, and "
      "let whoever comes after you write the charter."),
+    ("lineage", "Lineage", "chloro", "Gestate four grown hulls that outlive you",
+     "The licence regime exists because a hull that reproduces is a hull that "
+     "can get away from you. Prove it can be done deliberately: raise a line "
+     "of your own, sign for every one of them, and let the line be the point."),
+    ("xenarch", "Xenarchy", "xeno", "Incorporate all twelve alien technologies",
+     "Four cultures left twelve things nobody can reason out. Understand every "
+     "one — not derive, understand — and stop being a species that only knows "
+     "what it worked out for itself."),
+    ("cartel", "The Cartel", "osteo",
+     "Hold the register on most of the Verge, and a million and a half credits",
+     "Never fire a shot. Know every price in the sector before anyone else "
+     "does, own the lanes worth flying, and let the powers discover that the "
+     "question of who runs the Verge was settled at a freight desk."),
+    ("apostasy", "Apostasy", "lumen",
+     "Fly a synthetic hull with no crew, at Kin with the Dry Choir",
+     "Put the wet stack down. No berths, no air, no morale, no one aboard to "
+     "argue — and the Choir, who have been waiting for you to work it out, "
+     "open the canon and make room."),
+    ("ruin", "Ruin", "warn", "Outlive the sector",
+     "The Verge is theirs. Every quay, every garden, every rock you ever "
+     "surveyed. You are still flying, which is not the same as winning, and "
+     "there is nobody left to tell that you were right."),
 ]
 
 ENDINGS = {
+    "lineage":
+        "The fourth of them broke its cradle at Ostrel and made its own way to "
+        "the rendezvous without being told twice. Four hulls, four signatures, "
+        "four licences filed in your name. The Registry has no procedure for "
+        "what you have done because the procedure assumed nobody would do it "
+        "on purpose. They will write one. It will be named after you.",
+    "xenarch":
+        "Twelve technologies, four dead cultures, and not one of them derived. "
+        "The tree in the wardroom has a whole branch on it now that no human "
+        "reasoned out, and the odd thing — the thing you keep not saying at "
+        "the debrief — is how ordinary each one looks once you have it.",
+    "cartel":
+        "You never took a shot at anybody. You knew the price of ore at Vaux "
+        "Deep before the harbourmaster did, and then you knew it everywhere, "
+        "and then the powers found they were negotiating with a freight desk. "
+        "The Charter has asked, very politely, for a meeting.",
+    "apostasy":
+        "The last of the wet stack went into the vault at Wick Gate and the "
+        "hull came back up empty and singing. There is no one aboard. There is "
+        "no one to be aboard. The Choir opened the canon a hand's width and "
+        "made room, and what came across was not a welcome so much as a "
+        "recognition.",
+    "ruin":
+        "There is nothing to burn out any more; it is all of it, everywhere. "
+        "Forty-two systems of chitin and slow motion, and one hull with a good "
+        "tank and a full hold moving quietly through the middle of it. You "
+        "were right about all of it. There is nobody left who needs telling.",
     "containment":
         "The last Bloom mass senesced at 04:12 fleet time, and the Verge went "
         "quiet in a way it had not been quiet in eleven months. The counters went "
