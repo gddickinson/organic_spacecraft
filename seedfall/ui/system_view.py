@@ -8,7 +8,9 @@ from PyQt6.QtWidgets import QVBoxLayout, QWidget
 from ..core.util import cost_line, duration, num, pct
 from ..data.factions import FACTIONS_BY_ID
 from ..sim import colony as colony_sim
+from ..sim import mining
 from ..sim.actions import burn_bloom, dive, extract, strike_heart, survey
+from . import mining_panel
 from ..sim import bloom as bloom_sim
 from ..sim.fieldwork import excavate, launch_expedition
 from ..sim import xeno as xeno_sim
@@ -65,6 +67,14 @@ class SystemView(View):
             self.col.addWidget(hp)
 
         self.row(self._body_list(), self._detail(), spacing=14)
+
+        body = (sys.bodies[self.selected]
+                if self.selected is not None and self.selected < len(sys.bodies)
+                else None)
+        if body is not None and (g.ship_stats.mine > 0 or g.ship_stats.drink > 0):
+            self.col.addWidget(mining_panel.build(
+                self, g, body,
+                getattr(self, "mining_method", mining.DEFAULT_METHOD)))
 
         if sys.port:
             self.buttons(
@@ -179,12 +189,9 @@ class SystemView(View):
             panel.add(note("Nothing is known about this body beyond its orbit and "
                            "mass. A survey would take a few days."))
 
-        can_extract = (st.mine > 0 or st.drink > 0) and b.surveyed
         panel.add_buttons(
             button("Re-survey" if b.surveyed else "Survey", self._survey,
                    kind="primary"),
-            button("Extract · 30 d", lambda: self._extract(30)) if can_extract else None,
-            button("Extract · 90 d", lambda: self._extract(90)) if can_extract else None,
             button("Dive the ocean", self._dive)
             if (b.biome == "subsurface" and st.can_dive) else None,
             button("Excavate the site", self._excavate)
@@ -220,18 +227,36 @@ class SystemView(View):
         self.win.dialog("Survey complete", lines, [("Log it", None)])
         self.win.refresh()
 
-    def _extract(self, days: int) -> None:
-        res = extract(self.game, self.selected, days)
+    def set_mining_method(self, method_id: str) -> None:
+        self.mining_method = method_id
+        self.refresh()
+
+    def run_extract(self, days: int) -> None:
+        res = extract(self.game, self.selected, days,
+                      getattr(self, "mining_method", mining.DEFAULT_METHOD))
         if not res["ok"]:
             self.win.toast(res["why"], "warn")
             return
         if self.win.check_ending():
             return
         got = res["got"]
-        text = ("Aboard: " + ", ".join(f"{round(v)} t {k}" for k, v in got.items())
-                if got else "The grade was too poor, or the hold too full. Nothing "
-                            "to show for it.")
-        self.win.dialog(f"{days} days of extraction", [text], [("Understood", None)])
+        lines = [note("Aboard: " + ", ".join(f"{round(v)} t {k}"
+                                             for k, v in got.items())
+                      if got else "The grade was too poor, or the hold too "
+                                  "full. Nothing to show for it.")]
+        event = res.get("event")
+        if event and event["kind"] == "mishap":
+            lines.append(label(event["mishap"].name, "h3", "warn"))
+            lines.append(note(event["mishap"].text))
+        elif event and event["kind"] == "strike":
+            lines.append(label("A rich strike", "h3", "chloro"))
+            lines.append(note("The face opened onto something markedly better "
+                              "than the survey promised."))
+        if res.get("wear", 0) > 0:
+            lines.append(note(f"The rig cost the hull {round(res['wear'])} "
+                              "points of its outer layer."))
+        self.win.dialog(f"{days} days — {res['method'].name.lower()}", lines,
+                        [("Understood", None)])
         self.win.refresh()
 
     def _dive(self) -> None:

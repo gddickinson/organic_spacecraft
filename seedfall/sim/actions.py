@@ -6,7 +6,8 @@ The GUI calls these and reacts to what comes back; none of them touch Qt.
 from __future__ import annotations
 
 from ..world.galaxy import distance, transit_days
-from ..world.planets import extraction_rate, survey_body
+from ..world.planets import survey_body
+from . import mining
 from . import research as research_sim
 from . import rumours as rumour_sim
 from .crew import grant_xp
@@ -138,21 +139,40 @@ def survey(game, body_index: int) -> dict:
     return found
 
 
-def extract(game, body_index: int, days: int) -> dict:
-    """Long-duration extraction at a body."""
+def extract(game, body_index: int, days: int,
+            method_id: str = mining.DEFAULT_METHOD) -> dict:
+    """Work a body for a spell. How you work it is most of the decision."""
     flight.ensure_at(game, body_index)
     body = game.system.bodies[body_index]
     st = game.ship_stats
     if st.mine <= 0 and st.drink <= 0:
         return {"ok": False, "why": "No mining root or harvest tendril fitted."}
 
+    method = mining.METHODS_BY_ID.get(method_id, mining.METHODS_BY_ID[
+        mining.DEFAULT_METHOD])
+    if method.needs and getattr(st, method.needs, 0) <= 0:
+        return {"ok": False, "why": "Nothing fitted that can work it that way."}
+    if not mining.reachable(body, method.id):
+        return {"ok": False, "why": "Nothing that reaches is worth the trouble."}
+    afford, why = mining.can_afford(game, method.id, days)
+    if not afford:
+        return {"ok": False, "why": why}
+
+    mining.spend_upkeep(game, method.id, days)
     game.advance_days(days)
+    if game.dead:
+        return {"ok": True, "dead": True, "days": days}
+
+    r = game.rng("dig")
+    event = mining.roll_event(game, body, method.id, r)
+    spoil = event.get("spoil", 0.0) if event and event["kind"] == "mishap" else 0.0
+    bonus = event.get("bonus", 0.0) if event and event["kind"] == "strike" else 0.0
+
     got: dict[str, float] = {}
 
-    def take(cid: str, rate: float) -> None:
-        if rate <= 0:
-            return
-        amount = extraction_rate(body, cid, rate) * days
+    def take(cid: str, rig: float) -> None:
+        amount = mining.rate_for(body, method.id, cid, rig) * days
+        amount *= (1 - spoil) * (1 + bonus)
         if amount <= 0.01:
             return
         n = min(amount, cargo_free(game.ship, game.ship_stats))
@@ -166,13 +186,18 @@ def extract(game, body_index: int, days: int) -> dict:
     take("volatiles", st.drink)
     take("biomass", st.graze)
 
-    body.depleted = min(0.95, body.depleted + days * 0.0016 * (st.mine + st.drink))
+    wear = mining.apply_wear(game, method.id, days)
+    mining.deplete(game, body, method.id, days, st.mine + st.drink)
     grant_xp(game.officers, "engineering", days * 2)
+
     summary = ", ".join(f"{round(v)} t {k}" for k, v in got.items())
-    game.add_log(f"Extraction at {body.name}: {summary}." if summary
+    game.add_log(f"{method.name} at {body.name}: {summary}." if summary
                  else f"Nothing worth having at {body.name}.",
                  "good" if summary else "dim")
-    return {"ok": True, "got": got, "days": days}
+    if event and event["kind"] == "mishap":
+        game.add_log(f"{event['mishap'].name} at {body.name}.", "bad")
+    return {"ok": True, "got": got, "days": days, "method": method,
+            "event": event, "wear": wear}
 
 
 def dive(game, body_index: int) -> dict:

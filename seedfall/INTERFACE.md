@@ -167,6 +167,7 @@ seedfall/
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
 │   ├── chains.py       commissions: work that escalates and closes doors
 │   ├── intel.py        how well a system is known, and what a chart is worth
+│   ├── mining.py       seams, depth, and how hard you work a body
 │   ├── rumours.py      leads that point somewhere before you have been
 │   ├── consorts.py     escorts: standing orders, screening, who draws fire
 │   ├── loyalty.py      what the bridge thinks of how you run the ship
@@ -205,6 +206,7 @@ seedfall/
     ├── test_crew.py    7 crew checks — convictions, loyalty, consequences
     ├── test_missions.py 7 commission checks — escalation, blocking, lapsing
     ├── test_explore.py 8 exploration checks — the intel ladder, rumours
+    ├── test_mining.py  7 mining checks — seams, methods, wear, exhaustion
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
     └── test_ui.py      22 interface checks, rendered on Qt's offscreen platform
 ```
@@ -321,6 +323,15 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   `body.surveyed`, `system.visited` and the bought-chart list, so nothing has
   to be kept in step. Add a way to learn about a system and it belongs in that
   function.
+- **Volatiles are never buried below an open cut, and neither is whatever a
+  body is advertised as.** `mining._depth_of()` enforces both. Fuel at depth
+  two strands a captain with no bore and no reaction mass — the same deadlock
+  the mining root's `drink` was added to prevent — and a rock listed as
+  ore-bearing that needs a shaft is a survey that lied.
+- **Seams are derived from `body.resources`, never stored.** Depth comes from
+  `hash_seed` of the body and resource, so every existing save has seams
+  without a migration and the same rock always hides the same thing in the same
+  place. Never use `hash()` here; see the note above about orbits.
 - **Colony effects are a closed vocabulary.** `test_sim.py` asserts that every
   key in a `ColonyClass.effects` is one the game actually reads, so a typo in a
   station definition fails the suite instead of silently doing nothing.
@@ -350,6 +361,10 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   cannot be bought twice or a survey sold twice, and — the important one —
   proves that thirty passes over the rumour desk leave the galaxy byte for byte
   unchanged.
+- **`test_mining.py`** measures the four methods against each other over
+  twenty runs apiece and asserts they are actually different bargains — a bore
+  must out-yield an open cut by a third and cost more hull and more of the body
+  doing it — then works a body out and checks it stops paying.
 - **`test_flight.py`** holds the helm to its promises: that a seed grows one
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that

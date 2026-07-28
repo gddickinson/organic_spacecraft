@@ -2,6 +2,39 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: mining becomes a decision
+
+- **Extraction was a rate.** Park in orbit, pick 30 or 90 days, tonnage
+  appears. It was the last pillar with no choice in it. A body now has
+  **seams** at three depths, and you choose **how** to work it.
+- **Four methods, four bargains.** Measured over twenty 60-day runs each:
+  *skim* 26 t with no wear and a tenth of the depletion; *open cut* 149 t at
+  0.9% hull and 38% worked out; *deep bore* 244 t at 3.2% hull and 81% worked
+  out, with mishaps three times as often; *bioleach* 140 t, no wear, 13%
+  depletion, but it burns biomass and needs a harvest tendril. A bore reaches
+  seams nothing else can, which is often the whole reason to fit one.
+- **Depth is derived, not stored.** `hash_seed` of the body and resource, so
+  every existing save has seams without a migration and the same rock always
+  hides the same thing in the same place.
+- **The first version reintroduced a deadlock the game had already fixed.**
+  Burying volatiles at depth two meant a captain with no bore and no reaction
+  mass had no way to make fuel — exactly the trap the mining root's `drink`
+  was added to prevent two cycles into this project. The existing playability
+  check caught it on the first run. Fuel now never sits below an open cut, and
+  neither does whatever a body is advertised as: a rock listed as ore-bearing
+  that needs a shaft is a survey that lied.
+- **Two readout bugs from the screenshots.** "Wear on the hull 13.5% a month"
+  was quoting damage to the *outermost layer* as if it were overall integrity —
+  five times worse than the truth. And a 0.02-grade trace seam listed as
+  "0.0 t volatiles/day" made the panel look broken.
+- **My own measurement was wrong first.** The initial method comparison
+  reported zero tonnes for all four, which looked like the feature was dead.
+  I had loaded 400 t of fuel into a 340 t hold, so there was nowhere to put
+  the ore.
+- Suites: 27 simulation, 5 xenotech, 14 playability, 5 tactical, 5 flight,
+  6 empire, 7 crew, 7 missions, 8 exploration, **7 mining** (new), 23 interface
+  — 114 checks green. 108 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: knowing where you are going
 
 - **Discovery was one boolean.** A system was visited or it was not. It now
