@@ -237,3 +237,14 @@ def scrap_value(ship: Ship) -> int:
     v = cost.get("credits", 0) * 0.45
     v += sum(n * 60 for key, n in cost.items() if key != "credits")
     return round(v)
+
+
+def scrap(game, ship) -> dict:
+    """Break a hull up for what it is worth. Was done from the yard screen."""
+    if ship is game.ship:
+        return {"ok": False, "why": "You are standing in it."}
+    value = scrap_value(ship)
+    game.credits += value
+    game.fleet = [s for s in game.fleet if s is not ship]
+    game.add_log(f"{ship.name} was broken up for {value:,}.", "")
+    return {"ok": True, "value": value}

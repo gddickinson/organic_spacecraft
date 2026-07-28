@@ -2,6 +2,39 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: no screen writes the ledger
+
+- **The debt I flagged twice, paid.** Seventeen sites across four view modules
+  spent credits and moved standing directly. Buying, selling, signing an officer
+  on, paying the bridge a bonus, repairing a hull, paying for a lead,
+  commissioning bench time, breaking a hull up, tying up at a quay, and moving
+  contraband off the books — every one of them a rule that only a mouse could
+  perform and no headless run could measure. Same defect as last cycle's
+  engagement aftermath, spread thinner across more files.
+- **Eleven operations moved down**, into `sim/trade.py` and `sim/services.py`
+  (new) and into `crew.py`, `shipyard.py`, `customs.py` and `minigames.py`
+  where they belonged. `port_view.py` went from 484 lines to 427 and the views
+  now call and draw rather than decide.
+- **The rule is enforced now, not stated.** `test_layers.py` matches ledger
+  writes structurally — assignment to `.credits`, augmented assignment,
+  `game.rep[…] = …`, any call to `adjust_rep` — across every module under
+  `ui/`. Putting one line back names the file and the line number.
+- **It carries a self-check, and that was not paranoia.** A structural matcher
+  that silently matches nothing would have passed on the day the defect was at
+  its worst — which is precisely the failure mode this project has hit before,
+  twice, with regression checks that passed with the fix removed. The check
+  plants all three shapes of write and fails if it recognises fewer than three.
+- **And an equivalence check**, the same discipline the aftermath got: buy
+  twelve tonnes and sell five, once through `sim/trade.py` and once by clicking
+  the port screen, and fail unless credits, standing and hold come out
+  identical.
+- **The Qt check moved** out of `test_aftermath.py` into `test_layers.py`,
+  where somebody looking for the layer rule will actually find it. Neither
+  breach the project suffered was an import pointing the wrong way; both were
+  rules written upward, so the Qt half was never going to be enough on its own.
+- Suites: 34, **5 layers** (new) among them — 286 checks green. 172 modules,
+  all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: what the ground told you
 
 - **Three wrong measurements before one right one.** Setting out to check

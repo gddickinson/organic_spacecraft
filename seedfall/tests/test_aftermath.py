@@ -16,9 +16,6 @@ knew exactly who would be glad to hear it.
 
 from __future__ import annotations
 
-import ast
-import pathlib
-
 from ..core.rng import RNG
 from ..core.state import new_game
 from ..sim import aftermath as aftermath_sim
@@ -27,11 +24,7 @@ from ..sim.ship import build_layers, make_ship, stats
 from . import captain_ai
 from .harness import Suite
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
 POWERS = ("charter", "concordat", "freeholds", "sanhedrin")
-
-#: The layers that must never know Qt exists.
-RULES_LAYERS = ("sim", "data", "world", "core")
 
 
 def _armed(game):
@@ -69,27 +62,6 @@ def _at_war(game) -> None:
 
 def run(suite: Suite) -> None:
     check = suite.check
-
-    @check("the rules layers do not know Qt exists")
-    def _():
-        # The stated rule of the project, never actually checked. The aftermath
-        # did not break it by importing Qt — it broke it by living up there.
-        offenders = []
-        for layer in RULES_LAYERS:
-            for path in sorted((ROOT / layer).rglob("*.py")):
-                tree = ast.parse(path.read_text())
-                for node in ast.walk(tree):
-                    names = []
-                    if isinstance(node, ast.Import):
-                        names = [a.name for a in node.names]
-                    elif isinstance(node, ast.ImportFrom) and node.module:
-                        names = [node.module]
-                    if any(n.split(".")[0] == "PyQt6" for n in names):
-                        offenders.append(f"{layer}/{path.name}")
-        assert not offenders, f"Qt reached the rules: {sorted(set(offenders))}"
-        counted = sum(len(list((ROOT / layer).rglob('*.py')))
-                      for layer in RULES_LAYERS)
-        return f"{counted} modules across {len(RULES_LAYERS)} layers, no Qt in any"
 
     @check("an engagement pays out with no screen anywhere near it")
     def _():

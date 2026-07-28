@@ -173,6 +173,31 @@ def inspect(game, rng, approach: float = 0.0) -> dict:
     return out
 
 
+def sell_quietly(game, cid: str) -> dict:
+    """Move contraband off the books. Was a method on the port screen.
+
+    They take what they can move and no more, and it puts their interest in
+    you up whether or not anybody signed anything.
+    """
+    port = game.system.port
+    faction = port.faction if port else None
+    price = premium(game, faction, cid)
+    held = game.ship.cargo.get(cid, 0.0)
+    tonnes = min(held, absorbs(game, faction))
+    if not price or tonnes <= 0:
+        return {"ok": False, "why": "Nobody here wants it."}
+    from .ship import add_cargo
+    take = round(price * tonnes)
+    game.credits += take
+    add_cargo(game.ship, cid, -tonnes)
+    add_heat(game, faction, 0.18)
+    good = BY_ID.get(cid)
+    game.add_log(f"Sold {tonnes:g} t of {good.short if good else cid} off the "
+                 f"books at {port.name} — {take:,}.", "warn")
+    return {"ok": True, "tonnes": tonnes, "price": price, "took": take,
+            "all": tonnes >= held}
+
+
 def jettison(game, cid: str) -> float:
     """Dump it before they board. Cheaper than a fine, dearer than nerve."""
     tonnes = game.ship.cargo.pop(cid, 0.0)

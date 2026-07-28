@@ -128,3 +128,37 @@ def morale_tick(ship, days: float, paid: bool, breached: bool,
     ship.morale += (target - ship.morale) * min(1.0, 0.08 * days)
     ship.morale = max(0.0, min(1.0, ship.morale))
     return ship.morale
+
+
+# ── the berths ─────────────────────────────────────────────────────────────
+# Signing somebody on and paying the bridge both spent credits from inside
+# `berths_panel.py`, so neither could be done or measured without a screen.
+
+def bonus_cost(officers) -> int:
+    """What it costs to put a bonus round the bridge."""
+    return int(sum(o.wage for o in officers) * 0.6)
+
+
+def hire(game, officer) -> dict:
+    """Sign an officer on. One station, one incumbent."""
+    if any(x.stat == officer.stat for x in game.officers):
+        return {"ok": False,
+                "why": "That station is already crewed. Pay off the incumbent "
+                       "first."}
+    if game.credits < officer.wage:
+        return {"ok": False, "why": "Not enough credits for the signing fee."}
+    game.credits -= officer.wage
+    game.officers.append(officer)
+    game.add_log(f"{officer.name} signed on as {officer.role_name}.", "good")
+    return {"ok": True, "officer": officer, "fee": officer.wage}
+
+
+def pay_bonus(game) -> dict:
+    """Money over the odds, and the bridge remembers it."""
+    cost = bonus_cost(game.officers)
+    if game.credits < cost:
+        return {"ok": False, "why": "Not enough in the treasury for that."}
+    game.credits -= cost
+    loyalty.record(game, "bonus_paid")
+    game.add_log("A bonus went round the bridge.", "good")
+    return {"ok": True, "cost": cost}

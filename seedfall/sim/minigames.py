@@ -19,6 +19,8 @@ from ..core.save import register
 # ── docking ────────────────────────────────────────────────────────────────
 
 AXES = [("range", "Closing range"), ("attitude", "Attitude"), ("roll", "Roll")]
+#: What a botched approach costs when the tug has to bring you in.
+TUG_FEE = 900
 TOLERANCE = 6
 DOCK_PASSES = 8
 
@@ -97,6 +99,37 @@ def dock_result(d: Docking) -> dict:
         margin = sum(TOLERANCE - abs(v) for v in d.error.values())
         return {"won": True, "grade": min(3, 1 + margin // 6)}
     return {"won": False, "grade": 0}
+
+
+def come_alongside(game, docking) -> dict:
+    """What the approach was worth once you are made fast.
+
+    Was written into `minigame_view._finish()`, so tying up — and the standing
+    or the tug fee that comes with it — could not happen without a screen.
+    """
+    from . import loyalty as loyalty_sim
+    res = dock_result(docking)
+    port = game.system.port
+    faction = port.faction if port else None
+    out = {"won": res["won"], "grade": res["grade"], "fee": 0, "standing": 0}
+    if res["won"]:
+        bonus = res["grade"] * 2
+        if faction:
+            game.adjust_rep(faction, bonus)
+        out["standing"] = bonus
+        game.add_log(f"Clean approach at {docking.port_name}; "
+                     f"standing +{bonus}.", "good")
+    else:
+        fee = TUG_FEE
+        game.credits = max(0.0, game.credits - fee)
+        if faction:
+            game.adjust_rep(faction, -1)
+        out["fee"], out["standing"] = fee, -1
+        game.add_log(f"Tugged in at {docking.port_name}. {fee:,} for the "
+                     "service.", "warn")
+    loyalty_sim.record(game, "docked_clean" if res["won"] else "")
+    game.flags["docked_at"] = game.system.id
+    return out
 
 
 # ── decoding ───────────────────────────────────────────────────────────────

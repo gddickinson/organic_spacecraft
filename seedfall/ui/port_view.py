@@ -10,6 +10,8 @@ from ..data.commodities import BY_ID, COMMODITIES, bulk_of
 from ..data.factions import FACTIONS_BY_ID, standing
 from ..sim import allegiance
 from ..sim import chains as chain_sim
+from ..sim import services as services_sim
+from ..sim import trade as trade_sim
 from ..sim import loyalty as loyalty_sim
 from ..sim import customs as customs_sim
 from . import blackmarket_panel
@@ -149,22 +151,13 @@ class PortView(BerthsMixin, View):
         self.col.addWidget(register_panel.register(g, sys))
 
     def _sell_quietly(self, cid: str) -> None:
-        g = self.game
-        faction = g.system.port.faction
-        price = customs_sim.premium(g, faction, cid)
-        held = g.ship.cargo.get(cid, 0.0)
-        tonnes = min(held, customs_sim.absorbs(g, faction))
-        if not price or tonnes <= 0:
+        res = customs_sim.sell_quietly(self.game, cid)
+        if not res["ok"]:
+            self.win.toast(res["why"], "warn")
             return
-        take = round(price * tonnes)
-        g.credits += take
-        add_cargo(g.ship, cid, -tonnes)
-        customs_sim.add_heat(g, faction, 0.18)
-        g.add_log(f"Sold {tonnes:g} t of {BY_ID[cid].short} off the books at "
-                  f"{g.system.port.name} — {cr(take)}.", "warn")
-        self.win.toast("Nobody signed anything." if tonnes >= held else
-                       f"They took {tonnes:g} t. That is what they can move.",
-                       "osteo")
+        self.win.toast("Nobody signed anything." if res["all"] else
+                       f"They took {res['tonnes']:g} t. That is what they can "
+                       "move.", "osteo")
         self.win.refresh()
 
     def _dump(self, cid: str) -> None:
@@ -175,55 +168,20 @@ class PortView(BerthsMixin, View):
         self.win.refresh()
 
     def _buy(self, cid: str, units: int) -> None:
-        g = self.game
-        sys = g.system
-        rep = g.rep.get(sys.port.faction, 0)
-        price = buy_price(sys.market, cid, rep, g.ship_stats.trade)
-        if price is None:
+        res = trade_sim.buy(self.game, cid, units)
+        if not res["ok"]:
+            self.win.toast(res["why"], "warn")
             return
-        room = int(cargo_free(g.ship, g.ship_stats) / bulk_of(cid))
-        afford = int(g.credits // price)
-        n = min(units, room, afford, sys.market.stock[cid].units)
-        if n <= 0:
-            why = ("Not enough credits." if afford < 1 else
-                   "No room in the hold." if room < 1 else "The port has none left.")
-            self.win.toast(why, "warn")
-            return
-        g.credits -= n * price
-        add_cargo(g.ship, cid, n)
-        apply_trade(sys.market, cid, n)
-        if not BY_ID[cid].legal:
-            g.adjust_rep(sys.port.faction, -3)
-        g.add_log(f"Bought {n} {BY_ID[cid].short} at {cr(price)} — {cr(n * price)}.")
         self.win.refresh()
 
     def _sell(self, cid: str, units: int) -> None:
-        g = self.game
-        sys = g.system
-        if customs_sim.outlaws(sys.port.faction, cid):
-            self.win.toast("Not over this counter. Not on this station.", "warn")
+        res = trade_sim.sell(self.game, cid, units)
+        if not res["ok"]:
+            self.win.toast(res["why"], "warn")
             return
-        rep = g.rep.get(sys.port.faction, 0)
-        price = sell_price(sys.market, cid, rep, g.ship_stats.trade)
-        n = min(units, g.ship.cargo.get(cid, 0))
-        if n <= 0:
-            return
-        fac = FACTIONS_BY_ID.get(sys.port.faction)
-        if not BY_ID[cid].legal and (not fac or cid not in fac.sells):
-            g.adjust_rep(sys.port.faction, -8)
-            self.win.toast("They took it. They also logged who sold it.", "osteo")
-        g.credits += n * price
-        # A sale worth noticing is one the quartermaster notices.
-        if n * price >= 2500:
-            loyalty_sim.record(g, "trade_profit",
-                               scale=min(2.0, n * price / 6000))
-        add_cargo(g.ship, cid, -n)
-        apply_sale(sys.market, cid, n)
-        g.adjust_rep(sys.port.faction,
-                     min(2, n * 0.05)
-                     * dip_sim.agenda_bonus(g, sys.port.faction, cid))
-        g.add_log(f"Sold {round(n)} {BY_ID[cid].short} at {cr(price)} — "
-                  f"{cr(round(n * price))}.", "good")
+        if res["logged"]:
+            self.win.toast("They took it. They also logged who sold it.",
+                           "osteo")
         self.win.refresh()
 
     # ── contracts ──────────────────────────────────────────────────────────
@@ -322,15 +280,11 @@ class PortView(BerthsMixin, View):
     def take_rumour(self, rumour, paid: bool) -> None:
         g = self.game
         kind = rumour.definition
-        if paid:
-            if g.credits < kind.price:
-                self.win.toast("Not enough on hand for that.", "warn")
-                return
-            g.credits -= kind.price
-        elif g.rng(f"listen-{rumour.id}").chance(0.45):
-            self.win.toast("They stopped talking when you got close.", "warn")
+        res = services_sim.buy_rumour(g, rumour, paid,
+                                      g.rng(f"listen-{rumour.id}"))
+        if not res["ok"]:
+            self.win.toast(res["why"], "warn")
             return
-        rumour_sim.take(g, rumour, paid)
         self.win.refresh()
 
     def sell_survey(self, system_id: int) -> None:
@@ -429,43 +383,32 @@ class PortView(BerthsMixin, View):
         self.win.refresh()
 
     def _repair(self, cost: int) -> None:
-        g = self.game
-        g.credits -= cost
-        for l in g.ship.layers:
-            l.hp = l.max
-        g.ship.disabled = []
-        loyalty_sim.record(g, "repair")
-        g.add_log("Hull restored to specification in dock.", "good")
+        res = services_sim.repair(self.game, cost)
+        if not res["ok"]:
+            self.win.toast(res["why"], "warn")
+            return
         self.win.refresh()
 
     def _clear_faults(self) -> None:
-        self.game.ship.disabled = []
+        services_sim.clear_faults(self.game)
         self.win.toast("Systems restored.", "chloro")
         self.win.refresh()
 
     def _sell_data(self) -> None:
-        g = self.game
-        sys = g.system
-        n = g.ship.cargo.get("survey", 0)
-        if n < 1:
+        res = trade_sim.sell_survey_data(self.game)
+        if not res["ok"]:
+            self.win.toast(res["why"], "warn")
             return
-        rep = g.rep.get(sys.port.faction, 0)
-        price = sell_price(sys.market, "survey", rep, g.ship_stats.trade) or 250
-        g.credits += round(n * price)
-        add_cargo(g.ship, "survey", -n)
-        g.adjust_rep(sys.port.faction, min(6, n * 0.4))
-        g.research.banked += n * 6
-        g.add_log(f"Sold {round(n)} survey sets for {cr(round(n * price))}.", "good")
         self.win.refresh()
 
     def _study(self) -> None:
-        g = self.game
-        g.credits -= 4000
-        g.research.banked += 220
-        g.advance_days(14)
+        res = services_sim.commission_study(self.game)
+        if not res["ok"]:
+            self.win.toast(res["why"], "warn")
+            return
         if self.win.check_ending():
             return
-        self.win.toast("220 points banked.", "chloro")
+        self.win.toast(f"{res['points']} points banked.", "chloro")
         self.win.refresh()
 
     # ── berths ─────────────────────────────────────────────────────────────

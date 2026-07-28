@@ -185,6 +185,8 @@ seedfall/
 │   ├── charts.py       pricing a survey by what is actually in the system
 │   ├── aftermath.py    what an engagement leaves behind: salvage and standing
 │   ├── notes.py        field notes: filed, looked up again, and worth something
+│   ├── trade.py        buying and selling over a counter, and survey data
+│   ├── services.py     repairs, a paid word, and a fortnight of bench time
 │   ├── responses.py    provocation, the Bloom's answers, and studying a mass
 │   ├── market.py       supply shocks, and the prices you wrote down
 │   ├── ventures.py     what the powers do on their own account
@@ -246,8 +248,9 @@ seedfall/
     ├── test_allegiance.py 8 checks — taking sides, and brokering out of it
     ├── test_territory.py 8 checks — annexation, levy, defiance, seizure
     ├── test_charts.py  8 chart checks — contents, buyers, staleness, rate
-    ├── test_aftermath.py 8 checks — the layer rule, salvage, who is glad
+    ├── test_aftermath.py 7 checks — salvage, standing, and who is glad
     ├── test_notes.py   8 field-note checks — filed, counted, kept, reachable
+    ├── test_layers.py  5 layer checks — no Qt below, no ledger above
     ├── test_dig.py     6 dig checks — strata, methods, banking, backfilling
     ├── test_resume.py  5 resume checks — anything half-done survives a save
     ├── efficacy.py     the harness: neutralise a feature, measure the world
@@ -517,6 +520,18 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   room is worth doing.
 - **A note is not cargo.** Stranding costs 60% of the haul; it does not cost
   what somebody already read and remembered. `test_notes.py` pins that.
+- **No screen writes the ledger.** Seventeen sites across four view modules
+  spent credits and moved standing directly — buying, selling, hiring, paying a
+  bonus, repairing, buying a lead, commissioning bench time, scrapping a hull,
+  tying up at a quay, and moving contraband off the books. Every one was a rule
+  only a mouse could perform. They live in `sim/trade.py`, `sim/services.py`,
+  `sim/crew.py`, `sim/shipyard.py`, `sim/customs.py` and `sim/minigames.py` now.
+- **`test_layers.py` enforces the one-directional rule instead of stating it.**
+  It matches ledger writes structurally — assignment to `.credits`, augmented
+  assignment, `game.rep[…] = …`, any call to `adjust_rep` — and carries a
+  self-check that plants all three shapes and fails if the matcher misses any,
+  because a structural matcher that silently matches nothing would have passed
+  on the day the defect was at its worst.
 - **What a fight leaves behind belongs to the rules, not the screen.** Salvage,
   loot, cargo off the wreck, bounty progress, seized xenology, instar kills,
   consorts lost, loyalty and every standing change used to live in
@@ -704,8 +719,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   them home, and fails unless the shelf, the provenance and the evidence all
   survive — including across a save. It also checks every note is reachable and
   that the draw prefers ones you lack, so no written discovery is unfindable.
-- **`test_aftermath.py`** carries the check the project never had: that no
-  module under `sim/`, `data/`, `world/` or `core/` imports Qt. It also plays
+- **`test_layers.py`** holds both halves of the layer rule: that no module
+  under `sim/`, `data/`, `world/` or `core/` imports Qt, and that no module
+  under `ui/` writes the ledger. Neither breach the project actually suffered
+  was an import going the wrong way — both were rules written upward, which is
+  why the Qt check alone was never enough.
+- **`test_aftermath.py`** plays
   the same engagement twice — once through `sim/aftermath.resolve()` and once
   through the view's `_finish()` — and fails unless credits, standing and
   research come out identical, so the extraction has to stay faithful and not

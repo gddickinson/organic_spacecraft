@@ -6,6 +6,8 @@ is where loyalty, convictions and the two things that mend them live.
 
 from __future__ import annotations
 
+from ..sim import crew as crew_sim
+
 from PyQt6.QtWidgets import QHBoxLayout, QWidget
 
 from ..core.util import credits as cr
@@ -82,32 +84,21 @@ class BerthsMixin:
             self.grid(cards, cols=3)
 
     def _hire(self, officer) -> None:
-        g = self.game
-        if any(x.stat == officer.stat for x in g.officers):
-            self.win.toast("That station is already crewed. Pay off the incumbent "
-                           "first.", "warn")
+        res = crew_sim.hire(self.game, officer)
+        if not res["ok"]:
+            self.win.toast(res["why"], "warn")
             return
-        if g.credits < officer.wage:
-            self.win.toast("Not enough credits for the signing fee.", "warn")
-            return
-        g.credits -= officer.wage
-        g.officers.append(officer)
         self._pool = [o for o in self._pool if o is not officer]
-        g.add_log(f"{officer.name} signed on as {officer.role_name}.", "good")
         self.win.refresh()
 
     def _bonus_cost(self) -> int:
-        return int(sum(o.wage for o in self.game.officers) * 0.6)
+        return crew_sim.bonus_cost(self.game.officers)
 
     def _bonus(self) -> None:
-        g = self.game
-        cost = self._bonus_cost()
-        if g.credits < cost:
-            self.win.toast("Not enough in the treasury for that.", "warn")
+        res = crew_sim.pay_bonus(self.game)
+        if not res["ok"]:
+            self.win.toast(res["why"], "warn")
             return
-        g.credits -= cost
-        loyalty_sim.record(g, "bonus_paid")
-        g.add_log("A bonus went round the bridge.", "good")
         self.win.refresh()
 
     def _shore_leave(self) -> None:

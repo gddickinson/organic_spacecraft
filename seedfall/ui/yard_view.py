@@ -359,6 +359,8 @@ class YardView(View):
                                 f"{ship.name} will be broken up for {cr(value)}. "
                                 "This cannot be undone."):
             return
-        self.game.credits += value
-        self.game.fleet = [s for s in self.game.fleet if s is not ship]
+        res = shipyard.scrap(self.game, ship)
+        if not res["ok"]:
+            self.win.toast(res["why"], "warn")
+            return
         self.win.refresh()

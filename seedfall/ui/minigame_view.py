@@ -83,22 +83,9 @@ class DockingView(View):
         return p
 
     def _finish(self) -> None:
-        d = self.win.docking
-        res = mg.dock_result(d)
         g = self.game
-        sysm = g.system
-        if res["won"]:
-            bonus = res["grade"] * 2
-            g.adjust_rep(sysm.port.faction, bonus)
-            g.add_log(f"Clean approach at {d.port_name}; standing +{bonus}.", "good")
-        else:
-            fee = 900
-            g.credits = max(0.0, g.credits - fee)
-            g.adjust_rep(sysm.port.faction, -1)
-            g.add_log(f"Tugged in at {d.port_name}. {cr(fee)} for the service.",
-                      "warn")
+        res = mg.come_alongside(g, self.win.docking)
         self.win.docking = None
-        g.flags["docked_at"] = sysm.id
         self._customs(res["grade"] if res["won"] else 0.0)
         self.win.go("port")
 
