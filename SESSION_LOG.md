@@ -2,6 +2,34 @@
 
 Running progress log. Newest first.
 
+## 2026-07-27 — SEEDFALL: the helm, and two games inside the game
+
+- **The helm — in-system spaceflight.** A jump now drops you at the system edge
+  rather than alongside whatever you came to see. Bodies sit on real orbits with
+  Keplerian periods and keep moving while you fly, so the range to a target
+  depends on when you leave. Four burn profiles trade reaction mass against days,
+  each with its own risk of dust, debris, a radiator flutter or an attitude fault.
+  **Coasting is always free**, which is deliberate: without it an empty tank could
+  not reach the ice that would refill it, which would have re-introduced the
+  deadlock fixed the day before. Local work flies the ship alongside on the
+  standard profile, so nobody is forced through the helm to survey a rock.
+- **Docking, as the nervous-system study describes it.** Sense with the wet
+  organs, compute on the dry core, act with the muscles, hold homeostasis
+  meanwhile. Three axes drift; you correct one per pass; the readout is blurred
+  in proportion to how poor your sensors are and the correction is as precise as
+  your navigator and compute allow. A clean approach earns standing, a botched
+  one buys a tug.
+- **A decoding bench** for alien emissions: four positions, a hidden pattern, and
+  a response saying how many glyphs are exactly right and how many are present
+  but misplaced — never which. Worth real study points toward whichever
+  technology you are working on, and it costs nothing but attempts, so it is the
+  poor captain's route into xenotechnology.
+- **A real bug the playability suite caught**: a transit event where a Freehold
+  skiff sells you volatiles subtracted credits without checking you could afford
+  them, so a poor captain went into debt. You now buy what you can pay for and
+  the goods scale to match.
+- Suites: 27 simulation, 5 xenotech, 9 playability, 19 interface.
+
 ## 2026-07-27 — SEEDFALL: playability audit, then the ground game
 
 - **Playability audit first, and it found two showstoppers.** `exodus_launched`

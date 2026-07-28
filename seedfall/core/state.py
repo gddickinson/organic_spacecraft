@@ -48,6 +48,7 @@ class Game:
     credits: float = 18000
     stores: dict[str, float] = field(default_factory=dict)
     location_id: int = 0
+    orbit_body: str | None = None
     colonies: list = field(default_factory=list)
     building: list = field(default_factory=list)
     flags: dict = field(default_factory=dict)

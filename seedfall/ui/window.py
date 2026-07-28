@@ -19,6 +19,7 @@ from .widgets import (ALIGN_R, Bar, Pill, button, label, mono_label, spacer,
 NAV = [
     ("map", "✦  Sector"),
     ("system", "◉  System"),
+    ("helm", "◐  Helm"),
     ("port", "⌂  Port"),
     ("ship", "❖  Ship"),
     ("yard", "⚙  Shipyard"),
@@ -33,6 +34,9 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.game = game
         self.battle = None
+        self.docking = None
+        self.decoding = None
+        self.decoding_tech = None
         self._return_to = "system"
         self.setWindowTitle(f"{TITLE} — a GESTALT Programme Chronicle")
         self.resize(1360, 880)
@@ -174,6 +178,8 @@ class MainWindow(QMainWindow):
         from .battle_view import BattleView
         from .codex_view import CodexView
         from .expedition_view import ExpeditionView
+        from .helm_view import HelmView
+        from .minigame_view import DecodingView, DockingView
         from .empire_view import EmpireView
         from .map_view import MapView
         from .port_view import PortView
@@ -186,7 +192,8 @@ class MainWindow(QMainWindow):
             "map": MapView, "system": SystemView, "port": PortView,
             "ship": ShipView, "yard": YardView, "tech": TechView,
             "empire": EmpireView, "codex": CodexView, "battle": BattleView,
-            "ground": ExpeditionView,
+            "ground": ExpeditionView, "helm": HelmView,
+            "docking": DockingView, "decoding": DecodingView,
         }
         for vid, cls in classes.items():
             view = cls(self)
@@ -200,6 +207,14 @@ class MainWindow(QMainWindow):
         if self.battle is not None and not self.battle.over and view_id != "battle":
             self.toast("You are under fire. Finish the engagement first.", "warn")
             view_id = "battle"
+        elif self.docking is not None and not self.docking.over \
+                and view_id not in ("docking", "battle"):
+            self.toast("You are on final approach.", "warn")
+            view_id = "docking"
+        elif self.decoding is not None and not self.decoding.over \
+                and view_id not in ("decoding", "battle"):
+            self.toast("The bench is mid-exchange.", "warn")
+            view_id = "decoding"
         elif (getattr(self.game, "expedition", None) is not None
               and view_id not in ("ground", "battle")):
             self.toast("A party is on the ground. Bring them up first.", "warn")

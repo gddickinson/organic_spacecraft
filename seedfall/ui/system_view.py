@@ -46,8 +46,15 @@ class SystemView(View):
         self.row(self._body_list(), self._detail(), spacing=14)
 
         if sys.port:
-            self.buttons(button(f"Dock at {sys.port.name}",
-                                lambda: self.win.go("port"), kind="primary"))
+            self.buttons(
+                button(f"Fly the approach to {sys.port.name}", self._dock,
+                       kind="primary",
+                       tip="Line the hull up yourself. A clean approach earns "
+                           "standing; a botched one costs a tug fee."),
+                button("Let the harbourmaster bring you in",
+                       lambda: self.win.go("port"),
+                       tip="Skip the approach and dock directly."),
+                button("Helm", lambda: self.win.go("helm")))
 
     # ── the list ───────────────────────────────────────────────────────────
 
@@ -226,6 +233,11 @@ class SystemView(View):
                         [text, note(f"{len(res['found']['lifeforms'])} organism(s) "
                                     "catalogued.")], [("Surface", None)])
         self.win.refresh()
+
+    def _dock(self) -> None:
+        sysm = self.game.system
+        self.win.views["docking"].begin(sysm.port.name)
+        self.win.go("docking")
 
     def _land(self) -> None:
         from ..data.expedition import SUPPLY_LOADS

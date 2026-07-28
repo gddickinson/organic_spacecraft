@@ -19,6 +19,23 @@ from the Cell Atlas, and the reproduction-licence containment regime from the
 Fleet Registry. The other four technologies exist so that the grown fleet has
 something to be measured against.
 
+**Getting anywhere is a decision.** A jump drops you at the system edge, not
+alongside anything. Bodies sit on real orbits that keep moving while you fly, so
+the range to a target depends on when you leave. Four burn profiles trade
+reaction mass against days — and *coasting is always free*, which is what stops
+an empty tank from becoming a deadlock. Local work (survey, extract, dig, land)
+flies the ship alongside first, so a player who never opens the helm still gets a
+coherent transit; the helm is where you choose a better one.
+
+**Two mini-games.** The **docking approach** is the control loop from the
+nervous-system study — sense, compute, act, hold homeostasis — with three drifting
+axes, one correction per pass, and readings blurred by how good your sensors are.
+A clean approach earns standing; a botched one buys a tug. The **decoding bench**
+takes a recording of something that was not speaking to you: four positions, a
+hidden pattern, and feedback that tells you how many glyphs are exactly right and
+how many are merely present, never which. Solving one is worth alien
+understanding, and costs nothing but attempts.
+
 **There is a game on the ground.** Landing a party opens a 7×7 zone map revealed
 one tile at a time. Moving costs days of supply (known ground is cheap to
 re-cross, which is what makes coming home survivable); terrain springs hazards
@@ -112,6 +129,8 @@ seedfall/
 │   ├── contracts.py    generation, acceptance, progress, expiry
 │   ├── expedition.py   the ground game: zone map, movement, attempts, hauls
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
+│   ├── flight.py       the helm: orbits, transfer burns, in-system incidents
+│   ├── minigames.py    the docking control loop and the decoding bench
 │   └── actions.py      player actions spanning modules (jump/survey/mine/dive)
 ├── ui/                 PyQt6 presentation — never mutates state directly
 │   ├── theme.py        palette, fonts, the global stylesheet
@@ -129,6 +148,8 @@ seedfall/
 │   ├── codex_view.py   class reference, powers, glossary, about
 │   ├── xeno_view.py    the xenology desk (hosted as a Research tab)
 │   ├── expedition_view.py  the landing zone: fogged map, party, field log
+│   ├── helm_view.py    orbit chart and burn planner
+│   ├── minigame_view.py    docking approach and decoding bench
 │   └── battle_view.py  combat screen and post-engagement resolution
 └── tests/              python -m seedfall.tests
     ├── harness.py      a tiny check runner (no pytest dependency)

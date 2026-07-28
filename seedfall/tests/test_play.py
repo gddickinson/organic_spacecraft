@@ -223,6 +223,75 @@ def run(suite: Suite) -> None:
         assert g2.rep[late.issuer] < rep_before, "failing one cost no standing"
         return f"{len(board)} posted across {len(kinds)} kinds; pay and expiry both work"
 
+    @check("the helm moves the ship and never traps it")
+    def _():
+        from ..sim import flight
+        g = new_game("helm-test")
+        assert g.orbit_body is None, "a jump should arrive at the system edge"
+        body = g.system.bodies[0]
+        opts = flight.options(g, body)
+        assert len(opts) == len(flight.BURNS), "burn profiles missing"
+        assert any(o["fuel"] == 0 for o in opts), (
+            "no free profile — a captain with an empty tank could not reach the "
+            "ice that would refill it")
+        fast = next(o for o in opts if o["burn"].id == "hard")
+        slow = next(o for o in opts if o["burn"].id == "coast")
+        assert fast["days"] < slow["days"] and fast["fuel"] > slow["fuel"], (
+            "burn profiles do not trade time against reaction mass")
+
+        g.ship.cargo["volatiles"] = 200
+        before = g.day
+        res = flight.travel_to(g, 0, "standard")
+        assert res["ok"], res.get("why")
+        assert g.orbit_body == body.id, "the burn did not arrive"
+        assert g.day > before, "the transfer took no time"
+
+        # empty tank still gets there
+        g2 = new_game("helm-dry")
+        g2.ship.cargo = {}
+        r = flight.ensure_at(g2, 0)
+        assert r["ok"] and r["fuel"] == 0, "an empty ship cannot reach a body"
+
+        # bodies actually move
+        moved = abs(flight.separation(g.system.bodies[0], g.system.bodies[-1], 0)
+                    - flight.separation(g.system.bodies[0], g.system.bodies[-1], 900))
+        return (f"{len(opts)} profiles; orbits shift {moved:.2f} AU over 900 days")
+
+    @check("the mini-games are winnable and terminate")
+    def _():
+        from ..sim import minigames as mg
+        g = new_game("mini")
+
+        # Docking: play greedily toward zero and it should close.
+        wins = 0
+        for i in range(20):
+            d = mg.start_docking(RNG(f"dock-{i}"), "Test Port",
+                                 g.ship_stats, g.officers)
+            guard = 0
+            while not d.over and guard < 40:
+                guard += 1
+                axis = max(d.error, key=lambda a: abs(d.error[a]))
+                step = max(1, min(abs(d.error[axis]), d.precision * 4))
+                mg.correct(d, axis, step if d.error[axis] > 0 else -step,
+                           RNG(f"t-{i}-{guard}"))
+            assert d.over, "a docking approach never resolved"
+            wins += 1 if d.won else 0
+        assert wins > 0, "docking is unwinnable even played perfectly"
+
+        # Decoding: brute force must find it, and scoring must be sane.
+        solved = 0
+        for i in range(10):
+            d = mg.start_decoding(RNG(f"dec-{i}"), "Test", g.ship_stats, g.officers)
+            assert mg.score(d.secret, d.secret) == (mg.CODE_LENGTH, 0), \
+                "a perfect guess does not score as perfect"
+            guard = 0
+            while not d.over and guard < 40:
+                guard += 1
+                mg.guess(d, [(guard + k) % d.palette for k in range(mg.CODE_LENGTH)])
+            assert d.over, "a decoding bench never resolved"
+            solved += 1 if d.won else 0
+        return f"docking won {wins}/20 played well; decoding terminated 10/10"
+
     @check("a plain trading run stays solvent for five years")
     def _():
         results = []

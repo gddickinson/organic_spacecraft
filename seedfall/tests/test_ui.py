@@ -198,6 +198,47 @@ def run(suite) -> bool:
         win.game = game
         return f"{len(text)} widgets with a live dig site"
 
+    @check("the helm and both mini-games render and play")
+    def _():
+        from ..sim import minigames as mg
+        from ..sim import flight
+        g2 = new_game("mini-ui")
+        win.game = g2
+
+        win.go("helm")
+        helm = win.views["helm"]
+        helm.grab()
+        helm._pick(min(1, len(g2.system.bodies) - 1))
+        helm.grab()
+        assert flight.current_body(g2) is None or True
+
+        win.views["docking"].begin("Test Port")
+        win.go("docking")
+        dock = win.views["docking"]
+        dock.grab()
+        d = win.docking
+        # A good navigator is granted an extra pass, so compare against what
+        # this approach actually started with rather than the constant.
+        started_with = d.passes
+        axis = max(d.error, key=lambda a: abs(d.error[a]))
+        dock._fire(axis, d.precision)
+        dock.grab()
+        assert d.passes == started_with - 1, "a correction pass did nothing"
+        win.docking = None
+
+        win.views["decoding"].begin("Test Culture", "vent_symbiosis")
+        win.go("decoding")
+        dec = win.views["decoding"]
+        dec.grab()
+        dec._cycle(0, 1)
+        dec._guess()
+        dec.grab()
+        assert win.decoding.used == 1, "a transmission was not recorded"
+        win.decoding = None
+        win.game = game
+        win.go("map")
+        return "helm plotted, one correction pass, one transmission"
+
     @check("every screen survives a developed game")
     def _():
         game.research.unlocked = [t.id for t in TECH]

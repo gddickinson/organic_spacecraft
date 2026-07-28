@@ -93,9 +93,20 @@ def build_xeno(view: View) -> None:
                         f"Analyse {n} relic{'s' if n > 1 else ''}",
                         lambda _=False, tid=tech.id, k=n: _analyse(view, tid, k),
                         enabled=relics >= n))
+                rh.addWidget(button(
+                    "Decode a recording",
+                    lambda _=False, tid=tech.id, nm=culture.name:
+                        _decode(view, tid, nm),
+                    tip="Work the emission by hand. Free, and it can be worth "
+                        "more than a crate of relics."))
                 rh.addStretch(1)
                 panel.add(row)
         view.col.addWidget(panel)
+
+
+def _decode(view: View, tech_id: str, subject: str) -> None:
+    view.win.views["decoding"].begin(subject, tech_id)
+    view.win.go("decoding")
 
 
 def _analyse(view: View, tech_id: str, count: int) -> None:

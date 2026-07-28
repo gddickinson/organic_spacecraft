@@ -11,6 +11,7 @@ from ..data.xenotech import CULTURES_BY_ID, XENOTECH_BY_ID
 from . import research as research_sim
 from . import xeno as xeno_sim
 from .actions import jump_quote
+from . import flight
 from .crew import grant_xp
 from .ship import add_cargo, apply_damage, cargo_free
 
@@ -162,6 +163,7 @@ def launch_expedition(game, body_index: int, officer_ids: list[int],
                       load: int = 1) -> dict:
     """Put a landing party down. Costs biomass for supplies and time to descend."""
     from . import expedition as exp_sim
+    flight.ensure_at(game, body_index)
     body = game.system.bodies[body_index]
     from ..world.planets import BODY_KINDS
     if not BODY_KINDS[body.kind][2]:

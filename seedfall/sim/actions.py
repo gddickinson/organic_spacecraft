@@ -12,6 +12,7 @@ from .crew import grant_xp
 from .encounters import roll_encounter, roll_event
 from .ship import add_cargo, apply_damage, cargo_free, hull_pct
 from .threat import cleanse
+from . import flight
 
 
 def jump_quote(game, target) -> dict:
@@ -36,6 +37,7 @@ def jump_to(game, system_id: int) -> dict:
 
     add_cargo(game.ship, "volatiles", -q["fuel"])
     game.location_id = system_id
+    flight.arrive_in_system(game)
     game.advance_days(q["days"])
     if game.dead:
         return {"ok": True, "days": q["days"], "dead": True}
@@ -65,8 +67,17 @@ def jump_to(game, system_id: int) -> dict:
 def _apply_event(game, fx: dict) -> None:
     if not fx:
         return
-    if fx.get("credits"):
-        game.credits += fx["credits"]
+    # An event that charges you (the Freehold skiff with volatiles to sell)
+    # must not put the treasury underwater. You buy what you can pay for, and
+    # any goods that came with the offer scale down to match.
+    share = 1.0
+    cost = fx.get("credits", 0)
+    if cost < 0:
+        affordable = min(-cost, max(0.0, game.credits))
+        share = affordable / -cost if cost else 1.0
+        game.credits -= affordable
+    elif cost:
+        game.credits += cost
     if fx.get("research"):
         research_sim.grant(game.research, fx["research"])
     if fx.get("damage"):
@@ -77,7 +88,7 @@ def _apply_event(game, fx: dict) -> None:
         game.ship.morale = max(0.0, min(1.0, game.ship.morale + fx["morale"]))
     for cid, n in (fx.get("cargo") or {}).items():
         room = cargo_free(game.ship, game.ship_stats)
-        take = min(n, room)
+        take = min(n * share, room)
         if take > 0:
             add_cargo(game.ship, cid, take)
 
@@ -85,6 +96,8 @@ def _apply_event(game, fx: dict) -> None:
 # ── surveying ──────────────────────────────────────────────────────────────
 
 def survey(game, body_index: int) -> dict:
+    """Chart a body. The ship flies alongside first."""
+    flight.ensure_at(game, body_index)
     system = game.system
     body = system.bodies[body_index]
     r = game.rng("survey")
@@ -116,6 +129,7 @@ def survey(game, body_index: int) -> dict:
 
 def extract(game, body_index: int, days: int) -> dict:
     """Long-duration extraction at a body."""
+    flight.ensure_at(game, body_index)
     body = game.system.bodies[body_index]
     st = game.ship_stats
     if st.mine <= 0 and st.drink <= 0:
@@ -152,6 +166,7 @@ def extract(game, body_index: int, days: int) -> dict:
 
 def dive(game, body_index: int) -> dict:
     """NEREUS work: through the crust and into the ocean."""
+    flight.ensure_at(game, body_index)
     body = game.system.bodies[body_index]
     if not game.ship_stats.can_dive:
         return {"ok": False,
