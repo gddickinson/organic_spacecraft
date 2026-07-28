@@ -199,6 +199,47 @@ def run(suite: Suite) -> None:
         return (f"{taken.issuer} remembers finishing "
                 f"{taken.title[:34]!r} and thinks better of you for it")
 
+    @check("a speaker draws on its own kind of past")
+    def _():
+        """Found by playing a live window: the ship's computer said "before any
+        of this, *they* were refused a berth" — a captain's backstory, because
+        the caller could not say what kind of thing was speaking.
+        """
+        with _NoNetwork():
+            game = new_game("kinds")
+            wrong = []
+            for key, persona, kind, wants in (
+                    ("ship:a", "ship", "ship", "hull"),
+                    ("port:a", "harbourmaster", "port", "quay"),
+                    ("faction:charter", "envoy", "faction", "they"),
+                    ("officer:a", "officer", "officer", "they")):
+                mind = memory_sim.mind_for(game, key, name="X", kind=kind,
+                                           persona=persona)
+                priors = [m.text for m in mind.memories if m.source == "prior"]
+                assert priors, f"{kind} has no past at all"
+                if not any(wants in text for text in priors):
+                    wrong.append(f"{kind}: {priors[:1]}")
+            assert not wrong, f"speakers given the wrong kind of past: {wrong}"
+        return "ships, quays, powers and officers each remember their own kind"
+
+    @check("nobody says their own title twice")
+    def _():
+        # "Harbourmaster Vell, harbourmaster." A frame that prefixes a title
+        # onto a name that already carries it.
+        with _NoNetwork():
+            game = new_game("titles")
+            for persona in PERSONAS:
+                for mood in MOODS:
+                    said = voice_sim.speak(
+                        game, f"t:{persona.id}:{mood}",
+                        name=f"{persona.name} Vell", persona=persona.id,
+                        situation=mood)["line"].lower()
+                    head = said.split(".")[0]
+                    word = persona.name.split()[0].lower().rstrip("'s")
+                    assert head.count(word) <= 1, (
+                        f"{persona.id}/{mood} says {word!r} twice: {head!r}")
+        return f"{len(PERSONAS)} personas × {len(MOODS)} moods, no doubled titles"
+
     @check("the model switch is off unless it is deliberately turned on")
     def _():
         was = os.environ.get(llm.SWITCH)

@@ -461,3 +461,34 @@ def run(suite: Suite) -> None:
         assert 0 <= g.ship.morale <= 1, "morale left its range"
         infested = len([s for s in g.galaxy.systems if s.bloom > 0.02])
         return f"{g.day} days simulated, {infested} systems infested"
+
+    @check("the calendar stays whole, however it is advanced")
+    def _():
+        """Found by playing a running window: mining crashed the heading bar.
+
+        `advance_days` was annotated `n: int` and never coerced, so a
+        fractional transit left `game.day` a float — and `stardate` formats it
+        with `:03d`, which raises. Everything downstream assumes whole days
+        too: `day % 365`, contract deadlines, chart dates, the day a memory
+        was formed.
+        """
+        from ..core.util import stardate
+        game = new_game("calendar")
+        for step in (0.4, 0.4, 0.4, 2.5, 1, 0.1, 7.9):
+            game.advance_days(step)
+            assert isinstance(game.day, int), (
+                f"the calendar went {type(game.day).__name__} after +{step}")
+            stardate(game.day)          # must not raise
+
+        # The fractions are carried, not dropped: a hundred tenth-days is ten.
+        counter = new_game("carry")
+        before = counter.day
+        for _ in range(100):
+            counter.advance_days(0.1)
+        assert counter.day - before == 10, (
+            f"a hundred tenth-days advanced {counter.day - before}")
+
+        # And the display helper is never the thing that falls over.
+        assert stardate(12.7) == stardate(12)
+        return (f"day stays int through fractions; 100 × 0.1 day = "
+                f"{counter.day - before} days")

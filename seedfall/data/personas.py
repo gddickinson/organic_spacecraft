@@ -78,8 +78,9 @@ PERSONAS = [
         "Captain", ("Per the schedule.", "That's the form.",
                     "It's not personal."), 0.7,
         _frames(
-            greet=("{me}, harbourmaster. Berth's yours if the papers are. "
-                   "{fact}",
+            # Not "{me}, harbourmaster" — the name usually *is* the title, and
+            # it came out as "Harbourmaster Vell, harbourmaster."
+            greet=("{me}. Berth's yours if the papers are. {fact}",
                    "Welcome to the quay, Captain. {fact}"),
             warm=("Always a pleasure. {fact}",
                   "Your account's in good order. {fact}"),

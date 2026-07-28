@@ -5,6 +5,11 @@ Options::
     python -m seedfall                 # title screen
     python -m seedfall --new           # skip straight into a new chronicle
     python -m seedfall --seed verge-7  # a specific sector
+    python -m seedfall --bridge        # also open a control socket on loopback
+
+`--bridge` prints one line — ``BRIDGE {"host": ..., "port": ..., "token": ...}``
+— and then serves the running window over that socket, so a caller elsewhere on
+this machine can drive the game you are watching. See `bridge/attached.py`.
 """
 
 from __future__ import annotations

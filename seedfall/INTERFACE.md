@@ -385,6 +385,19 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   whose handler rebuilds the emitting widget goes through it. A rebuild that
   replaces a field the player is typing into must also restore focus and the
   cursor, or the field silently accepts one character and no more.
+- **`game.day` is a whole number, and `advance_days` is what keeps it one.**
+  Callers pass fractions — a short transit, a burn quoted to a tenth of a day —
+  and the clock used to take them, drifting `day` to a float. Everything
+  downstream assumes an integer: `day % 365`, contract deadlines, chart dates,
+  the day a memory formed. The heading bar crashed outright on the first
+  fractional day. The fraction is carried rather than dropped, with an epsilon,
+  because a hundred tenth-days sum to 9.999999999999998 and would lose a day
+  every ten.
+- **`--bridge` serves the window you are looking at.** `bridge/attached.py`
+  puts the protocol in front of a live `MainWindow` and marshals every command
+  onto the Qt thread before it touches the game — the socket runs on another
+  thread and the interface reads the `Game` from the main one, so anything else
+  is a data race. Loopback and token-gated like the headless bridge.
 - **`credits` is a builtin.** So is `id`, `type`, `input` and `format`. Calling
   one by mistake does not raise `NameError` — `credits(x)` calls the
   interpreter's easter-egg `_Printer` and fails two suites away as

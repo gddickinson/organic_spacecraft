@@ -2,6 +2,35 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: driving the real window, and the clock it broke
+
+- **Asked to play the game through its GUI as a watched systems test.** The
+  bridge existed but held its own headless game, which is useless for
+  watching. `bridge/attached.py` puts the same protocol in front of the
+  *running* `MainWindow`, with `python -m seedfall --bridge`, and adds the
+  verbs a watcher needs — `go`, `tab`, `screen`, `shot`.
+- **What makes it safe is marshalling.** The socket runs on its own thread and
+  the whole interface reads the `Game` from Qt's; mutating from one while the
+  other paints is a data race. Every command is posted to the Qt event loop
+  and the socket thread waits for the answer.
+- **The test found a live crash within four minutes.** Putting the rig on a
+  body killed the heading bar: `stardate` formats the day with `:03d`, and
+  `advance_days` — annotated `n: int` and never coercing — had let a
+  fractional transit turn `game.day` into a float. Everything downstream
+  assumes whole days. The clock now carries the fraction rather than dropping
+  it, with an epsilon, because a hundred tenth-days sum to 9.999999999999998
+  and would otherwise lose a day every ten.
+- **Two more, from reading what the game said aloud.** The ship's computer
+  reported "before any of this, *they* were refused a berth" — a captain's
+  backstory, because the bridge verb could not say what kind of thing was
+  speaking. And the harbourmaster introduced himself as "Harbourmaster Vell,
+  harbourmaster", a frame prefixing a title onto a name that already had one.
+  Both pinned: every speaker must draw on its own kind of past, and no persona
+  may say its own title twice in a greeting.
+- The rest of the tour was clean: twelve screens, every tab, survey, trade,
+  mine, jump, sixty days of clock, diplomacy, the 3D plans, and a voice.
+- Suites: 55 — 456 checks green. 238 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: the rest of the controls, and a second segfault
 
 - **Generalised last cycle's crash rather than waiting for the next one.** A

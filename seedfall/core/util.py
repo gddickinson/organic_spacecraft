@@ -32,6 +32,9 @@ def mass(tonnes: float) -> str:
 
 def stardate(day: int) -> str:
     """Days since epoch as an in-fiction stardate: ``Y3 D141``."""
+    # Coerced on the way in: a formatting helper is never the right place for
+    # the game to fall over, whatever it is handed.
+    day = int(day)
     return f"Y{day // 365 + 1} D{day % 365 + 1:03d}"
 
 

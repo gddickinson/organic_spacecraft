@@ -122,6 +122,9 @@ class Game:
     ending: str | None = None
     death_reason: str = ""
     rng_seed: int = 1
+    #: Sub-day remainder carried by `advance_days`, so the calendar stays
+    #: whole without losing the fractions callers pass.
+    _part_day: float = 0.0
 
     # Derived, never saved — recomputed by recompute() on load.
     bonuses: dict = field(default_factory=dict, compare=False,
@@ -181,11 +184,31 @@ class Game:
 
     # ── the clock ──────────────────────────────────────────────────────────
 
-    def advance_days(self, n: int) -> None:
-        """The only clock in the game."""
+    def advance_days(self, n: float) -> None:
+        """The only clock in the game, and the only place `day` is written.
+
+        Callers pass fractions — a short local transit, a burn quoted to a
+        tenth of a day — and `day` used to take them, drifting to a float.
+        Everything downstream assumes a whole number: `day % 365` for the
+        stardate, contract deadlines, chart dates, the day a memory was
+        formed. The display helper crashed outright on the first fractional
+        day (`format code 'd' for object of type 'float'`), which is how this
+        was found — by mining something in a running window.
+
+        The fraction is carried rather than dropped, so no time is lost or
+        invented over a long chronicle.
+        """
         if self.dead or self.victory:
             return
         r = self.rng("tick")
+        # The epsilon is not decoration: a hundred tenth-days sum to
+        # 9.999999999999998, so taking the whole part naively loses a day
+        # every ten. Over a chronicle of thousands of days that is a real
+        # drift in every deadline the game holds.
+        carried = self._part_day + float(n)
+        whole = int(carried + 1e-9)
+        self._part_day = max(0.0, carried - whole)
+        n = whole
         self.day += n
         st = self.ship_stats
 

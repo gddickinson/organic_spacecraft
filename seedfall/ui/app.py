@@ -45,6 +45,20 @@ def main(argv=None) -> int:
     win = MainWindow(game)
     win.show()
     QGuiApplication.processEvents()
+
+    if "--bridge" in args:
+        # A bridge over the *running* window, so somebody outside can drive
+        # what is on screen. Loopback only, token required, and every command
+        # is marshalled onto this thread before it touches the game.
+        import json
+        from ..bridge.attached import attach
+        port = 0
+        if "--port" in args:
+            spot = args.index("--port")
+            if spot + 1 < len(args):
+                port = int(args[spot + 1])
+        bridge = attach(win, port=port)
+        print("BRIDGE " + json.dumps(bridge.address()), flush=True)
     if fresh:
         opening_briefing(win)
         offer_tutorial(win)

@@ -27,8 +27,16 @@ class Client:
             return {"ok": False, "why": f"unreadable reply: {err}"}
 
     def close(self) -> None:
+        """Say goodbye and go. Deliberately does not wait for the answer.
+
+        `send` blocks on a reply, and on an attached bridge every command is
+        marshalled onto the Qt thread — so closing while the window is busy
+        left the caller waiting on a courtesy. Nothing depends on the reply.
+        """
         try:
-            self.send("bye")
+            self.stream.write(b'{"verb": "bye", "token": "'
+                              + self.token.encode() + b'"}\n')
+            self.stream.flush()
         except (OSError, ValueError):
             pass
         try:

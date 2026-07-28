@@ -205,9 +205,14 @@ def wait(game, days: float = 1) -> dict:
 
 @verb("speak", "Have somebody in the world say something, in their own voice.")
 def speak(game, key: str, persona: str = "plain", situation: str = "greet",
-          name: str = "", fact: str = "") -> dict:
+          name: str = "", fact: str = "", kind: str = "captain") -> dict:
+    """`kind` decides whose past they draw on — a ship is not a captain.
+
+    Without it every speaker got the captain's backstory, so the ship's own
+    computer said "before any of this, *they* were refused a berth".
+    """
     said = voice_sim.speak(game, key, persona=persona, situation=situation,
-                           name=name, fact=fact)
+                           name=name, fact=fact, kind=kind)
     return {"ok": True, **said}
 
 
