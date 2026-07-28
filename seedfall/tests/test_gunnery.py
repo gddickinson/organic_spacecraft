@@ -22,7 +22,7 @@ import statistics
 from ..core.rng import RNG
 from ..core.state import new_game
 from ..data.armaments import ARMAMENTS
-from ..sim import assessment, combat, encounters
+from ..sim import assessment, combat, damage, encounters
 from ..sim.ship import hull_pct
 from .harness import Suite
 
@@ -57,7 +57,7 @@ def run(suite: Suite) -> None:
             heavy.st = heavy.st.__class__(**{**heavy.st.__dict__,
                                              "armour": part.wpn.dmg * 50})
             before = hull_pct(heavy.ship)
-            landed = combat._apply_to_layers(battle, heavy, floor,
+            landed = damage._apply_to_layers(battle, heavy, floor,
                                              part.wpn.traits, rng)
             if landed <= 0 or hull_pct(heavy.ship) >= before:
                 swallowed.append(f"{part.name} (floor {floor:.2f})")

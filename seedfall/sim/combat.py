@@ -15,6 +15,9 @@ from dataclasses import dataclass, field
 from ..core.util import clamp
 from .battle_state import Battle, Side
 from . import doctrine
+from . import damage
+from .damage import _disable, _say, _who
+from . import firing
 from . import stations as st_mod
 from . import tactical as tac
 from .abilities import use_ability as _fire_ability
@@ -60,20 +63,6 @@ def start(player_ship, player_stats, enemy, *, bonuses=None, officers=(),
     return b
 
 
-def _say(b: Battle, text: str, kind: str = "") -> None:
-    b.log.append((b.turn, text, kind))
-    if len(b.log) > 220:
-        b.log.pop(0)
-
-
-def _who(b: Battle, s: Side) -> str:
-    if s is b.player:
-        return b.player.ship.name
-    if s is b.enemy:
-        return b.enemy_name
-    return getattr(s, "name", None) or s.ship.name
-
-
 # ── shooting ───────────────────────────────────────────────────────────────
 
 def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng,
@@ -85,7 +74,7 @@ def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng,
     # b.band; for a consort out on a flank it is emphatically not.
     band = tac.band_for(tac.separation(frm.body, to.body))
     pen = w.wpn.bears_at(band)
-    if pen > 0.6:
+    if pen > firing.CAN_FIRE:
         _say(b, f"{_who(b, frm)} cannot bring the {w.name} to bear at this range.", "dim")
         return
     in_arc, gap = st_mod.bears_on(frm, to, w)
@@ -141,7 +130,7 @@ def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng,
                 _say(b, f"The tissue shrugs off much of the {w.name} — it has "
                         f"seen this before.", "warn")
 
-    dealt = _apply_to_layers(b, to, dmg, w.wpn.traits, rng)
+    dealt = damage._apply_to_layers(b, to, dmg, w.wpn.traits, rng)
     if b.game is not None and b.enemy_faction == "bloom" and to is b.enemy:
         from . import bloom as bloom_sim
         bloom_sim.record_damage(b.game, w.family, dealt)
@@ -158,7 +147,7 @@ def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng,
     else:
         _say(b, f"{w.name} hits {_who(b, to)} for {round(dealt)}.",
              "good" if frm is b.player else "bad")
-    _apply_traits(b, frm, to, w, rng)
+    damage._apply_traits(b, frm, to, w, rng)
 
 
 def _salvo(b: Battle, frm: Side, to: Side, rng) -> None:
@@ -170,7 +159,8 @@ def _salvo(b: Battle, frm: Side, to: Side, rng) -> None:
     """
     band = tac.band_for(tac.separation(frm.body, to.body))
     bearing = [w for w in frm.st.weapons
-               if w.wpn.bears_at(band) <= 0.5 and st_mod.bears_on(frm, to, w)[0]]
+               if w.wpn.bears_at(band) <= firing.WORTH_FIRING
+               and st_mod.bears_on(frm, to, w)[0]]
     if not bearing:
         _say(b, f"{_who(b, frm)} has nothing that will bear at this range.", "dim")
         return
@@ -180,88 +170,6 @@ def _salvo(b: Battle, frm: Side, to: Side, rng) -> None:
         if is_destroyed(to.ship):
             break
         _fire(b, frm, to, w.id, rng)
-
-
-def _apply_to_layers(b: Battle, to: Side, dmg: float, traits, rng) -> float:
-    layers = to.ship.layers
-    idx = next((i for i, l in enumerate(layers) if l.hp > 0), -1)
-    if idx < 0:
-        return 0.0
-    if "pierce" in traits:
-        nxt = next((i for i, l in enumerate(layers) if i > idx and l.hp > 0), -1)
-        if nxt > 0:
-            idx = nxt
-
-    # The guard is an epsilon, not half a point of damage. At 0.5 it silently
-    # swallowed the armour floor above — `max(dmg * 0.15, dmg - armour)` is
-    # 0.45 for a three-damage weapon — so the Photic Flash Organ, which is the
-    # only armament a new captain starts with, dealt *exactly nothing* to any
-    # armoured hull while the log said "hits for 0" every turn. Measured over
-    # 360 engagements: every one ended on morale with both hulls at 100%.
-    # The loop still terminates: each pass either empties a layer or exhausts
-    # what is left.
-    left, total, first = dmg, 0.0, True
-    while left > 0.001 and idx < len(layers):
-        L = layers[idx]
-        if L.hp <= 0:
-            idx += 1
-            continue
-        mult = 2 if (first and "ablate" in traits) else 1
-        applied = min(L.hp, left * mult)
-        L.hp -= applied
-        total += applied / mult
-        left -= applied / mult
-        if L.hp <= 0:
-            _say(b, f"— {L.name} of {_who(b, to)} is gone.", "warn")
-            if L.critical:
-                _breach(b, to, rng)
-            if L.life:
-                _say(b, f"— {_who(b, to)} is on bottled air.", "warn")
-        first = False
-        idx += 1
-    return total
-
-
-def _breach(b: Battle, to: Side, rng) -> None:
-    lost = max(1, round(to.ship.crew * rng.float(0.04, 0.14) * (1 - to.st.crew_guard)))
-    to.ship.crew = max(0, to.ship.crew - lost)
-    to.resolve -= 18
-    to.ship.morale = max(0.0, to.ship.morale - 0.12)
-    _say(b, f"PRESSURE BREACH on {_who(b, to)} — {lost} lost to vacuum.", "bad")
-
-
-def _apply_traits(b: Battle, frm: Side, to: Side, w, rng) -> None:
-    t = w.wpn.traits
-    if "blind" in t:
-        to.blind = 2
-        _say(b, f"{_who(b, to)} is dazzled.", "dim")
-    if "grapple" in t:
-        to.grappled = 2
-        _say(b, f"Tendrils have hold of {_who(b, to)}.", "dim")
-    if "emp" in t:
-        to.ship.heat += 8
-        if rng.chance(0.35):
-            _disable(b, to, rng)
-    if "board" in t and rng.chance(0.42):
-        _disable(b, to, rng, "Spores have rooted in")
-    if "plunder" in t:
-        carried = [(cid, n) for cid, n in to.ship.cargo.items() if n > 0]
-        if carried:
-            cid, n = rng.pick(carried)
-            take = min(n, max(1, round(n * 0.3)))
-            add_cargo(to.ship, cid, -take)
-            add_cargo(frm.ship, cid, take)
-            _say(b, f"{round(take)} t of {cid} torn out of {_who(b, to)}'s hold.", "warn")
-
-
-def _disable(b: Battle, to: Side, rng, verb: str = "A surge knocks out") -> None:
-    live = [pid for pid in to.ship.fitted if pid not in to.ship.disabled and part(pid)]
-    if not live:
-        return
-    victim = rng.pick(live)
-    to.ship.disabled.append(victim)
-    to.st = stats(to.ship, b.bonuses, b.officers if to is b.player else ())
-    _say(b, f"{verb} {_who(b, to)}'s {part(victim).name}.", "warn")
 
 
 # ── abilities ──────────────────────────────────────────────────────────────
@@ -393,7 +301,7 @@ def _run_stations(b: Battle, rng) -> None:
             _salvo(b, b.player, b.enemy, rng)
         elif order.id == "aimed":
             usable = [w for w in b.player.st.weapons
-                      if w.wpn.bears_at(b.band) <= 0.5
+                      if w.wpn.bears_at(b.band) <= firing.WORTH_FIRING
                       and st_mod.bears_on(b.player, b.enemy, w)[0]]
             if usable:
                 best = max(usable, key=lambda w: w.wpn.dmg)
@@ -411,7 +319,7 @@ def _run_stations(b: Battle, rng) -> None:
             _salvo(b, b.player, b.enemy, rng)
         elif pick == "aimed":
             usable = [w for w in b.player.st.weapons
-                      if w.wpn.bears_at(b.band) <= 0.5
+                      if w.wpn.bears_at(b.band) <= firing.WORTH_FIRING
                       and st_mod.bears_on(b.player, b.enemy, w)[0]]
             if usable:
                 _fire(b, b.player, b.enemy,

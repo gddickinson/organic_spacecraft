@@ -15,7 +15,7 @@ def main(argv: list[str] | None = None) -> int:
                                        "assessment", "balance", "bloom", "reachable",
                                        "efficacy", "transit", "customs", "allegiance", "territory", "charts", "aftermath", "notes", "layers", "cargo", "freight", "workings", "burns", "bench", "works", "overtures", "seats", "founding", "attempts", "reach", "plans", "beginnings", "legacy",
            "instruments", "voices", "bridge", "manual", "tutorial",
-           "grudges", "gunnery", "surveys", "time", "anchorage", "traffic", "doctrine",
+           "grudges", "gunnery", "surveys", "time", "anchorage", "traffic", "doctrine", "firing",
            "chronicle", "dig",
                                        "resume", "verbs", "ui"]
     ok = True
@@ -318,6 +318,12 @@ def main(argv: list[str] | None = None) -> int:
         from . import test_doctrine
         suite = Suite("doctrine")
         test_doctrine.run(suite)
+        ok = suite.report() and ok
+
+    if "firing" in wanted:
+        from . import test_firing
+        suite = Suite("firing")
+        test_firing.run(suite)
         ok = suite.report() and ok
 
     if "manual" in wanted:

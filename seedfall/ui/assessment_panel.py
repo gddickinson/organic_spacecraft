@@ -49,18 +49,10 @@ def build(battle) -> Panel:
     p.add_row("Can you outrun them", "yes" if read["outrun"] else "no",
               "chloro" if read["outrun"] else "warn")
 
-    guns = read["mounts"]
-    p.add(spacer(4), mono_label("Your mounts"))
-    p.add_row("Bearing now", f"{len(guns['bearing'])} of {guns['total']}",
-              "chloro" if guns["bearing"] else "warn")
-    for part, gap in guns["off_arc"]:
-        p.add_row(part.name,
-                  f"{round(gap)}° outside its "
-                  f"{tac.arc_name(tac.arc_of(part)).lower()} arc", "warn")
-    for part in guns["out_of_range"]:
-        p.add_row(part.name,
-                  f"wants bands {part.wpn.bands[0]}–{part.wpn.bands[1]}, "
-                  f"this is {battle.band}", "osteo")
+    # The per-mount breakdown used to be repeated here. `ui/firing_panel.py`
+    # sits beside this one and says the same thing with the range band, the
+    # magazine and the enemy's arcs as well, so two panels disagreeing about
+    # the same guns is the only thing that could come of keeping both.
 
     if read["advice"]:
         p.add(spacer(4), mono_label("What to do about it"))

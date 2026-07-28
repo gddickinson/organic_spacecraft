@@ -2,6 +2,51 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: the plot finally shows what bears
+
+The other half of #56. The tactical plot drew range rings and two triangles,
+and never drew the one thing the whole geometry exists for.
+
+- **Everything was already modelled and none of it shown.** The arc, the
+  bearing, the range band, the magazine — all knowable before the turn, all
+  reaching the player only afterwards as a log line saying the shot they had
+  just spent a turn on did not happen.
+- **`sim/firing.py` answers per mount, first**: bears or not, and if not
+  exactly how far the bow must come round or how many bands to close. The plot
+  draws one wedge per *arc* — one per mount stacked five identical broadsides
+  on top of each other — lit when something in it bears, with the enemy's arcs
+  faint, because sitting in a forward arc is a decision.
+- **Three opinions about whether a gun can fire.** `combat._fire` refuses
+  above 0.6; every selector picks only 0.5; `assessment.mounts` called
+  anything above 0.5 out of range. **In practice the gap is empty** —
+  `bears_at` steps 0.22 a band, so the reachable penalties are 0, 0.22, 0.44,
+  0.66 and nothing lands between. A landmine, not a live bug, and saying
+  otherwise would have been a better story than the true one. Both constants
+  are named now, `assessment` delegates, and a check holds the gap shut.
+- **The fire buttons tested range and nothing else.** A mount sixty degrees
+  off the beam or with an empty magazine was offered, taken, and spent the
+  turn on a log line explaining why it had not fired.
+- **Two panels saying the same thing.** `assessment_panel` already listed
+  mounts and bearings; the new picture supersedes it with the band, the
+  magazine and the enemy's arcs, so the duplicate came out rather than being
+  left to disagree.
+- **Three of my own checks were wrong, in three different ways**, and only
+  trying to break them showed it:
+  - the closing-rate check excused `|rate| < 1` as agreement, which forgives
+    precisely the failure of always returning zero — and once fixed it failed
+    against the real code, because the rate is instantaneous and the hulls
+    steer before advancing. The honest fix was to test it against its own
+    definition and document what it is;
+  - the assessment check compared one band, where "bears" and "worth firing"
+    coincide, and passed with the two rules forked wide open. It sweeps every
+    band now, and the fit carries a `lixiviant` on purpose so a mount can be
+    in arc and genuinely unusable;
+  - the marginal-mount check asserted a state the game cannot reach, which is
+    how the landmine was discovered.
+- `combat.py` crossed 500 lines, so a hit and its narration moved to
+  `sim/damage.py`; the plot moved to `ui/tactical_plot.py`.
+- 505 checks green, every file under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: the seats you leave stop being stupid
 
 Task #56, the half about automatic piloting and battle systems. The gap turned

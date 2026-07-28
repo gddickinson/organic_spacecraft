@@ -56,6 +56,31 @@ an empty tank from becoming a deadlock. Local work (survey, extract, dig, land)
 flies the ship alongside first, so a player who never opens the helm still gets a
 coherent transit; the helm is where you choose a better one.
 
+**The plot shows what bears.** Everything needed to answer "can this mount
+shoot right now" was modelled — `tactical` knows the arc and the bearing,
+`Weapon.bears_at` knows the range band, `combat._fire` knows if the magazine
+is dry — and none of it was ever shown. It reached the player *after* the turn
+was spent, as a log line explaining that the shot had not happened. So a
+captain choosing between *come about* and *present the broadside* chose blind
+and was told afterwards which had been right.
+
+`sim/firing.py` answers per mount, before the turn: does it bear, is the range
+right, is there ammunition, and if not exactly how far the bow must come round
+or how many bands to close. The plot draws one wedge per arc, lit when
+something in it bears, and the enemy's arcs faintly — sitting in a forward arc
+is a decision. `closing_rate` is the other half of a static picture: a range
+with no sign of which way it is going. It is the *instantaneous* rate, what
+happens if neither hull turns, and is documented as such rather than dressed
+up as a forecast the simulation would not honour.
+
+Building it found the game holding **three** opinions on whether a gun can
+fire — `_fire` refuses above 0.6, every selector picks only 0.5, and
+`assessment` called anything above 0.5 unusable. In practice the gap is empty
+(`bears_at` steps 0.22 a band, so penalties are 0, 0.22, 0.44, 0.66), so this
+was a landmine rather than a live defect. `CAN_FIRE` and `WORTH_FIRING` name
+both, `assessment` delegates, and a check holds the gap shut so widening a
+weapon's bands has to be a decision.
+
 **The seats you leave now think.** You are one person on a bridge with three
 stations: you take one each turn and the officers hold the other two. What
 "hold" meant was literal — `order_id = side.helm_order or "hold"` — so an
@@ -353,6 +378,8 @@ seedfall/
 │   ├── anchorage.py    quays, hubs and holdings — places you can put in
 │   ├── traffic.py      other hulls: where they are and what they are doing
 │   ├── doctrine.py     the battle computer: what unattended seats decide
+│   ├── firing.py       which mounts bear, and what would fix the rest
+│   ├── damage.py       a hit: which layer takes it, what breaches, the words
 │   ├── lifespan.py     ageing, decline, and the end of a career
 │   ├── upkeep.py       what each lineage eats, and what going short costs
 │   ├── minigames.py    the docking control loop and the decoding bench
@@ -370,6 +397,8 @@ seedfall/
 │   ├── anchorage_panel.py where you can put in, and how to get back to it
 │   ├── traffic_panel.py   who else is out here, and which of them runs dark
 │   ├── doctrine_panel.py  what the seats you are not in intend this turn
+│   ├── firing_panel.py    mount by mount: ready, or exactly what is stopping it
+│   ├── tactical_plot.py   the engagement from above, arcs included
 │   ├── port_view.py    market, services, recruitment
 │   ├── ship_view.py    layer stack, fittings, crew, hold
 │   ├── yard_view.py    hull designer, build queue, fleet management

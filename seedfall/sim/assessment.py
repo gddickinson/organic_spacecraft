@@ -84,15 +84,24 @@ def weight(battle) -> dict:
 
 
 def mounts(battle) -> dict:
-    """Why your guns are or are not contributing."""
+    """Why your guns are or are not contributing.
+
+    Delegates to `sim/firing.solution`, which is the one place that decides.
+    This used to work it out again with its own threshold — 0.5 against the
+    0.6 `combat._fire` actually enforces — so a marginal mount fired when
+    ordered and was reported here as out of range.
+    """
+    from . import firing
+    by_id = {m.id: m for m in battle.player.st.weapons}
     bearing, off_arc, out_of_range = [], [], []
-    for part in battle.player.st.weapons:
-        in_arc, gap = st_mod.bears_on(battle.player, battle.enemy, part)
-        ranged = part.wpn.bears_at(battle.band) <= 0.5
-        if in_arc and ranged:
+    for shot in firing.solution(battle.player, battle.enemy, battle.band):
+        part = by_id.get(shot.mount_id)
+        if part is None:
+            continue
+        if shot.worth_it:
             bearing.append(part)
-        elif not in_arc:
-            off_arc.append((part, gap))
+        elif not shot.in_arc:
+            off_arc.append((part, shot.gap))
         else:
             out_of_range.append(part)
     return {"bearing": bearing, "off_arc": off_arc,

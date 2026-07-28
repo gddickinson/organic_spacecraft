@@ -20,6 +20,7 @@ from ..sim import stations as st_mod
 from ..sim import tactical as tac
 from ..sim import combat as combat_sim
 from ..sim import consorts as consort_sim
+from ..sim import firing
 from . import assessment_panel
 from ..data.consorts import ORDERS as CONSORT_ORDERS
 from ..data.consorts import ORDERS_BY_ID as CONSORT_ORDERS_BY_ID
@@ -60,8 +61,8 @@ class BattleView(View):
         hh.setContentsMargins(0, 0, 0, 0)
         hh.setSpacing(14)
         hh.addWidget(self._plot(b), 0)
+        hh.addWidget(self._firing(b), 1)
         hh.addWidget(assessment_panel.build(b), 1)
-        hh.addWidget(self._readout(b), 1)
         self.col.addWidget(holder)
         self.col.addWidget(self._band_track(b))
         if b.consorts:
@@ -77,7 +78,12 @@ class BattleView(View):
 
     # ── display ────────────────────────────────────────────────────────────
 
+    def _firing(self, b):
+        from .firing_panel import gunnery_picture
+        return gunnery_picture(self, b)
+
     def _plot(self, b) -> QWidget:
+        from .tactical_plot import TacticalPlot
         return TacticalPlot(b)
 
     def _band_track(self, b) -> QWidget:
@@ -143,7 +149,7 @@ class BattleView(View):
         for w in b.player.st.weapons:
             arc = tac.arc_of(w)
             bears, gap = st_mod.bears_on(b.player, b.enemy, w)
-            ranged = w.wpn.bears_at(b.band) <= 0.5
+            ranged = w.wpn.bears_at(b.band) <= firing.WORTH_FIRING
             if bears and ranged:
                 statusd, tint = "bears", "chloro"
             elif not bears:
@@ -199,12 +205,22 @@ class BattleView(View):
             fh.addWidget(note("No armament fitted. Charter doctrine, or an oversight "
                               "— either way you must outlast them, talk them down, "
                               "or run."))
+        # Enabled on the whole rule, not just the range. These buttons tested
+        # `bears_at` alone, so a mount sixty degrees off the beam or with an
+        # empty magazine was offered, taken, and spent the turn on a log line
+        # explaining why it had not fired.
+        picture = {x.mount_id: x for x in
+                   firing.solution(b.player, b.enemy, b.band)}
         for w in st.weapons:
-            pen = w.wpn.bears_at(b.band)
-            fh.addWidget(button(w.name + (" (long shot)" if pen > 0 else ""),
+            shot = picture.get(w.id)
+            live = shot.can_fire if shot else False
+            tag = ("" if not shot or shot.in_band
+                   else " (long shot)" if live else "")
+            fh.addWidget(button(w.name + tag,
                                 lambda _=False, wid=w.id: self._act(
                                     {"type": "fire", "weapon_id": wid}),
-                                tip=w.blurb, enabled=pen <= 0.6))
+                                tip=(shot.why if shot else w.blurb),
+                                enabled=live))
         fh.addStretch(1)
         p.add(fire_row)
 
@@ -360,84 +376,3 @@ class BattleView(View):
             lines.append("Word travels — "
                          + aftermath_sim.phrase_pleased(out["pleased"]) + ".")
         return lines
-
-
-class TacticalPlot(QWidget):
-    """The engagement from above: two hulls, their headings, and the arcs.
-
-    Range bands are drawn as rings around your ship so the abstract numbers the
-    weapons are specified in have somewhere to live on the picture.
-    """
-
-    SIZE = 380
-
-    def __init__(self, battle):
-        super().__init__()
-        self.b = battle
-        self.setFixedSize(self.SIZE, self.SIZE)
-        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-
-    def _scale(self):
-        span = max(tac.BAND_UNITS * 5.2, self.b.range_units * 2.3)
-        for consort in self.b.consorts:
-            if not consort.out:
-                span = max(span, tac.separation(self.b.player.body,
-                                                consort.body) * 2.4)
-        return (self.SIZE / 2 - 14) / (span / 2)
-
-    def _pt(self, body, origin, s) -> QPointF:
-        return QPointF(self.SIZE / 2 + (body.x - origin.x) * s,
-                       self.SIZE / 2 + (body.y - origin.y) * s)
-
-    def paintEvent(self, _ev):  # noqa: N802
-        b = self.b
-        p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        p.fillRect(self.rect(), QColor("#060f0d"))
-        s = self._scale()
-        mid = b.player.body
-
-        # range rings, one per band
-        for band in range(1, 5):
-            r = tac.BAND_UNITS * band * s
-            p.setPen(QPen(QColor(150, 196, 176, 34), 1))
-            p.setBrush(Qt.BrushStyle.NoBrush)
-            p.drawEllipse(QPointF(self.SIZE / 2, self.SIZE / 2), r, r)
-
-        for consort in b.consorts:
-            if consort.out:
-                continue
-            self._draw_ship(p, consort, mid, s, theme.tint("lumen"), True)
-        self._draw_ship(p, b.player, mid, s, theme.tint("chloro"), True)
-        self._draw_ship(p, b.enemy, mid, s, theme.tint("warn"), False)
-
-        # the line of sight, labelled with the range
-        a = self._pt(b.player.body, mid, s)
-        c = self._pt(b.enemy.body, mid, s)
-        p.setPen(QPen(QColor(150, 196, 176, 60), 1, Qt.PenStyle.DashLine))
-        p.drawLine(a, c)
-        p.setFont(QFont(theme.mono_family(), 8))
-        p.setPen(QColor(theme.INK3))
-        p.drawText(QRectF((a.x() + c.x()) / 2 - 40, (a.y() + c.y()) / 2 - 14, 80, 14),
-                   Qt.AlignmentFlag.AlignHCenter, f"{round(b.range_units)}")
-        p.end()
-
-    def _draw_ship(self, p, side, origin, s, colour, mine: bool) -> None:
-        pos = self._pt(side.body, origin, s)
-        rad = math.radians(side.body.heading)
-        nose = QPointF(pos.x() + math.sin(rad) * 13, pos.y() - math.cos(rad) * 13)
-        left = QPointF(pos.x() + math.sin(rad + 2.5) * 9,
-                       pos.y() - math.cos(rad + 2.5) * 9)
-        right = QPointF(pos.x() + math.sin(rad - 2.5) * 9,
-                        pos.y() - math.cos(rad - 2.5) * 9)
-        p.setPen(QPen(QColor(colour), 1.6))
-        p.setBrush(Qt.BrushStyle.NoBrush)
-        p.drawPolygon(QPolygonF([nose, left, right]))
-
-        if mine:
-            # sketch the forward arc so turning to bear is legible
-            p.setPen(QPen(QColor(colour).darker(160), 1, Qt.PenStyle.DotLine))
-            for sign in (1, -1):
-                edge = math.radians(side.body.heading + sign * 60)
-                p.drawLine(pos, QPointF(pos.x() + math.sin(edge) * 46,
-                                        pos.y() - math.cos(edge) * 46))
