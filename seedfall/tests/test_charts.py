@@ -41,6 +41,37 @@ def _all_charted(seed: str):
 def run(suite: Suite) -> None:
     check = suite.check
 
+    @check("a charted sector does not break the price register")
+    def _():
+        # A shipped crash, found by rendering the screens for the README.
+        # `chart.stamp()` wrote the completion day into `game.register`, which
+        # is the *price* register: `market.best_markets` walks every value in
+        # it and reads `.sell`, so charting anything and then opening a port
+        # raised AttributeError inside a Qt slot — where Qt swallows it and the
+        # panel simply fails to draw.
+        from ..sim import freight as freight_sim
+        from ..sim import market as market_sim
+
+        game = _all_charted("register")
+        for system in game.galaxy.systems:
+            if system.market:
+                market_sim.note_prices(game, system, 0, 0)
+        stray = {k: v for k, v in game.register.items()
+                 if not hasattr(v, "sell")}
+        assert not stray, (
+            f"the price register holds {len(stray)} thing(s) that are not "
+            f"quotes: {sorted(stray)[:4]}")
+
+        # And the paths that walk it still work with charts on the shelf.
+        rows = market_sim.best_markets(game, "ore", selling=True)
+        assert isinstance(rows, list)
+        port = next(s for s in game.galaxy.systems if s.port)
+        game.location_id = port.id
+        freight_sim.summary(game, port)
+        assert chart_sim.freshness(game, port) > 0
+        return (f"{len(game.register)} quotes and "
+                f"{len(game.charts_made)} chart dates, kept apart")
+
     @check("the buyers and the price list are coherent")
     def _():
         assert APPETITES, "nobody buys charts"
@@ -115,6 +146,8 @@ def run(suite: Suite) -> None:
         game = _all_charted("stale")
         system = game.galaxy.systems[0]
         buyer = chart_sim.best_buyer(game, system)[0]
+        # Deliberately written where chart dates *used* to live, so this also
+        # exercises the migration that lifts them out of the price register.
         game.register[f"chart:{system.id}"] = 0
 
         game.day = 0

@@ -83,6 +83,9 @@ class Game:
     #: What landing parties brought back that was not cargo.
     field_notes: list = field(default_factory=list)
     register: dict = field(default_factory=dict)
+    #: Day each system's chart was completed. Kept apart from
+    #: `register`, which holds price Quotes and nothing else.
+    charts_made: dict = field(default_factory=dict)
     commissions: list = field(default_factory=list)
     rumours: list = field(default_factory=list)
     charts: list = field(default_factory=list)

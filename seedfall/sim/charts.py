@@ -54,9 +54,23 @@ def _reach(game, system, faction: str | None) -> float:
     return min(distance(system, s) for s in theirs)
 
 
+def _made(game) -> dict:
+    """When each chart was finished. Created on first use for old saves."""
+    if getattr(game, "charts_made", None) is None:
+        game.charts_made = {}
+    # Chart dates used to live in `game.register`, which is the *price*
+    # register: `market.best_markets` walks every value in it and reads
+    # `.sell`, so an integer day in there crashed the port screen the moment
+    # you had charted anything. Migrate any old save on the way past.
+    stale = [k for k in list(game.register) if str(k).startswith("chart:")]
+    for key in stale:
+        game.charts_made[str(key).split(":", 1)[1]] = game.register.pop(key)
+    return game.charts_made
+
+
 def freshness(game, system) -> float:
     """A chart made long ago is worth less. The sector moves."""
-    made = game.register.get(f"chart:{system.id}")
+    made = _made(game).get(str(system.id))
     if made is None:
         return 1.0
     age = max(0, game.day - int(made))
@@ -125,9 +139,8 @@ def note(game, system) -> str:
 
 def stamp(game, system) -> None:
     """Record when this chart was completed, so it can go stale."""
-    key = f"chart:{system.id}"
-    if key not in game.register:
-        game.register[key] = game.day
+    made = _made(game)
+    made.setdefault(str(system.id), game.day)
 
 
 def buyer_line(faction: str | None) -> str:

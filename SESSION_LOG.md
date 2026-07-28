@@ -2,6 +2,30 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a README, and the crash it found
+
+- **Asked for a README with screenshots of every major feature.** Wrote
+  `seedfall/tests/capture.py`, which builds one developed chronicle — a
+  half-charted sector, colonies online, contracts in hand, a programme under
+  way, a party on the ground — and renders fourteen screens offscreen. The game
+  README is `seedfall/README.md`; the root programme README keeps its own shape
+  and links to it.
+- **Rendering them found a shipped crash.** `charts.stamp()` wrote each chart's
+  completion day into `game.register` — which is the *price* register.
+  `market.best_markets` walks every value in that dict and reads `.sell`, so
+  charting any system and then opening a port raised `AttributeError` from
+  inside a Qt slot, where Qt swallows the traceback and the freight desk simply
+  fails to draw. It had been there since the charts cycle.
+- **`test_verbs` never caught it** because its fixture does not survey a system
+  to completion, so no chart was ever stamped. Chart dates have their own field
+  now, with a migration for old saves, and a check asserts the price register
+  contains nothing but quotes.
+- **Worth naming: taking screenshots is a kind of play the suite was not
+  doing** — one long-lived save touching every screen in sequence, rather than
+  a fresh game per check. That is exactly the shape of state the collision
+  needed.
+- Suites: 44 — 356 checks green. 187 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: the odds on the ground
 
 - **The expedition screen said "(science, difficulty 3)" and stopped.**

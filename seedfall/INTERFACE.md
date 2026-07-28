@@ -249,7 +249,7 @@ seedfall/
     ├── test_customs.py 9 contraband checks — the premium, the search, heat
     ├── test_allegiance.py 8 checks — taking sides, and brokering out of it
     ├── test_territory.py 8 checks — annexation, levy, defiance, seizure
-    ├── test_charts.py  8 chart checks — contents, buyers, staleness, rate
+    ├── test_charts.py  9 chart checks — contents, buyers, staleness, rate
     ├── test_aftermath.py 7 checks — salvage, standing, and who is glad
     ├── test_notes.py   8 field-note checks — filed, counted, kept, reachable
     ├── test_layers.py  5 layer checks — no Qt below, no ledger above
@@ -263,6 +263,7 @@ seedfall/
     ├── test_seats.py   6 seat checks — what taking a station is worth
     ├── test_founding.py 5 checks — the seed dialog says what will grow
     ├── test_attempts.py 6 checks — the odds shown are the odds rolled
+    ├── capture.py      renders every screen offscreen, for the README
     ├── captain_bot.py  the long-game captain the playability checks fly
     ├── probes.py       the newer efficacy probes, split out of levers.py
     ├── test_dig.py     6 dig checks — strata, methods, banking, backfilling
@@ -524,6 +525,13 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **The price register holds price quotes and nothing else.** Chart completion
+  dates used to be stashed in `game.register` beside them, and
+  `market.best_markets` walks every value in it and reads `.sell` — so charting
+  anything and then opening a port raised `AttributeError` inside a Qt slot,
+  where Qt swallows it and the panel simply fails to draw. Chart dates live in
+  `game.charts_made` now, with a migration for old saves. Found by rendering
+  the screens for the README, which is a kind of play the suite was not doing.
 - **A ground option states its odds, its prize and its risk.** The screen
   listed "(science, difficulty 3)" and nothing else. Resolution is
   `1d6 + officer level >= difficulty + 2`, so that same string is a

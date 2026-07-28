@@ -368,6 +368,14 @@ The program lives or dies on not fooling itself. Three conventions enforce that:
 on these documents — a modern Starflight with a Civilization layer. It is a
 native desktop application in PyQt6: no browser, no server, no build step.
 
+![An engagement in SEEDFALL — the tactical plot, the read, and the layer stacks](assets/seedfall/10-battle.png)
+
+*Combat is positional: ships carry a heading and a speed on a real plane, every mount has a
+firing arc, and each turn you take one station personally while your officers hold the
+other two. The read panel is blunt — "Nothing bears. Your broadside mounts are 60° off."*
+
+**→ [The full game README, with screenshots of every major system](seedfall/README.md)**
+
 ```bash
 pip install PyQt6
 python3 -m seedfall               # title screen
@@ -387,7 +395,7 @@ with its Hayflick counter cut out. Nobody has told you what to do about it.
 | Metabolism | The economy. Phosphorus is 0.1% of chondrite and bone accepts no substitute, so it is the scarcest thing on the market; a hull digs ~18× its own mass in rock |
 | Cell Atlas | The fittings — mining roots, separation guts, intima blooms, radiator blooms, light-guides, torpor glands |
 | Nervous System | The cognition branch: a wet bioelectric net for homeostasis and a bought silicon core for arithmetic, because **nobody can grow a processor** |
-| Compendium | A 58-node research tree across ten branches, from mycelial matrix to parallel growth fronts |
+| Compendium | A 61-node research tree across ten branches, from mycelial matrix to parallel growth fronts, fed by evidence gathered in four different parts of the job |
 | Fleet Registry | The containment regime — reproduction licences, Hayflick counters, CHORUS consensus — and the six named ways it fails, one per faction |
 
 **Alien technology is found, not researched.** Four vanished or unreachable
@@ -410,13 +418,18 @@ keep paying for the ammunition. Five endings are open at once — **Containment*
 another.
 
 ```bash
-python3 -m seedfall.tests         # 21 simulation + 15 interface checks
+python3 -m seedfall.tests         # 44 suites, 355 checks
+python3 -m seedfall.tests.capture # re-render the README screenshots
 ```
 
-The interface suite builds the real window on Qt's offscreen platform and paints
-every screen, so the rules and the GUI are both covered without a display.
+The suite plays the game rather than inspecting it: it flies trading careers, works bodies
+to the bottom, fights engagements to a result, and clicks every control in the game on a
+fresh chronicle each time. The interface suite builds the real window on Qt's offscreen
+platform and paints every screen, so the rules and the GUI are both covered without a
+display. **186 modules, every one under 500 lines.**
 
-See [`seedfall/INTERFACE.md`](seedfall/INTERFACE.md) for the module map.
+See [`seedfall/README.md`](seedfall/README.md) for the illustrated tour and
+[`seedfall/INTERFACE.md`](seedfall/INTERFACE.md) for the module map.
 
 ---
 
