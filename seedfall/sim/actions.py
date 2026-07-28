@@ -8,6 +8,7 @@ from __future__ import annotations
 from ..world.galaxy import distance, transit_days
 from ..world.planets import extraction_rate, survey_body
 from . import research as research_sim
+from . import rumours as rumour_sim
 from .crew import grant_xp
 from .encounters import roll_encounter, roll_event
 from .ship import add_cargo, apply_damage, cargo_free, hull_pct
@@ -51,6 +52,8 @@ def jump_to(game, system_id: int) -> dict:
     game.add_log(f"Arrived at {target.name}"
                  + (" — first hull here to log it." if first else "."),
                  "good" if first else "")
+    for kind, text in rumour_sim.resolve(game, system_id):
+        game.add_log(text, kind)
 
     out = {"ok": True, "days": q["days"], "first": first,
            "event": None, "encounter": None}

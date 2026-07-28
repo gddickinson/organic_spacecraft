@@ -9,8 +9,11 @@ from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QFont, QPainter, QPen, QRadialGradient
 from PyQt6.QtWidgets import QSizePolicy, QWidget
 
+from ..core.util import credits as cr
 from ..core.util import duration, num
 from ..data.factions import FACTIONS_BY_ID
+from ..sim import intel as intel_sim
+from ..sim import rumours as rumour_sim
 from ..sim.actions import distress_call, is_stranded, jump_quote, jump_to
 from ..world.galaxy import distance
 from . import theme
@@ -104,9 +107,8 @@ class StarChart(QWidget):
     def _draw_system(self, p: QPainter, sys, here, reach) -> None:
         g = self.win.game
         pt = self._to_screen(sys)
-        known = (sys.visited
-                 or any(c.system_id == sys.id for c in g.colonies)
-                 or distance(sys, here) <= g.ship_stats.sensor)
+        rank = intel_sim.level(g, sys)
+        known = rank >= 1 or any(c.system_id == sys.id for c in g.colonies)
 
         if sys.bloom > 0.02:
             radius = 9 + sys.bloom * 24
@@ -118,14 +120,36 @@ class StarChart(QWidget):
             p.drawEllipse(pt, radius, radius)
 
         r = 2.6 + len(sys.bodies) * 0.3
-        if known:
+        # How well a system is known reads off the marker: an outline for a
+        # name in a registry, a filled disc once you have been, and a ring
+        # around anything charted to the last body.
+        if rank >= 2:
             p.setPen(Qt.PenStyle.NoPen)
             p.setBrush(QColor(sys.tint))
             p.drawEllipse(pt, r, r)
+        elif rank == 1:
+            faded = QColor(sys.tint)
+            faded.setAlpha(120)
+            p.setPen(QPen(QColor(150, 196, 176, 110), 1))
+            p.setBrush(faded)
+            p.drawEllipse(pt, r, r)
         else:
-            p.setPen(QPen(QColor(150, 196, 176, 90), 1))
+            p.setPen(QPen(QColor(150, 196, 176, 70), 1))
             p.setBrush(Qt.BrushStyle.NoBrush)
             p.drawEllipse(pt, r, r)
+
+        if rank >= 3:
+            p.setPen(QPen(QColor(theme.tint("chloro")), 1.0, Qt.PenStyle.DotLine))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawEllipse(pt, r + 5.5, r + 5.5)
+
+        # Anything anybody has told you about sits on the chart as a caret.
+        if rumour_sim.about(g, sys.id):
+            p.setPen(QPen(QColor(theme.tint("xeno")), 1.6))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            top = QPointF(pt.x(), pt.y() - r - 9)
+            p.drawLine(QPointF(top.x() - 4, top.y() + 5), top)
+            p.drawLine(top, QPointF(top.x() + 4, top.y() + 5))
 
         if sys.port and known:
             colour = QColor(FACTION_COLOUR.get(sys.faction, theme.INK3))
@@ -169,9 +193,15 @@ class MapView(View):
 
     def build(self) -> None:
         g = self.game
+        known = intel_sim.summary(g)
+        leads = rumour_sim.summary(g)
         self.head("Sector Chart",
-                  f"The Verge · {len(g.galaxy.systems)} catalogued stars · "
-                  f"{len(g.discovered['systems'])} visited")
+                  f"The Verge · {known['total']} stars · "
+                  f"{known['counts'][0]} names only · "
+                  f"{known['counts'][1]} scanned · "
+                  f"{known['counts'][2]} visited · "
+                  f"{known['charted']} charted"
+                  + (f" · {leads['held']} lead(s) to follow" if leads["held"] else ""))
 
         if self.selected is None:
             self.selected = g.location_id
@@ -183,7 +213,9 @@ class MapView(View):
 
         legend = " · ".join([
             "Charter", "Concordat", "Freeholds", "Dry Choir", "Bloom",
-            "○ unvisited", "◎ port", "dashed ring = jump range",
+            "○ catalogued", "◍ scanned", "● visited", "◌ charted",
+            "◎ port", "∧ something said about it",
+            "dashed ring = jump range",
         ])
         self.col.addWidget(note(legend))
         self.col.addWidget(self._info())
@@ -206,8 +238,24 @@ class MapView(View):
         if sys.bloom > 0.02:
             panel.add(label(f"Bloom mass: {round(sys.bloom * 100)}% of this system "
                             "converted.", "", "warn", wrap=True))
-        if not sys.visited:
-            panel.add(label("Never visited. The catalogue may be optimistic.", "dim"))
+        rank = intel_sim.level(g, sys)
+        name, tint = intel_sim.label(g, sys)
+        panel.add_row("Knowledge", name, tint)
+        panel.add(note(intel_sim.blurb(g, sys)))
+        if rank >= 1 and rank < 3:
+            done = intel_sim.survey_fraction(sys)
+            panel.add_row("Bodies surveyed",
+                          f"{round(done * len(sys.bodies))}/{len(sys.bodies)}")
+            panel.add_bar(done, "lumen")
+        if rank == 0:
+            price = intel_sim.chart_price(g, sys)
+            panel.add_buttons(button(f"Buy the chart — {cr(price)}",
+                                     lambda _=False, sid=sys.id: self._buy_chart(sid),
+                                     enabled=g.credits >= price))
+        for rumour in rumour_sim.about(g, sys.id):
+            kind = rumour.definition
+            panel.add(label(kind.name, "", kind.tint))
+            panel.add(note(kind.claim.format(system=sys.name)))
 
         panel.add(mono_label("Passage"))
         panel.add_row("Distance", f"{q['ly']:.1f} ly")
@@ -254,6 +302,13 @@ class MapView(View):
              "left twenty tonnes of reaction mass, and logged the whole thing."],
             [("Log it", None)])
         self.selected = self.game.location_id
+        self.win.refresh()
+
+    def _buy_chart(self, system_id: int) -> None:
+        res = intel_sim.buy_chart(self.game, self.game.galaxy.systems[system_id])
+        if not res.get("ok"):
+            self.win.toast(res["why"], "warn")
+            return
         self.win.refresh()
 
     def _jump(self) -> None:

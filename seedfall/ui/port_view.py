@@ -11,6 +11,9 @@ from ..data.factions import FACTIONS_BY_ID, standing
 from ..sim import chains as chain_sim
 from ..sim import loyalty as loyalty_sim
 from . import commissions_panel
+from . import rumours_panel
+from ..sim import intel as intel_sim
+from ..sim import rumours as rumour_sim
 from .berths_panel import BerthsMixin
 from ..sim.fieldwork import buy_field_notes, xeno_notes_price
 from ..sim import xeno as xeno_sim
@@ -181,6 +184,13 @@ class PortView(BerthsMixin, View):
                  if not c.accepted and c.deadline > g.day]
         g.boards[key] = board
 
+        rumours = rumours_panel.board(self, g, sysm)
+        if rumours is not None:
+            self.col.addWidget(rumours)
+        office = rumours_panel.surveys(self, g, sysm)
+        if office is not None:
+            self.col.addWidget(office)
+
         commissions = commissions_panel.held_panel(self, g)
         if commissions is not None:
             self.col.addWidget(commissions)
@@ -251,6 +261,29 @@ class PortView(BerthsMixin, View):
         self.win.refresh()
 
     # ── services ───────────────────────────────────────────────────────────
+
+    def take_rumour(self, rumour, paid: bool) -> None:
+        g = self.game
+        kind = rumour.definition
+        if paid:
+            if g.credits < kind.price:
+                self.win.toast("Not enough on hand for that.", "warn")
+                return
+            g.credits -= kind.price
+        elif g.rng(f"listen-{rumour.id}").chance(0.45):
+            self.win.toast("They stopped talking when you got close.", "warn")
+            return
+        rumour_sim.take(g, rumour, paid)
+        self.win.refresh()
+
+    def sell_survey(self, system_id: int) -> None:
+        g = self.game
+        res = intel_sim.sell_survey(g, g.galaxy.systems[system_id],
+                                    g.system.port.faction if g.system.port else None)
+        if not res.get("ok"):
+            self.win.toast(res["why"], "warn")
+            return
+        self.win.refresh()
 
     def _services(self, sys, fac, rep) -> None:
         g = self.game

@@ -10,7 +10,7 @@ from .harness import Suite
 def main(argv: list[str] | None = None) -> int:
     argv = argv if argv is not None else sys.argv[1:]
     wanted = [a for a in argv if not a.startswith("-")] or ["sim", "xeno", "play", "combat", "flight", "empire", "crew",
-                                       "missions", "ui"]
+                                       "missions", "explore", "ui"]
     ok = True
 
     if "sim" in wanted:
@@ -59,6 +59,12 @@ def main(argv: list[str] | None = None) -> int:
         from . import test_missions
         suite = Suite("missions")
         test_missions.run(suite)
+        ok &= suite.report()
+
+    if "explore" in wanted:
+        from . import test_explore
+        suite = Suite("exploration")
+        test_explore.run(suite)
         ok &= suite.report()
 
     if "ui" in wanted:

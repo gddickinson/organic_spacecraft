@@ -2,6 +2,42 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: knowing where you are going
+
+- **Discovery was one boolean.** A system was visited or it was not. It now
+  climbs four rungs — **Catalogued** (a name and a position the registry will
+  not stand behind), **Scanned** (read at range or bought as a chart),
+  **Visited**, and **Charted** (every body surveyed). The map draws all four
+  differently: an outline, a faded disc, a solid one, and a dotted ring around
+  anything complete.
+- **Charts can be bought, and surveys sold.** You can pay a broker for a scan
+  rather than flying out to make your own, and a *complete* survey — every body
+  in a system, not the interesting ones — sells once, to anybody. That is the
+  reason to go back to somewhere you have already been.
+- **Rumours point somewhere before you go.** Five kinds circulate at ports:
+  buried relics, rich seams, unlicensed growth, lost hulls, and systems people
+  are odd about. Pay to be told properly or just listen and risk them shutting
+  up. Arriving settles the story either way.
+- **A true rumour plants what it claims.** My first version tested the story
+  against whatever the galaxy had already generated, and measured 0% true on
+  the first three rolls — the conditions almost never held, which made the
+  whole feature worthless. A true rumour now buries the relic, seeds the
+  growth, enriches the seam. Measured over 90: 73% come good.
+- **That fix created a much worse bug, which I caught before it shipped.**
+  Planting inside the truth test meant `circulating()` mutated the sector — and
+  it runs every time the port desk is drawn. Merely *looking* at a noticeboard
+  seeded bloom and buried relics across the galaxy. Truth is now a pure dice
+  roll; the planting happens in `take()`, when you have committed. The
+  regression check runs thirty passes over the desk and demands the galaxy come
+  back identical.
+- **Two smaller things from the screenshots.** The map legend still described a
+  two-state world, and a port offered "Nobody goes there" three times running,
+  which reads like a broken generator rather than a rumour mill — one of each
+  kind per port now.
+- Suites: 27 simulation, 5 xenotech, 14 playability, 5 tactical, 5 flight,
+  6 empire, 7 crew, 7 missions, **8 exploration** (new), 23 interface — 107
+  checks green. 104 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: work that leads somewhere
 
 - **Contracts were a shopping list.** Independent jobs off a board — haul this,

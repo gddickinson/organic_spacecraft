@@ -60,6 +60,9 @@ class Game:
     expedition: object | None = None
     contracts: list = field(default_factory=list)
     commissions: list = field(default_factory=list)
+    rumours: list = field(default_factory=list)
+    charts: list = field(default_factory=list)
+    charts_sold: list = field(default_factory=list)
     boards: dict = field(default_factory=dict)
     diplomacy: object | None = None
     bloom_state: object | None = None

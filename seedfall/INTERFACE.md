@@ -166,6 +166,8 @@ seedfall/
 │   ├── expedition.py   the ground game: zone map, movement, attempts, hauls
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
 │   ├── chains.py       commissions: work that escalates and closes doors
+│   ├── intel.py        how well a system is known, and what a chart is worth
+│   ├── rumours.py      leads that point somewhere before you have been
 │   ├── consorts.py     escorts: standing orders, screening, who draws fire
 │   ├── loyalty.py      what the bridge thinks of how you run the ship
 │   ├── works.py        colony development: what a settlement becomes
@@ -202,6 +204,7 @@ seedfall/
     ├── test_empire.py  6 colony checks — works, effects, costs, persistence
     ├── test_crew.py    7 crew checks — convictions, loyalty, consequences
     ├── test_missions.py 7 commission checks — escalation, blocking, lapsing
+    ├── test_explore.py 8 exploration checks — the intel ladder, rumours
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
     └── test_ui.py      22 interface checks, rendered on Qt's offscreen platform
 ```
@@ -309,6 +312,15 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`shape()` takes its scale before it writes the title.** A stage that asked
   for half the usual tonnage used to be titled with the full figure and
   complete at the halved one — a posting nobody could plan a hold around.
+- **`rumours.circulating()` must stay pure.** It runs every time the port desk
+  is drawn. Deciding truth used to plant what the story claimed, which seeded
+  bloom and buried relics across the sector merely because somebody looked at a
+  noticeboard. Truth is now a dice roll at circulation; `plant()` runs in
+  `take()`, when you have actually committed to the lead.
+- **Intel levels are derived, never stored.** `intel.level()` reads
+  `body.surveyed`, `system.visited` and the bought-chart list, so nothing has
+  to be kept in step. Add a way to learn about a system and it belongs in that
+  function.
 - **Colony effects are a closed vocabulary.** `test_sim.py` asserts that every
   key in a `ColonyClass.effects` is one the game actually reads, so a typo in a
   station definition fails the suite instead of silently doing nothing.
@@ -334,6 +346,10 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   things that make one different from a posting: that stages escalate, that
   taking one is refused at its rival's own port, and that a missed deadline
   withdraws it permanently.
+- **`test_explore.py`** climbs the intel ladder rung by rung, checks a chart
+  cannot be bought twice or a survey sold twice, and — the important one —
+  proves that thirty passes over the rumour desk leave the galaxy byte for byte
+  unchanged.
 - **`test_flight.py`** holds the helm to its promises: that a seed grows one
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that
