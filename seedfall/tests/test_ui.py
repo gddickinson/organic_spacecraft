@@ -144,6 +144,60 @@ def run(suite) -> bool:
         win.go("map")
         return f"turn {turn0} → {b.turn}, {len(b.log)} log lines"
 
+    @check("the xenology desk renders at every stage of discovery")
+    def _():
+        from ..sim import xeno as xeno_sim
+        from ..data.xenotech import XENOTECH
+        view = win.views["tech"]
+        stages = []
+
+        # nothing found yet
+        bare = new_game("xeno-ui")
+        win.game = bare
+        win.go("tech")
+        view.branch = "xeno"
+        view.refresh(); view.grab()
+        stages.append("undiscovered")
+
+        # partly studied, one incorporated, one blocked on a prerequisite
+        xeno_sim.add_study(bare, XENOTECH[0].id, XENOTECH[0].study * 0.4)
+        xeno_sim.incorporate(bare, XENOTECH[3].id)
+        deep = next(x for x in XENOTECH if x.requires)
+        xeno_sim.add_study(bare, deep.id, deep.study * 0.9)
+        bare.ship.cargo["xenolith"] = 5
+        bare.recompute()
+        view.refresh(); view.grab()
+        stages.append("part-studied")
+
+        # everything incorporated
+        for x in XENOTECH:
+            xeno_sim.incorporate(bare, x.id)
+        bare.recompute()
+        view.refresh(); view.grab()
+        stages.append("complete")
+
+        win.game = game
+        return " → ".join(stages)
+
+    @check("a relic site shows up in the system view")
+    def _():
+        g2 = new_game("relic-ui")
+        site = next(((s, i) for s in g2.galaxy.systems
+                     for i, b in enumerate(s.bodies) if b.relic), None)
+        assert site, "no relic site to render"
+        sysm, idx = site
+        g2.location_id = sysm.id
+        sysm.bodies[idx].surveyed = True
+        sysm.bodies[idx].relic_found = True
+        win.game = g2
+        view = win.views["system"]
+        win.go("system")
+        view._select(idx)
+        view.grab()
+        text = view._inner.findChildren(object)
+        win.game = game
+        return f"{len(text)} widgets with a live dig site"
+
     @check("every screen survives a developed game")
     def _():
         game.research.unlocked = [t.id for t in TECH]

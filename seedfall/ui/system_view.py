@@ -8,7 +8,9 @@ from PyQt6.QtWidgets import QVBoxLayout, QWidget
 from ..core.util import cost_line, duration, num, pct
 from ..data.factions import FACTIONS_BY_ID
 from ..sim import colony as colony_sim
-from ..sim.actions import burn_bloom, dive, extract, survey
+from ..sim.actions import burn_bloom, dive, excavate, extract, survey
+from ..sim import xeno as xeno_sim
+from ..data.xenotech import CULTURES_BY_ID, XENOTECH_BY_ID
 from ..world.planets import BODY_KINDS
 from ..data.lifeforms import biome_name
 from .widgets import (Bar, Card, Panel, Pill, View, button, label, mono_label,
@@ -128,6 +130,22 @@ class SystemView(View):
                 panel.add(spacer(4))
                 panel.add(label(b.anomaly.name, "h3", b.anomaly.tint))
                 panel.add(label(b.anomaly.text, "", wrap=True))
+
+            if b.relic and b.relic_found:
+                tech = XENOTECH_BY_ID[b.relic]
+                culture = CULTURES_BY_ID[tech.culture]
+                panel.add(spacer(4))
+                panel.add(label(f"{culture.name} site", "h3", culture.tint))
+                panel.add(label(tech.blurb, "", wrap=True))
+                pr = xeno_sim.progress(g, tech.id)
+                if xeno_sim.is_incorporated(g, tech.id):
+                    panel.add(Pill("incorporated", "chloro"))
+                else:
+                    panel.add(note(f"{tech.name} — {pct(pr)} understood"))
+                    panel.add_bar(pr, culture.tint)
+                if b.digs:
+                    panel.add(note(f"Worked {b.digs} time(s); the easy material "
+                                   "is gone."))
         else:
             panel.add(note("Nothing is known about this body beyond its orbit and "
                            "mass. A survey would take a few days."))
@@ -140,6 +158,9 @@ class SystemView(View):
             button("Extract · 90 d", lambda: self._extract(90)) if can_extract else None,
             button("Dive the ocean", self._dive)
             if (b.biome == "subsurface" and st.can_dive) else None,
+            button("Excavate the site", self._excavate)
+            if (b.relic and b.relic_found
+                and not xeno_sim.is_incorporated(g, b.relic)) else None,
             button("Plant a seed", self._colonise),
         )
         return panel
@@ -156,6 +177,12 @@ class SystemView(View):
             lines.append(f"{lf.name} — {lf.metabolism_name}; {lf.behaviour}.")
         if res["anomaly"]:
             lines.append(f"{res['anomaly'].name}: {res['anomaly'].text}")
+        if res.get("relic"):
+            tech = XENOTECH_BY_ID[res["relic"]]
+            culture = CULTURES_BY_ID[tech.culture]
+            lines.append(f"A {culture.name} site, buried and largely intact. "
+                         f"The work appears to be {tech.name}. It can be "
+                         "excavated.")
         if res["data"]:
             lines.append(note(f"{res['data']} data set(s) stowed — the factions buy "
                               "these."))
@@ -195,6 +222,30 @@ class SystemView(View):
         self.win.dialog("Contact" if res["contact"] else "The ocean",
                         [text, note(f"{len(res['found']['lifeforms'])} organism(s) "
                                     "catalogued.")], [("Surface", None)])
+        self.win.refresh()
+
+    def _excavate(self) -> None:
+        res = excavate(self.game, self.selected)
+        if not res.get("ok"):
+            self.win.toast(res["why"], "warn")
+            return
+        if self.win.check_ending():
+            return
+        tech = res["tech"]
+        lines = [f"{res['days']} days in the trench. {round(res['points'])} points "
+                 f"of understanding toward {tech.name}."]
+        if res["lab"]:
+            lines.append(note("A laboratory on hand made the difference."))
+        if res["relics"]:
+            lines.append(note(f"{res['relics']} relic(s) crated and stowed."))
+        if res["mishap"]:
+            lines.append(note(res["mishap"]))
+        if res["exhausted"]:
+            lines.append(note("The site is close to worked out."))
+        if res["incorporated"]:
+            lines.append(f"{tech.name} is now yours. {tech.grants}")
+        self.win.dialog("Excavation" + (" — incorporated" if res["incorporated"]
+                                        else ""), lines, [("Log it", None)])
         self.win.refresh()
 
     def _cleanse(self) -> None:

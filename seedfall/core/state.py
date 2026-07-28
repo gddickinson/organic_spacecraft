@@ -15,6 +15,7 @@ from ..sim import crew as crew_sim
 from ..sim import research as research_sim
 from ..sim import shipyard as shipyard_sim
 from ..sim import threat as threat_sim
+from ..sim import xeno as xeno_sim
 from ..sim.ship import (Ship, build_layers, is_breached, make_ship, repair_tick,
                         stats)
 from ..world.economy import tick_market
@@ -51,6 +52,7 @@ class Game:
     flags: dict = field(default_factory=dict)
     log: list = field(default_factory=list)
     discovered: dict = field(default_factory=dict)
+    xeno_study: dict[str, float] = field(default_factory=dict)
     bloom_clock: float = 0.0
     bloom_total: float = 0.0
     victory: str | None = None
@@ -95,6 +97,9 @@ class Game:
     def recompute(self):
         """Recompute derived values after any change to ship, crew or research."""
         self.bonuses = bonuses(self.research.unlocked)
+        # Alien work you have incorporated counts alongside your own research.
+        for key, value in xeno_sim.bonuses(self).items():
+            self.bonuses[key] = self.bonuses.get(key, 0.0) + value
         self.colony_fx = colony_sim.effects(self)
         self.ship_stats = stats(self.ship, self.bonuses, self.officers)
         self.ship_stats.diplomacy += self.colony_fx.get("diplomacy", 0)
@@ -168,6 +173,11 @@ class Game:
 
         crew_sim.morale_tick(self.ship, n, paid, is_breached(self.ship), st.morale)
         crew_sim.grant_xp(self.officers, "*", n * 1.5)
+
+        # Notes banked against a technology whose prerequisites have since been
+        # met can finally be made sense of.
+        for tech in xeno_sim.settle(self):
+            self.add_log(f"Xenotechnology incorporated: {tech.name}.", "good")
 
         for kind, text in threat_sim.tick(self, n, r):
             self.add_log(text, kind)

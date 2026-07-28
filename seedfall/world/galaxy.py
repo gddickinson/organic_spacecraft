@@ -13,6 +13,7 @@ from ..core.save import register
 from ..core.rng import RNG
 from ..data.factions import FACTIONS
 from ..data.lore import STAR_PREFIX, STAR_SUFFIX
+from ..data.xenotech import CULTURES, XENOTECH, by_culture
 from .economy import Market, make_market
 from .planets import Body, make_body
 
@@ -169,6 +170,7 @@ def generate_sector(seed_str: str, count: int = 42) -> Galaxy:
         systems.append(System(i, name, p["x"], p["y"], sc[0], sc[1], sc[3], sc[2], bodies))
 
     _assign_ports(rng, systems, owners)
+    _seed_relics(rng, systems)
     _seed_bloom(rng, systems)
     return Galaxy(seed_str, systems)
 
@@ -198,6 +200,29 @@ def _assign_ports(rng, systems, owners) -> None:
             s.faction = s.faction or "freeholds"
         if s.port:
             s.market = make_market(rng, s)
+
+
+def _seed_relics(rng, systems) -> None:
+    """Scatter alien sites.
+
+    Every technology gets at least one site so no chronicle is unwinnable, and
+    the commoner ones get two. Sites land on body kinds that suit the culture —
+    the Abyssals are under ice, the Ossuary is buried in rock.
+    """
+    for tech in XENOTECH:
+        culture = next((c for c in CULTURES if c.id == tech.culture), None)
+        if culture is None:
+            continue
+        candidates = [(s, b) for s in systems for b in s.bodies
+                      if b.kind in culture.sites and b.relic is None]
+        if not candidates:
+            candidates = [(s, b) for s in systems for b in s.bodies if b.relic is None]
+        if not candidates:
+            return
+        # The deepest technologies are rarer; the entry-level ones turn up twice.
+        wanted = 1 if tech.requires else 2
+        for _sys, body in rng.sample(candidates, min(wanted, len(candidates))):
+            body.relic = tech.id
 
 
 def _seed_bloom(rng, systems) -> None:

@@ -9,13 +9,19 @@ from .harness import Suite
 
 def main(argv: list[str] | None = None) -> int:
     argv = argv if argv is not None else sys.argv[1:]
-    wanted = [a for a in argv if not a.startswith("-")] or ["sim", "ui"]
+    wanted = [a for a in argv if not a.startswith("-")] or ["sim", "xeno", "ui"]
     ok = True
 
     if "sim" in wanted:
         from . import test_sim
         suite = Suite("simulation")
         test_sim.run(suite)
+        ok &= suite.report()
+
+    if "xeno" in wanted:
+        from . import test_xeno
+        suite = Suite("xenotech")
+        test_xeno.run(suite)
         ok &= suite.report()
 
     if "ui" in wanted:

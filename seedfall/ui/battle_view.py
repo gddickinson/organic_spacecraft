@@ -13,6 +13,7 @@ from ..data.factions import FACTIONS_BY_ID
 from ..data.part_types import BANDS
 from ..sim import combat as combat_sim
 from ..sim import research as research_sim
+from ..sim.actions import seize_notes
 from ..sim.ship import add_cargo, cargo_free, hull_pct
 from . import theme
 from .widgets import (Bar, Panel, Pill, View, button, label, mono_label, note,
@@ -213,6 +214,13 @@ class BattleView(View):
                     add_cargo(g.ship, cid, take)
                     room -= take
                     lines.append(f"{round(take)} t of {cid} pulled out of the wreck.")
+            seized = seize_notes(g, fid, g.rng("seize")) if fid else None
+            if seized:
+                lines.append(f"Their xenology files came out intact: "
+                             f"{round(seized['points'])} points toward "
+                             f"{seized['tech'].name}.")
+                if seized["incorporated"]:
+                    lines.append(f"{seized['tech'].name} is now yours.")
             if fid and fid != "bloom":
                 g.adjust_rep(fid, -14)
                 lines.append(f"{FACTIONS_BY_ID[fid].short} standing has fallen.")

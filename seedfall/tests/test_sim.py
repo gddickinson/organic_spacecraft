@@ -15,6 +15,7 @@ from ..data.hull_types import BUILD_NEED, LAYER_SETS, NO_REGEN
 from ..data import parts as parts_data
 from ..data import tech as tech_data
 from ..data.colonies import COLONIES
+from ..data.xenotech import XENOTECH
 from ..sim import colony as colony_sim
 from ..sim import combat, encounters, shipyard, threat
 from ..sim import actions
@@ -80,13 +81,15 @@ def run(suite: Suite) -> None:
         for t in tech_data.TECH:
             for r in t.reqs:
                 assert r in ids, f"{t.id} requires missing {r}"
+        # A part or hull may be gated on research OR on incorporated alien work.
+        gates = ids | {x.id for x in XENOTECH}
         for c in chassis_data.CHASSIS:
-            assert not c.tech or c.tech in ids, f"chassis {c.id} → {c.tech}"
+            assert not c.tech or c.tech in gates, f"chassis {c.id} → {c.tech}"
         for p in parts_data.PARTS:
-            assert not p.tech or p.tech in ids, f"part {p.id} → {p.tech}"
+            assert not p.tech or p.tech in gates, f"part {p.id} → {p.tech}"
         for c in COLONIES:
             assert not c.tech or c.tech in ids, f"colony {c.id} → {c.tech}"
-        return f"{len(tech_data.TECH)} techs all reachable"
+        return f"{len(tech_data.TECH)} techs reachable, {len(gates)} total gates"
 
     @check("no sector strands the player at start")
     def _():

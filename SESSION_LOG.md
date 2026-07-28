@@ -2,6 +2,34 @@
 
 Running progress log. Newest first.
 
+## 2026-07-27 — SEEDFALL: alien technology as its own progression
+
+- **Four alien cultures, twelve technologies, found rather than researched.** The
+  Abyssals (still living, under the ice), the Ossuary (a lineage that spent its
+  last centuries preparing to be found), the Weft (matter worked at nanometre
+  pitch, no bodies and no writing) and the Tessellate (crystalline, and fond of
+  standing waves that do not decay). Their remains are seeded as buried sites on
+  body kinds that suit them, and every technology is guaranteed at least one site
+  so no chronicle is unwinnable.
+- **Discover, trade, steal, incorporate** — all four verbs the brief asked for.
+  Understanding accrues in study points from excavating a site (which wears out
+  as you return to it), analysing relics in a polyp lab, buying field notes at a
+  port (the Dry Choir has the best and knows it), or seizing them off a hull you
+  destroy. At full understanding the technology is *incorporated*: its id joins
+  `research.unlocked`, unlocking one of twelve new parts — most of them family
+  `any`, because the point of alien work is bolting it to the hull you already
+  fly. Study banked past a prerequisite is kept and settles later.
+- **A xenology desk** on the Research screen shows each culture, what has been
+  recovered, what remains "an unrecovered technology", and the analyse controls.
+- **Three UI bugs fixed on the way, two of them long-standing.** A dozen research
+  tabs forced a minimum width wider than the view, clipping everything beside it
+  — tabs now wrap onto fixed rows. The card grid sized columns to content, so the
+  third column of the research tree, the codex and the hull picker was cut off —
+  columns now share the width equally. And an over-clever height-for-width flow
+  layout, tried first, collapsed the whole column inside the scroll area; it was
+  replaced with something deterministic, which is the lesson.
+- Suites split and grown: 27 simulation, 5 xenotech, 17 interface.
+
 ## 2026-07-27 — SEEDFALL: five technologies, not one
 
 - **Hull roster 21 → 35, stations 12 → 19**, across five technology families

@@ -6,8 +6,8 @@ from __future__ import annotations
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QPainter, QPainterPath
 from PyQt6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel,
-                             QPushButton, QScrollArea, QSizePolicy, QVBoxLayout,
-                             QWidget)
+                             QPushButton, QScrollArea, QSizePolicy,
+                             QVBoxLayout, QWidget)
 
 from . import theme
 
@@ -215,23 +215,41 @@ class Card(QFrame):
 
 
 class TabBar(QWidget):
-    """A row of exclusive tab buttons."""
+    """Exclusive tab buttons, wrapped onto fixed rows.
+
+    A dozen tabs in one row forces a minimum width wider than the view, which
+    clips everything beside it. Wrapping is done by chunking into explicit rows
+    rather than by a height-for-width layout: inside a scroll area the latter
+    negotiates badly and collapses the column it sits above.
+    """
 
     changed = pyqtSignal(str)
+    PER_ROW = 7
 
-    def __init__(self, tabs: list[tuple[str, str]], current: str | None = None):
+    def __init__(self, tabs: list[tuple[str, str]], current: str | None = None,
+                 per_row: int | None = None):
         super().__init__()
-        h = QHBoxLayout(self)
-        h.setContentsMargins(0, 0, 0, 6)
-        h.setSpacing(2)
+        per_row = per_row or self.PER_ROW
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 6)
+        outer.setSpacing(2)
         self.buttons: dict[str, QPushButton] = {}
-        for tid, text in tabs:
-            b = button(text, kind="tab")
-            b.setCheckable(True)
-            b.clicked.connect(lambda _=False, t=tid: self.select(t))
-            self.buttons[tid] = b
-            h.addWidget(b)
-        h.addStretch(1)
+
+        for start in range(0, len(tabs), per_row):
+            row = QWidget()
+            h = QHBoxLayout(row)
+            h.setContentsMargins(0, 0, 0, 0)
+            h.setSpacing(2)
+            for tid, text in tabs[start:start + per_row]:
+                b = button(text, kind="tab")
+                b.setCheckable(True)
+                b.clicked.connect(lambda _=False, t=tid: self.select(t))
+                self.buttons[tid] = b
+                h.addWidget(b)
+            h.addStretch(1)
+            outer.addWidget(row)
+
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self.current = current or tabs[0][0]
         self.buttons[self.current].setChecked(True)
 
@@ -316,6 +334,12 @@ class View(QScrollArea):
         g.setContentsMargins(0, 0, 0, 0)
         g.setSpacing(spacing)
         for i, item in enumerate(widgets):
+            # Cards hold wrapped text, so let them shrink rather than demand
+            # their natural width — otherwise the last column is clipped off.
+            item.setSizePolicy(QSizePolicy.Policy.Ignored,
+                               QSizePolicy.Policy.MinimumExpanding)
             g.addWidget(item, i // cols, i % cols)
+        for c in range(cols):
+            g.setColumnStretch(c, 1)      # equal columns, sharing the width
         self.col.addWidget(w)
         return w

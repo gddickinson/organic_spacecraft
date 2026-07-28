@@ -19,6 +19,16 @@ from the Cell Atlas, and the reproduction-licence containment regime from the
 Fleet Registry. The other four technologies exist so that the grown fleet has
 something to be measured against.
 
+**Alien technology is a separate progression from research.** Four cultures —
+the Abyssals, the Ossuary, the Weft and the Tessellate — left twelve
+technologies scattered across the sector as buried sites. None can be reasoned
+out. Understanding accumulates in study points from four sources: excavating a
+site, taking relics apart in a laboratory, buying somebody's field notes at a
+port, and seizing them off a hull you destroy. At full understanding the
+technology is *incorporated* — its id is appended to `research.unlocked`, so the
+shipyard and codex treat it like anything else you know, and it never appears in
+the research tree because you could not have derived it.
+
 **Thirty-five hulls and nineteen stations across five families:**
 
 | Family | Hulls | Character |
@@ -85,6 +95,7 @@ seedfall/
 │   ├── crew.py         officers, recruitment, experience, morale
 │   ├── encounters.py   NPC generation and transit events
 │   ├── threat.py       Bloom growth and spread, cleansing, victory checks
+│   ├── xeno.py         study points, incorporation, alien passive bonuses
 │   └── actions.py      player actions spanning modules (jump/survey/mine/dive)
 ├── ui/                 PyQt6 presentation — never mutates state directly
 │   ├── theme.py        palette, fonts, the global stylesheet
@@ -100,11 +111,13 @@ seedfall/
 │   ├── tech_view.py    research tree
 │   ├── empire_view.py  colonies, depot, victory progress, waiting
 │   ├── codex_view.py   class reference, powers, glossary, about
+│   ├── xeno_view.py    the xenology desk (hosted as a Research tab)
 │   └── battle_view.py  combat screen and post-engagement resolution
 └── tests/              python -m seedfall.tests
     ├── harness.py      a tiny check runner (no pytest dependency)
-    ├── test_sim.py     21 simulation checks
-    └── test_ui.py      15 interface checks, rendered on Qt's offscreen platform
+    ├── test_sim.py     27 simulation checks
+    ├── test_xeno.py    5 alien-technology checks
+    └── test_ui.py      17 interface checks, rendered on Qt's offscreen platform
 ```
 
 ## How the layers connect
@@ -155,6 +168,14 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   `FAMILY_LABEL`/`FAMILY_TINT`/`FAMILY_NOTE`, `BASE_POWER`, `BUILD_NEED`, and
   `NO_REGEN` if it cannot heal — all of them in `data/hull_types.py`. The test
   suite checks every family for all six, and that its layer weights sum to one.
+- **Xenotech ids live in `research.unlocked` alongside real technologies.**
+  Anything walking that list must tolerate ids that are not in `TECH_BY_ID` —
+  `tech.bonuses()` already skips them, and the gate check in `test_sim.py`
+  accepts either vocabulary. Alien passive bonuses are folded in separately by
+  `Game.recompute()`.
+- **Study banked past a prerequisite is kept, not lost.** You can dig up the
+  Phase Loom before you understand the Null Seam; `xeno.settle()` runs on the
+  clock and incorporates anything whose moment has arrived.
 - **Colony effects are a closed vocabulary.** `test_sim.py` asserts that every
   key in a `ColonyClass.effects` is one the game actually reads, so a typo in a
   station definition fails the suite instead of silently doing nothing.

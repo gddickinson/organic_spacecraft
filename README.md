@@ -390,6 +390,12 @@ with its Hayflick counter cut out. Nobody has told you what to do about it.
 | Compendium | A 58-node research tree across ten branches, from mycelial matrix to parallel growth fronts |
 | Fleet Registry | The containment regime — reproduction licences, Hayflick counters, CHORUS consensus — and the six named ways it fails, one per faction |
 
+**Alien technology is found, not researched.** Four vanished or unreachable
+cultures left twelve technologies buried across the sector. You dig them up,
+take relics apart in a lab, buy somebody else's field notes, or seize them off a
+hull you destroy — and when you finally understand one, you can bolt it to the
+ship you already fly.
+
 **Five technologies, thirty-five hulls, nineteen stations.** Grow hulls from
 seeds; buy welded ones from the Concordat of Yards; graft the two together in a
 Freehold yard; fly crewless Dry Choir synthetics that think faster than their own

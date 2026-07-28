@@ -9,6 +9,7 @@ from ..data.tech import BRANCHES, TECH, TECH_BY_ID
 from ..sim import research as research_sim
 from .widgets import (Card, Panel, Pill, TabBar, View, button, label,
                       mono_label, note)
+from .xeno_view import build_xeno
 
 
 class TechView(View):
@@ -19,16 +20,22 @@ class TechView(View):
     def build(self) -> None:
         g = self.game
         rate = g.ship_stats.research + 0.25 + g.colony_fx.get("research", 0)
+        known = sum(1 for t in TECH if t.id in g.research.unlocked)
         self.head("Research",
-                  f"{len(g.research.unlocked)} of {len(TECH)} technologies · "
-                  f"{rate:.2f} points a day · {round(g.research.banked)} banked")
+                  f"{known} of {len(TECH)} technologies · {rate:.2f} points a day "
+                  f"· {round(g.research.banked)} banked")
 
-        self.col.addWidget(self._current(rate))
+        if self.branch != "xeno":
+            self.col.addWidget(self._current(rate))
 
-        tabs = TabBar([("all", "All")] + [(k, v[0]) for k, v in BRANCHES.items()],
-                      self.branch)
+        tabs = TabBar([("all", "All")] + [(k, v[0]) for k, v in BRANCHES.items()]
+                      + [("xeno", "Xenotech ✦")], self.branch)
         tabs.changed.connect(self._switch)
         self.col.addWidget(tabs)
+
+        if self.branch == "xeno":
+            build_xeno(self)
+            return
 
         techs = [t for t in TECH if self.branch in ("all", t.branch)]
         techs.sort(key=lambda t: (t.tier, t.name))

@@ -9,6 +9,8 @@ from ..core.util import num, pct
 from ..data.commodities import BY_ID, COMMODITIES, bulk_of
 from ..data.factions import FACTIONS_BY_ID, standing
 from ..sim.crew import daily_wages, recruit_pool
+from ..sim.actions import buy_field_notes, xeno_notes_price
+from ..sim import xeno as xeno_sim
 from ..sim.ship import add_cargo, cargo_free, cargo_used, hull_pct
 from ..world.economy import (apply_sale, apply_trade, buy_price, demands,
                              price_note, sell_price)
@@ -205,6 +207,21 @@ class PortView(View):
         self.row(dock, bunker)
         self.row(office, rep_panel)
 
+        target = xeno_sim.best_unfinished(g)
+        if target is not None and xeno_sim.is_known(g, target.id):
+            price = xeno_notes_price(g, target)
+            notes = Panel("Xenology Desk")
+            notes.add(label(
+                f"Somebody has already dug at a {target.culture.replace('_', ' ')} "
+                "site and written it up. Field notes are legal, expensive, and "
+                "save you a season in a trench.", "", wrap=True))
+            notes.add_row("On offer", target.name)
+            notes.add_row("Understood so far", pct(xeno_sim.progress(g, target.id)))
+            notes.add_buttons(button(f"Buy the notes — {cr(price)}",
+                                     lambda t=target.id: self._buy_notes(t),
+                                     kind="primary", enabled=g.credits >= price))
+            self.col.addWidget(notes)
+
         if "research" in sys.port.services:
             lib = Panel("Fleet Library")
             lib.add(label("A hub keeps a copy of the canon. Two weeks reading it is "
@@ -213,6 +230,19 @@ class PortView(View):
             lib.add_buttons(button(f"Study for a fortnight — {cr(4000)}",
                                    self._study, enabled=g.credits >= 4000))
             self.col.addWidget(lib)
+
+    def _buy_notes(self, tech_id: str) -> None:
+        res = buy_field_notes(self.game, tech_id)
+        if not res.get("ok"):
+            self.win.toast(res["why"], "warn")
+            return
+        tech = res["tech"]
+        lines = [f"{round(res['points'])} points of understanding toward "
+                 f"{tech.name}, for {cr(res['price'])}."]
+        if res["incorporated"]:
+            lines.append(f"{tech.name} is now yours. {tech.grants}")
+        self.win.dialog("Field notes", lines, [("Log it", None)])
+        self.win.refresh()
 
     def _repair(self, cost: int) -> None:
         g = self.game

@@ -64,6 +64,9 @@ class Body:
     surveyed: bool = False
     depleted: float = 0.0
     colony: int | None = None
+    relic: str | None = None      # xenotech id buried here
+    relic_found: bool = False
+    digs: int = 0                 # how often it has been worked
 
     @property
     def kind_name(self) -> str:
@@ -192,8 +195,14 @@ def make_body(rng, system_name: str, index: int, count: int, star_heat: float) -
 def survey_body(body: Body, quality: float, rng) -> dict:
     """Survey quality 0..1 decides how much of a body you actually learn."""
     found = {"new_body": not body.surveyed, "lifeforms": [], "anomaly": None,
-             "data": 0, "research": 0}
+             "data": 0, "research": 0, "relic": None}
     body.surveyed = True
+
+    # Buried alien work is easy to walk past and hard to miss twice.
+    if body.relic and not body.relic_found and rng.chance(0.35 + quality * 0.55):
+        body.relic_found = True
+        found["relic"] = body.relic
+        found["research"] += 20
 
     for lf in body.lifeforms:
         if lf.catalogued:
