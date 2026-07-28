@@ -80,6 +80,8 @@ class Game:
     scrutiny: dict = field(default_factory=dict)
     #: A power waiting on an answer about ground you hold.
     demand: object | None = None
+    #: What landing parties brought back that was not cargo.
+    field_notes: list = field(default_factory=list)
     register: dict = field(default_factory=dict)
     commissions: list = field(default_factory=list)
     rumours: list = field(default_factory=list)

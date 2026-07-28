@@ -10,7 +10,9 @@ from ..data.chassis import (CHASSIS, FAMILY_LABEL, FAMILY_NOTE,
                             FAMILY_ORDER, FAMILY_TINT, by_family)
 from ..data.colonies import COLONIES
 from ..data.factions import FACTIONS, standing
+from ..data.inquiry import EVIDENCE_BY_ID
 from ..data.lore import GLOSSARY, INTRO
+from ..sim import notes as notes_sim
 from .widgets import (Card, Panel, Pill, TabBar, View, label, note, spacer)
 
 
@@ -23,13 +25,15 @@ class CodexView(View):
         self.head("Codex",
                   "The class reference, the powers of the Verge, and the vocabulary.")
         tabs = TabBar([("classes", "Fleet classes"), ("colonies", "Colony classes"),
-                       ("factions", "Powers"), ("glossary", "Glossary"),
+                       ("factions", "Powers"), ("notes", "Field notes"),
+                       ("glossary", "Glossary"),
                        ("about", "About")], self.tab)
         tabs.changed.connect(self._switch)
         self.col.addWidget(tabs)
 
         {"classes": self._classes, "colonies": self._colonies,
-         "factions": self._factions, "glossary": self._glossary,
+         "factions": self._factions, "notes": self._notes,
+         "glossary": self._glossary,
          "about": self._about}[self.tab]()
 
     def _switch(self, tid: str) -> None:
@@ -101,6 +105,36 @@ class CodexView(View):
                 p.add(note(f"Buys: {', '.join(f.buys)}. "
                            f"Sells: {', '.join(f.sells) or '—'}."))
             self.col.addWidget(p)
+
+    def _notes(self) -> None:
+        """What landing parties brought back that was not cargo."""
+        g = self.game
+        summary = notes_sim.summary(g)
+        p = Panel("Field notes")
+        p.add_row("Recovered", f"{summary['held']} of {summary['total']}",
+                  "chloro" if summary["held"] else "dim")
+        if not summary["held"]:
+            p.add(note("Nothing yet. Notes come off wrecks and old gardens, "
+                       "and only if somebody goes down and reads the room."))
+            self.col.addWidget(p)
+            return
+        p.add(note("Each one is evidence on the bench as well as a thing that "
+                   "happened to somebody."))
+        self.col.addWidget(p)
+
+        for filed in sorted(notes_sim.held(g), key=lambda f: f.day):
+            definition = filed.definition
+            if definition is None:
+                continue
+            card = Panel(definition.title, "xeno")
+            card.add(label(definition.text, "", wrap=True))
+            card.add(spacer(3))
+            card.add_row("Found on", f"{filed.body} · {filed.system}")
+            card.add_row("Filed", f"day {filed.day}")
+            card.add_row("Evidence", f"{definition.worth:g} · "
+                                     f"{EVIDENCE_BY_ID[definition.evidence].name}",
+                         EVIDENCE_BY_ID[definition.evidence].tint)
+            self.col.addWidget(card)
 
     def _glossary(self) -> None:
         p = Panel()

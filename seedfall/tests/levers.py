@@ -17,7 +17,8 @@ from ..sim import dig as dig_sim
 from ..sim import encounters
 from ..sim import expedition as expedition_sim
 from ..sim import inquiry, loading, loyalty, market as market_sim
-from ..sim import mining, research as research_sim
+from ..sim import mining, notes as notes_sim
+from ..sim import research as research_sim
 from ..sim import responses as response_sim
 from ..sim import stations, territory as territory_sim
 from ..sim import transit as transit_sim
@@ -231,6 +232,26 @@ def _crossing_days() -> float:
     return total / runs
 
 
+# ── what the ground told you is worth something ────────────────────────────
+
+def _note_evidence() -> float:
+    """Evidence on the bench after a party reads a wreck properly."""
+    from .test_notes import _landed, _read_the_room
+    from ..sim import fieldwork
+    from ..sim import expedition as exp_sim
+    total = 0.0
+    for index in range(5):
+        game, party, rng = _landed(f"lever-notes-{index}")
+        _read_the_room(game, party, rng)
+        exp_sim.finish(party, "returned")
+        before = sum(inquiry.held(game.research, k)
+                     for k in ("hardware", "specimen", "reading"))
+        fieldwork.conclude_expedition(game)
+        total += sum(inquiry.held(game.research, k)
+                     for k in ("hardware", "specimen", "reading")) - before
+    return total / 5
+
+
 # ── a kill is noticed by more than its victim ──────────────────────────────
 
 def _kill_goodwill() -> float:
@@ -342,6 +363,12 @@ def _cut_dig_points() -> float:
 
 
 LEVERS: list[Lever] = [
+    Lever("field-notes",
+          "what a landing party reads is worth something",
+          patch=(notes_sim, "file",
+                 lambda _g, _n, _b, _s: {"ok": False, "why": "off"}),
+          probe=_note_evidence, direction="lower"),
+
     Lever("kill-goodwill",
           "a power's enemies are glad to hear it lost a hull",
           patch=(aftermath_sim, "_pleased", lambda _g, _f, _w: []),

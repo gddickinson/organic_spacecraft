@@ -251,8 +251,12 @@ class ExpeditionView(View):
     def _attempt(self, index: int) -> None:
         exp = self.game.expedition
         res = exp_sim.attempt(exp, index, self._party(), self.game.rng("attempt"))
-        if res.get("lore"):
-            self.win.dialog("Field note", [res["lore"]], [("Log it", None)])
+        found = res.get("lore")
+        if found:
+            self.win.dialog(found.title, [label(found.text, "", wrap=True),
+                                          note("It goes in the codex if the "
+                                               "party gets home.")],
+                            [("Log it", None)])
         self.win.refresh()
 
     def _shelter(self) -> None:
@@ -296,8 +300,12 @@ class ExpeditionView(View):
             lines.append(note(f"{res['injured']} of them will need time to recover."))
         if res["incorporated"]:
             lines.append(f"{res['incorporated'].name} is now understood.")
-        for line in res["lore"]:
-            lines.append(note(line))
+        for filed in res["notes"]:
+            definition = filed["note"]
+            lines.append(f"Field note — {definition.title}"
+                         + (" (already on the shelf)" if filed["duplicate"]
+                            else ""))
+            lines.append(note(definition.text))
         self.win.dialog("Expedition report", lines, [("File it", None)])
         self.win.go("system")
 

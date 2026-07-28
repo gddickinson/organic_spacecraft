@@ -144,6 +144,7 @@ seedfall/
 │   ├── contraband.py   who outlaws what, how hard they look, what they say
 │   ├── territory.py    what a power says when its claim lands on your ground
 │   ├── charts.py       what each power pays for a survey, and what for
+│   ├── fieldnotes.py   the eight things the ground can tell you
 │   └── lore.py         intro, victories, endings, name pools, glossary
 ├── world/              generated content
 │   ├── galaxy.py       sector generation, lane relaxation, distance/transit
@@ -183,6 +184,7 @@ seedfall/
 │   ├── territory.py    claims against holdings: trespass, levy, defiance
 │   ├── charts.py       pricing a survey by what is actually in the system
 │   ├── aftermath.py    what an engagement leaves behind: salvage and standing
+│   ├── notes.py        field notes: filed, looked up again, and worth something
 │   ├── responses.py    provocation, the Bloom's answers, and studying a mass
 │   ├── market.py       supply shocks, and the prices you wrote down
 │   ├── ventures.py     what the powers do on their own account
@@ -245,11 +247,12 @@ seedfall/
     ├── test_territory.py 8 checks — annexation, levy, defiance, seizure
     ├── test_charts.py  8 chart checks — contents, buyers, staleness, rate
     ├── test_aftermath.py 8 checks — the layer rule, salvage, who is glad
+    ├── test_notes.py   8 field-note checks — filed, counted, kept, reachable
     ├── test_dig.py     6 dig checks — strata, methods, banking, backfilling
     ├── test_resume.py  5 resume checks — anything half-done survives a save
     ├── efficacy.py     the harness: neutralise a feature, measure the world
     ├── levers.py       one entry per claim the game makes about a number
-    ├── test_efficacy.py 20 checks — every feature has to move something
+    ├── test_efficacy.py 21 checks — every feature has to move something
     ├── test_reachable.py 4 reachability checks — nothing written and uncalled
     ├── test_verbs.py   10 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
@@ -504,6 +507,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **A field note is kept, not printed once.** Recovered lore lived in
+  `expedition.lore`, was shown in the report dialog, and went out with the
+  expedition object — never on the `Game`, never in the codex, and worth
+  nothing, since `REWARD_SCALE["lore"]` was (0, 0). Three feature options
+  existed to display a sentence and take it away. Notes now have identity
+  (`data/fieldnotes.py`), are filed with the body, system and day they came
+  from, and are evidence on an inquiry track, so going down and reading the
+  room is worth doing.
+- **A note is not cargo.** Stranding costs 60% of the haul; it does not cost
+  what somebody already read and remembered. `test_notes.py` pins that.
 - **What a fight leaves behind belongs to the rules, not the screen.** Salvage,
   loot, cargo off the wreck, bounty progress, seized xenology, instar kills,
   consorts lost, loyalty and every standing change used to live in
@@ -687,6 +700,10 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`test_transit.py`** flies the same crossings under a hurried policy and a
   careful one and fails unless hurrying genuinely saves days and genuinely
   costs hull. An option that is best on every axis is not a decision.
+- **`test_notes.py`** drives a party into a wreck, works it for notes, brings
+  them home, and fails unless the shelf, the provenance and the evidence all
+  survive — including across a save. It also checks every note is reachable and
+  that the draw prefers ones you lack, so no written discovery is unfindable.
 - **`test_aftermath.py`** carries the check the project never had: that no
   module under `sim/`, `data/`, `world/` or `core/` imports Qt. It also plays
   the same engagement twice — once through `sim/aftermath.resolve()` and once

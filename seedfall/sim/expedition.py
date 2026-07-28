@@ -14,8 +14,9 @@ from dataclasses import dataclass, field
 
 from ..core.save import register
 from . import weather as weather_sim
-from ..data.expedition import (BASE_SUPPLY, FEATURES, HAZARDS, LORE,
+from ..data.expedition import (BASE_SUPPLY, FEATURES, HAZARDS,
                                PARTY_CAPACITY, REWARD_SCALE, TERRAIN)
+from ..data.fieldnotes import NOTES
 
 _uid = itertools.count(1)
 
@@ -256,10 +257,13 @@ def attempt(exp: Expedition, index: int, officers, rng) -> dict:
         lo, hi = REWARD_SCALE.get(reward, (0, 0))
         amount = rng.int(lo, hi) * (1 + max(0, margin) * 0.12) if hi else 0
         if reward == "lore":
-            line = rng.pick([l for l in LORE if l not in exp.lore] or LORE)
-            exp.lore.append(line)
-            out["lore"] = line
-            say(exp, f"{label}: {line}", "good")
+            # Notes are drawn by id and filed on recovery, so what the ground
+            # told you survives the flight home. It used to be a string shown
+            # once and dropped with the expedition object.
+            note = rng.pick([n for n in NOTES if n.id not in exp.lore] or NOTES)
+            exp.lore.append(note.id)
+            out["lore"] = note
+            say(exp, f"{label}: {note.text}", "good")
         elif reward == "study":
             exp.study["__any__"] = exp.study.get("__any__", 0) + amount
             out["reward"], out["amount"] = reward, amount

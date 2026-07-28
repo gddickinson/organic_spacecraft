@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from ..data.xenotech import CULTURES_BY_ID, XENOTECH_BY_ID
 from . import inquiry
+from . import notes as notes_sim
 from . import research as research_sim
 from . import xeno as xeno_sim
 from .actions import jump_quote
@@ -228,6 +229,13 @@ def conclude_expedition(game) -> dict:
                 add_cargo(game.ship, key, n)
                 stowed[key] = n
 
+    # What the ground told you is filed against the game rather than printed
+    # once and dropped with the expedition object.
+    system_name = game.galaxy.systems[exp.system_id].name
+    notes = [notes_sim.file(game, note_id, exp.body_name, system_name)
+             for note_id in exp.lore]
+    notes = [n for n in notes if n.get("ok")]
+
     incorporated = None
     if study > 0:
         target = xeno_sim.best_unfinished(game)
@@ -245,5 +253,5 @@ def conclude_expedition(game) -> dict:
     game.add_log(f"Landing party recovered from {exp.body_name} after "
                  f"{exp.days} days.", "good" if exp.outcome != "stranded" else "warn")
     return {"ok": True, "outcome": exp.outcome, "stowed": stowed,
-            "lore": exp.lore, "days": exp.days, "injured": len(exp.injured),
+            "notes": notes, "days": exp.days, "injured": len(exp.injured),
             "incorporated": incorporated, "body": exp.body_name}

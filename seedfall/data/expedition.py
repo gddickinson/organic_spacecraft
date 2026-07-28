@@ -163,25 +163,8 @@ REWARD_SCALE = {
     "none": (0, 0),
 }
 
-#: Fragments of setting the party can bring home. Purely flavour, and the
-#: reason anyone reads an expedition report twice.
-LORE = [
-    "The recorder's last entry is a cargo manifest. The cargo was seed husks, "
-    "and the count does not match what the Charter says it issued that year.",
-    "Someone scratched a tally into the bulkhead — four hundred and eleven "
-    "marks — and then stopped, neatly, mid-stroke.",
-    "The rows run north-south for eleven kilometres and then stop at a line as "
-    "straight as a ruler. Nothing grows past it. Nothing has tried.",
-    "The array's emission resolves, when slowed by a factor of nine hundred, "
-    "into something with the statistical structure of speech.",
-    "Under the dust the floor is tiled, and the tiles are worn deepest along a "
-    "path from the doorway to a window that faces nothing in particular.",
-    "The hull is Concordat, forty years old, and the breach is from the inside.",
-    "There is a second doorway behind the first, sized for something much larger, "
-    "and it has been bricked up from this side.",
-    "The vent chemistry is a nine-to-one match for the Abyssal sample library. "
-    "This world has no ocean and has never had one.",
-]
+#: Field notes moved to `data/fieldnotes.py` when they stopped being
+#: flavour and started being kept — they need identity to be filed.
 
 #: What the lander can carry back before the party has to leave something behind.
 PARTY_CAPACITY = 60.0

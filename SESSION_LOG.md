@@ -2,6 +2,42 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: what the ground told you
+
+- **Three wrong measurements before one right one.** Setting out to check
+  whether an expedition pays, my first driver stranded 40 parties out of 40 and
+  reported the ground game as worthless. It was the driver: it never went home.
+  Second version budgeted one supply per step when rough ground costs two, and
+  still stranded 26 of 40. Third version returned 28 of 40 but priced the haul
+  through `sell_price(market, "credits")`, which returns None — so the single
+  largest reward in the ground game, 900–3,400 credits a find, counted as zero.
+  Only the fourth attempt measured the thing I meant to measure. I have made
+  this exact mistake before, on the combat balance harness, and changed real
+  numbers on false evidence; this time I checked the driver first.
+- **The honest number: 1,438 credits, 8.8 research and 7.3 study for 37
+  party-days** — about 39 credits a day against ~750 for charting. Low, but
+  the ground clock and the ship clock are not the same thing, so I have written
+  it down rather than acted on it.
+- **What the measuring actually found was better than a balance problem.**
+  Recovered lore lived in `expedition.lore`, was read out once in the report
+  dialog, and went out with the expedition object when recovery set
+  `game.expedition = None`. It never reached the `Game`, never appeared in the
+  codex, and `REWARD_SCALE["lore"]` was (0, 0) — so finding one granted nothing
+  whatever. Three feature options across two features existed purely to print a
+  sentence and take it away, and eight written discoveries sat in the data under
+  a comment calling them "the reason anyone reads an expedition report twice",
+  which you could not do.
+- **Notes have identity now** and are filed against the game with the body, the
+  system and the day. There is a Field notes tab in the codex, and each one is
+  evidence on an inquiry track — 206 points across three tracks, so a party that
+  reads the room is doing something no other activity in the sector does.
+- **A note is not cargo.** Stranding costs 60% of the haul; it does not cost
+  what somebody already read and remembered. That is a check, not an opinion.
+- **Proved it bites** by restoring the throw-away: three of eight checks fail,
+  including the save one, which reports "nothing to save".
+- Suites: 33, **8 notes** (new) among them — 282 checks green. 169 modules, all
+  under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: what a fight leaves behind
 
 - **I said last cycle I would take the `test_reachable` task next unless a
