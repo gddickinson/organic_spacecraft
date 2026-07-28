@@ -165,6 +165,7 @@ seedfall/
 │   ├── diplomacy.py    standing, the relations matrix, treaties, brokering
 │   ├── expedition.py   the ground game: zone map, movement, attempts, hauls
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
+│   ├── assessment.py   reading an engagement: who wins, why, what to do
 │   ├── chains.py       commissions: work that escalates and closes doors
 │   ├── inquiry.py      evidence, approaches, setbacks and breakthroughs
 │   ├── intel.py        how well a system is known, and what a chart is worth
@@ -219,6 +220,7 @@ seedfall/
     ├── test_politics.py 8 politics checks — ventures, sides, the Concord
     ├── test_design.py  6 design checks — loading, overloading, stranding
     ├── test_orders.py  8 orders checks — reachability, urgency, unread state
+    ├── test_assessment.py 6 read checks — honesty, arcs, robustness
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
     └── test_ui.py      22 interface checks, rendered on Qt's offscreen platform
 ```
@@ -401,6 +403,15 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   dataclass fields and fails on any that nothing loads — it caught a levy
   counter that incremented and changed nothing, and a death reason the game
   recorded and never showed.
+- **Never compare combatants by raw hull and raw damage.** Enemy hull is a
+  chassis lottery that does not track difficulty at all — `make_enemy` picks
+  from a faction pool and scales hull only 10% per difficulty point — while
+  armament and armour both track it cleanly. `assessment.weight()` compares
+  turns-to-break after armour, and its thresholds are calibrated against 320
+  measured fights rather than guessed.
+- **Most fights end when somebody's nerve goes, not their hull.** Any model of
+  who is winning that ignores resolve reads far bleaker than the game plays,
+  which is why the thresholds sit where they do rather than at the obvious 1.0.
 - **Colony effects are a closed vocabulary.** `test_sim.py` asserts that every
   key in a `ColonyClass.effects` is one the game actually reads, so a typo in a
   station definition fails the suite instead of silently doing nothing.
@@ -460,6 +471,10 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   fire in at least one of them, calls every predicate unguarded so a broken one
   cannot hide behind the panel's exception guard, and checks that acting on an
   order makes it go quiet.
+- **`test_assessment.py`** plays out forty fights across two hulls and four
+  difficulties and fails if a worse-sounding verdict wins more often than a
+  better-sounding one — the read is worth nothing if it is not honest. It fails
+  against the raw-hull comparison the first draft used.
 - **`test_flight.py`** holds the helm to its promises: that a seed grows one
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that

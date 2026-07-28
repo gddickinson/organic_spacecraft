@@ -20,6 +20,7 @@ from ..sim import tactical as tac
 from ..sim import combat as combat_sim
 from ..sim import consorts as consort_sim
 from ..sim import inquiry
+from . import assessment_panel
 from ..sim import loyalty as loyalty_sim
 from ..data.consorts import ORDERS as CONSORT_ORDERS
 from ..data.consorts import ORDERS_BY_ID as CONSORT_ORDERS_BY_ID
@@ -61,6 +62,7 @@ class BattleView(View):
         hh.setContentsMargins(0, 0, 0, 0)
         hh.setSpacing(14)
         hh.addWidget(self._plot(b), 0)
+        hh.addWidget(assessment_panel.build(b), 1)
         hh.addWidget(self._readout(b), 1)
         self.col.addWidget(holder)
         self.col.addWidget(self._band_track(b))

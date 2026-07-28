@@ -2,6 +2,40 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a defeat that teaches something
+
+- **You could lose a NAVIS in two turns and be told nothing.** Combat had arcs,
+  bands, crew stations, consorts and abilities, and a scrolling list of damage
+  lines. Playing a losing fight, the one actionable line — "nothing will bear
+  at this range" — was buried among fourteen hits, and nothing before the first
+  shot suggested a scale-3 battleship would end it inside a minute.
+- **The read** now sits beside the plot: who breaks whom first, what the enemy
+  is armed for and doing, whether you can outrun it, which of your mounts are
+  bearing and by how many degrees the rest are off, and two or three things
+  worth doing about it. Against that battleship it opens with "outmatched",
+  "they break you in 3 turns", "can you outrun them: no", and "breaking off
+  costs you very little; this does not."
+- **My first model was worse than useless — it was not even monotonic.** I
+  compared raw hull and raw damage, and measured it: a scale-0.5 scout read as
+  a *harder* fight than a scale-2 warship. Enemy hull turns out to be a chassis
+  lottery that ignores difficulty entirely, while armament (0 damage at scale
+  1, 121 at scale 3) and armour both track it. Comparing turns-to-break after
+  armour fixed the direction.
+- **Then the thresholds were wrong, and only measurement found it.** A ratio of
+  0.19 was reading "outmatched" in fights the player won 70% of the time,
+  because most wins come from the enemy breaking off rather than dying — a pure
+  damage race reads far bleaker than the game plays. The bands are now set from
+  320 fights across two hulls and eight difficulties, and the reasoning is
+  recorded beside the constants.
+- **The check that matters** plays forty fights and fails if a worse-sounding
+  verdict wins more often than a better-sounding one. Against the raw-hull
+  model it fails exactly as it should: outmatched 31%, lighter hull 37%, a real
+  fight 25%, heavier hull 39%.
+- Suites: 27 simulation, 5 xenotech, 14 playability, 5 tactical, 5 flight,
+  6 empire, 7 crew, 7 missions, 8 exploration, 7 mining, 8 research, 8 trade,
+  7 ground, 8 politics, 6 design, 8 orders, **6 assessment** (new), 23
+  interface — 165 checks green. 132 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: an audit, not a sixteenth system
 
 - **The seam was discoverability.** Fifteen cycles each added a system that was
