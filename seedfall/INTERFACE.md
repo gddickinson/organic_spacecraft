@@ -168,6 +168,7 @@ seedfall/
 │   ├── chains.py       commissions: work that escalates and closes doors
 │   ├── inquiry.py      evidence, approaches, setbacks and breakthroughs
 │   ├── intel.py        how well a system is known, and what a chart is worth
+│   ├── loading.py      fitted mass against what the hull is rated to shift
 │   ├── market.py       supply shocks, and the prices you wrote down
 │   ├── ventures.py     what the powers do on their own account
 │   ├── weather.py      the front overhead during a landing
@@ -215,6 +216,7 @@ seedfall/
     ├── test_trade.py   8 trade checks — shocks, the register, staleness
     ├── test_ground.py  7 ground checks — weather, sight, being pinned
     ├── test_politics.py 8 politics checks — ventures, sides, the Concord
+    ├── test_design.py  6 design checks — loading, overloading, stranding
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
     └── test_ui.py      22 interface checks, rendered on Qt's offscreen platform
 ```
@@ -379,6 +381,15 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **Ventures never annex a system you hold a colony in.** `_claimable()`
   excludes them. Losing a settlement to a registry filing would be good drama
   and would also silently break the colony that is still pointing at it.
+- **Never size anything against `chassis.mass_t`.** Structural mass runs from a
+  sixty-tonne SPORE to a twelve-billion-tonne LEVIATHAN, so any threshold built
+  on it is meaningless for most of the range. `sim/loading.py` sizes capacity
+  from slot count and hold rating, which are on the same scale as the parts and
+  cargo that fill them.
+- **Loading affects jump range at 45% strength, deliberately.** A full hold
+  costing speed is a trade; a full hold leaving a captain unable to reach the
+  nearest system is the stranding deadlock this project has hit twice.
+  `test_design.py` checks the laden jump against the nearest neighbour.
 - **Colony effects are a closed vocabulary.** `test_sim.py` asserts that every
   key in a `ColonyClass.effects` is one the game actually reads, so a typo in a
   station definition fails the suite instead of silently doing nothing.
@@ -430,6 +441,10 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   emergent numbers plateau against the -100 floor either way and make a weak
   signal — tests the fading mechanism directly by pushing a relation down and
   watching it come back.
+- **`test_design.py`** builds every chassis at a sensible fit and fails if any
+  is penalised for it, then maxes one out and fails if it is not. It also
+  checks that a fully laden starting hull can still reach its nearest
+  neighbour.
 - **`test_flight.py`** holds the helm to its promises: that a seed grows one
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that

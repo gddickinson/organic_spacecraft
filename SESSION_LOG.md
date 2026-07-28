@@ -2,6 +2,40 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: mass is the price of everything
+
+- **Fitted mass was free.** A NAVIS carrying 267 tonnes of armour and reactors
+  flew exactly as fast as one carrying 52, and jumped *further*, because
+  nothing anywhere read the tonnage. Every design was therefore the same
+  design: the heaviest, best part in every slot. Loading now sets speed,
+  evasion and (dampened) jump range.
+- **The trade is legible.** A maxed NAVIS with a full hold reads "overloaded"
+  at 1.32 of its capacity and pays 18% of its loading factor; a stripped one
+  reads "light" and gains 14%. The design sheet shows fitted mass, loading
+  against capacity, and what it is costing — beside the existing power deficit,
+  so two tensions now argue with each other on the same screen.
+- **Heavy is not simply worse.** A second drive adds 210 tonnes and buys 6.9 ly
+  of jump range. That is the design question: what do you want the hull to be
+  good at.
+- **I calibrated it wrong twice, and the play-testing caught both.** First I
+  sized capacity against `chassis.mass_t` — which runs from a sixty-tonne SPORE
+  to a twelve-billion-tonne LEVIATHAN, so every hull read as "light" and the
+  penalty never engaged. Rebasing on slot count and hold rating put it on the
+  right scale, and then I calibrated against fully-maxed fits and found every
+  chassis pinned at the floor: a realistic design fills two-thirds of its
+  slots, not all of them with the heaviest thing available. The check now
+  builds all thirty-five hulls at a sensible fit and fails if any is penalised
+  for it.
+- **The stranding trap was live again.** Loading cuts jump range as well as
+  speed, and a captain who fills the hold and cannot reach the nearest system
+  is the deadlock this project has hit twice before. Jump takes the loading
+  effect at 45% strength, and the check measures a fully laden starting hull
+  against its nearest neighbour: 98% of empty range, 2.7 ly of margin.
+- Suites: 27 simulation, 5 xenotech, 14 playability, 5 tactical, 5 flight,
+  6 empire, 7 crew, 7 missions, 8 exploration, 7 mining, 8 research, 8 trade,
+  7 ground, 8 politics, **6 design** (new), 23 interface — 151 checks green.
+  125 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: the powers start doing things
 
 - **Diplomacy waited for the player.** Four factions tracked how they regarded

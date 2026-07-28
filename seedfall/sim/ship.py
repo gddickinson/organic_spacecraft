@@ -17,6 +17,7 @@ from ..data.chassis import (BASE_POWER, CHASSIS_BY_ID, LAYER_SETS, NO_REGEN,
                             Chassis)
 from ..data.commodities import bulk_of
 from ..data.parts import part
+from . import loading
 
 _uid = itertools.count(1)
 
@@ -164,11 +165,19 @@ def stats(ship: Ship, bonus: dict | None = None, officers=()) -> Stats:
     draw = fx["draw"]
     brownout = clamp(power / max(1, draw), 0.35, 1) if draw > power else 1.0
 
+    # What the hull is carrying, against what it was built to carry. Fitted
+    # mass used to be free, so every design was "the heaviest part that fits,
+    # in every slot". Jump is deliberately dampened: a full hold slowing you
+    # down is a trade, a full hold stranding you is a bug.
+    load = loading.factor(ship, fx["speed"])
+    jump_load = 1.0 + (load - 1.0) * 0.45
+
     s = Stats(
         family=ch.family, power=power, draw=draw, brownout=brownout,
-        jump=max(1, (ch.jump + fx["jump"]) * (1 + bonus.get("jump", 0)) + nav * 0.35),
-        speed=max(0.2, ch.speed * (1 + fx["speed"]) + nav * 0.03),
-        evade=clamp((ch.evade + fx["evade"] + tac * 0.02) * brownout, 0, 0.7),
+        jump=max(1, ((ch.jump + fx["jump"]) * (1 + bonus.get("jump", 0))
+                     + nav * 0.35) * jump_load),
+        speed=max(0.2, (ch.speed * (1 + fx["speed"]) + nav * 0.03) * load),
+        evade=clamp((ch.evade + fx["evade"] + tac * 0.02) * brownout * load, 0, 0.7),
         accuracy=clamp(0.62 + fx["accuracy"] + tac * 0.035, 0.15, 0.98) * brownout,
         sensor=2 + fx["sensor"] + sci * 0.2,
         scan=clamp(0.25 + fx["scan"] + bonus.get("scan", 0) + sci * 0.06, 0, 1),
@@ -194,7 +203,7 @@ def stats(ship: Ship, bonus: dict | None = None, officers=()) -> Stats:
         trade=bonus.get("trade", 0) + com * 0.03,
         diplomacy=bonus.get("diplomacy", 0) + com * 0.05,
         morale=fx["morale"] + med * 0.1,
-        mass=ch.mass_t,
+        mass=ch.mass_t + loading.laden(ship),
     )
     live = [pid for pid in ship.fitted if pid not in ship.disabled]
     s.weapons = [part(pid) for pid in live if part(pid) and part(pid).wpn]

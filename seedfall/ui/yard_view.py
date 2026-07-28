@@ -10,6 +10,7 @@ from ..data.chassis import (CHASSIS, CHASSIS_BY_ID, FAMILY_LABEL,
                             FAMILY_NOTE, FAMILY_ORDER, FAMILY_TINT)
 from ..data.part_types import SLOT_LABEL, SLOT_ORDER
 from ..data.parts import part, parts_available
+from ..sim import loading
 from ..sim import shipyard
 from ..sim.ship import Ship, hull_pct, stats
 from .widgets import (Card, Panel, Pill, TabBar, View, button, label,
@@ -207,6 +208,24 @@ class YardView(View):
         p.add_row("Hold", f"{round(st.cargo)} t")
         p.add_row("Berths", num(st.berths))
         p.add_row("Power", f"{num(st.power)} / {num(st.draw)}")
+
+        # Fitted mass against what the hull is rated to shift. Everything above
+        # the marks is paid for in speed and evasion.
+        mock.crew = ch.crew
+        load = loading.summary(mock, 0.0)
+        reads, tint = loading.note(mock, 0.0)
+        p.add_row("Fitted mass", f"{round(load['parts'])} t")
+        p.add_row("Loading",
+                  f"{round(load['laden'])} / {round(load['capacity'])} t · {reads}",
+                  tint)
+        p.add_bar(min(1.0, load["loading"]),
+                  "chloro" if load["loading"] <= 0.9 else "warn")
+        if abs(load["factor"] - 1.0) > 0.01:
+            better = load["factor"] > 1.0
+            p.add_row("Speed and evasion",
+                      f"{'+' if better else ''}{(load['factor'] - 1) * 100:.0f}% "
+                      f"for the loading",
+                      "chloro" if better else "warn")
         p.add_row("Armament",
                   f"{len(st.weapons)} mount(s), "
                   f"{sum(w.wpn.dmg for w in st.weapons):g} damage"
