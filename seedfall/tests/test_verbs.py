@@ -148,6 +148,23 @@ def run(suite: Suite) -> bool:
         elif screen == "decoding":
             win.decoding = minigames.start_decoding(
                 game.rng("decode"), "a xenolith", game.ship_stats, game.officers)
+        elif screen == "demand":
+            from ..sim import territory as territory_sim
+            system = game.system
+            system.faction = None
+            system.bloom = 0.0
+            body = next(b for b in system.bodies
+                        if b.kind in ("asteroid", "moon", "rocky"))
+            game.credits = 2_000_000
+            for key in ("alloy", "ore", "biomass", "volatiles", "phosphate"):
+                game.stores[key] = 90000
+            from ..sim import colony as colony_sim
+            col, _why = colony_sim.found(game, system, body, "radix_mine")
+            if col is not None:
+                system.faction = "charter"
+                game.demand = territory_sim.Demand(
+                    system_id=system.id, power="charter", holdings=1,
+                    worth=20000)
         elif screen == "dig":
             from ..data.xenotech import XENOTECH
             body = next((b for b in game.system.bodies if b.relic),
@@ -230,6 +247,14 @@ def run(suite: Suite) -> bool:
         assert not broken, ("controls that raised with contraband aboard:\n      "
                             + "\n      ".join(broken[:6]))
         return f"{total} controls with a hold full of contraband, all clean"
+
+    @check("every control answering a demand runs")
+    def _():
+        total, broken = drive("demand")
+        assert total >= 3, f"only {total} controls on the demand screen"
+        assert not broken, ("controls that raised answering a power:\n      "
+                            + "\n      ".join(broken[:6]))
+        return f"{total} controls answering a power, all clean"
 
     @check("every control in an open trench runs")
     def _():

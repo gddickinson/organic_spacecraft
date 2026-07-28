@@ -2,6 +2,41 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: contested ground
+
+- **The sector had claims and it had holdings and they never touched.**
+  `ventures._claimable()` explicitly excluded any system the player held a
+  colony in — the powers politely stepped around your ground — and
+  `colony.can_found()` never looked at `system.faction`, so you could plant
+  inside somebody's declared space and nobody said a word. An empire game where
+  territory is never contested has the empire taken out of it.
+- **Both directions are live now.** Planting on a power's register costs
+  standing with them (and pleases their enemies, via last cycle's allegiance
+  module), and at Distrusted they simply will not have you. The cost is shown
+  in the plant-a-seed dialog, before you commit, rather than in the log after.
+- **A power will annex ground you hold**, and that is a question rather than a
+  news item. Three answers, all measured to be genuinely different: pay the
+  levy and keep it, giving up 30% of what it makes; hand it over and read best
+  with them; or refuse — which keeps it, costs 18 standing, and means somebody
+  comes for it eventually. 12 of 12 defiant holdings were seized within eight
+  years. If the claim later lapses, the standoff ends with it.
+- **The demand lives on the `Game`**, because it is something you can be in the
+  middle of. `test_resume` picked it up as the sixth guarded activity without
+  being told — which is exactly why that check was written as a rule about
+  `window.go()` rather than a list of activities.
+- **A bug in my own test helper, found by a seed that disagreed with me.** One
+  of twelve trials failed with an empty assertion message. The cause: a holding
+  can mature *and* be overgrown by the Bloom inside the same `advance_days`
+  call, so `colony.online` was True on an object already removed from
+  `game.colonies`. The helper now asserts membership rather than a flag, and
+  keeps the Bloom out of the system so the check measures territory and not
+  luck.
+- **Proved the central check bites** by restoring the one-line exclusion that
+  made territory uncontestable: exactly one check fails, and it says "the
+  powers still step around anywhere the player holds".
+- Suites: 30, **8 territory** (new) among them — 255 checks green. 161 modules,
+  all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: whose work you take
 
 - **`contracts.py` did not import `diplomacy`.** Six powers, a relations matrix

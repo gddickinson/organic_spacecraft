@@ -26,6 +26,8 @@ from ..sim import threat as threat_sim
 from ..sim import xeno as xeno_sim
 from ..sim import chains as chain_sim
 from ..sim import contracts as contract_sim
+from ..sim import territory as territory_sim
+from ..data.territory import SEIZED as TERRITORY_SEIZED
 from ..sim.ship import (Ship, build_layers, is_breached, make_ship, repair_tick,
                         stats)
 from ..world.economy import tick_market
@@ -76,6 +78,8 @@ class Game:
     faction_power: dict = field(default_factory=dict)
     #: Per-faction memory of what you have been caught carrying. Decays.
     scrutiny: dict = field(default_factory=dict)
+    #: A power waiting on an answer about ground you hold.
+    demand: object | None = None
     register: dict = field(default_factory=dict)
     commissions: list = field(default_factory=list)
     rumours: list = field(default_factory=list)
@@ -174,6 +178,9 @@ class Game:
             self.add_log(f"Research complete: {TECH_BY_ID[done].name}.", "good")
 
         customs_sim.cool(self, n)
+
+        for colony, power in territory_sim.seizures(self, n, r):
+            self.add_log(TERRITORY_SEIZED.format(colony=colony.name), "bad")
 
         _gains, events = colony_sim.tick(self, n)
         for kind, text in events:

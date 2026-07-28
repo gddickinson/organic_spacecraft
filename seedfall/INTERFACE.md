@@ -142,6 +142,7 @@ seedfall/
 │   ├── lifeforms.py    xenobiology generation tables + anomalies
 │   ├── strata.py       the four layers of a dig, 3 methods, finds and spoils
 │   ├── contraband.py   who outlaws what, how hard they look, what they say
+│   ├── territory.py    what a power says when its claim lands on your ground
 │   └── lore.py         intro, victories, endings, name pools, glossary
 ├── world/              generated content
 │   ├── galaxy.py       sector generation, lane relaxation, distance/transit
@@ -178,6 +179,7 @@ seedfall/
 │   ├── dig.py          working a site stratum by stratum, banking as you go
 │   ├── customs.py      the contraband run: the unposted price and the search
 │   ├── allegiance.py   what serving a power costs you with its enemies
+│   ├── territory.py    claims against holdings: trespass, levy, defiance
 │   ├── responses.py    provocation, the Bloom's answers, and studying a mass
 │   ├── market.py       supply shocks, and the prices you wrote down
 │   ├── ventures.py     what the powers do on their own account
@@ -211,6 +213,7 @@ seedfall/
 │   ├── minigame_view.py    docking approach and decoding bench
 │   ├── dig_view.py     the trench: the stratum you are on and how to take it
 │   ├── blackmarket_panel.py  the quiet word on the quay, and the tip-off
+│   ├── demand_view.py  answering a power that has annexed ground you hold
 │   └── battle_view.py  combat screen and post-engagement resolution
 └── tests/              python -m seedfall.tests
     ├── harness.py      a tiny check runner (no pytest dependency)
@@ -236,13 +239,14 @@ seedfall/
     ├── test_transit.py 6 crossing checks — watches, aborting, tension
     ├── test_customs.py 9 contraband checks — the premium, the search, heat
     ├── test_allegiance.py 8 checks — taking sides, and brokering out of it
+    ├── test_territory.py 8 checks — annexation, levy, defiance, seizure
     ├── test_dig.py     6 dig checks — strata, methods, banking, backfilling
     ├── test_resume.py  5 resume checks — anything half-done survives a save
     ├── efficacy.py     the harness: neutralise a feature, measure the world
     ├── levers.py       one entry per claim the game makes about a number
-    ├── test_efficacy.py 17 checks — every feature has to move something
+    ├── test_efficacy.py 18 checks — every feature has to move something
     ├── test_reachable.py 4 reachability checks — nothing written and uncalled
-    ├── test_verbs.py   9 verb checks — every control in the game, clicked
+    ├── test_verbs.py   10 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
     └── test_ui.py      24 interface checks, rendered on Qt's offscreen platform
 ```
@@ -495,6 +499,20 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **Claims and holdings have to be able to collide.** `ventures._claimable()`
+  used to exclude any system the player held a colony in, and `can_found()`
+  never looked at `system.faction` — so the powers declined to contest your
+  ground and you could squat on theirs, and territory was never once disputed.
+  Both directions are live now, through `sim/territory.py`.
+- **A demand is something you are in the middle of**, so `Demand` is a field on
+  the `Game` with an `.over` flag and `window.go()` diverts to it. `test_resume`
+  picked it up as the sixth guarded activity with no prompting — which is the
+  whole point of writing that check as a rule rather than a list.
+- **Every answer to a demand costs something different.** Paying the levy keeps
+  the holding and gives up 30% of what it makes; ceding loses it and reads
+  best with them; refusing keeps it, costs standing, and means somebody comes
+  for it — measured at 12 of 12 defiant holdings seized within eight years. A
+  claim that lapses cancels the standoff rather than leaving it hanging.
 - **Work for a power is a position, not an errand.** Completing a contract
   charges you standing with everyone that power is at odds with, scaled by how
   bad the rift is (`sim/allegiance.py`). `contracts.py` did not import
@@ -628,6 +646,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`test_transit.py`** flies the same crossings under a hurried policy and a
   careful one and fails unless hurrying genuinely saves days and genuinely
   costs hull. An option that is best on every axis is not a decision.
+- **`test_territory.py`** fails unless the powers will actually annex ground
+  you hold, unless all three answers diverge, and unless a levy takes the share
+  it says it does. Its helper asserts the holding is still *in* `game.colonies`
+  and not merely `online`: a colony can mature and be overgrown inside the same
+  `advance_days` call, which handed the first version of these checks a holding
+  that had already been eaten.
 - **`test_allegiance.py`** holds the order of play in place: serving one power
   exclusively must make you its partisan and nobody else's friend, and a broker
   who makes peace first must still be able to work all four to Kin. It also

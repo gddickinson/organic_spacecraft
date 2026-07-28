@@ -17,7 +17,8 @@ from ..sim import expedition as expedition_sim
 from ..sim import inquiry, loading, loyalty, market as market_sim
 from ..sim import mining, research as research_sim
 from ..sim import responses as response_sim
-from ..sim import stations, transit as transit_sim
+from ..sim import stations, territory as territory_sim
+from ..sim import transit as transit_sim
 from ..sim import weather as weather_sim
 from ..sim import works as works_sim
 from ..sim.ship import build_layers, make_ship, stats
@@ -228,6 +229,20 @@ def _crossing_days() -> float:
     return total / runs
 
 
+# ── a levy takes a share of what a holding makes ───────────────────────────
+
+def _levied_output() -> float:
+    """A year of stores off one holding, with a power's name on the ground."""
+    from .test_territory import _planted
+    from ..sim import territory as territory_sim
+    game, _col, system = _planted("lever-levy", "charter")
+    territory_sim.answer(game, system, "charter", "levy")
+    before = dict(game.stores)
+    game.advance_days(365)
+    return sum(max(0.0, game.stores.get(k, 0) - before.get(k, 0))
+               for k in set(game.stores) | set(before))
+
+
 # ── the powers notice whose work you take ──────────────────────────────────
 
 def _spread_standing() -> float:
@@ -289,6 +304,12 @@ def _cut_dig_points() -> float:
 
 
 LEVERS: list[Lever] = [
+    Lever("territory-levy",
+          "a power that annexed the ground takes its share",
+          patch=(territory_sim, "collect_tithe",
+                 lambda _g, _c, _y, _d: {}),
+          probe=_levied_output, direction="higher"),
+
     Lever("allegiance-cost",
           "the powers notice whose work you take",
           patch=(allegiance, "price", lambda _g, _p, _w: []),

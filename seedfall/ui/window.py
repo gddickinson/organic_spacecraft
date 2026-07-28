@@ -189,6 +189,7 @@ class MainWindow(QMainWindow):
         from .system_view import SystemView
         from .tech_view import TechView
         from .dig_view import DigView
+        from .demand_view import DemandView
         from .transit_view import TransitView
         from .yard_view import YardView
 
@@ -200,6 +201,7 @@ class MainWindow(QMainWindow):
             "diplomacy": DiplomacyView,
             "docking": DockingView, "decoding": DecodingView,
             "transit": TransitView, "dig": DigView,
+            "demand": DemandView,
         }
         for vid, cls in classes.items():
             view = cls(self)
@@ -219,6 +221,7 @@ class MainWindow(QMainWindow):
 
     transit = _on_game("transit")
     dig = _on_game("dig")
+    demand = _on_game("demand")
     docking = _on_game("docking")
     decoding = _on_game("decoding")
     decoding_tech = _on_game("decoding_tech")
@@ -228,6 +231,11 @@ class MainWindow(QMainWindow):
         if self.battle is not None and not self.battle.over and view_id != "battle":
             self.toast("You are under fire. Finish the engagement first.", "warn")
             view_id = "battle"
+        elif self.demand is not None and not self.demand.over \
+                and view_id not in ("demand", "battle"):
+            self.toast("A power is waiting on an answer about your holding.",
+                       "warn")
+            view_id = "demand"
         elif self.dig is not None and not self.dig.over \
                 and view_id not in ("dig", "battle"):
             self.toast("There is a trench open. Work it or backfill it.", "warn")

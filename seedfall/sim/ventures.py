@@ -16,6 +16,7 @@ from ..data.ventures import (BASE_ODDS, MAX_PER_POWER, ONSET_PER_MONTH, SWAY,
 from ..data.diplomacy import AGENDAS
 from ..data.factions import FACTIONS_BY_ID
 from . import diplomacy as dip
+from . import territory
 from . import loyalty
 from . import market as market_sim
 
@@ -66,10 +67,15 @@ def describe(game, venture, template: str) -> str:
 # ── starting one ───────────────────────────────────────────────────────────
 
 def _claimable(game, power: str) -> list:
-    """Systems a power could plausibly take, excluding anywhere you hold."""
-    held = {c.system_id for c in game.colonies}
+    """Systems a power could plausibly take.
+
+    This used to exclude anywhere the player held a colony, so the powers
+    politely declined to contest your ground and the most interesting thing
+    an empire game has to offer never happened. They will annex it now; what
+    that means for the holding is `sim/territory.py`.
+    """
     return [s for s in game.galaxy.systems
-            if s.faction is None and s.id not in held and s.bloom < 0.5]
+            if s.faction is None and s.bloom < 0.5]
 
 
 def _open_to(game, power: str, kind) -> bool:
@@ -228,6 +234,17 @@ def _apply(game, venture, rng) -> list[tuple[str, str]]:
         if system.faction is None:
             system.faction = venture.power
             out.append(("", f"{system.name} is on the register now."))
+            # If you hold ground there, this is not a news item, it is a
+            # question somebody is waiting on an answer to.
+            demand = territory.confront(game, system, venture.power)
+            if demand:
+                game.demand = territory.Demand(
+                    system_id=system.id, power=venture.power,
+                    holdings=len(demand["colonies"]),
+                    worth=round(demand["worth"]))
+                out.append(("warn", f"{FACTIONS_BY_ID[venture.power].short} "
+                                    f"wants to know about your holding at "
+                                    f"{system.name}."))
     elif kind.id == "blockade" and venture.other:
         dip.shift_relation(game, venture.power, venture.other, -12)
         agenda = AGENDAS.get(venture.other)

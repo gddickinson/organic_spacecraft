@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from ..core.util import credits as cr
 from ..data.works import WORKS_BY_ID
+from ..sim import territory as territory_sim
 from ..sim import works as works_sim
 from . import works_panel
 from ..core.util import duration, num, pct
@@ -131,6 +132,9 @@ class EmpireView(View):
                 p.add(note(line))
             else:
                 p.add_bar(c.days / c.need if c.need else 0, "osteo")
+            # Whose register the ground is on, and what that costs you.
+            said, tint = territory_sim.status(g, c)
+            p.add_row("Ground", said, tint)
             if c.starving > 0:
                 p.add(label("Upkeep unmet — production has stopped.", "", "warn"))
             if c.online:

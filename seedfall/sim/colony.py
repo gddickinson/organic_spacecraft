@@ -11,7 +11,8 @@ from dataclasses import dataclass, field
 
 from ..core.save import register
 from ..data.colonies import COLONIES_BY_ID, colonies_for
-from . import loyalty, works
+from ..data.factions import FACTIONS_BY_ID
+from . import loyalty, territory, works
 from ..world.economy import make_market
 from ..world.galaxy import Port
 
@@ -34,6 +35,10 @@ class Colony:
     works: list = field(default_factory=list)   # finished works, by id
     job: str | None = None                      # the work under way
     job_days: float = 0.0
+    #: A power taking a share, because it annexed the ground underneath.
+    tithe_to: str | None = None
+    #: Held against a claimant who wanted it handed over. They come for it.
+    defiant: bool = False
 
     @property
     def definition(self):
@@ -59,6 +64,10 @@ def can_found(game, system, body, class_id: str) -> tuple[bool, str]:
         return False, "Not yet researched."
     if system.bloom > 0.5:
         return False, "The Bloom holds this system."
+    # Somebody else's register is not a wall, but it is not nothing either.
+    allowed, why = territory.welcome(game, system)
+    if not allowed:
+        return False, why
     if c.family == "grown" and not game.ship_stats.can_colonise:
         return False, ("No seed bay fitted — you cannot gestate a seed out here. "
                        "Refit one at a port.")
@@ -107,6 +116,13 @@ def found(game, system, body, class_id: str):
     body.colony = col.id
     game.colonies.append(col)
     loyalty.record(game, "colony")
+    # Planting on somebody's register is a position, the same as taking their
+    # rival's work. It is allowed; it is not free.
+    moved = territory.charge_trespass(game, system)
+    if moved:
+        power = FACTIONS_BY_ID[moved[0][0]].short
+        game.add_log(f"{col.name} is inside {power}'s declared space, and they "
+                     "have noticed.", "warn")
     return col, ""
 
 
@@ -159,8 +175,11 @@ def tick(game, days: float) -> tuple[dict, list]:
                 events.append(("good", f"{opened.name} now has a market "
                                        "flying your colours."))
 
-        for key, n in works.yields_of(col).items():
-            amount = n * days
+        produced = {key: n * days for key, n in works.yields_of(col).items()}
+        # A power that annexed the ground takes its share off the top, before
+        # any of it reaches your stores.
+        territory.collect_tithe(game, col, produced, days)
+        for key, amount in produced.items():
             if key == "credits":
                 game.credits += amount
             elif key == "research":

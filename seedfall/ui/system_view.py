@@ -7,7 +7,9 @@ from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
 from ..core.util import cost_line, duration, num, pct
 from ..data.factions import FACTIONS_BY_ID
+from ..data.territory import TRESPASS_NOTE
 from ..sim import colony as colony_sim
+from ..sim import territory as territory_sim
 from ..sim import dig as dig_sim
 from ..sim import mining
 from ..sim import responses as response_sim
@@ -436,6 +438,14 @@ class SystemView(View):
         cards = []
         widgets = [note("A grown colony gestates for months and costs almost nothing "
                         "in credits. A fabricator yard is the opposite bargain.")]
+        # Planting on somebody's register is allowed and it is not free. Say so
+        # here rather than in the log afterwards.
+        claimant = territory_sim.claimant(g, sys)
+        if claimant:
+            widgets.append(label(
+                TRESPASS_NOTE.format(power=FACTIONS_BY_ID[claimant].name,
+                                     cost=territory_sim.trespass_cost(g, sys)),
+                "", "warn", wrap=True))
         for c in options:
             ok, why = colony_sim.can_found(g, sys, body, c.id)
             card = Card(selectable=ok)
