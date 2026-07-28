@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 
 from ..core.save import register
 from ..data.colonies import COLONIES_BY_ID, colonies_for
-from . import works
+from . import loyalty, works
 from ..world.economy import make_market
 from ..world.galaxy import Port
 
@@ -106,6 +106,7 @@ def found(game, system, body, class_id: str):
                  body_id=body.id, need=max(10, round(c.days / speed)))
     body.colony = col.id
     game.colonies.append(col)
+    loyalty.record(game, "colony")
     return col, ""
 
 
@@ -232,6 +233,7 @@ def ward_at(game, system_id: int) -> float:
 
 
 def bloom_attack(game, system, rng) -> list[Colony]:
+    """Losses here are reported to the bridge — some of them built the place."""
     """The Bloom eats colonies it reaches — unless something is shooting back.
 
     A station that wards the system also has guns pointed at its own perimeter,
@@ -252,6 +254,7 @@ def bloom_attack(game, system, rng) -> list[Colony]:
     if lost:
         game.colonies = [c for c in game.colonies if c not in lost]
         close_harbour(game, system)
+        loyalty.record(game, "colony_lost", scale=len(lost))
     return lost
 
 

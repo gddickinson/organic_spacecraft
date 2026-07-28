@@ -8,6 +8,7 @@ from ..core.util import credits as cr
 from ..core.util import num, pct
 from ..data.commodities import BY_ID, COMMODITIES, bulk_of
 from ..data.factions import FACTIONS_BY_ID, standing
+from ..sim import loyalty as loyalty_sim
 from ..sim.crew import daily_wages, recruit_pool
 from ..sim.fieldwork import buy_field_notes, xeno_notes_price
 from ..sim import xeno as xeno_sim
@@ -153,6 +154,10 @@ class PortView(View):
             g.adjust_rep(sys.port.faction, -8)
             self.win.toast("They took it. They also logged who sold it.", "osteo")
         g.credits += n * price
+        # A sale worth noticing is one the quartermaster notices.
+        if n * price >= 2500:
+            loyalty_sim.record(g, "trade_profit",
+                               scale=min(2.0, n * price / 6000))
         add_cargo(g.ship, cid, -n)
         apply_sale(sys.market, cid, n)
         g.adjust_rep(sys.port.faction,
@@ -330,6 +335,7 @@ class PortView(View):
         for l in g.ship.layers:
             l.hp = l.max
         g.ship.disabled = []
+        loyalty_sim.record(g, "repair")
         g.add_log("Hull restored to specification in dock.", "good")
         self.win.refresh()
 
@@ -387,9 +393,24 @@ class PortView(View):
                     text += f" · {o.trait_name}"
                 h.addWidget(label(text))
                 h.addStretch(1)
+                mood, tint = loyalty_sim.band(o)
+                h.addWidget(Pill(mood, tint))
                 h.addWidget(Pill(f"level {o.level}", "lumen"))
                 h.addWidget(button("Pay off", lambda _=False, off=o: self._dismiss(off)))
                 bridge.add(w)
+                conviction = loyalty_sim.conviction_of(o)
+                if conviction is not None:
+                    bridge.add(note(f"{conviction.name}. {conviction.blurb}"))
+            bridge.add(spacer(4), mono_label("Keeping them"))
+            bonus = self._bonus_cost()
+            bridge.add(note("A bonus buys goodwill outright. Shore leave costs "
+                            "you a week and buys more of it — and the ship goes "
+                            "nowhere while they take it."))
+            bridge.add_buttons(
+                button(f"Pay a bonus — {cr(bonus)}",
+                       lambda: self._bonus(), kind="primary",
+                       enabled=g.credits >= bonus),
+                button("Grant shore leave — 7 days", lambda: self._shore_leave()))
         else:
             bridge.add(note("Nobody on the bridge but you."))
         self.col.addWidget(bridge)
@@ -401,6 +422,10 @@ class PortView(View):
             card.add(label(o.role_name, "sub"))
             text = o.note + (f" · {o.trait_name}: {o.trait_note}" if o.trait_name else "")
             card.add(label(text, "", wrap=True))
+            conviction = loyalty_sim.conviction_of(o)
+            if conviction is not None:
+                card.add(label(conviction.name, "", "lumen"))
+                card.add(note(conviction.blurb))
             card.add(note(f"level {o.level} · {cr(o.wage)}/month"))
             card.add(button("Sign on", lambda _=False, who=o: self._hire(who),
                             kind="primary"))
@@ -422,6 +447,30 @@ class PortView(View):
         g.officers.append(officer)
         self._pool = [o for o in self._pool if o is not officer]
         g.add_log(f"{officer.name} signed on as {officer.role_name}.", "good")
+        self.win.refresh()
+
+    def _bonus_cost(self) -> int:
+        return int(sum(o.wage for o in self.game.officers) * 0.6)
+
+    def _bonus(self) -> None:
+        g = self.game
+        cost = self._bonus_cost()
+        if g.credits < cost:
+            self.win.toast("Not enough in the treasury for that.", "warn")
+            return
+        g.credits -= cost
+        loyalty_sim.record(g, "bonus_paid")
+        g.add_log("A bonus went round the bridge.", "good")
+        self.win.refresh()
+
+    def _shore_leave(self) -> None:
+        g = self.game
+        loyalty_sim.record(g, "shore_leave")
+        g.advance_days(7)
+        g.add_log("Seven days alongside. The bridge came back better company.",
+                  "good")
+        if self.win.check_ending():
+            return
         self.win.refresh()
 
     def _dismiss(self, officer) -> None:

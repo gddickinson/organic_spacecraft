@@ -166,6 +166,7 @@ seedfall/
 │   ├── expedition.py   the ground game: zone map, movement, attempts, hauls
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
 │   ├── consorts.py     escorts: standing orders, screening, who draws fire
+│   ├── loyalty.py      what the bridge thinks of how you run the ship
 │   ├── works.py        colony development: what a settlement becomes
 │   ├── flight.py       the helm: orbits, intercepts, routing, transfer burns
 │   ├── minigames.py    the docking control loop and the decoding bench
@@ -198,6 +199,7 @@ seedfall/
     ├── test_combat.py  5 tactical checks — arcs, stations, consorts
     ├── captain_ai.py   a competent test pilot: steers until its arcs bear
     ├── test_empire.py  6 colony checks — works, effects, costs, persistence
+    ├── test_crew.py    7 crew checks — convictions, loyalty, consequences
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
     └── test_ui.py      22 interface checks, rendered on Qt's offscreen platform
 ```
@@ -285,6 +287,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   triggered where the work completes.** Opening a harbour was read only at
   maturation, so a colony that built one afterwards had the `port` effect and
   no market.
+- **A conviction that reacts to an event nothing raises is dead flavour.**
+  `data/convictions.py` names events; something in `sim/` or `ui/` has to call
+  `loyalty.record()` with that exact string or the belief never fires. A check
+  in `test_crew.py` greps the tree and fails on any event that is never raised
+  — it caught ten of them on the day the system was written, including every
+  belief the xenologist held.
+- **Loyalty bands and loyalty mechanics share their edges.** `BANDS` in
+  `data/convictions.py` turns on `WALKOUT` and `RESTLESS`, the same constants
+  `effective_level()` uses, so the pill on the roster is a statement about what
+  the officer will actually do. Move one and move the other.
 - **Colony effects are a closed vocabulary.** `test_sim.py` asserts that every
   key in a `ColonyClass.effects` is one the game actually reads, so a typo in a
   station definition fails the suite instead of silently doing nothing.
@@ -303,6 +315,9 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   finished work changes production, that its effects reach ward, build sites
   and sensors, that material is charged up front, and that works survive a
   save.
+- **`test_crew.py`** checks that the same act pulls a bridge apart rather than
+  together, that loyalty is felt at the crew stations and not only on a roster,
+  and that a year of missed payroll actually costs you officers.
 - **`test_flight.py`** holds the helm to its promises: that a seed grows one
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that

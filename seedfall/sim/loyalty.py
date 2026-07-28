@@ -1,0 +1,167 @@
+"""Loyalty — how the bridge feels about the way you run the ship.
+
+Everything here hangs off one call. `record()` reports something the ship did;
+each officer feels it through their own convictions, and the number that comes
+out changes how well they hold a station and whether they stay at all. Nothing
+else needs to know which officer believes what.
+"""
+
+from __future__ import annotations
+
+from ..data.convictions import (BANDS, CEILING, CONVICTIONS, CONVICTIONS_BY_ID,
+                                FLOOR, RESTLESS, START, UNIVERSAL, WALKOUT)
+
+
+def conviction_of(officer):
+    return CONVICTIONS_BY_ID.get(getattr(officer, "conviction", None) or "")
+
+
+def loyalty_of(officer) -> float:
+    """Officers from older saves signed on before anyone asked them."""
+    value = getattr(officer, "loyalty", None)
+    return START if value is None else value
+
+
+def band(officer) -> tuple[str, str]:
+    value = loyalty_of(officer)
+    out = BANDS[0]
+    for edge, name, tint in BANDS:
+        if value >= edge:
+            out = (edge, name, tint)
+    return out[1], out[2]
+
+
+def shift(officer, delta: float) -> float:
+    officer.loyalty = max(FLOOR, min(CEILING, loyalty_of(officer) + delta))
+    return officer.loyalty
+
+
+def feels(officer, event: str) -> float:
+    """How much this one officer cares about this event."""
+    total = UNIVERSAL.get(event, 0.0)
+    conviction = conviction_of(officer)
+    if conviction is not None:
+        total += conviction.reacts.get(event, 0.0)
+    return total
+
+
+def record(game, event: str, scale: float = 1.0) -> list[tuple]:
+    """Report something the ship did. Returns (officer, delta) for those who felt it."""
+    moved = []
+    for officer in getattr(game, "officers", []):
+        delta = feels(officer, event) * scale
+        if abs(delta) < 0.005:
+            continue
+        shift(officer, delta)
+        moved.append((officer, delta))
+    return moved
+
+
+def align(game, faction: str, delta: float) -> None:
+    """Standing with a power drags its partisans along with it."""
+    for officer in getattr(game, "officers", []):
+        conviction = conviction_of(officer)
+        if conviction is not None and conviction.aligned == faction:
+            shift(officer, delta * 0.25)
+
+
+# ── what it buys you, and what it costs ────────────────────────────────────
+
+def effective_level(officer) -> float:
+    """The level an officer actually works at.
+
+    A devoted officer gives you more than they are paid for; a restless one is
+    going through the motions. This is the number the crew stations read, so
+    loyalty is felt at the helm rather than only on a roster screen.
+    """
+    value = loyalty_of(officer)
+    if value >= 85:
+        factor = 1.2
+    elif value >= 68:
+        factor = 1.08
+    elif value >= RESTLESS:
+        factor = 1.0
+    elif value >= WALKOUT:
+        factor = 0.72
+    else:
+        factor = 0.45
+    return officer.level * factor
+
+
+def restless(game) -> list:
+    return [o for o in getattr(game, "officers", [])
+            if WALKOUT <= loyalty_of(o) < RESTLESS]
+
+
+def walkouts(game) -> list:
+    """Officers who have had enough. They are removed from the roster."""
+    leaving = [o for o in getattr(game, "officers", [])
+               if loyalty_of(o) < WALKOUT]
+    for officer in leaving:
+        game.officers = [o for o in game.officers if o.id != officer.id]
+    return leaving
+
+
+def drift(game, days: float) -> None:
+    """Loyalty creeps toward the ship's mood when nothing else happens.
+
+    Deliberately weak. A strong pull here flattens every officer onto the same
+    number within a year and throws away the convictions entirely — what you
+    did has to matter more than the ambient weather.
+    """
+    target = 40 + getattr(game.ship, "morale", 0.7) * 32
+    for officer in getattr(game, "officers", []):
+        value = loyalty_of(officer)
+        officer.loyalty = value + (target - value) * min(0.35, 0.0022 * days)
+
+
+def tick(game, days: float, paid: bool) -> list[tuple[str, str]]:
+    """The daily pass. Returns log events."""
+    events: list[tuple[str, str]] = []
+    if not getattr(game, "officers", []):
+        return events
+    record(game, "payday" if paid else "missed_pay",
+           scale=min(3.0, max(0.25, days / 30)))
+    drift(game, days)
+
+    for officer in walkouts(game):
+        events.append(("bad", f"{officer.name} has left the ship at the first "
+                              "port that would take them."))
+    for officer in restless(game):
+        if getattr(officer, "_warned", False):
+            continue
+        officer._warned = True
+        events.append(("warn", f"{officer.name} wants a word about how things "
+                               "are being run."))
+    for officer in getattr(game, "officers", []):
+        if loyalty_of(officer) >= RESTLESS:
+            officer._warned = False
+    return events
+
+
+def summary(game) -> dict:
+    officers = getattr(game, "officers", [])
+    if not officers:
+        return {"mean": 0.0, "restless": 0, "count": 0}
+    values = [loyalty_of(o) for o in officers]
+    return {"mean": sum(values) / len(values),
+            "restless": len([v for v in values if v < RESTLESS]),
+            "count": len(officers)}
+
+
+def assign(rng, officer) -> None:
+    """Give a new officer something to believe, weighted by what they do."""
+    leaning = {
+        "science": ("xenophile", "licence"),
+        "nav": ("free", "shipmate"),
+        "engineer": ("builder", "shipmate"),
+        "tactical": ("burner", "purse"),
+        "medical": ("shipmate", "licence"),
+        "quartermaster": ("purse", "free"),
+    }
+    pool = leaning.get(officer.role, ())
+    if pool and rng.chance(0.6):
+        officer.conviction = rng.pick(list(pool))
+    else:
+        officer.conviction = rng.pick([c.id for c in CONVICTIONS])
+    officer.loyalty = START + rng.float(-8, 8)

@@ -19,6 +19,7 @@ from ..sim import stations as st_mod
 from ..sim import tactical as tac
 from ..sim import combat as combat_sim
 from ..sim import consorts as consort_sim
+from ..sim import loyalty as loyalty_sim
 from ..data.consorts import ORDERS as CONSORT_ORDERS
 from ..data.consorts import ORDERS_BY_ID as CONSORT_ORDERS_BY_ID
 from ..sim import research as research_sim
@@ -284,6 +285,14 @@ class BattleView(View):
         g = self.game
         fid = b.enemy_faction
 
+        loyalty_sim.record(g, {"destroyed": "victory", "driven-off": "victory",
+                               "parley": "parley", "lost": "defeat",
+                               "escaped": "defeat"}.get(b.result, ""))
+        if b.result == "destroyed" and fid == "bloom":
+            loyalty_sim.record(g, "bloom_kill")
+        elif b.result == "destroyed" and fid in ("charter", "concordat"):
+            loyalty_sim.record(g, "kill_licensed")
+
         # Consorts lost in the action are lost for good, whatever the outcome.
         dead = consort_sim.losses(b)
         if dead:
@@ -291,6 +300,7 @@ class BattleView(View):
             g.fleet = [s for s in g.fleet if s.uid not in gone]
             for c in dead:
                 g.add_log(f"{c.name} was lost with all hands.", "bad")
+            loyalty_sim.record(g, "consort_lost", scale=len(dead))
 
         if b.result == "lost":
             self.win.battle = None

@@ -10,6 +10,8 @@ import itertools
 from dataclasses import dataclass, field
 
 from ..core.save import register
+from ..data import convictions
+from . import loyalty
 from ..data.lore import CREW_FIRST, CREW_LAST, CREW_ROLES
 
 _uid = itertools.count(1)
@@ -41,6 +43,8 @@ class Officer:
     trait_id: str | None = None
     trait_name: str = ""
     trait_note: str = ""
+    conviction: str | None = None
+    loyalty: float = convictions.START
 
     @property
     def label(self) -> str:
@@ -52,7 +56,7 @@ def make_officer(rng, role_id: str | None = None, min_level: int = 1) -> Officer
     level = rng.weighted([(5, min_level), (4, min_level + 1),
                           (2, min_level + 2), (1, min_level + 3)])
     trait = rng.pick(TRAITS) if rng.chance(0.55) else None
-    return Officer(
+    officer = Officer(
         id=next(_uid),
         name=f"{rng.pick(CREW_FIRST)} {rng.pick(CREW_LAST)}",
         role=role[0], role_name=role[1], stat=role[2], note=role[3],
@@ -61,13 +65,30 @@ def make_officer(rng, role_id: str | None = None, min_level: int = 1) -> Officer
         trait_name=trait[1] if trait else "",
         trait_note=trait[2] if trait else "",
     )
+    loyalty.assign(rng, officer)
+    return officer
 
 
 def starting_crew(rng) -> list[Officer]:
-    """A starting bridge: three core roles, modest experience."""
-    return [make_officer(rng, "science", 2),
+    """A starting bridge: three core roles, modest experience.
+
+    Names are made distinct: drawing three at random from a list of this size
+    puts two Mareks on the same bridge about one game in ten, which reads as a
+    bug even though it is only chance.
+    """
+    crew = [make_officer(rng, "science", 2),
             make_officer(rng, "nav", 2),
             make_officer(rng, "engineer", 2)]
+    seen: set[str] = set()
+    for officer in crew:
+        first = officer.name.split()[0]
+        guard = 0
+        while first in seen and guard < 20:
+            first = rng.pick(CREW_FIRST)
+            guard += 1
+        seen.add(first)
+        officer.name = f"{first} {officer.name.split(' ', 1)[1]}"
+    return crew
 
 
 def recruit_pool(rng, port_level: int) -> list[Officer]:

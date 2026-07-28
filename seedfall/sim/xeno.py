@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from ..data.xenotech import (CULTURES, CULTURES_BY_ID, DIG_YIELD, XENOLITH_STUDY,
                              XENOTECH, XENOTECH_BY_ID, XenoTech, by_culture)
+from . import loyalty
 
 
 def study_of(game, tech_id: str) -> float:
@@ -49,8 +50,12 @@ def add_study(game, tech_id: str, points: float) -> tuple[float, bool]:
     if tech is None or is_incorporated(game, tech_id):
         return 0.0, False
     game.xeno_study[tech_id] = study_of(game, tech_id) + points
+    loyalty.record(game, "xeno_study", scale=min(2.0, points / 40))
     if game.xeno_study[tech_id] >= tech.study and prerequisites_met(game, tech):
         incorporate(game, tech_id)
+        loyalty.record(game, "xeno_incorporated")
+        if tech_id == "firstcontact" or tech.id.startswith("abyssal"):
+            loyalty.record(game, "first_contact")
         return points, True
     return points, False
 

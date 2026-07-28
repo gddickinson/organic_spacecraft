@@ -14,6 +14,7 @@ from ..data.diplomacy import (ACTIONS_BY_ID, AGENDAS, CONCORD_RELATION,
                               CONCORD_STANDING, INITIAL_RELATIONS,
                               RELATION_BANDS)
 from ..data.factions import FACTIONS_BY_ID
+from . import loyalty
 
 POWERS = ("charter", "concordat", "freeholds", "sanhedrin")
 
@@ -149,6 +150,8 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
                 game.adjust_rep(power, 6)
                 lines.append(f"{FACTIONS_BY_ID[power].short} appreciated it.")
         shift_relation(game, faction, other, -8)
+        if other == "charter":
+            loyalty.record(game, "denounce_charter")
         lines.append(f"{FACTIONS_BY_ID[other].short} will remember this.")
     elif action_id == "broker":
         if other is None:
@@ -164,6 +167,7 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
                      f"{FACTIONS_BY_ID[other].short}: {before:+.0f} → {after:+.0f}.")
     elif action_id == "treaty":
         state.treaties.append(faction)
+        loyalty.record(game, "treaty")
         game.adjust_rep(faction, gain)
         # Signing with one power cools you slightly with its enemies.
         for rival in rivals_of(game, faction):

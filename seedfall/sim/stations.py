@@ -70,8 +70,15 @@ def orders_for(station: str) -> list[Order]:
     return [o for o in ORDERS if o.station == station]
 
 
-def officer_level(officers, stat: str) -> int:
-    return max((o.level for o in officers if o.stat == stat), default=0)
+def officer_level(officers, stat: str) -> float:
+    """The level the best-placed officer is actually working at.
+
+    Loyalty is felt here rather than only on a roster screen: a devoted officer
+    holds a station above their grade, a restless one goes through the motions.
+    """
+    from . import loyalty
+    return max((loyalty.effective_level(o) for o in officers if o.stat == stat),
+               default=0.0)
 
 
 # ── helm ───────────────────────────────────────────────────────────────────

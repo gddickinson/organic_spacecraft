@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from ..data.colonies import COLONIES_BY_ID
 from ..data.works import MAX_WORKS, WORKS_BY_ID, WORKS
+from . import loyalty
 
 
 # ── what a colony is, once its works are counted ───────────────────────────
@@ -158,6 +159,9 @@ def advance(game, col, days: float) -> list[tuple[str, str]]:
     col.works.append(work.id)
     col.job = None
     col.job_days = 0.0
+    loyalty.record(game, "work_done")
+    if work.effects.get("port"):
+        loyalty.record(game, "harbour")
     return [("good", f"{col.name}: {work.name.lower()} complete.")]
 
 

@@ -12,6 +12,7 @@ from ..data.factions import FACTIONS
 from ..data.tech import STARTING_TECH, bonuses
 from ..sim import colony as colony_sim
 from ..sim import crew as crew_sim
+from ..sim import loyalty as loyalty_sim
 from ..sim import research as research_sim
 from ..sim import shipyard as shipyard_sim
 from ..sim import threat as threat_sim
@@ -174,12 +175,17 @@ class Game:
                 lost = max(1, round(self.ship.crew * 0.08 * n))
                 self.ship.crew = max(0, self.ship.crew - lost)
                 self.add_log(f"Air is gone. {lost} of the crew did not make it.", "bad")
+                loyalty_sim.record(self, "crew_death")
                 if self.ship.crew <= 0:
                     self.die("Nobody left aboard to hold the watch.")
                     return
 
         crew_sim.morale_tick(self.ship, n, paid, is_breached(self.ship), st.morale)
         crew_sim.grant_xp(self.officers, "*", n * 1.5)
+        if is_breached(self.ship):
+            loyalty_sim.record(self, "breach", scale=min(2.0, n / 10))
+        for kind, text in loyalty_sim.tick(self, n, paid):
+            self.add_log(text, kind)
 
         # Notes banked against a technology whose prerequisites have since been
         # met can finally be made sense of.

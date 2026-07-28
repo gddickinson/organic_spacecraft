@@ -9,6 +9,7 @@ from ..data.chassis import CHASSIS_BY_ID, FAMILY_LABEL
 from ..data.commodities import BY_ID
 from ..data.part_types import SLOT_LABEL, SLOT_ORDER
 from ..data.parts import part
+from ..sim import loyalty as loyalty_sim
 from ..sim.actions import transfer
 from ..sim.ship import cargo_used, hull_pct, is_breached
 from .widgets import (Bar, Panel, Pill, View, button, label, mono_label, note,
@@ -126,14 +127,24 @@ class ShipView(View):
         p.add_bar(g.ship.morale, "warn" if g.ship.morale < 0.4 else "lumen")
         p.add(spacer(4))
         if g.officers:
+            mood = loyalty_sim.summary(g)
+            p.add_row("Bridge loyalty", f"{mood['mean']:.0f}"
+                      + (f" · {mood['restless']} restless" if mood["restless"] else ""),
+                      "warn" if mood["restless"] else "")
+            p.add(spacer(3))
             for o in g.officers:
                 row = QWidget()
                 h = QHBoxLayout(row)
                 h.setContentsMargins(0, 0, 0, 0)
                 h.addWidget(label(f"{o.name} · {o.role_name}"))
                 h.addStretch(1)
+                band, tint = loyalty_sim.band(o)
+                h.addWidget(Pill(band, tint))
                 h.addWidget(Pill(f"lvl {o.level}", "lumen"))
                 p.add(row)
+                conviction = loyalty_sim.conviction_of(o)
+                if conviction is not None:
+                    p.add(label(conviction.name, "note"))
         else:
             p.add(note("No officers signed on."))
         return p

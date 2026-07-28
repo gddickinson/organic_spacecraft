@@ -10,6 +10,7 @@ from __future__ import annotations
 from ..data.lore import VICTORIES
 from ..world.galaxy import distance
 from .colony import bloom_attack, ward_at
+from . import loyalty
 from . import bloom as bloom_sim
 from . import diplomacy as dip_sim
 
@@ -55,6 +56,7 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
             if clean and rng.chance(0.14 * stage.spread
                                     * (1 - ward_at(game, clean[0].id))):
                 clean[0].bloom = 0.10
+                loyalty.record(game, "bloom_spread")
                 events.append(("bad", f"Unlicensed growth detected at {clean[0].name}."))
 
         game.bloom_total = bloom_burden(game)
@@ -82,6 +84,8 @@ def cleanse(game, system, rng):
                       f"{round(need)} points of armament against a mass this size.")
     cut = min(system.bloom, 0.25 + (firepower - need) / 300 + rng.float(0, 0.15))
     system.bloom = max(0.0, system.bloom - cut)
+    if system.bloom <= 0.02:
+        loyalty.record(game, "bloom_cleansed")
     return {"cut": cut,
             "backlash": round(cut * 260 * rng.float(0.6, 1.3)),
             "cleared": system.bloom <= 0.02}, ""

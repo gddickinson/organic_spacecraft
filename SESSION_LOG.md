@@ -2,6 +2,47 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a bridge with opinions
+
+- **Officers were stat blocks with wages.** They modified rolls, gained levels,
+  and never wanted anything or noticed anything. Each one now signs on with a
+  **conviction** — believes in the licence, wants the Bloom burned, thinks it
+  should be studied, Freehold to the bone, wants something left behind, in it
+  for the money, loyal to the hull — and a **loyalty** that moves with what the
+  ship actually does.
+- **The same act reads differently from three seats.** Burning a Bloom system
+  is a good day's work to a veteran of Kessel's Reach and a lost library to a
+  xenologist; a treaty with the Charter costs you both Freeholders on the
+  bridge. Measured across four convictions and four events, they end 38 points
+  apart.
+- **Loyalty is felt at the stations, not on a roster screen.** `officer_level()`
+  — the number the helm, gunnery and engineering seats read — now returns the
+  level an officer is *working* at: 1.2× when devoted, 0.72× when restless,
+  0.45× when mutinous. It plugs straight into the crew stations built in the
+  combat cycle.
+- **A year of missed payroll costs you the bridge**, first walkout in month
+  eleven. Paying properly and keeping the hull whole ends a year at mean
+  loyalty 84. Two port actions push back: a bonus, and shore leave that costs
+  you a week of the calendar.
+- **My first balance pass was wrong and the playtest showed it.** Loyalty drift
+  toward ship morale was strong enough to flatten every officer onto the same
+  number within a year — 76.4, 76.4, 76.4 — which threw the convictions away
+  entirely. Drift is now a fifth as strong: what you did has to outweigh the
+  ambient weather.
+- **A check that greps the source found ten dead beliefs.** Convictions name
+  the events they react to, and nothing was raising `xeno_study`,
+  `xeno_incorporated`, `first_contact`, `bloom_cleansed`, `bloom_spread`,
+  `colony_lost`, `crew_death`, `trade_profit` or `repair` — the xenologist's
+  entire belief set among them. All now hooked at real sites.
+- **Two smaller fixes.** The display bands were named on their own scale, so an
+  officer reading "Mutinous" was mechanically merely restless; they now turn on
+  the same constants the mechanics do. And the starting bridge drew names at
+  random from a list of 27, which put two officers with the same first name on
+  the same bridge about one game in ten — I got three Mareks on the first run.
+- Suites: 27 simulation, 5 xenotech, 14 playability, 5 tactical, 5 flight,
+  6 empire, **7 crew** (new), 23 interface — 92 checks green. 94 modules, all
+  under 500 lines.
+
 ## 2026-07-27 — SEEDFALL: colonies that keep growing
 
 - **A colony was a purchase, not a place.** Plant it, wait out the gestation,
