@@ -118,13 +118,15 @@ MODULES: list[Part] = [
          "dead."),
     Part("silicon_core", "Silicon Core", "compute", "any", None,
          20, {"credits": 5800, "silicon": 4},
-         {"accuracy": 0.10, "jump": 0.5, "research": 0.2, "draw": 3},
+         {"accuracy": 0.10, "jump": 0.5, "research": 0.2, "draw": 3,
+          "doctrine": 0.15},
          "An inorganic payload planted with the seed, like a stone in a fruit. "
          "You cannot grow a processor, so every living ship carries one and "
          "resents it."),
     Part("dishbrain", "DishBrain Cortex", "compute", "grown", "dishbrain",
          24, {"credits": 16000, "biomass": 14, "silicon": 3},
-         {"accuracy": 0.12, "evade": 0.08, "research": 0.6, "draw": 1},
+         {"accuracy": 0.12, "evade": 0.08, "research": 0.6, "draw": 1,
+          "doctrine": 0.45},
          "Cultured neurons on a microelectrode array, trained the way the first "
          "ones were: by playing games with them until they stopped losing."),
     Part("reservoir", "Reservoir Lattice", "compute", "grown", "reservoir",
@@ -134,12 +136,14 @@ MODULES: list[Part] = [
          "answer off the surface. Computation you grew rather than programmed."),
     Part("ai_core", "Fabricated AI Core", "compute", "fabricated", "aicore",
          40, {"credits": 28000, "alloy": 14, "silicon": 22},
-         {"accuracy": 0.20, "jump": 1.0, "research": 1.0, "draw": 8},
+         {"accuracy": 0.20, "jump": 1.0, "research": 1.0, "draw": 8,
+          "doctrine": 0.80},
          "Yards-standard inference stack. Faster and more precise than anything "
          "wet, and it has never once had an opinion about being switched off."),
     Part("neuromorph", "Neuromorphic Bridge", "compute", "any", "neuromorphic",
          36, {"credits": 44000, "silicon": 26, "biomass": 12, "magnetite": 6},
-         {"accuracy": 0.18, "evade": 0.10, "research": 1.2, "regen": 0.10, "draw": 5},
+         {"accuracy": 0.18, "evade": 0.10, "research": 1.2, "regen": 0.10,
+          "draw": 5, "doctrine": 0.90},
          "OECTs and electrogenetics binding a wet cortex to a dry one so tightly "
          "that neither is in charge. The cyborg thesis, fitted as a component."),
 
@@ -211,12 +215,14 @@ MODULES: list[Part] = [
          "hulls do not heal, so somebody has to be holding the torch."),
     Part("swarm_logic", "Swarm Logic Core", "compute", "synthetic", "dronework",
          26, {"credits": 22000, "silicon": 18, "alloy": 8},
-         {"accuracy": 0.16, "research": 0.5, "draw": 6, "sensor": 0.6},
+         {"accuracy": 0.16, "research": 0.5, "draw": 6, "sensor": 0.6,
+          "doctrine": 0.70},
          "Eleven hundred small minds voting on where to be. It is not clever, "
          "individually, and collectively it does not need to be."),
     Part("cold_ledger", "Cold Ledger", "compute", "synthetic", "synthmind",
          30, {"credits": 38000, "silicon": 30},
-         {"accuracy": 0.22, "jump": 1.2, "research": 1.4, "draw": 7},
+         {"accuracy": 0.22, "jump": 1.2, "research": 1.4, "draw": 7,
+          "doctrine": 1.00},
          "The Dry Choir's own inference stack, sold sealed. It answers "
          "navigation problems before the question finishes and declines to "
          "discuss anything else."),

@@ -2,6 +2,49 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: the seats you leave stop being stupid
+
+Task #56, the half about automatic piloting and battle systems. The gap turned
+out to be sharper than "add an autopilot":
+
+    if not directed:
+        order_id = side.helm_order or "hold"     # repeat, forever
+
+An unattended helm repeated your last order until you came back to it, and an
+unattended gunner salvoed every turn whatever the heat and whatever bore. Order
+*close* and walk to gunnery, and the helm flies you down the enemy's throat for
+the rest of the engagement. That is a punishment for looking away, not a
+decision about where to spend attention.
+
+- **A battle computer chooses.** `sim/doctrine.py` reads band, aspect, heat,
+  hull and what bears, and picks an order for every seat nobody is in.
+- **It says so first.** The battle screen names the order and the reasoning
+  before the turn resolves — a system that acts on your behalf without stating
+  its intent is this project's signature defect wearing a uniform.
+- **It is not free and not better than you.** `doctrine` comes off the compute
+  fitting, 0.15 for the core you launch with to 1.00 for a Cold Ledger, and
+  below 0.30 there is no computer at all — so the hull you start with behaves
+  exactly as it always did, which is what the other 490 checks assume. A seat
+  run by the machine works at the officer's rate: measured, it vents 90% of
+  what you vent sitting in it. Measured effect over 24 fights: 12.1% of the
+  enemy hull removed with no computer, 16.9% with an excellent one.
+- **A bug that gave confident bad advice.** `_bearing_count` read
+  `side.weapons`; the mounts hang off `side.st.weapons`. It returned an empty
+  list every time, so every count was zero, gunnery always concluded "nothing
+  bears", and the helm came about forever chasing an arc it was already in.
+  Nothing raised. It simply advised badly, with complete confidence — the
+  worst failure mode an advisory system has.
+- **Doctrine was coupled to a Battle it never had.** The first cut took the
+  range band off `battle.range_units`, but `run_helm` is handed two sides and
+  nothing else. The two bodies already know how far apart they are.
+- **A check that demanded variety where correctness implies constancy.** My
+  first version asserted the computer's helm order *changed* over a fight — but
+  a hull already in its preferred band should say "hold" every turn and be
+  right to. It was failing the computer for being correct. Rewritten to the
+  actual claim: does it *depart from what it was last told*, and does it adapt
+  across situations rather than parroting one answer? 10/10 engagements depart.
+- 498 checks green, every file under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: the sector stops being empty, and the chart starts predicting
 
 Follow-on from the helm complaint. Quays got positions last cycle; ships had

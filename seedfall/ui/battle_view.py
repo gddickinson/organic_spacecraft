@@ -68,6 +68,10 @@ class BattleView(View):
             self.col.addWidget(self._company(b))
         self.row(self._ship_panel(b, b.player, self.game.ship.name),
                  self._ship_panel(b, b.enemy, b.enemy_name))
+        if not b.over:
+            # What the seats you are not in will do, before the turn resolves.
+            from .doctrine_panel import intentions
+            self.col.addWidget(intentions(self, b))
         self.col.addWidget(self._orders(b) if not b.over else self._outcome(b))
         self.col.addWidget(self._log(b))
 

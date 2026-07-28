@@ -92,6 +92,10 @@ class Stats:
     crew_guard: float = 0
     flak: int = 0
     refine: float = 0
+    #: How well the ship can fight itself. An unattended station repeats its
+    #: last order forever; a battle computer lets it choose one. See
+    #: `sim/doctrine.py`.
+    doctrine: float = 0.0
     can_colonise: bool = False
     can_dive: bool = False
     has_drift: bool = False
@@ -134,7 +138,7 @@ def build_layers(ship: Ship, bonus: dict | None = None) -> Ship:
 
 _FX_KEYS = ("power draw jump speed evade sensor scan cargo berths regen vent "
             "heatCap mine drink graze phos research accuracy armour o2 morale "
-            "crewGuard flak repair colony dive drift refine conceal").split()
+            "crewGuard flak repair colony dive drift refine conceal doctrine").split()
 
 
 def stats(ship: Ship, bonus: dict | None = None, officers=()) -> Stats:
@@ -186,6 +190,7 @@ def stats(ship: Ship, bonus: dict | None = None, officers=()) -> Stats:
         # surveys started using it to decide what a sweep can reach.
         sensor=max(0.5, 2 + fx["sensor"] + bonus.get("sensor", 0) + sci * 0.2),
         scan=clamp(0.25 + fx["scan"] + bonus.get("scan", 0) + sci * 0.06, 0, 1),
+        doctrine=clamp(fx["doctrine"] + bonus.get("doctrine", 0), 0, 1),
         cargo=max(0, ch.cargo + fx["cargo"]),
         berths=int(ch.crew + fx["berths"]),
         armour=fx["armour"] + round(eng * 0.5),

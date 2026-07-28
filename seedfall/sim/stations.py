@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from . import doctrine
 from . import tactical as tac
 
 STATIONS = [
@@ -88,8 +89,12 @@ def run_helm(side, other, order_id: str | None, directed: bool, officers) -> str
     turn_limit, accel, top = tac.manoeuvrability(side.st)
     skill = officer_level(officers, "nav")
     if not directed:
-        # An officer holds the last order rather than improvising.
-        order_id = side.helm_order or "hold"
+        # A battle computer lets the seat choose; without one the officer
+        # holds the last order rather than improvising, which flew a hull
+        # straight down the enemy's throat for the rest of an engagement
+        # because "close" was the last thing anybody said.
+        chosen = doctrine.order_for(side, other, "helm")
+        order_id = chosen[0] if chosen else (side.helm_order or "hold")
         turn_limit *= min(1.0, UNATTENDED_TURN + TURN_PER_LEVEL * skill)
     side.helm_order = order_id
 
@@ -124,18 +129,35 @@ def run_helm(side, other, order_id: str | None, directed: bool, officers) -> str
 
 # ── engineering ────────────────────────────────────────────────────────────
 
-def run_engineering(side, order_id: str | None, directed: bool, officers) -> str:
+def run_engineering(side, order_id: str | None, directed: bool, officers,
+                    other=None) -> str:
     skill = officer_level(officers, "engineering")
     side.route = None
     if not directed:
-        # Left alone, engineering keeps the hull cool and nothing else.
-        side.ship.heat = max(
-            0.0, side.ship.heat
-            - side.st.vent * (UNATTENDED_VENT + VENT_PER_LEVEL * skill))
-        return ""
+        chosen = (doctrine.order_for(side, other, "engineering")
+                  if other is not None else None)
+        if chosen is None:
+            # Left alone and unaided, engineering keeps the hull cool and
+            # nothing else — no patching, no power routing, ever.
+            side.ship.heat = max(
+                0.0, side.ship.heat
+                - side.st.vent * (UNATTENDED_VENT + VENT_PER_LEVEL * skill))
+            return ""
+        # With a computer the section works, at the unattended rate.
+        order_id = chosen[0]
+        unaided = True
+    else:
+        unaided = False
+
+    # A computer running the section unaided works it at the rate an officer
+    # manages, not the rate you manage. Handing the seat to the machine must
+    # not be as good as sitting in it.
+    share = 1.0 if not unaided else \
+        min(1.0, UNATTENDED_VENT + VENT_PER_LEVEL * skill)
 
     if order_id == "vent":
-        side.ship.heat = max(0.0, side.ship.heat - side.st.vent * 2.2 - 12)
+        side.ship.heat = max(
+            0.0, side.ship.heat - (side.st.vent * 2.2 + 12) * share)
         return "venting hard"
     if order_id == "route_guns":
         side.route = "guns"
@@ -148,7 +170,8 @@ def run_engineering(side, order_id: str | None, directed: bool, officers) -> str
         for layer in reversed(side.ship.layers):
             if layer.hp <= 0 or layer.hp >= layer.max:
                 continue
-            gain = layer.max * (0.06 + 0.02 * skill) * (1.6 if side.st.regen > 0 else 1.0)
+            gain = (layer.max * (0.06 + 0.02 * skill)
+                    * (1.6 if side.st.regen > 0 else 1.0) * share)
             gain = min(gain, layer.max - layer.hp)
             layer.hp += gain
             healed = gain

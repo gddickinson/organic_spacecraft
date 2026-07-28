@@ -56,6 +56,29 @@ an empty tank from becoming a deadlock. Local work (survey, extract, dig, land)
 flies the ship alongside first, so a player who never opens the helm still gets a
 coherent transit; the helm is where you choose a better one.
 
+**The seats you leave now think.** You are one person on a bridge with three
+stations: you take one each turn and the officers hold the other two. What
+"hold" meant was literal — `order_id = side.helm_order or "hold"` — so an
+unattended helm repeated your last order until you came back to it. Order
+*close* on turn one and walk to gunnery, and the helm flew you down the
+enemy's throat for the rest of the engagement while a competent navigator sat
+there doing exactly what they were told. That is not a hard choice about where
+to spend attention; it is a punishment for looking away.
+
+`sim/doctrine.py` is the battle computer. It reads the plane — band, aspect,
+heat, hull, what bears — and picks an order for each empty seat, and the
+battle screen states which and why **before** the turn resolves.
+
+It is neither free nor better than you. `doctrine` is a stat off the compute
+fitting: 0.15 for the wet-stack core you launch with, up to 1.00 for a Cold
+Ledger. Below `MINIMUM = 0.30` there is no computer and the old
+repeat-forever behaviour stands, which is what every other check in the suite
+was written against. Above it the shortlist widens with the rating. And a seat
+run by the machine works at the *officer's* rate, not yours — measured, the
+computer vents 90% of what you vent sitting there — so choosing a station
+still matters. Measured effect: 12.1% of the enemy's hull removed over 24
+fights with no computer, 16.9% with an excellent one.
+
 **The Verge is not empty.** Nothing gave another hull a *position*: encounters
 were rolled the instant you arrived and thrown away, consorts followed you
 implicitly, and faction ventures were a number in a ledger. So the sector
@@ -329,6 +352,7 @@ seedfall/
 │   ├── survey.py       what a way of looking costs, finds, and is blind to
 │   ├── anchorage.py    quays, hubs and holdings — places you can put in
 │   ├── traffic.py      other hulls: where they are and what they are doing
+│   ├── doctrine.py     the battle computer: what unattended seats decide
 │   ├── lifespan.py     ageing, decline, and the end of a career
 │   ├── upkeep.py       what each lineage eats, and what going short costs
 │   ├── minigames.py    the docking control loop and the decoding bench
@@ -345,6 +369,7 @@ seedfall/
 │   ├── crossing_panel.py  the four ways to fly it, costed on both clocks
 │   ├── anchorage_panel.py where you can put in, and how to get back to it
 │   ├── traffic_panel.py   who else is out here, and which of them runs dark
+│   ├── doctrine_panel.py  what the seats you are not in intend this turn
 │   ├── port_view.py    market, services, recruitment
 │   ├── ship_view.py    layer stack, fittings, crew, hold
 │   ├── yard_view.py    hull designer, build queue, fleet management

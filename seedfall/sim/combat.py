@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 
 from ..core.util import clamp
 from .battle_state import Battle, Side
+from . import doctrine
 from . import stations as st_mod
 from . import tactical as tac
 from .abilities import use_ability as _fire_ability
@@ -385,7 +386,7 @@ def _run_stations(b: Battle, rng) -> None:
                                 seat == "helm", b.officers)
     eng_text = st_mod.run_engineering(
         b.player, order.id if order and order.station == "engineering" else None,
-        seat == "engineering", b.officers)
+        seat == "engineering", b.officers, b.enemy)
 
     if order and order.station == "gunnery":
         if order.id == "salvo":
@@ -400,8 +401,21 @@ def _run_stations(b: Battle, rng) -> None:
             else:
                 _say(b, "Nothing will bear for an aimed shot.", "dim")
     elif seat != "gunnery":
-        # The gunner keeps working while you are elsewhere, less well.
-        _salvo(b, b.player, b.enemy, rng)
+        # The gunner keeps working while you are elsewhere, less well. With a
+        # battle computer they at least stop firing into an empty arc or
+        # cooking the mounts past the cap; without one it is salvo, always,
+        # whatever the heat and whatever bears.
+        chosen = doctrine.order_for(b.player, b.enemy, "gunnery")
+        pick = chosen[0] if chosen else "salvo"
+        if pick == "salvo":
+            _salvo(b, b.player, b.enemy, rng)
+        elif pick == "aimed":
+            usable = [w for w in b.player.st.weapons
+                      if w.wpn.bears_at(b.band) <= 0.5
+                      and st_mod.bears_on(b.player, b.enemy, w)[0]]
+            if usable:
+                _fire(b, b.player, b.enemy,
+                      max(usable, key=lambda w: w.wpn.dmg).id, rng)
 
     bits = [t for t in (helm_text, eng_text) if t]
     if bits:
