@@ -2,6 +2,34 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: the chart now says what you can get to
+
+- **The chart answered the wrong question.** It drew a dashed ring at the jump
+  range and greyed one button to "Out of range" — which is "can I jump there in
+  one hop". The question is "can I get there at all", by hopping, and often the
+  answer is no. Flooding from the start at starting jump range reaches 2 to all
+  42 systems depending on seed: median 13, a quarter of sectors under eight, one
+  in eight at three or fewer. A captain handed a two-system pocket saw forty
+  stars drawn no differently from the one next door.
+- `sim/reach.py` computes the reachable component, what lies beyond the wall,
+  and what each drive *this hull would actually accept* would open. The chart
+  strikes through walled stars and prints the line: "2 of 42 systems are
+  reachable at 8.9 ly — 40 lie beyond a gap no amount of hopping closes. A
+  Foldrunner Coil would reach 13.7 ly and open 40 more, once researched."
+- **Why the ladder is so steep, which the screen now admits.** `ion_cluster`,
+  `plasma_drive` and `fusion_torch` are fabricated-family and a grown hull
+  refuses them, so a NAVIS ladder is reaction organ 8.9, sail film 9.0,
+  foldrunner 13.6. `opens()` lists only graftable drives, because naming the
+  others would make one very expensive step look like a gentle climb.
+- **Checked before concluding**: a shipyard is within reach in 80 of 80 seeds,
+  so nobody is permanently stranded — the exit exists, it was just unsigned.
+  `MAX_LANE` does not prevent this and never claimed to: it stops a *star*
+  sitting alone, not a *cluster*.
+- Fuel is deliberately not modelled in reachability: ice can be cut anywhere,
+  so it paces a voyage rather than bounding it, and a wall that moved with the
+  tank would be a worse lie than no wall.
+- Suites: 45 — 366 checks green. 191 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: one chronicle, ten years, every screen
 
 - **Turned last cycle's accident into a standing check.** The README

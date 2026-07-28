@@ -169,6 +169,7 @@ seedfall/
 │   ├── contracts.py    generation, acceptance, progress, expiry
 │   ├── diplomacy.py    standing, the relations matrix, treaties, brokering
 │   ├── expedition.py   the ground game: zone map, movement, attempts, hauls
+│   ├── reach.py        what you can get to at all, and what a drive would open
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
 │   ├── assessment.py   reading an engagement: who wins, why, what to do
 │   ├── chains.py       commissions: work that escalates and closes doors
@@ -263,6 +264,7 @@ seedfall/
     ├── test_seats.py   6 seat checks — what taking a station is worth
     ├── test_founding.py 5 checks — the seed dialog says what will grow
     ├── test_attempts.py 6 checks — the odds shown are the odds rolled
+    ├── test_reach.py   6 reach checks — the chart's wall is a real wall
     ├── chronicle.py    one captain, one save, a decade of doing everything
     ├── test_chronicle.py 3 checks — that decade, through every screen
     ├── capture.py      renders every screen offscreen, for the README
@@ -313,8 +315,10 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   nearest neighbour than a starting hull can jump. Without the relaxation pass
   that enforces it, some seeds strand the player on turn one. It does *not*
   guarantee the sector is traversable: flood-filling from the start at starting
-  jump range reaches between 3 and 18 of the 42 systems depending on the seed,
-  median about 5. Opening the rest means a better drive. See task #44.
+  jump range reaches between 2 and all 42 systems depending on the seed, median
+  13, with a quarter of sectors under eight. Opening the rest means a better
+  drive. `sim/reach.py` computes that component and the chart states it; a
+  shipyard is always within reach, so nobody is permanently trapped.
 - **An index into `game.system.bodies` is not a location.** `Dig` used to hold
   only `body_index`, resolved against whatever system the ship was in *now*, so
   a trench worked from anywhere else read a different body's fatigue — or
@@ -882,6 +886,9 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   in `attempt` and the quote in `odds_for`, and the point is that they cannot
   drift. Dropping the `+2` from the quote makes it report "said 67% rolled
   32%".
+- **`test_reach.py`** walks the reachable component with `jump_quote` rather
+  than re-deriving it, so the chart and the Set course button cannot drift, and
+  fits each drive the chart offers before believing what it claims to open.
 - **`test_chronicle.py`** is the one suite that does not build a fresh, narrow
   game. `chronicle.py` flies a single captain for ten years — surveying whole
   systems, refitting, hiring, trading off the freight desk, mining, digging,

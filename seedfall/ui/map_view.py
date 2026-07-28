@@ -15,6 +15,7 @@ from ..data.factions import FACTIONS_BY_ID
 from ..sim import intel as intel_sim
 from . import orders_panel
 from ..sim import rumours as rumour_sim
+from ..sim import reach as reach_sim
 from ..sim.actions import distress_call, is_stranded, jump_quote, jump_to
 from ..world.galaxy import distance
 from . import theme
@@ -96,8 +97,12 @@ class StarChart(QWidget):
             if sys.id != here.id and distance(sys, here) <= reach:
                 p.drawLine(hs, self._to_screen(sys))
 
+        # Which stars are reachable *at all*, by hopping. The dashed ring
+        # only ever said what is one jump away, so a star behind a gap no
+        # amount of hopping closes was drawn exactly like the one next door.
+        within = reach_sim.component(g)
         for sys in g.galaxy.systems:
-            self._draw_system(p, sys, here, reach)
+            self._draw_system(p, sys, here, reach, sys.id in within)
 
         self._draw_marker(p, hs, QColor(theme.tint("chloro")), 13)
         if self.selected is not None:
@@ -105,7 +110,8 @@ class StarChart(QWidget):
                               QColor(theme.tint("lumen")), 10)
         p.end()
 
-    def _draw_system(self, p: QPainter, sys, here, reach) -> None:
+    def _draw_system(self, p: QPainter, sys, here, reach,
+                     reachable: bool = True) -> None:
         g = self.win.game
         pt = self._to_screen(sys)
         rank = intel_sim.level(g, sys)
@@ -164,10 +170,17 @@ class StarChart(QWidget):
             p.setBrush(Qt.BrushStyle.NoBrush)
             p.drawEllipse(pt, r + 6.8, r + 6.8)
 
+        if not reachable:
+            # A bar through the star: this one is not far, it is walled off.
+            p.setPen(QPen(QColor(224, 104, 95, 130), 1.2))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawLine(QPointF(pt.x() - r - 4, pt.y() - r - 4),
+                       QPointF(pt.x() + r + 4, pt.y() + r + 4))
+
         if known:
             f = QFont(theme.mono_family(), 8)
             p.setFont(f)
-            p.setPen(QColor(169, 194, 182, 190))
+            p.setPen(QColor(169, 194, 182, 190 if reachable else 90))
             rect = QRectF(pt.x() - 70, pt.y() + r + 3, 140, 14)
             p.drawText(rect, Qt.AlignmentFlag.AlignHCenter, sys.name)
 
@@ -218,9 +231,12 @@ class MapView(View):
             "Charter", "Concordat", "Freeholds", "Dry Choir", "Bloom",
             "○ catalogued", "◍ scanned", "● visited", "◌ charted",
             "◎ port", "∧ something said about it",
-            "dashed ring = jump range",
+            "dashed ring = jump range", "╲ beyond reach",
         ])
         self.col.addWidget(note(legend))
+        # What the ring never said: how much of the sector this drive can
+        # actually get to, and what the next one would open.
+        self.col.addWidget(note(reach_sim.note(self.game)))
         self.col.addWidget(self._info())
 
     def _info(self) -> Panel:
