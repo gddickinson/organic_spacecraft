@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from ..world.galaxy import distance, transit_days
 from ..world.planets import survey_body
+from . import charts as chart_sim
 from . import mining
 from . import responses
 from .inquiry import add as _add_evidence
@@ -137,6 +138,9 @@ def survey(game, body_index: int) -> dict:
         add_cargo(game.ship, "survey", data)
 
     system.scanned = all(b.surveyed for b in system.bodies)
+    if system.scanned:
+        # A chart is dated from the day it was finished, so it can go stale.
+        chart_sim.stamp(game, system)
     game.add_log(f"Survey of {body.name}: {len(found['lifeforms'])} organism(s) "
                  "catalogued" + (", and something else entirely"
                                  if found["anomaly"] else "") + ".",

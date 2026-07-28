@@ -7,6 +7,7 @@ what your own charts are worth once you have been.
 from __future__ import annotations
 
 from ..core.util import credits as cr
+from ..sim import charts as chart_sim
 from ..sim import intel as intel_sim
 from ..sim import rumours as rumour_sim
 from .widgets import Panel, Pill, button, label, mono_label, note, spacer
@@ -73,13 +74,27 @@ def surveys(view, game, system) -> Panel | None:
                    "Nothing of yours qualifies yet."))
         return p
 
-    p.add(note("Complete surveys, sold once each."))
+    here = system.port.faction
+    p.add(note(f"Complete surveys, sold once each. This office buys for "
+               f"{chart_sim.buyer_name(here)}."))
+    p.add(note(chart_sim.buyer_line(here)))
     for target in have[:8]:
-        value = intel_sim.survey_value(game, target)
+        value = intel_sim.survey_value(game, target, here)
+        best_f, best_v = chart_sim.best_buyer(game, target)
+        fresh = chart_sim.freshness(game, target)
         p.add(spacer(3))
         p.add(label(target.name, "h3", "chloro"))
-        p.add(note(f"{len(target.bodies)} bodies, all surveyed."))
-        p.add_buttons(button(f"Sell the survey — {cr(value)}",
+        p.add(note(chart_sim.note(game, target)))
+        p.add_row("They will pay", cr(value))
+        if best_v > value * 1.05:
+            # A chart is worth different money to different people, and the
+            # office you are standing in is not always the right one.
+            p.add_row(f"{chart_sim.buyer_name(best_f)} would pay",
+                      cr(best_v), "chloro")
+        if fresh < 0.95:
+            p.add_row("Age of the survey", f"{round(fresh * 100)}% of fresh",
+                      "warn" if fresh < 0.7 else "osteo")
+        p.add_buttons(button(f"Sell it here — {cr(value)}",
                              lambda _=False, sid=target.id: view.sell_survey(sid),
                              kind="primary"))
     return p

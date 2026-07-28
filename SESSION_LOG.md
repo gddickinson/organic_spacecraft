@@ -2,6 +2,47 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a chart worth the flying
+
+- **Exploring was the worst-paying thing in the game by about fifty to one.**
+  Measured before writing anything: charting the five-body home system takes 53
+  days and the chart sold for 1,510 credits — 28 a day, against roughly 1,600
+  for a smuggling run. Charting the *entire* 42-system sector and selling every
+  chart came to 55,014, which is about one run of unlicensed seed. Meanwhile
+  `intel.py`'s own docstring called the Charted level "the only one worth
+  anything to a buyer, and the reason to go back to somewhere you have already
+  been". The code said one thing and the arithmetic said another.
+- **`survey_value()` priced a chart by weight** — `460 + 210 * len(bodies)`.
+  A system with a buried Abyssal site, nine catalogued organisms and ground
+  worth crossing the sector for fetched exactly what five bare rocks fetched.
+- **A chart is information, so it is now worth what it says.** Relics,
+  anomalies, life, ore grade, somewhere to tie up, Bloom, and how far it is
+  from the buyer's nearest holding. Dearest chart in a sector is about 10x the
+  cheapest, so which system you go and chart is a decision.
+- **And it is worth that to somebody in particular.** The Dry Choir pays over
+  the odds for wet cognition and anything unaccounted for; the Yards want rock
+  and somewhere to stand a hull; the Charter wants anything alive, anything old
+  and early warning. Best and worst buyer differ by 1.6x on average, and the
+  best buyer varies by system — so a chart is something you carry to the right
+  quay rather than sell where you happen to be standing.
+- **Charts go stale**, decaying to 45% over two years, which makes a survey
+  circuit a living rather than one sweep of the sector.
+- **I overshot on the first pass and the measurement caught it.** The initial
+  price list made a remarkable system's chart worth 92,000 — over three times
+  the best contract in the game — and charting worth 1,137 credits a day. That
+  fixes exploration being worthless by making it the best-paying thing in the
+  sector. Rescaled against the actual economy (best contract ~27,000, dearest
+  hull 900,000) to a median chart near 26,000 and about 750 a day.
+- **A second measurement error, in my own check.** The "charting is a living"
+  check first read 1,127 credits a day off a single seed. Across ten seeds the
+  median is 763 and the range 630–837 — the seed I happened to pick was half
+  again the median. The check now averages six sectors, so the band is set by
+  the distribution rather than by luck.
+- **Proved it bites** by restoring the flat rate: four of eight checks fail,
+  the last reporting "charting still pays 35 credits a day".
+- Suites: 31, **8 charts** (new) among them — 264 checks green. 164 modules,
+  all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: contested ground
 
 - **The sector had claims and it had holdings and they never touched.**

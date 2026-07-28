@@ -143,6 +143,7 @@ seedfall/
 │   ├── strata.py       the four layers of a dig, 3 methods, finds and spoils
 │   ├── contraband.py   who outlaws what, how hard they look, what they say
 │   ├── territory.py    what a power says when its claim lands on your ground
+│   ├── charts.py       what each power pays for a survey, and what for
 │   └── lore.py         intro, victories, endings, name pools, glossary
 ├── world/              generated content
 │   ├── galaxy.py       sector generation, lane relaxation, distance/transit
@@ -180,6 +181,7 @@ seedfall/
 │   ├── customs.py      the contraband run: the unposted price and the search
 │   ├── allegiance.py   what serving a power costs you with its enemies
 │   ├── territory.py    claims against holdings: trespass, levy, defiance
+│   ├── charts.py       pricing a survey by what is actually in the system
 │   ├── responses.py    provocation, the Bloom's answers, and studying a mass
 │   ├── market.py       supply shocks, and the prices you wrote down
 │   ├── ventures.py     what the powers do on their own account
@@ -240,11 +242,12 @@ seedfall/
     ├── test_customs.py 9 contraband checks — the premium, the search, heat
     ├── test_allegiance.py 8 checks — taking sides, and brokering out of it
     ├── test_territory.py 8 checks — annexation, levy, defiance, seizure
+    ├── test_charts.py  8 chart checks — contents, buyers, staleness, rate
     ├── test_dig.py     6 dig checks — strata, methods, banking, backfilling
     ├── test_resume.py  5 resume checks — anything half-done survives a save
     ├── efficacy.py     the harness: neutralise a feature, measure the world
     ├── levers.py       one entry per claim the game makes about a number
-    ├── test_efficacy.py 18 checks — every feature has to move something
+    ├── test_efficacy.py 19 checks — every feature has to move something
     ├── test_reachable.py 4 reachability checks — nothing written and uncalled
     ├── test_verbs.py   10 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
@@ -499,6 +502,26 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **A chart is priced on what it says, not on how many bodies it has.**
+  `survey_value()` was `460 + 210 * len(bodies)`, so a system with a buried
+  Abyssal site and ore worth crossing the sector for fetched what five bare
+  rocks fetched. Measured: charting the home system took 53 days and paid
+  1,510 — 28 credits a day, against roughly 1,600 for smuggling. The whole
+  42-system sector came to 55,014, about one contraband run.
+- **The price list is scaled against the rest of the economy, not chosen.** The
+  best contract in the game pays about 27,000 and the dearest hull 900,000. A
+  first pass put a remarkable system's chart at 92,000 — over three times the
+  best contract — which fixed exploration being worthless by making it the
+  best-paying thing in the sector. The numbers in `data/charts.py` land a
+  median chart near 26,000 and charting near 750 credits a day.
+- **Who buys is a decision, because the powers want different things.** The Dry
+  Choir pays over the odds for life and anomalies, the Yards for ore and sites,
+  the Charter for anything alive or old or growing. Best and worst buyer differ
+  by 1.6x on average and the best buyer varies by system, so a chart is
+  something you carry to the right quay.
+- **Charts go stale.** A survey is dated when it is finished and decays to 45%
+  over two years, which makes a survey circuit a living rather than a one-off
+  sweep of the sector.
 - **Claims and holdings have to be able to collide.** `ventures._claimable()`
   used to exclude any system the player held a colony in, and `can_found()`
   never looked at `system.faction` — so the powers declined to contest your
@@ -646,6 +669,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`test_transit.py`** flies the same crossings under a hurried policy and a
   careful one and fails unless hurrying genuinely saves days and genuinely
   costs hull. An option that is best on every axis is not a decision.
+- **`test_charts.py`** pins the number that made the cycle worth doing: it
+  measures charting in credits per day across six sectors and fails both if it
+  drops back toward the 28 it was and if it climbs past 1,500, which would make
+  surveying the best-paying thing in the game rather than a living. Restoring
+  the flat rate fails four of its eight checks, the last one reporting "35
+  credits a day".
 - **`test_territory.py`** fails unless the powers will actually annex ground
   you hold, unless all three answers diverge, and unless a levy takes the share
   it says it does. Its helper asserts the holding is still *in* `game.colonies`

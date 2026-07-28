@@ -10,6 +10,7 @@ from ..core.rng import RNG
 from ..core.state import new_game
 from ..sim import allegiance
 from ..sim import bloom as bloom_sim
+from ..sim import charts as chart_sim
 from ..sim import combat, consorts, customs as customs_sim, diplomacy as dip
 from ..sim import dig as dig_sim
 from ..sim import encounters
@@ -229,6 +230,24 @@ def _crossing_days() -> float:
     return total / runs
 
 
+# ── a chart is worth what is in the system ─────────────────────────────────
+
+def _chart_spread() -> float:
+    """Ratio of the dearest chart in the sector to the cheapest.
+
+    A flat per-body rate leaves this near one: what is in a system stops
+    mattering and every survey is worth the same as every other.
+    """
+    from ..sim import charts as chart_sim
+    game = new_game("lever-charts")
+    for system in game.galaxy.systems:
+        for body in system.bodies:
+            body.surveyed = True
+    values = sorted(chart_sim.best_buyer(game, s)[1]
+                    for s in game.galaxy.systems)
+    return values[-1] / max(1, values[0])
+
+
 # ── a levy takes a share of what a holding makes ───────────────────────────
 
 def _levied_output() -> float:
@@ -304,6 +323,12 @@ def _cut_dig_points() -> float:
 
 
 LEVERS: list[Lever] = [
+    Lever("chart-contents",
+          "a chart is priced on what is in the system",
+          patch=(chart_sim, "components",
+                 lambda _g, s: {"base": 1.0, "body": float(len(s.bodies))}),
+          probe=_chart_spread, direction="lower"),
+
     Lever("territory-levy",
           "a power that annexed the ground takes its share",
           patch=(territory_sim, "collect_tithe",

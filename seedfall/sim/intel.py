@@ -102,11 +102,16 @@ def sellable(game) -> list:
             if s.id not in sold and level(game, s) >= 3]
 
 
-def survey_value(game, system) -> int:
-    value = 460 + len(system.bodies) * 210
-    if system.bloom > 0.1:
-        value = int(value * 1.3)         # nobody else wants to go and look
-    return int(value * (1 + game.ship_stats.trade))
+def survey_value(game, system, faction: str | None = None) -> int:
+    """What a complete chart of this system fetches from `faction`.
+
+    Priced by what is in the system rather than by how many bodies it has —
+    see `sim/charts.py`. The flat rate this used to be made a chart of a system
+    with a buried site in it worth the same as five bare rocks, and both worth
+    about a fiftieth of any other hour of the game.
+    """
+    from . import charts as chart_sim
+    return chart_sim.value_to(game, system, faction)
 
 
 def sell_survey(game, system, faction: str | None) -> dict:
@@ -117,7 +122,7 @@ def sell_survey(game, system, faction: str | None) -> dict:
         sold = game.charts_sold = []
     if system.id in sold:
         return {"ok": False, "why": "You have already sold that survey."}
-    value = survey_value(game, system)
+    value = survey_value(game, system, faction)
     game.credits += value
     sold.append(system.id)
     if faction:
