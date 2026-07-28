@@ -8,7 +8,8 @@ from PyQt6.QtWidgets import QVBoxLayout, QWidget
 from ..core.util import cost_line, duration, num, pct
 from ..data.factions import FACTIONS_BY_ID
 from ..sim import colony as colony_sim
-from ..sim.actions import burn_bloom, dive, extract, survey
+from ..sim.actions import burn_bloom, dive, extract, strike_heart, survey
+from ..sim import bloom as bloom_sim
 from ..sim.fieldwork import excavate, launch_expedition
 from ..sim import xeno as xeno_sim
 from ..data.xenotech import CULTURES_BY_ID, XENOTECH_BY_ID
@@ -42,6 +43,26 @@ class SystemView(View):
                         "month.", "", wrap=True))
             p.add_buttons(button("Burn it back", self._cleanse, kind="danger"))
             self.col.addWidget(p)
+
+        heart = bloom_sim.heart_system(self.game)
+        if heart is not None and heart.id == sys.id:
+            st = bloom_sim.summary(self.game)
+            hp = Panel("Kessel's Reach — the origin", "warn")
+            if not st["heart_found"]:
+                hp.add(label("Something is under the overgrowth here. Survey the "
+                             "bodies and find out what.", "", wrap=True))
+            elif st["heart_hp"] > 0:
+                from ..data.bloom import HEART_BLURB, HEART_NAME
+                hp.add(label(HEART_NAME, "h3", "warn"))
+                hp.add(label(HEART_BLURB, "", wrap=True))
+                hp.add_bar(1 - st["heart_hp"] / 2600, "chloro")
+                hp.add_row("Mass remaining", f"{round(st['heart_hp'])}")
+                hp.add_buttons(button("Burn into the heart", self._heart,
+                                      kind="danger"))
+            else:
+                hp.add(label("The husk is ash. Whatever is still growing out "
+                             "here is growing on its own now.", "", wrap=True))
+            self.col.addWidget(hp)
 
         self.row(self._body_list(), self._detail(), spacing=14)
 
@@ -290,6 +311,27 @@ class SystemView(View):
             lines.append(f"{tech.name} is now yours. {tech.grants}")
         self.win.dialog("Excavation" + (" — incorporated" if res["incorporated"]
                                         else ""), lines, [("Log it", None)])
+        self.win.refresh()
+
+    def _heart(self) -> None:
+        if not self.win.confirm(
+                "Burn into the heart",
+                "You will hold station inside the origin mass and burn until "
+                "something gives. It burns back."):
+            return
+        res = strike_heart(self.game)
+        if not res.get("ok"):
+            self.win.toast(res["why"], "warn")
+            return
+        if self.win.check_ending():
+            return
+        lines = [f"{round(res['cut'])} burned out of it; it took "
+                 f"{round(res['backlash'])} off your hull in return."]
+        if res["destroyed"]:
+            lines.append("The First Instar is dead.")
+        else:
+            lines.append(note(f"Roughly {round(res['left'])} of it left."))
+        self.win.dialog("The heart", lines, [("Log it", None)])
         self.win.refresh()
 
     def _cleanse(self) -> None:

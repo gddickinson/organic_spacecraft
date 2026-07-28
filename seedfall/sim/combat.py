@@ -65,17 +65,18 @@ class Battle:
     rep: float = 0.0
     bonuses: dict = field(default_factory=dict)
     officers: list = field(default_factory=list)
+    game: object | None = None      # for Bloom adaptation; never saved
 
 
 def start(player_ship, player_stats, enemy, *, bonuses=None, officers=(),
-          rep=0.0, no_parley=False, band=3) -> Battle:
+          rep=0.0, no_parley=False, band=3, game=None) -> Battle:
     b = Battle(
         player=Side(player_ship, player_stats, "player"),
         enemy=Side(enemy["ship"], enemy["stats"], enemy.get("personality", "balanced")),
         enemy_name=enemy.get("name", "Unknown contact"),
         enemy_faction=enemy.get("faction"),
         band=band, no_parley=no_parley, rep=rep,
-        bonuses=dict(bonuses or {}), officers=list(officers),
+        bonuses=dict(bonuses or {}), officers=list(officers), game=game,
         loot=dict(enemy.get("loot", {})),
     )
     b.enemy.resolve = enemy.get("resolve", 100)
@@ -137,7 +138,21 @@ def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng) -> None:
     # well-armoured hulls would shoot at each other until the sun went out.
     dmg = max(w.wpn.dmg * 0.15, dmg - to.st.armour)
 
+    # Bloom tissue remembers what killed the last lineage. Keep using one kind
+    # of weapon and it stops working; vary the loadout and the memory fades.
+    if b.game is not None and b.enemy_faction == "bloom" and to is b.enemy:
+        from . import bloom as bloom_sim
+        resist = bloom_sim.resistance(b.game, w.family)
+        if resist > 0:
+            dmg *= 1 - resist
+            if rng.chance(0.25):
+                say(b, f"The tissue shrugs off much of the {w.name} — it has "
+                       f"seen this before.", "warn")
+
     dealt = _apply_to_layers(b, to, dmg, w.wpn.traits, rng)
+    if b.game is not None and b.enemy_faction == "bloom" and to is b.enemy:
+        from . import bloom as bloom_sim
+        bloom_sim.record_damage(b.game, w.family, dealt)
     frm.dealt += dealt
     to.taken += dealt
     to.resolve -= dealt * 0.10

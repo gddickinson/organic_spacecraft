@@ -28,7 +28,7 @@ class BattleView(View):
             g.ship, g.ship_stats, encounter["enemy"],
             bonuses=g.bonuses, officers=g.officers,
             rep=g.rep.get(encounter["enemy"].get("faction"), 0),
-            no_parley=encounter.get("no_parley", False))
+            no_parley=encounter.get("no_parley", False), game=g)
         self.win.battle.intro = encounter.get("intro", "")
 
     def build(self) -> None:

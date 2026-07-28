@@ -10,6 +10,7 @@ from __future__ import annotations
 from ..data.lore import VICTORIES
 from ..world.galaxy import distance
 from .colony import bloom_attack, ward_at
+from . import bloom as bloom_sim
 
 SPREAD_INTERVAL = 30    # days between growth ticks
 
@@ -26,19 +27,21 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
     """Grow and spread. Returns log events; sets ``game.overgrown`` if it wins."""
     game.bloom_clock += days
     events: list[tuple[str, str]] = []
+    bloom_sim.decay_resistance(game, days)
 
     while game.bloom_clock >= SPREAD_INTERVAL:
         game.bloom_clock -= SPREAD_INTERVAL
         systems = game.galaxy.systems
         held = [s for s in systems if s.bloom > 0.02]
 
+        stage = bloom_sim.ensure(game).definition
         for s in held:
             # A monitor both slows the growth and burns back what it can reach.
             # A fully-watched system holds its line and slowly loses ground; it
             # will not clear a heavy infestation on its own, which is what the
             # guns on your own hull are for.
             ward = ward_at(game, s.id)
-            growth = ((0.025 + s.bloom * 0.035) * (1 - ward)
+            growth = ((0.025 + s.bloom * 0.035) * stage.growth * (1 - ward)
                       - ward * (0.020 + s.bloom * 0.030))
             s.bloom = max(0.0, min(1.0, s.bloom + growth))
             for col in bloom_attack(game, s, rng):
@@ -48,11 +51,18 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
         for s in [x for x in held if x.bloom > 0.6]:
             clean = sorted((t for t in systems if t.bloom < 0.02 and distance(s, t) < 11),
                            key=lambda t: distance(s, t))
-            if clean and rng.chance(0.14 * (1 - ward_at(game, clean[0].id))):
+            if clean and rng.chance(0.14 * stage.spread
+                                    * (1 - ward_at(game, clean[0].id))):
                 clean[0].bloom = 0.10
                 events.append(("bad", f"Unlicensed growth detected at {clean[0].name}."))
 
         game.bloom_total = bloom_burden(game)
+        events.extend(bloom_sim.review_stage(game, game.bloom_total))
+        events.extend(bloom_sim.tick_instars(game, SPREAD_INTERVAL, rng))
+        if len([s for s in systems if s.bloom > 0.02]) >= len(systems) // 2:
+            b = bloom_sim.beat(game, "half_the_verge")
+            if b:
+                events.append(b)
 
     # If it takes the whole sector there is nothing left to play for.
     if all(s.bloom > 0.5 for s in game.galaxy.systems):
@@ -90,7 +100,9 @@ def victory_progress(game) -> dict[str, tuple[float, float, bool]]:
                or any(s.chassis == "leviathan" for s in game.fleet))
 
     return {
-        "containment": (total - infested, total, infested == 0 and game.day > 30),
+        "containment": (total - infested, total,
+                        infested == 0 and bloom_sim.heart_dead(game)
+                        and game.day > 30),
         "exodus": (1 if has_ark else 0, 1, has_ark and game.flags.get("exodus_launched")),
         "concord": (kin, 4, kin >= 4),
         "genesis": (1 if game.flags.get("contact_made") else 0, 1,

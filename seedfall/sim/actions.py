@@ -106,6 +106,14 @@ def survey(game, body_index: int) -> dict:
 
     found = survey_body(body, game.ship_stats.scan, r)
     research_sim.grant(game.research, found["research"])
+
+    # Surveying the origin system is how the heart is located.
+    from . import bloom as bloom_sim
+    if bloom_sim.ensure(game).heart_system == game.location_id:
+        revealed = bloom_sim.reveal_heart(game)
+        if revealed:
+            game.add_log(revealed[1], revealed[0])
+            found["heart"] = True
     game.discovered["lifeforms"] += len(found["lifeforms"])
     if found["anomaly"]:
         game.discovered["anomalies"] += 1
@@ -196,6 +204,33 @@ def dive(game, body_index: int) -> dict:
         game.add_log("Twenty kilometres down, something answered in pressure "
                      "waves — and kept answering.", "good")
     return {"ok": True, "found": found, "contact": contact}
+
+
+def strike_heart(game) -> dict:
+    """Burn the original germination. It takes more than one visit."""
+    from . import bloom as bloom_sim
+    fp = sum(w.wpn.dmg for w in game.ship_stats.weapons)
+    if fp < 40:
+        return {"ok": False,
+                "why": "You would need serious armament to make an impression."}
+    r = game.rng("heart")
+    res = bloom_sim.strike_heart(game, fp, r)
+    if not res.get("ok"):
+        return res
+    game.advance_days(8)
+    apply_damage(game.ship, res["backlash"])
+    game.adjust_rep("charter", 10)
+    if res["destroyed"]:
+        game.add_log("The First Instar is dead. Whatever else is still growing "
+                     "out here, it is growing on its own now.", "good")
+    else:
+        left = res["left"]
+        game.add_log(f"Burned into the heart at Kessel's Reach. It is still "
+                     f"there — roughly {round(left)} of it.", "warn")
+    if hull_pct(game.ship) <= 0:
+        game.die("Destroyed at the heart of the Bloom.")
+        res["dead"] = True
+    return res
 
 
 def burn_bloom(game) -> dict:

@@ -7,6 +7,7 @@ from ..core.util import duration, num, pct
 from ..data.commodities import BY_ID
 from ..data.lore import VICTORIES
 from ..sim.threat import victory_progress
+from ..sim import bloom as bloom_sim
 from ..sim.actions import launch_exodus
 from .widgets import Panel, Pill, View, button, label, mono_label, note, spacer
 
@@ -143,9 +144,26 @@ class EmpireView(View):
 
         infested = [s for s in g.galaxy.systems if s.bloom > 0.02]
         total = max(1, len(g.galaxy.systems))
+        st = bloom_sim.summary(g)
+        stage = st["stage"]
         p.add(spacer(6))
-        p.add(label("Bloom burden", "h3", "warn"))
+        p.add(label(f"The Bloom — {stage.name}", "h3", stage.tint))
+        p.add(note(stage.blurb))
         p.add(note(f"{len(infested)} systems carrying unlicensed growth, "
                    f"{pct(g.bloom_total / total)} of the sector by mass."))
         p.add_bar(g.bloom_total / total, "warn")
+        if st["instars"]:
+            p.add_row("Instars under way", num(st["instars"]), "warn")
+        worst = bloom_sim.worst_resisted(g)
+        if worst:
+            family, value = worst
+            p.add_row(f"Resistant to {family} weapons", pct(value), "warn")
+            p.add(note("Vary what you shoot it with. What you stop using, it "
+                       "stops needing to resist."))
+        if st["heart_found"]:
+            p.add_row("The First Instar",
+                      "destroyed" if st["heart_hp"] <= 0
+                      else f"{round(st['heart_hp'])} left",
+                      "chloro" if st["heart_hp"] <= 0 else "warn")
+            p.add_bar(1 - st["heart_hp"] / 2600, "chloro")
         return p

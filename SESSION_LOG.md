@@ -2,6 +2,28 @@
 
 Running progress log. Newest first.
 
+## 2026-07-27 — SEEDFALL: the Bloom becomes an antagonist
+
+- **The problem, measured first**: a BASTION with five mounts cleared the whole
+  sector inside one in-game year, and the Bloom opened on only 2.8 of 42 systems.
+  The game's central threat was frightening while you were poor and irrelevant
+  the moment you could afford a warship.
+- **Five named growth stages** — Latent, Vegetative, Motile, Adaptive, Sovereign —
+  advanced by the sector-wide burden, each raising growth and spread and each
+  announced in the log. A test seed runs Latent → Vegetative (yr 2) → Motile
+  (yr 5) → Adaptive (yr 6) → Sovereign (yr 7), so there are years of grace before
+  it starts hunting.
+- **Motile instars**: once past stage 2 it keeps masses in the field that travel
+  between systems, preferring *your* colonies, and take them.
+- **Adaptation**: from stage 3 it builds resistance to whatever weapon family you
+  keep using — up to 55% — and forgets what you stop using. Vary the loadout or
+  watch your guns stop working. Verified: 200 fabricated hits gives 55%
+  resistance to fabricated and none to grown.
+- **The First Instar** at Kessel's Reach: the original husk, Charter serial still
+  legible, found by surveying the origin system. Containment now requires the
+  sector clean *and* the heart dead — 21 burn passes from a battleship, each
+  costing days and taking backlash. Clearing the map is no longer enough.
+
 ## 2026-07-27 — SEEDFALL: the helm, and two games inside the game
 
 - **The helm — in-system spaceflight.** A jump now drops you at the system edge
