@@ -2,6 +2,30 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a bridge, so the game can be driven from outside
+
+- **Asked for a way to drive the game remotely, for a chatbot to play
+  characters, and as a route to multiplayer with autonomous seats.** `bridge/`
+  is that: seventeen verbs over a running `Game`, a loopback JSON-lines
+  transport, and a seat mechanism.
+- **The protocol is separate from the transport on purpose.** Verbs are plain
+  functions over a `Game` with no Qt and no socket, so the suite drives all of
+  them in-process and the transport is a detail that could be swapped. No verb
+  reimplements anything: each calls the same `sim/` function the window does.
+- **Local only.** It binds 127.0.0.1, mints a token per session, and refuses
+  anything untokenised. No discovery, no broadcast, nothing routable.
+- A **seat** is a named role an outside caller speaks for — how a second
+  captain joins and how an agent holds a rival. Claiming one is a declaration
+  rather than a lock, which is what makes somebody stepping away survivable.
+- **The bug it shipped with, found over a real socket.** `survey` returns a
+  `Lifeform` object among its results; the reply was merged straight into the
+  envelope and `json.dumps` raised *inside the connection thread*. The socket
+  died silently and the caller read an empty line with nothing to go on. Fixed
+  by making the boundary total — `plain()` flattens anything, the writer never
+  lets a bad reply kill a connection, and a check hands the dispatcher eleven
+  kinds of rubbish and requires a polite answer to each.
+- Suites: 51 — 410 checks green. 220 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: minds that remember, and voices (asked for)
 
 - **Asked for LLM-driven speech for ships, crew, other captains and anything

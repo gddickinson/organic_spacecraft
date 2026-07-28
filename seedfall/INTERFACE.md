@@ -282,6 +282,7 @@ seedfall/
     ├── test_legacy.py  7 aftermath checks — an ending is a turn, not a stop
     ├── test_instruments.py 5 checks — a gauge agrees with the ship and itself
     ├── test_voices.py  8 checks — the game speaks with no model reachable
+    ├── test_bridge.py  6 checks — the protocol answers, always, and stays local
     ├── chronicle.py    one captain, one save, a decade of doing everything
     ├── test_chronicle.py 3 checks — that decade, through every screen
     ├── capture.py      renders every screen offscreen, for the README
@@ -918,6 +919,14 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   in `attempt` and the quote in `odds_for`, and the point is that they cannot
   drift. Dropping the `+2` from the quote makes it report "said 67% rolled
   32%".
+- **`test_bridge.py`** drives the whole protocol in-process, because verbs are
+  plain functions over a `Game` and a socket is a detail. One check does open a
+  real loopback connection, because the thing that broke only breaks over one:
+  `survey` returns a `Lifeform` among its results, the reply was merged into
+  the envelope, and `json.dumps` raised *inside the connection thread* — the
+  socket died silently and the caller was left reading an empty line. A
+  boundary has to be total; a caller on a pipe can catch neither a traceback
+  nor a hang-up.
 - **`test_voices.py`** exists to prove the language model is optional in the
   way it claims to be. `llm.complete` is replaced with something that raises,
   so a check that reaches for a model fails loudly, and what is measured is the
