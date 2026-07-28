@@ -225,6 +225,9 @@ seedfall/
     ├── test_assessment.py 6 read checks — honesty, arcs, robustness
     ├── test_balance.py 7 balance checks — measured by playing the fights
     ├── test_bloom_arc.py 7 Bloom checks — provocation, answers, study
+    ├── efficacy.py     the harness: neutralise a feature, measure the world
+    ├── levers.py       one entry per claim the game makes about a number
+    ├── test_efficacy.py 13 checks — every feature has to move something
     ├── test_reachable.py 4 reachability checks — nothing written and uncalled
     ├── test_verbs.py   7 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
@@ -461,6 +464,21 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`return None` is not a result.** Counting it made the analysis flag every
   early-exit function; the self-check caught that on its first run, which is
   the argument for the self-check existing.
+- **A feature is not finished until a lever in `tests/levers.py` proves it
+  moves the world.** Reachability only shows a function is called;
+  `test_efficacy.py` switches each claimed effect off and demands the same
+  seeded scenario come out different. Disconnect the Bloom growth multiplier
+  and reachability still reports "every one reachable" while efficacy fails.
+- **Levers patch a module attribute, not an imported name.** The codebase calls
+  across modules as `module.function(...)`, so the lookup happens at call time
+  and every caller sees the substitution. A lever aimed at something imported
+  by name would silently do nothing, so the suite checks each substitution
+  actually changes its measurement before trusting the comparison.
+- **Watch for a probe that saturates or starts already satisfied.** The first
+  Bloom lever ran long enough for every system to pin at its 1.0 ceiling, so a
+  Bloom growing half again as fast reached exactly the same total; the first
+  research lever stocked the bench full in *both* runs. Both read as inert
+  features when the features were fine.
 - **Colony effects are a closed vocabulary.** `test_sim.py` asserts that every
   key in a `ColonyClass.effects` is one the game actually reads, so a typo in a
   station definition fails the suite instead of silently doing nothing.
@@ -543,6 +561,9 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   that bought no trade advantage, instars that could not be killed, and
   officers whose convictions never felt your standing move. It carries a
   self-check, because an analysis that cannot fail is worse than none.
+- **`test_efficacy.py`** carries two checks on itself: that a deliberately
+  decorative feature fails, and that every lever's substitution bites. A
+  harness that cannot fail is worse than none.
 - **`test_flight.py`** holds the helm to its promises: that a seed grows one
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that

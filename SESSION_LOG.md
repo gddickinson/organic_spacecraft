@@ -2,6 +2,38 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: every feature has to move something
+
+- **Reachability was a floor, and I said so at the time.** A function called
+  only from a readout passes it: the Bloom's growth multiplier was consumed by
+  `summary()` from the day it was written while contributing nothing whatever
+  to the simulation. This cycle closes that gap.
+- **Ten levers, one per claim the game makes about a number.** Each names a
+  feature, a way to switch it off, and a measurement of the world. Neutralise
+  the lever, run the same seeded scenario, and the measurement has to move.
+  Provocation, hull loading, consort screening, relation drift, ground weather,
+  colony works, crew loyalty, market shocks, mining method, research evidence —
+  all ten prove themselves, several emphatically: screening cuts damage to the
+  flag from 54 to 9, a deep bore doubles what comes off a body.
+- **The demonstration that matters**: disconnect the Bloom multiplier again and
+  reachability still reports "416 public functions, every one reachable" while
+  efficacy fails with "11.45 with the feature, 11.45 without".
+- **Two of my probes were wrong before any feature was.** The Bloom one ran
+  long enough that every system pinned at its ceiling of 1.0, so a Bloom
+  growing half again as fast reached exactly the same total; the research one
+  stocked the bench full in *both* runs and compared full against full. Both
+  read as inert features when the features were fine — a saturating or
+  already-satisfied probe is the failure mode to watch for here.
+- **And I got the sign convention backwards on every lever at once**, which was
+  at least an efficient mistake. The field is now named for what happens when
+  the feature is *removed* rather than what it does when present.
+- **The harness carries two checks on itself**: that a deliberately decorative
+  feature fails it, and that every lever's substitution actually changes its
+  number rather than quietly missing its target. A harness that cannot fail is
+  worse than none.
+- Suites: 23, **13 efficacy** (new) among them — 203 checks green. 142 modules,
+  all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: nothing written and never called
 
 - **Three cycles running, a feature shipped a number the game never read** — a
