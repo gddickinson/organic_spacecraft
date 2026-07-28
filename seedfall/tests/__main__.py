@@ -13,7 +13,7 @@ def main(argv: list[str] | None = None) -> int:
                                        "missions", "explore", "mining", "research", "trade",
                                        "ground", "politics", "design", "orders",
                                        "assessment", "balance", "bloom", "reachable",
-                                       "efficacy", "transit", "customs", "allegiance", "territory", "charts", "aftermath", "notes", "layers", "cargo", "dig",
+                                       "efficacy", "transit", "customs", "allegiance", "territory", "charts", "aftermath", "notes", "layers", "cargo", "freight", "dig",
                                        "resume", "verbs", "ui"]
     ok = True
 
@@ -195,6 +195,12 @@ def main(argv: list[str] | None = None) -> int:
         from . import test_cargo
         suite = Suite("cargo")
         test_cargo.run(suite)
+        ok &= suite.report()
+
+    if "freight" in wanted:
+        from . import test_freight
+        suite = Suite("freight")
+        test_freight.run(suite)
         ok &= suite.report()
 
     if "dig" in wanted:

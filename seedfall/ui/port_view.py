@@ -16,6 +16,7 @@ from ..sim import loyalty as loyalty_sim
 from ..sim import customs as customs_sim
 from . import blackmarket_panel
 from . import commissions_panel
+from . import freight_panel
 from . import register_panel
 from . import rumours_panel
 from ..sim import intel as intel_sim
@@ -148,6 +149,9 @@ class PortView(BerthsMixin, View):
         tip = blackmarket_panel.tipoff(g, sys)
         if tip is not None:
             self.col.addWidget(tip)
+        stall = freight_panel.desk(g, sys)
+        if stall is not None:
+            self.col.addWidget(stall)
         self.col.addWidget(register_panel.register(g, sys))
 
     def _sell_quietly(self, cid: str) -> None:

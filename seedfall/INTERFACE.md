@@ -187,6 +187,7 @@ seedfall/
 │   ├── notes.py        field notes: filed, looked up again, and worth something
 │   ├── trade.py        buying and selling over a counter, and survey data
 │   ├── services.py     repairs, a paid word, and a fortnight of bench time
+│   ├── freight.py      the freight desk: what is worth loading, and where
 │   ├── responses.py    provocation, the Bloom's answers, and studying a mass
 │   ├── market.py       supply shocks, and the prices you wrote down
 │   ├── ventures.py     what the powers do on their own account
@@ -220,6 +221,7 @@ seedfall/
 │   ├── minigame_view.py    docking approach and decoding bench
 │   ├── dig_view.py     the trench: the stratum you are on and how to take it
 │   ├── blackmarket_panel.py  the quiet word on the quay, and the tip-off
+│   ├── freight_panel.py  what is worth loading here, and what it clears
 │   ├── demand_view.py  answering a power that has annexed ground you hold
 │   └── battle_view.py  combat screen and post-engagement resolution
 └── tests/              python -m seedfall.tests
@@ -252,11 +254,13 @@ seedfall/
     ├── test_notes.py   8 field-note checks — filed, counted, kept, reachable
     ├── test_layers.py  5 layer checks — no Qt below, no ledger above
     ├── test_cargo.py   6 cargo-contract checks — the board offers no traps
+    ├── test_freight.py 7 freight checks — the desk, its floor, and a career
+    ├── probes.py       the newer efficacy probes, split out of levers.py
     ├── test_dig.py     6 dig checks — strata, methods, banking, backfilling
     ├── test_resume.py  5 resume checks — anything half-done survives a save
     ├── efficacy.py     the harness: neutralise a feature, measure the world
     ├── levers.py       one entry per claim the game makes about a number
-    ├── test_efficacy.py 22 checks — every feature has to move something
+    ├── test_efficacy.py 23 checks — every feature has to move something
     ├── test_reachable.py 4 reachability checks — nothing written and uncalled
     ├── test_verbs.py   10 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
@@ -511,6 +515,26 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **The freight desk is an information tool with a floor under it.** Within a
+  starting jump only 5% of lane/goods pairs show a positive spread, and the
+  runs that do exist are invisible — finding one means visiting every
+  neighbour first. The desk draws on two honest sources: your own register
+  (real prices, going stale) and the harbourmaster, who names his own power's
+  ports and what they are short of but will not quote their board.
+- **A spread thinner than the drift is not a trade.** `tick_market` moves
+  supply about 1.8% a day plus a random walk, so a thin margin is gone by the
+  time the hull arrives. Flown and banded by spread, every band below a fifth
+  loses money on average, so `MIN_SPREAD` is 0.20 and the desk will not
+  recommend anything under it. Measured over two-year careers: 981 credits on
+  your own notes, 33,069 following the desk.
+- **What a run clears is the voyage, not the spread.** Ranking by margin per
+  tonne is how a captain flies a four-credit spread nine light-years and pays
+  for the reaction mass themselves.
+- **Short-range legal arbitrage is thin by design and that is fine.** Ports of
+  one power want the same things, so trading means crossing into somebody
+  else's space. The contract board is the early game — every one of twelve
+  openings has affordable work — and the desk comes into its own with range and
+  a register.
 - **A cargo contract is priced against what its cargo costs.** The reward was
   `amount * (base * 0.55 + rate * 0.4)`, and `base * 0.55` is the *floor* — what
   a market holding none of a good pays for it. Nobody sells at the floor, so the
@@ -734,6 +758,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   them home, and fails unless the shelf, the provenance and the evidence all
   survive — including across a save. It also checks every note is reachable and
   that the draw prefers ones you lack, so no written discovery is unfindable.
+- **`test_freight.py`** flies eight two-year careers with the desk and eight
+  without, and fails unless the desk wins and unless the desk-following career
+  is profitable at all. It also pins the threshold that made the desk honest
+  and the one that nearly made it useless: `COLD` was -8, the floor of Neutral,
+  and the Dry Choir *starts* at -10, so a new captain on a Dry Choir quay was
+  locked out on day one.
 - **`test_cargo.py`** buys the cargo, flies the delivery and banks the fee,
   and fails unless what the board quoted is what the treasury did. Its haulage
   check measures *net*, not a ratio to cargo value: the first version asserted

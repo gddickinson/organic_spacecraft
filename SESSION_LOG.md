@@ -2,6 +2,52 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: somewhere to take a cargo
+
+- **Took the task I deferred last cycle**, and the measuring went four rounds
+  before it told me the truth.
+- **First finding: the runs exist and are invisible.** Within a starting jump
+  only 5% of lane/goods pairs show a positive spread — but there are about
+  twenty per sector, worth up to 1,400 a tonne, and the rate climbs to 16% as
+  the drive improves. Finding one meant visiting every neighbour and writing
+  down prices first. So: an information problem, and I built a freight desk
+  with two honest sources — your own register, and the harbourmaster, who names
+  his own power's ports and what they are short of without quoting their board.
+- **Then a bug of mine, found by flying it.** Zero runs at Halcyon Wake, every
+  time. `COLD` was −8, the floor of the Neutral band — and the Dry Choir
+  *starts* at −10. A new captain standing on a Dry Choir quay was locked out of
+  the whole mechanic on day one for no reason of their own. Set against the
+  standing bands now, at Distrusted.
+- **Then the careers still lost money, with 35 runs made.** Traced one:
+  the desk said the port paid 590, it paid 530 by the time the hull got there,
+  and the margin had been 14. The desk was recommending spreads smaller than
+  the noise — `tick_market` moves supply about 1.8% a day with a random walk on
+  top.
+- **Then I nearly tuned my way out of it.** I had confidence discounting the
+  *takings*, which says you only receive three quarters of the price; removing
+  it made things worse, because the wrong model had accidentally been filtering
+  bad runs. Rather than keep adjusting the knob I flew 120 openings and banded
+  the outcome by advertised spread: every band under a fifth loses money on
+  average. `MIN_SPREAD` is 0.20, derived, with the table in the source.
+- **Result: 981 credits on your own notes, 33,069 following the desk**, over
+  two-year careers — and the desk now refuses to name a run rather than name a
+  bad one.
+- **The efficacy harness caught my probe measuring the wrong scenario.** It
+  noted every port in the sector first, and for a captain whose register holds
+  everything the harbourmaster has nothing to add — so the lever read as inert,
+  correctly. Rewritten for a captain who has not been there yet, which is the
+  case the feature is actually for.
+- **Honest about the limit.** Short-range legal arbitrage is thin because
+  ports of one power want the same things; trading means crossing into
+  somebody else's space. I checked the early game is not stranded by it: all
+  twelve openings have affordable work on the contracts board, which last
+  cycle's fix made pay properly.
+- **`levers.py` crossed 500 lines** as the list grew; the newer probes moved to
+  `probes.py`, split by age rather than theme, because a cargo probe belongs to
+  `customs`, `trade` and `contracts` equally.
+- Suites: 36, **7 freight** (new) among them — 301 checks green. 177 modules,
+  all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a board that was half traps
 
 - **Used last cycle's extraction to measure trading for the first time.**
