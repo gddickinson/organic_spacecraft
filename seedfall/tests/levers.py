@@ -12,7 +12,8 @@ from ..sim import aftermath as aftermath_sim
 from ..sim import allegiance
 from ..sim import bloom as bloom_sim
 from ..sim import charts as chart_sim
-from ..sim import combat, consorts, customs as customs_sim, diplomacy as dip
+from ..sim import combat, consorts, contracts as contract_sim_for_lever
+from ..sim import customs as customs_sim, diplomacy as dip
 from ..sim import dig as dig_sim
 from ..sim import encounters
 from ..sim import expedition as expedition_sim
@@ -232,6 +233,27 @@ def _crossing_days() -> float:
     return total / runs
 
 
+# ── a cargo contract pays for its own cargo ────────────────────────────────
+
+def _contract_net() -> float:
+    """Mean credits a cargo contract clears over what its cargo costs."""
+    from ..core.rng import RNG as _RNG
+    from ..sim import contracts as contract_sim
+    from ..world.economy import buy_price
+    nets = []
+    for index in range(4):
+        game = new_game(f"lever-cargo-{index}")
+        for system in [s for s in game.galaxy.systems if s.port][:5]:
+            for c in contract_sim.generate(
+                    _RNG(f"lc-{index}-{system.id}"), game, system):
+                if c.kind not in ("deliver", "prospect"):
+                    continue
+                price = buy_price(system.market, c.commodity, 0, 0)
+                if price is not None:
+                    nets.append(c.reward - price * c.amount)
+    return sum(nets) / max(1, len(nets))
+
+
 # ── what the ground told you is worth something ────────────────────────────
 
 def _note_evidence() -> float:
@@ -363,6 +385,14 @@ def _cut_dig_points() -> float:
 
 
 LEVERS: list[Lever] = [
+    Lever("cargo-pricing",
+          "a cargo contract is priced against what the cargo costs",
+          patch=(contract_sim_for_lever, "cargo_cost",
+                 lambda _g, _s, cid, amount, for_player=False:
+                 __import__("seedfall.data.commodities", fromlist=["BY_ID"])
+                 .BY_ID[cid].base * 0.55 * amount),
+          probe=_contract_net, direction="lower"),
+
     Lever("field-notes",
           "what a landing party reads is worth something",
           patch=(notes_sim, "file",

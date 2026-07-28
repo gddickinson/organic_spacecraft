@@ -250,6 +250,16 @@ class PortView(BerthsMixin, View):
             card.add(label(c.posting, "", wrap=True))
             card.add(note(f"{cr(c.reward)} · {c.days_left(g.day)} days · "
                           f"standing +{c.rep}"))
+            # What the cargo costs, and what is left. A fee on its own hid a
+            # board that was half traps.
+            money = contract_sim.quote(g, c)
+            if money is not None:
+                card.add(label(
+                    f"Cargo costs about {cr(money['cost'])} here"
+                    + (f" ({money['held']:g} t already aboard)"
+                       if money["held"] else "")
+                    + f" — clears {cr(money['net'])}",
+                    "", "chloro" if money["net"] > 0 else "warn", wrap=True))
             # Whose enemies mind, before you commit rather than after.
             said, tint = allegiance.note(g, c.issuer, c.rep)
             card.add(label(said, "", tint))

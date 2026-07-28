@@ -2,6 +2,52 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a board that was half traps
+
+- **Used last cycle's extraction to measure trading for the first time.**
+  Moving buy and sell into `sim/trade.py` made an honest trading career
+  something a script can fly. So I flew ten of them, and every one lost money.
+- **The driver was not the problem this time — but the first finding was
+  still not the real one.** Honest arbitrage is close to dead: only 10–14% of
+  lane/goods combinations are profitable anywhere in a sector, 1–9% within a
+  starting jump, and **six of twelve openings offer no profitable legal run at
+  all** from the first port. The spread is 20%, so a destination has to price
+  25% above the source, and your neighbours are usually your own power's ports
+  with the same supply skews.
+- **Which made the contract board the intended answer, so I checked it — and
+  it was a trap.** `shape()` priced a cargo contract at
+  `amount * (base * 0.55 + rate * 0.4)`. `base * 0.55` is the *floor* price:
+  what a market holding none of a good will pay for it. Nobody sells at the
+  floor; a counter with stock charges about `base * 1.1`. So the board priced
+  its own work against a number that does not exist. Measured: **44% of cargo
+  contracts paid less than buying their cargo cost at the port that posted
+  them**, worst case −50,151 credits on a silicon prospecting job.
+- **The inversion was cruel in the right way to go unnoticed.** Cheap goods
+  survived because the flat rate term carried them; it was silicon, magnetite
+  and trehalose — exactly the cargoes worth carrying — that were guaranteed
+  losses. And the card showed a fee and nothing else, so a trap looked
+  identical to a living.
+- **Priced against real cost now**, with distance paying *haulage* per tonne
+  per light-year rather than multiplying the value of the goods — the old
+  multiplicative premium turned an eighty-tonne silicon run into 130,000 clear.
+  Worst contract now clears +989, median +12,311. And the board shows the
+  arithmetic: "Cargo costs about ₡39,060 here — clears ₡27,975".
+- **A bug in my own fix, caught by the equivalence check.** The quote priced at
+  rep 0 with no trade bonus while the player pays their own price, so it was
+  wrong by two per cent. Generation must price neutrally — a fee cannot depend
+  on who reads the board — but a quote must price for the captain standing
+  there. Both, now.
+- **And a check of mine that measured the wrong thing.** My haulage check
+  asserted reward/cost < 4 and failed at 11.7x — on ore hauled a long way. That
+  is not a fault: freight is priced by mass and distance, so a tonne is a tonne
+  in the hold and the ratio to a cheap good's value says nothing. Rewritten to
+  measure net and net-per-tonne, with the reasoning written down so the next
+  person does not re-tighten it.
+- **The arbitrage finding is queued, not acted on** — fixing the contract board
+  and redesigning the trade economy in one cycle would have been two things.
+- Suites: 35, **6 cargo** (new) among them — 293 checks green. 173 modules, all
+  under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: no screen writes the ledger
 
 - **The debt I flagged twice, paid.** Seventeen sites across four view modules

@@ -23,6 +23,61 @@ _uid = itertools.count(1)
 
 MAX_ACTIVE = 6
 
+#: What a cargo contract pays over what the cargo costs to source.
+#:
+#: The reward used to be `amount * (base * 0.55 + rate * 0.4)`, and `base *
+#: 0.55` is the *floor* price — what a market with no stock of a good will pay
+#: for it. Nobody sells at the floor: a real counter charges about `base * 1.1`.
+#: So the board priced its work against a number that does not exist, and
+#: measurement said 44% of cargo contracts paid less than their own cargo cost,
+#: worst case fifty thousand credits down on a silicon job. Cheap goods
+#: survived because the flat rate term carried them; expensive ones were traps.
+CARGO_MARGIN = (1.28, 1.65)
+
+#: Credits per tonne per light-year for carrying somebody else's cargo.
+HAULAGE = 5.5
+
+
+def cargo_cost(game, sysm, cid: str, amount: float,
+               for_player: bool = False) -> float:
+    """What sourcing this cargo costs at this port.
+
+    Generation prices it neutrally — a contract's fee cannot depend on the
+    standing of whoever happens to read the board. A *quote* prices it for the
+    captain actually standing there, because that is what they will be charged.
+    Getting that backwards made the board's quote wrong by two per cent, which
+    the check caught.
+
+    Falls back to the commodity's own price when the port stocks none of it —
+    you would have to fetch it, which is not cheaper.
+    """
+    from ..world.economy import buy_price
+    rep = trade = 0.0
+    if for_player:
+        rep = game.rep.get(sysm.port.faction, 0) if sysm.port else 0
+        trade = game.ship_stats.trade
+    price = buy_price(sysm.market, cid, rep, trade) if sysm.market else None
+    if price is None:
+        price = BY_ID[cid].base * 1.1
+    return price * amount
+
+
+def quote(game, contract) -> dict | None:
+    """What the cargo will cost you here, and what you would clear.
+
+    The board used to show a fee and nothing else, so a contract that lost
+    fifty thousand credits looked exactly like one that made twelve.
+    """
+    if contract.kind not in ("deliver", "prospect") or not contract.commodity:
+        return None
+    sysm = game.galaxy.systems[contract.issued_at]
+    held = game.ship.cargo.get(contract.commodity, 0)
+    short = max(0.0, contract.amount - held)
+    cost = cargo_cost(game, sysm, contract.commodity, short,
+                      for_player=True)
+    return {"cost": round(cost), "held": held, "short": short,
+            "net": round(contract.reward - cost)}
+
 
 @register
 @dataclass
@@ -111,8 +166,9 @@ def shape(rng, game, sysm, c: Contract, faction: str, scale: float = 1.0) -> boo
     if kind in ("deliver", "prospect"):
         c.commodity = rng.pick(CARGO_WANTED)
         c.amount = max(1, round(rng.int(20, 80) * scale))
-        base = BY_ID[c.commodity].base
-        c.reward = round(c.amount * (base * 0.55 + d.rate * 0.4))
+        c.reward = round(cargo_cost(game, sysm, c.commodity, c.amount)
+                         * rng.float(*CARGO_MARGIN)
+                         + c.amount * d.rate * 0.25)
         if kind == "deliver":
             target = _pick_target(rng, game, sysm, far=rng.chance(0.5))
             c.target_system = target.id
@@ -152,10 +208,15 @@ def shape(rng, game, sysm, c: Contract, faction: str, scale: float = 1.0) -> boo
         c.reward = round(d.rate * rng.float(0.8, 1.5))
         c.title = f"Put a party on {body.name}"
 
-    # Distance and urgency both pay.
+    # Distance pays. For cargo it pays *haulage* — a flat fee per tonne per
+    # light-year — rather than multiplying the value of the goods, which turned
+    # a long silicon run into a hundred and thirty thousand credits.
     if c.target_system is not None:
         ly = distance(game.galaxy.systems[c.target_system], sysm)
-        c.reward = round(c.reward * (1 + ly / 40))
+        if kind in ("deliver", "prospect"):
+            c.reward = round(c.reward + c.amount * ly * HAULAGE)
+        else:
+            c.reward = round(c.reward * (1 + ly / 40))
     return True
 
 

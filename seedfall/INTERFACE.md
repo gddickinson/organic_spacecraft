@@ -251,11 +251,12 @@ seedfall/
     ├── test_aftermath.py 7 checks — salvage, standing, and who is glad
     ├── test_notes.py   8 field-note checks — filed, counted, kept, reachable
     ├── test_layers.py  5 layer checks — no Qt below, no ledger above
+    ├── test_cargo.py   6 cargo-contract checks — the board offers no traps
     ├── test_dig.py     6 dig checks — strata, methods, banking, backfilling
     ├── test_resume.py  5 resume checks — anything half-done survives a save
     ├── efficacy.py     the harness: neutralise a feature, measure the world
     ├── levers.py       one entry per claim the game makes about a number
-    ├── test_efficacy.py 21 checks — every feature has to move something
+    ├── test_efficacy.py 22 checks — every feature has to move something
     ├── test_reachable.py 4 reachability checks — nothing written and uncalled
     ├── test_verbs.py   10 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
@@ -510,6 +511,20 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **A cargo contract is priced against what its cargo costs.** The reward was
+  `amount * (base * 0.55 + rate * 0.4)`, and `base * 0.55` is the *floor* — what
+  a market holding none of a good pays for it. Nobody sells at the floor, so the
+  board priced its own work against a number that does not exist: 44% of cargo
+  contracts paid less than sourcing their cargo, worst case fifty thousand
+  credits down. `cargo_cost()` prices it properly and the board shows the
+  arithmetic, because a fee on its own made a trap look like a living.
+- **Distance pays haulage on cargo, not a share of the goods.** The old
+  multiplicative premium turned an eighty-tonne silicon run into 130,000 clear.
+  Freight is priced by mass and distance — a tonne is a tonne in the hold.
+- **A quote prices for the captain reading it; generation prices neutrally.** A
+  contract's fee cannot depend on the standing of whoever happens to see the
+  board, but what *you* will be charged does. Getting that backwards made the
+  quote wrong by two per cent, which the check caught.
 - **A field note is kept, not printed once.** Recovered lore lived in
   `expedition.lore`, was shown in the report dialog, and went out with the
   expedition object — never on the `Game`, never in the codex, and worth
@@ -719,6 +734,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   them home, and fails unless the shelf, the provenance and the evidence all
   survive — including across a save. It also checks every note is reachable and
   that the draw prefers ones you lack, so no written discovery is unfindable.
+- **`test_cargo.py`** buys the cargo, flies the delivery and banks the fee,
+  and fails unless what the board quoted is what the treasury did. Its haulage
+  check measures *net*, not a ratio to cargo value: the first version asserted
+  reward/cost < 4 and failed at 11.7x on ore hauled a long way, which is not a
+  fault — freight is priced by mass and distance, so the ratio to a cheap
+  good's value says nothing.
 - **`test_layers.py`** holds both halves of the layer rule: that no module
   under `sim/`, `data/`, `world/` or `core/` imports Qt, and that no module
   under `ui/` writes the ledger. Neither breach the project actually suffered
