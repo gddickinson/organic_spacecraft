@@ -177,6 +177,7 @@ seedfall/
 │   ├── transit.py      standing the watches of a crossing
 │   ├── dig.py          working a site stratum by stratum, banking as you go
 │   ├── customs.py      the contraband run: the unposted price and the search
+│   ├── allegiance.py   what serving a power costs you with its enemies
 │   ├── responses.py    provocation, the Bloom's answers, and studying a mass
 │   ├── market.py       supply shocks, and the prices you wrote down
 │   ├── ventures.py     what the powers do on their own account
@@ -234,11 +235,12 @@ seedfall/
     ├── test_bloom_arc.py 7 Bloom checks — provocation, answers, study
     ├── test_transit.py 6 crossing checks — watches, aborting, tension
     ├── test_customs.py 9 contraband checks — the premium, the search, heat
+    ├── test_allegiance.py 8 checks — taking sides, and brokering out of it
     ├── test_dig.py     6 dig checks — strata, methods, banking, backfilling
     ├── test_resume.py  5 resume checks — anything half-done survives a save
     ├── efficacy.py     the harness: neutralise a feature, measure the world
     ├── levers.py       one entry per claim the game makes about a number
-    ├── test_efficacy.py 16 checks — every feature has to move something
+    ├── test_efficacy.py 17 checks — every feature has to move something
     ├── test_reachable.py 4 reachability checks — nothing written and uncalled
     ├── test_verbs.py   9 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
@@ -493,6 +495,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **Work for a power is a position, not an errand.** Completing a contract
+  charges you standing with everyone that power is at odds with, scaled by how
+  bad the rift is (`sim/allegiance.py`). `contracts.py` did not import
+  `diplomacy` at all, so you could be the Charter's courier, the Concordat's
+  bounty hunter and the Freeholds' prospector in the same week while all three
+  were at war, and every one of them thought better of you for it.
+- **The penalty is not the point; the escape is.** Severity ramps from zero at
+  −15 to full at −70, so brokering a rift *part* of the way down is worth doing.
+  Measured: the same 28 jobs return 108 total standing in a hostile sector and
+  170 in a brokered one. That is what finally gives the relations matrix a job
+  in ordinary play rather than only at the Concord ending.
 - **Contraband needs both halves or it is not a trade.** A good that is
   outlawed somewhere has no posted price there and therefore a much better
   unposted one (`customs.premium`), and the same power opens your hold at the
@@ -615,6 +628,11 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`test_transit.py`** flies the same crossings under a hurried policy and a
   careful one and fails unless hurrying genuinely saves days and genuinely
   costs hull. An option that is best on every axis is not a decision.
+- **`test_allegiance.py`** holds the order of play in place: serving one power
+  exclusively must make you its partisan and nobody else's friend, and a broker
+  who makes peace first must still be able to work all four to Kin. It also
+  pins the card to the ledger — what the board quotes a job will cost and what
+  standing actually moves have to be the same number.
 - **`test_customs.py`** flies whole smuggling careers and fails unless the run
   pays, unless committing to it (a concealed hold, standing, a clean approach)
   pays markedly better than a bare hull, and unless hammering one dock stops

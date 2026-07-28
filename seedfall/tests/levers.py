@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from ..core.rng import RNG
 from ..core.state import new_game
+from ..sim import allegiance
 from ..sim import bloom as bloom_sim
 from ..sim import combat, consorts, customs as customs_sim, diplomacy as dip
 from ..sim import dig as dig_sim
@@ -227,6 +228,23 @@ def _crossing_days() -> float:
     return total / runs
 
 
+# ── the powers notice whose work you take ──────────────────────────────────
+
+def _spread_standing() -> float:
+    """Total standing after working every power evenly, in a hostile sector.
+
+    Summed rather than measured on one power: the whole claim is that you
+    cannot bank goodwill everywhere at once.
+    """
+    powers = ("charter", "concordat", "freeholds", "sanhedrin")
+    game = new_game("lever-sides")
+    for index in range(28):
+        power = powers[index % len(powers)]
+        game.adjust_rep(power, 5)
+        allegiance.charge(game, power, 5)
+    return sum(game.rep.get(p, 0) for p in powers)
+
+
 # ── somebody looks in the hold ─────────────────────────────────────────────
 
 def _smuggling_purse() -> float:
@@ -271,6 +289,11 @@ def _cut_dig_points() -> float:
 
 
 LEVERS: list[Lever] = [
+    Lever("allegiance-cost",
+          "the powers notice whose work you take",
+          patch=(allegiance, "price", lambda _g, _p, _w: []),
+          probe=_spread_standing, direction="higher"),
+
     Lever("customs-search",
           "somebody looks in the hold",
           patch=(customs_sim, "chance", lambda _g, _f, _a=0.0: 0.0),

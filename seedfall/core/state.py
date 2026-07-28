@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 
 from ..data.factions import FACTIONS
 from ..data.tech import STARTING_TECH, bonuses
+from ..sim import allegiance
 from ..sim import colony as colony_sim
 from ..sim import crew as crew_sim
 from ..sim import customs as customs_sim
@@ -243,6 +244,9 @@ class Game:
             if outcome == "done":
                 self.add_log(f"Contract complete: {contract.title}. "
                              f"Paid {round(contract.reward):,} credits.", "good")
+                if contract.cost:
+                    self.add_log("Word gets round who you work for — "
+                                 f"{allegiance.phrase(contract.cost)}.", "warn")
                 for kind, text in chain_sim.on_contract_done(self, contract):
                     self.add_log(text, kind)
             else:

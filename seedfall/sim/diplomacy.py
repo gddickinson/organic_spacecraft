@@ -186,9 +186,11 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
         state.treaties.append(faction)
         loyalty.record(game, "treaty")
         game.adjust_rep(faction, gain)
-        # Signing with one power cools you slightly with its enemies.
-        for rival in rivals_of(game, faction):
-            game.adjust_rep(rival, -4)
+        # Signing with one power cools you with its enemies — by how much the
+        # rift is actually worth, rather than the flat -4 this used to be,
+        # which made brokering a war down to a grudge worth nothing.
+        from . import allegiance
+        allegiance.charge(game, faction, 8)
         lines.append("Signed. Berthing, charts, and a clause about the Bloom.")
     else:
         game.adjust_rep(faction, gain)

@@ -2,6 +2,44 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: whose work you take
+
+- **`contracts.py` did not import `diplomacy`.** Six powers, a relations matrix
+  that starts hostile in most pairs, and the thing a player actually does all
+  day touched none of it. You could run the Charter's deliveries, collect a
+  Concordat bounty and take Freehold prospecting money in the same week while
+  all three were at each other's throats, and every one of them thought better
+  of you for it. Standing was accumulation with no tension anywhere in it.
+- **Serving a power now costs you with its enemies**, in proportion to how bad
+  the rift actually is. The precedent was already in the game and inconsistent:
+  diplomacy actions offended rivals (crudely — a flat −4 that ignored the
+  severity), ventures offended a named other party, and contracts, by far the
+  most frequent faction interaction, offended nobody. One module now does it
+  for all three, and the flat −4 is gone.
+- **The penalty is not the point. The escape is.** Severity ramps from nothing
+  at −15 to full at −70, so dragging a pair from implacable to merely bad is
+  worth doing. Measured across the same 28 jobs: 108 total standing in a
+  hostile sector, 170 in a brokered one — and the per-power split goes from
+  62/18/8/25 to 80/40/35/25. The relations matrix finally has a job in ordinary
+  play instead of only at the Concord ending.
+- **It enforces an order rather than closing a door.** Serve one power
+  exclusively and you end up its partisan: Charter +100, Concordat −30,
+  Freeholds −42. Make peace first and you can still work all four to Kin, so
+  the Concord is reachable — you just cannot get there by being everyone's
+  courier. Verified both directions, since a penalty that quietly foreclosed an
+  ending would be a worse bug than the one I set out to fix.
+- **The Dry Choir falls out as the neutral employer** — nobody is at odds with
+  them at the opening, so their work costs nothing. That was not designed; it
+  is what the opening relations happen to say, and it gives the map a safe
+  harbour worth knowing about.
+- **Proved all three checks bite** by reintroducing each defect: a flat
+  threshold instead of the ramp fails exactly the gradient check and nothing
+  else, and dropping the charge fails both integration checks — the second
+  naming the discrepancy outright ("quoted charter −2.4 and actually moved
+  −0.0").
+- Suites: 29, **8 allegiance** (new) among them — 245 checks green. 157 modules,
+  all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a run worth making
 
 - **Contraband was free money and nobody had noticed.** Unlicensed seed was the

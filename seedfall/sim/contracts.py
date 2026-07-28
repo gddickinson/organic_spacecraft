@@ -17,6 +17,7 @@ from ..data.commodities import BY_ID
 from ..data.contracts import CARGO_WANTED, KINDS, POSTINGS
 from ..data.factions import FACTIONS_BY_ID
 from ..world.galaxy import distance
+from . import allegiance
 
 _uid = itertools.count(1)
 
@@ -45,6 +46,8 @@ class Contract:
     failed: bool = False
     chain: str | None = None    # the commission this stage belongs to
     stage: int = 0
+    #: What completing it cost with the issuer's enemies, for the screen.
+    cost: list = field(default_factory=list)
 
     @property
     def definition(self):
@@ -255,6 +258,9 @@ def _pay(game, c: Contract) -> None:
     c.done = True
     game.credits += c.reward
     game.adjust_rep(c.issuer, c.rep)
+    # Being seen to do a power's work is a position, not a neutral errand.
+    # Whose enemies mind, and how much, is `sim/allegiance.py`.
+    c.cost = allegiance.charge(game, c.issuer, c.rep)
 
 
 def active(game) -> list[Contract]:

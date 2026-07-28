@@ -8,6 +8,7 @@ from ..core.util import credits as cr
 from ..core.util import pct
 from ..data.commodities import BY_ID, COMMODITIES, bulk_of
 from ..data.factions import FACTIONS_BY_ID, standing
+from ..sim import allegiance
 from ..sim import chains as chain_sim
 from ..sim import loyalty as loyalty_sim
 from ..sim import customs as customs_sim
@@ -291,6 +292,9 @@ class PortView(BerthsMixin, View):
             card.add(label(c.posting, "", wrap=True))
             card.add(note(f"{cr(c.reward)} · {c.days_left(g.day)} days · "
                           f"standing +{c.rep}"))
+            # Whose enemies mind, before you commit rather than after.
+            said, tint = allegiance.note(g, c.issuer, c.rep)
+            card.add(label(said, "", tint))
             card.add(button("Take it", lambda _=False, x=c: self._accept(x),
                             kind="primary"))
             cards.append(card)
