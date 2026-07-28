@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (QDialog, QHBoxLayout, QLineEdit, QVBoxLayout,
                              QWidget)
 
 from ..core import state as state_mod
+from ..data.chassis import CHASSIS_BY_ID
 from ..data.lore import INTRO, SUBTITLE, TAGLINE, TITLE
 from . import theme
 from .widgets import button, label, note, spacer
@@ -63,6 +64,7 @@ class TitleDialog(QDialog):
         ah.setContentsMargins(0, 0, 0, 0)
         ah.addStretch(1)
         ah.addWidget(button("Germinate a new chronicle", self._new, kind="primary"))
+        ah.addWidget(button("Choose your commission", self._compose, kind="flat"))
         if state_mod.has_save():
             ah.addWidget(button("Resume", self._resume, kind="flat"))
         ah.addStretch(1)
@@ -79,6 +81,18 @@ class TitleDialog(QDialog):
         seed = self.seed_box.text().strip() or None
         state_mod.clear_save()
         self.game = state_mod.new_game(seed)
+        self.accept()
+
+    def _compose(self) -> None:
+        """The long way in: pick stock, origin, hull, crew and posting."""
+        from .beginning_view import BeginningDialog
+        seed = self.seed_box.text().strip()
+        dlg = BeginningDialog(seed, self)
+        dlg.exec()
+        if dlg.choices is None:
+            return
+        state_mod.clear_save()
+        self.game = state_mod.new_game(seed or None, choices=dlg.choices)
         self.accept()
 
     def _resume(self) -> None:
@@ -112,9 +126,9 @@ def opening_briefing(win) -> None:
     g = win.game
     win.dialog(
         "Standing orders",
-        [f"You have the {g.ship.name}, a NAVIS-class explorer gestated at "
-         f"{g.system.name}, thirty-four crew, a signing key and eighteen thousand "
-         "credits.",
+        [f"You have the {g.ship.name}, a {CHASSIS_BY_ID[g.ship.chassis].name}-class "
+         f"hull out of {g.system.name}, {len(g.officers)} officers, a signing key "
+         f"and {round(g.credits):,} credits.",
          "Nobody has told you what to do about the Bloom, because nobody knows. "
          "Survey what is out there and sell the data. Dig phosphate and trade it. "
          "Grow colonies, or buy a Concordat battleship, or research your way to "

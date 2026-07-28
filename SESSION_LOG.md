@@ -2,6 +2,40 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: an opening worth choosing (asked for)
+
+- **Asked for more choices at the start: ship, crew, starting place, race and
+  background.** Every chronicle used to open the same way — a NAVIS called
+  *Patient Increment*, three officers, five technologies, the Charter capital —
+  and every one of those was already a real axis in the simulation that was not
+  the player's to pick.
+- `data/beginnings.py` adds three **stocks** (substrate, not ancestry: Wet
+  crews breathe, Dry Choir ones do not and nothing they fly ever mends, Grafted
+  pay both bills), six **origins** (Charter Surveyor, Yards Journeyman, Freehold
+  Grafter, Choir Cantor, Bloom Survivor, Registry Fugitive), a **hull** from
+  those the stock will crew, and five **postings**. Each carries what it gives
+  *and* what it costs, and the screen's fourth column is the chronicle you would
+  actually open — pinned by a check that opens it and compares.
+- **The invariant that mattered most**: `new_game()` with no choices is exactly
+  the game as it shipped. Three hundred and eighty checks are written against
+  that opening; a default that quietly differed would leave all of them passing
+  while measuring a different game. The canonical origin's deltas are all zero
+  and a check compares hull, outfit, purse, standing, crew and start across
+  three seeds.
+- **It found a live soft-lock in the shipped game.** The NAVIS launches with a
+  Reaction-Mass Organ, a Radiator Bloom and a Mining Root whose technologies
+  were not in `STARTING_TECH`, and the Refit tab offers Remove on every fitted
+  part. Pull the drive on day one and `parts_available("drive", …)` returns an
+  empty list: the slot can never be filled again, jump falls to the bare
+  chassis, and nothing tells you. Fixed structurally — whatever `new_game`
+  fits, it grants the technology for — so no future hull can reintroduce it.
+  Verified by putting the old constant back.
+- **A second defect, from the same checks**: the stock's effects were stored on
+  the Game and never folded into `bonuses`, so "superb instruments" was a
+  sentence the simulation did not read. `test_orders` caught it as a field
+  written and never read.
+- Suites: 47 — 383 checks green. 199 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: 3D ship plans (asked for)
 
 - **Asked for 3D plans of the ship so a player can see what is going on with

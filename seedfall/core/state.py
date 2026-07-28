@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from ..data.chassis import CHASSIS_BY_ID
 from ..data.factions import FACTIONS
 from ..data.tech import STARTING_TECH, bonuses
 from ..sim import allegiance
@@ -86,6 +87,11 @@ class Game:
     #: Day each system's chart was completed. Kept apart from
     #: `register`, which holds price Quotes and nothing else.
     charts_made: dict = field(default_factory=dict)
+    #: Who the captain is: stock, origin, hull, posting, crew. Saved, because
+    #: the aftermath and the codex both want to know how this one started.
+    beginning: object | None = None
+    #: Substrate bonuses from the stock, folded in by `recompute`.
+    stock_fx: dict = field(default_factory=dict)
     commissions: list = field(default_factory=list)
     rumours: list = field(default_factory=list)
     charts: list = field(default_factory=list)
@@ -141,6 +147,11 @@ class Game:
     def recompute(self):
         """Recompute derived values after any change to ship, crew or research."""
         self.bonuses = bonuses(self.research.unlocked)
+        # What you are made of is a passive bonus like any other. Without this
+        # the opening screen's "superb instruments" was a sentence the
+        # simulation never read — the exact defect this project keeps finding.
+        for key, value in self.stock_fx.items():
+            self.bonuses[key] = self.bonuses.get(key, 0.0) + value
         # Alien work you have incorporated counts alongside your own research.
         for key, value in xeno_sim.bonuses(self).items():
             self.bonuses[key] = self.bonuses.get(key, 0.0) + value
@@ -315,16 +326,35 @@ class Game:
         return save_mod.write(self.to_save())
 
 
-def new_game(seed: str | None = None, systems: int = 42) -> Game:
+def new_game(seed: str | None = None, systems: int = 42, choices=None) -> Game:
+    """Open a chronicle. `choices` is a `sim.beginning.Choices`.
+
+    With no choices this is *exactly* the game as it shipped, deliberately:
+    the whole suite is written against that opening, so a default that quietly
+    differed would leave every check passing while measuring something else.
+    `beginning.apply` is a set of deltas, and the default origin's deltas are
+    all zero.
+    """
     import random
+    from ..sim import beginning as beginning_sim
     seed_str = seed or f"verge-{random.randrange(10 ** 9):x}"
     rng = RNG(f"{seed_str}:start")
+    choices = choices or beginning_sim.default()
 
     galaxy = generate_sector(seed_str, systems)
-    start = _pick_start(galaxy)
+    start = (_pick_start(galaxy) if beginning_sim.is_default(choices)
+             else beginning_sim.start_system(galaxy, choices.posting))
 
-    ship = make_ship("navis", list(START_FIT), "Patient Increment")
-    ship.crew = 34
+    if beginning_sim.is_default(choices):
+        ship = make_ship("navis", list(START_FIT), choices.name)
+        ship.crew = 34
+    else:
+        chassis = CHASSIS_BY_ID[choices.hull]
+        known = set(STARTING_TECH) | set(
+            beginning_sim.ORIGINS_BY_ID[choices.origin].tech)
+        ship = make_ship(chassis.id,
+                         beginning_sim.fit_for(chassis, known), choices.name)
+        ship.crew = chassis.crew
     ship.cargo = {"ore": 12, "volatiles": 20, "biomass": 18}
 
     game = Game(
@@ -344,8 +374,11 @@ def new_game(seed: str | None = None, systems: int = 42) -> Game:
     # its own data already on the bench.
     inquiry_sim.add(game.research, "survey", 55)
     inquiry_sim.add(game.research, "specimen", 25)
+    beginning_sim.apply(game, choices, rng)
     game.recompute()
     game.add_log(f"The {ship.name} is under way from {start.name}.", "good")
+    if not beginning_sim.is_default(choices):
+        game.add_log(beginning_sim.blurb(choices), "")
     return game
 
 

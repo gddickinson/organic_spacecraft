@@ -144,7 +144,28 @@ class CodexView(View):
             p.add(spacer(5))
         self.col.addWidget(p)
 
+    def _commission(self) -> None:
+        """Who this captain is. Read off `game.beginning`, which the opening set."""
+        from ..data.beginnings import ORIGINS_BY_ID, POSTINGS_BY_ID, STOCKS_BY_ID
+        chosen = getattr(self.game, "beginning", None)
+        if chosen is None:
+            return
+        stock = STOCKS_BY_ID.get(chosen.stock)
+        origin = ORIGINS_BY_ID.get(chosen.origin)
+        posting = POSTINGS_BY_ID.get(chosen.posting)
+        if not (stock and origin and posting):
+            return
+        panel = Panel("This commission")
+        panel.add_row("Hull", chosen.name)
+        panel.add_row("Stock", stock.name)
+        panel.add_row("Origin", origin.name)
+        panel.add_row("Posted from", posting.name)
+        panel.add(note(origin.blurb))
+        panel.add(note(stock.blurb))
+        self.col.addWidget(panel)
+
     def _about(self) -> None:
+        self._commission()
         p = Panel("About this chronicle")
         for para in INTRO:
             p.add(label(para, "", wrap=True))

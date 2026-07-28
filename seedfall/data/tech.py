@@ -300,7 +300,13 @@ TECH: list[Tech] = [
 TECH_BY_ID: dict[str, Tech] = {t.id: t for t in TECH}
 
 #: Techs every commander begins with — a Charter education, and nothing else.
-STARTING_TECH = ["mycelium", "intima", "bioelectric", "morphogen", "licence"]
+#: What a captain knows on day one. It must include the technology behind
+#: every part the hull launches with — otherwise removing one in the yard is
+#: irreversible, because `parts_available` filters by what you have unlocked.
+#: Measured: pulling the Reaction-Mass Organ on day one left the drive slot
+#: permanently empty and the drive dropdown offering nothing at all.
+STARTING_TECH = ["mycelium", "intima", "bioelectric", "morphogen", "licence",
+                 "reactionorgan", "radiatorbloom", "bioleach"]
 
 BONUS_KEYS = ("hull", "regen", "jump", "scan", "research", "trade", "diplomacy", "growth")
 

@@ -129,6 +129,7 @@ seedfall/
 │   └── state.py        the Game object, advance_days(), new_game(), load_game()
 ├── data/               static content tables — pure data, no logic
 │   ├── commodities.py  14 tradeable goods
+│   ├── beginnings.py   stocks, origins and postings — who you are before day one
 │   ├── chassis.py      the hull registry — assembles and re-exports the rest
 │   ├── hull_types.py   layer stacks, the Chassis record, family rules (ACCEPTS)
 │   ├── hulls_grown.py  the 12 GESTALT classes
@@ -172,6 +173,7 @@ seedfall/
 │   ├── expedition.py   the ground game: zone map, movement, attempts, hauls
 │   ├── reach.py        what you can get to at all, and what a drive would open
 │   ├── plans.py        the ship as solids: hull, fittings, hold, berths
+│   ├── beginning.py    turning an opening choice into a chronicle
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
 │   ├── assessment.py   reading an engagement: who wins, why, what to do
 │   ├── chains.py       commissions: work that escalates and closes doors
@@ -268,6 +270,7 @@ seedfall/
     ├── test_attempts.py 6 checks — the odds shown are the odds rolled
     ├── test_reach.py   6 reach checks — the chart's wall is a real wall
     ├── test_plans.py   8 plan checks — the model is the ship, and it is solid
+    ├── test_beginnings.py 9 checks — the commission you pick is the one you get
     ├── chronicle.py    one captain, one save, a decade of doing everything
     ├── test_chronicle.py 3 checks — that decade, through every screen
     ├── capture.py      renders every screen offscreen, for the README
@@ -322,6 +325,15 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   13, with a quarter of sectors under eight. Opening the rest means a better
   drive. `sim/reach.py` computes that component and the chart states it; a
   shipyard is always within reach, so nobody is permanently trapped.
+- **You hold the technology for everything bolted to your hull.**
+  `parts_available` filters the shipyard by what you have unlocked, so a fitted
+  part whose technology you lack can be removed and never put back. The shipped
+  NAVIS carried three: a Reaction-Mass Organ, a Radiator Bloom and a Mining
+  Root. Pulling the drive on day one emptied the slot permanently and left the
+  drive dropdown offering nothing at all. `beginning.tech_of()` enforces the
+  rule structurally — whatever `new_game` fits, it also grants — so no future
+  hull or opening can reintroduce it, and `STARTING_TECH` names the three
+  outright so the constant is honest about what a captain knows.
 - **An index into `game.system.bodies` is not a location.** `Dig` used to hold
   only `body_index`, resolved against whatever system the ship was in *now*, so
   a trench worked from anywhere else read a different body's fatigue — or
@@ -889,6 +901,11 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   in `attempt` and the quote in `odds_for`, and the point is that they cannot
   drift. Dropping the `+2` from the quote makes it report "said 67% rolled
   32%".
+- **`test_beginnings.py`** pins the invariant the whole suite rests on: a
+  `new_game()` with no choices must be *exactly* the game as it shipped, because
+  three hundred and eighty checks are written against that opening and a default
+  that quietly differed would leave all of them passing while measuring a
+  different game. It also found a live soft-lock — see below.
 - **`test_plans.py`** holds the ship model to being built out of the actual
   ship, and holds the renderer to the one thing a software rasteriser gets
   wrong silently. A face wound the wrong way is culled when it should be drawn,
