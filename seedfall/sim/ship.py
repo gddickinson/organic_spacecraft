@@ -180,7 +180,11 @@ def stats(ship: Ship, bonus: dict | None = None, officers=()) -> Stats:
         speed=max(0.2, (ch.speed * (1 + fx["speed"]) + nav * 0.03) * load),
         evade=clamp((ch.evade + fx["evade"] + tac * 0.02) * brownout * load, 0, 0.7),
         accuracy=clamp(0.62 + fx["accuracy"] + tac * 0.035, 0.15, 0.98) * brownout,
-        sensor=2 + fx["sensor"] + sci * 0.2,
+        # `bonus["sensor"]` was not read here at all, so three colony works
+        # promising longer reach — and any research that grants it — extended
+        # your array by exactly nothing. Nothing depended on the number until
+        # surveys started using it to decide what a sweep can reach.
+        sensor=max(0.5, 2 + fx["sensor"] + bonus.get("sensor", 0) + sci * 0.2),
         scan=clamp(0.25 + fx["scan"] + bonus.get("scan", 0) + sci * 0.06, 0, 1),
         cargo=max(0, ch.cargo + fx["cargo"]),
         berths=int(ch.crew + fx["berths"]),

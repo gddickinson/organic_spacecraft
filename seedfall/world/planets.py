@@ -192,27 +192,38 @@ def make_body(rng, system_name: str, index: int, count: int, star_heat: float) -
     )
 
 
-def survey_body(body: Body, quality: float, rng) -> dict:
-    """Survey quality 0..1 decides how much of a body you actually learn."""
+def survey_body(body: Body, quality: float, rng, finds=None) -> dict:
+    """Survey quality 0..1 decides how much of a body you actually learn.
+
+    `finds` is what the method being used can detect at all — see
+    `data/surveys.py`. A long-range sweep reads a spectrum and cannot see
+    anything that moves; only a deep survey reliably reaches what is buried.
+    Left as None, everything is detectable, which is what a close pass does
+    and what this did before there was a choice.
+    """
+    can = set(finds if finds is not None else
+              ("resources", "lifeforms", "anomaly", "relic"))
     found = {"new_body": not body.surveyed, "lifeforms": [], "anomaly": None,
              "data": 0, "research": 0, "relic": None}
     body.surveyed = True
 
     # Buried alien work is easy to walk past and hard to miss twice.
-    if body.relic and not body.relic_found and rng.chance(0.35 + quality * 0.55):
+    if "relic" in can and body.relic and not body.relic_found \
+            and rng.chance(0.35 + quality * 0.55):
         body.relic_found = True
         found["relic"] = body.relic
         found["research"] += 20
 
     for lf in body.lifeforms:
-        if lf.catalogued:
+        if lf.catalogued or "lifeforms" not in can:
             continue
         if rng.chance(0.45 + quality * 0.5):
             lf.catalogued = True
             found["lifeforms"].append(lf)
             found["research"] += round(lf.value * 0.25)
 
-    if body.anomaly and not body.anomaly.found and rng.chance(0.28 + quality * 0.55):
+    if "anomaly" in can and body.anomaly and not body.anomaly.found \
+            and rng.chance(0.28 + quality * 0.55):
         body.anomaly.found = True
         found["anomaly"] = body.anomaly
         found["research"] += body.anomaly.research

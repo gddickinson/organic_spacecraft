@@ -56,6 +56,33 @@ an empty tank from becoming a deadlock. Local work (survey, extract, dig, land)
 flies the ship alongside first, so a player who never opens the helm still gets a
 coherent transit; the helm is where you choose a better one.
 
+**How you look at a body decides what you find.** Surveying used to be one
+button: three days, no cost, no risk, the same kind of answer for a comet as for
+an ocean world — while thirteen sensor fittings and a drone technology existed
+only to nudge a single `scan` float. There are now four methods, and they are
+deliberately *not* a ladder:
+
+| Method | Flies there | Sees | Blind to | Wants |
+|---|---|---|---|---|
+| Long-range sweep | no | resources | life, anomalies, anything buried | to be inside your sensor reach |
+| Close pass | yes | resources, life, anomalies | anything buried | reaction mass for the trip |
+| Probe swarm | no | resources, life, anomalies | anything buried | `dronework`, 3 t silicon + 2 t alloy |
+| Deep survey | yes | everything, including buried sites | — | scan ≥ 0.55, 4 t of charges, nine days |
+
+Each method names what it `finds`, and `world/planets.survey_body` is filtered
+by that list, so a method that says it cannot see lifeforms genuinely cannot.
+The panel states the whole bill before you commit — days, stores, **and the
+reaction mass for getting there** — plus what the method will be blind to, which
+is the part that makes choosing one a decision rather than a formality.
+
+Sensor reach is what gates the free method, and it is the reason a **listening
+post is worth planting**: three colony classes advertise sensor reach, and
+`colony.effects` has tallied it per system since they were written — but nothing
+ever read the tally, so a CHORUS node extended your array by exactly nothing.
+`sim/survey.reach()` reads it now. It stays per-system rather than folded into
+`ship_stats`, because a dish spread across one system should not help you three
+jumps away.
+
 **Two mini-games.** The **docking approach** is the control loop from the
 nervous-system study — sense, compute, act, hold homeostasis — with three drifting
 axes, one correction per pass, and readings blurred by how good your sensors are.
@@ -153,6 +180,7 @@ seedfall/
 │   ├── contraband.py   who outlaws what, how hard they look, what they say
 │   ├── territory.py    what a power says when its claim lands on your ground
 │   ├── charts.py       what each power pays for a survey, and what for
+│   ├── surveys.py      the four ways of looking, and what each cannot see
 │   ├── fieldnotes.py   the eight things the ground can tell you
 │   └── lore.py         intro, victories, endings, name pools, glossary
 ├── world/              generated content
@@ -218,6 +246,7 @@ seedfall/
 │   ├── loyalty.py      what the bridge thinks of how you run the ship
 │   ├── works.py        colony development: what a settlement becomes
 │   ├── flight.py       the helm: orbits, intercepts, routing, transfer burns
+│   ├── survey.py       what a way of looking costs, finds, and is blind to
 │   ├── minigames.py    the docking control loop and the decoding bench
 │   └── actions.py      player actions spanning modules (jump/survey/mine/dive)
 ├── ui/                 PyQt6 presentation — never mutates state directly
@@ -228,6 +257,7 @@ seedfall/
 │   ├── app.py          QApplication bootstrap
 │   ├── map_view.py     custom-painted sector chart and jump control
 │   ├── system_view.py  bodies, survey, extraction, diving, colonising
+│   ├── survey_panel.py the four methods as cards, each stating its blind spot
 │   ├── port_view.py    market, services, recruitment
 │   ├── ship_view.py    layer stack, fittings, crew, hold
 │   ├── yard_view.py    hull designer, build queue, fleet management

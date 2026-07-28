@@ -2,6 +2,55 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: four ways to look at a world, and three that never paid
+
+Answering a question from the player: *"how are surveys carried out? They seem
+to have no cost and are all the same."* They were. One button, three days, no
+cost, no risk, and the same kind of answer for a comet as for an ocean world —
+while thirteen sensor fittings and a drone technology existed only to nudge a
+single `scan` float.
+
+- **Four methods, deliberately not a ladder.** A long-range sweep is not a worse
+  close pass; it is a different question. It costs no travel and no stores, and
+  it cannot see anything that moves or anything buried. A probe swarm goes where
+  the hull will not, needs `dronework` and eats silicon and alloy every time. A
+  deep survey is the only thing that reliably finds a buried site, and it wants
+  nine days, reaction mass for the charges and a real sensor suite. Each names
+  what it `finds`, and `world/planets.survey_body` is filtered by that list, so
+  a method that says it cannot see lifeforms genuinely cannot.
+- **The panel states the whole bill before you commit** — days, stores, what it
+  will find and, the part that makes it a decision, *what it will be blind to.*
+- **A forecast that lied by nine days.** `flight.ensure_at` quietly drops to a
+  coast when there is not enough reaction mass for a standard burn, and a coast
+  is slower. The preview always quoted the standard burn, so on a dry tank it
+  promised seven days for a trip that took sixteen. Fixed by forecasting the
+  profile that will actually be used.
+- **A bill that hid most of itself.** The deep survey quoted four tonnes of
+  charges and spent seven: flying the hull alongside burns reaction mass on top,
+  and the card never mentioned it. `full_cost()` now folds the flight in.
+- **Three colony works that paid nothing.** Vigil viva, a CHORUS node and a
+  reactivated array all advertise sensor reach, and `colony.effects` has tallied
+  it per system since the day they were written — and *nothing ever read the
+  tally.* `stats()` also dropped any `sensor` bonus on the floor, summing only
+  fittings. Both were invisible because until surveys the number decided
+  nothing; now it gates the free method. A relay node takes reach from 4.00 to
+  8.00 AU. It stays per-system rather than folded into `ship_stats`: a dish
+  spread across one system should not help you three jumps away.
+- **Two of my own measurement errors, caught before they became findings.**
+  I "fixed" a forecast mismatch that was really my check poking `ship_stats`,
+  which `advance_days` rebuilds from the hull and throws away — the check
+  measured a sharp instrument for the forecast and a blunt one for the survey,
+  then blamed the forecast. Same lesson a second time with `colony_fx`. Derived
+  state cannot be overridden by a test that moves the clock; the fixture now
+  goes through real inputs and plants a real colony.
+- **Proving the checks bite.** Reintroduced all four bugs. Three failed
+  immediately; the coast-forecast one **passed**, because the fixture always had
+  fuel for a standard burn — so the fix was unproven and the path untested.
+  Added a dry-tank case: it now fails with "said 7 days, took 16".
+- 466 checks green, every file under 500 lines. `system_view.py` had crossed the
+  limit at 505, so the survey report moved to `ui/survey_panel.py`, where it
+  belonged anyway.
+
 ## 2026-07-28 — SEEDFALL: playing by pressing, and a helm warning that said nothing
 
 - **Measured the gap first.** A six-year chronicle makes **zero** fractional

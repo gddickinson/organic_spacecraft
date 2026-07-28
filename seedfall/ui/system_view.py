@@ -223,12 +223,11 @@ class SystemView(View):
                     panel.add(note(f"Worked {b.digs} time(s); the easy material "
                                    "is gone."))
         else:
-            panel.add(note("Nothing is known about this body beyond its orbit and "
-                           "mass. A survey would take a few days."))
+            panel.add(note("Nothing is known about this body beyond its orbit "
+                           "and mass. How you look at it decides what you find."))
 
+        panel.add(self._how_to_look(g, b))
         panel.add_buttons(
-            button("Re-survey" if b.surveyed else "Survey", self._survey,
-                   kind="primary"),
             button("Dive the ocean", self._dive)
             if (b.biome == "subsurface" and st.can_dive) else None,
             button("Excavate the site", self._excavate)
@@ -242,26 +241,20 @@ class SystemView(View):
 
     # ── actions ────────────────────────────────────────────────────────────
 
-    def _survey(self) -> None:
-        res = survey(self.game, self.selected)
+    def _how_to_look(self, g, b):
+        from .survey_panel import how_to_look
+        return how_to_look(self, g, b)
+
+    def _survey(self, method: str = "pass") -> None:
+        from ..sim import survey as survey_sim
+        from .survey_panel import report
+        res = survey_sim.perform(self.game, self.selected, method)
+        if not res.get("ok"):
+            self.win.toast(res.get("why", "No."), "warn")
+            return
         if self.win.check_ending():
             return
-        lines = [f"{res['days']} days on station. {len(res['lifeforms'])} organism(s) "
-                 f"catalogued, {res['research']} points of research banked."]
-        for lf in res["lifeforms"]:
-            lines.append(f"{lf.name} — {lf.metabolism_name}; {lf.behaviour}.")
-        if res["anomaly"]:
-            lines.append(f"{res['anomaly'].name}: {res['anomaly'].text}")
-        if res.get("relic"):
-            tech = XENOTECH_BY_ID[res["relic"]]
-            culture = CULTURES_BY_ID[tech.culture]
-            lines.append(f"A {culture.name} site, buried and largely intact. "
-                         f"The work appears to be {tech.name}. It can be "
-                         "excavated.")
-        if res["data"]:
-            lines.append(note(f"{res['data']} data set(s) stowed — the factions buy "
-                              "these."))
-        self.win.dialog("Survey complete", lines, [("Log it", None)])
+        self.win.dialog("Survey complete", report(res), [("Log it", None)])
         self.win.refresh()
 
     def set_mining_method(self, method_id: str) -> None:

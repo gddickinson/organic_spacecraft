@@ -105,7 +105,11 @@ def _apply_event(game, fx: dict) -> None:
 # ── surveying ──────────────────────────────────────────────────────────────
 
 def survey(game, body_index: int) -> dict:
-    """Chart a body. The ship flies alongside first."""
+    """Chart a body with a close pass — the survey that shipped.
+
+    Kept as it was so every existing caller and check means what it meant.
+    `sim/survey.py` is where the choice of *how* to look now lives.
+    """
     flight.ensure_at(game, body_index)
     system = game.system
     body = system.bodies[body_index]
