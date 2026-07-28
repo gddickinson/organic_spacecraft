@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import QSizePolicy, QWidget
 
 from ..core.util import duration, num
 from ..sim import flight
+from ..sim import transit as transit_sim
 from ..world.planets import BODY_KINDS
 from . import theme
 from .widgets import (Panel, Pill, TabBar, View, button, label, mono_label,
@@ -242,14 +243,11 @@ class HelmView(View):
         self.refresh()
 
     def _burn(self, burn_id: str) -> None:
-        res = flight.travel_to(self.game, self.target, burn_id)
+        # Committing to a burn puts you in the pilot's seat for the crossing
+        # rather than skipping to the far end of it.
+        res = transit_sim.begin(self.game, self.target, burn_id)
         if not res.get("ok"):
             self.win.toast(res["why"], "warn")
             return
-        if self.win.check_ending():
-            return
-        if res.get("incident"):
-            inc = res["incident"]
-            self.win.dialog(inc["name"], [inc["text"], note(inc["detail"])],
-                            [("Carry on", None)])
-        self.win.refresh()
+        self.win.transit = res["transit"]
+        self.win.go("transit")

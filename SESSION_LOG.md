@@ -2,6 +2,37 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a crossing you fly
+
+- **Travel was a wait.** Pick a destination, pay the reaction mass, watch the
+  calendar move, occasionally read a line about something that had already
+  happened to you. The helm could plot an intercept and route around a star and
+  then had nothing to do for eleven days.
+- **A crossing now runs in watches.** Two to four of them depending on the leg,
+  and a watch may bring something that wants an answer: debris across the
+  course, a radiator lobe that will not seat, a bad slug of reaction mass, a
+  hull adrift with no beacon, a flare off the star, the intima fruiting, a
+  contact on the same lane. Seven of them, twenty options, and every option
+  spends one of the three things a crossing has — time, mass, or the hull.
+- **The tension is measurable, which is the test.** Flying the same crossings
+  hurried against careful: 7.4 days and 0.6% of the hull, against 8.5 days and
+  none of it. Neither policy is better on both axes, which is what makes the
+  watch a decision rather than a formality.
+- **Nothing is charged up front**, so cutting the burn halfway is a real
+  option: you keep the mass you have not yet burned and lose what you have,
+  and you are where you started.
+- **Two things I got wrong and caught by playing it.** The last watch of every
+  crossing could never bring anything, because I rolled for events only when
+  not yet at the destination — the final leg, when a captain is most tired and
+  least stocked, was always the quiet one. And I first held the crossing on the
+  window rather than on the `Game`, which loses it over a save exactly as
+  docking and decoding state still does.
+- **A lever for it in the efficacy harness**, so the watches have to keep
+  earning their place: switch them off and a crossing takes 6.5 days instead of
+  7.5.
+- Suites: 24, **6 transit** (new) and a fourteenth lever among them — 223
+  checks green. 146 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: every feature has to move something
 
 - **Reachability was a floor, and I said so at the time.** A function called

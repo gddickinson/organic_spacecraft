@@ -172,6 +172,7 @@ seedfall/
 │   ├── loading.py      fitted mass against what the hull is rated to shift
 │   ├── orders.py       which standing orders apply — the discoverability index
 │   ├── parley.py       breaking off and talking your way out
+│   ├── transit.py      standing the watches of a crossing
 │   ├── responses.py    provocation, the Bloom's answers, and studying a mass
 │   ├── market.py       supply shocks, and the prices you wrote down
 │   ├── ventures.py     what the powers do on their own account
@@ -225,6 +226,7 @@ seedfall/
     ├── test_assessment.py 6 read checks — honesty, arcs, robustness
     ├── test_balance.py 7 balance checks — measured by playing the fights
     ├── test_bloom_arc.py 7 Bloom checks — provocation, answers, study
+    ├── test_transit.py 6 crossing checks — watches, aborting, tension
     ├── efficacy.py     the harness: neutralise a feature, measure the world
     ├── levers.py       one entry per claim the game makes about a number
     ├── test_efficacy.py 13 checks — every feature has to move something
@@ -479,6 +481,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   Bloom growing half again as fast reached exactly the same total; the first
   research lever stocked the bench full in *both* runs. Both read as inert
   features when the features were fine.
+- **A crossing charges as it goes, not up front.** `transit.begin()` takes
+  nothing; each watch spends its share. That is what makes cutting the burn a
+  real decision — you keep what you have not yet spent and lose what you have.
+- **The window's `transit` is a property over `game.transit`.** Holding it on
+  the window instead lost a crossing over a save, the way docking and decoding
+  state still does; anything that must survive a reload belongs on the `Game`.
 - **Colony effects are a closed vocabulary.** `test_sim.py` asserts that every
   key in a `ColonyClass.effects` is one the game actually reads, so a typo in a
   station definition fails the suite instead of silently doing nothing.
@@ -564,6 +572,9 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`test_efficacy.py`** carries two checks on itself: that a deliberately
   decorative feature fails, and that every lever's substitution bites. A
   harness that cannot fail is worse than none.
+- **`test_transit.py`** flies the same crossings under a hurried policy and a
+  careful one and fails unless hurrying genuinely saves days and genuinely
+  costs hull. An option that is best on every axis is not a decision.
 - **`test_flight.py`** holds the helm to its promises: that a seed grows one
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that

@@ -191,6 +191,7 @@ class MainWindow(QMainWindow):
         from .ship_view import ShipView
         from .system_view import SystemView
         from .tech_view import TechView
+        from .transit_view import TransitView
         from .yard_view import YardView
 
         classes = {
@@ -200,6 +201,7 @@ class MainWindow(QMainWindow):
             "ground": ExpeditionView, "helm": HelmView,
             "diplomacy": DiplomacyView,
             "docking": DockingView, "decoding": DecodingView,
+            "transit": TransitView,
         }
         for vid, cls in classes.items():
             view = cls(self)
@@ -209,10 +211,22 @@ class MainWindow(QMainWindow):
 
     # ── navigation ─────────────────────────────────────────────────────────
 
+    @property
+    def transit(self):
+        return getattr(self.game, "transit", None)
+
+    @transit.setter
+    def transit(self, value):
+        self.game.transit = value
+
     def go(self, view_id: str) -> None:
         if self.battle is not None and not self.battle.over and view_id != "battle":
             self.toast("You are under fire. Finish the engagement first.", "warn")
             view_id = "battle"
+        elif self.transit is not None and not self.transit.over \
+                and view_id not in ("transit", "battle"):
+            self.toast("You are under way. Fly it or cut the burn.", "warn")
+            view_id = "transit"
         elif self.docking is not None and not self.docking.over \
                 and view_id not in ("docking", "battle"):
             self.toast("You are on final approach.", "warn")

@@ -14,7 +14,8 @@ from ..sim import expedition as expedition_sim
 from ..sim import inquiry, loading, loyalty, market as market_sim
 from ..sim import mining, research as research_sim
 from ..sim import responses as response_sim
-from ..sim import stations, weather as weather_sim
+from ..sim import stations, transit as transit_sim
+from ..sim import weather as weather_sim
 from ..sim import works as works_sim
 from ..sim.ship import build_layers, make_ship, stats
 from ..world.economy import buy_price
@@ -196,6 +197,34 @@ def _days_to_first_tech() -> float:
     return float(game.day)
 
 
+# ── the watches of a crossing cost something ───────────────────────────────
+
+def _crossing_days() -> float:
+    total = 0.0
+    runs = 20
+    for index in range(runs):
+        game = new_game(f"lever-fly-{index}")
+        game.ship.cargo = {"volatiles": 120}
+        target = max(range(len(game.system.bodies)),
+                     key=lambda i: game.system.bodies[i].orbit)
+        started = transit_sim.begin(game, target, "standard")
+        if not started["ok"]:
+            continue
+        crossing = started["transit"]
+        rng = RNG(f"fly-{index}")
+        guard = 0
+        while not crossing.over and guard < 30:
+            guard += 1
+            if crossing.event:
+                choices = transit_sim.options(crossing)
+                pick = min(choices, key=lambda o: (o.risk, o.damage))
+                transit_sim.choose(game, crossing, pick.id, rng)
+            else:
+                transit_sim.stand(game, crossing, rng)
+        total += crossing.days_spent
+    return total / runs
+
+
 LEVERS: list[Lever] = [
     Lever("bloom-provocation",
           "a provoked Bloom grows faster",
@@ -244,6 +273,11 @@ LEVERS: list[Lever] = [
                      body.resources.get(resource, 0.0) * rig
                      * max(0.0, 1 - body.depleted))),
           probe=_bore_yield, direction="lower"),
+
+    Lever("transit-watches",
+          "standing the watches of a crossing costs something",
+          patch=(transit_sim, "_eligible", lambda _g, _t: []),
+          probe=_crossing_days, direction="lower"),
 
     Lever("research-evidence",
           "evidence on the bench speeds a programme",
