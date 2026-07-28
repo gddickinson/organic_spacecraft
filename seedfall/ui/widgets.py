@@ -339,17 +339,53 @@ class View(QScrollArea):
         defer(self.refresh)
 
     def refresh(self) -> None:
+        """Rebuild this screen, without freeing anything mid-event.
+
+        The rule that keeps costing us a segfault: **a signal handler must not
+        destroy the widget that emitted it.** Every handler here rebuilds, and
+        this used to drop the last reference to the old widgets synchronously
+        — so Qt returned from the emit into freed memory. It killed the
+        process through a `Card`, through a `QLineEdit` mid-keystroke, and
+        through a `QComboBox` whose popup was still delivering the click that
+        dismissed it.
+
+        Each of those was fixed at its call site with `defer`, one at a time,
+        as players found them. This closes the class instead: the outgoing
+        widgets are parked and released on the *next* turn of the event loop,
+        so whatever emitted is guaranteed to outlive the event it emitted
+        during, whether or not the call site remembered to defer.
+        """
+        doomed = []
         while self.col.count():
             item = self.col.takeAt(0)
             w = item.widget()
             if w is not None:
                 w.setParent(None)
+                w.hide()
+                doomed.append(w)
+        if doomed:
+            # Held on the view, not in a local: a local dies with this frame
+            # and takes the C++ objects with it, which is the whole bug.
+            # *Extended*, not replaced — two rebuilds inside one event (a
+            # handler that refreshes and then navigates) would otherwise drop
+            # the first batch synchronously, which is the same bug wearing a
+            # rarer hat.
+            held = getattr(self, "_doomed", None)
+            if held is None:
+                self._doomed = doomed
+                defer(self._release)
+            else:
+                held.extend(doomed)
         self.build()
         self.col.addStretch(1)
         # Rebuilding the column does not on its own tell the scroll area that
         # its contents changed size, so a screen taller than the viewport was
         # silently squashed instead of scrolling. Ask for the recalculation.
         self._sync_scroll()
+
+    def _release(self) -> None:
+        """Let the previous screen's widgets go, now the event has finished."""
+        self._doomed = None
 
     def _sync_scroll(self) -> None:
         """Let the scroll area find out that the screen changed height.

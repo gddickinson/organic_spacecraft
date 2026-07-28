@@ -56,6 +56,24 @@ an empty tank from becoming a deadlock. Local work (survey, extract, dig, land)
 flies the ship alongside first, so a player who never opens the helm still gets a
 coherent transit; the helm is where you choose a better one.
 
+**A screen cannot free the widget that is talking to it.** The rule has cost
+three segfaults — a `Card`, a `QLineEdit` mid-keystroke, and a `QComboBox`
+whose popup was still delivering the click that dismissed it. Each was fixed
+at its call site with `widgets.defer`, one at a time, as players found them.
+
+`View.refresh` closes the class instead. The outgoing widgets are parked on
+the view and released on the *next* turn of the event loop, so whatever
+emitted is guaranteed to outlive the event it emitted during — whether or not
+the call site remembered to defer. (They still do; it is belt and braces now
+rather than the only thing standing between a drop-down and a crash.)
+
+And the suite can now catch a signal instead of dying from one.
+`tests/popup_probe.py` sends **real mouse events to a popup's viewport** —
+the actual path the crash lives on, which `setCurrentIndex` and
+`activated.emit` never touch — and runs as its own process, so a segfault is a
+failed check with an exit code rather than a dead test run. Verified: backing
+the fix out makes it report `exit -11`.
+
 **There is somebody behind the counter.** A quay was a bag of services.
 `sim/memory.py` has carried a `port` mind kind since it was written and a
 fresh chronicle's store was empty and stayed empty — nothing ever put a person

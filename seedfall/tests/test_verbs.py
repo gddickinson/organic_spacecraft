@@ -329,6 +329,42 @@ def run(suite: Suite) -> bool:
                             + "\n      ".join(broken[:6]))
         return f"{total} controls with nothing left aboard, all clean"
 
+    @check("a real drop-down click does not take the process with it")
+    def _():
+        """The player's crash, reproduced the way they found it.
+
+        Every driver in this suite chooses from a combo with `setCurrentIndex`
+        or by emitting `activated`. Neither opens a popup, and the crash lives
+        entirely inside the popup's event filter — which is how five hundred
+        checks missed a segfault a player hit by clicking a drop-down.
+
+        `popup_probe` sends real mouse events to the popup's viewport. It runs
+        as its own process because the failure is a signal, not an exception:
+        asserted in-process it would not fail the check, it would kill the
+        suite. Verified to exit 139 with the fix backed out.
+        """
+        import os
+        import subprocess
+        import sys
+
+        env = dict(os.environ, QT_QPA_PLATFORM="offscreen")
+        done = subprocess.run(
+            [sys.executable, "-m", "seedfall.tests.popup_probe"],
+            capture_output=True, text=True, env=env, timeout=300,
+            cwd=os.path.dirname(os.path.dirname(os.path.dirname(
+                os.path.abspath(__file__)))))
+        # Qt's offscreen plugin chats to stderr about raise() and keyboard
+        # grabbing; the probe's own verdict is on stdout.
+        lines = [ln for ln in done.stdout.strip().splitlines()
+                 if ln and "qt.qpa" not in ln and "plugin does not" not in ln]
+        said = lines[-1] if lines else "(no output)"
+        assert done.returncode == 0, (
+            f"exit {done.returncode}"
+            + " — a drop-down click segfaulted the process, exactly as the "
+              "player reported" if done.returncode < 0 or done.returncode == 139
+            else f"exit {done.returncode}: {said}")
+        return said
+
     @check("a control survives its own signal")
     def _():
         """The rule `widgets.defer` exists for, tested where it actually bites.

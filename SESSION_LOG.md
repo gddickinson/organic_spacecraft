@@ -2,6 +2,37 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: closing the crash class, and catching a signal
+
+Last cycle a player segfaulted the game on a drop-down and I fixed the two
+call sites that were missing a `defer`. That was the third time this rule has
+cost a crash — a `Card`, a `QLineEdit` mid-keystroke, now a `QComboBox` — and
+the third time the fix was one call site at a time, after a player found it.
+
+- **The class is closed at the root.** `View.refresh` freed the old widgets
+  synchronously, which is what let any handler destroy its own emitter. The
+  outgoing widgets are now parked on the view and released on the next turn of
+  the event loop, so whatever emitted outlives the event it emitted during
+  whether or not the call site deferred. Measured no leak: 220 rebuilds, zero
+  widgets still held.
+- **A flaw in my own fix, caught by thinking about it rather than by a test.**
+  Parking by assignment meant two rebuilds inside one event would drop the
+  first batch synchronously — the same bug in a rarer hat. It extends now.
+- **The suite can catch a segfault instead of being killed by one.** Every
+  driver here chooses from a combo with `setCurrentIndex` or by emitting
+  `activated`; neither opens a popup, and the crash lives entirely inside
+  `QComboBoxPrivateContainer::eventFilter`. That is why five hundred checks
+  missed it. `tests/popup_probe.py` sends real mouse events to the popup's
+  viewport and runs out of process, so the failure mode is an exit code.
+  Backing the fix out reports **exit -11**, which is the player's crash,
+  reproduced.
+- **The invariant, stated precisely.** The combo must be alive *at the instant
+  Qt returns from delivering the click* — not afterwards. My first probe
+  asserted aliveness after four `processEvents` and read False for a
+  completely legitimate reason: the deferred rebuild had long since run. A
+  check measuring the wrong moment would have condemned correct code.
+- 526 checks green, every file under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: somebody behind the counter, and a segfault from a combo box
 
 **A crash first.** A player segfaulted the game choosing from a drop-down. The
