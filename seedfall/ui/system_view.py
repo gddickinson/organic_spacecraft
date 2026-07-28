@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
-from ..core.util import cost_line, duration, num, pct
+from ..core.util import cost_line, credits as cr, duration, num, pct
 from ..data.factions import FACTIONS_BY_ID
 from ..data.territory import TRESPASS_NOTE
 from ..sim import colony as colony_sim
@@ -454,6 +454,24 @@ class SystemView(View):
                 card.add(label(c.binomial, "sub"))
             card.add(label(c.blurb, "", wrap=True))
             card.add(note(cost_line(c.cost) + f" · {duration(c.days)} gestation"))
+            # What it will actually produce. The dialog used to give a price
+            # and a gestation time and nothing else, so a Free Port at 74,000
+            # read much like a RADIX Mine at 12,000.
+            plan = colony_sim.forecast(g, sys, body, c.id)
+            yields = ", ".join(
+                (f"{cr(round(v))}/day" if k == "credits" else f"{v:g} {k}/day")
+                for k, v in plan.get("yields", {}).items())
+            card.add(label(yields or "Produces nothing directly.", "",
+                           "chloro" if yields else "dim", wrap=True))
+            if plan.get("effects"):
+                card.add(note("Grants: " + ", ".join(sorted(plan["effects"]))))
+            if plan.get("upkeep"):
+                card.add(note("Upkeep: " + ", ".join(
+                    f"{v:g} {k}/day" for k, v in plan["upkeep"].items())))
+            if plan.get("payback"):
+                years = plan["payback"] / 365
+                card.add(note(f"Pays for itself in about "
+                              f"{years:.1f} year(s) once it is up."))
             if not ok:
                 card.add(label(why, "", "warn", wrap=True))
             else:

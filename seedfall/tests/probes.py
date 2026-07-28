@@ -20,6 +20,23 @@ from ..sim import inquiry
 
 # ── the desk finds runs your own notes cannot ──────────────────────────────
 
+def _forecast_reach() -> float:
+    """How much of a colony's output the seed dialog foretells."""
+    from ..data.colonies import colonies_for
+    from ..data.tech import TECH
+    from ..sim import colony as colony_sim
+    game = new_game("lever-plant")
+    game.research.unlocked.extend(t.id for t in TECH)
+    game.recompute()
+    body = next(b for b in game.system.bodies
+                if b.kind in ("rocky", "moon", "asteroid", "ice"))
+    told = 0.0
+    for klass in colonies_for(body.kind, game.research.unlocked):
+        said = colony_sim.forecast(game, game.system, body, klass.id)
+        told += len(said.get("yields", {})) + len(said.get("effects", {}))
+    return told
+
+
 def _seat_worth() -> float:
     """What the bridge says taking a seat is worth, summed over the stations."""
     from ..core.rng import RNG as _RNG

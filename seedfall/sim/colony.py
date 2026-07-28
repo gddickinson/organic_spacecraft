@@ -126,6 +126,47 @@ def found(game, system, body, class_id: str):
     return col, ""
 
 
+#: What a tonne of the commonest colony outputs is worth, for a rough payback.
+#: Deliberately a flat figure rather than a market lookup: a forecast that
+#: swings with whichever port you happen to be standing in is a forecast nobody
+#: can compare classes with.
+_WORTH = {"ore": 42, "volatiles": 38, "phosphate": 340, "biomass": 66,
+          "alloy": 155, "silicon": 880, "xenolith": 3600, "xenopharma": 1240,
+          "survey": 460, "credits": 1.0, "research": 90}
+
+
+def forecast(game, system, body, class_id: str) -> dict:
+    """What planting this class here would give you, before you commit.
+
+    The dialog showed a price and a gestation time and nothing else, so a Free
+    Port at 74,000 credits looked much like a RADIX Mine at 12,000 — one makes
+    260 credits a day and the other 2.6 tonnes of ore, and the screen named
+    neither.
+    """
+    definition = COLONIES_BY_ID.get(class_id)
+    if definition is None:
+        return {}
+    probe = Colony(id=0, class_id=class_id, name=definition.name,
+                   system_id=system.id, body_id=body.id, need=1,
+                   online=True, pop=definition.pop)
+    yields = works.yields_of(probe)
+    upkeep = works.upkeep_of(probe)
+    effects = works.effects_of(probe)
+
+    a_day = sum(amount * _WORTH.get(key, 0) for key, amount in yields.items())
+    a_day -= sum(amount * _WORTH.get(key, 0) for key, amount in upkeep.items())
+    outlay = float(definition.cost.get("credits", 0))
+    outlay += sum(amount * _WORTH.get(key, 0)
+                  for key, amount in definition.cost.items() if key != "credits")
+    speed = 1 + game.bonuses.get("growth", 0) + _gestation_help(game, system.id)
+    return {
+        "yields": yields, "upkeep": upkeep, "effects": effects,
+        "a_day": a_day, "outlay": outlay,
+        "days": max(10, round(definition.days / speed)),
+        "payback": (outlay / a_day) if a_day > 0 else None,
+    }
+
+
 def tick(game, days: float) -> tuple[dict, list]:
     """Advance every colony. Returns (materials gained, log events)."""
     gains: dict[str, float] = {}

@@ -2,6 +2,37 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: what will grow there
+
+- **Seventh cycle running the defect is a readout, and this time I went looking
+  for it deliberately** rather than stumbling on it. The plant-a-seed dialog
+  was the obvious remaining candidate: founding is the core empire decision,
+  months long and tens of thousands of credits, and the screen gave a price and
+  a gestation time and nothing else.
+- **Measured on a single rocky body: fourteen classes on offer**, yielding
+  anything from 2.6 tonnes of ore a day (RADIX Mine, 12,000 credits) to 260
+  credits a day (Free Port, 74,000) to 4.2 research a day (Reactivated Array,
+  96,000). Three of the nineteen classes yield nothing at all and buy effects
+  instead — a GRAVID Nursery at 60,000 credits produces not one tonne of
+  anything, which is legitimate and needs saying.
+- **`colony.forecast()` gives yield, upkeep, effects and a rough payback**, and
+  the card shows them: "2.6 ore/day, 0.11 phosphate/day · Upkeep: 0.1
+  biomass/day · Pays for itself in about 0.3 year(s) once it is up." Payback
+  ranges from 0.1 years to 3.6 across the classes, which is the comparison the
+  dialog existed to support and could not.
+- **Priced at a flat table rather than a market**, deliberately: a payback that
+  swings with whichever port you happen to be standing in is not something
+  anybody can compare classes with.
+- **The check plants all fourteen classes a body will take**, matures each, and
+  fails unless yield, upkeep, effects and gestation are what was forecast.
+  Forecasting nothing makes four of the five checks fail, the first reporting
+  "radix_mine: forecast {}, yields {'ore': 2.6, 'phosphate': 0.11}".
+- **One fixture error of my own**, caught immediately: I stocked a guessed list
+  of commodities and the check died on spidroin, for a class it was not
+  testing. It stocks the whole commodity table now.
+- Suites: 43, **5 founding** (new) among them — 348 checks green. 185 modules,
+  all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: what a seat is worth
 
 - **Measured the crew stations, and the combat sim is sound.** Directed gunnery

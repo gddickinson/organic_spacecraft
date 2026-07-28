@@ -12,6 +12,7 @@ from ..sim import aftermath as aftermath_sim
 from ..sim import allegiance
 from ..sim import bloom as bloom_sim
 from ..sim import charts as chart_sim
+from ..sim import colony as colony_sim_for_lever
 from ..sim import combat, consorts, contracts as contract_sim_for_lever
 from ..sim import customs as customs_sim, diplomacy as dip
 from ..sim import dig as dig_sim
@@ -31,7 +32,7 @@ from ..sim.ship import build_layers, make_ship, stats
 from ..world.economy import buy_price
 from . import captain_ai
 from .efficacy import Lever
-from .probes import (_seat_worth, _overture_honesty, _annex_research, _bench_overdraw, _hard_burn_hull, _wasted_ground,
+from .probes import (_forecast_reach, _seat_worth, _overture_honesty, _annex_research, _bench_overdraw, _hard_burn_hull, _wasted_ground,
                      _chart_spread, _contract_net, _cut_dig_points,
                      _desk_runs, _kill_goodwill, _levied_output,
                      _note_evidence, _smuggling_purse,
@@ -240,6 +241,15 @@ def _crossing_days() -> float:
     return total / runs
 
 LEVERS: list[Lever] = [
+    Lever("colony-forecast",
+          "the seed dialog says what will grow",
+          patch=(colony_sim_for_lever, "forecast",
+                 lambda _g, _s, _b, _c: {"yields": {}, "upkeep": {},
+                                         "effects": {}, "a_day": 0.0,
+                                         "outlay": 0.0, "days": 1,
+                                         "payback": None}),
+          probe=_forecast_reach, direction="lower"),
+
     Lever("seat-value",
           "the bridge says what taking a station is worth",
           patch=(stations, "seat_value",

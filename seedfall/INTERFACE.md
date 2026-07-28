@@ -261,13 +261,14 @@ seedfall/
     ├── test_works.py   5 works checks — nothing gated behind a phantom tech
     ├── test_overtures.py 5 checks — the preview is what the overture does
     ├── test_seats.py   6 seat checks — what taking a station is worth
+    ├── test_founding.py 5 checks — the seed dialog says what will grow
     ├── captain_bot.py  the long-game captain the playability checks fly
     ├── probes.py       the newer efficacy probes, split out of levers.py
     ├── test_dig.py     6 dig checks — strata, methods, banking, backfilling
     ├── test_resume.py  5 resume checks — anything half-done survives a save
     ├── efficacy.py     the harness: neutralise a feature, measure the world
     ├── levers.py       one entry per claim the game makes about a number
-    ├── test_efficacy.py 29 checks — every feature has to move something
+    ├── test_efficacy.py 30 checks — every feature has to move something
     ├── test_reachable.py 4 reachability checks — nothing written and uncalled
     ├── test_verbs.py   10 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
@@ -522,6 +523,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **The seed dialog says what will grow.** It showed each class's cost and
+  gestation and never its yield — the one thing that separates them. Measured
+  on one rocky body: fourteen classes from 2.6 t of ore a day (RADIX Mine,
+  12,000) to 260 credits a day (Free Port, 74,000) to 4.2 research a day
+  (Reactivated Array, 96,000), and three that yield nothing and buy effects
+  instead. `colony.forecast()` gives yield, upkeep, effects and a rough
+  payback, and the card shows them.
+- **A colony forecast prices at a flat table, not at a market.** A payback that
+  swings with whichever port you are standing in is not something a player can
+  compare classes with.
 - **A seat says what taking it is worth, not just who is holding it.** The
   orders panel printed each station's officer level and never the consequence.
   Measured from the sim: gunnery is +0.22 to hit with a green officer and +0.10
@@ -838,6 +849,11 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   them home, and fails unless the shelf, the provenance and the evidence all
   survive — including across a save. It also checks every note is reachable and
   that the draw prefers ones you lack, so no written discovery is unfindable.
+- **`test_founding.py`** plants all fourteen classes a body will take, matures
+  each, and fails unless the yield, upkeep, effects and gestation are what the
+  dialog forecast. Its fixture stocks every commodity rather than a guessed
+  list — the first version missed spidroin and died on a class it was not
+  testing.
 - **`test_seats.py`** drives the claims through `run_helm` and
   `run_engineering` rather than re-deriving their formulas, so changing one and
   not the quoted figure is caught. Its fixture creates a tactical officer
