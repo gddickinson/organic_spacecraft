@@ -170,6 +170,19 @@ def inspect(game, rng, approach: float = 0.0) -> dict:
     tonnage = sum(t for _c, t in carrying)
     game.add_log(f"Boarded at {port.name}: {tonnage:.0f} t seized for "
                  f"{reg.writ}. Fined {round(fine)}.", "bad")
+    # The quay remembers the specific hold it opened, which is what the
+    # harbourmaster brings up next time rather than a standing figure.
+    from ..data.factions import FACTIONS_BY_ID
+    from . import memory as memory_sim
+    faction_name = getattr(FACTIONS_BY_ID.get(faction), "name", faction)
+    memory_sim.note(game, f"port:{port.name}", "smuggling",
+                    f"you brought {tonnage:.0f} t through this quay under "
+                    f"{reg.writ}", 1.2, tags=["port", "customs", faction],
+                    name=port.name, entity="port")
+    memory_sim.note(game, f"faction:{faction}", "smuggling",
+                    f"your hold was opened at {port.name}", 1.0,
+                    tags=["customs", faction], name=faction_name,
+                    entity="faction")
     return out
 
 

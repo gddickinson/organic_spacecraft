@@ -21,6 +21,7 @@ from ..sim import diplomacy as dip_sim
 from ..sim import responses as response_sim
 from ..sim import ventures as venture_sim
 from ..sim import legacy as legacy_sim
+from ..sim import memory as memory_sim
 from ..sim import loyalty as loyalty_sim
 from ..sim import research as research_sim
 from ..sim import shipyard as shipyard_sim
@@ -99,6 +100,8 @@ class Game:
     #: A situation waiting on an answer. Like a battle or an open trench, it is
     #: something you can be in the middle of, so it lives here.
     situation: object | None = None
+    #: What everyone in the Verge remembers about you. See `sim/memory.py`.
+    minds: dict = field(default_factory=dict)
     commissions: list = field(default_factory=list)
     rumours: list = field(default_factory=list)
     charts: list = field(default_factory=list)
@@ -293,6 +296,7 @@ class Game:
 
         for kind, text in threat_sim.tick(self, n, r):
             self.add_log(text, kind)
+        memory_sim.tick(self, n)
         for kind, text in legacy_sim.tick(self, n, r):
             self.add_log(text, kind)
         response_sim.decay(self, n)

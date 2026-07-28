@@ -315,8 +315,24 @@ def _take_cargo(game, cid: str, amount: float) -> None:
         game.stores[cid] = max(0.0, game.stores.get(cid, 0) - rest)
 
 
+def _remember_done(game, contract: Contract) -> None:
+    """Whoever posted it remembers that you finished it, and where."""
+    from ..data.factions import FACTIONS_BY_ID
+    from ..data.personas import FACTION_PERSONA
+    from . import memory as memory_sim
+    faction = FACTIONS_BY_ID.get(contract.issuer)
+    where = game.galaxy.systems[contract.issued_at].name \
+        if 0 <= contract.issued_at < len(game.galaxy.systems) else "the board"
+    memory_sim.note(
+        game, f"faction:{contract.issuer}", "contract",
+        f"you finished the {contract.title} posted at {where}", 0.9,
+        tags=["contract", contract.issuer, contract.kind],
+        name=faction.name if faction else contract.issuer, entity="faction")
+
+
 def _pay(game, c: Contract) -> None:
     c.done = True
+    _remember_done(game, c)
     game.credits += c.reward
     game.adjust_rep(c.issuer, c.rep)
     # Being seen to do a power's work is a position, not a neutral errand.

@@ -95,6 +95,14 @@ def begin(game, ending: str) -> dict:
     game.dead = False
     game.overgrown = False
     _rewrite(game, epoch)
+    # Everyone hears about this. It is the largest thing that has happened in
+    # the Verge and it is the player's doing, so every power holds a memory of
+    # it and their envoys will bring it up.
+    from . import memory as memory_sim
+    memory_sim.broadcast(game, "news",
+                         f"the Verge turned over into {epoch.name}, and it was "
+                         "your doing", salience=1.4,
+                         tags=["epoch", epoch.id], among=("faction", "port"))
     game.add_log(f"— {epoch.name} —", "good")
     game.add_log(epoch.opening, "")
     return {"ok": True, "epoch": epoch}

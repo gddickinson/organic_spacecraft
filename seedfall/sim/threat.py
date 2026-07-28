@@ -64,6 +64,13 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
             s.bloom = max(0.0, min(1.0, s.bloom + growth))
             for col in bloom_attack(game, s, rng):
                 events.append(("bad", f"{col.name} has been overgrown and is lost."))
+                # The sector hears about it: every power and quay holds a
+                # memory of the loss, which is what an envoy brings up later.
+                from . import memory as memory_sim
+                memory_sim.broadcast(game, "news",
+                                     f"{col.name} was overgrown and lost", 0.9,
+                                     tags=["bloom", "colony"],
+                                     among=("faction", "port"))
 
         # A mature system throws a seed at its nearest clean neighbour.
         for s in [x for x in held if x.bloom > 0.6]:

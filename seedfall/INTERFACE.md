@@ -126,10 +126,12 @@ seedfall/
 │   ├── util.py         formatting (credits, mass, stardate, duration) and clamp
 │   ├── save.py         generic dataclass ⇄ JSON codec, @register, atomic write
 │   ├── solid.py        a tiny 3D kit: primitives, projection, flat shading
+│   ├── llm.py          optional language model, off by default, hard timeout
 │   └── state.py        the Game object, advance_days(), new_game(), load_game()
 ├── data/               static content tables — pure data, no logic
 │   ├── commodities.py  14 tradeable goods
 │   ├── beginnings.py   stocks, origins and postings — who you are before day one
+│   ├── personas.py     voices: register, tics, and offline sentence frames
 │   ├── epochs.py       what the Verge becomes after each of the ten endings
 │   ├── scenarios.py    40 situations an epoch puts in front of you
 │   ├── chassis.py      the hull registry — assembles and re-exports the rest
@@ -178,6 +180,8 @@ seedfall/
 │   ├── beginning.py    turning an opening choice into a chronicle
 │   ├── legacy.py       life after an ending: epochs, pressure, situations
 │   ├── telemetry.py    what the instrument windows read, band by band
+│   ├── memory.py       minds: what everyone remembers about you
+│   ├── voice.py        speech, written by the game or by a model
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
 │   ├── assessment.py   reading an engagement: who wins, why, what to do
 │   ├── chains.py       commissions: work that escalates and closes doors
@@ -277,6 +281,7 @@ seedfall/
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
     ├── test_legacy.py  7 aftermath checks — an ending is a turn, not a stop
     ├── test_instruments.py 5 checks — a gauge agrees with the ship and itself
+    ├── test_voices.py  8 checks — the game speaks with no model reachable
     ├── chronicle.py    one captain, one save, a decade of doing everything
     ├── test_chronicle.py 3 checks — that decade, through every screen
     ├── capture.py      renders every screen offscreen, for the README
@@ -331,6 +336,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   13, with a quarter of sectors under eight. Opening the rest means a better
   drive. `sim/reach.py` computes that component and the chart states it; a
   shipyard is always within reach, so nobody is permanently trapped.
+- **The language model is off unless it is switched on, and nothing depends on
+  it.** `SEEDFALL_LLM` gates it, `llm.complete()` returns `None` whenever there
+  is nothing there, and every speaking path already had to work offline so
+  `None` is the ordinary case rather than an error. Speech reads state and
+  never writes it, which is what makes the whole feature removable. If you add
+  a voice, the written path is the one that has to be good.
 - **You hold the technology for everything bolted to your hull.**
   `parts_available` filters the shipyard by what you have unlocked, so a fitted
   part whose technology you lack can be removed and never put back. The shipped
@@ -907,6 +918,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   in `attempt` and the quote in `odds_for`, and the point is that they cannot
   drift. Dropping the `+2` from the quote makes it report "said 67% rolled
   32%".
+- **`test_voices.py`** exists to prove the language model is optional in the
+  way it claims to be. `llm.complete` is replaced with something that raises,
+  so a check that reaches for a model fails loudly, and what is measured is the
+  written fallback: eight personas across seven moods, all distinct, none
+  leaking a frame slot. The suite stays hermetic and the game stays whole with
+  nothing installed.
 - **`test_legacy.py`** covers the ten endings and the epoch each one opens.
   Its sharpest check performs all 120 answers across the forty situations and
   compares each against the effect its card printed — the card and

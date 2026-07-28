@@ -66,6 +66,26 @@ def _pleased(game, faction: str | None, weight: float) -> list[tuple[str, float]
     return moved
 
 
+def _remember(game, faction_id: str, kind: str, text: str,
+              salience: float) -> None:
+    """A power remembers what you did to its hulls, by name and by day.
+
+    Standing is one number and it decays; a memory is a specific thing with a
+    date on it, and it is what an envoy actually brings up.
+    """
+    if not faction_id:
+        return
+    from ..data.factions import FACTIONS_BY_ID
+    from ..data.personas import FACTION_PERSONA
+    from . import memory as memory_sim
+    faction = FACTIONS_BY_ID.get(faction_id)
+    mind = memory_sim.mind_for(
+        game, f"faction:{faction_id}",
+        name=faction.name if faction else faction_id, kind="faction",
+        persona=FACTION_PERSONA.get(faction_id, "envoy"))
+    mind.remember(game.day, kind, text, salience, tags=["combat", faction_id])
+
+
 def _standing(game, battle, out: dict) -> None:
     fid = battle.enemy_faction
     if battle.result == "destroyed":
@@ -73,6 +93,8 @@ def _standing(game, battle, out: dict) -> None:
             game.adjust_rep(fid, -KILL_COST)
             out["standing"].append((fid, -KILL_COST))
             out["pleased"] = _pleased(game, fid, KILL_COST)
+            _remember(game, fid, "kill",
+                      f"you destroyed the {battle.enemy_name}", 1.4)
         elif fid == "bloom":
             # Everybody is in favour of one less of those. It used to be the
             # Charter alone, hardcoded, in a screen.
@@ -82,12 +104,16 @@ def _standing(game, battle, out: dict) -> None:
     elif battle.result == "parley" and fid:
         game.adjust_rep(fid, PARLEY_GAIN)
         out["standing"].append((fid, PARLEY_GAIN))
+        _remember(game, fid, "kindness",
+                  f"you let the {battle.enemy_name} go when you had it", 1.0)
         game.credits += PARLEY_FEE
         out["fee"] = PARLEY_FEE
     elif battle.result == "driven-off" and fid and fid != "bloom":
         game.adjust_rep(fid, -ROUT_COST)
         out["standing"].append((fid, -ROUT_COST))
         out["pleased"] = _pleased(game, fid, ROUT_COST)
+        _remember(game, fid, "slight",
+                  f"you drove the {battle.enemy_name} off", 0.9)
 
 
 def _salvage(game, battle, out: dict) -> None:

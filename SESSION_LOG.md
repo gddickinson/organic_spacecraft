@@ -2,6 +2,50 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: minds that remember, and voices (asked for)
+
+- **Asked for LLM-driven speech for ships, crew, other captains and anything
+  that communicates, with personalities, and persistent characters whose
+  memories update from interactions and from what happens in the universe.**
+  This is the foundation: providers, personas, minds, and the speaking layer.
+- **The binding constraint, taken seriously**: the game ships with no network
+  and the suite is hermetic. So `core/llm.py` is **off by default**, gated on
+  `SEEDFALL_LLM`, hard-timeout, and `complete()` returns `None` whenever there
+  is nothing there — which is the ordinary case, not an error, because every
+  speaking path had to work offline anyway. `test_voices.py` replaces
+  `llm.complete` with something that *raises*, so a check that reaches for a
+  model fails loudly; what the suite measures is the written voice.
+- Providers detected from whatever is on the machine: Ollama on localhost, an
+  Anthropic key, an OpenAI-compatible endpoint.
+- `data/personas.py` makes personality data rather than prompt strings: eight
+  voices — the ship's computer, an officer, a harbourmaster, another captain, a
+  raider, a faction envoy, a Dry Choir lineage, and plain — each with a
+  register, tics, a temperature and **sentence frames for seven moods**, which
+  is what the offline path speaks with. It is the default, so it has to be
+  worth reading; a check holds all fifty-six combinations to being distinct and
+  slot-free.
+- `sim/memory.py` gives officers, captains, ships, factions and ports a `Mind`:
+  memories with a day, a kind, a salience and tags, from three sources —
+  direct, heard (sector news), and prior (a past generated before you ever meet
+  them). Salience decays; recall is by fit to the situation rather than
+  recency, so a customs desk raises the seizure and a counter raises the cargo.
+  An impression is derived from what is held, and `grudge()` names the
+  memories responsible for it.
+- **It is wired to real events, not a system beside the game**: a kill, a
+  parley, a rout, a seizure at customs and a finished contract each write a
+  memory, and losing a colony or turning the sector over into an epoch is
+  broadcast as news that every power and quay hears.
+- **The mood is decided by the game, never by the model.** A model is told how
+  a character feels and asked only for the prose; its answer is validated for
+  length, leaked instructions and line count before use, and falls back
+  silently. Speech reads state and never writes it, which is what makes the
+  whole feature removable.
+- Two phrasing defects found by reading the output rather than the code: leads
+  ending on a pronoun produced "I have not forgotten that you you left…", and
+  unweighted backstory made every greeting open with two pieces of somebody's
+  childhood.
+- Suites: 50 — 404 checks green. 210 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: pop-out instruments (asked for)
 
 - **Asked for pop-up windows for monitoring ship systems and sensors, with
