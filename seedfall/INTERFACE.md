@@ -171,6 +171,7 @@ seedfall/
 │   ├── intel.py        how well a system is known, and what a chart is worth
 │   ├── loading.py      fitted mass against what the hull is rated to shift
 │   ├── orders.py       which standing orders apply — the discoverability index
+│   ├── parley.py       breaking off and talking your way out
 │   ├── market.py       supply shocks, and the prices you wrote down
 │   ├── ventures.py     what the powers do on their own account
 │   ├── weather.py      the front overhead during a landing
@@ -221,6 +222,7 @@ seedfall/
     ├── test_design.py  6 design checks — loading, overloading, stranding
     ├── test_orders.py  8 orders checks — reachability, urgency, unread state
     ├── test_assessment.py 6 read checks — honesty, arcs, robustness
+    ├── test_balance.py 7 balance checks — measured by playing the fights
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
     └── test_ui.py      22 interface checks, rendered on Qt's offscreen platform
 ```
@@ -412,6 +414,19 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **Most fights end when somebody's nerve goes, not their hull.** Any model of
   who is winning that ignores resolve reads far bleaker than the game plays,
   which is why the thresholds sit where they do rather than at the obvious 1.0.
+- **Build a fresh hull for every fight in a balance measurement.** Reusing one
+  ship across a run silently starts every fight after the first with a wreck.
+  It reads as "encounters are brutally hard" and sent an entire afternoon's
+  tuning the wrong way before the artefact was spotted.
+- **Nerve is driven by the fight, not the clock.** `_end_of_turn` once drained
+  resolve purely on the turn counter, and the enemy lost it twice as fast as
+  the player, so an unarmed hull drove off a battleship three times in four by
+  waiting. It now turns on damage taken, being behind on damage, and futility —
+  that last term is what keeps endurance a real strategy for a hull built to be
+  hit.
+- **Every low-tier weapon in the game is grown-family.** A fabricated hull at
+  tier one can mount none of them, which is why faction warships used to arrive
+  unarmed. `encounters._weapon_pool` raises the tier until something fits.
 - **Colony effects are a closed vocabulary.** `test_sim.py` asserts that every
   key in a `ColonyClass.effects` is one the game actually reads, so a typo in a
   station definition fails the suite instead of silently doing nothing.
@@ -475,6 +490,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   difficulties and fails if a worse-sounding verdict wins more often than a
   better-sounding one — the read is worth nothing if it is not honest. It fails
   against the raw-hull comparison the first draft used.
+- **`test_balance.py`** plays out every assertion it makes. It checks no
+  faction fields an unarmed warship, that heavier threats arrive in heavier
+  hulls, that the win rate falls with difficulty and rises with a better ship,
+  that waiting is not a way to beat a battleship, and that fleeing and hailing
+  both actually run — the last because splitting them into `parley.py` left
+  them calling names that no longer existed and nothing drove either path.
 - **`test_flight.py`** holds the helm to its promises: that a seed grows one
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that

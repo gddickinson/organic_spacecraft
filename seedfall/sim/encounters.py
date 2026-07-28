@@ -26,27 +26,87 @@ PERSONALITY = {
 }
 
 
-def _outfit(rng, chassis, tier: int) -> list[str]:
+def _tier_for(rng, difficulty: float) -> int:
+    """A fractional difficulty picks between the tiers either side of it.
+
+    `round(difficulty)` is a step: everything from 1.5 to 2.4 drew the same
+    parts, so win rates sat flat across a whole band and then fell off a cliff
+    at the boundary. Rolling the fraction spreads the change out.
+    """
+    low = int(max(0, min(4, difficulty)))
+    frac = max(0.0, min(1.0, difficulty - low))
+    return min(4, low + (1 if rng.chance(frac) else 0))
+
+
+def _weapon_pool(chassis, tier: int) -> list:
+    """Weapons this hull can actually mount, raising the tier until some exist.
+
+    Every low-tier weapon in the game is grown-family, so a fabricated hull at
+    tier one has nothing whatever it can bolt on — which is why Concordat
+    warships used to arrive completely unarmed and lose every fight without
+    firing. A warship is armed; if its tech level says otherwise, the tech
+    level is what gives.
+    """
+    for reach in range(tier, 5):
+        unlocked = [t.id for t in TECH if t.tier <= reach]
+        pool = parts_available("weapon", chassis, unlocked)
+        if pool:
+            return pool
+    return parts_available("weapon", chassis, [t.id for t in TECH])
+
+
+def _outfit(rng, chassis, tier: int, difficulty: float = 1.0) -> list[str]:
     """Fit a plausible loadout for an NPC of a given faction and weight."""
     unlocked = [t.id for t in TECH if t.tier <= tier]
     fitted: list[str] = []
     for slot, n in chassis.slots.items():
+        if slot == "weapon":
+            continue
         pool = parts_available(slot, chassis, unlocked)
         if not pool:
             continue
-        want = n if slot == "weapon" else max(0, n - (1 if rng.chance(0.4) else 0))
+        want = max(0, n - (1 if rng.chance(0.4) else 0))
         for _ in range(want):
             fitted.append(rng.pick(pool).id)
+
+    # Armament last and separately, so it is never the thing that goes missing.
+    mounts = chassis.slots.get("weapon", 0)
+    if mounts:
+        pool = _weapon_pool(chassis, tier)
+        if pool:
+            # A light encounter carries one gun; a heavy one fills the rack.
+            want = max(1, min(mounts, round(mounts * min(1.0, 0.35 + difficulty * 0.22))))
+            for _ in range(want):
+                fitted.append(rng.pick(pool).id)
     return fitted
+
+
+def _pick_hull(rng, pool, difficulty: float):
+    """Choose a hull whose silhouette matches the threat.
+
+    Picking uniformly meant a scale-four patrol could arrive in a scout and a
+    scale-half one in a battleship, which made difficulty very nearly
+    meaningless next to the lottery.
+    """
+    if len(pool) <= 1:
+        return pool[0]
+    ranked = sorted(pool, key=lambda c: c.hull)
+    # 0 at the bottom of the range, 1 at the top.
+    want = min(1.0, max(0.0, (difficulty - 0.5) / 3.5))
+    weights = []
+    for index, chassis in enumerate(ranked):
+        place = index / (len(ranked) - 1)
+        weights.append((1.0 / (0.12 + abs(place - want)), chassis))
+    return rng.weighted(weights)
 
 
 def make_enemy(rng, faction_id: str, difficulty: float = 1.0) -> dict:
     fac = FACTIONS_BY_ID.get(faction_id)
-    tier = min(4, max(0, round(difficulty)))
+    tier = _tier_for(rng, difficulty)
     pool = [CHASSIS_BY_ID[c] for c in (fac.ships if fac and fac.ships else ("pike",))
             if c in CHASSIS_BY_ID]
-    chassis = rng.pick(pool)
-    ship = make_ship(chassis.id, _outfit(rng, chassis, tier))
+    chassis = _pick_hull(rng, pool, difficulty)
+    ship = make_ship(chassis.id, _outfit(rng, chassis, tier, difficulty))
     ship.name = rng.pick(HULL_NAMES.get(faction_id, HULL_NAMES["freeholds"]))
     ship.crew = chassis.crew
 

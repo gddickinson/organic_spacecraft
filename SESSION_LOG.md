@@ -2,6 +2,42 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: difficulty that means something
+
+- **Encounter difficulty was very nearly decorative**, and three separate
+  things were wrong. Every weapon below tier two is grown-family, so a
+  *fabricated* warship at low difficulty could mount none of them and arrived
+  unable to fire a shot — 100% of scale-one Concordat hulls were unarmed. The
+  chassis was drawn uniformly from the faction's whole list, so a scale-four
+  patrol could turn up in a scout. And `tier = round(difficulty)` is a step, so
+  everything from 1.5 to 2.4 drew identical parts.
+- **All three are fixed**: armament is fitted separately and the tier rises
+  until something fits, hulls are drawn weighted toward the threat, and a
+  fractional difficulty rolls between the tiers either side of it. The curve
+  now descends smoothly across eight steps instead of falling off a cliff
+  between 2 and 3.
+- **The real culprit was nerve.** Resolve drained on `(turn - 9) × 0.45`,
+  purely on the clock, and the enemy lost it *twice as fast as the player*. A
+  hull with no armament at all drove off a scale-four battleship 75% of the
+  time by sitting there. Nerve now turns on damage taken, being behind on
+  damage, and futility — an unarmed hull wins 6% at scale four, while a TESTUDO
+  built to be hit still wins by outlasting, which the game has always said it
+  should.
+- **I spent an afternoon tuning against a measurement artefact.** My harness
+  reused one ship object across every fight, so the second fight onward started
+  with a wreck. That read as "encounters are brutally hard", and on that basis
+  I changed armour from subtractive to diminishing and tripled enemy hull —
+  both reverted once a fresh hull per fight showed the player was in fact
+  winning almost everything. The note is now in `INTERFACE.md` and at the top
+  of the balance suite.
+- **Splitting `combat.py` at 504 lines broke fleeing and hailing**, and nothing
+  in the suite drove either path — every attempt to break off would have raised
+  `NameError` in a live game. There is a check for both now.
+- Suites: 27 simulation, 5 xenotech, 14 playability, 5 tactical, 5 flight,
+  6 empire, 7 crew, 7 missions, 8 exploration, 7 mining, 8 research, 8 trade,
+  7 ground, 8 politics, 6 design, 8 orders, 6 assessment, **7 balance** (new),
+  23 interface — 172 checks green. 134 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a defeat that teaches something
 
 - **You could lose a NAVIS in two turns and be told nothing.** Combat had arcs,

@@ -19,6 +19,7 @@ from . import tactical as tac
 from .abilities import use_ability as _fire_ability
 from .enemy_ai import enemy_turn as _enemy_turn
 from . import consorts as consort_sim
+from . import parley
 from ..data.part_types import BANDS
 from ..data.parts import part
 from .ship import (Ship, Stats, add_cargo, hull_pct, is_breached, is_destroyed,
@@ -26,6 +27,7 @@ from .ship import (Ship, Stats, add_cargo, hull_pct, is_breached, is_destroyed,
 
 VARIANCE = (0.82, 1.18)
 MAX_TURNS = 40
+
 GRIND_TURN = 9      # turns of clean fighting before either side starts wanting out
 
 #: personality -> (close preference, fire chance, flee chance)
@@ -309,9 +311,9 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
         b.player.ship.heat = max(0.0, b.player.ship.heat - b.player.st.vent)
         _say(b, "You turn the thickest tissue into the fire and hold.", "good")
     elif kind == "hail":
-        return _hail(b, rng)
+        return parley.hail(b, rng, _ops())
     elif kind == "flee":
-        return _flee(b, rng)
+        return parley.flee(b, rng, _ops())
 
     _run_consorts(b, rng)
     if not b.over and is_destroyed(b.enemy.ship):
@@ -337,6 +339,12 @@ def _run_consorts(b: Battle, rng) -> None:
         if c.uid in before and is_destroyed(c.ship):
             _say(b, f"{c.name} breaks apart.", "bad")
             b.player.resolve -= 12
+
+
+def _ops() -> parley.Ops:
+    return parley.Ops(say=_say, fire=_fire, salvo=_salvo,
+                      use_ability=use_ability, enemy_turn=_enemy_turn,
+                      finish=_finish, end_of_turn=_end_of_turn)
 
 
 def isDestroyedSafe(ship) -> bool:      # noqa: N802 - thin alias for readability
@@ -413,9 +421,22 @@ def _end_of_turn(b: Battle, rng) -> None:
     # Nobody fights forever. Past a dozen turns without resolution the
     # ammunition and the heat stop being worth it. It starts late deliberately:
     # a decisive hull should still be able to finish the job on its own terms.
-    attrition = max(0, b.turn - GRIND_TURN) * 0.45
-    b.player.resolve -= attrition * 0.5
-    b.enemy.resolve -= attrition
+    # Nerve goes when a hull is being taken apart and is not giving as good as
+    # it gets. This used to be a pure function of the turn counter — and the
+    # enemy lost it twice as fast as the player — so a ship with no armament at
+    # all drove off a battleship three times in four simply by waiting. The
+    # clock term survives only to guarantee the fight ends.
+    grind = max(0, b.turn - GRIND_TURN) * 0.12
+    for side, other in ((b.player, b.enemy), (b.enemy, b.player)):
+        hurt = max(0.0, 1.0 - hull_pct(side.ship))
+        behind = max(0.0, (other.dealt - side.dealt) / 220.0)
+        # Futility is what makes endurance a real strategy: a hull built to be
+        # hit and not break wins by convincing the other side there is no point
+        # continuing. Weighted by how little progress the attacker has made, so
+        # a ship that *is* being taken apart cannot outlast anybody.
+        progress = 1.0 - hull_pct(other.ship)
+        futile = max(0.0, (b.turn - GRIND_TURN) / 16.0) * (1.0 - progress)
+        side.resolve -= grind + hurt * 3.6 + behind * 2.4 + futile * 1.8
 
     if b.enemy.resolve <= 0:
         _finish(b, "driven-off")
@@ -423,46 +444,6 @@ def _end_of_turn(b: Battle, rng) -> None:
         _finish(b, "routed")
     elif b.turn > MAX_TURNS:
         _finish(b, "stalemate")
-
-
-def _flee(b: Battle, rng) -> Battle:
-    if b.player.grappled:
-        _say(b, "You are held fast. Nothing to do but cut loose or fight.", "warn")
-        return b
-    chance = clamp(0.22 + b.band * 0.13
-                   + (b.player.st.speed - b.enemy.st.speed) * 0.35
-                   + b.player.st.evade * 0.5, 0.05, 0.94)
-    if rng.chance(chance):
-        return _finish(b, "escaped")
-    _say(b, "The burn is not enough — they are still with you.", "warn")
-    broke = _enemy_turn(b, rng, _say, _fire, _salvo, use_ability)
-    if broke:
-        return _finish(b, broke)
-    if is_destroyed(b.player.ship):
-        return _finish(b, "lost")
-    if not b.over:
-        _end_of_turn(b, rng)
-    return b
-
-
-def _hail(b: Battle, rng) -> Battle:
-    if b.no_parley:
-        _say(b, "The Bloom has nothing to say. It has no one to say it with.", "bad")
-        return b
-    strength = hull_pct(b.player.ship) - hull_pct(b.enemy.ship)
-    chance = clamp(0.18 + b.player.st.diplomacy + b.rep / 260 + strength * 0.3
-                   + (0.25 if b.enemy.resolve < 45 else 0), 0.03, 0.92)
-    if rng.chance(chance):
-        return _finish(b, "parley")
-    _say(b, "They hear you out and keep firing.", "warn")
-    broke = _enemy_turn(b, rng, _say, _fire, _salvo, use_ability)
-    if broke:
-        return _finish(b, broke)
-    if is_destroyed(b.player.ship):
-        return _finish(b, "lost")
-    if not b.over:
-        _end_of_turn(b, rng)
-    return b
 
 
 _ENDINGS = {
