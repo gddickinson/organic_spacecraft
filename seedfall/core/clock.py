@@ -19,6 +19,7 @@ from ..sim import lifespan as lifespan_sim
 from ..sim import customs as customs_sim
 from ..sim import inquiry as inquiry_sim
 from ..sim import market as market_sim
+from ..sim import approach as approach_sim
 from ..sim import diplomacy as dip_sim
 from ..sim import responses as response_sim
 from ..sim import ventures as venture_sim
@@ -152,6 +153,10 @@ def advance_days(game, n: float, dilation: float = 1.0) -> None:
     for kind, text in venture_sim.tick(game, n, r):
         game.add_log(text, kind)
     dip_sim.drift(game, n)
+    # And the powers act on their own account, rather than only drifting back
+    # toward a baseline while the captain does all the talking.
+    for kind, text in approach_sim.tick(game, n, r):
+        game.add_log(text, kind)
 
     # Payroll. Miss it and the crew notices immediately.
     wages = crew_sim.daily_wages(game.officers) * ship_n

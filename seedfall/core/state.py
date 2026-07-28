@@ -85,6 +85,10 @@ class Game:
     scrutiny: dict = field(default_factory=dict)
     #: A power waiting on an answer about ground you hold.
     demand: object | None = None
+    #: A power that has come to *you* with a proposition. Like a battle or an
+    #: open trench it is something you can be part-way through, so it lives
+    #: here with an `.over` flag. See `sim/approach.py`.
+    envoy: object | None = None
     #: What landing parties brought back that was not cargo.
     field_notes: list = field(default_factory=list)
     register: dict = field(default_factory=dict)

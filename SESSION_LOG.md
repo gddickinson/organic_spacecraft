@@ -2,6 +2,49 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: the powers stop being a vending machine
+
+Diplomacy was the top standing priority and I had spent three cycles on
+piloting and combat, so: the board.
+
+It ran one way. Six actions, all player→faction — send a tribute, share
+intelligence, propose a treaty — and the four powers did exactly one thing
+between them, `drift`, pulling their grievances back toward a baseline. You
+put standing in and took tariffs out. Nobody ever knocked.
+
+- **An approach has to be caused.** A power asks for silicon because its quays
+  are short of silicon; it asks you to denounce the Freeholds because it is
+  losing to the Freeholds; it warns you off a rival whose cargo you have been
+  carrying; it offers terms because your standing passed 62; it levies ground
+  you hold inside its space. The die only decides *when*, among reasons that
+  already exist — pinned by a check that plays four hundred months with every
+  trigger dead and demands zero envoys.
+- **Three answers, all costed first**, and letting the window lapse costs
+  exactly what refusing costs. An offer with a free deadline is a button that
+  waits forever, not a decision.
+- **Two bugs in my own new code, both the same shape as the ones this project
+  keeps finding elsewhere.** `_shortage` read a `demand` mapping that `Market`
+  does not have — it has `stock` — so `getattr(..., {})` returned empty every
+  time and **requisitions could never fire at all**. Fixed, it then reported
+  every power short of `wildseed`, which nothing stocks and no captain hauls:
+  a shortage real in the data and meaningless as a request. Now restricted to
+  tradeable goods actually in your hold, which is also what the flavour claims.
+- **A dead wire I nearly shipped.** The clock hook was written against an
+  eight-space indent, but `advance_days` had been dedented into `core/clock.py`
+  two cycles ago, so the replacement silently did not apply. Measured before
+  believing: eighty chronicle-years, zero approaches. With it wired, about
+  eight per decade — one every fifteen months, which is a thing that happens
+  to you rather than a weekly appointment.
+- **Two of my mutation tests were inadequate rather than the checks weak.**
+  Removing the "they are not talking to you" guard did not produce an uncaused
+  envoy, because every other reason still required real state; and setting the
+  quoted price to a constant kept preview and payment consistent, which is
+  what the check actually verifies. Broken properly — reasons invented from
+  nothing, and a payment 20% short of the quote — both bite.
+- Ten years driven through the real window: 34 approaches, navigation held on
+  every one, all answered by real button clicks.
+- 514 checks green, every file under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: the plot finally shows what bears
 
 The other half of #56. The tactical plot drew range rings and two triangles,

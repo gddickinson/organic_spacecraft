@@ -56,6 +56,30 @@ an empty tank from becoming a deadlock. Local work (survey, extract, dig, land)
 flies the ship alongside first, so a player who never opens the helm still gets a
 coherent transit; the helm is where you choose a better one.
 
+**The powers come to you now.** Diplomacy ran one way: six actions, all
+player→faction, and the powers themselves did exactly one thing — `drift`,
+pulling their grievances back toward a baseline. So the four of them were a
+vending machine. You put standing in and took tariffs out, and a captain could
+ignore the board for twenty years without anyone knocking.
+
+`sim/approach.py` is the other direction, and its rule is that **every
+approach has to be caused**. A power asks for silicon because its own quays
+are short of silicon — read off `Market.stock` and restricted to what is in
+your hold, because "somebody has looked at what you are carrying" has to be
+true. It asks you to denounce the Freeholds because it is losing to the
+Freeholds. It warns you off a rival because you have been carrying that
+rival's cargo. It offers terms because your standing has passed 62. It levies
+your holdings because they are inside its declared space. Nothing fires
+because a die came up; the die only decides *when*, among reasons that already
+exist. No reason, no envoy — pinned by a check that plays four hundred months
+with every trigger dead.
+
+An envoy is something you can be part-way through, so it lives on `Game` with
+an `.over` flag and `window.go()` will not let you wander off. Three answers,
+each costed in full before it is taken — and **letting the window lapse costs
+exactly what refusing costs**, because an offer with a free deadline is a
+button that waits forever rather than a decision.
+
 **The plot shows what bears.** Everything needed to answer "can this mount
 shoot right now" was modelled — `tactical` knows the arc and the bearing,
 `Weapon.bears_at` knows the range band, `combat._fire` knows if the magazine
@@ -307,6 +331,7 @@ seedfall/
 │   ├── territory.py    what a power says when its claim lands on your ground
 │   ├── charts.py       what each power pays for a survey, and what for
 │   ├── surveys.py      the four ways of looking, and what each cannot see
+│   ├── approaches.py   the powers coming to you: what each wants, and why
 │   ├── lineages.py     what a crew member is made of: span, upkeep, ageing
 │   ├── crossings.py    how hard to fly a jump, and which clock pays for it
 │   ├── fieldnotes.py   the eight things the ground can tell you
@@ -375,6 +400,7 @@ seedfall/
 │   ├── works.py        colony development: what a settlement becomes
 │   ├── flight.py       the helm: orbits, intercepts, routing, transfer burns
 │   ├── survey.py       what a way of looking costs, finds, and is blind to
+│   ├── approach.py     a power's envoy: caused, costed, and answerable
 │   ├── anchorage.py    quays, hubs and holdings — places you can put in
 │   ├── traffic.py      other hulls: where they are and what they are doing
 │   ├── doctrine.py     the battle computer: what unattended seats decide
@@ -398,6 +424,7 @@ seedfall/
 │   ├── traffic_panel.py   who else is out here, and which of them runs dark
 │   ├── doctrine_panel.py  what the seats you are not in intend this turn
 │   ├── firing_panel.py    mount by mount: ready, or exactly what is stopping it
+│   ├── envoy_view.py      a power's proposition, with all three answers costed
 │   ├── tactical_plot.py   the engagement from above, arcs included
 │   ├── port_view.py    market, services, recruitment
 │   ├── ship_view.py    layer stack, fittings, crew, hold

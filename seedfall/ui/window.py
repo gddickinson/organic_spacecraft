@@ -200,6 +200,7 @@ class MainWindow(QMainWindow):
         from .help_view import HelpView
         from .legacy_view import LegacyView
         from .demand_view import DemandView
+        from .envoy_view import EnvoyView
         from .transit_view import TransitView
         from .yard_view import YardView
 
@@ -213,6 +214,7 @@ class MainWindow(QMainWindow):
             "transit": TransitView, "dig": DigView, "legacy": LegacyView,
             "help": HelpView,
             "demand": DemandView,
+            "envoy": EnvoyView,
         }
         for vid, cls in classes.items():
             view = cls(self)
@@ -235,6 +237,7 @@ class MainWindow(QMainWindow):
     situation = _on_game("situation")
     legacy = _on_game("legacy")
     demand = _on_game("demand")
+    envoy = _on_game("envoy")
     docking = _on_game("docking")
     decoding = _on_game("decoding")
     decoding_tech = _on_game("decoding_tech")
@@ -249,6 +252,10 @@ class MainWindow(QMainWindow):
             self.toast("A power is waiting on an answer about your holding.",
                        "warn")
             view_id = "demand"
+        elif self.envoy is not None and not self.envoy.over \
+                and view_id not in ("envoy", "battle"):
+            self.toast("There is an envoy waiting on an answer.", "warn")
+            view_id = "envoy"
         elif self.situation is not None and not self.situation.over \
                 and view_id not in ("legacy", "battle"):
             self.toast("Something is waiting on an answer.", "warn")
