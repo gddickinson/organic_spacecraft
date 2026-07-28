@@ -2,6 +2,38 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: what a seat is worth
+
+- **Measured the crew stations, and the combat sim is sound.** Directed gunnery
+  really does shoot markedly better than automatic: +0.10 against −0.12 + 0.02 a
+  tactical level. An unattended helm repeats its last order at 0.7 + 0.06 a nav
+  level of the turn rate. An unattended engineering section sheds a fraction of
+  its vent and can do nothing else — no venting hard, no routing power, no
+  damage control. All three claims hold.
+- **The orders panel stated none of it.** It printed the station name, the
+  officer's level and a blurb. So a captain could not tell that gunnery is
+  worth +0.22 with a green officer and only +0.10 with a veteran — that *who
+  you have* decides *where you should sit*, which is the entire point of the
+  one-seat rule.
+- **`stations.seat_value()` says what each seat buys**, given the officers
+  aboard, and the bridge draws it: "turn at full rate instead of 82%", "+22% to
+  hit over the officer", "vent 72 heat instead of 25, or route power, or patch
+  a breach". Sixth cycle running where the defect was a readout rather than a
+  rule.
+- **The checks drive the claims through `run_helm` and `run_engineering`**
+  rather than re-deriving their formulas, so changing the sim and not the
+  quoted figure is caught. Halving the unattended turn rate makes it report
+  "said an officer turns at 70% and it turned at 50%".
+- **Three of my own measurement errors this cycle, all caught before they were
+  written down as findings.** My first driver set `action["station"]`, which
+  the sim ignores — the station is derived from the order — so four
+  configurations produced identical results and looked like proof the choice
+  did not matter. Then `hull_pct` rounding 99.3% to 100% read as the player
+  taking no damage at all. Then the fixture promoted "the tactical officer" on
+  a crew that has none, so a green bridge was compared with itself.
+- Suites: 42, **6 seats** (new) among them — 342 checks green. 184 modules, all
+  under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: what an overture buys
 
 - **Measured the six diplomatic overtures.** They all work and they are

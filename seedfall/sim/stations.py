@@ -90,7 +90,7 @@ def run_helm(side, other, order_id: str | None, directed: bool, officers) -> str
     if not directed:
         # An officer holds the last order rather than improvising.
         order_id = side.helm_order or "hold"
-        turn_limit *= 0.7 + 0.06 * skill
+        turn_limit *= min(1.0, UNATTENDED_TURN + TURN_PER_LEVEL * skill)
     side.helm_order = order_id
 
     rel = tac.relative_bearing(side.body, other.body)
@@ -129,7 +129,9 @@ def run_engineering(side, order_id: str | None, directed: bool, officers) -> str
     side.route = None
     if not directed:
         # Left alone, engineering keeps the hull cool and nothing else.
-        side.ship.heat = max(0.0, side.ship.heat - side.st.vent * (0.5 + skill * 0.08))
+        side.ship.heat = max(
+            0.0, side.ship.heat
+            - side.st.vent * (UNATTENDED_VENT + VENT_PER_LEVEL * skill))
         return ""
 
     if order_id == "vent":
@@ -166,6 +168,59 @@ def accuracy_modifier(side, directed: bool, officers) -> float:
     if side.route == "guns":
         mod += 0.12
     return mod
+
+
+#: Turn rate an unattended helm keeps, before the navigator's skill.
+UNATTENDED_TURN = 0.7
+
+#: And what each level of nav buys back.
+TURN_PER_LEVEL = 0.06
+
+#: Heat an unattended engineering section sheds, as a share of the vent rate.
+UNATTENDED_VENT = 0.5
+VENT_PER_LEVEL = 0.08
+
+
+def seat_value(side, officers) -> dict:
+    """What taking each seat personally is worth this turn.
+
+    The panel printed the officer's level and nothing about the consequence,
+    so a captain could not tell that gunnery is worth +0.22 to hit with a
+    green officer and +0.10 with a veteran, or that an unattended helm repeats
+    its last order at seven-tenths of the turn rate.
+    """
+    nav = officer_level(officers, "nav")
+    tactical = officer_level(officers, "tactical")
+    engineering = officer_level(officers, "engineering")
+
+    turn_share = min(1.0, UNATTENDED_TURN + TURN_PER_LEVEL * nav)
+    vent_share = UNATTENDED_VENT + VENT_PER_LEVEL * engineering
+    directed_vent = side.st.vent * 2.2 + 12
+    idle_vent = side.st.vent * vent_share
+
+    return {
+        "helm": {
+            "level": nav,
+            "gain": 1.0 - turn_share,
+            "says": (f"turn at full rate instead of {turn_share:.0%}, and pick "
+                     "the order rather than repeating "
+                     f"{ORDERS_BY_ID[side.helm_order].name.lower()}"
+                     if side.helm_order in ORDERS_BY_ID
+                     else f"turn at full rate instead of {turn_share:.0%}"),
+        },
+        "gunnery": {
+            "level": tactical,
+            "gain": accuracy_modifier(side, True, officers)
+                    - accuracy_modifier(side, False, officers),
+            "says": None,
+        },
+        "engineering": {
+            "level": engineering,
+            "gain": directed_vent - idle_vent,
+            "says": (f"vent {directed_vent:.0f} heat instead of "
+                     f"{idle_vent:.0f}, or route power, or patch a breach"),
+        },
+    }
 
 
 def bears_on(side, other, part) -> tuple[bool, float]:

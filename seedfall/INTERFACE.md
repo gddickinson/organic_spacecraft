@@ -260,13 +260,14 @@ seedfall/
     ├── test_bench.py   5 bench checks — the draw matches what the screen says
     ├── test_works.py   5 works checks — nothing gated behind a phantom tech
     ├── test_overtures.py 5 checks — the preview is what the overture does
+    ├── test_seats.py   6 seat checks — what taking a station is worth
     ├── captain_bot.py  the long-game captain the playability checks fly
     ├── probes.py       the newer efficacy probes, split out of levers.py
     ├── test_dig.py     6 dig checks — strata, methods, banking, backfilling
     ├── test_resume.py  5 resume checks — anything half-done survives a save
     ├── efficacy.py     the harness: neutralise a feature, measure the world
     ├── levers.py       one entry per claim the game makes about a number
-    ├── test_efficacy.py 28 checks — every feature has to move something
+    ├── test_efficacy.py 29 checks — every feature has to move something
     ├── test_reachable.py 4 reachability checks — nothing written and uncalled
     ├── test_verbs.py   10 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
@@ -521,6 +522,13 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **A seat says what taking it is worth, not just who is holding it.** The
+  orders panel printed each station's officer level and never the consequence.
+  Measured from the sim: gunnery is +0.22 to hit with a green officer and +0.10
+  with a veteran; an unattended helm repeats its last order at 0.7 + 0.06 a nav
+  level of the turn rate; an unattended engineering section sheds a fraction of
+  its vent and can do nothing else. `stations.seat_value()` states each, so who
+  you have decides where you should be sitting.
 - **An overture says what it buys, not only what it costs.** The diplomacy
   screen listed a name, a blurb and a price and never a benefit: tribute at
   12,000 credits for +9 standing read the same as relief at 40 t of biomass
@@ -830,6 +838,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   them home, and fails unless the shelf, the provenance and the evidence all
   survive — including across a save. It also checks every note is reachable and
   that the draw prefers ones you lack, so no written discovery is unfindable.
+- **`test_seats.py`** drives the claims through `run_helm` and
+  `run_engineering` rather than re-deriving their formulas, so changing one and
+  not the quoted figure is caught. Its fixture creates a tactical officer
+  before setting one's level: the opening crew is a scientist, a navigator and
+  an engineer, so promoting "the tactical officer" silently did nothing and the
+  check compared a green bridge with itself.
 - **`test_overtures.py`** performs every overture and fails unless the standing
   and the matrix move exactly as previewed, and unless previewing moves nothing
   at all. Hiding the treaty's rivals again makes it report "said {charter:

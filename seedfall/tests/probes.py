@@ -20,6 +20,29 @@ from ..sim import inquiry
 
 # ── the desk finds runs your own notes cannot ──────────────────────────────
 
+def _seat_worth() -> float:
+    """What the bridge says taking a seat is worth, summed over the stations."""
+    from ..core.rng import RNG as _RNG
+    from ..sim import combat, encounters
+    from ..sim import stations as st_mod
+    from ..sim.ship import build_layers, make_ship, stats
+    total = 0.0
+    for index in range(4):
+        game = new_game(f"lever-seat-{index}")
+        ship = make_ship("navis", ["slug_battery", "mag_lance",
+                                   "reaction_organ", "opsin_eyes"])
+        build_layers(ship, game.bonuses)
+        game.ship = ship
+        game.recompute()
+        rng = _RNG(f"ls-{index}")
+        battle = combat.start(ship, stats(ship),
+                              encounters.make_enemy(rng, "concordat", 1.2),
+                              rng=rng, game=game, officers=game.officers)
+        seats = st_mod.seat_value(battle.player, battle.officers)
+        total += sum(s["gain"] for s in seats.values())
+    return total / 4
+
+
 def _overture_honesty() -> float:
     """Share of an overture's real standing movement the screen foretells."""
     from ..data.diplomacy import ACTIONS

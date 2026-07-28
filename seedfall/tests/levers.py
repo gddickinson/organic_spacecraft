@@ -31,7 +31,7 @@ from ..sim.ship import build_layers, make_ship, stats
 from ..world.economy import buy_price
 from . import captain_ai
 from .efficacy import Lever
-from .probes import (_overture_honesty, _annex_research, _bench_overdraw, _hard_burn_hull, _wasted_ground,
+from .probes import (_seat_worth, _overture_honesty, _annex_research, _bench_overdraw, _hard_burn_hull, _wasted_ground,
                      _chart_spread, _contract_net, _cut_dig_points,
                      _desk_runs, _kill_goodwill, _levied_output,
                      _note_evidence, _smuggling_purse,
@@ -240,6 +240,13 @@ def _crossing_days() -> float:
     return total / runs
 
 LEVERS: list[Lever] = [
+    Lever("seat-value",
+          "the bridge says what taking a station is worth",
+          patch=(stations, "seat_value",
+                 lambda _s, _o: {k: {"level": 0, "gain": 0.0, "says": None}
+                                 for k in stations.STATION_IDS}),
+          probe=_seat_worth, direction="lower"),
+
     Lever("overture-preview",
           "the screen foretells what an overture moves",
           patch=(dip, "preview",

@@ -223,12 +223,26 @@ class BattleView(View):
         p.add(spacer(4), mono_label("Stations — you may take one this turn"))
         p.add(note("The officers hold the other two at their own level, which is "
                    "competent and not as good as you."))
+        seats = st_mod.seat_value(b.player, b.officers)
         for sid, name, stat, blurb in st_mod.STATIONS:
             level = st_mod.officer_level(b.officers, stat)
             p.add(spacer(3))
             p.add(label(f"{name}  ·  officer level {level}", "h3",
                         "chloro" if sid == b.player.station else ""))
             p.add(note(blurb))
+            # What sitting here yourself is worth, rather than only who is
+            # holding it. A green officer makes the seat worth twice what a
+            # veteran does, and the panel never said so.
+            seat = seats.get(sid, {})
+            if sid == "gunnery":
+                worth = f"+{seat.get('gain', 0):.0%} to hit over the officer"
+            elif sid == "helm":
+                worth = seat.get("says", "")
+            else:
+                worth = seat.get("says", "")
+            if worth:
+                p.add_row("Taking it yourself", worth,
+                          "chloro" if seat.get("gain", 0) > 0 else "dim")
             row = QWidget()
             h = QHBoxLayout(row)
             h.setContentsMargins(0, 0, 0, 0)
