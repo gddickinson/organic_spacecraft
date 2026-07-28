@@ -8,6 +8,7 @@ ground. All of it takes days off the ship's clock and returns plain data.
 from __future__ import annotations
 
 from ..data.xenotech import CULTURES_BY_ID, XENOTECH_BY_ID
+from . import inquiry
 from . import research as research_sim
 from . import xeno as xeno_sim
 from .actions import jump_quote
@@ -62,6 +63,7 @@ def excavate(game, body_index: int) -> dict:
             add_cargo(game.ship, "xenolith", relics)
 
     research_sim.grant(game.research, round(points * 0.5))
+    inquiry.add(game.research, "reading", points * 0.55)
     grant_xp(game.officers, "science", 30)
 
     mishap = None
@@ -208,6 +210,7 @@ def conclude_expedition(game) -> dict:
     for key, amount in haul.items():
         if key == "research":
             research_sim.grant(game.research, amount)
+            inquiry.add(game.research, "specimen", amount * 0.5)
             stowed["research"] = amount
         elif key == "credits":
             game.credits += amount

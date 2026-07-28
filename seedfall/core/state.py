@@ -12,6 +12,7 @@ from ..data.factions import FACTIONS
 from ..data.tech import STARTING_TECH, bonuses
 from ..sim import colony as colony_sim
 from ..sim import crew as crew_sim
+from ..sim import inquiry as inquiry_sim
 from ..sim import loyalty as loyalty_sim
 from ..sim import research as research_sim
 from ..sim import shipyard as shipyard_sim
@@ -129,7 +130,19 @@ class Game:
         st = self.ship_stats
 
         rate = st.research + 0.25 + self.colony_fx.get("research", 0)
-        done = research_sim.tick(self.research, n, rate)
+        self.research.last_event = None
+        done = research_sim.tick(self.research, n, rate, r)
+        if self.research.last_event == "setback":
+            self.add_log("The programme has gone backwards — a result nobody "
+                         "could replicate, and a season spent on it.", "bad")
+        elif self.research.last_event == "breakthrough":
+            self.add_log("A breakthrough on the bench. Weeks of work fell out "
+                         "in an afternoon.", "good")
+        if getattr(self.research, "starved", None) and not done:
+            short = ", ".join(self.research.starved)
+            if r.chance(0.25):
+                self.add_log(f"The bench is short of {short}; the programme is "
+                             "marking time.", "warn")
         if done:
             self.recompute()
             from ..data.tech import TECH_BY_ID
@@ -272,6 +285,10 @@ def new_game(seed: str | None = None, systems: int = 42) -> Game:
     )
     start.visited = True
     start.scanned = True
+    # The hull did not launch yesterday: there is a shakedown cruise's worth of
+    # its own data already on the bench.
+    inquiry_sim.add(game.research, "survey", 55)
+    inquiry_sim.add(game.research, "specimen", 25)
     game.recompute()
     game.add_log(f"The {ship.name} is under way from {start.name}.", "good")
     return game

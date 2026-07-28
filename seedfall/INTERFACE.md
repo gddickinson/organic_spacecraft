@@ -166,6 +166,7 @@ seedfall/
 │   ├── expedition.py   the ground game: zone map, movement, attempts, hauls
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
 │   ├── chains.py       commissions: work that escalates and closes doors
+│   ├── inquiry.py      evidence, approaches, setbacks and breakthroughs
 │   ├── intel.py        how well a system is known, and what a chart is worth
 │   ├── mining.py       seams, depth, and how hard you work a body
 │   ├── rumours.py      leads that point somewhere before you have been
@@ -207,6 +208,7 @@ seedfall/
     ├── test_missions.py 7 commission checks — escalation, blocking, lapsing
     ├── test_explore.py 8 exploration checks — the intel ladder, rumours
     ├── test_mining.py  7 mining checks — seams, methods, wear, exhaustion
+    ├── test_research.py 8 research checks — evidence, approaches, setbacks
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
     └── test_ui.py      22 interface checks, rendered on Qt's offscreen platform
 ```
@@ -332,6 +334,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   `hash_seed` of the body and resource, so every existing save has seams
   without a migration and the same rock always hides the same thing in the same
   place. Never use `hash()` here; see the note above about orbits.
+- **`STARVED_FLOOR` is why a new captain is not stuck.** A programme runs at
+  that fraction with nothing on the bench; evidence buys the rest. Set it to
+  zero and a captain who picks a project on turn one and flies makes no
+  progress at all, which reads as a broken game rather than a hungry one.
+- **A programme's evidence mix comes from its branch**, in
+  `data/inquiry.BRANCH_MIX`, not from each of the sixty-one technologies. A new
+  technology needs no work there; a new *branch* does, and `test_research.py`
+  fails if one is missing.
+- **An evidence kind nothing grants is an empty locker.** The same greping
+  check as the convictions: every kind in `EVIDENCE` must appear as a literal
+  in a `sim/` or `ui/` call to `inquiry.add`.
 - **Colony effects are a closed vocabulary.** `test_sim.py` asserts that every
   key in a `ColonyClass.effects` is one the game actually reads, so a typo in a
   station definition fails the suite instead of silently doing nothing.
@@ -365,6 +378,10 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   twenty runs apiece and asserts they are actually different bargains — a bore
   must out-yield an open cut by a third and cost more hull and more of the body
   doing it — then works a body out and checks it stops paying.
+- **`test_research.py`** measures a captain who surveys against one who does
+  not — the second must reach the first technology in well under three quarters
+  the time, or the evidence model is decoration — and checks that a captain who
+  picks a project on turn one and does nothing else still gets there.
 - **`test_flight.py`** holds the helm to its promises: that a seed grows one
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that

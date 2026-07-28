@@ -2,6 +2,35 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: research grows inputs
+
+- **Research was one pool.** Everything you did anywhere fed a single number
+  and a single bar, so nothing you chose to do changed what you could learn. A
+  programme now consumes **evidence** of four kinds, each from a different part
+  of the game: survey data from charting, specimens from landing parties and
+  dives, hardware off hulls you take apart, xenolith readings from digs. A
+  propulsion programme cannot be fed by botany.
+- **The mix is derived from a technology's branch**, not written out for each
+  of sixty-one entries, so the whole tech tree got inputs without being
+  touched. Adding a technology needs no work; adding a *branch* does, and the
+  suite fails if one is missing a mix.
+- **Four approaches, four bargains.** Measured over 24 runs each: careful 120
+  days and never a setback; parallel tracks 90 days for nearly twice the
+  material; push it 60 days with a 28% chance a season of going backwards;
+  reverse-engineer 90 days and cheap, but only if you hold alien work or
+  salvaged hardware to take apart.
+- **It measurably pays to go and look.** A captain who surveys as he goes
+  reaches his first technology in 52 days against 225 for one who simply flies.
+- **I bricked the opening and the playtest caught it.** Gating all progress on
+  evidence meant a fresh captain who set a project and flew made *literally
+  zero* progress — 0.0/150 at twelve months. A bench with nothing on it now
+  still runs at 35%: reading, arguing and going over old results. Evidence buys
+  the other two thirds. The regression check sets a project on turn one, does
+  nothing else, and demands the technology arrive.
+- Suites: 27 simulation, 5 xenotech, 14 playability, 5 tactical, 5 flight,
+  6 empire, 7 crew, 7 missions, 8 exploration, 7 mining, **8 research** (new),
+  23 interface — 122 checks green. 112 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: mining becomes a decision
 
 - **Extraction was a rate.** Park in orbit, pick 30 or 90 days, tonnage

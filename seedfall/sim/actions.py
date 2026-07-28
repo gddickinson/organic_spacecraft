@@ -8,6 +8,8 @@ from __future__ import annotations
 from ..world.galaxy import distance, transit_days
 from ..world.planets import survey_body
 from . import mining
+from .inquiry import add as _add_evidence
+from . import inquiry
 from . import research as research_sim
 from . import rumours as rumour_sim
 from .crew import grant_xp
@@ -50,6 +52,7 @@ def jump_to(game, system_id: int) -> dict:
     if first and system_id not in game.discovered["systems"]:
         game.discovered["systems"].append(system_id)
         research_sim.grant(game.research, 12)
+        inquiry.add(game.research, "survey", 10)
     game.add_log(f"Arrived at {target.name}"
                  + (" — first hull here to log it." if first else "."),
                  "good" if first else "")
@@ -110,6 +113,8 @@ def survey(game, body_index: int) -> dict:
 
     found = survey_body(body, game.ship_stats.scan, r)
     research_sim.grant(game.research, found["research"])
+    inquiry.add(game.research, "survey", found["research"] * 0.9)
+    inquiry.add(game.research, "specimen", len(found["lifeforms"]) * 9)
 
     # Surveying the origin system is how the heart is located.
     from . import bloom as bloom_sim
@@ -221,6 +226,8 @@ def dive(game, body_index: int) -> dict:
 
     found = survey_body(body, min(1.0, game.ship_stats.scan + 0.4), r)
     research_sim.grant(game.research, found["research"] + 60)
+    inquiry.add(game.research, "specimen", 55 + len(found["lifeforms"]) * 12)
+    inquiry.add(game.research, "survey", found["research"] * 0.4)
     game.discovered["lifeforms"] += len(found["lifeforms"])
 
     contact = False

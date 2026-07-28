@@ -19,6 +19,7 @@ from ..sim import stations as st_mod
 from ..sim import tactical as tac
 from ..sim import combat as combat_sim
 from ..sim import consorts as consort_sim
+from ..sim import inquiry
 from ..sim import loyalty as loyalty_sim
 from ..data.consorts import ORDERS as CONSORT_ORDERS
 from ..data.consorts import ORDERS_BY_ID as CONSORT_ORDERS_BY_ID
@@ -317,6 +318,10 @@ class BattleView(View):
             loot = b.loot or {}
             g.credits += loot.get("credits", 0)
             research_sim.grant(g.research, loot.get("research", 0))
+            salvage = 25 + loot.get("research", 0) * 0.8
+            inquiry.add(g.research, "hardware", salvage)
+            lines.append(f"{round(salvage)} units of their hardware came off "
+                         "the wreck intact.")
             lines.append(f"Salvage: {cr(loot.get('credits', 0))} and "
                          f"{loot.get('research', 0)} points of research.")
             room = cargo_free(g.ship, g.ship_stats)

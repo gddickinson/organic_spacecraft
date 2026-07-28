@@ -6,7 +6,9 @@ import math
 
 from ..core.util import duration, num
 from ..data.tech import BRANCHES, TECH, TECH_BY_ID
+from ..sim import inquiry
 from ..sim import research as research_sim
+from . import inquiry_panel
 from .widgets import (Card, Panel, Pill, TabBar, View, button, label,
                       mono_label, note)
 from .xeno_view import build_xeno
@@ -27,6 +29,9 @@ class TechView(View):
 
         if self.branch != "xeno":
             self.col.addWidget(self._current(rate))
+            approaches = inquiry_panel.approaches(self, g)
+            self.row(inquiry_panel.lockers(g), approaches) if approaches \
+                else self.col.addWidget(inquiry_panel.lockers(g))
 
         tabs = TabBar([("all", "All")] + [(k, v[0]) for k, v in BRANCHES.items()]
                       + [("xeno", "Xenotech ✦")], self.branch)
@@ -62,6 +67,10 @@ class TechView(View):
                   else "stalled — no research rate")
         p.add_buttons(button("Set aside", self._clear, kind="flat"))
         return p
+
+    def set_approach(self, approach_id: str) -> None:
+        inquiry.set_approach(self.game.research, approach_id)
+        self.win.refresh()
 
     def _clear(self) -> None:
         self.game.research.current = None
