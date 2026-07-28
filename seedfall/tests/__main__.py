@@ -14,7 +14,7 @@ def main(argv: list[str] | None = None) -> int:
                                        "ground", "politics", "design", "orders",
                                        "assessment", "balance", "bloom", "reachable",
                                        "efficacy", "transit", "customs", "allegiance", "territory", "charts", "aftermath", "notes", "layers", "cargo", "freight", "workings", "burns", "bench", "works", "overtures", "seats", "founding", "attempts", "reach", "plans", "beginnings", "legacy",
-           "instruments", "voices", "bridge", "manual",
+           "instruments", "voices", "bridge", "manual", "tutorial",
            "chronicle", "dig",
                                        "resume", "verbs", "ui"]
     ok = True
@@ -299,6 +299,12 @@ def main(argv: list[str] | None = None) -> int:
         from . import test_manual
         suite = Suite("manual")
         test_manual.run(suite)
+        ok &= suite.report()
+
+    if "tutorial" in wanted:
+        from . import test_tutorial
+        suite = Suite("tutorial")
+        test_tutorial.run(suite)
         ok &= suite.report()
 
     if "chronicle" in wanted:

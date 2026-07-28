@@ -134,6 +134,7 @@ seedfall/
 │   ├── personas.py     voices: register, tics, and offline sentence frames
 │   ├── screens.py      the rail and the key for each screen — read by both layers
 │   ├── help.py         the manual: prose, and which facts each topic generates
+│   ├── lessons.py      the tutorial's eight steps, and what each one watches for
 │   ├── epochs.py       what the Verge becomes after each of the ten endings
 │   ├── scenarios.py    40 situations an epoch puts in front of you
 │   ├── chassis.py      the hull registry — assembles and re-exports the rest
@@ -186,6 +187,7 @@ seedfall/
 │   ├── voice.py        speech, written by the game or by a model
 │   ├── manual.py       resolves the manual's facts from the tables themselves
 │   ├── options.py      player settings, every one of which does something
+│   ├── tutorial.py     watches the game until the thing has actually been done
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
 │   ├── assessment.py   reading an engagement: who wins, why, what to do
 │   ├── chains.py       commissions: work that escalates and closes doors
@@ -287,7 +289,8 @@ seedfall/
     ├── test_instruments.py 5 checks — a gauge agrees with the ship and itself
     ├── test_voices.py  8 checks — the game speaks with no model reachable
     ├── test_bridge.py  6 checks — the protocol answers, always, and stays local
-    ├── test_manual.py  9 checks — the manual cannot go stale, options cannot lie
+    ├── test_manual.py  13 checks — the manual cannot go stale, options cannot lie
+    ├── test_tutorial.py 8 checks — it will not take your word for it
     ├── chronicle.py    one captain, one save, a decade of doing everything
     ├── test_chronicle.py 3 checks — that decade, through every screen
     ├── capture.py      renders every screen offscreen, for the README
@@ -342,6 +345,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   13, with a quarter of sectors under eight. Opening the rest means a better
   drive. `sim/reach.py` computes that component and the chart states it; a
   shipyard is always within reach, so nobody is permanently trapped.
+- **The tutorial never diverts navigation.** Everything else you can be
+  part-way through — a battle, a trench, an aftermath question — is guarded in
+  `window.go()`. The tutorial deliberately is not: a tutorial that stops you
+  doing the thing it is describing is worse than none, in a game whose premise
+  is that there is no track. A check walks all twelve screens with a lesson
+  open and fails if any of them diverts.
 - **`credits` is a builtin.** So is `id`, `type`, `input` and `format`. Calling
   one by mistake does not raise `NameError` — `credits(x)` calls the
   interpreter's easter-egg `_Printer` and fails two suites away as
@@ -935,6 +944,14 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   in `attempt` and the quote in `odds_for`, and the point is that they cannot
   drift. Dropping the `+2` from the quote makes it report "said 67% rolled
   32%".
+- **`test_tutorial.py`** exists because the failure mode of a tutorial is
+  silent: a step that advances when Next is pressed teaches nobody anything and
+  will march a confused player through eight screens of congratulation. Every
+  lesson names a watcher, every watcher is a function of game state compared
+  against a mark taken when the lesson opened, and the checks walk the whole
+  thing by *doing* each action — then separately prove that three hundred days
+  of doing nothing leaves it on lesson one. Replacing the watcher with "trust
+  the player" fails three of them.
 - **`test_manual.py`** enforces two things that screens usually escape. A
   manual that says "thirty-five hulls" is wrong the day somebody adds one and
   nothing would notice, so every countable claim is generated from the table it

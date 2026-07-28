@@ -122,6 +122,12 @@ class HelpView(View):
 
     # ── keys ───────────────────────────────────────────────────────────────
 
+    def _restart_tutorial(self) -> None:
+        from ..sim import tutorial as tutorial_sim
+        tutorial_sim.begin(self.game)
+        self.win.save()
+        self.win.go(tutorial_sim.current(self.game).screen)
+
     def _keys(self) -> None:
         p = Panel("Keyboard")
         p.add(note("One key per screen. The table lives in "
@@ -133,3 +139,5 @@ class HelpView(View):
         self.col.addWidget(note(
             "The chronicle saves itself whenever the calendar moves. There is "
             "one save and no way to take a roll again."))
+        self.buttons(button("Walk me through it again",
+                            self._restart_tutorial))

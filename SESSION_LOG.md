@@ -2,6 +2,38 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a tutorial that will not take your word for it
+
+- **Asked for an optional tutorial at the start.** Eight lessons — survey
+  something, look at a market, sell what you learned, buy reaction mass, go
+  somewhere, take on work, look at what you are flying, see who is who — shown
+  as a strip along the top rather than as dialogs.
+- **The design point is that it watches rather than trusts.** A step that
+  advances because Next was pressed teaches nobody anything and will march a
+  confused player through eight screens of congratulation. So every lesson
+  names a watcher, and every watcher is a function of game state compared
+  against a **mark taken when the lesson opened** — "survey a body" means one
+  more than you had, not "a body is surveyed", so a captain who surveyed
+  something before starting is not waved through.
+- **It never blocks anything.** The window's guard diverts for a battle, an
+  open trench and an aftermath question; the tutorial is deliberately not among
+  them, in a game whose premise is that there is no track. A check walks all
+  twelve screens with a lesson open.
+- It lives on the `Game` with an `.over` flag like everything else you can be
+  part-way through, so it survives a save — including mid-explanation, which a
+  check reloads and carries on from. Skipping is final until it is started
+  again from the Help screen, and the `tutorial` option is back on the options
+  page now that something reads it.
+- **Three of my own errors, caught by the checks rather than shipped**: a
+  fixture that added cargo and then sold it, so the hold returned to the mark
+  and the watcher correctly saw nothing; a starting system with only two
+  bodies, which the survey fixture assumed away; and a "does it block
+  navigation" check that read `go()` for the word "tutorial" and tripped over
+  the import line — it walks the screens now.
+- Found by looking: `deleteLater()` alone leaves the previous lesson's text
+  painted under the new one until the event loop catches up.
+- Suites: 53 — 432 checks green. 233 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a menu bar, and options you can actually set
 
 - **Asked for an options page reachable from a menu bar, including the LLM

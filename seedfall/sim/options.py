@@ -47,6 +47,9 @@ class Options:
     #: Which model to ask for. "" means each provider's own default.
     llm_model: str = ""
 
+    #: Offer the tutorial when a new chronicle opens. Read by `title.py`.
+    tutorial: bool = True
+
 
 
 #: id -> (label, kind, what it does, bounds)
@@ -69,6 +72,9 @@ FIELDS = (
      "If a language model is reachable, characters speak through it instead "
      "of through the game's own writing. The game is complete without it, and "
      "this changes the prose and never the content.", None),
+    ("tutorial", "Offer the tutorial", "bool",
+     "Whether a new chronicle offers to walk you through the first few "
+     "things. It can also be started from the Help screen at any time.", None),
     ("llm_provider", "Which model to use", "choice",
      "Whichever answers first, or one you name. What is on this machine is "
      "listed below with whether it is actually responding.", None),

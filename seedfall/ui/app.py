@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import QApplication
 from ..core import state as state_mod
 from ..data.lore import TITLE
 from . import theme
-from .title import ask_for_game, opening_briefing
+from .title import ask_for_game, offer_tutorial, opening_briefing
 from .window import MainWindow
 
 
@@ -47,4 +47,5 @@ def main(argv=None) -> int:
     QGuiApplication.processEvents()
     if fresh:
         opening_briefing(win)
+        offer_tutorial(win)
     return app.exec()

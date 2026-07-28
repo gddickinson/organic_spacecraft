@@ -44,6 +44,9 @@ class MainWindow(QMainWindow):
         self.hud = self._build_hud()
         outer.addWidget(self.hud)
         outer.addWidget(hrule())
+        from .tutorial_bar import TutorialBar
+        self.tutorial_bar = TutorialBar(self)
+        outer.addWidget(self.tutorial_bar)
 
         middle = QWidget()
         row = QHBoxLayout(middle)
@@ -273,6 +276,13 @@ class MainWindow(QMainWindow):
         if self.current is not None:
             self.views[self.current].hide()
         self.current = view_id
+        # The tutorial watches state, not clicks — but "you looked at the
+        # plans" is only observable here, so the window reports what it opened.
+        from ..sim import tutorial as tutorial_sim
+        tab = getattr(self.views[view_id], "tab", "")
+        tutorial_sim.saw(self.game, view_id)
+        if tab:
+            tutorial_sim.saw(self.game, f"{view_id}:{tab}")
         view = self.views[view_id]
         view.show()
         for vid, b in self.nav_buttons.items():
@@ -286,6 +296,11 @@ class MainWindow(QMainWindow):
         self._refresh_log()
         if self.current:
             self.views[self.current].refresh()
+        from ..sim import tutorial as tutorial_sim
+        if tutorial_sim.check(self.game):
+            self.tutorial_bar.refresh()
+        elif tutorial_sim.running(self.game):
+            self.tutorial_bar.refresh()
         # Autosave whenever the calendar has moved. Writing the whole sector on
         # every repaint would be wasteful; days only pass on real actions.
         # Autosave on the player's cadence. At zero it saves whenever the

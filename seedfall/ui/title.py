@@ -122,6 +122,29 @@ def start_new_chronicle(win) -> None:
     win.go("map")
 
 
+def offer_tutorial(win) -> None:
+    """Ask once, when a chronicle opens. Skippable, and restartable from Help."""
+    from ..sim import options as options_sim
+    from ..sim import tutorial as tutorial_sim
+    game = win.game
+    if tutorial_sim.held(game) is not None:
+        return                      # already offered, or already running
+    if not options_sim.get(game, "tutorial"):
+        return
+    take = win.confirm(
+        "A short walk through",
+        "Eight things to try, one at a time, along the top of the screen. It "
+        "watches what you actually do rather than what you click, it never "
+        "blocks anything, and you can stop it whenever you like.",
+        yes="Walk me through it", no="I will find my own way")
+    if take:
+        tutorial_sim.begin(game)
+    else:
+        tutorial_sim.skip(game)
+    win.save()
+    win.refresh()
+
+
 def opening_briefing(win) -> None:
     g = win.game
     win.dialog(

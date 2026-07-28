@@ -104,6 +104,9 @@ class Game:
     minds: dict = field(default_factory=dict)
     #: Player settings, every one of which does something. `sim/options.py`.
     options: object | None = None
+    #: The tutorial, if one is running. Like everything you can be part-way
+    #: through it lives here and carries an `.over` flag.
+    tutorial: object | None = None
     commissions: list = field(default_factory=list)
     rumours: list = field(default_factory=list)
     charts: list = field(default_factory=list)
