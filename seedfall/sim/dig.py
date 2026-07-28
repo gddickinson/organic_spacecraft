@@ -33,6 +33,12 @@ class Dig:
     body_index: int
     body_name: str
     tech_id: str
+    #: Which system the trench is in. A body index alone is meaningless: it
+    #: used to be resolved against whatever system the ship was in *now*, so
+    #: working a dig from anywhere else read a different body's fatigue, or
+    #: raised IndexError against a shorter body list. -1 means an old save,
+    #: migrated on first use.
+    system_id: int = -1
     layer: int = 0
     days: int = 0
     points: float = 0.0
@@ -72,15 +78,29 @@ def begin(game, body_index: int) -> dict:
         return {"ok": False, "why": "You already understand what is down there."}
 
     dig = Dig(id=next(_uid), body_index=body_index, body_name=body.name,
-              tech_id=tech.id)
+              system_id=game.location_id, tech_id=tech.id)
     say(dig, f"A trench opened on {body.name}. Four strata to the bottom.", "")
     return {"ok": True, "dig": dig}
 
 
+def site_of(game, dig: Dig):
+    """The body the trench is actually in, wherever the ship has got to."""
+    if dig.system_id is None or dig.system_id < 0:
+        dig.system_id = game.location_id          # a save from before this
+    system = game.galaxy.systems[dig.system_id]
+    if dig.body_index >= len(system.bodies):
+        return None
+    return system.bodies[dig.body_index]
+
+
+def at_site(game, dig: Dig) -> bool:
+    return dig.system_id in (None, -1) or game.location_id == dig.system_id
+
+
 def _fatigue(game, dig: Dig) -> float:
     """A site worked before gives up less. The easy material goes first."""
-    body = game.system.bodies[dig.body_index]
-    return max(0.25, 1 - body.digs * 0.28)
+    body = site_of(game, dig)
+    return max(0.25, 1 - (body.digs if body else 0) * 0.28)
 
 
 def spoil_chance(stratum, method) -> float:
@@ -114,6 +134,9 @@ def work(game, dig: Dig, method_id: str, rng) -> dict:
     """Take one stratum. Banks what comes out of it before going deeper."""
     if dig.over:
         return {"ok": False, "why": "The trench is closed."}
+    if not at_site(game, dig):
+        return {"ok": False, "why": f"The trench is on {dig.body_name}, and "
+                                    "you are not there."}
     stratum = dig.stratum
     method = METHODS_BY_ID.get(method_id)
     if stratum is None or method is None:
@@ -188,7 +211,9 @@ def stop(game, dig: Dig) -> dict:
     """Backfill and leave. What is banked is banked."""
     dig.over = True
     dig.outcome = "backfilled"
-    game.system.bodies[dig.body_index].digs += 1
+    site = site_of(game, dig)
+    if site is not None:
+        site.digs += 1
     say(dig, "Backfilled. The rest of it is still down there.", "")
     game.add_log(f"Left the {dig.body_name} dig after {dig.days} days with "
                  f"{round(dig.points)} points of understanding.", "")
@@ -198,9 +223,10 @@ def stop(game, dig: Dig) -> dict:
 def finish(game, dig: Dig) -> dict:
     dig.over = True
     dig.outcome = "bottomed"
-    game.system.bodies[dig.body_index].digs += 1
-    body = game.system.bodies[dig.body_index]
-    body.relic_found = False
+    body = site_of(game, dig)
+    if body is not None:
+        body.digs += 1
+        body.relic_found = False
     say(dig, "The trench is at the bottom. There is nothing under this.", "good")
     game.add_log(f"Bottomed the {dig.body_name} dig: {round(dig.points)} points "
                  f"toward {dig.definition.name}.", "good")

@@ -263,10 +263,12 @@ seedfall/
     ├── test_seats.py   6 seat checks — what taking a station is worth
     ├── test_founding.py 5 checks — the seed dialog says what will grow
     ├── test_attempts.py 6 checks — the odds shown are the odds rolled
+    ├── chronicle.py    one captain, one save, a decade of doing everything
+    ├── test_chronicle.py 3 checks — that decade, through every screen
     ├── capture.py      renders every screen offscreen, for the README
     ├── captain_bot.py  the long-game captain the playability checks fly
     ├── probes.py       the newer efficacy probes, split out of levers.py
-    ├── test_dig.py     6 dig checks — strata, methods, banking, backfilling
+    ├── test_dig.py     7 dig checks — strata, methods, banking, backfilling
     ├── test_resume.py  5 resume checks — anything half-done survives a save
     ├── efficacy.py     the harness: neutralise a feature, measure the world
     ├── levers.py       one entry per claim the game makes about a number
@@ -309,7 +311,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   every engagement in the game changes.
 - **`MAX_LANE` in `world/galaxy.py`** guarantees no star sits further from its
   nearest neighbour than a starting hull can jump. Without the relaxation pass
-  that enforces it, some seeds strand the player on turn one.
+  that enforces it, some seeds strand the player on turn one. It does *not*
+  guarantee the sector is traversable: flood-filling from the start at starting
+  jump range reaches between 3 and 18 of the 42 systems depending on the seed,
+  median about 5. Opening the rest means a better drive. See task #44.
+- **An index into `game.system.bodies` is not a location.** `Dig` used to hold
+  only `body_index`, resolved against whatever system the ship was in *now*, so
+  a trench worked from anywhere else read a different body's fatigue — or
+  raised `IndexError` against a shorter body list. Digs are saved, so the wrong
+  body outlived the session. `Dig.system_id` pins it and `dig.site_of()` /
+  `dig.at_site()` are the only correct ways to reach the ground it is in.
+  Anything else that stores a body index needs the same treatment.
 - **`GRIND_TURN` / `MAX_TURNS` in `sim/combat.py`** stop two well-armoured hulls
   grinding forever. Armour is also floored at 15% damage leak-through for the
   same reason.
@@ -870,6 +882,21 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   in `attempt` and the quote in `odds_for`, and the point is that they cannot
   drift. Dropping the `+2` from the quote makes it report "said 67% rolled
   32%".
+- **`test_chronicle.py`** is the one suite that does not build a fresh, narrow
+  game. `chronicle.py` flies a single captain for ten years — surveying whole
+  systems, refitting, hiring, trading off the freight desk, mining, digging,
+  landing parties, planting colonies, running works and moving the relations
+  matrix — and the suite repaints every screen and every tab against that save
+  as it accumulates, with `sys.excepthook` armed because Qt swallows what a
+  slot raises. It exists because the README screenshots found a shipped crash
+  in minutes that forty-three suites had missed: the crash needed a *charted*
+  sector and a *port screen* in the same save, and nothing put accumulated
+  state in front of the screens that read it. The driver carries its own
+  history in comments — each measured failure that made it cover less than it
+  claimed — and the third check fails if any of those counters reads zero
+  again. Tabs are read off the live `TabBar` rather than a hardcoded list, and
+  clicked rather than assigned, so a tab added tomorrow is covered tomorrow and
+  the refresh runs where the exception would really be swallowed.
 - **`test_founding.py`** plants all fourteen classes a body will take, matures
   each, and fails unless the yield, upkeep, effects and gestation are what the
   dialog forecast. Its fixture stocks every commodity rather than a guessed

@@ -13,7 +13,7 @@ def main(argv: list[str] | None = None) -> int:
                                        "missions", "explore", "mining", "research", "trade",
                                        "ground", "politics", "design", "orders",
                                        "assessment", "balance", "bloom", "reachable",
-                                       "efficacy", "transit", "customs", "allegiance", "territory", "charts", "aftermath", "notes", "layers", "cargo", "freight", "workings", "burns", "bench", "works", "overtures", "seats", "founding", "attempts", "dig",
+                                       "efficacy", "transit", "customs", "allegiance", "territory", "charts", "aftermath", "notes", "layers", "cargo", "freight", "workings", "burns", "bench", "works", "overtures", "seats", "founding", "attempts", "chronicle", "dig",
                                        "resume", "verbs", "ui"]
     ok = True
 
@@ -250,6 +250,16 @@ def main(argv: list[str] | None = None) -> int:
         suite = Suite("attempts")
         test_attempts.run(suite)
         ok &= suite.report()
+
+    if "chronicle" in wanted:
+        try:
+            from . import test_chronicle
+        except ImportError as err:
+            print(f"── chronicle ───\n  skipped: {err}\n")
+        else:
+            suite = Suite("chronicle")
+            if test_chronicle.run(suite):
+                ok &= suite.report()
 
     if "dig" in wanted:
         from . import test_dig

@@ -166,3 +166,41 @@ def run(suite: Suite) -> None:
         assert tired < fresh, (
             f"a site worked twice still gives {tired:.0f} against {fresh:.0f}")
         return f"{fresh:.0f} points fresh → {tired:.0f} after two seasons"
+
+    @check("a trench belongs to the ground it is in")
+    def _():
+        # Found by the chronicle suite, which flew away with an open trench
+        # and kept working it: `_fatigue` resolved `dig.body_index` against
+        # `game.system` — whatever system the ship was in *now* — so a dig
+        # continued from elsewhere read a different body's fatigue, and
+        # against a system with fewer bodies raised IndexError. Because the
+        # Dig is a saved field, the wrong body outlived the session.
+        game, index, body = _sited("elsewhere")
+        started = dig_sim.begin(game, index)
+        game.dig = started["dig"]
+        assert game.dig.system_id == game.location_id, "the dig forgot where"
+
+        home = game.location_id
+        away = min((s for s in game.galaxy.systems if s.id != home),
+                   key=lambda s: len(s.bodies))
+        game.location_id = away.id
+        # What the old resolution would have reached from here: a different
+        # body, or nothing at all.
+        assert (index >= len(away.bodies)
+                or away.bodies[index] is not body), (
+            "pick a system that would actually have resolved differently")
+
+        assert not dig_sim.at_site(game, game.dig)
+        assert dig_sim.site_of(game, game.dig) is body, (
+            "the trench moved to whatever body sits at that index here")
+
+        refused = dig_sim.work(game, game.dig, "careful", RNG("away"))
+        assert not refused["ok"] and "not there" in refused["why"], refused
+
+        # And it can still be backfilled from orbit somewhere else, which is
+        # the one thing you must be able to do with a trench you have left.
+        before = body.digs
+        assert dig_sim.stop(game, game.dig)["ok"]
+        assert body.digs == before + 1, "the wrong body was marked as worked"
+        return (f"trench pinned to {game.galaxy.systems[game.dig.system_id].name}"
+                f", refused from {away.name}, backfilled cleanly")

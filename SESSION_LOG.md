@@ -2,6 +2,55 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: one chronicle, ten years, every screen
+
+- **Turned last cycle's accident into a standing check.** The README
+  screenshots found a shipped crash in minutes because they were one long-lived
+  save touching every screen in sequence — the kind of play forty-three suites
+  were not doing. `tests/chronicle.py` now flies a single captain for ten
+  years: surveying whole systems, refitting, hiring, trading off the freight
+  desk, mining, digging, landing parties, planting colonies, running works and
+  moving the relations matrix. `test_chronicle.py` repaints every screen and
+  every tab against that save as it accumulates, with `sys.excepthook` armed
+  because Qt swallows what a slot raises.
+- **It found a real one on its second run.** `Dig` held a `body_index` and no
+  system, and `_fatigue` resolved it against `game.system` — whatever system
+  the ship was in *now*. Fly away with an open trench and keep working it, and
+  you read a different body's fatigue, or hit `IndexError` on a shorter body
+  list. Digs are saved, so the wrong body outlived the session. `Dig.system_id`
+  pins it, `site_of()`/`at_site()` resolve through it, `work()` refuses from
+  elsewhere, and backfilling still works from anywhere — which is the one thing
+  you must be able to do with a trench you have left. Old saves migrate.
+  Verified by putting the bug back: the check fails, and the chronicle's screen
+  check fails with the original `'int' object has no attribute 'sell'` when the
+  register bug is reintroduced.
+- **Most of the cycle went on the driver, and every correction was a
+  measurement.** In order: `_move_on` mined ice and returned "moved", so a
+  broke captain moved on 170 times and saw six systems; ranking the freight
+  run above unexplored space shuttled one profitable lane 144 times; selling
+  everything but volatiles sold the biomass and phosphate a seed bay is built
+  from, so the bay never fitted and nothing was ever planted; a greedy refit
+  loop bought every cheap part with a jump term and *lost* a light-year to
+  fitted mass; surveying three bodies a round and leaving meant `scanned` never
+  went true and a decade charted two systems; and exploring blind parked the
+  captain in a pocket of portless systems for thirteen rounds on eleven tonnes
+  of biomass. Each fix carries the number that justified it in a comment.
+- **Two things the driver found that are the game's, not the driver's.**
+  Every ground option that pays a field note wants comms or medicine, and the
+  opening crew is science, nav and engineering — 168 notes offered in a decade,
+  none takeable, until the captain visited the berths. Both specialists recruit
+  at ordinary rates, so that is a station to fill rather than dead content, and
+  the driver now hires. And flood-filling from the start at starting jump range
+  reaches 3 to 18 of 42 systems depending on seed, median about 5 — logged as
+  task #44 with the per-seed numbers rather than fixed blind.
+- **The suite is honest about its one concession**: `play()` tops the purse up
+  to a floor each round. Solvency is `test_play`'s question; this one is
+  whether accumulated state breaks a screen. Every action is the real one, only
+  the money is a gift, and `play`'s docstring says so.
+- Painting every sixth round cost 3m45 for the same three verdicts; every
+  twentieth costs 35s and still makes 387 paints plus a full reload pass.
+- Suites: 44 — 360 checks green. 189 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a README, and the crash it found
 
 - **Asked for a README with screenshots of every major feature.** Wrote
