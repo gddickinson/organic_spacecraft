@@ -227,6 +227,7 @@ seedfall/
     ├── test_balance.py 7 balance checks — measured by playing the fights
     ├── test_bloom_arc.py 7 Bloom checks — provocation, answers, study
     ├── test_transit.py 6 crossing checks — watches, aborting, tension
+    ├── test_resume.py  5 resume checks — anything half-done survives a save
     ├── efficacy.py     the harness: neutralise a feature, measure the world
     ├── levers.py       one entry per claim the game makes about a number
     ├── test_efficacy.py 13 checks — every feature has to move something
@@ -484,9 +485,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
-- **The window's `transit` is a property over `game.transit`.** Holding it on
-  the window instead lost a crossing over a save, the way docking and decoding
-  state still does; anything that must survive a reload belongs on the `Game`.
+- **Anything you can be in the middle of belongs on the `Game`.** The window
+  exposes `transit`, `docking`, `decoding` and `decoding_tech` as properties
+  over game fields; holding them on the window loses them over a save, which
+  docking and decoding did unnoticed for many cycles. `test_resume.py` reads
+  the guard in `window.go()`, takes every activity with an `.over` flag, and
+  fails on any that is not a field on the `Game`.
+- **A `Battle` stays on the window on purpose**, recorded in `battle_state` and
+  in `TRANSIENT` in `test_resume.py`: combat resolves in one sitting and no
+  clock runs during it. Anything else added to that allowlist needs its reason
+  written down beside it.
 - **Colony effects are a closed vocabulary.** `test_sim.py` asserts that every
   key in a `ColonyClass.effects` is one the game actually reads, so a typo in a
   station definition fails the suite instead of silently doing nothing.
@@ -575,6 +583,10 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`test_transit.py`** flies the same crossings under a hurried policy and a
   careful one and fails unless hurrying genuinely saves days and genuinely
   costs hull. An option that is best on every axis is not a decision.
+- **`test_resume.py`** saves mid-approach, mid-exchange and mid-crossing and
+  demands all three come back identical — including the decoding secret, since
+  a code regenerated on load would let a player save, guess, reload and guess
+  again.
 - **`test_flight.py`** holds the helm to its promises: that a seed grows one
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that

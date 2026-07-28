@@ -67,6 +67,9 @@ class Game:
     shocks: list = field(default_factory=list)
     ventures: list = field(default_factory=list)
     transit: object | None = None
+    docking: object | None = None
+    decoding: object | None = None
+    decoding_tech: str | None = None
     faction_power: dict = field(default_factory=dict)
     register: dict = field(default_factory=dict)
     commissions: list = field(default_factory=list)

@@ -2,6 +2,36 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: put it down and pick it up again
+
+- **A save taken mid-approach lost the approach.** `docking`, `decoding` and
+  `decoding_tech` lived on the window rather than the game, so reloading
+  silently dropped them: the guard that had been holding you in the docking
+  screen simply stopped, and the passes you had spent were gone. It had been
+  that way for many cycles and nothing noticed. Last cycle's transit work
+  exposed it by fixing only itself.
+- **All three are on the `Game` now**, with `Docking` and `Decoding` registered
+  with the save codec, and the window exposing them as properties over game
+  fields so nothing else had to change.
+- **The sharper half is the decoding secret.** Had the code been regenerated on
+  load rather than persisted, a player could save, guess, reload and guess
+  again against a fresh code until it fell out. The check asserts the secret
+  itself survives, not merely that an exchange exists.
+- **A `Battle` deliberately stays on the window**, which `battle_state` has
+  said since it was written: combat resolves in one sitting and no clock runs
+  during it. It is in the check's allowlist with that reason attached.
+- **The general check is the one worth having.** It reads `window.go()`, takes
+  every activity the guard will divert you into — recognised by its `.over`
+  flag — and fails on any that is not a field on the `Game`. Put docking back
+  on the window and it reports it by name. A new mode that guards navigation
+  and keeps its state on the window now fails the suite rather than quietly
+  losing a player's evening.
+- **My first version of that check flagged five things that were never state**
+  — `self.views`, `self.current`, `self.toast` and friends — because it matched
+  every `self.X` in the method rather than the ones with a finished state.
+- Suites: 25, **5 resume** (new) among them — 228 checks green. 147 modules,
+  all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a crossing you fly
 
 - **Travel was a wait.** Pick a destination, pay the reaction mass, watch the

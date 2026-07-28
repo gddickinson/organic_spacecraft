@@ -35,9 +35,6 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.game = game
         self.battle = None
-        self.docking = None
-        self.decoding = None
-        self.decoding_tech = None
         self._return_to = "system"
         self.setWindowTitle(f"{TITLE} — a GESTALT Programme Chronicle")
         self.resize(1360, 880)
@@ -211,13 +208,19 @@ class MainWindow(QMainWindow):
 
     # ── navigation ─────────────────────────────────────────────────────────
 
-    @property
-    def transit(self):
-        return getattr(self.game, "transit", None)
+    # An approach, an exchange and a crossing all belong to the game rather
+    # than to the window: a save taken in the middle of one used to lose it.
+    # A battle stays on the window deliberately — `battle_state` says so, on
+    # the grounds that no time passes while you are being shot at.
+    def _on_game(name):
+        return property(lambda self: getattr(self.game, name, None),
+                        lambda self, value: setattr(self.game, name, value))
 
-    @transit.setter
-    def transit(self, value):
-        self.game.transit = value
+    transit = _on_game("transit")
+    docking = _on_game("docking")
+    decoding = _on_game("decoding")
+    decoding_tech = _on_game("decoding_tech")
+    del _on_game
 
     def go(self, view_id: str) -> None:
         if self.battle is not None and not self.battle.over and view_id != "battle":

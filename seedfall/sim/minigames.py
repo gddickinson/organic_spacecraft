@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from ..core.save import register
+
 # ── docking ────────────────────────────────────────────────────────────────
 
 AXES = [("range", "Closing range"), ("attitude", "Attitude"), ("roll", "Roll")]
@@ -21,6 +23,7 @@ TOLERANCE = 6
 DOCK_PASSES = 8
 
 
+@register
 @dataclass
 class Docking:
     port_name: str
@@ -103,6 +106,7 @@ CODE_LENGTH = 4
 DECODE_TRIES = 8
 
 
+@register
 @dataclass
 class Decoding:
     subject: str
