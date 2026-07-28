@@ -37,9 +37,15 @@ class Options:
     hints: bool = True
 
     #: Let a language model write the speech, if one is reachable. Off by
-    #: default and off unless `SEEDFALL_LLM` is also set — this switch cannot
-    #: turn on something the environment has not permitted.
+    #: default. The player may turn it on from the options page; a fresh
+    #: process still starts off, and no check ever turns it on.
     voices: bool = False
+
+    #: Which provider to use — "" means whichever answers first.
+    llm_provider: str = ""
+
+    #: Which model to ask for. "" means each provider's own default.
+    llm_model: str = ""
 
 
 
@@ -60,9 +66,15 @@ FIELDS = (
      "How often an open instrument window re-reads the game. Lower is more "
      "responsive and more work.", (200, 5000)),
     ("voices", "Let a model write the speech", "bool",
-     "If a language model is reachable and permitted, characters speak "
-     "through it instead of through the game's own writing. The game is "
-     "complete without it and this changes prose, never content.", None),
+     "If a language model is reachable, characters speak through it instead "
+     "of through the game's own writing. The game is complete without it, and "
+     "this changes the prose and never the content.", None),
+    ("llm_provider", "Which model to use", "choice",
+     "Whichever answers first, or one you name. What is on this machine is "
+     "listed below with whether it is actually responding.", None),
+    ("llm_model", "Model name", "text",
+     "Left blank, each provider uses its own default — llama3.2 for Ollama, "
+     "and the current Sonnet or GPT for the hosted ones.", None),
 )
 
 
@@ -88,6 +100,8 @@ def set_to(game, name: str, value) -> dict:
     _id, _label, kind, _doc, bounds = entry
     if kind == "bool":
         value = bool(value)
+    elif kind in ("choice", "text"):
+        value = str(value or "").strip()
     else:
         try:
             value = int(value)
@@ -96,15 +110,32 @@ def set_to(game, name: str, value) -> dict:
         low, high = bounds
         value = max(low, min(high, value))
     setattr(options, name, value)
+    if name in ("voices", "llm_provider", "llm_model"):
+        apply(game)
     return {"ok": True, "name": name, "value": value}
 
 
-def voices_live(game) -> bool:
-    """Speech through a model needs both the player's switch and the machine's.
+def apply(game) -> None:
+    """Push the settings that live outside the Game into the modules that hold
+    them.
 
-    Two switches on purpose. The environment one says a model may be used at
-    all; this one says the player wants it. Neither implies the other, and the
-    screen says so rather than showing a toggle that silently does nothing.
+    Only the speech settings need this: `core/llm.py` keeps its own state so
+    that it stays a `core` module and knows nothing about a `Game`. Called
+    whenever a setting changes and once when a chronicle is opened.
+    """
+    from ..core import llm
+    options = held(game)
+    llm.configure(enabled=bool(options.voices),
+                  provider_id=options.llm_provider,
+                  model=options.llm_model)
+
+
+def voices_live(game) -> bool:
+    """Whether speech is actually coming from a model right now.
+
+    The player's switch is necessary and not sufficient: something has to be
+    answering. The screen reports which half is missing rather than showing a
+    toggle that silently does nothing.
     """
     from ..core import llm
     return bool(get(game, "voices")) and llm.enabled()

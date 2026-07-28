@@ -2,6 +2,44 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a menu bar, and options you can actually set
+
+- **Asked for an options page reachable from a menu bar, including the LLM
+  choices.** There was no menu bar at all — the theme had styled `QMenuBar`
+  since the beginning and nothing ever built one.
+- `ui/menubar.py` builds it from the same tables as everything else: screens
+  and their keys from `data/screens.py`, instruments from `monitors.SHAPES`, so
+  a screen or an instrument added tomorrow appears without anybody editing a
+  list. Four menus — Chronicle (save, options, begin again, quit), Screens,
+  Instruments, Help.
+- `ui/options_view.py` is **one** options page, shown either in its own window
+  from the menu or embedded in the Help screen. Two options pages is two places
+  for the bounds to disagree.
+- **The LLM is settable from the game now, not only from the environment.**
+  `core/llm.py` gained `configure()`; the player picks the provider from what
+  is on the machine and names a model, and `options.apply()` pushes it down. A
+  fresh process still starts off and no check ever turns it on. The page probes
+  only when you press *Look for models*, and *Say something* prints a line so
+  "a model is answering" is a claim you can check.
+- **A live bug, mine, from last cycle.** Three call sites used `win.save()` and
+  `MainWindow` had no such method: carrying on past an ending, answering an
+  aftermath situation, and changing a setting. Every one raised inside a Qt
+  slot, where it is swallowed. The aftermath checks drove `sim/legacy.py`
+  directly and never pressed the button. There is now a check that answers a
+  situation *through the view*, and one that fires all 25 menu actions with
+  `sys.excepthook` armed. Both fail when `save()` is removed.
+- **A second, subtler one, found by the suite after splitting `window.py`:**
+  `credits` is a Python builtin. Calling it by mistake does not raise
+  `NameError` — it calls the interpreter's `_Printer` and fails two suites
+  away with a message about positional arguments.
+- `window.py` crossed 500 lines; the heading bar moved to `ui/hud.py`.
+- **My own check was wrong first**: "every option does something" scanned for
+  the setting's name elsewhere in the package, which cannot see a setting that
+  `options.apply()` *forwards* into `core/llm.py`. It reported two live
+  settings as dead. It now moves each unnamed setting and watches for an
+  observable change.
+- Suites: 52 — 424 checks green. 229 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a manual that cannot go stale, and options that bite
 
 - **Asked for an extensive help system and an options screen.** Nineteen

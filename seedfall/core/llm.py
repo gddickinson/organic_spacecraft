@@ -88,6 +88,46 @@ def _probe(provider: Provider) -> bool:
 _chosen: Provider | None = None
 _looked = False
 
+#: Set from the options screen. `None` means "follow the environment", which
+#: is what a fresh process does and what every check measures. The screen can
+#: turn this on; nothing else can, and it is not persisted outside the save.
+_asked: dict = {"enabled": None, "provider": "", "model": ""}
+
+
+def configure(enabled=None, provider_id: str = "", model: str = "") -> None:
+    """What the player chose. Overrides the environment where it is set."""
+    if enabled is not None:
+        _asked["enabled"] = bool(enabled)
+    if provider_id is not None:
+        _asked["provider"] = provider_id
+    if model is not None:
+        _asked["model"] = model
+    reset()
+
+
+def settings() -> dict:
+    return dict(_asked)
+
+
+def switched_on() -> bool:
+    """The player's switch if they set one, otherwise the environment's."""
+    if _asked["enabled"] is not None:
+        return bool(_asked["enabled"])
+    return _env(SWITCH) not in ("", "0", "off", "false")
+
+
+def wanted_provider() -> str:
+    return _asked["provider"] or _env("SEEDFALL_LLM_PROVIDER")
+
+
+def _as_asked(candidate: Provider) -> Provider:
+    """The candidate, with the player's model if they named one."""
+    model = _asked["model"]
+    if not model or model == candidate.model:
+        return candidate
+    return Provider(candidate.id, candidate.name, candidate.kind,
+                    candidate.endpoint, model, candidate.key_env)
+
 
 def provider() -> Provider | None:
     """The provider we will use, probed once. None when there is nothing."""
@@ -95,15 +135,15 @@ def provider() -> Provider | None:
     if _looked:
         return _chosen
     _looked = True
-    if _env(SWITCH) in ("", "0", "off", "false"):
+    if not switched_on():
         _chosen = None
         return None
-    wanted = _env("SEEDFALL_LLM_PROVIDER")
+    wanted = wanted_provider()
     for candidate in candidates():
         if wanted and candidate.id != wanted:
             continue
         if _probe(candidate):
-            _chosen = candidate
+            _chosen = _as_asked(candidate)
             return _chosen
     _chosen = None
     return None
@@ -114,14 +154,37 @@ def enabled() -> bool:
 
 
 def reset() -> None:
-    """Forget what was probed. For tests, and for the options screen."""
+    """Forget what was probed, so the next call looks again."""
     global _chosen, _looked
     _chosen, _looked = None, False
 
 
+def forget() -> None:
+    """Forget the probe *and* what the player chose. Tests use this."""
+    _asked.update({"enabled": None, "provider": "", "model": ""})
+    reset()
+
+
+def offer() -> list:
+    """Every provider that could be chosen, and whether it is answering.
+
+    This is the only place that probes on purpose rather than in passing, and
+    it is called by the options screen when a player asks. Nothing calls it in
+    the ordinary course of play, and nothing calls it in a check.
+    """
+    out = []
+    for candidate in candidates():
+        out.append({"id": candidate.id, "name": candidate.name,
+                    "model": _asked["model"] or candidate.model,
+                    "local": candidate.local,
+                    "needs": candidate.key_env,
+                    "answering": _probe(candidate)})
+    return out
+
+
 def describe() -> str:
     """One line for the options screen."""
-    if _env(SWITCH) in ("", "0", "off", "false"):
+    if not switched_on():
         return ("Off. Every voice in the game is written by the game itself, "
                 "which is the default and is not a lesser mode.")
     live = provider()

@@ -39,6 +39,8 @@ class MainWindow(QMainWindow):
         outer.setSpacing(0)
 
         self.monitors: dict = {}
+        from .menubar import build as build_menubar
+        build_menubar(self)
         self.hud = self._build_hud()
         outer.addWidget(self.hud)
         outer.addWidget(hrule())
@@ -73,59 +75,42 @@ class MainWindow(QMainWindow):
         return f
 
     def _build_hud(self) -> QWidget:
-        bar = QWidget()
-        bar.setFixedHeight(54)
-        h = QHBoxLayout(bar)
-        h.setContentsMargins(16, 6, 16, 6)
-        h.setSpacing(20)
+        from .hud import build
+        return build(self)
 
-        brand = label(TITLE, "", "chloro")
-        brand.setStyleSheet(
-            f"color: {theme.tint('chloro')}; font-family: '{theme.mono_family()}';"
-            "font-size: 11px; letter-spacing: 4px;")
-        h.addWidget(brand)
+    def save(self) -> None:
+        """Write the chronicle now.
 
-        self.hud_stats: dict[str, QLabel] = {}
-        for key, cap in (("date", "Stardate"), ("place", "Position"),
-                         ("money", "Treasury"), ("hull", "Hull")):
-            block = QWidget()
-            v = QVBoxLayout(block)
-            v.setContentsMargins(0, 0, 0, 0)
-            v.setSpacing(1)
-            v.addWidget(mono_label(cap))
-            val = label("—")
-            val.setStyleSheet("font-size: 14px; font-weight: 600;")
-            self.hud_stats[key] = val
-            v.addWidget(val)
-            h.addWidget(block)
-        h.addStretch(1)
+        Three call sites used `win.save()` before this existed — carrying on
+        past an ending, answering an aftermath situation, and changing a
+        setting — and every one of them raised `AttributeError` inside a Qt
+        slot, where it is swallowed. The checks drove `sim/legacy.py` directly
+        and never pressed the button.
+        """
+        self._saved_day = self.game.day
+        self.game.save()
 
-        self.meters: dict[str, tuple[QLabel, Bar]] = {}
-        for key, cap, tintname in (("integrity", "Integrity", "chloro"),
-                                   ("air", "Air", "lumen"),
-                                   ("hold", "Hold", "osteo"),
-                                   ("crew", "Crew", "steel")):
-            block = QWidget()
-            block.setFixedWidth(132)      # wide enough for "Integrity · 100%"
-            v = QVBoxLayout(block)
-            v.setContentsMargins(0, 0, 0, 0)
-            v.setSpacing(3)
-            cap_lb = mono_label(cap)
-            bar_w = Bar(0, tintname)
-            self.meters[key] = (cap_lb, bar_w)
-            v.addWidget(cap_lb)
-            v.addWidget(bar_w)
-            h.addWidget(block)
+    def open_options(self) -> None:
+        """The options page, in its own window, from the menu bar."""
+        from .options_view import OptionsDialog
+        OptionsDialog(self).exec()
+        self.apply_options()
+        self.refresh()
 
-        self.breach_pill = Pill("breached", "warn")
-        self.breach_pill.hide()
-        h.addWidget(self.breach_pill)
-        # Instruments pop out into their own windows, so a player can watch
-        # heat or the scope while flying rather than switching to a tab.
-        h.addWidget(button("▣ Instruments", self.instruments, kind="flat"))
-        h.addWidget(button("? Help", self.help_here, kind="flat",
-                           tip="Help about the screen you are on"))
-        return bar
+    def open_help(self, tab: str = "manual") -> None:
+        view = self.views["help"]
+        view.tab = tab
+        self.go("help")
+
+    def begin_again(self) -> None:
+        if not self.confirm("Begin again",
+                            "This chronicle is abandoned and another opens in "
+                            "its place. There is one save and this overwrites "
+                            "it."):
+            return
+        state_mod.clear_save()
+        from .title import start_new_chronicle
+        start_new_chronicle(self)
 
     def help_here(self) -> None:
         """Open the manual at whatever this screen is about.
@@ -313,30 +298,8 @@ class MainWindow(QMainWindow):
             self.game.save()
 
     def _refresh_hud(self) -> None:
-        g = self.game
-        st = g.ship_stats
-        ch = CHASSIS_BY_ID[g.ship.chassis]
-        self.hud_stats["date"].setText(stardate(g.day))
-        self.hud_stats["place"].setText(g.system.name)
-        self.hud_stats["money"].setText(credits(g.credits))
-        self.hud_stats["hull"].setText(f"{ch.name} «{g.ship.name}»")
-
-        hp = hull_pct(g.ship)
-        used = cargo_used(g.ship)
-        vals = {
-            "integrity": (hp, pct(hp), "warn" if hp < 0.3 else
-                          "osteo" if hp < 0.6 else "chloro"),
-            "air": (g.ship.o2, pct(g.ship.o2), "warn" if g.ship.o2 < 0.4 else "lumen"),
-            "hold": (used / st.cargo if st.cargo else 0,
-                     f"{round(used)}/{round(st.cargo)} t", "osteo"),
-            "crew": (g.ship.crew / st.berths if st.berths else 0,
-                     str(g.ship.crew), "steel"),
-        }
-        for key, (frac, text, tintname) in vals.items():
-            cap, bar = self.meters[key]
-            cap.setText(f"{key.title()} · {text}")
-            bar.set_value(frac, tintname)
-        self.breach_pill.setVisible(is_breached(g.ship))
+        from .hud import refresh
+        refresh(self)
 
     def _refresh_log(self) -> None:
         while self.log_col.count():

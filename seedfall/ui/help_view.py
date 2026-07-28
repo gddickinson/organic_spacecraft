@@ -14,13 +14,10 @@ from __future__ import annotations
 
 from PyQt6.QtWidgets import QHBoxLayout, QLineEdit, QWidget
 
-from ..core import llm
 from ..data.help import TOPICS
 from ..data.screens import NAV_KEYS
 from ..sim import manual as manual_sim
-from ..sim import options as options_sim
-from .widgets import (body_or, Card, Panel, TabBar, View, button, label, note,
-                      spacer)
+from .widgets import Panel, TabBar, View, button, label, note, spacer
 
 
 class HelpView(View):
@@ -111,73 +108,17 @@ class HelpView(View):
                              kind="flat"))
         return p
 
-    # ── options ────────────────────────────────────────────────────────────
+    # ── options ───────────────────────────────────────────────────────────
 
     def _options(self) -> None:
-        self.col.addWidget(body_or(self.hint(
-            "Everything here does something. There is no density slider that "
-            "adjusts nothing and no difficulty label that multiplies by one — "
-            "a check fails if a setting stops being read.")))
-        panel = Panel("Settings")
-        for entry in options_sim.summary(self.game):
-            panel.add(self._setting(entry))
-        self.col.addWidget(panel)
-        self.col.addWidget(self._speech())
+        """The same panel the menu bar opens in a window. One implementation.
 
-    def _setting(self, entry) -> Card:
-        card = Card()
-        card.add(label(entry["label"], "h3"))
-        card.add(note(entry["doc"]))
-        if entry["kind"] == "bool":
-            card.add(button("On" if entry["value"] else "Off",
-                            lambda n=entry["name"], v=entry["value"]:
-                            self._set(n, not v),
-                            kind="primary" if entry["value"] else ""))
-        else:
-            low, high = entry["bounds"]
-            unit = "days" if entry["kind"] == "days" else "ms"
-            step = max(1, (high - low) // 10)
-            controls = QWidget()
-            row = QHBoxLayout(controls)
-            row.setContentsMargins(0, 0, 0, 0)
-            row.addWidget(button(
-                "−", lambda n=entry["name"], v=entry["value"], s=step:
-                self._set(n, v - s)))
-            row.addWidget(label(f"{entry['value']} {unit}", "label"))
-            row.addWidget(button(
-                "+", lambda n=entry["name"], v=entry["value"], s=step:
-                self._set(n, v + s)))
-            row.addStretch(1)
-            card.add(controls)
-        return card
-
-    def _set(self, name: str, value) -> None:
-        result = options_sim.set_to(self.game, name, value)
-        if not result.get("ok"):
-            self.win.toast(result.get("why", "No."), "warn")
-            return
-        self.win.apply_options()
-        self.win.save()
-        self.refresh()
-
-    def _speech(self) -> Panel:
-        p = Panel("Speech")
-        p.add(note(
-            "Characters, ships and quays speak either through the game's own "
-            "writing or through a language model, if one is reachable and "
-            "permitted. The game is complete without one; the model changes "
-            "the prose and never the content."))
-        p.add_row("On this machine", llm.describe())
-        live = options_sim.voices_live(self.game)
-        p.add_row("In use now", "a model" if live else "the game's own writing",
-                  tint="lumen" if live else None)
-        if options_sim.get(self.game, "voices") and not llm.enabled():
-            p.add(label(
-                "You have asked for model speech and nothing is answering, so "
-                "the game is writing it. Set SEEDFALL_LLM=1 in the "
-                "environment, and have Ollama running or a key exported.",
-                "", "warn", wrap=True))
-        return p
+        Two options pages is two places for the bounds to disagree, and this
+        project has spent enough cycles on screens that contradicted the thing
+        they described.
+        """
+        from .options_view import OptionsPanel
+        self.col.addWidget(OptionsPanel(self.win))
 
     # ── keys ───────────────────────────────────────────────────────────────
 

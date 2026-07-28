@@ -120,23 +120,42 @@ def run(suite: Suite) -> None:
 
     @check("every option the screen offers actually does something")
     def _():
-        # The rule: a setting nothing reads is a lie told by a screen. Read
-        # the package and require each one to appear somewhere outside the
-        # module that defines it.
+        # A setting nothing reads is a lie told by a screen. Two ways to be
+        # consumed, and each is checked for what it is: most settings are read
+        # by name somewhere else in the package, and the speech ones are
+        # *forwarded* by `options.apply` into `core/llm.py`, which a textual
+        # scan cannot see. The first version of this check only scanned, and
+        # reported two perfectly live settings as dead.
+        from ..core import llm
         root = pathlib.Path(__file__).resolve().parent.parent
         sources = [p for p in root.rglob("*.py")
-                   if p.name not in ("options.py",)
-                   and "tests" not in p.parts]
+                   if p.name != "options.py" and "tests" not in p.parts]
         haystack = "\n".join(p.read_text() for p in sources)
-        unread = []
-        for entry in options_sim.summary(new_game("manual-opt")):
-            if f'"{entry["name"]}"' not in haystack:
-                unread.append(entry["name"])
+
+        game = new_game("manual-opt")
+        llm.forget()
+        unread, by_name, by_effect = [], 0, 0
+        for entry in options_sim.summary(game):
+            name = entry["name"]
+            if f'"{name}"' in haystack:
+                by_name += 1
+                continue
+            # Not named elsewhere: prove it by moving it and watching.
+            before = llm.settings()
+            changed = {"bool": not entry["value"]}.get(
+                entry["kind"], f"probe-{name}")
+            options_sim.set_to(game, name, changed)
+            if llm.settings() != before:
+                by_effect += 1
+            else:
+                unread.append(name)
+            options_sim.set_to(game, name, entry["value"])
+        llm.forget()
         assert not unread, (
             f"settings nothing reads — either wire them or take them off the "
             f"screen: {unread}")
-        return (f"{len(options_sim.FIELDS)} settings, every one read outside "
-                f"options.py")
+        return (f"{len(options_sim.FIELDS)} settings: {by_name} read by name, "
+                f"{by_effect} proven by changing them")
 
     @check("settings hold their bounds, and survive a save")
     def _():
@@ -160,16 +179,205 @@ def run(suite: Suite) -> None:
         assert options_sim.get(back, "confirm") is False
         return "bounds clamped, rubbish refused, and the settings reloaded"
 
-    @check("model speech needs both switches, and says so when it has one")
+    @check("the menu bar reaches every screen, instrument and setting")
+    def _():
+        try:
+            from .test_ui import _use_offscreen
+            _use_offscreen()
+            from PyQt6.QtWidgets import QApplication
+        except ImportError as err:              # pragma: no cover
+            return f"skipped: {err}"
+        from ..ui import theme
+        from ..ui.monitors import SHAPES
+        from ..ui.window import MainWindow
+
+        app = QApplication.instance() or QApplication([])
+        app.setStyleSheet(theme.stylesheet())
+        win = MainWindow(new_game("menu-bar"))
+        win.resize(1200, 800)
+        win.show()
+
+        menus = {}
+        for entry in win.menuBar().actions():
+            sub = entry.menu()
+            if sub is not None:
+                menus[entry.text().replace("&", "")] = [
+                    a.text() for a in sub.actions() if a.text()]
+        for wanted in ("Chronicle", "Screens", "Instruments", "Help"):
+            assert wanted in menus, sorted(menus)
+
+        # Built from the same tables as the rail and the monitors, so nothing
+        # can exist without appearing here.
+        for _sid, text, _key in SCREENS:
+            name = text.split("  ", 1)[-1]
+            assert name in menus["Screens"], f"{name} is not on the menu"
+        for _name, (title, _cls, _size) in SHAPES.items():
+            assert title in menus["Instruments"], f"{title} is not on the menu"
+        assert "Options…" in menus["Chronicle"]
+        win.close()
+        return (f"{len(menus)} menus · {len(menus['Screens'])} screens · "
+                f"{len(SHAPES)} instruments, all reachable")
+
+    @check("every menu action fires without raising")
+    def _():
+        # Qt swallows what a slot raises, so an action wired to a method that
+        # does not exist looks exactly like an action that works. That is not
+        # hypothetical — see the next check.
+        import sys
+        try:
+            from .test_ui import _use_offscreen
+            _use_offscreen()
+            from PyQt6.QtWidgets import QApplication
+        except ImportError as err:              # pragma: no cover
+            return f"skipped: {err}"
+        from ..ui import theme
+        from ..ui.monitors import close_all
+        from ..ui.window import MainWindow
+
+        app = QApplication.instance() or QApplication([])
+        app.setStyleSheet(theme.stylesheet())
+        win = MainWindow(new_game("menu-fire"))
+        win.resize(1200, 800)
+        win.show()
+        win.dialog = lambda *a, **k: None
+        win.confirm = lambda *a, **k: False       # never actually restart
+        win.toast = lambda *a, **k: None
+
+        caught = []
+        previous = sys.excepthook
+        sys.excepthook = lambda k, v, _t: caught.append(f"{k.__name__}: {v}")
+        fired = 0
+        try:
+            for entry in win.menuBar().actions():
+                sub = entry.menu()
+                if sub is None:
+                    continue
+                for action in sub.actions():
+                    text = action.text()
+                    if not text or text in ("Quit", "Options…"):
+                        continue      # one closes the window, one is modal
+                    try:
+                        action.trigger()
+                        app.processEvents()
+                    except Exception as err:      # noqa: BLE001 - reported
+                        caught.append(f"{text}: {type(err).__name__}: {err}")
+                    fired += 1
+        finally:
+            sys.excepthook = previous
+            close_all(win)
+            win.close()
+        assert not caught, "menu actions that raised:\n      " + \
+            "\n      ".join(caught[:6])
+        return f"{fired} menu actions fired, none raised"
+
+    @check("saving from the window works, and the aftermath uses it")
+    def _():
+        # The bug: `win.save()` did not exist, and three call sites used it —
+        # carrying on past an ending, answering an aftermath situation, and
+        # changing a setting. Every one raised inside a Qt slot, where it is
+        # swallowed. The aftermath checks drove `sim/legacy.py` directly and
+        # never pressed the button.
+        import os
+        import sys
+        import tempfile
+        try:
+            from .test_ui import _use_offscreen
+            _use_offscreen()
+            from PyQt6.QtWidgets import QApplication
+        except ImportError as err:              # pragma: no cover
+            return f"skipped: {err}"
+        from ..core.rng import RNG
+        from ..sim import legacy as legacy_sim
+        from ..ui import theme
+        from ..ui.window import MainWindow
+
+        os.environ["HOME"] = tempfile.mkdtemp()
+        app = QApplication.instance() or QApplication([])
+        app.setStyleSheet(theme.stylesheet())
+        game = new_game("aftermath-ui")
+        win = MainWindow(game)
+        win.resize(1200, 800)
+        win.show()
+        assert hasattr(win, "save"), "the window cannot save"
+        win.save()
+
+        legacy_sim.begin(game, "containment")
+        for _ in range(24):
+            game.advance_days(60)
+            if legacy_sim.offer(game):
+                break
+        assert legacy_sim.offer(game), "no situation arrived to answer"
+
+        caught = []
+        previous = sys.excepthook
+        sys.excepthook = lambda k, v, _t: caught.append(f"{k.__name__}: {v}")
+        try:
+            win.go("legacy")
+            app.processEvents()
+            win.views["legacy"]._answer(0)       # the button's own slot
+            app.processEvents()
+        finally:
+            sys.excepthook = previous
+            win.close()
+        assert not caught, f"answering raised: {caught[:3]}"
+        assert legacy_sim.offer(game) == {}, "the situation stayed open"
+        return "the window saves; an aftermath answer goes through it cleanly"
+
+    @check("the speech settings drive the model module, and start off")
     def _():
         from ..core import llm
-        game = new_game("manual-voice")
+        llm.forget()
+        game = new_game("speech-set")
+        assert llm.settings() == {"enabled": None, "provider": "", "model": ""}
+        assert not llm.enabled(), "a model was live before anything asked"
+
         options_sim.set_to(game, "voices", True)
-        llm.reset()
-        assert not options_sim.voices_live(game), (
-            "the player's switch alone turned a model on")
-        assert "Off." in llm.describe()
-        options_sim.set_to(game, "voices", False)
+        options_sim.set_to(game, "llm_provider", "ollama")
+        options_sim.set_to(game, "llm_model", "qwen2.5")
+        asked = llm.settings()
+        assert asked["enabled"] is True and asked["provider"] == "ollama"
+        assert asked["model"] == "qwen2.5", asked
+
+        # Nothing is running, so the game still writes every line itself.
         assert not options_sim.voices_live(game)
-        return ("the player's switch and the machine's are both required, and "
-                "the screen reports which is missing")
+        from ..sim import voice as voice_sim
+        said = voice_sim.speak(game, "ship:self", persona="ship",
+                               name="Test", kind="ship")
+        assert said["source"] == "written", said
+        assert said["line"]
+
+        options_sim.set_to(game, "voices", False)
+        assert llm.settings()["enabled"] is False
+        llm.forget()
+        return ("settings reach core/llm.py, and with nothing answering the "
+                "game still writes every line")
+
+    @check("asking for a model is not the same as one answering")
+    def _():
+        # The player's switch turns the *attempt* on. Whether anything is
+        # there is a separate fact, and the screen distinguishes them — a
+        # toggle that reads "on" beside speech the game is still writing
+        # itself would be the worst of both.
+        from ..core import llm
+        llm.forget()
+        game = new_game("manual-voice")
+        assert not llm.switched_on(), "on before anybody asked"
+        assert "Off." in llm.describe()
+
+        options_sim.set_to(game, "voices", True)
+        assert llm.switched_on(), "the switch did not reach core/llm"
+        # Nothing is running in a check, so it must report that plainly.
+        assert "nothing answered" in llm.describe(), llm.describe()
+        assert not options_sim.voices_live(game), (
+            "reported a live model with nothing answering")
+
+        from ..sim import voice as voice_sim
+        said = voice_sim.speak(game, "port:q", persona="harbourmaster",
+                               name="Vell", kind="port")
+        assert said["source"] == "written" and said["line"]
+
+        options_sim.set_to(game, "voices", False)
+        assert not llm.switched_on()
+        llm.forget()
+        return ("asked-for and answering are separate, and the screen says "
+                "which is missing")

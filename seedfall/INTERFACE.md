@@ -342,6 +342,11 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   13, with a quarter of sectors under eight. Opening the rest means a better
   drive. `sim/reach.py` computes that component and the chart states it; a
   shipyard is always within reach, so nobody is permanently trapped.
+- **`credits` is a builtin.** So is `id`, `type`, `input` and `format`. Calling
+  one by mistake does not raise `NameError` — `credits(x)` calls the
+  interpreter's easter-egg `_Printer` and fails two suites away as
+  "`_Printer.__call__()` takes 1 positional argument but 2 were given". If you
+  import `core.util.credits`, import it under its own name.
 - **A screen's keys come from `data/screens.py`, not from its position.** The
   rail used to derive them as "1–9, then 0 for the rest", so the moment an
   eleventh screen was added the Codex and the Aftermath both bound `0` and one
