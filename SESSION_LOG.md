@@ -2,6 +2,44 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: sleeping through it, and a sugar that finally does something
+
+The half of the player's time request I left undone. Ageing, lineages and
+upkeep shipped; the counter-measures did not, so a long crossing had exactly
+one answer — fly harder, pay in reaction mass. An engineering answer to a
+biological problem.
+
+- **`trehalose` finally does something.** It has been in the commodity tables
+  from the beginning, described as vitrified sugar with CAHS proteins that
+  replaces the water in a cell and holds it unbreathing — the sugar real
+  tardigrades use — and nothing had ever consumed a gram of it.
+- **Three methods and a null.** Cold sleep, trehalose vitrification, and
+  low-power idle, which only a Dry Choir lineage can do because it is not
+  sleep. Measured over 600 days: a sleeper ages 0.07 years against the watch's
+  1.64 and eats 13 tonnes against 61.
+- **It does not stack free with dilation.** Both cost the ship's own work, so
+  doing both costs it twice: 712 research over a year awake at rest, 154
+  asleep, 123 at dilation 4, 30 doing both.
+- **A bug that made the headline benefit unreal.** `put_under` slept the hands
+  first and the officers last, so with 34 hands and 30 sleepers *no officer
+  ever went under* — and officers are the only people in the game who have an
+  age. The saving the screen advertised was arithmetically invisible. Sleepers
+  are drawn proportionally now, with at least one officer always on the
+  bridge, and the measured ageing moved from 1.64 → 1.64 → 1.64 across all
+  three methods to 1.64 → 0.58 → 0.07.
+- **Ninety-nine tonnes of sugar.** The first vitrification rate put a third of
+  the hold and sixty thousand credits into one crossing, which is not an
+  expensive option but a closed door. Cut to 32 tonnes.
+- **The screen quoted arithmetic about a crew that was not aboard** — the
+  Dry-Choir-only method showed ageing and ration savings computed from *this*
+  hull's wet lineage while being disabled. It states its case in words now.
+- **Another tautological check of mine**, the third in as many cycles: the
+  watch floor asserted `total - room >= round(total * MIN_WATCH)`, which reads
+  the constant whose effect it tests and passes with it zeroed, because
+  `max(1, …)` leaves one person awake and the arithmetic agrees. One person is
+  not a watch on a thirty-seven-hand hull. It asserts an absolute floor now.
+- 535 checks green, every file under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: closing the crash class, and catching a signal
 
 Last cycle a player segfaulted the game on a drop-down and I fixed the two

@@ -57,14 +57,20 @@ def complement(game) -> dict:
 
 
 def demand(game) -> dict:
-    """Tonnes per day the people aboard want, by commodity."""
+    """Tonnes per day the people aboard want, by commodity.
+
+    Scaled by how many of them are asleep: a vitrified crew eats a twentieth
+    of what a working one does, which is most of the reason to do it.
+    """
+    from . import dormancy
+    _ageing, fed = dormancy.rates(game, None)
     want: dict = {}
     for lineage_id, count in complement(game).items():
         lineage = LINEAGES_BY_ID.get(lineage_id)
         if not lineage:
             continue
         for commodity, rate in lineage.upkeep.items():
-            want[commodity] = want.get(commodity, 0.0) + rate * count
+            want[commodity] = want.get(commodity, 0.0) + rate * count * fed
     return want
 
 

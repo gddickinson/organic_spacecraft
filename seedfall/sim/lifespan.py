@@ -131,7 +131,12 @@ def tick(game, days: float, rng) -> list:
             continue
         lineage = lineage_of(officer, game)
         was = age_of(officer, game)
-        officer.age = was + years * lineage.ageing
+        # A sleeper ages at their method's share of the ordinary rate. Read
+        # from `dormancy` rather than duplicated, so the saving the screen
+        # promises and the saving the clock applies cannot drift apart.
+        from . import dormancy
+        slowed, _fed = dormancy.rates(game, officer)
+        officer.age = was + years * lineage.ageing * slowed
         crossed = officer.age
 
         # Decline, once past prime. Applied on the years actually lived, so a

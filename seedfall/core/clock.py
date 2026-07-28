@@ -21,6 +21,7 @@ from ..sim import inquiry as inquiry_sim
 from ..sim import market as market_sim
 from ..sim import approach as approach_sim
 from ..sim import diplomacy as dip_sim
+from ..sim import dormancy as dormancy_sim
 from ..sim import responses as response_sim
 from ..sim import ventures as venture_sim
 from ..sim import legacy as legacy_sim
@@ -98,7 +99,13 @@ def advance_days(game, n: float, dilation: float = 1.0) -> None:
 
     rate = st.research + 0.25 + game.colony_fx.get("research", 0)
     game.research.last_event = None
-    done = research_sim.tick(game.research, ship_n, rate, r)
+    # A skeleton watch does not run a research programme. This is the brake
+    # that stops dormancy and a hard burn from stacking into a free lunch:
+    # both cost you the ship's own work, so doing both costs it twice.
+    manned = dormancy_sim.ship_work(game)
+    for kind, text in dormancy_sim.tick(game, ship_n, r):
+        game.add_log(text, kind)
+    done = research_sim.tick(game.research, ship_n, rate * manned, r)
     if game.research.last_event == "setback":
         game.add_log("The programme has gone backwards — a result nobody "
                      "could replicate, and a season spent on it.", "bad")
@@ -127,7 +134,7 @@ def advance_days(game, n: float, dilation: float = 1.0) -> None:
     for ship in shipyard_sim.tick_builds(game, n):
         game.add_log(f"{ship.name} is complete and standing by.", "good")
 
-    repair_tick(game.ship, ship_n, st)
+    repair_tick(game.ship, ship_n * manned, st)
     cooked = cool(game.ship, st, ship_n)
     if cooked["cooked"] > 1:
         game.add_log("The radiators cannot keep up. The hull is cooking.",
@@ -137,7 +144,7 @@ def advance_days(game, n: float, dilation: float = 1.0) -> None:
     # difference between hauling rock and hauling money.
     if st.refine > 0:
         ore = game.ship.cargo.get("ore", 0)
-        smelted = min(ore, st.refine * 1.5 * ship_n)
+        smelted = min(ore, st.refine * 1.5 * ship_n * manned)
         if smelted > 0.01:
             game.ship.cargo["ore"] = ore - smelted
             if game.ship.cargo["ore"] <= 0.0001:

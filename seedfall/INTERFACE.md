@@ -211,6 +211,28 @@ the original question directly. Known *hulls* are still not plotted — nothing
 in the game gives another ship a persistent position, so that is honestly a
 separate piece of work rather than a marker.
 
+**And you can sleep through it.** Dilation was the only answer to a long
+crossing: fly harder and pay in reaction mass — an engineering answer to a
+biological problem. `sim/dormancy.py` is the other one. `trehalose` has sat in
+the commodity tables since the beginning described as *"vitrified sugar with
+CAHS proteins; replaces the water in a cell and holds it, unbreathing"* — the
+sugar real tardigrades use — and nothing ever consumed a gram of it.
+
+Three methods and a null: **cold sleep** (a third of the ageing, a third of
+the rations, 0.6% a head per hundred days), **trehalose vitrification** (4% of
+the ageing and 5% of the rations, at 2.4% a head and a real bill in sugar),
+and **low-power idle**, which only a Dry Choir lineage can do because it is
+not sleep at all. Measured over a 600-day crossing: a sleeper ages 0.07 years
+against the watch's 1.64, and eats 13 tonnes against 61.
+
+The design turns on three rules. **Somebody stays awake** — `MIN_WATCH`, and
+the watch pays full price in years and rations. **The saving is on proper
+time**, folded into `lifespan` and `upkeep` rather than special-cased, so what
+the screen promises and what the clock applies cannot drift. And **it does not
+stack free with dilation**: both cost the ship's own work, so doing both costs
+it twice — measured, a year banks 712 research awake at rest, 154 asleep, 123
+at dilation 4, and 30 doing both.
+
 **Time is relative, and there are two clocks.** `Game.day` is the Verge's:
 every deadline, market, colony, faction and hull-in-a-yard runs on it.
 `Game.ship_day` is proper time — what the hull and the people in it actually
@@ -372,6 +394,7 @@ seedfall/
 │   ├── surveys.py      the four ways of looking, and what each cannot see
 │   ├── approaches.py   the powers coming to you: what each wants, and why
 │   ├── officials.py    harbourmasters: tempers, levers and favours
+│   ├── dormancy.py     ways of sleeping a crossing, and what each risks
 │   ├── lineages.py     what a crew member is made of: span, upkeep, ageing
 │   ├── crossings.py    how hard to fly a jump, and which clock pays for it
 │   ├── fieldnotes.py   the eight things the ground can tell you
@@ -447,6 +470,7 @@ seedfall/
 │   ├── doctrine.py     the battle computer: what unattended seats decide
 │   ├── firing.py       which mounts bear, and what would fix the rest
 │   ├── damage.py       a hit: which layer takes it, what breaches, the words
+│   ├── dormancy.py     who is under, what it saves, and who wakes up
 │   ├── lifespan.py     ageing, decline, and the end of a career
 │   ├── upkeep.py       what each lineage eats, and what going short costs
 │   ├── minigames.py    the docking control loop and the decoding bench
@@ -467,6 +491,7 @@ seedfall/
 │   ├── firing_panel.py    mount by mount: ready, or exactly what is stopping it
 │   ├── envoy_view.py      a power's proposition, with all three answers costed
 │   ├── official_panel.py  the desk: who is there, and both ways of asking
+│   ├── dormancy_panel.py  the long sleep, costed in years, tonnes and lives
 │   ├── tactical_plot.py   the engagement from above, arcs included
 │   ├── port_view.py    market, services, recruitment
 │   ├── ship_view.py    layer stack, fittings, crew, hold

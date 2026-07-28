@@ -9,6 +9,7 @@ from ..data.chassis import CHASSIS_BY_ID, FAMILY_LABEL
 from ..data.commodities import BY_ID
 from ..data.part_types import SLOT_LABEL, SLOT_ORDER
 from ..data.parts import part
+from ..sim import dormancy as dormancy_sim
 from ..sim import lifespan as lifespan_sim
 from ..sim import loyalty as loyalty_sim
 from ..sim import upkeep as upkeep_sim
@@ -49,9 +50,36 @@ class ShipView(View):
 
         self.row(self._layers(ship), self._performance(st, ch))
         self.row(self._fitted(ship), self._crew())
+        self.col.addWidget(self._sleep())
         self.col.addWidget(self._hold(ship, st))
         self.buttons(button("Refit or build", lambda: self.win.go("yard"),
                             kind="primary"))
+
+    def _sleep(self):
+        from .dormancy_panel import who_sleeps
+        return who_sleeps(self, self.game)
+
+    def sleep_crew(self, method_id: str, count: int) -> None:
+        res = dormancy_sim.put_under(self.game, method_id, count)
+        if not res.get("ok"):
+            self.win.toast(res.get("why", "No."), "warn")
+            return
+        self.win.save()
+        self.refresh()
+
+    def wake_crew(self) -> None:
+        res, lines = dormancy_sim.wake(self.game, self.game.rng("wake"))
+        if not res.get("ok"):
+            self.win.toast(res.get("why", "Nobody is under."), "warn")
+            return
+        for kind, text in lines:
+            self.game.add_log(text, kind)
+        body = [text for _kind, text in lines] or \
+            ["They are all up, and none the worse."]
+        self.win.dialog(f"Up after {res['days']} days", body,
+                        [("Back to work", None)])
+        self.win.save()
+        self.refresh()
 
     def _switch(self, tid: str) -> None:
         self.tab = tid

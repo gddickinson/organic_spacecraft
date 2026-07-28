@@ -85,6 +85,10 @@ class Game:
     scrutiny: dict = field(default_factory=dict)
     #: A power waiting on an answer about ground you hold.
     demand: object | None = None
+    #: Who is under, how, and since when. A state rather than something you
+    #: are part-way through — you can fly, fight and trade with half the crew
+    #: asleep. See `sim/dormancy.py`.
+    sleep: object | None = None
     #: A power that has come to *you* with a proposition. Like a battle or an
     #: open trench it is something you can be part-way through, so it lives
     #: here with an `.over` flag. See `sim/approach.py`.
