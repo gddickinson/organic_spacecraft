@@ -63,6 +63,23 @@ def relation_band(value: float) -> tuple[str, str]:
     return out[1], out[2]
 
 
+def drift(game, days: float) -> None:
+    """Grievances fade toward where the sector rests.
+
+    Without this the powers ratchet one way: every blockade and censure is a
+    permanent debit, and a decade of background politics quietly forecloses
+    the Concord ending no matter what the player does. Events still dominate
+    over any short period — this only pulls at what nobody is maintaining.
+    """
+    state = ensure(game)
+    for (a, b), base in INITIAL_RELATIONS.items():
+        key = _key(a, b)
+        value = state.relations.get(key)
+        if value is None:
+            continue
+        state.relations[key] = value + (base - value) * min(0.5, 0.00035 * days)
+
+
 def rivals_of(game, faction: str) -> list[str]:
     """Powers this one is currently on bad terms with."""
     return [p for p in POWERS

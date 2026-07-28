@@ -14,6 +14,8 @@ from ..sim import colony as colony_sim
 from ..sim import crew as crew_sim
 from ..sim import inquiry as inquiry_sim
 from ..sim import market as market_sim
+from ..sim import diplomacy as dip_sim
+from ..sim import ventures as venture_sim
 from ..sim import loyalty as loyalty_sim
 from ..sim import research as research_sim
 from ..sim import shipyard as shipyard_sim
@@ -62,6 +64,8 @@ class Game:
     expedition: object | None = None
     contracts: list = field(default_factory=list)
     shocks: list = field(default_factory=list)
+    ventures: list = field(default_factory=list)
+    faction_power: dict = field(default_factory=dict)
     register: dict = field(default_factory=dict)
     commissions: list = field(default_factory=list)
     rumours: list = field(default_factory=list)
@@ -177,6 +181,9 @@ class Game:
         for kind, text in market_sim.tick(self, n, r):
             self.add_log(text, kind)
         market_sim.apply_to_markets(self)
+        for kind, text in venture_sim.tick(self, n, r):
+            self.add_log(text, kind)
+        dip_sim.drift(self, n)
 
         # Payroll. Miss it and the crew notices immediately.
         wages = crew_sim.daily_wages(self.officers) * n

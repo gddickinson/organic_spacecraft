@@ -169,6 +169,7 @@ seedfall/
 │   ├── inquiry.py      evidence, approaches, setbacks and breakthroughs
 │   ├── intel.py        how well a system is known, and what a chart is worth
 │   ├── market.py       supply shocks, and the prices you wrote down
+│   ├── ventures.py     what the powers do on their own account
 │   ├── weather.py      the front overhead during a landing
 │   ├── mining.py       seams, depth, and how hard you work a body
 │   ├── rumours.py      leads that point somewhere before you have been
@@ -213,6 +214,7 @@ seedfall/
     ├── test_research.py 8 research checks — evidence, approaches, setbacks
     ├── test_trade.py   8 trade checks — shocks, the register, staleness
     ├── test_ground.py  7 ground checks — weather, sight, being pinned
+    ├── test_politics.py 8 politics checks — ventures, sides, the Concord
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
     └── test_ui.py      22 interface checks, rendered on Qt's offscreen platform
 ```
@@ -368,6 +370,15 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   A katabatic gale refuses movement, so `expedition.shelter()` is always
   available and always costs a day of supply. Without it a pinned party can
   neither progress nor die and the expedition simply stops.
+- **`diplomacy.drift()` is what stops the sector ratcheting shut.** Every
+  blockade and censure is a debit; with nothing pulling the other way a decade
+  of background politics drove every pair far below `CONCORD_RELATION` and left
+  an ending unreachable through no fault of the player. Grievances fade toward
+  `INITIAL_RELATIONS`. Any new faction behaviour that moves relations needs to
+  be weighed against it.
+- **Ventures never annex a system you hold a colony in.** `_claimable()`
+  excludes them. Losing a settlement to a registry filing would be good drama
+  and would also silently break the colony that is still pointing at it.
 - **Colony effects are a closed vocabulary.** `test_sim.py` asserts that every
   key in a `ColonyClass.effects` is one the game actually reads, so a typo in a
   station definition fails the suite instead of silently doing nothing.
@@ -414,6 +425,11 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   expedition ends, which is the check that a stuck state cannot exist. It also
   measures tiles crossed with and without weather, so a condition that costs
   nothing fails.
+- **`test_politics.py`** checks that a determined broker can still reach the
+  Concord against twenty-five years of background churn, and — because the
+  emergent numbers plateau against the -100 floor either way and make a weak
+  signal — tests the fading mechanism directly by pushing a relation down and
+  watching it come back.
 - **`test_flight.py`** holds the helm to its promises: that a seed grows one
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that

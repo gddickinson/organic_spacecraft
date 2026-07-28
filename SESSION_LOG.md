@@ -2,6 +2,39 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: the powers start doing things
+
+- **Diplomacy waited for the player.** Four factions tracked how they regarded
+  you and each other, and nothing they wanted ever made them act. They now run
+  **ventures** on their own account: annexing an unclaimed system, embargoing a
+  rival, courting one, raising a levy, letting a concession, or assembling a
+  censure. Each runs a season or two and resolves whether or not you were
+  involved.
+- **You can back one, work against it, or let it happen.** Backing costs
+  credits and buys standing with the sponsor at the expense of its target;
+  opposing costs standing and needs only nerve. Either moves the odds by 30
+  points. Letting it happen is a choice too — over twelve years the powers
+  annexed five systems between them without asking.
+- **The first version quietly broke a victory condition.** Every blockade and
+  censure is a permanent debit to a pair of relations, and nothing ever pushed
+  the other way: the worst pair slid from -45 to -94.5 within a decade and kept
+  going. Concord needs *every* pair at +15, so a long game was foreclosing an
+  ending the player is entitled to reach, through pure background churn.
+  Grievances now fade toward where the sector rests; relations reach
+  equilibrium around year ten instead of sliding, and a determined broker
+  reaches Concord in 4/4 test games.
+- **My first attempt to measure that was wrong twice.** I advanced twenty years
+  in a single `advance_days` call and saw nothing move at all — the tick does
+  not iterate, so four ventures were created and none resolved. Then, having
+  fixed the measurement, my regression check *passed with the fix removed*,
+  because relations plateau against the -100 floor either way and the emergent
+  numbers barely differ. It now tests the mechanism directly: push a relation
+  down 40 points, leave it alone for twenty years, and it must come back.
+- Suites: 27 simulation, 5 xenotech, 14 playability, 5 tactical, 5 flight,
+  6 empire, 7 crew, 7 missions, 8 exploration, 7 mining, 8 research, 8 trade,
+  7 ground, **8 politics** (new), 23 interface — 145 checks green. 123 modules,
+  all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: weather on the ground
 
 - **Terrain was fixed and the sky was empty.** An expedition already had

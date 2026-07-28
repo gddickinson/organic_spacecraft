@@ -39,7 +39,8 @@ CONVICTIONS: list[Conviction] = [
         "The registry exists for a reason and the reason is that people die "
         "without it. Keeps their paperwork in order and expects you to.",
         reacts={"treaty": 6, "parley": 4, "kill_licensed": -7,
-                "denounce_charter": -8, "colony": 3, "licence_served": 11},
+                "denounce_charter": -8, "colony": 3, "licence_served": 11,
+                "backed_venture": 4},
         aligned="charter"),
 
     Conviction(
@@ -61,7 +62,8 @@ CONVICTIONS: list[Conviction] = [
         "Nobody's licence, nobody's tariff. Would rather be shot at than "
         "inspected, and thinks a treaty is just a longer leash.",
         reacts={"treaty": -5, "denounce_charter": 7, "harbour": 6,
-                "kill_licensed": 4, "colony": 2, "free_served": 11},
+                "kill_licensed": 4, "colony": 2, "free_served": 11,
+                "opposed_venture": 5},
         aligned="freeholds"),
 
     Conviction(
@@ -99,6 +101,8 @@ UNIVERSAL: dict[str, float] = {
     "bonus_paid": 7.0,
     "promoted": 5.0,
     "commission_done": 6.0,
+    "backed_venture": 1.5,
+    "opposed_venture": -1.0,
 }
 
 #: How loyalty reads at the rail, worst first. The edges are the same numbers
