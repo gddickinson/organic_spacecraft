@@ -118,6 +118,32 @@ def tab(game, name: str) -> dict:
     return {"ok": True, "screen": win.current, "tab": view.tab}
 
 
+@verb("dismiss", "Close any modal dialog that is blocking the window.")
+def dismiss(game) -> dict:
+    """A watcher sees a pop-up; the driver sees nothing wrong.
+
+    A modal dialog runs its own event loop, which still delivers the bridge's
+    queued commands — so the game goes on being played *behind* the dialog and
+    the caller has no idea anything is in the way.
+    """
+    from PyQt6.QtWidgets import QApplication, QDialog
+    closed = []
+    for widget in QApplication.topLevelWidgets():
+        if isinstance(widget, QDialog) and widget.isVisible():
+            closed.append(widget.windowTitle() or type(widget).__name__)
+            widget.reject()
+    return {"ok": True, "closed": closed}
+
+
+@verb("blocked", "Whether a modal dialog is in front of the window.")
+def blocked(game) -> dict:
+    from PyQt6.QtWidgets import QApplication, QDialog
+    modal = [w.windowTitle() or type(w).__name__
+             for w in QApplication.topLevelWidgets()
+             if isinstance(w, QDialog) and w.isVisible()]
+    return {"ok": True, "blocked": bool(modal), "dialogs": modal}
+
+
 @verb("shot", "Save a picture of the window, so the caller can see it too.")
 def shot(game, path: str = "") -> dict:
     win = _window_of(game)

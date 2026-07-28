@@ -2,6 +2,34 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: playing by pressing, and a helm warning that said nothing
+
+- **Measured the gap first.** A six-year chronicle makes **zero** fractional
+  day advances, which is why nothing in the suite could reach the crash a
+  player hit in four minutes. The chronicle plays by calling `sim` with the
+  ship already in place; a player presses *Open cut*, and the handler flies
+  the ship first. `tests/interact.py` plays by pressing instead — 132 presses
+  of 107 distinct controls over 651 days in the committed check.
+- **Two things had to be neutralised before a session could run at all.**
+  `QDialog.exec` blocks, and so does `QInputDialog.getText`, which is static
+  and does not go through it — the shipyard uses it to ask a hull's name, and
+  a session that pressed *Lay down* hung for ten minutes waiting.
+- **A player found the helm lying.** Every body in the system reported "you
+  will be working 0.40 AU from the star", including one nine AU out. The note
+  took the *minimum* of the ship's distance and the target's, so a hull parked
+  close in reported its own position whatever you clicked. It is the
+  destination's distance now, and a check requires the notes across a system
+  to tell the destinations apart.
+- **A watcher saw a pop-up, not the game.** `--new --bridge` ran the opening
+  briefing, which is modal; the bridge's queued commands executed *behind* it,
+  so the game was played invisibly. `--bridge` skips the modal opening now,
+  and `blocked`/`dismiss` let a caller see and clear anything in the way.
+- **Said plainly**: the session driver does *not* reproduce the fractional-day
+  path, and I could not find which caller produces one — five seeds give no
+  fractional flight quote. The calendar check pins the behaviour directly
+  instead, which is the honest guard.
+- Suites: 55 — 458 checks green. 239 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: driving the real window, and the clock it broke
 
 - **Asked to play the game through its GUI as a watched systems test.** The

@@ -167,3 +167,56 @@ def run(suite: Suite) -> None:
         assert result["ok"], result.get("why")
         assert game.orbit_body == game.system.bodies[index].id
         return f"reached it on nothing in {result['days']} days"
+
+    @check("a warning about a destination distinguishes between destinations")
+    def _():
+        """Found by a player at the helm: every body in the system reported
+        "you will be working 0.40 AU from the star", including one nine AU out.
+
+        `path_note` took the *minimum* of the ship's distance and the target's,
+        so a hull parked close in reported its own position whatever you
+        clicked. A warning attached to a choice has to tell the choices apart.
+        """
+        import math
+        from ..sim import flight as flight_sim
+
+        told = 0
+        for index in range(6):
+            game = new_game(f"note-{index}")
+            if len(game.system.bodies) < 3:
+                continue
+            # Park close to the star, which is what made them all identical.
+            game.orbit_body = min(
+                game.system.bodies,
+                key=lambda b: math.hypot(*flight_sim.intercept(
+                    game, b, "standard")["aim"])).id
+
+            radii, notes = [], []
+            for body in game.system.bodies:
+                aim = flight_sim.intercept(game, body, "standard")["aim"]
+                radii.append(math.hypot(*aim))
+                notes.append(flight_sim.path_note(game, body) or "")
+            if max(radii) - min(radii) < 1.0:
+                continue                      # a tight system; nothing to tell apart
+
+            hot = [n for n, r in zip(notes, radii)
+                   if r < flight_sim.HOT_RADIUS and "working" in n]
+            cool = [n for n, r in zip(notes, radii)
+                    if r >= flight_sim.HOT_RADIUS and "working" in n]
+            assert not cool, (
+                f"seed {index}: a body outside {flight_sim.HOT_RADIUS} AU was "
+                f"still warned about working close to the star")
+            assert len(set(notes)) > 1, (
+                f"seed {index}: every body gave the same note {notes[0]!r}")
+            # And the figure quoted is the destination's own distance.
+            for note, radius in zip(notes, radii):
+                if "working" in note:
+                    said = float(note.split("working ")[1].split(" AU")[0])
+                    assert abs(said - radius) < 0.01, (
+                        f"quoted {said} AU for a body at {radius:.2f}")
+            told += 1
+        assert told >= 3, f"only {told} systems were spread enough to check"
+        return (f"{told} systems: only bodies inside "
+                f"{flight_sim.HOT_RADIUS} AU are warned about, each with its "
+                "own distance")
+

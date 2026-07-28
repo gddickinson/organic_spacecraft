@@ -253,8 +253,13 @@ def path_note(game, body, burn_id: str = "standard") -> str | None:
     if q["detour"] > 0.05:
         notes.append(f"The star is in the way: the course bends around it, "
                      f"adding {q['detour']:.2f} AU.")
-    sx, sy = ship_position(game)
-    deep = min(math.hypot(sx, sy), math.hypot(*q["aim"]))
+    # Where you will be *working*, which is where you are going — not the
+    # nearer of there and here. Taking the minimum meant a ship parked at 0.40
+    # AU reported "you will be working 0.40 AU from the star" for every body
+    # in the system, including one nine AU out that it was leaving the heat to
+    # reach. A warning attached to a choice has to distinguish between the
+    # choices, or it is furniture.
+    deep = math.hypot(*q["aim"])
     if deep < HOT_RADIUS:
         notes.append(f"You will be working {deep:.2f} AU from the star. The "
                      "radiators will not enjoy it and neither will the crew.")

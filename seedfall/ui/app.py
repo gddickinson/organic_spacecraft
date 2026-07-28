@@ -59,7 +59,15 @@ def main(argv=None) -> int:
                 port = int(args[spot + 1])
         bridge = attach(win, port=port)
         print("BRIDGE " + json.dumps(bridge.address()), flush=True)
-    if fresh:
+    if fresh and "--bridge" not in args:
         opening_briefing(win)
         offer_tutorial(win)
+    elif fresh:
+        # A driven session must not open behind a modal dialog. The briefing
+        # and the tutorial offer both block on `exec()`, and a watcher sees a
+        # pop-up while the bridge quietly plays the game underneath it —
+        # which is exactly what happened the first time this was demonstrated.
+        win.game.add_log("Opened under a bridge: briefing skipped so the "
+                         "window is not blocked.", "")
+        win.refresh()
     return app.exec()

@@ -291,7 +291,8 @@ seedfall/
     ├── test_voices.py  8 checks — the game speaks with no model reachable
     ├── test_grudges.py 9 checks — memory reaches the price and the board
     ├── test_gunnery.py 5 checks — what a weapon delivers is what the bridge said
-    ├── test_controls.py 3 checks — every control that is not a button
+    ├── test_controls.py 4 checks — every control that is not a button
+    ├── interact.py     plays by pressing what is on the screen, not by calling sim
     ├── test_bridge.py  6 checks — the protocol answers, always, and stays local
     ├── test_manual.py  13 checks — the manual cannot go stale, options cannot lie
     ├── test_tutorial.py 8 checks — it will not take your word for it
@@ -393,6 +394,15 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   fractional day. The fraction is carried rather than dropped, with an epsilon,
   because a hundred tenth-days sum to 9.999999999999998 and would lose a day
   every ten.
+- **A driven session must not open behind a modal dialog.** The briefing and
+  the tutorial offer both block on `exec()`, so a watcher saw a pop-up while
+  the bridge quietly played the game underneath it. `--bridge` skips them, and
+  `blocked`/`dismiss` let a caller see and clear anything modal.
+- **Anything that blocks needs neutralising before a session can drive it.**
+  `QDialog.exec` is the obvious one; `QInputDialog.getText` is *static* and
+  does not go through it — the shipyard asks a new hull's name that way, and a
+  session that pressed *Lay down* waited ten minutes for an answer nobody was
+  going to give.
 - **`--bridge` serves the window you are looking at.** `bridge/attached.py`
   puts the protocol in front of a live `MainWindow` and marshals every command
   onto the Qt thread before it touches the game — the socket runs on another

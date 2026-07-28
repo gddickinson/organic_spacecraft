@@ -202,3 +202,37 @@ def run(suite: Suite, app, window, _stocked, NAV, _Trap) -> None:
         assert "crew" in found, found
         return f"typed 'berth' one key at a time; it found {sorted(found)}"
 
+    @check("a long session of pressing things stays clean")
+    def _():
+        """Playing by pressing, rather than by calling `sim`.
+
+        `chronicle.py` plays a decade through the simulation and paints the
+        screens. A player never calls `sim.extract` — they press *Open cut*,
+        and the handler behind it flies the ship first. This drives the
+        controls instead, for hundreds of presses with the clock running.
+
+        Honest limit: it does **not** reproduce the fractional-day path that
+        broke the heading bar — the calendar check in `test_sim` pins that
+        directly. What this covers is every other seam between a control and
+        the rules behind it.
+        """
+        from ..core.rng import RNG
+        from . import interact
+
+        game = _stocked("session")
+        game.credits = 300_000
+        _g, win = window("session", "map", state=lambda _s: game)
+        with _Trap() as trap:
+            out = interact.play(win, app, rounds=2, per_screen=6,
+                                rng=RNG("session"), seconds=70)
+        win.close()
+        assert not trap.caught, (
+            "a press raised:\n      " + "\n      ".join(trap.caught[:5]))
+        assert out["pressed"]["button"] > 80, out["pressed"]
+        assert len(out["labels"]) > 40, f"only {len(out['labels'])} distinct controls"
+        assert out["days"] > 0, "the clock never moved"
+        assert out["day_kinds"] == ["int"], (
+            f"the calendar went {out['day_kinds']} during the session")
+        return (f"{out['pressed']['button']} presses of "
+                f"{len(out['labels'])} distinct controls · "
+                f"{out['pressed'].get('card', 0)} cards · {out['days']} days")
