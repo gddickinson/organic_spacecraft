@@ -17,6 +17,7 @@ from ..sim import research as research_sim
 from ..sim import shipyard as shipyard_sim
 from ..sim import threat as threat_sim
 from ..sim import xeno as xeno_sim
+from ..sim import chains as chain_sim
 from ..sim import contracts as contract_sim
 from ..sim.ship import (Ship, build_layers, is_breached, make_ship, repair_tick,
                         stats)
@@ -58,6 +59,7 @@ class Game:
     xeno_study: dict[str, float] = field(default_factory=dict)
     expedition: object | None = None
     contracts: list = field(default_factory=list)
+    commissions: list = field(default_factory=list)
     boards: dict = field(default_factory=dict)
     diplomacy: object | None = None
     bloom_state: object | None = None
@@ -193,8 +195,12 @@ class Game:
             if outcome == "done":
                 self.add_log(f"Contract complete: {contract.title}. "
                              f"Paid {round(contract.reward):,} credits.", "good")
+                for kind, text in chain_sim.on_contract_done(self, contract):
+                    self.add_log(text, kind)
             else:
                 self.add_log(f"Contract expired: {contract.title}.", "bad")
+                for kind, text in chain_sim.on_contract_failed(self, contract):
+                    self.add_log(text, kind)
 
         for tech in xeno_sim.settle(self):
             self.add_log(f"Xenotechnology incorporated: {tech.name}.", "good")

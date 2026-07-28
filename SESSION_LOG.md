@@ -2,6 +2,40 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: work that leads somewhere
+
+- **Contracts were a shopping list.** Independent jobs off a board — haul this,
+  kill that, survey there — and nothing followed from finishing one.
+  **Commissions** are four chains of three stages each, from the Charter, the
+  Freeholds, the Dry Choir and the Concordat, where each stage escalates and
+  the last one pays properly.
+- **A stage is an ordinary contract.** `sim/chains.py` builds one through
+  `contracts.shape()` — the same function the board uses — so deadlines, cargo,
+  bounties and expeditions needed no changes at all. What makes it a chain is a
+  `chain` field on the contract and what happens when it completes.
+- **They close doors.** The Charter's assay office and the Freeholds' sluice
+  are the same seam seen from two sides; taking either refuses the other, and
+  the refusal holds at the rival's own port. Missing a deadline withdraws the
+  commission for good rather than merely failing a job.
+- **They land on the crew.** Finishing one raises loyalty for the officers
+  whose convictions it served, so a career of Charter work and a career of
+  Freehold work leave you with a different bridge.
+- **Two bugs found by playing it.** A stage that asked for half the usual
+  tonnage was titled with the *full* figure and completed at the halved one —
+  "carry 62 t" that finished at 31 — because the scale was applied after the
+  title was written. And a commission stage was sitting on the ordinary board,
+  showing twice and eating one of the six contract slots; it is now held apart
+  from both.
+- **One refactor worth noting.** Pulling the per-kind contract shaping out of
+  `generate()` so chains could reuse it was the whole reason this cycle stayed
+  small. My first attempt at that extraction was a mechanical dedent that broke
+  the file; doing it deliberately with the block in front of me took two
+  minutes and worked. `port_view.py` crossed 500 lines on the way and the
+  berths tab became `ui/berths_panel.py`.
+- Suites: 27 simulation, 5 xenotech, 14 playability, 5 tactical, 5 flight,
+  6 empire, 7 crew, **7 missions** (new), 23 interface — 99 checks green.
+  99 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a bridge with opinions
 
 - **Officers were stat blocks with wages.** They modified rolls, gained levels,

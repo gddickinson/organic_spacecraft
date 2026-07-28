@@ -39,7 +39,7 @@ CONVICTIONS: list[Conviction] = [
         "The registry exists for a reason and the reason is that people die "
         "without it. Keeps their paperwork in order and expects you to.",
         reacts={"treaty": 6, "parley": 4, "kill_licensed": -7,
-                "denounce_charter": -8, "colony": 3},
+                "denounce_charter": -8, "colony": 3, "licence_served": 11},
         aligned="charter"),
 
     Conviction(
@@ -47,21 +47,21 @@ CONVICTIONS: list[Conviction] = [
         "Was at Kessel's Reach, or lost somebody who was. Does not think the "
         "wild lineage is a research subject.",
         reacts={"bloom_kill": 8, "bloom_cleansed": 12, "bloom_spread": -5,
-                "parley": -2, "xeno_study": -2}),
+                "parley": -2, "xeno_study": -2, "burner_served": 11}),
 
     Conviction(
         "xenophile", "Thinks it should be studied",
         "Every burned system is a library nobody read. Argues for the sample "
         "jar over the flamethrower, and is often right and never popular.",
         reacts={"xeno_study": 8, "xeno_incorporated": 10, "bloom_cleansed": -6,
-                "first_contact": 12, "bloom_kill": -2}),
+                "first_contact": 12, "bloom_kill": -2, "xeno_served": 13}),
 
     Conviction(
         "free", "Freehold to the bone",
         "Nobody's licence, nobody's tariff. Would rather be shot at than "
         "inspected, and thinks a treaty is just a longer leash.",
         reacts={"treaty": -5, "denounce_charter": 7, "harbour": 6,
-                "kill_licensed": 4, "colony": 2},
+                "kill_licensed": 4, "colony": 2, "free_served": 11},
         aligned="freeholds"),
 
     Conviction(
@@ -98,6 +98,7 @@ UNIVERSAL: dict[str, float] = {
     "shore_leave": 9.0,
     "bonus_paid": 7.0,
     "promoted": 5.0,
+    "commission_done": 6.0,
 }
 
 #: How loyalty reads at the rail, worst first. The edges are the same numbers

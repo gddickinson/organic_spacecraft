@@ -43,6 +43,8 @@ class Contract:
     accepted: bool = False
     done: bool = False
     failed: bool = False
+    chain: str | None = None    # the commission this stage belongs to
+    stage: int = 0
 
     @property
     def definition(self):
@@ -84,61 +86,83 @@ def generate(rng, game, sysm) -> list[Contract]:
                      title="", posting=rng.pick(POSTINGS[kind]),
                      rep=d.rep, deadline=deadline)
 
-        if kind in ("deliver", "prospect"):
-            c.commodity = rng.pick(CARGO_WANTED)
-            c.amount = rng.int(20, 80)
-            base = BY_ID[c.commodity].base
-            c.reward = round(c.amount * (base * 0.55 + d.rate * 0.4))
-            if kind == "deliver":
-                target = _pick_target(rng, game, sysm, far=rng.chance(0.5))
-                c.target_system = target.id
-                c.title = (f"Carry {c.amount:g} t of {BY_ID[c.commodity].name} "
-                           f"to {target.name}")
-            else:
-                c.title = (f"Supply {c.amount:g} t of {BY_ID[c.commodity].name}")
-        elif kind == "survey":
-            target = _pick_target(rng, game, sysm, far=True)
-            c.target_system = target.id
-            c.amount = min(len(target.bodies), rng.int(2, 4))
-            c.reward = round(d.rate * c.amount * rng.float(0.8, 1.4))
-            c.title = f"Survey {c.amount:g} bodies at {target.name}"
-        elif kind == "bounty":
-            c.commodity = rng.pick(["freeholds", "concordat", "sanhedrin", "bloom"])
-            if c.commodity == faction:
-                c.commodity = "bloom"
-            c.amount = rng.int(1, 2)
-            c.reward = round(d.rate * c.amount * rng.float(0.8, 1.5))
-            enemy = FACTIONS_BY_ID[c.commodity].short
-            c.title = f"Destroy {c.amount:g} {enemy} hull(s)"
-        elif kind == "relic":
-            c.commodity = "xenolith"
-            c.amount = rng.int(1, 3)
-            c.reward = round(d.rate * c.amount * rng.float(0.9, 1.3))
-            c.title = f"Deliver {c.amount:g} intact xenolith(s)"
-        else:                                   # expedition
-            target = _pick_target(rng, game, sysm, far=rng.chance(0.6))
-            landable = [b for b in target.bodies if b.kind not in ("gas", "star")]
-            if not landable:
-                continue
-            body = rng.pick(landable)
-            c.target_system = target.id
-            c.target_body = body.id
-            c.amount = 1
-            c.reward = round(d.rate * rng.float(0.8, 1.5))
-            c.title = f"Put a party on {body.name}"
-
-        # Distance and urgency both pay.
-        if c.target_system is not None:
-            ly = distance(game.galaxy.systems[c.target_system], sysm)
-            c.reward = round(c.reward * (1 + ly / 40))
+        if not shape(rng, game, sysm, c, faction):
+            continue
         out.append(c)
     return out
+
+
+def shape(rng, game, sysm, c: Contract, faction: str, scale: float = 1.0) -> bool:
+    """Fill in a contract's target, amount and fee from its kind.
+
+    Shared by the ordinary board and by commissions, so a chain stage is an
+    ordinary contract in every respect except who is asking and what follows
+    from finishing it. ``scale`` adjusts how much is asked for *before* the
+    title is written, because a posting that reads "carry 62 t" and completes
+    at 31 t is a posting nobody can plan a hold around. Returns False if this
+    kind cannot be posted here.
+    """
+    kind = c.kind
+    d = KINDS[kind]
+
+    if kind in ("deliver", "prospect"):
+        c.commodity = rng.pick(CARGO_WANTED)
+        c.amount = max(1, round(rng.int(20, 80) * scale))
+        base = BY_ID[c.commodity].base
+        c.reward = round(c.amount * (base * 0.55 + d.rate * 0.4))
+        if kind == "deliver":
+            target = _pick_target(rng, game, sysm, far=rng.chance(0.5))
+            c.target_system = target.id
+            c.title = (f"Carry {c.amount:g} t of {BY_ID[c.commodity].name} "
+                       f"to {target.name}")
+        else:
+            c.title = (f"Supply {c.amount:g} t of {BY_ID[c.commodity].name}")
+    elif kind == "survey":
+        target = _pick_target(rng, game, sysm, far=True)
+        c.target_system = target.id
+        c.amount = max(1, min(len(target.bodies),
+                              round(rng.int(2, 4) * scale)))
+        c.reward = round(d.rate * c.amount * rng.float(0.8, 1.4))
+        c.title = f"Survey {c.amount:g} bodies at {target.name}"
+    elif kind == "bounty":
+        c.commodity = rng.pick(["freeholds", "concordat", "sanhedrin", "bloom"])
+        if c.commodity == faction:
+            c.commodity = "bloom"
+        c.amount = max(1, round(rng.int(1, 2) * scale))
+        c.reward = round(d.rate * c.amount * rng.float(0.8, 1.5))
+        enemy = FACTIONS_BY_ID[c.commodity].short
+        c.title = f"Destroy {c.amount:g} {enemy} hull(s)"
+    elif kind == "relic":
+        c.commodity = "xenolith"
+        c.amount = max(1, round(rng.int(1, 3) * scale))
+        c.reward = round(d.rate * c.amount * rng.float(0.9, 1.3))
+        c.title = f"Deliver {c.amount:g} intact xenolith(s)"
+    else:                                   # expedition
+        target = _pick_target(rng, game, sysm, far=rng.chance(0.6))
+        landable = [b for b in target.bodies if b.kind not in ("gas", "star")]
+        if not landable:
+            return False
+        body = rng.pick(landable)
+        c.target_system = target.id
+        c.target_body = body.id
+        c.amount = 1
+        c.reward = round(d.rate * rng.float(0.8, 1.5))
+        c.title = f"Put a party on {body.name}"
+
+    # Distance and urgency both pay.
+    if c.target_system is not None:
+        ly = distance(game.galaxy.systems[c.target_system], sysm)
+        c.reward = round(c.reward * (1 + ly / 40))
+    return True
 
 
 # ── the player's book ──────────────────────────────────────────────────────
 
 def accept(game, contract: Contract) -> tuple[bool, str]:
-    active = [c for c in game.contracts if not c.done and not c.failed]
+    # Commission stages do not count against the board limit: they are not
+    # work you chose to juggle, they are the next thing somebody asked for.
+    active = [c for c in game.contracts
+              if not c.done and not c.failed and not c.chain]
     if len(active) >= MAX_ACTIVE:
         return False, f"You are already carrying {MAX_ACTIVE} contracts."
     contract.accepted = True
@@ -234,6 +258,12 @@ def _pay(game, c: Contract) -> None:
 
 
 def active(game) -> list[Contract]:
+    """Board work in hand. Commission stages are listed with their commission."""
+    return [c for c in game.contracts
+            if not c.done and not c.failed and not c.chain]
+
+
+def all_open(game) -> list[Contract]:
     return [c for c in game.contracts if not c.done and not c.failed]
 
 

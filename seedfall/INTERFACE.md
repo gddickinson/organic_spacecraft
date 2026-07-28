@@ -165,6 +165,7 @@ seedfall/
 │   ├── diplomacy.py    standing, the relations matrix, treaties, brokering
 │   ├── expedition.py   the ground game: zone map, movement, attempts, hauls
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
+│   ├── chains.py       commissions: work that escalates and closes doors
 │   ├── consorts.py     escorts: standing orders, screening, who draws fire
 │   ├── loyalty.py      what the bridge thinks of how you run the ship
 │   ├── works.py        colony development: what a settlement becomes
@@ -200,6 +201,7 @@ seedfall/
     ├── captain_ai.py   a competent test pilot: steers until its arcs bear
     ├── test_empire.py  6 colony checks — works, effects, costs, persistence
     ├── test_crew.py    7 crew checks — convictions, loyalty, consequences
+    ├── test_missions.py 7 commission checks — escalation, blocking, lapsing
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
     └── test_ui.py      22 interface checks, rendered on Qt's offscreen platform
 ```
@@ -297,6 +299,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   `data/convictions.py` turns on `WALKOUT` and `RESTLESS`, the same constants
   `effective_level()` uses, so the pill on the roster is a statement about what
   the officer will actually do. Move one and move the other.
+- **A commission stage is an ordinary contract.** `sim/chains.py` builds one
+  through `contracts.shape()`, the same function the board uses, so deadlines,
+  cargo, bounties and expeditions all work untouched. What makes it a chain is
+  `Contract.chain` and what happens in `chains.on_contract_done()`.
+- **`contracts.active()` is board work only.** Commission stages are excluded
+  from it and from the `MAX_ACTIVE` cap, because they are not work you chose to
+  juggle. Use `contracts.all_open()` when you genuinely mean everything live.
+- **`shape()` takes its scale before it writes the title.** A stage that asked
+  for half the usual tonnage used to be titled with the full figure and
+  complete at the halved one — a posting nobody could plan a hold around.
 - **Colony effects are a closed vocabulary.** `test_sim.py` asserts that every
   key in a `ColonyClass.effects` is one the game actually reads, so a typo in a
   station definition fails the suite instead of silently doing nothing.
@@ -318,6 +330,10 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`test_crew.py`** checks that the same act pulls a bridge apart rather than
   together, that loyalty is felt at the crew stations and not only on a roster,
   and that a year of missed payroll actually costs you officers.
+- **`test_missions.py`** runs a commission to its end, and checks the three
+  things that make one different from a posting: that stages escalate, that
+  taking one is refused at its rival's own port, and that a missed deadline
+  withdraws it permanently.
 - **`test_flight.py`** holds the helm to its promises: that a seed grows one
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that
