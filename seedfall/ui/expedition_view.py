@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import QHBoxLayout, QSizePolicy, QWidget
 from ..core.util import num, pct
 from ..data.expedition import FEATURES, PARTY_CAPACITY, TERRAIN
 from ..sim import expedition as exp_sim
+from ..sim import weather as weather_sim
 from ..sim.fieldwork import conclude_expedition
 from . import theme
 from .widgets import (Bar, Panel, Pill, View, button, label, mono_label, note,
@@ -125,6 +126,16 @@ class ExpeditionView(View):
 
     def _status(self, exp) -> Panel:
         p = Panel("Party")
+        sky = weather_sim.current(exp)
+        p.add_row("Overhead", sky.name,
+                  "warn" if sky.danger > 1.5 else ("osteo" if sky.cost else "dim"))
+        p.add(note(weather_sim.note(exp)))
+        if sky.cost or sky.danger > 1.0:
+            p.add_row("Crossing costs", f"+{sky.cost} day(s)" if sky.cost else "—",
+                      "warn" if sky.cost >= 2 else "")
+            p.add_row("Hazards", f"×{sky.danger:g}",
+                      "warn" if sky.danger >= 2 else "")
+        p.add(spacer(3))
         p.add_row("Supply", f"{exp.supply} days",
                   "warn" if exp.supply <= 3 else "")
         p.add_bar(max(0, exp.supply) / 20, "warn" if exp.supply <= 3 else "chloro")
@@ -179,13 +190,24 @@ class ExpeditionView(View):
         for text, dx, dy in (("North", 0, -1), ("South", 0, 1),
                              ("West", -1, 0), ("East", 1, 0)):
             dest = exp.tile(exp.x + dx, exp.y + dy)
-            cost = TERRAIN[dest.terrain].cost if dest else 0
-            h.addWidget(button(f"{text} ({cost}d)" if dest else text,
+            if dest is None:
+                h.addWidget(button(text, lambda: None, enabled=False))
+                continue
+            base = 1 if dest.visited else max(
+                1, TERRAIN[dest.terrain].cost - (1 if exp.rover >= 8 else 0))
+            cost = weather_sim.move_cost(exp, base)
+            h.addWidget(button(f"{text} ({cost}d)",
                                lambda _=False, a=dx, b=dy: self._move(a, b),
-                               enabled=dest is not None))
+                               enabled=not weather_sim.pinned(exp)))
         h.addStretch(1)
         p.add(row)
+        if weather_sim.pinned(exp):
+            p.add(label(f"{weather_sim.current(exp).name}: nothing moves in "
+                        "this. Sit it out.", "", "warn", wrap=True))
         p.add_buttons(
+            button("Sit out the weather (1d)", self._shelter,
+                   kind="primary" if weather_sim.pinned(exp) else "",
+                   enabled=weather_sim.current(exp).id != "clear"),
             button("Camp and repair (1d)", self._rest),
             button("Lift off", self._lift, kind="primary",
                    enabled=exp_sim.can_lift(exp)),
@@ -232,6 +254,14 @@ class ExpeditionView(View):
         if res.get("lore"):
             self.win.dialog("Field note", [res["lore"]], [("Log it", None)])
         self.win.refresh()
+
+    def _shelter(self) -> None:
+        exp = self.game.expedition
+        res = exp_sim.shelter(exp, self.game.rng("shelter"))
+        if not res.get("ok"):
+            self.win.toast(res["why"], "warn")
+            return
+        self.refresh()
 
     def _rest(self) -> None:
         exp_sim.rest(self.game.expedition, self._party(), self.game.rng("camp"))

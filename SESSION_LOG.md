@@ -2,6 +2,40 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: weather on the ground
+
+- **Terrain was fixed and the sky was empty.** An expedition already had
+  supply, a rover, hazards and injuries, but nothing about the surface changed
+  while you were on it. Seven **weather** conditions now roll in and out over
+  the days you are down there: dust storms, whiteouts, radiation squalls,
+  downpours, ground tremors and katabatic gales, with clear weather about 57%
+  of the time.
+- **It bites on all three axes.** A gale takes a two-day crossing to five,
+  multiplies the hazard chance by 2.6, and cuts sight to one tile. Measured
+  over 24 expeditions, a party covers 13.8 tiles in enforced fair weather and
+  11.1 with real weather — the walk home is longer than the walk out, which is
+  the whole point.
+- **A gale pins the party entirely**, so *Sit out the weather* is always
+  available and always costs a day of supply. That is not a convenience: a
+  party that can neither move nor die is an expedition that stops, and the
+  first version had exactly that hole — the existing playability check spun its
+  driver 150 times and failed with "expedition never terminated".
+- **Two of my seven conditions were dead on arrival.** I gated whiteouts on
+  biomes called "ice" and "frozen" and downpours on "ocean" and "temperate",
+  none of which the generator produces — it makes `cryo`, `subsurface`,
+  `verdant`, `microbial`, `sulfuric` and three others. Both conditions were
+  unreachable. The check now validates every gate against a real galaxy, and
+  fails if a condition can never occur.
+- **One thing that looked like a bug and was not.** Two direction buttons
+  showed no movement cost in the screenshot; I read that as a rendering fault,
+  and it was the party standing in the bottom-right corner with two of its four
+  neighbours off the grid. Worth confirming from the data before fixing the
+  wrong thing.
+- Suites: 27 simulation, 5 xenotech, 14 playability, 5 tactical, 5 flight,
+  6 empire, 7 crew, 7 missions, 8 exploration, 7 mining, 8 research, 8 trade,
+  **7 ground** (new), 23 interface — 137 checks green. 119 modules, all under
+  500 lines.
+
 ## 2026-07-28 — SEEDFALL: a market with news in it
 
 - **Prices drifted and nothing ever happened.** Markets already responded to

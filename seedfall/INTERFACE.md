@@ -169,6 +169,7 @@ seedfall/
 │   ├── inquiry.py      evidence, approaches, setbacks and breakthroughs
 │   ├── intel.py        how well a system is known, and what a chart is worth
 │   ├── market.py       supply shocks, and the prices you wrote down
+│   ├── weather.py      the front overhead during a landing
 │   ├── mining.py       seams, depth, and how hard you work a body
 │   ├── rumours.py      leads that point somewhere before you have been
 │   ├── consorts.py     escorts: standing orders, screening, who draws fire
@@ -211,6 +212,7 @@ seedfall/
     ├── test_mining.py  7 mining checks — seams, methods, wear, exhaustion
     ├── test_research.py 8 research checks — evidence, approaches, setbacks
     ├── test_trade.py   8 trade checks — shocks, the register, staleness
+    ├── test_ground.py  7 ground checks — weather, sight, being pinned
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
     └── test_ui.py      22 interface checks, rendered on Qt's offscreen platform
 ```
@@ -357,6 +359,15 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   down what a port pays only while you are standing in it, and
   `market.confidence()` decays what you wrote. Nothing should ever read a
   distant market directly — that is the whole mechanic.
+- **A weather condition gated on a biome that does not exist is unreachable.**
+  `data/weather.py` gates whiteouts and downpours on biome ids, and those must
+  be real ones from `world/planets` — the first draft invented "ice" and
+  "ocean" and silently lost two of its seven conditions. `test_ground.py`
+  checks every gate against a real galaxy.
+- **Anything that stops the party moving must leave something it can do.**
+  A katabatic gale refuses movement, so `expedition.shelter()` is always
+  available and always costs a day of supply. Without it a pinned party can
+  neither progress nor die and the expedition simply stops.
 - **Colony effects are a closed vocabulary.** `test_sim.py` asserts that every
   key in a `ColonyClass.effects` is one the game actually reads, so a typo in a
   station definition fails the suite instead of silently doing nothing.
@@ -399,6 +410,10 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   that accumulates permanent distortions over a long game. It also formats
   every shock's text to catch an unfilled field, which would otherwise crash a
   port screen months into somebody's game.
+- **`test_ground.py`** pins a party under a gale and shelters until the
+  expedition ends, which is the check that a stuck state cannot exist. It also
+  measures tiles crossed with and without weather, so a condition that costs
+  nothing fails.
 - **`test_flight.py`** holds the helm to its promises: that a seed grows one
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that

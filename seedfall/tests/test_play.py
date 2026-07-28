@@ -163,6 +163,9 @@ def run(suite: Suite) -> None:
             guard = 0
             while not exp.over and guard < 150:
                 guard += 1
+                if exp_sim.weather_sim.pinned(exp):
+                    exp_sim.shelter(exp, rng)     # nothing moves in a gale
+                    continue
                 if exp_sim.options_here(exp):
                     exp_sim.attempt(exp, 0, g.officers, rng)
                     continue

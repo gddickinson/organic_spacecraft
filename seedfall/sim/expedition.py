@@ -13,6 +13,7 @@ import itertools
 from dataclasses import dataclass, field
 
 from ..core.save import register
+from . import weather as weather_sim
 from ..data.expedition import (BASE_SUPPLY, FEATURES, HAZARDS, LORE,
                                PARTY_CAPACITY, REWARD_SCALE, TERRAIN)
 
@@ -55,6 +56,9 @@ class Expedition:
     injured: list[int] = field(default_factory=list)
     over: bool = False
     outcome: str = ""
+    weather: str = "clear"
+    weather_until: int = 0
+    biome: str = ""
 
     def tile(self, x: int, y: int) -> Tile | None:
         if 0 <= x < W and 0 <= y < H:
@@ -122,7 +126,9 @@ def generate(rng, system, body, officers: list[int],
 
     exp = Expedition(id=next(_uid), system_id=system.id, body_id=body.id,
                      body_name=body.name, tiles=tiles,
-                     officers=list(officers), supply=supply)
+                     officers=list(officers), supply=supply,
+                     biome=body.biome or "")
+    weather_sim.roll(exp, rng, exp.biome)
     exp.tile(*LANDER).seen = True
     exp.tile(*LANDER).visited = True
     _reveal(exp)
@@ -132,10 +138,20 @@ def generate(rng, system, body, officers: list[int],
 
 
 def _reveal(exp: Expedition) -> None:
-    for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
-        t = exp.tile(exp.x + dx, exp.y + dy)
-        if t:
-            t.seen = True
+    """Mark what the party can see. A whiteout sees nothing but its own tile."""
+    reach = weather_sim.sight(exp)
+    here = exp.tile(exp.x, exp.y)
+    if here:
+        here.seen = True
+    if reach <= 0:
+        return
+    for dy in range(-reach, reach + 1):
+        for dx in range(-reach, reach + 1):
+            if abs(dx) + abs(dy) > reach:
+                continue
+            t = exp.tile(exp.x + dx, exp.y + dy)
+            if t:
+                t.seen = True
 
 
 def say(exp: Expedition, text: str, kind: str = "") -> None:
@@ -156,19 +172,31 @@ def move(exp: Expedition, dx: int, dy: int, officers, rng) -> dict:
     if dest is None or exp.over:
         return {"ok": False, "why": "There is nothing that way."}
 
+    if weather_sim.pinned(exp):
+        return {"ok": False,
+                "why": f"{weather_sim.current(exp).name}: nothing moves in "
+                       "this. Sit it out or lose people."}
+
     terrain = TERRAIN[dest.terrain]
     # Ground you have already crossed is cheap: the route is known and the
     # rover has a track to follow. Otherwise coming home is a death sentence.
-    cost = 1 if dest.visited else max(1, terrain.cost - (1 if exp.rover >= 8 else 0))
+    base = 1 if dest.visited else max(1, terrain.cost - (1 if exp.rover >= 8 else 0))
+    cost = weather_sim.move_cost(exp, base)
     exp.x, exp.y = dest.x, dest.y
     exp.days += cost
     exp.supply -= cost
     dest.visited = True
+
+    changed = weather_sim.tick(exp, cost, rng, exp.biome)
     _reveal(exp)
     say(exp, f"Crossed into {terrain.name}. {cost} day(s) of supply gone.")
+    if changed:
+        say(exp, f"{weather_sim.current(exp).name}. "
+                 f"{weather_sim.current(exp).blurb}",
+            "warn" if weather_sim.current(exp).danger > 1.2 else "")
 
-    out = {"ok": True, "hazard": None}
-    if rng.chance(terrain.danger):
+    out = {"ok": True, "hazard": None, "weather": changed}
+    if rng.chance(weather_sim.danger(exp, terrain.danger)):
         out["hazard"] = _spring_hazard(exp, officers, rng)
     _check_end(exp)
     return out
@@ -255,12 +283,32 @@ def attempt(exp: Expedition, index: int, officers, rng) -> dict:
     return out
 
 
+def shelter(exp: Expedition, rng) -> dict:
+    """Sit out the weather. A day of supply, and the front breaks sooner.
+
+    Always available, because a party pinned by a gale with nothing it may do
+    is a party that can neither move nor die — the expedition simply stops.
+    """
+    if exp.over:
+        return {"ok": False, "why": "The expedition is over."}
+    res = weather_sim.shelter(exp, rng)
+    weather = res["weather"]
+    say(exp, f"Sat out the {weather.name.lower()}. A day gone.", "")
+    changed = weather_sim.tick(exp, 1, rng, exp.biome)
+    if changed:
+        say(exp, f"{weather_sim.current(exp).name}. "
+                 f"{weather_sim.current(exp).blurb}", "")
+    _check_end(exp)
+    return {"ok": True, "weather": weather, "changed": changed}
+
+
 def rest(exp: Expedition, officers, rng) -> dict:
     """Spend a day patching the rover and the party."""
     if exp.over:
         return {"ok": False, "why": "The expedition is over."}
     exp.days += 1
     exp.supply -= 1
+    weather_sim.tick(exp, 1, rng, exp.biome)
     eng = max((o.level for o in officers if o.stat == "engineering"), default=0)
     med = max((o.level for o in officers if o.stat == "medicine"), default=0)
     exp.rover = min(10, exp.rover + 1 + eng // 2)
