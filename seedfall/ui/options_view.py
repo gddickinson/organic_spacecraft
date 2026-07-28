@@ -19,7 +19,7 @@ from PyQt6.QtWidgets import (QComboBox, QDialog, QHBoxLayout, QLineEdit,
 from ..core import llm
 from ..sim import options as options_sim
 from . import theme
-from .widgets import Card, Panel, button, label, note, spacer
+from .widgets import Card, Panel, button, defer, label, note, spacer
 
 
 class OptionsPanel(QWidget):
@@ -108,8 +108,11 @@ class OptionsPanel(QWidget):
         wanted = entry["value"] or ""
         index = box.findData(wanted)
         box.setCurrentIndex(index if index >= 0 else 0)
+        # Deferred: `_set` rebuilds this panel, which frees the box that is
+        # still emitting. Same hazard as the search field, same fix.
         box.currentIndexChanged.connect(
-            lambda _i, b=box, n=entry["name"]: self._set(n, b.currentData()))
+            lambda _i, b=box, n=entry["name"]:
+            defer(lambda: self._set(n, b.currentData())))
         box.setFixedWidth(320)
         return box
 
@@ -121,7 +124,8 @@ class OptionsPanel(QWidget):
         box.setPlaceholderText("blank — each provider's own default")
         box.setFixedWidth(320)
         box.editingFinished.connect(
-            lambda b=box, n=entry["name"]: self._set(n, b.text()))
+            lambda b=box, n=entry["name"]:
+            defer(lambda: self._set(n, b.text())))
         line.addWidget(box)
         line.addStretch(1)
         return row

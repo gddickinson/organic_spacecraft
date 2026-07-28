@@ -41,6 +41,21 @@ def body(text: str) -> QLabel:
     return lb
 
 
+def defer(fn) -> None:
+    """Run this after the current event has finished being delivered.
+
+    The rule it exists for: **a signal handler must not destroy the widget
+    that emitted it.** Almost every handler here rebuilds its own screen, and
+    `View.refresh` unparents the old widgets, which frees them immediately —
+    so Qt returns from the emit into a corpse. With a `Card` that aborted the
+    process; with a `QLineEdit` mid-keystroke it segfaulted outright.
+
+    Anything wired to `textChanged`, `currentIndexChanged`, `clicked` on a
+    hand-rolled widget, or anything else that rebuilds, goes through here.
+    """
+    QTimer.singleShot(0, fn)
+
+
 def body_or(widget):
     """A widget, or an invisible spacer when a hint has been turned off."""
     return widget if widget is not None else spacer(0)
@@ -317,6 +332,11 @@ class View(QScrollArea):
         if not options_sim.get(self.game, "hints"):
             return None
         return note(text)
+
+    def refresh_later(self) -> None:
+        """Rebuild after the current event, for handlers that would free their
+        own widget mid-signal. See `defer`."""
+        defer(self.refresh)
 
     def refresh(self) -> None:
         while self.col.count():

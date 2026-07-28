@@ -17,7 +17,8 @@ from PyQt6.QtWidgets import QHBoxLayout, QLineEdit, QWidget
 from ..data.help import TOPICS
 from ..data.screens import NAV_KEYS
 from ..sim import manual as manual_sim
-from .widgets import Panel, TabBar, View, button, label, note, spacer
+from .widgets import (Panel, TabBar, View, button, defer, label, note,
+                      spacer)
 
 
 class HelpView(View):
@@ -26,6 +27,8 @@ class HelpView(View):
         self.tab = "manual"
         self.topic = TOPICS[0].id
         self.query = ""
+        self._typing = False
+        self._box = None
 
     def build(self) -> None:
         self.head("Help", "How the Verge works, and what you can change "
@@ -53,6 +56,15 @@ class HelpView(View):
         box.setFixedWidth(320)
         box.textChanged.connect(self._search)
         row.addWidget(box)
+        self._box = box
+        if self._typing:
+            # The rebuild replaced the box the player was typing into, so put
+            # them back in it with the cursor where they left it. Deferred
+            # again: at this point the box is not yet in the visible layout,
+            # so `setFocus` here sets the cursor and nothing else.
+            self._typing = False
+            defer(lambda b=box: (b.setFocus(),
+                                 b.setCursorPosition(len(self.query))))
         row.addStretch(1)
         self.col.addWidget(search_row)
 
@@ -77,8 +89,16 @@ class HelpView(View):
         self.refresh()
 
     def _search(self, text: str) -> None:
+        """Filter as they type, without destroying the box they are typing in.
+
+        `textChanged` fires *during* the keystroke. Rebuilding here freed the
+        QLineEdit mid-event and segfaulted the process on the first character
+        — not an exception, a signal 11. The rebuild is deferred to the next
+        turn of the event loop and the cursor is restored afterwards.
+        """
         self.query = text
-        self.refresh()
+        self._typing = True
+        self.refresh_later()
 
     def _page(self) -> Panel:
         page = manual_sim.page(self.game, self.topic)

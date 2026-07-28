@@ -2,6 +2,35 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: the rest of the controls, and a second segfault
+
+- **Generalised last cycle's crash rather than waiting for the next one.** A
+  player hit an abort clicking a card, and the reason it survived 450 checks
+  was that `test_verbs` drives `QPushButton`s — which Qt emits safely after the
+  press — and nothing else. So I counted what else a player can touch: 135
+  buttons and 98 cards covered, and **14 line edits, 13 spin boxes and 5 combo
+  boxes that nothing had ever driven**.
+- **The first one I drove segfaulted the process.** Typing a single character
+  into the manual's search field killed the game — signal 11, not a catchable
+  exception. `textChanged` fires *during* the keystroke, the handler rebuilt
+  the view, `View.refresh` freed the field being typed into, and Qt returned
+  into it. Two more connections on the options page had the same hazard.
+- The rule now lives in one place: `widgets.defer()` runs a handler after the
+  current event has finished being delivered, and `View.refresh_later()` uses
+  it. Anything that rebuilds the widget which emitted the signal goes through
+  it.
+- **Fixing the crash was not enough to make the field work.** Deferred, it
+  stopped dying and still accepted only one character, because the rebuild
+  replaced the box and focus went nowhere. It restores focus and the cursor
+  now — and the check types a whole word one key at a time into whatever holds
+  focus, which is the only way to notice.
+- Verified by putting each fault back: the card crash fails its check, and the
+  search segfault takes the whole suite down with exit 139, which the "only
+  commit if green" rule catches.
+- `test_verbs` crossed 500 lines; the non-button controls moved to
+  `test_controls.py`, driven from the same offscreen app.
+- Suites: 55 — 453 checks green. 237 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a fight with one outcome, and a crash on every card
 
 - **The task list was clear, so I went looking by playing.** The chronicle

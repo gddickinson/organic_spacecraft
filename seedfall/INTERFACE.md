@@ -291,6 +291,7 @@ seedfall/
     ├── test_voices.py  8 checks — the game speaks with no model reachable
     ├── test_grudges.py 9 checks — memory reaches the price and the board
     ├── test_gunnery.py 5 checks — what a weapon delivers is what the bridge said
+    ├── test_controls.py 3 checks — every control that is not a button
     ├── test_bridge.py  6 checks — the protocol answers, always, and stays local
     ├── test_manual.py  13 checks — the manual cannot go stale, options cannot lie
     ├── test_tutorial.py 8 checks — it will not take your word for it
@@ -373,8 +374,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   whose click rebuilds anything, do the same.
 - **Clicking is not the same as pressing a button.** `test_verbs` drives every
   `QPushButton` on every screen, and Qt emits those safely after the press
-  completes — so the crash above lived behind full control coverage. There is
-  now a check that clicks `Card`s specifically.
+  completes — so the crash above lived behind what read as full coverage.
+  Auditing the rest found 14 line edits, 13 spin boxes and 5 combo boxes that
+  nothing had ever touched, and the first one driven **segfaulted the
+  process**: the manual's search field rebuilt its own view on `textChanged`,
+  which fires mid-keystroke. `test_controls.py` drives every other kind of
+  control there is — cards, combos, spinners, typing a character at a time,
+  and the ship plan's drag and wheel.
+- **`ui/widgets.defer()` is where the rule lives.** Anything wired to a signal
+  whose handler rebuilds the emitting widget goes through it. A rebuild that
+  replaces a field the player is typing into must also restore focus and the
+  cursor, or the field silently accepts one character and no more.
 - **`credits` is a builtin.** So is `id`, `type`, `input` and `format`. Calling
   one by mistake does not raise `NameError` — `credits(x)` calls the
   interpreter's easter-egg `_Printer` and fails two suites away as
