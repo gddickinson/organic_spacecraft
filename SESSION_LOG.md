@@ -2,6 +2,38 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a manual that cannot go stale, and options that bite
+
+- **Asked for an extensive help system and an options screen.** Nineteen
+  topics ordered the way a captain meets them, a search, contextual help from
+  every screen, a Keys page, and five settings.
+- **The manual counts rather than restates.** A page that says "thirty-five
+  hulls" is wrong the day somebody adds one and nothing would notice, so
+  `data/help.py` holds prose and `sim/manual.py` generates every countable
+  claim from the table it describes — the ten endings and the epoch each opens,
+  the burn profiles with this hull's heat, what this sector can actually reach,
+  the powers and how each regards you now. A check fails if a topic names a
+  fact nothing can resolve, and it caught a dangling cross-reference (`trade`
+  pointed at a `customs` topic that did not exist — smuggling has its own page
+  now).
+- **Every option does something, and the screen says so.** `sim/options.py`
+  holds the settings and their bounds; a check reads the whole package and
+  fails if a setting is not consumed outside the module that defines it. That
+  discipline cost two entries: a tutorial toggle and a seen-endings list, both
+  taken off the screen until the thing they configure exists. Model speech
+  needs *two* switches — the machine's and the player's — and the panel names
+  which one is missing rather than offering a toggle that silently fails.
+- **A real defect, found while documenting it.** The rail derived shortcuts as
+  "1–9, then 0 for the rest", so when an eleventh screen was added the Codex
+  and the Aftermath both bound `0` and the Aftermath had no key at all. Keys
+  now live in `data/screens.py`, read by the window and by `sim/manual.py` —
+  which is across the layer rule, so the Keys page is built from the same table
+  as the rail.
+- Also found by looking: generated facts can be any length, and an unwrapped
+  label forces a minimum width wider than the view, which pushed the whole
+  manual off the right edge.
+- Suites: 52 — 420 checks green. 226 modules, all under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a bridge, so the game can be driven from outside
 
 - **Asked for a way to drive the game remotely, for a chatbot to play

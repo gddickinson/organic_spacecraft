@@ -114,8 +114,8 @@ class LegacyView(View):
 
     def _history(self) -> Panel:
         p = Panel("This chronicle")
-        p.add(note("An ending is a turn in the sector's history, not a stop. "
-                   "Every one this chronicle has taken is here."))
+        p.add(self.hint("An ending is a turn in the sector's history, not a "
+                        "stop. Every one this chronicle has taken is here."))
         for epoch, outcome, day in legacy_sim.summary(self.game):
             p.add_row(epoch.name,
                       {"triumph": "held", "failure": "lost",

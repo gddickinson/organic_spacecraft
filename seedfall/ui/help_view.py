@@ -1,0 +1,194 @@
+"""Help and options: how the game works, and the handful of things you can set.
+
+Two tabs. The manual reads out of `sim/manual.py`, whose facts are counted from
+the tables they describe, so nothing here can go stale by being written down
+twice. Options read and write `sim/options.py`, where the bounds live — a
+screen that clamps its own values is a second place for the rule to be wrong.
+
+Every option on this screen does something. The one that cannot — speech
+through a language model, when the machine has not permitted one — says so in
+words rather than offering a toggle that silently fails.
+"""
+
+from __future__ import annotations
+
+from PyQt6.QtWidgets import QHBoxLayout, QLineEdit, QWidget
+
+from ..core import llm
+from ..data.help import TOPICS
+from ..data.screens import NAV_KEYS
+from ..sim import manual as manual_sim
+from ..sim import options as options_sim
+from .widgets import (body_or, Card, Panel, TabBar, View, button, label, note,
+                      spacer)
+
+
+class HelpView(View):
+    def __init__(self, win):
+        super().__init__(win)
+        self.tab = "manual"
+        self.topic = TOPICS[0].id
+        self.query = ""
+
+    def build(self) -> None:
+        self.head("Help", "How the Verge works, and what you can change "
+                          "about how it is shown to you.")
+        tabs = TabBar([("manual", "Manual"), ("options", "Options"),
+                       ("keys", "Keys")], self.tab)
+        tabs.changed.connect(self._switch)
+        self.col.addWidget(tabs)
+        {"options": self._options, "keys": self._keys,
+         "manual": self._manual}[self.tab]()
+
+    def _switch(self, tid: str) -> None:
+        self.tab = tid
+        self.refresh()
+
+    # ── manual ─────────────────────────────────────────────────────────────
+
+    def _manual(self) -> None:
+        search_row = QWidget()
+        row = QHBoxLayout(search_row)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.addWidget(label("Search", "label"))
+        box = QLineEdit(self.query)
+        box.setPlaceholderText("a word — heat, contraband, berth, ending")
+        box.setFixedWidth(320)
+        box.textChanged.connect(self._search)
+        row.addWidget(box)
+        row.addStretch(1)
+        self.col.addWidget(search_row)
+
+        found = manual_sim.search(self.query)
+        if not found:
+            self.col.addWidget(note(f"Nothing in the manual mentions "
+                                    f"{self.query!r}."))
+            return
+        if self.topic not in {t.id for t in found}:
+            self.topic = found[0].id
+        self.row(self._contents(found), self._page())
+
+    def _contents(self, found) -> Panel:
+        p = Panel(f"Contents — {len(found)} of {len(TOPICS)}")
+        for topic in found:
+            p.add(button(topic.title, lambda t=topic: self._open(t.id),
+                         kind="primary" if topic.id == self.topic else "flat"))
+        return p
+
+    def _open(self, topic_id: str) -> None:
+        self.topic = topic_id
+        self.refresh()
+
+    def _search(self, text: str) -> None:
+        self.query = text
+        self.refresh()
+
+    def _page(self) -> Panel:
+        page = manual_sim.page(self.game, self.topic)
+        p = Panel(page["title"])
+        for paragraph in page["body"]:
+            p.add(label(paragraph, "", wrap=True))
+            p.add(spacer(3))
+        if page["facts"]:
+            p.add(spacer(4))
+            p.add(label("As things stand", "label"))
+            for line in page["facts"]:
+                # Wrapped, not monospaced. A generated fact can be any length,
+                # and an unwrapped label forces a minimum width wider than the
+                # view — which pushed the whole manual off the right edge.
+                p.add(label(line, "", "dim" if line.startswith("  ") else "",
+                            wrap=True))
+        if page["screen"]:
+            p.add(spacer(6))
+            p.add(button(f"Go to the {page['screen']} screen",
+                         lambda s=page["screen"]: self.win.go(s),
+                         kind="primary"))
+        if page["see"]:
+            p.add(spacer(4))
+            p.add(label("See also", "label"))
+            for other in page["see"]:
+                p.add(button(other.title, lambda t=other: self._open(t.id),
+                             kind="flat"))
+        return p
+
+    # ── options ────────────────────────────────────────────────────────────
+
+    def _options(self) -> None:
+        self.col.addWidget(body_or(self.hint(
+            "Everything here does something. There is no density slider that "
+            "adjusts nothing and no difficulty label that multiplies by one — "
+            "a check fails if a setting stops being read.")))
+        panel = Panel("Settings")
+        for entry in options_sim.summary(self.game):
+            panel.add(self._setting(entry))
+        self.col.addWidget(panel)
+        self.col.addWidget(self._speech())
+
+    def _setting(self, entry) -> Card:
+        card = Card()
+        card.add(label(entry["label"], "h3"))
+        card.add(note(entry["doc"]))
+        if entry["kind"] == "bool":
+            card.add(button("On" if entry["value"] else "Off",
+                            lambda n=entry["name"], v=entry["value"]:
+                            self._set(n, not v),
+                            kind="primary" if entry["value"] else ""))
+        else:
+            low, high = entry["bounds"]
+            unit = "days" if entry["kind"] == "days" else "ms"
+            step = max(1, (high - low) // 10)
+            controls = QWidget()
+            row = QHBoxLayout(controls)
+            row.setContentsMargins(0, 0, 0, 0)
+            row.addWidget(button(
+                "−", lambda n=entry["name"], v=entry["value"], s=step:
+                self._set(n, v - s)))
+            row.addWidget(label(f"{entry['value']} {unit}", "label"))
+            row.addWidget(button(
+                "+", lambda n=entry["name"], v=entry["value"], s=step:
+                self._set(n, v + s)))
+            row.addStretch(1)
+            card.add(controls)
+        return card
+
+    def _set(self, name: str, value) -> None:
+        result = options_sim.set_to(self.game, name, value)
+        if not result.get("ok"):
+            self.win.toast(result.get("why", "No."), "warn")
+            return
+        self.win.apply_options()
+        self.win.save()
+        self.refresh()
+
+    def _speech(self) -> Panel:
+        p = Panel("Speech")
+        p.add(note(
+            "Characters, ships and quays speak either through the game's own "
+            "writing or through a language model, if one is reachable and "
+            "permitted. The game is complete without one; the model changes "
+            "the prose and never the content."))
+        p.add_row("On this machine", llm.describe())
+        live = options_sim.voices_live(self.game)
+        p.add_row("In use now", "a model" if live else "the game's own writing",
+                  tint="lumen" if live else None)
+        if options_sim.get(self.game, "voices") and not llm.enabled():
+            p.add(label(
+                "You have asked for model speech and nothing is answering, so "
+                "the game is writing it. Set SEEDFALL_LLM=1 in the "
+                "environment, and have Ollama running or a key exported.",
+                "", "warn", wrap=True))
+        return p
+
+    # ── keys ───────────────────────────────────────────────────────────────
+
+    def _keys(self) -> None:
+        p = Panel("Keyboard")
+        p.add(note("One key per screen. The table lives in "
+                   "`data/screens.py`, which is also what the rail is built "
+                   "from, so a screen cannot exist without a key."))
+        for key, screen in NAV_KEYS:
+            p.add_row(screen, key)
+        self.col.addWidget(p)
+        self.col.addWidget(note(
+            "The chronicle saves itself whenever the calendar moves. There is "
+            "one save and no way to take a roll again."))

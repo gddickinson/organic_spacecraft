@@ -55,9 +55,11 @@ class Monitor(QDialog):
         column.addWidget(self.gauge, 1)
         column.addWidget(button("Close", self.close))
 
+        from ..sim import options as options_sim
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.pull)
-        self.timer.start(REFRESH_MS)
+        self.timer.start(int(options_sim.get(win.game, "instrument_ms")
+                             or REFRESH_MS))
         self.pull()
 
     def pull(self) -> None:

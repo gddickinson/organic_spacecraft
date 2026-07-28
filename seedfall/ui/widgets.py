@@ -41,6 +41,11 @@ def body(text: str) -> QLabel:
     return lb
 
 
+def body_or(widget):
+    """A widget, or an invisible spacer when a hint has been turned off."""
+    return widget if widget is not None else spacer(0)
+
+
 def mono_label(text: str) -> QLabel:
     return label(text, "label")
 
@@ -289,6 +294,17 @@ class View(QScrollArea):
     @property
     def game(self):
         return self.win.game
+
+    def hint(self, text: str):
+        """An inline explanation, or nothing if the player turned them off.
+
+        These are how most of this game explains itself, so the setting is not
+        a beginner toggle — it is for somebody who has read them all.
+        """
+        from ..sim import options as options_sim
+        if not options_sim.get(self.game, "hints"):
+            return None
+        return note(text)
 
     def refresh(self) -> None:
         while self.col.count():

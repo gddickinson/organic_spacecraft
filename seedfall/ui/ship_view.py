@@ -15,7 +15,7 @@ from ..sim.actions import transfer
 from ..sim import trade as trade_sim
 from ..sim.ship import cargo_used, hull_pct, is_breached
 from .plans_panel import ShipPlan
-from .widgets import (Bar, Panel, Pill, TabBar, View, button, label,
+from .widgets import (body_or, Bar, Panel, Pill, TabBar, View, button, label,
                       mono_label, note, spacer)
 
 
@@ -59,10 +59,10 @@ class ShipView(View):
 
     def _plans(self, ship, ch, st) -> None:
         """The ship as a shape, with the numbers hung off the piece you click."""
-        self.col.addWidget(note(
+        self.col.addWidget(body_or(self.hint(
             "Drag to turn her over, scroll to close in, click any piece to "
             "read it. Everything here is the ship as fitted — refit and the "
-            "model changes, because the model is the fitted list."))
+            "model changes, because the model is the fitted list.")))
         self.plan = ShipPlan(plans_sim.build(self.game, ship,
                                             cutaway=self._cut), height=460)
         self.plan.picked.connect(self._picked)

@@ -10,25 +10,16 @@ from PyQt6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QLabel, QMainWindow,
 from ..core import state as state_mod
 from ..core.util import credits, num, pct, stardate
 from ..data.chassis import CHASSIS_BY_ID
+from ..data.screens import KEY_FOR, NAV as SCREENS_NAV
 from ..data.lore import ENDINGS, TITLE, VICTORIES
 from ..sim.ship import cargo_used, hull_pct, is_breached
 from . import theme
 from .widgets import (ALIGN_R, Bar, Pill, button, label, mono_label, spacer,
                       hrule)
 
-NAV = [
-    ("map", "✦  Sector"),
-    ("system", "◉  System"),
-    ("helm", "◐  Helm"),
-    ("port", "⌂  Port"),
-    ("ship", "❖  Ship"),
-    ("yard", "⚙  Shipyard"),
-    ("tech", "⌘  Research"),
-    ("empire", "◈  Holdings"),
-    ("diplomacy", "⚖  Diplomacy"),
-    ("codex", "§  Codex"),
-    ("legacy", "∞  Aftermath"),
-]
+#: The rail, and the key for each screen, from `data/screens.py` — which
+#: `sim/manual.py` also reads, so the Keys page cannot drift from the rail.
+NAV = list(SCREENS_NAV)
 
 
 class MainWindow(QMainWindow):
@@ -132,7 +123,25 @@ class MainWindow(QMainWindow):
         # Instruments pop out into their own windows, so a player can watch
         # heat or the scope while flying rather than switching to a tab.
         h.addWidget(button("▣ Instruments", self.instruments, kind="flat"))
+        h.addWidget(button("? Help", self.help_here, kind="flat",
+                           tip="Help about the screen you are on"))
         return bar
+
+    def help_here(self) -> None:
+        """Open the manual at whatever this screen is about.
+
+        Contextual rather than a table of contents: `manual.for_screen` knows
+        which topics belong to which view, so the Help key from the Helm opens
+        the page about burns rather than the front of the book.
+        """
+        from ..sim import manual as manual_sim
+        about = manual_sim.for_screen(self.current or "")
+        view = self.views["help"]
+        view.tab = "manual"
+        view.query = ""
+        if about:
+            view.topic = about[0].id
+        self.go("help")
 
     def instruments(self) -> None:
         from .monitors import chooser
@@ -148,16 +157,18 @@ class MainWindow(QMainWindow):
         for i, (vid, text) in enumerate(NAV):
             b = button(f"{text}", kind="nav")
             b.setCheckable(True)
-            # 1-9 then 0 for a tenth; str(10) is not a key Qt can bind.
-            key = str(i + 1) if i < 9 else "0"
-            b.setShortcut(key)
-            b.setToolTip(f"Shortcut: {key}")
+            # From the table, not from the position. Deriving it as "1-9 then
+            # 0 for the rest" meant the tenth and eleventh screens both bound
+            # 0, and the Aftermath had no key of its own at all.
+            key = KEY_FOR.get(vid, "")
+            if key:
+                b.setShortcut(key)
+            b.setToolTip(f"Shortcut: {key}" if key else "")
             b.clicked.connect(lambda _=False, v_=vid: self.go(v_))
             self.nav_buttons[vid] = b
             v.addWidget(b)
         v.addStretch(1)
-        v.addWidget(label("  keys 1–9, 0" if len(NAV) > 9
-                  else f"  keys 1–{len(NAV)}", "note"))
+        v.addWidget(label("  every screen has a key — see Help", "note"))
         return rail
 
     def _build_log(self) -> QWidget:
@@ -198,6 +209,7 @@ class MainWindow(QMainWindow):
         from .system_view import SystemView
         from .tech_view import TechView
         from .dig_view import DigView
+        from .help_view import HelpView
         from .legacy_view import LegacyView
         from .demand_view import DemandView
         from .transit_view import TransitView
@@ -211,6 +223,7 @@ class MainWindow(QMainWindow):
             "diplomacy": DiplomacyView,
             "docking": DockingView, "decoding": DecodingView,
             "transit": TransitView, "dig": DigView, "legacy": LegacyView,
+            "help": HelpView,
             "demand": DemandView,
         }
         for vid, cls in classes.items():
@@ -290,7 +303,12 @@ class MainWindow(QMainWindow):
             self.views[self.current].refresh()
         # Autosave whenever the calendar has moved. Writing the whole sector on
         # every repaint would be wasteful; days only pass on real actions.
-        if self.game.day != getattr(self, "_saved_day", None):
+        # Autosave on the player's cadence. At zero it saves whenever the
+        # calendar moves, which is what it always did.
+        from ..sim import options as options_sim
+        every = options_sim.get(self.game, "autosave_days") or 0
+        since = self.game.day - getattr(self, "_saved_day", -10 ** 9)
+        if since >= every:
             self._saved_day = self.game.day
             self.game.save()
 
@@ -378,7 +396,18 @@ class MainWindow(QMainWindow):
 
     def confirm(self, heading: str, text: str,
                 yes: str = "Do it", no: str = "Belay that") -> bool:
+        """Ask, unless the player has said not to be asked."""
+        from ..sim import options as options_sim
+        if not options_sim.get(self.game, "confirm"):
+            return True
         return bool(self.dialog(heading, [text], [(yes, True), (no, False)]))
+
+    def apply_options(self) -> None:
+        """Push settings into the parts of the window that hold their own."""
+        from ..sim import options as options_sim
+        pace = options_sim.get(self.game, "instrument_ms") or 900
+        for monitor in getattr(self, "monitors", {}).values():
+            monitor.timer.setInterval(int(pace))
 
     # ── combat ─────────────────────────────────────────────────────────────
 

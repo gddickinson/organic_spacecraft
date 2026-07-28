@@ -132,6 +132,8 @@ seedfall/
 │   ├── commodities.py  14 tradeable goods
 │   ├── beginnings.py   stocks, origins and postings — who you are before day one
 │   ├── personas.py     voices: register, tics, and offline sentence frames
+│   ├── screens.py      the rail and the key for each screen — read by both layers
+│   ├── help.py         the manual: prose, and which facts each topic generates
 │   ├── epochs.py       what the Verge becomes after each of the ten endings
 │   ├── scenarios.py    40 situations an epoch puts in front of you
 │   ├── chassis.py      the hull registry — assembles and re-exports the rest
@@ -182,6 +184,8 @@ seedfall/
 │   ├── telemetry.py    what the instrument windows read, band by band
 │   ├── memory.py       minds: what everyone remembers about you
 │   ├── voice.py        speech, written by the game or by a model
+│   ├── manual.py       resolves the manual's facts from the tables themselves
+│   ├── options.py      player settings, every one of which does something
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
 │   ├── assessment.py   reading an engagement: who wins, why, what to do
 │   ├── chains.py       commissions: work that escalates and closes doors
@@ -283,6 +287,7 @@ seedfall/
     ├── test_instruments.py 5 checks — a gauge agrees with the ship and itself
     ├── test_voices.py  8 checks — the game speaks with no model reachable
     ├── test_bridge.py  6 checks — the protocol answers, always, and stays local
+    ├── test_manual.py  9 checks — the manual cannot go stale, options cannot lie
     ├── chronicle.py    one captain, one save, a decade of doing everything
     ├── test_chronicle.py 3 checks — that decade, through every screen
     ├── capture.py      renders every screen offscreen, for the README
@@ -337,6 +342,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   13, with a quarter of sectors under eight. Opening the rest means a better
   drive. `sim/reach.py` computes that component and the chart states it; a
   shipyard is always within reach, so nobody is permanently trapped.
+- **A screen's keys come from `data/screens.py`, not from its position.** The
+  rail used to derive them as "1–9, then 0 for the rest", so the moment an
+  eleventh screen was added the Codex and the Aftermath both bound `0` and one
+  of them had no key at all. The table is read by the window *and* by
+  `sim/manual.py`, which is on the other side of the layer rule, so the Keys
+  page cannot drift from the rail.
 - **The language model is off unless it is switched on, and nothing depends on
   it.** `SEEDFALL_LLM` gates it, `llm.complete()` returns `None` whenever there
   is nothing there, and every speaking path already had to work offline so
@@ -919,6 +930,14 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   in `attempt` and the quote in `odds_for`, and the point is that they cannot
   drift. Dropping the `+2` from the quote makes it report "said 67% rolled
   32%".
+- **`test_manual.py`** enforces two things that screens usually escape. A
+  manual that says "thirty-five hulls" is wrong the day somebody adds one and
+  nothing would notice, so every countable claim is generated from the table it
+  describes and a check fails if a topic names a fact nothing can resolve. And
+  an option that changes nothing is a lie: every setting the screen offers must
+  appear somewhere in the package outside `options.py`, so a setting that stops
+  being read fails here rather than sitting on screen doing nothing. It also
+  found the key collision below.
 - **`test_bridge.py`** drives the whole protocol in-process, because verbs are
   plain functions over a `Game` and a socket is a detail. One check does open a
   real loopback connection, because the thing that broke only breaks over one:

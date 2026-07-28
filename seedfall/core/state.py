@@ -102,6 +102,8 @@ class Game:
     situation: object | None = None
     #: What everyone in the Verge remembers about you. See `sim/memory.py`.
     minds: dict = field(default_factory=dict)
+    #: Player settings, every one of which does something. `sim/options.py`.
+    options: object | None = None
     commissions: list = field(default_factory=list)
     rumours: list = field(default_factory=list)
     charts: list = field(default_factory=list)

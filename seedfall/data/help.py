@@ -1,0 +1,213 @@
+"""The manual: what each screen is for, and how the systems reach each other.
+
+Written prose where prose is right, and **generated facts where facts would go
+stale**. A manual that says "thirty-five hulls" is wrong the day somebody adds
+one, so anything countable is counted at read time from the table it lives in.
+`sim/manual.py` does the counting; this holds the words and says which screen
+each topic belongs to.
+
+Topics are ordered the way a new captain meets them, not alphabetically.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+
+@dataclass(frozen=True)
+class Topic:
+    id: str
+    title: str
+    screen: str              # which view this is about, "" for general
+    body: tuple              # paragraphs
+    #: Generated lines, by id, resolved in `sim/manual.py`.
+    facts: tuple = ()
+    see: tuple = ()          # other topic ids
+
+
+TOPICS = [
+    Topic("first", "The first thing to do", "",
+          ("Nobody will tell you what to do about the Bloom, because nobody "
+           "knows. There is no track here, only things worth doing.",
+           "The reliable opening: survey the bodies in the system you start "
+           "in, take the survey data to the port and sell it, buy reaction "
+           "mass, and move on. That pays for itself from day one and it is "
+           "how you learn what a system looks like.",
+           "Every ending is open from turn one and none is locked behind "
+           "another. You do not have to choose now."),
+          facts=("endings", "starting_kit"), see=("survey", "trade")),
+
+    Topic("moving", "Getting anywhere is a decision", "helm",
+          ("A jump drops you at the edge of a system, not alongside anything. "
+           "Bodies sit on real orbits and keep moving while you fly, so the "
+           "helm aims at where a thing will be rather than where it is.",
+           "Four burn profiles trade reaction mass against days. Coasting is "
+           "always free — that is deliberate, and it is what stops an empty "
+           "tank from becoming a dead chronicle.",
+           "A hard burn arrives hot. Heat sheds on the clock, but above the "
+           "cap the radiators stop keeping up and the hull cooks, so burning "
+           "hard repeatedly costs real integrity. The panel says what you "
+           "will arrive at before you commit."),
+          facts=("burns", "reach"), see=("map", "instruments")),
+
+    Topic("map", "The chart, and what you can actually reach", "map",
+          ("The dashed ring is one jump. The question that matters is what "
+           "you can get to at all, by hopping — and often the answer is not "
+           "everything. Stars struck through are behind a gap no amount of "
+           "hopping closes.",
+           "Opening the rest means a better drive. The chart says which one "
+           "and how much it would open."),
+          facts=("reach",), see=("moving", "shipyard")),
+
+    Topic("survey", "Surveying, and why it pays", "system",
+          ("Surveying a body tells you what is on it — biomes, lifeforms, "
+           "anomalies, buried alien sites — and feeds the research bench.",
+           "A chart is the record of a *completed* survey: every body in the "
+           "system. It is priced on what is in the system rather than on how "
+           "many rocks it has, and different powers pay for different things."),
+          facts=("survey_pay",), see=("research", "trade")),
+
+    Topic("trade", "Trade, and the freight desk", "port",
+          ("Prices drift daily toward each port's own equilibrium, so a "
+           "profitable run stays profitable for a while and then quietly "
+           "stops being.",
+           "Within a starting jump only about one lane in twenty is worth "
+           "flying. The freight desk draws on two honest sources — your own "
+           "register of prices you wrote down, and the harbourmaster, who "
+           "will name his own power's ports but not quote you their board. It "
+           "ranks runs by what the voyage clears, not by the spread.",
+           "One good in the table is contraband: worth more exactly where it "
+           "is forbidden, and the power that forbids it opens your hold at "
+           "the dock."),
+          facts=("goods",), see=("contracts", "customs")),
+
+    Topic("customs", "Contraband, and the people who look for it", "port",
+          ("One good in the table is outlawed by somebody, and it is worth "
+           "more exactly where it is forbidden. That is the whole trade: the "
+           "power that bans it is the power that pays.",
+           "The unposted market is reached from the port screen and it is not "
+           "hidden from anybody. Approaching cleanly, standing well and a "
+           "concealed hold each take a share off the odds of being searched; "
+           "none of them retires the risk.",
+           "Being caught costs the cargo, a fine, standing, and — the part "
+           "that lasts — scrutiny, which is that power's memory of what you "
+           "have been carrying. It decays, slowly."),
+          facts=("goods",), see=("trade", "diplomacy")),
+
+    Topic("contracts", "Work worth taking", "port",
+          ("Contracts are posted per port and scaled by distance, checked on "
+           "the clock, and complete the moment their terms are met.",
+           "Taking a power's work is a position, not an errand: finishing it "
+           "costs you standing with everyone that power is at odds with, in "
+           "proportion to how bad the rift actually is."),
+          facts=("contract_kinds",), see=("diplomacy",)),
+
+    Topic("research", "The bench", "tech",
+          ("A programme is fed by evidence in four kinds, and the four come "
+           "from four different parts of the job — a propulsion programme "
+           "cannot be fed by botany.",
+           "Four ways to run one: carefully, on parallel tracks, pushed, or "
+           "reverse-engineered from somebody else's work. Pushing is fastest "
+           "and risks setbacks."),
+          facts=("tech_tree",), see=("xeno",)),
+
+    Topic("xeno", "Alien technology", "xeno",
+          ("Four cultures left twelve technologies scattered as buried sites. "
+           "None can be derived. Understanding accumulates from excavating a "
+           "site, taking relics apart, buying field notes, and seizing them "
+           "off a hull you destroy.",
+           "At full understanding a technology is *incorporated* — it never "
+           "appears in the research tree, because you could not have worked "
+           "it out."),
+          facts=("xenotech",), see=("research", "ground")),
+
+    Topic("ground", "There is a game on the ground", "",
+          ("Landing a party opens a zone revealed one tile at a time. Moving "
+           "costs days of supply; known ground is cheap to re-cross, which is "
+           "what makes coming home survivable.",
+           "Every feature is a choice, and each states its odds, the officer "
+           "who would take it, the prize, and what a failure risks. Nothing "
+           "is banked until the party is back on the lander."),
+          facts=(), see=("crew", "xeno")),
+
+    Topic("combat", "Combat is positional", "",
+          ("Ships carry a heading and a speed on a real plane. The range band "
+           "is derived from an actual separation rather than stored, so "
+           "closing is a manoeuvre rather than a menu pick. Every mount has a "
+           "firing arc and will refuse to fire outside it.",
+           "Each turn you take one station personally — Helm, Gunnery or "
+           "Engineering — and your officers hold the other two at their own "
+           "level, which is competent and worse than you. The bridge says "
+           "what taking each seat is worth given who you have."),
+          facts=(), see=("crew", "ship")),
+
+    Topic("crew", "Crew, and why the stations matter", "port",
+          ("Six stations. An officer's level decides the odds on anything "
+           "resolved against their stat, on the ground and in a fight.",
+           "It is not a nicety: every ground option that pays a field note "
+           "wants comms or medicine, and the opening crew is science, nav and "
+           "engineering. A captain who never visits the berths is offered "
+           "notes they cannot take."),
+          facts=("stations",), see=("ground", "combat")),
+
+    Topic("ship", "The hull, and what grafts to it", "ship",
+          ("Five families, and which parts graft to which frame is a rule: a "
+           "grown hull refuses a fusion lance, a Yards hull refuses an "
+           "intima, a hybrid takes either.",
+           "Fitted mass is not free — a full hold slows you — and power "
+           "discipline is real: draw more than you generate and everything "
+           "sags.",
+           "The Plans tab draws the ship as fitted. Click any piece to read "
+           "it."),
+          facts=("hulls", "layers"), see=("shipyard", "instruments")),
+
+    Topic("shipyard", "Refitting and building", "yard",
+          ("The yard shows the ship you *would* have beside the one you do, "
+           "and the bill for the difference. Removed parts sell back at half.",
+           "You hold the technology for everything already bolted to your "
+           "hull, so anything you remove can be put back."),
+          facts=(), see=("ship", "map")),
+
+    Topic("empire", "Colonies", "empire",
+          ("Plant one and walk away; it yields every day, wherever you are. "
+           "The seed dialog says what will grow — yield, upkeep, effects and "
+           "a rough payback.",
+           "Territory is contested in both directions. Planting inside a "
+           "power's declared space costs standing, and a power will annex a "
+           "system you hold in, which is a question rather than a news item."),
+          facts=("colony_classes",), see=("diplomacy",)),
+
+    Topic("diplomacy", "Two axes, not one", "diplomacy",
+          ("Your standing with each power, and how the powers regard each "
+           "other — a matrix that starts hostile in most pairs.",
+           "Tribute, intelligence and relief move the first. Only brokering "
+           "moves the second, and brokering requires both parties to think "
+           "well of you already. Every overture states what it will move "
+           "before you commit."),
+          facts=("powers",), see=("contracts", "empire")),
+
+    Topic("instruments", "The instrument windows", "",
+          ("Six pop-out windows — power, heat, integrity, hold, crew and a "
+           "scope — that stay on top and re-read the live game. They are "
+           "windows rather than a tab because the point is watching heat "
+           "while you fly."),
+          facts=("instruments",), see=("ship", "moving")),
+
+    Topic("endings", "Endings, and what comes after", "legacy",
+          ("Every ending is open from turn one and none is locked behind "
+           "another.",
+           "An ending is a turn in the sector's history rather than a stop. "
+           "Taking one rewrites the world and opens an epoch with its own "
+           "pressure and its own situations, and an epoch can close well or "
+           "badly and be followed by another."),
+          facts=("endings",), see=("first",)),
+
+    Topic("saving", "Saving, keys and the rest", "",
+          ("The chronicle saves itself whenever the calendar moves. There is "
+           "one save; there is no scumming a bad roll.",
+           "Anything you can be in the middle of — a crossing, an approach, a "
+           "decoding exchange, an open trench, a power waiting on an answer — "
+           "survives a save and is still waiting when you come back."),
+          facts=("keys",), see=()),
+]
+TOPICS_BY_ID = {t.id: t for t in TOPICS}
