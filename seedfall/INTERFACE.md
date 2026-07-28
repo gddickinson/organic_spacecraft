@@ -165,7 +165,7 @@ seedfall/
 │   ├── diplomacy.py    standing, the relations matrix, treaties, brokering
 │   ├── expedition.py   the ground game: zone map, movement, attempts, hauls
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
-│   ├── flight.py       the helm: orbits, transfer burns, in-system incidents
+│   ├── flight.py       the helm: orbits, intercepts, routing, transfer burns
 │   ├── minigames.py    the docking control loop and the decoding bench
 │   └── actions.py      player actions spanning modules (jump/survey/mine/dive)
 ├── ui/                 PyQt6 presentation — never mutates state directly
@@ -192,7 +192,10 @@ seedfall/
     ├── harness.py      a tiny check runner (no pytest dependency)
     ├── test_sim.py     27 simulation checks
     ├── test_xeno.py    5 alien-technology checks
-    └── test_ui.py      17 interface checks, rendered on Qt's offscreen platform
+    ├── test_play.py    14 playability checks — can the game be won and lost
+    ├── test_combat.py  2 tactical checks — arcs, headings, crew stations
+    ├── test_flight.py  5 helm checks — determinism, intercepts, routing
+    └── test_ui.py      22 interface checks, rendered on Qt's offscreen platform
 ```
 
 ## How the layers connect
@@ -239,6 +242,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   holds references to the content tables and must never be written to a save.
 - **Qt mnemonics**: an `&` in a button label becomes an accelerator underscore.
   Write "and".
+- **Never derive anything persistent from `hash()`.** Python randomises string
+  hashing per process, so a value derived from it changes on every launch.
+  Orbital phases did exactly this, and a saved game reloaded with every planet
+  somewhere new. Use `core.rng.hash_seed`.
+- **`View._sync_scroll()` is why screens paint correctly on the first frame.**
+  Rebuilding a view's column does not tell its `QScrollArea` that the contents
+  changed size, and the layout's true minimum is not known until the new
+  widgets are polished — so it measures once immediately and once more after
+  the event loop settles. Qt recovered on its own by the second turn, which
+  made the fault invisible in play and very visible in a screenshot.
 - **Adding a hull family** means touching six places: `LAYER_SETS`, `ACCEPTS`,
   `FAMILY_LABEL`/`FAMILY_TINT`/`FAMILY_NOTE`, `BASE_POWER`, `BUILD_NEED`, and
   `NO_REGEN` if it cannot heal — all of them in `data/hull_types.py`. The test
@@ -262,6 +275,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`test_sim.py`** drives the rules headlessly: sector generation and
   determinism, every chassis and part, tech-tree reachability, trade, colonies,
   building, combat outcome distributions, Bloom pacing, save round-trip.
+- **`test_flight.py`** holds the helm to its promises: that a seed grows one
+  fixed set of orbits *in every process*, that a transfer aims where a body
+  will be rather than where it is, that the intercept solve converges, and that
+  no course is plotted through a star.
 - **`test_ui.py`** builds the real `MainWindow` on Qt's `offscreen` platform and
   paints every screen and every tab, including a live engagement. It stubs
-  `win.dialog` because `QDialog.exec()` would block.
+  `win.dialog` because `QDialog.exec()` would block. One check builds its own
+  window: grabbing a widget forces a layout pass, so a check for first-frame
+  layout cannot reuse one every earlier check has already painted.

@@ -10,14 +10,15 @@ from __future__ import annotations
 import math
 
 from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QFont, QPainter, QPen
+from PyQt6.QtGui import (QColor, QFont, QPainter, QPainterPath, QPen)
 from PyQt6.QtWidgets import QSizePolicy, QWidget
 
 from ..core.util import duration, num
 from ..sim import flight
 from ..world.planets import BODY_KINDS
 from . import theme
-from .widgets import Panel, Pill, View, button, label, mono_label, note, spacer
+from .widgets import (Panel, Pill, TabBar, View, button, label, mono_label,
+                      note, spacer)
 
 
 class OrbitChart(QWidget):
@@ -28,14 +29,20 @@ class OrbitChart(QWidget):
     def __init__(self, win):
         super().__init__()
         self.win = win
+        self.target = 0
+        self.burn = "standard"
         self.setMinimumSize(460, 460)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setCursor(Qt.CursorShape.CrossCursor)
 
     def _scale(self):
-        span = flight.R_OUTER + 2.5
+        """Fit whatever the system actually holds — comets orbit well outside
+        the planets, and a chart that crops them is a chart that lies."""
+        g = self.win.game
+        span = max([flight.orbit_radius(b) for b in g.system.bodies]
+                   + [flight.ARRIVAL_RADIUS]) * 1.08 + 0.4
         side = min(self.width(), self.height())
-        return (side / 2 - 16) / span, self.width() / 2, self.height() / 2
+        return (side / 2 - 22) / span, self.width() / 2, self.height() / 2
 
     def _to_screen(self, x: float, y: float) -> QPointF:
         s, cx, cy = self._scale()
@@ -51,6 +58,55 @@ class OrbitChart(QWidget):
                 best, bd = i, d
         if best is not None:
             self.picked.emit(best)
+
+    def _draw_course(self, p, g, s, cx, cy) -> None:
+        """The leg you are about to fly, and where the target will be when you
+        arrive. The gap between a body's mark and its aim point is the whole
+        argument for burning hard rather than coasting."""
+        if not (0 <= self.target < len(g.system.bodies)):
+            return
+        body = g.system.bodies[self.target]
+        if body.id == g.orbit_body:
+            return
+        q = flight.intercept(g, body, self.burn)
+        ship = self._to_screen(*flight.ship_position(g))
+        aim = self._to_screen(*q["aim"])
+        now = self._to_screen(*flight.position(body, g.day))
+
+        # the star's heat zone, if the leg goes anywhere near it
+        if q["risk"] > q["burn"].risk + 0.005:
+            p.setPen(QPen(QColor(214, 138, 92, 70), 1, Qt.PenStyle.DotLine))
+            p.setBrush(QColor(214, 138, 92, 16))
+            p.drawEllipse(QPointF(cx, cy), 1.2 * s, 1.2 * s)
+
+        # where the target travels while you are in flight
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.setPen(QPen(QColor(230, 172, 109, 150), 2.0))
+        arc = QPainterPath()
+        for step in range(13):
+            day = g.day + q["days"] * step / 12
+            pt = self._to_screen(*flight.position(body, day))
+            arc.moveTo(pt) if step == 0 else arc.lineTo(pt)
+        p.drawPath(arc)
+
+        # the course as actually flown — bent around the star if need be
+        p.setPen(QPen(QColor(theme.tint("lumen")), 1.5, Qt.PenStyle.DashLine))
+        course = QPainterPath()
+        for step, (lx, ly) in enumerate(q["legs"]):
+            pt = self._to_screen(lx, ly)
+            course.moveTo(pt) if step == 0 else course.lineTo(pt)
+        p.drawPath(course)
+        p.setPen(QPen(QColor(theme.tint("lumen")), 1.6))
+        p.drawEllipse(aim, 8, 8)
+        p.drawLine(QPointF(aim.x() - 12, aim.y()), QPointF(aim.x() + 12, aim.y()))
+        p.drawLine(QPointF(aim.x(), aim.y() - 12), QPointF(aim.x(), aim.y() + 12))
+
+        mid = QPointF((ship.x() + aim.x()) / 2, (ship.y() + aim.y()) / 2)
+        p.setFont(QFont(theme.mono_family(), 7))
+        p.setPen(QColor(theme.tint("lumen")))
+        p.drawText(QRectF(mid.x() - 60, mid.y() - 16, 120, 13),
+                   Qt.AlignmentFlag.AlignHCenter,
+                   f"{q['days']} d · {q['au']:.2f} AU")
 
     def paintEvent(self, _ev):  # noqa: N802
         g = self.win.game
@@ -85,6 +141,8 @@ class OrbitChart(QWidget):
             p.drawText(QRectF(pos.x() - 55, pos.y() + 7, 110, 13),
                        Qt.AlignmentFlag.AlignHCenter, b.name.split()[-1])
 
+        self._draw_course(p, g, s, cx, cy)
+
         # the ship
         sx, sy = flight.ship_position(g)
         sp = self._to_screen(sx, sy)
@@ -102,6 +160,7 @@ class HelmView(View):
     def __init__(self, win):
         super().__init__(win)
         self.target = 0
+        self.burn = "standard"
 
     def build(self) -> None:
         g = self.game
@@ -114,6 +173,8 @@ class HelmView(View):
             self.target = 0
 
         chart = OrbitChart(self.win)
+        chart.target = self.target
+        chart.burn = self.burn
         chart.picked.connect(self._pick)
         self.row(chart, self._plot(g))
         self.buttons(
@@ -142,6 +203,19 @@ class HelmView(View):
                        "the system screen."))
             return p
 
+        q = flight.intercept(g, body, self.burn)
+        p.add_row("Aim point", f"{q['au']:.2f} AU ahead of the mark")
+        p.add_row("Target moves", f"{q['lead']:.2f} AU while you are under way")
+        p.add_row("Arrives", f"day {q['arrival_day']} · {duration(q['days'])}")
+        hazard = flight.path_note(g, body, self.burn)
+        if hazard:
+            p.add(note(hazard))
+
+        p.add(spacer(4), mono_label("Plot"))
+        tabs = TabBar([(b.id, b.name) for b in flight.BURNS], self.burn)
+        tabs.changed.connect(self._plot_burn)
+        p.add(tabs)
+
         p.add(spacer(4), mono_label("Burn profiles"))
         for q in flight.options(g, body):
             burn = q["burn"]
@@ -157,9 +231,15 @@ class HelmView(View):
                                  kind="primary" if burn.id == "standard" else "",
                                  enabled=afford))
         p.add(spacer(4))
-        p.add(note("Bodies move while you fly. A cheap transfer today may be a "
-                   "dear one next season."))
+        p.add(note("Bodies move while you fly, so the helm aims at where the "
+                   "target will be, not where it is. The crosshair on the chart "
+                   "is the aim point; the amber arc is the ground it covers "
+                   "while you are under way."))
         return p
+
+    def _plot_burn(self, burn_id: str) -> None:
+        self.burn = burn_id
+        self.refresh()
 
     def _burn(self, burn_id: str) -> None:
         res = flight.travel_to(self.game, self.target, burn_id)

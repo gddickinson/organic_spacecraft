@@ -12,7 +12,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from ..core.rng import RNG
+from ..core.rng import RNG, hash_seed
 from .ship import add_cargo, apply_damage
 
 #: Orbital radius in AU for a body's normalised orbit slot (0 inner, 1 outer).
@@ -60,8 +60,13 @@ def period_days(body) -> float:
 
 
 def _phase(body) -> float:
-    """A stable starting angle, derived rather than stored."""
-    return (hash((body.name, body.id)) % 3600) / 3600.0 * math.tau
+    """A stable starting angle, derived rather than stored.
+
+    Python randomises ``hash()`` of a string per process, so deriving the phase
+    from it put every planet somewhere new on every launch — the same seed grew
+    the same galaxy and then scattered its orbits. ``hash_seed`` is stable.
+    """
+    return (hash_seed(f"{body.id}|{body.name}") % 3600) / 3600.0 * math.tau
 
 
 def position(body, day: int) -> tuple[float, float]:
@@ -82,6 +87,9 @@ def separation(a, b, day: int) -> float:
 #: Parking at the true edge taxed every first survey with a long transfer and
 #: made the early game knife-edge.
 ARRIVAL_RADIUS = R_OUTER * 0.45
+
+#: Inside this radius a leg is running through the star's heat, in AU.
+HOT_RADIUS = 1.2
 
 
 def ship_position(game) -> tuple[float, float]:
@@ -104,17 +112,122 @@ def distance_to(game, body) -> float:
     return math.hypot(sx - bx, sy - by)
 
 
-def quote(game, body, burn_id: str = "standard") -> dict:
-    """Days and reaction mass for a transfer, at the chosen burn."""
-    burn = BURNS_BY_ID.get(burn_id, BURNS_BY_ID["standard"])
-    au = distance_to(game, body)
-    speed = max(0.3, game.ship_stats.speed)
-    days = max(1, round((1.2 + au * 1.0) * burn.speed / speed))
+def _leg(au: float, burn: Burn, speed: float) -> tuple[int, int]:
+    days = max(1, round((1.2 + au * 1.0) * burn.speed / max(0.3, speed)))
     fuel = round((0.4 + au * 0.5) * burn.fuel)
     if burn.fuel > 0:
         fuel = max(1, fuel)
+    return days, fuel
+
+
+def intercept(game, body, burn_id: str = "standard") -> dict:
+    """Solve for where the target will be when you actually get there.
+
+    A transfer quoted against where a body is *now* is a transfer to empty
+    space: by arrival it has moved, and an inner body moves a long way. This
+    iterates to a fixed point — guess a flight time, see where the body will be
+    then, re-time the leg for that distance, repeat. It converges in a few
+    passes because the correction shrinks each time.
+    """
+    burn = BURNS_BY_ID.get(burn_id, BURNS_BY_ID["standard"])
+    speed = game.ship_stats.speed
+    sx, sy = ship_position(game)
+    days, fuel = _leg(distance_to(game, body), burn, speed)
+
+    passes = 0
+    for passes in range(1, 8):
+        tx, ty = position(body, game.day + days)
+        _legs, au = route(sx, sy, tx, ty)
+        new_days, fuel = _leg(au, burn, speed)
+        if abs(new_days - days) <= 0.5:
+            days = new_days
+            break
+        days = new_days
+
+    tx, ty = position(body, game.day + days)
+    legs, au = route(sx, sy, tx, ty)
+    nx, ny = position(body, game.day)
     return {"burn": burn, "au": au, "days": days, "fuel": fuel,
-            "risk": burn.risk + min(0.10, au * 0.012)}
+            "aim": (tx, ty), "arrival_day": game.day + days,
+            "lead": math.hypot(tx - nx, ty - ny), "passes": passes,
+            "legs": legs, "detour": au - math.hypot(tx - sx, ty - sy),
+            "risk": burn.risk + min(0.10, au * 0.012) + _heat_risk(sx, sy, tx, ty)}
+
+
+def quote(game, body, burn_id: str = "standard") -> dict:
+    """Days and reaction mass for a transfer, aimed where the body will be."""
+    return intercept(game, body, burn_id)
+
+
+def _closest_approach(sx: float, sy: float, tx: float, ty: float) -> float:
+    """How near the star the straight leg passes, in AU."""
+    dx, dy = tx - sx, ty - sy
+    span = dx * dx + dy * dy
+    if span <= 1e-9:
+        return math.hypot(sx, sy)
+    t = max(0.0, min(1.0, -(sx * dx + sy * dy) / span))
+    return math.hypot(sx + dx * t, sy + dy * t)
+
+
+def route(sx: float, sy: float, tx: float, ty: float) -> tuple[list, float]:
+    """The legs actually flown, and their total length in AU.
+
+    You cannot fly through a star. When the direct line would pass inside the
+    hot radius — which it does for any target on the far side of the system —
+    the helm bends the course around it, and the detour is what an opposite
+    conjunction costs you. Reaching a body that genuinely lives down there is
+    still allowed: the clearance never closes tighter than the destination.
+    """
+    clear = min(HOT_RADIUS, math.hypot(sx, sy), math.hypot(tx, ty))
+    near = _closest_approach(sx, sy, tx, ty)
+    direct = math.hypot(tx - sx, ty - sy)
+    if near >= clear or clear <= 1e-6:
+        return [(sx, sy), (tx, ty)], direct
+
+    # Push the tightest point of the leg out to the clearance radius. If it
+    # runs dead through the star there is no side to favour, so take the
+    # perpendicular and go around the short way.
+    mx, my = _closest_point(sx, sy, tx, ty)
+    length = math.hypot(mx, my)
+    if length < 1e-6:
+        mx, my = -(ty - sy), (tx - sx)
+        length = math.hypot(mx, my) or 1.0
+    wx, wy = mx / length * clear, my / length * clear
+    legs = [(sx, sy), (wx, wy), (tx, ty)]
+    total = math.hypot(wx - sx, wy - sy) + math.hypot(tx - wx, ty - wy)
+    return legs, total
+
+
+def _closest_point(sx: float, sy: float, tx: float, ty: float) -> tuple[float, float]:
+    dx, dy = tx - sx, ty - sy
+    span = dx * dx + dy * dy
+    if span <= 1e-9:
+        return sx, sy
+    t = max(0.0, min(1.0, -(sx * dx + sy * dy) / span))
+    return sx + dx * t, sy + dy * t
+
+
+def _heat_risk(sx: float, sy: float, tx: float, ty: float) -> float:
+    """Working close to the star is hot however carefully you route."""
+    deep = min(math.hypot(sx, sy), math.hypot(tx, ty))
+    if deep >= HOT_RADIUS:
+        return 0.0
+    return min(0.18, (HOT_RADIUS - deep) * 0.16)
+
+
+def path_note(game, body, burn_id: str = "standard") -> str | None:
+    """A warning about the leg itself, if it deserves one."""
+    q = intercept(game, body, burn_id)
+    notes = []
+    if q["detour"] > 0.05:
+        notes.append(f"The star is in the way: the course bends around it, "
+                     f"adding {q['detour']:.2f} AU.")
+    sx, sy = ship_position(game)
+    deep = min(math.hypot(sx, sy), math.hypot(*q["aim"]))
+    if deep < HOT_RADIUS:
+        notes.append(f"You will be working {deep:.2f} AU from the star. The "
+                     "radiators will not enjoy it and neither will the crew.")
+    return " ".join(notes) or None
 
 
 def options(game, body) -> list[dict]:

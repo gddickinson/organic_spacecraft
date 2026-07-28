@@ -82,6 +82,36 @@ def run(suite) -> bool:
             assert len(kids) > 5, f"{vid} rendered almost nothing"
             return f"{len(kids)} widgets"
 
+    @check("screens are laid out correctly on the first frame")
+    def _():
+        # Rebuilding a view's column does not tell its scroll area that the
+        # contents changed size. Qt sorted it out on the second event-loop
+        # turn, so a screen taller than the viewport painted once squashed and
+        # then reflowed. One frame is easy to miss by eye and impossible to
+        # miss in a screenshot, which is how these screens get reviewed.
+        # A fresh window: grabbing a view forces a layout pass that hides the
+        # fault, and every earlier check has already grabbed all of these.
+        app = QApplication.instance()
+        fresh = MainWindow(new_game("scroll-check"))
+        fresh.dialog = lambda *a, **k: None
+        fresh.resize(1360, 880)
+        fresh.show()
+        squashed, tallest = [], ("", 0)
+        for view_id, _text in NAV:
+            fresh.go(view_id)
+            app.processEvents()          # exactly one turn: the first frame
+            w = fresh.views[view_id]
+            need = w.col.minimumSize().height()
+            got = w._inner.height()
+            if need > tallest[1]:
+                tallest = (view_id, need)
+            if got + 1 < need:
+                squashed.append(f"{view_id} ({need}px into {got}px)")
+        fresh.close()
+        assert not squashed, ("squashed on the first frame: "
+                             + ", ".join(squashed))
+        return f"{len(NAV)} screens fit at once; tallest {tallest[0]} at {tallest[1]}px"
+
     @check("every tabbed screen renders all of its tabs")
     def _():
         from ..ui.widgets import TabBar

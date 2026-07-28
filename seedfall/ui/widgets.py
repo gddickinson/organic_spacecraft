@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QColor, QPainter, QPainterPath
 from PyQt6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel,
                              QPushButton, QScrollArea, QSizePolicy,
@@ -294,6 +294,40 @@ class View(QScrollArea):
                 w.setParent(None)
         self.build()
         self.col.addStretch(1)
+        # Rebuilding the column does not on its own tell the scroll area that
+        # its contents changed size, so a screen taller than the viewport was
+        # silently squashed instead of scrolling. Ask for the recalculation.
+        self._sync_scroll()
+
+    def _sync_scroll(self) -> None:
+        """Let the scroll area find out that the screen changed height.
+
+        Rebuilding the column does not tell the scroll area its contents grew,
+        and the layout's true minimum is not known until the new widgets have
+        been polished — so a screen taller than the viewport was squashed into
+        it instead of scrolling. Measure once now for the common case and once
+        more after the event loop has settled, when the number is right.
+        """
+        self.col.invalidate()
+        self.col.activate()
+        self._inner.setMinimumHeight(self.col.minimumSize().height())
+        self.updateGeometry()
+        QTimer.singleShot(0, self._settle)
+
+    def _settle(self) -> None:
+        self.col.activate()
+        need = self.col.minimumSize().height()
+        if need != self._inner.minimumHeight():
+            self._inner.setMinimumHeight(need)
+            self.updateGeometry()
+
+    def showEvent(self, ev):  # noqa: N802
+        super().showEvent(ev)
+        self._sync_scroll()
+
+    def resizeEvent(self, ev):  # noqa: N802
+        super().resizeEvent(ev)
+        QTimer.singleShot(0, self._settle)
 
     def build(self) -> None:      # pragma: no cover - overridden
         raise NotImplementedError

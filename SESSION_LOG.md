@@ -2,6 +2,53 @@
 
 Running progress log. Newest first.
 
+## 2026-07-27 — SEEDFALL: the helm learns to lead a moving target
+
+- **Transfers now aim where the body will be.** The helm panel told the player
+  "bodies move while you fly", and the code did not do it: every quote was
+  measured against where the target sat *today*, and arrival teleported you to
+  wherever it had drifted. `flight.intercept()` solves the lead as a fixed
+  point — guess a flight time, look up where the body will be then, re-time the
+  leg, repeat. It settles in at most two passes across 380 solves, and a flown
+  transfer now arrives on the predicted day with the aim point 0.0000 AU from
+  the body.
+- **Courses route around the star.** With the aim point drawn on the chart it
+  was immediately obvious that a target on the far side produced a straight line
+  passing 0.03 AU from the star. `flight.route()` bends the course around a hot
+  radius and charges the detour in distance and days, so an opposite conjunction
+  is expensive rather than lethal. The clearance never closes tighter than the
+  destination, so the innermost rock is still reachable — and still hot.
+- **The chart shows the plan.** The orbit chart draws the routed course as a
+  polyline, a crosshair at the aim point, an amber arc for the ground the target
+  covers while you are under way, and the star's heat zone when the leg runs
+  near it. A burn selector re-plots without committing. The chart also now
+  scales to the outermost body, having previously cropped comets off the plot.
+- **`hash()` was moving every planet on every launch.** Orbital phase was
+  derived from `hash((body.name, body.id))`, and Python randomises string
+  hashing per process — so the same seed grew the same galaxy and then scattered
+  its orbits differently every time the game started, including between saving
+  and loading. Now derived from `core.rng.hash_seed`. A regression check runs
+  three subprocesses under different `PYTHONHASHSEED` values and demands one
+  answer.
+- **A first-frame layout fault, honestly scoped.** Rebuilding a view's column
+  did not tell its `QScrollArea` the contents had changed size, so a screen
+  taller than the viewport painted once squashed. My first reading of this was
+  far more dramatic — nine of ten screens "unable to scroll" — and it was wrong:
+  measuring how many event-loop turns the unfixed code needed showed Qt
+  recovering by the second turn, so a running app was never broken. What the
+  fault really cost was one frame of reflow, and trustworthy screenshots. Since
+  reviewing these screens by rendering them offscreen is how this loop works,
+  that second thing matters: the bug fooled me before it could fool a player.
+- **Two of my own regression checks did not bite, and I caught both.** The
+  first asserted a course never dips inside its tighter endpoint — geometrically
+  impossible, since a chord between two points at similar radii always sags. The
+  second passed with the fix deliberately disabled, because every earlier check
+  had already called `grab()` on those views and forced the layout. Rewritten to
+  build its own window and measure exactly one event-loop turn, it now fails
+  without the fix and passes with it — verified in both directions.
+- Suites: 27 simulation, 5 xenotech, 14 playability, 2 tactical, **5 flight**
+  (new), 22 interface — 75 checks green. 84 modules, all under 500 lines.
+
 ## 2026-07-27 — SEEDFALL: combat becomes positional, with crew stations
 
 - **A real plane.** Ships now carry a position, heading and speed. The five range
