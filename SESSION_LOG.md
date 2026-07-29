@@ -2,6 +2,43 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: the approach, drawn and flyable
+
+The last of the piloting request. The docking mini-game modelled an error and
+a drift per axis, a blurred readout and a hull-set precision, and delivered
+all of it as three integers and six buttons — with the drift not delivered at
+all.
+
+- **It is drawn now.** Range and attitude as a position against the collar,
+  roll as the hull's tilt, the tolerance box at the centre, and a ghost of
+  where the next correction lands with the drift counted. A roll error is not
+  a position, so it is not drawn as one — that would be a prettier lie than
+  the numbers were.
+- **Every burn says what it leaves**, and which axes it lets slip while you
+  make it. That was the invisible rule: firing on one axis walks the other
+  two, and nothing ever said so.
+- **A drive computer**, on the same `doctrine` stat as the battle computer. It
+  weighs how far an axis is out against where its drift is taking it, and
+  cannot fire harder than the hull allows.
+- **And it is priced.** First measurement: the autopilot docked 59.5% of the
+  time against a careful hand's 58.5% — identical, free, and therefore an
+  argument for never flying an approach again. A computer-flown dock is graded
+  as a bare clean one now: 68% at grade 1.00 against 68% at grade 2.39 by
+  hand. The machine brings you alongside; it does not bring you alongside
+  well.
+- **A guard for last cycle's lesson.** A suite that does not exist looks
+  exactly like a suite that passes — running a missing one prints nothing and
+  exits zero. `tests/test_harness_guard.py` asserts every name in
+  `ALL_SUITES` is dispatched to a real module with a `run`. Proven by removing
+  a registration: it names the missing suite. Written as a subprocess first,
+  which recursed until it timed out, because it lives inside a suite.
+- **And the derived-state trap again**, in my own hands: I set
+  `ship_stats.doctrine` for a screenshot and `recompute()` threw it away, so
+  the screen reported no computer fitted. Third time; `stock_fx` is the input,
+  `ship_stats` is the output.
+- 557 checks green, every file under 500 lines — `test_sim` crossed it, so the
+  harness checks moved out.
+
 ## 2026-07-28 — SEEDFALL: the hands get older, and can finally be replaced
 
 A player asked why hands have no ages. Because `ship.crew` was an integer.

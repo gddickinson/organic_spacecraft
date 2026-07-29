@@ -24,6 +24,10 @@ TUG_FEE = 900
 TOLERANCE = 6
 DOCK_PASSES = 8
 
+#: The best a computer-flown approach can be graded. A clean dock, and none
+#: of the standing that a good one earns.
+AUTO_GRADE = 1
+
 
 @register
 @dataclass
@@ -37,6 +41,9 @@ class Docking:
     log: list = field(default_factory=list)
     over: bool = False
     won: bool = False
+    #: How many passes the drive computer flew. A machine can bring you
+    #: alongside; it does not bring you alongside *well*.
+    flown: int = 0
 
     def reading(self, axis: str, rng) -> int:
         """What the instruments say, which is not quite what is true."""
@@ -69,7 +76,8 @@ def say(d: Docking, text: str, kind: str = "") -> None:
         d.log.pop(0)
 
 
-def correct(d: Docking, axis: str, amount: int, rng) -> dict:
+def correct(d: Docking, axis: str, amount: int, rng,
+            by_computer: bool = False) -> dict:
     """Fire on one axis. Everything else keeps drifting while you do."""
     if d.over:
         return {"ok": False}
@@ -79,6 +87,8 @@ def correct(d: Docking, axis: str, amount: int, rng) -> dict:
         if other != axis:
             d.error[other] += d.drift[other]
     d.passes -= 1
+    if by_computer:
+        d.flown += 1
 
     label = dict(AXES)[axis]
     say(d, f"{label}: corrected {amount:+d}, now reading "
@@ -93,11 +103,76 @@ def correct(d: Docking, axis: str, amount: int, rng) -> dict:
     return {"ok": True, "aligned": d.aligned}
 
 
+def forecast(d: Docking, axis: str, amount: int) -> dict:
+    """What one correction leaves behind, drift included.
+
+    The approach was three numbers and six buttons. Firing on an axis moves
+    it *and* lets the other two drift while you do — which the screen never
+    said, so a pilot correcting the worst axis could watch the other two walk
+    out of tolerance and never learn why. This states it before the burn.
+    """
+    after = dict(d.error)
+    after[axis] = d.error[axis] - amount
+    for other, _label in AXES:
+        if other != axis:
+            after[other] = d.error[other] + d.drift[other]
+    inside = sum(1 for v in after.values() if abs(v) <= TOLERANCE)
+    was = sum(1 for v in d.error.values() if abs(v) <= TOLERANCE)
+    return {"after": after, "inside": inside, "was": was,
+            "aligned": inside == len(AXES),
+            "passes_left": max(0, d.passes - 1),
+            "worse": [o for o, _l in AXES
+                      if o != axis and abs(after[o]) > TOLERANCE
+                      and abs(d.error[o]) <= TOLERANCE]}
+
+
+def autopilot(d: Docking) -> dict:
+    """What the drive computer would do next, and why.
+
+    The same bargain as the battle computer: it is competent and it is not
+    you. It corrects the axis that costs most to leave — weighing how far out
+    it is against how fast it is drifting — and it cannot fire harder than the
+    hull's precision allows, so a clumsy hull is clumsy under automation too.
+    """
+    if d.over:
+        return {}
+    best, why = None, ""
+    for axis, label in AXES:
+        error = d.error[axis]
+        if abs(error) <= TOLERANCE:
+            continue
+        # Cost of leaving it: how far out, plus where the drift is taking it.
+        drift = d.drift[axis]
+        urgency = abs(error) + (abs(drift) * 2 if error * drift >= 0 else 0)
+        if best is None or urgency > best[0]:
+            step = max(-d.precision, min(d.precision, error))
+            best = (urgency, axis, step,
+                    f"{label} is {error:+d} and "
+                    + (f"drifting further out at {drift:+d} a pass."
+                       if error * drift > 0 else
+                       "the worst of the three."))
+    if best is None:
+        return {}
+    _urgency, axis, step, why = best
+    return {"axis": axis, "amount": step, "why": why,
+            "forecast": forecast(d, axis, step)}
+
+
 def dock_result(d: Docking) -> dict:
-    """What a clean approach is worth."""
+    """What a clean approach is worth.
+
+    A hand-flown approach earns its margin; a computer-flown one gets you the
+    collar and nothing else. Without this the autopilot matched a careful
+    pilot exactly — measured at 59.5% against 58.5% — which makes the
+    approach a chore to be automated away rather than a thing worth being
+    good at. The machine docks you. It does not dock you well.
+    """
     if d.won:
         margin = sum(TOLERANCE - abs(v) for v in d.error.values())
-        return {"won": True, "grade": min(3, 1 + margin // 6)}
+        grade = min(3, 1 + margin // 6)
+        if d.flown:
+            grade = min(grade, AUTO_GRADE)
+        return {"won": True, "grade": grade, "flown": d.flown}
     return {"won": False, "grade": 0}
 
 

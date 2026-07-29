@@ -7,6 +7,8 @@ that never terminated. Run them with ``python -m seedfall.tests``.
 
 from __future__ import annotations
 
+import pathlib
+
 from ..core import save as save_mod
 from ..core.rng import RNG
 from ..core.state import Game, has_save, load_game, new_game
@@ -28,6 +30,7 @@ def run(suite: Suite) -> None:
     check = suite.check
 
     game = {}
+
 
     @check("new game")
     def _():

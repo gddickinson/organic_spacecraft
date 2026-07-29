@@ -145,6 +145,29 @@ each costed in full before it is taken — and **letting the window lapse costs
 exactly what refusing costs**, because an offer with a free deadline is a
 button that waits forever rather than a decision.
 
+**The approach is drawn, and can be flown for you.** The docking mini-game
+modelled an error per axis, a drift per axis, a readout blurred by the sensors
+and a precision set by the hull and the navigator — and all of it reached the
+player as three integers and six buttons. The drift reached them not at all,
+so a pilot correcting the worst reading three times running could watch the
+other two walk out of tolerance and never be told why.
+
+`ui/approach_plot.py` draws it: range and attitude as a position against the
+collar with the tolerance box at the centre, roll as the hull's tilt (a roll
+error is not a position and pretending it is would be a prettier lie than the
+numbers were), and a ghost showing where the next correction lands — drift
+included. `minigames.forecast` is the number behind the ghost, and every burn
+button now says what it leaves and which axes it lets slip.
+
+`minigames.autopilot` is the drive computer, gated on the same `doctrine` stat
+as the battle computer. It picks the axis that costs most to leave, weighing
+how far out it is against where its drift is taking it, and cannot fire harder
+than the hull allows. **It is priced**: a computer-flown approach is graded as
+a bare clean dock. Measured, it docks about as often as a careful hand — 68%
+against 68% — at grade 1.00 against 2.39. Before that cap it matched a good
+pilot exactly, which makes an approach a chore to automate rather than a skill
+worth having.
+
 **The plot shows what bears.** Everything needed to answer "can this mount
 shoot right now" was modelled — `tactical` knows the arc and the bearing,
 `Weapon.bears_at` knows the range band, `combat._fire` knows if the magazine
@@ -534,6 +557,7 @@ seedfall/
 │   ├── traffic_panel.py   who else is out here, and which of them runs dark
 │   ├── doctrine_panel.py  what the seats you are not in intend this turn
 │   ├── firing_panel.py    mount by mount: ready, or exactly what is stopping it
+│   ├── approach_plot.py   the docking approach, drawn instead of counted
 │   ├── envoy_view.py      a power's proposition, with all three answers costed
 │   ├── official_panel.py  the desk: who is there, and both ways of asking
 │   ├── dormancy_panel.py  the long sleep, costed in years, tonnes and lives

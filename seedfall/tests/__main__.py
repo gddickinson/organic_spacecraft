@@ -21,7 +21,7 @@ ALL_SUITES = [
     "seats", "founding", "attempts", "reach", "plans", "beginnings",
     "legacy", "instruments", "voices", "bridge", "manual", "tutorial",
     "grudges", "gunnery", "surveys", "time", "anchorage", "traffic",
-    "doctrine", "firing", "approach", "officials", "dormancy", "tuning",
+    "doctrine", "firing", "approach", "officials", "dormancy", "tuning", "approaching", "harness",
     "hands", "chronicle", "dig", "resume", "verbs", "ui",
 ]
 
@@ -366,6 +366,18 @@ def main(argv: list[str] | None = None) -> int:
         from . import test_hands
         suite = Suite("hands")
         test_hands.run(suite)
+        ok = suite.report() and ok
+
+    if "approaching" in wanted:
+        from . import test_approach_game
+        suite = Suite("approaching")
+        test_approach_game.run(suite)
+        ok = suite.report() and ok
+
+    if "harness" in wanted:
+        from . import test_harness_guard
+        suite = Suite("harness")
+        test_harness_guard.run(suite)
         ok = suite.report() and ok
 
     if "manual" in wanted:

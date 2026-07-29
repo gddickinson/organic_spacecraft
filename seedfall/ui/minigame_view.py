@@ -36,6 +36,17 @@ class DockingView(View):
             "the homeostat holds the rest steady. You get one axis per pass; the "
             "other two keep drifting while you work."))
 
+        # The plot and the computer, side by side with the axes. Everything
+        # the mini-game models was reaching the player as three integers.
+        from .approach_plot import ApproachPlot
+        holder = QWidget()
+        hh = QHBoxLayout(holder)
+        hh.setContentsMargins(0, 0, 0, 0)
+        hh.setSpacing(14)
+        hh.addWidget(ApproachPlot(d, getattr(self, "hover", None)), 0)
+        hh.addWidget(self._computer(d), 1)
+        self.col.addWidget(holder)
+
         rng = self.game.rng("readout")
         for axis, name in mg.AXES:
             err = d.error[axis]
@@ -53,10 +64,15 @@ class DockingView(View):
                 for mult, tag in ((1, "fine"), (2, "half"), (4, "full")):
                     step = d.precision * mult
                     for sign in (1, -1):
+                        plan = mg.forecast(d, axis, sign * step)
+                        after = plan["after"][axis]
+                        cost = (f" · costs {', '.join(plan['worse'])}"
+                                if plan["worse"] else "")
                         h.addWidget(button(
                             f"{sign * step:+d}",
                             lambda _=False, a=axis, v=sign * step: self._fire(a, v),
-                            tip=f"{tag} burst"))
+                            tip=f"{tag} burst — leaves {name.lower()} at "
+                                f"{after:+d}{cost}"))
                 h.addStretch(1)
                 p.add(row)
             self.col.addWidget(p)
@@ -64,6 +80,67 @@ class DockingView(View):
         if d.over:
             self.col.addWidget(self._outcome(d))
         self.col.addWidget(self._log(d))
+
+    def _computer(self, d):
+        """What the drive computer would do, and the option to let it."""
+        from ..sim import doctrine
+        panel = Panel("Drive computer")
+        rating = getattr(self.game.ship_stats, "doctrine", 0.0)
+        if d.over:
+            panel.add(note("The approach is finished."))
+            return panel
+        if not doctrine.fitted(self.game.ship_stats):
+            panel.add(label(
+                "No approach computer fitted. Every correction is yours, and "
+                "the two axes you are not touching keep drifting.", "",
+                "warn", wrap=True))
+            return panel
+
+        plan = mg.autopilot(d)
+        if not plan:
+            panel.add(note("Nothing outside tolerance. Bring her in."))
+            return panel
+        forecast = plan["forecast"]
+        panel.add(label(f"{doctrine.grade(self.game.ship_stats).capitalize()} "
+                        f"({rating:.2f}).", "", "dim"))
+        panel.add(label(plan["why"], "", wrap=True))
+        panel.add(label(
+            f"It would fire {plan['amount']:+d} on "
+            f"{dict(mg.AXES)[plan['axis']].lower()}, leaving "
+            f"{forecast['inside']} of {len(mg.AXES)} inside tolerance.",
+            "", "chloro", wrap=True))
+        if forecast["worse"]:
+            panel.add(label("That lets " + ", ".join(forecast["worse"])
+                            + " drift out.", "", "warn", wrap=True))
+        panel.add_buttons(
+            button("Let it fly the pass", self._auto_pass, kind="primary"),
+            button("Let it fly the whole approach", self._auto_all))
+        panel.add(label(
+            "It will bring you alongside. It will not bring you alongside "
+            "well — a computer-flown approach is graded as a bare clean dock, "
+            "and the standing a good one earns is only earned by hand.", "",
+            "warn", wrap=True))
+        return panel
+
+    def _auto_pass(self) -> None:
+        plan = mg.autopilot(self.win.docking)
+        if not plan:
+            return
+        mg.correct(self.win.docking, plan["axis"], plan["amount"],
+                   self.game.rng("thrust"), by_computer=True)
+        self.win.refresh()
+
+    def _auto_all(self) -> None:
+        d = self.win.docking
+        for _ in range(d.passes + 2):
+            if d.over:
+                break
+            plan = mg.autopilot(d)
+            if not plan:
+                break
+            mg.correct(d, plan["axis"], plan["amount"],
+                       self.game.rng("thrust"), by_computer=True)
+        self.win.refresh()
 
     def _fire(self, axis: str, amount: int) -> None:
         mg.correct(self.win.docking, axis, amount, self.game.rng("thrust"))
