@@ -200,10 +200,10 @@ class ConnWindow(QDialog):
         for _ in range(400):
             if self.conn.over:
                 break
-            axis, main = pilot_sim.autopilot(self.conn, mode)
+            axis, main, throttle = pilot_sim.autopilot(self.conn, mode)
             if axis is None and mode == "null":
                 break              # nothing left to null
-            conn_sim.apply(self.conn, axis, main=main)
+            conn_sim.apply(self.conn, axis, main=main, throttle=throttle)
         if not self.conn.over and (self.conn.range_km, self.conn.speed) == before:
             self.win.toast("The computer has nothing to add.", "warn")
         self._settle()
@@ -313,6 +313,14 @@ class ConnWindow(QDialog):
         hint = conn_sim.orbit_note(conn)
         if hint:
             self.side.addWidget(note(hint))
+        # Where the nose is, and what is pushing. Until the engines had
+        # places and the hull had an orientation, neither of these existed.
+        from ..sim import attitude as attitude_sim
+        from ..sim import thrusters
+        self.side.addWidget(note(attitude_sim.heading_note(conn)))
+        self.side.addWidget(label("Engines", "h3"))
+        for what, howmuch, where in thrusters.board(self.game.ship):
+            self.side.addWidget(note(f"{what} — {howmuch}, {where}"))
         self.side.addStretch(1)
 
         if conn.over:

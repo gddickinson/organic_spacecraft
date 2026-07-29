@@ -397,6 +397,59 @@ one cause. The Fleet Hub was drawn on the helm chart, labelled, and inert:
   selected, so nothing appeared to happen. `QUAY_OFFSET` is one number now,
   read by the painter and the hit test alike, and quays are tested first.
 
+**Engines with places, a hull that has to point them.** A player asked three
+questions the game could not answer: is there a braking burn as well as an
+accelerating one, does the ship turn to aim its engines, and where are the
+engines on the hull. The honest answers were no, no, and nowhere — drive slots
+were a *count*, `Conn.heading` was written by nothing at all, and `flight._leg`
+handed back one lump with the braking burn living only in a comment.
+
+`data/mounts.py` gives thrust somewhere to come from: main drives mount aft on
+the transom and push along the nose, without exception, because that is what a
+main drive *is*; a hull with two slots and one engine pushes 0.34 off the
+centreline. Attitude clusters are not fitted — every hull is built with six of
+them, because a ship that could not rotate could not be flown and there is no
+loadout in which that is an interesting choice.
+
+`sim/thrusters.py` asks what that means for a particular ship. Mass comes from
+the chassis `hull` rating plus every part and every tonne in the hold, so the
+loadout stops being a stat line: the same Fusion Torch pulls **2.06 m/s² on a
+SPORE and 0.108 on a LEVIATHAN**, and the LEVIATHAN takes 493 seconds to swing
+end for end against the SPORE's 50.
+
+`sim/attitude.py` is the consequence. The main drive pushes along the nose, so
+a burn in a new direction is a *turn* first — three ticks to swing a NAVIS 90°
+— and the turn spends reaction mass out of the same tank.
+
+Three faults came out of building it, all found by flying:
+
+- **A bigger engine made every hull worse.** One tick of a fusion torch on a
+  SPORE is 124 m/s, so the computer lit it to trim ten, overshot, corrected
+  the overshoot, and never converged. The worst drift a hull could recover
+  from ran 60, then 2, then 140 m/s across three drives of *increasing*
+  thrust. Engines throttle now.
+- **The control law was a ladder of branches**, each with its own threshold.
+  It held at the flat delta-v the conn used to assume and fell apart across a
+  160-fold range of real acceleration. It is one law now: `target_velocity`
+  says what the velocity should be, and the burn cancels the difference.
+- **Thrust comes in six directions**, so the nearest axis to a correction is
+  up to 45° off it — burning the *whole* error along it overshoots and creates
+  error elsewhere. A NAVIS was measured hunting between left, back, down,
+  right and up at 650 m, never berthing. Only the component that axis can
+  cancel is burned.
+
+`sim/burnplan.py` is the third gap, and the place I had to correct myself. The
+first draft derived a cruise speed from the quote and reported the burns to
+reach it: four and a half thousand kilometres a second, and every hull in the
+game declared inadequate. The arithmetic was right — a NAVIS crossing 6.5 AU
+in five days *is* doing 0.75% of light speed — and the conclusion was wrong,
+because the game does not fly interplanetary legs on Newton. It has a `jump`
+rating, a Foldrunner Coil, a relativistic profile, and a `dilation` argument on
+the clock. So the plan describes the crossing in the game's own terms: half the
+reaction mass is the braking burn, the turns take the time this hull's clusters
+need, and the coast is nearly all of it. `flight` remains the authority on days
+and mass; the plan is that quote, explained.
+
 **A window that captured the game instead of reading it.** Three more player
 reports, one cause:
 
@@ -2171,6 +2224,13 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   the branch that kills velocity *across* the approach passed everything else,
   because `start` always puts the ship dead ahead — so there is now a check
   that arrives off-axis on purpose, and it failed on the first run.
+- **`test_thrusters.py`** holds the propulsion model, and its general claim
+  is the one that caught all three faults above: **more thrust is never
+  worse.** Each time a hull flew *worse* for a better engine, that check
+  named it. A second — "a full hold is felt on the helm" — exists because the
+  mutation sweep found nothing holding *mass* as opposed to size: fixing the
+  moment of inertia to a constant, and dropping cargo from the reckoning
+  entirely, both passed everything else. Sweep: 12/12.
 - **`test_berthing.py`** holds what an approach costs: that the tank is the
   ship's, that committing spends it, that the clock hears about it, that a
   berth writes `orbit_body` and a lost approach does not, and that an impact

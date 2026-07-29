@@ -173,6 +173,8 @@ KIN = {
     "conn": ("conn",), "autopilot": ("conn",), "track": ("conn",),
     "viewport": ("cameras",), "berthing": ("berthing", "conn"),
     "orbits": ("conn",), "targets": ("conn", "berthing"),
+    "thrusters": ("thrusters",), "attitude": ("thrusters", "conn"),
+    "mounts": ("thrusters",), "burnplan": ("thrusters", "helm"),
 }
 
 

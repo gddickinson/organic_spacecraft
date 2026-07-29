@@ -2,6 +2,75 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: engines with places, and a hull that has to point them
+
+The captain picked the three gaps I had reported at the end of last cycle: no
+accelerate/decelerate split, no attitude, no engine geometry. They interlock —
+without geometry there is no thrust axis, without a thrust axis attitude means
+nothing, and without either a transfer cannot be broken into burns.
+
+`data/mounts.py` gives thrust somewhere to come from. Main drives mount aft
+and push along the nose, without exception, because that is what a main drive
+is; a two-slot hull running one engine pushes 0.34 off the centreline.
+Attitude clusters are built into every hull rather than fitted — a ship that
+cannot rotate cannot be flown, and there is no loadout where that is an
+interesting choice.
+
+`sim/thrusters.py` turns that into numbers for a particular ship: mass from the
+chassis rating plus every part and every tonne aboard. The same Fusion Torch
+now pulls **2.06 m/s² on a SPORE and 0.108 on a LEVIATHAN**, which flips end
+for end in 493 seconds against the SPORE's 50. `sim/attitude.py` makes it
+bite: the drive pushes along the nose, so a burn to port is a turn first.
+
+**Three faults, all found by flying, each caught by the same general check —
+more thrust is never worse.**
+
+A bigger engine made every hull *worse*. One tick of a fusion torch on a SPORE
+is 124 m/s, so the computer lit it to trim ten, overshot, corrected the
+overshoot, and never converged: the recoverable drift ran 60, then 2, then 140
+m/s across three drives of increasing thrust. Engines throttle now.
+
+Then the control law itself. It was a ladder of branches — fix the drift, else
+the closing rate, else coast — and it held together only at the flat delta-v
+the conn used to assume. Across a 160-fold range of real acceleration the
+branches fought each other. It is one law now: `target_velocity` says what the
+velocity ought to be and the burn cancels the difference. Simpler, and stable
+by construction rather than by tuning.
+
+Then the last one, and my favourite: thrust comes in **six** directions, so
+the nearest axis to a correction is up to 45° off it. Burning the whole error
+along it overshoots and creates error somewhere else — a NAVIS hunting between
+left, back, down, right and up at 650 m, never berthing. Only the component
+that axis can actually cancel is burned. After that the envelope is monotonic
+in thrust for every hull.
+
+**Where I had to correct myself.** The burn plan's first draft derived a cruise
+speed from the quote and reported the burns needed to reach it: 4,500 km/s, and
+every hull in the game declared hopelessly inadequate. The arithmetic was
+right — a NAVIS crossing 6.5 AU in five days *is* doing 0.75% of light speed —
+and the conclusion was wrong. The game does not fly interplanetary legs on
+Newton: it has a jump rating, a Foldrunner Coil, a relativistic profile, and a
+`dilation` argument on the clock precisely because a hard crossing runs the
+crew's clock slower than the sector's. I had invented a physics the game does
+not use in order to fail it. The plan now describes the crossing in the game's
+own terms — half the mass is the braking burn, the turns take the time this
+hull needs, the coast is the rest — and `flight` stays the authority on days
+and mass.
+
+Also this cycle, before the captain answered: I went looking in diplomacy and
+found that **brokering a settlement costs nothing with anyone else**. Every
+ordinary overture charges `allegiance` for being seen — relief to the
+Concordat costs you with the Charter and the Freeholds — but `broker` and
+`denounce` never got the same treatment, though brokering is the most public
+act in the game, gives standing with *two* powers at once, and is the only
+lever on the Concord ending. Parked as a task rather than half-done.
+
+Shipped: `data/mounts.py`, `sim/thrusters.py`, `sim/attitude.py`,
+`sim/burnplan.py`, a rewritten control law, the engine board and heading on
+the conn, the crossing broken into phases on the helm, and
+`tests/test_thrusters.py` (8 checks). Mutation sweep 12/12 against a green
+baseline. Full suite green.
+
 ## 2026-07-29 — SEEDFALL: a conn that changed nothing, and a station you could not click
 
 Asked of last cycle's work: *is everything it declares consumed?* — the

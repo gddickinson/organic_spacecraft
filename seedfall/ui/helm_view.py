@@ -398,6 +398,15 @@ class HelmView(View):
         tabs.changed.connect(self._plot_burn)
         p.add(tabs)
 
+        # What the crossing is actually made of. The lump the helm quotes is
+        # a turn, a burn, a long coast, a flip and a braking burn — and the
+        # turns take the time *this* hull's attitude clusters need.
+        from ..sim import burnplan
+        p.add(spacer(4), mono_label("The crossing"))
+        p.add(note(burnplan.note(g, body, self.burn)))
+        for phase, when, detail in burnplan.rows(g, body, self.burn):
+            p.add_row(f"{phase} · {when}", detail)
+
         p.add(spacer(4), mono_label("Burn profiles"))
         for q in flight.options(g, body):
             burn = q["burn"]

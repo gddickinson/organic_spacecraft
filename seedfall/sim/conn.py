@@ -16,11 +16,11 @@ change them:
   times the mass. It closes distance. It is a poor tool for the last hundred
   metres and the damage model says so.
 
-Two things make this more than a joystick. The first is that closing speed is
-not free: arrive fast and `contact` is a collision, scaled by how fast. The
-second is that a planet pulls. `mu` comes from the body's own `radius_km` and
-`gravity`, so a heavy world genuinely demands a faster orbit and genuinely
-falls on you if you dawdle — the numbers are the body's, not a difficulty knob.
+Three things make this more than a joystick. Closing speed is not free: arrive
+fast and contact is a collision, scaled by how fast. A planet pulls, with a
+`mu` from its own `radius_km` and `gravity`. And the main drive only pushes
+along the nose — see `sim/attitude.py` — so a burn in a new direction is a
+turn first, and the turn takes the time this hull's clusters need.
 
 Nothing here writes to the chronicle. `apply` returns what the manoeuvre did
 and the caller decides what it costs; the sim layer must not touch Qt and this
@@ -32,6 +32,10 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
+# The six camera directions and the six thruster axes are both hull geometry,
+# so they live with the mounts. Re-exported because every caller in the conn
+# and its windows reaches for them through this module.
+from ..data.mounts import AXES, AXES_BY_ID, VIEWS  # noqa: F401
 from .orbits import (ORBIT_BAND, ORBIT_BAND_SHARE, ORBIT_FLOOR_KM, in_orbit,
                      orbit_band, orbit_note, orbital_speed)
 from .targets import (G0, Target, approach_range, target_from_body,
@@ -73,29 +77,6 @@ TICK = 60.0
 #: crust of a planet.
 ADRIFT_MULTIPLE = 4.0
 
-#: The six directions a hull carries cameras in, as unit vectors in the
-#: ship's own frame: along its nose, its tail, its beams, its back and belly.
-VIEWS = [
-    ("fore", "Fore", (0.0, 1.0, 0.0)),
-    ("aft", "Aft", (0.0, -1.0, 0.0)),
-    ("port", "Port", (-1.0, 0.0, 0.0)),
-    ("starboard", "Starboard", (1.0, 0.0, 0.0)),
-    ("dorsal", "Dorsal", (0.0, 0.0, 1.0)),
-    ("ventral", "Ventral", (0.0, 0.0, -1.0)),
-]
-
-#: The axes a pilot translates along, in the ship's frame.
-AXES = [
-    ("forward", "Ahead", (0.0, 1.0, 0.0)),
-    ("back", "Astern", (0.0, -1.0, 0.0)),
-    ("left", "Port", (-1.0, 0.0, 0.0)),
-    ("right", "Starboard", (1.0, 0.0, 0.0)),
-    ("up", "Up", (0.0, 0.0, 1.0)),
-    ("down", "Down", (0.0, 0.0, -1.0)),
-]
-AXES_BY_ID = {a[0]: a for a in AXES}
-
-
 @dataclass
 class Conn:
     """A close-quarters approach in progress."""
@@ -105,8 +86,17 @@ class Conn:
     pos: list = field(default_factory=lambda: [0.0, -12.0, 0.0])
     #: How fast, in m/s, in the same frame.
     vel: list = field(default_factory=lambda: [0.0, 0.0, 0.0])
-    #: Which way the nose points, radians, 0 = along +y.
+    #: Which way the nose points, as a unit vector in the target's frame.
+    #: The main drive pushes along this and nowhere else.
+    nose: list = field(default_factory=lambda: [0.0, 1.0, 0.0])
+    #: Kept for the camera basis, which works in the hull's own frame.
     heading: float = 0.0
+    #: This hull's propulsion, read from what is actually fitted. The bare
+    #: constants below are only the fallback for a Conn built without a ship.
+    main_dv: float = MAIN_DV
+    rcs_dv: float = RCS_DV
+    slew_rate: float = 0.02
+    turn_rate_cost: float = 0.0
     #: Reaction mass left for close work, and what the hull started with.
     rcs: float = 40.0
     #: Seconds since the approach began.
@@ -173,8 +163,19 @@ def start(game, contact, range_km: float | None = None,
     # speed rating — a captain with 20 t of volatiles aboard took the conn
     # with 36.8, and spent it without the ship noticing.
     aboard = float(game.ship.cargo.get("volatiles", 0))
+    # What this hull can actually push with. A Fusion Torch on a SPORE is a
+    # rocket and on a LEVIATHAN is a nudge; until the engines had places and
+    # masses, both read as "speed +0.58" and flew identically.
+    from . import attitude as attitude_sim
+    from . import thrusters
+    kit = thrusters.summary(game.ship)
     conn = Conn(target=target, pos=[0.0, -r, 0.0], vel=[0.0, abs(drift), 0.0],
-                start_km=r, rcs=aboard, opening_rcs=aboard)
+                start_km=r, rcs=aboard, opening_rcs=aboard,
+                main_dv=kit["main_accel"] * TICK,
+                rcs_dv=kit["rcs_accel"] * TICK,
+                slew_rate=kit["slew_rate"],
+                turn_rate_cost=attitude_sim.turn_cost(game.ship, 6.283185))
+    conn.nose = list(attitude_sim.unit([-p for p in conn.pos]))
     if target.mu > 0:
         # Across the line of sight at circular speed, less the error the
         # transfer left. Radially inward a little, so it is falling: an
@@ -210,7 +211,7 @@ def can_burn(conn: Conn, main: bool) -> tuple[bool, str]:
 
 
 def forecast(conn: Conn, axis_id: str, main: bool = False,
-             ticks: int = 1) -> dict:
+             ticks: int = 1, throttle: float = 1.0) -> dict:
     """What this burn will leave you with, in the terms the panel shows.
 
     The pilot reads range, closing rate and relative speed; so this quotes
@@ -220,10 +221,35 @@ def forecast(conn: Conn, axis_id: str, main: bool = False,
     # On a copy, and it pays for the burn: quoting the tank as it stands
     # while the burn empties it is the same lie as quoting the wrong range.
     trial = _copy(conn)
-    apply(trial, axis_id, main=main, ticks=ticks)
+    apply(trial, axis_id, main=main, ticks=ticks, throttle=throttle)
     return {"range_km": trial.range_km, "closing": trial.closing,
             "speed": trial.speed, "rcs": trial.rcs,
-            "alongside": alongside(trial), "safe": trial.closing <= SAFE_CLOSING}
+            "alongside": alongside(trial), "safe": trial.closing <= SAFE_CLOSING,
+            "nose_off": math.degrees(_off_by(conn, axis_id, main))}
+
+
+def _off_by(conn: Conn, axis_id: str, main: bool) -> float:
+    """How far the nose is from where this burn needs it, in radians."""
+    from . import attitude as attitude_sim
+    if not main or not axis_id:
+        return 0.0
+    _aid, _label, vec = AXES_BY_ID[axis_id]
+    return attitude_sim.angle_between(conn.nose, _rotate(vec, conn.heading))
+
+
+def thrust_axis(conn: Conn, axis_id: str, main: bool) -> tuple:
+    """Which way a burn actually pushes the ship.
+
+    The attitude clusters shove along whichever axis was asked for — that is
+    what they are for, and why close work is done on them. **The main drive
+    only ever pushes along the nose.** Before this it pushed whichever way the
+    button said, which made the six clusters decoration and attitude a
+    variable nobody wrote to.
+    """
+    if main:
+        return tuple(conn.nose)
+    _aid, _label, vec = AXES_BY_ID[axis_id]
+    return _rotate(vec, conn.heading)
 
 
 def _copy(conn: Conn) -> Conn:
@@ -237,11 +263,14 @@ def _copy(conn: Conn) -> Conn:
     """
     return Conn(target=conn.target, pos=list(conn.pos), vel=list(conn.vel),
                 heading=conn.heading, rcs=conn.rcs, elapsed=conn.elapsed,
-                start_km=conn.start_km, opening_rcs=conn.opening_rcs)
+                start_km=conn.start_km, opening_rcs=conn.opening_rcs,
+                nose=list(conn.nose), main_dv=conn.main_dv,
+                rcs_dv=conn.rcs_dv, slew_rate=conn.slew_rate,
+                turn_rate_cost=conn.turn_rate_cost)
 
 
 def apply(conn: Conn, axis_id: str | None, main: bool = False,
-          ticks: int = 1) -> dict:
+          ticks: int = 1, throttle: float = 1.0) -> dict:
     """Fire along an axis (or coast, with no axis) and let time run.
 
     Returns what happened. It never raises on an empty tank: an out-of-mass
@@ -250,25 +279,44 @@ def apply(conn: Conn, axis_id: str | None, main: bool = False,
     """
     if conn.over:
         return {"ok": False, "why": "The approach is finished."}
-    burned = False
+    from . import attitude as attitude_sim
+
+    burned = turning = False
     if axis_id:
         ok, _why = can_burn(conn, main)
+        if ok and main:
+            # The main drive pushes along the nose. If the nose is not on the
+            # heading asked for, this tick is spent swinging the hull round
+            # instead of burning — which is what makes a hard burn to port on
+            # a loaded freighter a decision rather than a button.
+            _aid, _label, vec = AXES_BY_ID[axis_id]
+            want = _rotate(vec, conn.heading)
+            if not attitude_sim.pointed_at(conn.nose, want):
+                attitude_sim.slew(conn, want, TICK)
+                turning = True
+                ok = False
         if ok:
-            _, _label, vec = AXES_BY_ID[axis_id]
-            dv = MAIN_DV if main else RCS_DV
-            wx, wy, wz = _rotate(vec, conn.heading)
+            # The main drive throttles. It is the difference between an engine
+            # and a firework, and without it a bigger drive made every hull
+            # *worse*: one tick of a fusion torch on a SPORE is 124 m/s, so the
+            # computer lit it to trim ten, overshot, corrected the overshoot,
+            # and never converged. Attitude clusters are pulsed, not throttled.
+            part = max(0.0, min(1.0, throttle)) if main else 1.0
+            dv = (conn.main_dv if main else conn.rcs_dv) * part
+            wx, wy, wz = thrust_axis(conn, axis_id, main)
             conn.vel[0] += wx * dv
             conn.vel[1] += wy * dv
             conn.vel[2] += wz * dv
-            conn.rcs = round(conn.rcs - (MAIN_COST if main else RCS_COST), 3)
-            burned = True
+            spend = (MAIN_COST * part) if main else RCS_COST
+            conn.rcs = round(conn.rcs - spend, 4)
+            burned = part > 0
     for _ in range(max(1, ticks)):
         _step(conn, TICK)
         if conn.over:
             break
-    return {"ok": True, "burned": burned, "range_km": conn.range_km,
-            "closing": conn.closing, "speed": conn.speed,
-            "outcome": conn.outcome}
+    return {"ok": True, "burned": burned, "turning": turning,
+            "range_km": conn.range_km, "closing": conn.closing,
+            "speed": conn.speed, "outcome": conn.outcome}
 
 
 def _substeps(conn: Conn, dt: float) -> int:

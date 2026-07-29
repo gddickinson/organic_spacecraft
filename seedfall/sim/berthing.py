@@ -140,7 +140,10 @@ def commit(game, conn) -> dict:
         return {"ok": False, "already": True}
     conn.landed = True
 
-    fuel = spent(conn)
+    # Round *before* charging, so the figure in the ledger is the figure
+    # taken out of the hold. `flight._incident` learned this the same way:
+    # "report what was actually taken, not what was rolled".
+    fuel = round(spent(conn), 2)
     if fuel > 0:
         add_cargo(game.ship, "volatiles", -fuel)
     hurt = 0.0
@@ -157,7 +160,7 @@ def commit(game, conn) -> dict:
 
     game.add_log(_line(conn, fuel, hurt), _tone(conn))
 
-    out = {"ok": True, "fuel": round(fuel, 2), "damage": round(hurt, 1),
+    out = {"ok": True, "fuel": fuel, "damage": round(hurt, 1),
            "hours": round(conn.elapsed / 3600.0, 1),
            "moved": moved.name if moved is not None else None,
            "outcome": conn.outcome, "lost": False}
