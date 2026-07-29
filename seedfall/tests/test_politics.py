@@ -175,8 +175,20 @@ def run(suite: Suite) -> None:
 
     @check("a determined broker can still reach the Concord")
     def _():
-        wins = 0
-        for seed in range(4):
+        # Four seeds and a bar of three was a coin flip dressed as a check.
+        # Measured over seventy-two games, a determined broker reaches the
+        # Concord between 56% and 68% of the time — so `wins >= 3 of 4` had
+        # roughly an even chance of failing on any given day, and passed for
+        # a long time on luck. It duly went red for an economy change that a
+        # fixed-length control showed had no political effect whatever: same
+        # 322 ventures, standing and relations within noise, and the apparent
+        # 53%-against-75% gap vanished (21/36 against 22/36) the moment the
+        # same comparison was run on a fresh range of seeds.
+        #
+        # Twenty games and a floor well under the measured rate. The whole
+        # run costs about a second.
+        trials, wins = 20, 0
+        for seed in range(trials):
             game = new_game(f"broker-{seed}")
             game.credits = 10 ** 9
             for power in dip.POWERS:
@@ -197,8 +209,16 @@ def run(suite: Suite) -> None:
                     done = True
                     break
             wins += done
-        assert wins >= 3, f"Concord reached in only {wins}/4 determined games"
-        return f"Concord reached in {wins}/4 games against the churn"
+        rate = wins / trials
+        assert rate >= 0.35, (
+            f"Concord reached in only {wins}/{trials} determined games — a "
+            "captain with a billion credits, Kin with all four powers and "
+            "fifteen years of brokering should get there most of the time")
+        assert rate < 1.0, (
+            f"all {trials} determined games reached the Concord: the churn "
+            "the powers generate has stopped being able to undo the work")
+        return (f"Concord reached in {wins}/{trials} games against the churn "
+                f"({rate:.0%})")
 
     @check("ventures survive a save and reload")
     def _():

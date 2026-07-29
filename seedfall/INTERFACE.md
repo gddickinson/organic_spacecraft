@@ -664,6 +664,7 @@ seedfall/
     ├── test_routing.py 5 checks — power routing lands the turn it is ordered
     ├── test_magazine.py 6 checks — the other side can actually fight
     ├── test_stranded.py 6 checks — the way out of a dead end is real
+    ├── test_geography.py 5 checks — a port stays the kind of port it is
     ├── test_customs.py 9 contraband checks — the premium, the search, heat
     ├── test_allegiance.py 8 checks — taking sides, and brokering out of it
     ├── test_territory.py 8 checks — annexation, levy, defiance, seizure
@@ -1242,6 +1243,26 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **A port reverts to `Stock.base`, not to 1.0.** `make_market` builds real
+  economic geography — an ore-rich system's port gets up to 1.75x supply, a
+  faction's exports 1.55x, what it is short of 0.62x — and `tick_market` used
+  to drag every commodity at every port toward
+  `1 + volatility * trend * 12`, a number with nothing to do with the port.
+  The geography was gone inside a year: the spread in ore supply across ports
+  fell 0.431 → 0.117, and from year one **the best arbitrage in the entire
+  sector was zero or negative on every commodity, for ever**. The module
+  docstring had always said "its own equilibrium"; the arithmetic said 1.0.
+  `base` defaults to 0 and is adopted from current supply on first tick, so
+  saves written before it keep their character instead of being flattened.
+- **A 4-sample threshold is not a check.** `test_politics`' Concord broker ran
+  four seeds and demanded three. Measured over seventy-two games the true rate
+  is 56–68%, so that assertion had about an even chance of failing on any
+  given day and had been passing on luck. It went red for an economy change
+  that a fixed-length control proved had no political effect at all — same 322
+  ventures, standing and relations within noise — and the apparent
+  53%-against-75% gap vanished (21/36 against 22/36) on a fresh range of
+  seeds. Twenty games and a floor at 35% now. **When a check on a stochastic
+  outcome fails, measure the rate on a fresh seed range before believing it.**
 - **`is_stranded` must ask whoever grants each way out, not guess.** It is
   the gate on `distress_call`, the game's only answer to being out of fuel and
   money at once, and it carried two guesses. The ice test read

@@ -2,6 +2,74 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: after year one there was no trade in the game
+
+Task #66, which I raised last cycle: surveying is break-even and tips on seed
+luck. Chasing it reframed the question entirely and found something worse.
+
+First I had to stop trusting my own instruments. Bots for surveying, mining,
+trading and hauling all lost money — but so did the same bots in wide-open
+sectors, so the bots were the problem, not the game. I threw out the "every
+profession loses money" conclusion.
+
+Then the real chain. A destitute run (run-a) turned out to have a jump range of
+8.0 ly and **three reachable systems**; by year one it had zero unsurveyed
+bodies within reach and 159 in a sector it could not get to. Surveying is a
+*finite* resource — a body is surveyed once — so the profession that funds the
+early game runs out. That is by design: the pocket is deliberate, and
+`test_reach` has a check that a pocket "is a long project and not a trap".
+
+That check proves the pocket can *supply* the way out — a yard, the materials.
+It never asks whether a captain inside can **afford** the 78,000 credits. The
+tightest pockets hold four to eleven bodies: 1,600 to 4,400 credits of survey
+work, in total, forever. So I went looking for renewable income, expecting to
+declare it a trap.
+
+It is not a trap: **freight inside a two-system pocket pays 6,800 to 47,940
+credits a round trip**, and every pocket I measured offered work in most years.
+I was wrong, and said so rather than building on it.
+
+But measuring that turned up the thing that matters. Watching prices year by
+year across eighteen ports:
+
+    year 0   ore 4   alloy 34   biomass 10   phosphate 52   silicon 533
+    year 1   ore 0   alloy 21   biomass 17   phosphate -20  silicon -7
+    year 2   ore -3  alloy -9   biomass 2    phosphate -8   silicon -10
+
+**After year one the best arbitrage in the whole sector is zero or negative on
+every commodity.** Buying at the cheapest port and selling at the dearest loses
+money. The spread in ore supply across ports collapses from 0.431 to 0.117
+inside a year.
+
+`make_market` builds careful economic geography — a system rich in ore gives
+its port up to 1.75x supply, a faction's exports 1.55x, the things it is short
+of 0.62x. `tick_market` then dragged every commodity at every port toward
+`1 + volatility * trend * 12`, which has nothing to do with the port. The
+module's own opening line has always said each port drifts "toward **its own**
+equilibrium". The arithmetic said 1.0.
+
+`Stock.base` is what `make_market` decided; the drift reverts to that. Trends
+still move a port around its own level, shocks still hit it, trade still pushes
+it — but a mining world stays cheap in ore. Six years in, four of five staple
+goods are still worth carrying, best margin 510 a tonne; the silicon run
+between Quill Bight and Marrow's Deep is still worth 1,174.
+
+**The suite then taught me something about itself.** The Concord broker check
+went red. It runs four seeds and demands three — and measured over seventy-two
+games the true rate is 56–68%, so that assertion had roughly an even chance of
+failing on any given day and had been passing on luck. A fixed-length control
+showed my change had no political effect whatever (same 322 ventures, standing
+and relations within noise), and the apparent 53%-against-75% gap **vanished on
+a fresh range of seeds**: 21/36 against 22/36. Twenty games and a floor at 35%
+now, with the measurement recorded beside it.
+
+Four mutations, all caught. Two of my first five were not defects at all — one
+mutation did not actually freeze anything, and reverting the seed count is not
+a bug the suite should catch — so I fixed the mutation rather than contorting
+the check.
+
+704 → 709 green.
+
 ## 2026-07-29 — SEEDFALL: told "you can still move" with nowhere to go
 
 Breadth cycle — away from combat, into the economy. I set out to ask whether a

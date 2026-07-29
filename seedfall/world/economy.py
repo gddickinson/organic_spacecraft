@@ -20,6 +20,15 @@ class Stock:
     supply: float      # > 1 locally abundant (cheap), < 1 locally short (dear)
     units: int
     trend: float
+    #: What this port is structurally: an ore world's yards sit above one,
+    #: a power's imports below it. `make_market` computes it and it does not
+    #: move. Without it `tick_market` dragged every commodity at every port
+    #: toward the same 1.0, so the geography this module builds — local
+    #: resources, what a faction sells, what it is short of — was gone inside
+    #: a year. Measured: the best trade in the sector fell from 533 credits a
+    #: tonne of silicon in year zero to nought or negative, on everything,
+    #: for ever after.
+    base: float = 0.0
     #: Set by sim.market from live shocks; multiplies supply when pricing. It
     #: is kept apart from supply so the daily drift cannot quietly erase a
     #: blight, and so the shock can end cleanly.
@@ -55,9 +64,10 @@ def make_market(rng, system) -> Market:
                 supply *= 0.62
         if not c.legal:
             supply = rng.float(0.4, 1.1) if (fac and c.id in fac.sells) else 0.0
-        stock[c.id] = Stock(max(0.0, supply),
+        supply = max(0.0, supply)
+        stock[c.id] = Stock(supply,
                             round(supply * level * rng.int(30, 140)),
-                            rng.float(-0.02, 0.02))
+                            rng.float(-0.02, 0.02), base=supply)
     return Market(stock)
 
 
@@ -103,7 +113,14 @@ def tick_market(market: Market, days: float, rng) -> None:
     """Daily drift back toward equilibrium, plus a small random walk."""
     for cid, s in market.stock.items():
         c = BY_ID.get(cid)
-        eq = 1 + (c.volatility if c else 0.3) * s.trend * 12
+        if s.base <= 0:
+            # A save written before ports had a character of their own. Adopt
+            # whatever it is now rather than flattening it to the sector mean.
+            s.base = s.supply if s.supply > 0 else 1.0
+        # Toward what this port is, not toward the sector mean. The
+        # docstring at the top of this module has always said "its own
+        # equilibrium"; for a long time the arithmetic said 1.0.
+        eq = s.base * (1 + (c.volatility if c else 0.3) * s.trend * 12)
         s.supply += (eq - s.supply) * min(0.6, 0.018 * days)
         s.supply = max(0.02, s.supply + rng.float(-0.012, 0.012) * days)
         s.units = max(0, round(s.units + (s.supply * 60 - s.units) * 0.03 * days))
