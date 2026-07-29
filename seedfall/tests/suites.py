@@ -57,6 +57,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("fog", "test_fog", "fog"),
     SuiteSpec("conn", "test_conn", "conn"),
     SuiteSpec("cameras", "test_cameras", "cameras"),
+    SuiteSpec("connwindow", "test_connwindow", "conn window"),
     SuiteSpec("berthing", "test_berthing", "berthing"),
     SuiteSpec("thrusters", "test_thrusters", "thrusters"),
     SuiteSpec("weave", "test_weave", "weave"),

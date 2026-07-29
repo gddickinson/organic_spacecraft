@@ -397,6 +397,21 @@ one cause. The Fleet Hub was drawn on the helm chart, labelled, and inert:
   selected, so nothing appeared to happen. `QUAY_OFFSET` is one number now,
   read by the painter and the hit test alike, and quays are tested first.
 
+**A conn that teleported, and one that did not notice being flown.** Two more
+player reports, both about the window losing touch with the ship.
+
+*Close and berth* ran four hundred ticks **inside the click**: the hull
+arrived and the result was reported, which is exactly what a conn exists not
+to do. The mode is held now and one tick is flown per beat of the same clock
+the coast button already used, so a berthing takes the forty minutes it takes
+— measured, 39 ticks and 39 minutes — and can be watched, corrected, or called
+off half-way by pressing the button again.
+
+And a course set at the helm moves the hull, while the conn was built around
+wherever the ship stood when it opened — so it went on showing an approach on
+somewhere the ship had left. It compares where the ship is against where it
+was on every refresh, and reopens on whatever is alongside now.
+
 **The broadside you ordered, and the sky you were flying in.** Two halves of
 the same complaint: the game resolved things and then did not show them.
 

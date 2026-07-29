@@ -2,6 +2,33 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: a conn that teleported
+
+Two more reports, both about the window losing touch with the ship.
+
+**"Close and berth" teleported.** It did — `_auto` ran four hundred ticks
+inside the click, so the hull simply arrived and the outcome was reported.
+That is precisely what a conn exists not to do: the whole point of modelling
+the last twelve kilometres is that you fly them. The mode is *held* now, and
+one tick is flown per beat of the same clock the coast button already used.
+Measured: 39 ticks and 39 minutes to come alongside, none of it inside the
+click, and pressing the button again gives the conn back rather than doing it
+twice.
+
+**And the window did not notice the ship being flown.** A course set at the
+helm moves the hull; the conn was built around wherever the ship stood when it
+opened and went on showing an approach on somewhere it had left. It compares
+where the ship is against where it was on every refresh, and reopens on
+whatever is alongside now.
+
+Both were straightforward once found, and both are the same shape as the
+staleness bugs from two cycles ago — a window holding a copy of the world
+instead of reading it. That is now three times, so it is worth naming as a
+pattern rather than a coincidence.
+
+`tests/test_connwindow.py` (4 checks), split out of `test_cameras.py`, which
+had crossed five hundred lines. Full suite 795 green.
+
 ## 2026-07-29 — SEEDFALL: the broadside you ordered, and the sky you were in
 
 Two halves of one complaint: the game resolved things and then did not show

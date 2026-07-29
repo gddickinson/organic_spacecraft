@@ -51,6 +51,13 @@ class ConnWindow(QDialog):
             self.conn, self.refused = conn_sim.observe(self.game), ""
         self.main_view = "fore"
         self.running = False
+        #: Which autopilot mode is flying, if any. Held rather than run to
+        #: completion inside a click.
+        self.mode = None
+        #: Where the ship was when this approach opened, so the window can
+        #: notice it being flown somewhere else.
+        self.opened_at = (self.game.location_id,
+                          getattr(self.game, "orbit_body", None))
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._tick)
@@ -144,12 +151,14 @@ class ConnWindow(QDialog):
         grid.addWidget(button("Hold (coast a minute)",
                               lambda: self._burn(None)), 1, 3)
 
+        self.mode_buttons = {}
         for index, (mode, text) in enumerate(
                 (("null", "Kill relative motion"),
                  ("close", "Close and berth"),
                  ("orbit", "Make orbit"))):
-            grid.addWidget(button(text, lambda m=mode: self._auto(m),
-                                  kind="flat"), index // 2, 4 + index % 2)
+            btn = button(text, lambda m=mode: self._auto(m), kind="flat")
+            grid.addWidget(btn, index // 2, 4 + index % 2)
+            self.mode_buttons[mode] = (btn, text)
 
         self.run_btn = button("Run clock", self._toggle_clock, kind="primary")
         grid.addWidget(self.run_btn, 1, 5)
@@ -196,21 +205,34 @@ class ConnWindow(QDialog):
         self.refresh()
 
     def _auto(self, mode: str) -> None:
-        """Let the flight computer fly it until it resolves or stops helping."""
+        """Hand the conn to the flight computer, and let it fly on the clock.
+
+        It used to run four hundred ticks inside the click — so pressing
+        *Close and berth* teleported the hull to the target and reported the
+        result, which is exactly what the conn exists not to do. The mode is
+        held now and one tick is flown per beat of the same clock the coast
+        button uses, so a berthing takes the forty minutes it takes and can
+        be watched, corrected or called off half-way.
+        """
         if self.conn is None or self.conn.over:
             return
-        before = (self.conn.range_km, self.conn.speed)
-        for _ in range(400):
-            if self.conn.over:
-                break
-            axis, main, throttle = pilot_sim.autopilot(self.conn, mode)
-            if axis is None and mode == "null":
-                break              # nothing left to null
-            conn_sim.apply(self.conn, axis, main=main, throttle=throttle)
-        if not self.conn.over and (self.conn.range_km, self.conn.speed) == before:
-            self.win.toast("The computer has nothing to add.", "warn")
-        self._settle()
-        self.refresh()
+        if self.mode == mode:
+            self.mode = None                 # pressing it again lets go
+            self.refresh()
+            return
+        self.mode = mode
+        if not self.running:
+            self._toggle_clock()
+        else:
+            self.refresh()
+
+    def _fly_one(self) -> bool:
+        """One tick under the computer. False when it has nothing to add."""
+        axis, main, throttle = pilot_sim.autopilot(self.conn, self.mode)
+        if axis is None and self.mode == "null":
+            return False
+        conn_sim.apply(self.conn, axis, main=main, throttle=throttle)
+        return True
 
     def _toggle_clock(self) -> None:
         self.running = not self.running
@@ -224,10 +246,32 @@ class ConnWindow(QDialog):
         if self.conn is None or self.conn.over:
             self.running = False
             self.timer.stop()
+        elif self.mode:
+            if not self._fly_one():
+                self.mode = None
+                self.win.toast("The computer has nothing to add.", "warn")
         else:
             conn_sim.apply(self.conn, None)
         self._settle()
         self.refresh()
+
+    def _reopen(self) -> None:
+        """Rebuild the approach after the ship has been flown somewhere."""
+        self._settle()
+        self.mode = None
+        self.running = False
+        self.timer.stop()
+        contact = default_target(self.game)
+        self.contact = contact
+        if contact is None:
+            self.conn, self.refused = conn_sim.observe(self.game), ""
+        else:
+            self.conn, self.refused = berth_sim.begin(self.game, contact)
+            if self.conn is None:
+                self.conn = conn_sim.observe(self.game)
+        for feed in self.feeds.values():
+            feed.conn = self.conn
+        self.screen.conn = self.conn
 
     def _pick_target(self) -> None:
         """Only what the ship is actually alongside. Everything else is a burn.
@@ -252,6 +296,7 @@ class ConnWindow(QDialog):
         if picked is None:
             return
         self.contact = near[picked]
+        self.mode = None
         self.conn, self.refused = berth_sim.begin(self.game, self.contact)
         for feed in self.feeds.values():
             feed.conn = self.conn
@@ -271,6 +316,15 @@ class ConnWindow(QDialog):
     # ── painting ───────────────────────────────────────────────────────────
 
     def refresh(self) -> None:
+        # A course set at the helm moves the ship, and this window was built
+        # around wherever it was standing when it opened — so it went on
+        # showing an approach on somewhere the hull had left. If the ship has
+        # moved, the approach is reopened on whatever is alongside now.
+        here = (self.game.location_id, getattr(self.game, "orbit_body", None))
+        if here != self.opened_at:
+            self.opened_at = here
+            self._reopen()
+
         conn = self.conn
         if conn is None:
             self.title.setText("Nothing in range to approach")
@@ -280,6 +334,8 @@ class ConnWindow(QDialog):
             else f"Conn — station keeping at {self.game.system.name}")
         self.main_btn.setText(f"Main drive: {'ON' if self.use_main else 'off'}")
         self.run_btn.setText("Stop clock" if self.running else "Run clock")
+        for mode, (btn, text) in getattr(self, "mode_buttons", {}).items():
+            btn.setText(f"▶ {text}" if self.mode == mode else text)
 
         live = not conn.over
         ok, why = conn_sim.can_burn(conn, self.use_main)
