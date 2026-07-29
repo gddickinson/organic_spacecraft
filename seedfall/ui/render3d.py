@@ -154,7 +154,13 @@ def draw(painter, camera: Camera, mesh, at, scale: float, light,
         if outline:
             painter.setPen(QPen(colour.darker(150), 1))
         else:
-            painter.setPen(Qt.PenStyle.NoPen)
+            # Stroked in the face's *own* colour rather than left unpenned.
+            # Two adjacent antialiased polygons each cover about half of the
+            # pixel on the edge they share, and each blends its half with
+            # whatever is behind — so a solid hull came out with a hairline
+            # of background at every seam and every sphere in the game wore
+            # a faint wireframe. Half a pixel of overspill closes it.
+            painter.setPen(QPen(colour, 1))
         painter.drawPolygon(QPolygonF(points))
     return len(drawn)
 

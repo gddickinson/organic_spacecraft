@@ -34,6 +34,14 @@ class Target:
     body_index: int | None = None
     #: For an anchorage, what sort of berth: quay, hub, holding or gate.
     berth: str = ""
+    #: For a body, what sort of world — so the window picks a mesh with the
+    #: right caps and bands rather than a grey ball with a label on it.
+    look: str = ""
+    #: For a body, whether it carries a ring system. The *sky* drew rings on
+    #: a ringed giant from the moment giants had them; the thing you were
+    #: actually approaching did not — so a giant's rings vanished at exactly
+    #: the point you got near enough for them to be worth looking at.
+    ringed: bool = False
 
 
 def target_from_body(body, name: str | None = None,
@@ -44,12 +52,14 @@ def target_from_body(body, name: str | None = None,
     `gravity` is in gees and its `radius_km` in km, so this is the body's own
     numbers carried through and not a difficulty setting.
     """
+    from .sky import has_rings
     r_km = max(1.0, float(getattr(body, "radius_km", 1000)))
     g = max(0.0, float(getattr(body, "gravity", 0.0))) * G0     # m/s²
     return Target(id=body.id, name=name or body.name, kind="body",
                   radius_km=r_km, mu=g * r_km * r_km / 1000.0,
                   detail=getattr(body, "kind_name", "") or body.kind,
-                  body_index=index)
+                  look=getattr(body, "kind", "rocky"), body_index=index,
+                  ringed=has_rings(body))
 
 
 def target_from_contact(game, contact) -> Target:

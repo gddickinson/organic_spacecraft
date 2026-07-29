@@ -2,6 +2,74 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: a sky with eight kinds of star and seven of world
+
+The standing objective is a catalogue worth looking at. The sky had one star
+and one world, painted different colours.
+
+**Stars.** Eight spectral classes existed since the game was written — an M
+dwarf, a K, a G, an F, an A, a binary, a white dwarf, a neutron star — each
+with its own name and tint on the chart, and every one drawn as the same
+695,700 km yellow ball, because `sim/sky.py` held one number for a star's
+size and never asked which star. `data/starclasses.py` gives each its real
+radius and luminosity: **104,355 to one**, from a 12 km neutron star to an
+A-type at 1.8 solar. It was free — the data already said which was which.
+
+**Worlds.** Same story: a 12 km comet, a 7,000 km ocean and a 71,000 km giant
+all came out as one ball with a tint. The cheapest fix is **latitude** —
+colour a sphere's bands by how far up them you are and polar caps come for
+nothing, vary the bands and you have a gas giant, and a flat annulus round it
+is a ring system. `data/worlds3d.py`, seven meshes, and rings on 39% of
+giants.
+
+Three things worth keeping from building it:
+
+- **The first measure of "do these look alike?" was measuring the
+  background.** A 6×6 grid of mean colours over the whole plate, three
+  quarters of which is identical black sky — it duly reported seventeen pairs
+  of world rendering alike. Over lit pixels only, plus a vertical profile
+  (because a bare mean cannot see *banding*, which is the whole of what makes
+  a giant a giant), the closest pair is ice/comet and nothing collides.
+- **A share test cannot catch a low-entropy key.** Which giants carry rings
+  was once keyed on `body.id` — and there are only **seven distinct ids
+  across 192 giants**, so the ringed share is seven coin flips and lands on
+  47% by luck. The check that catches it asks a different question: do all
+  thirty-one giants sitting in the same orbital slot agree? Only groups of
+  eight or more count; the outermost slot holds one giant in the sector, and
+  one body agreeing with itself is not evidence.
+- **Every sphere in the game wore a faint wireframe**, and it took a contact
+  sheet to see it. Two adjacent antialiased polygons each cover half the
+  pixel on their shared edge and each blends its half with the background, so
+  `NoPen` ruled every solid hull with hairlines of empty space. Stroking each
+  face in its own colour: **1,194 seam pixels → 54**. That one is in
+  `ui/render3d.py` and improves every 3D object in the game.
+
+Then flying at one found the bug the test plates could not. The **sky** drew
+rings on a ringed giant; the thing being *approached* did not — `Target` had
+a `look` and no `ringed` — so a giant's rings vanished at exactly the point
+you got near enough for them to matter. Two doors into the same question
+disagreeing, again. The check asks the general form: every body in the sector
+must give the same answer to `sky.has_rings` and to `target_from_body().ringed`,
+and the picture is differenced against the same approach with the rings taken
+off — 10,440 lit samples against 3,443.
+
+Mutation sweep 15/16. The one miss is honest and stayed a miss: removing the
+surface mottling changes nothing any check should care about — measured, the
+closest pair of worlds is still 41 apart without it. The mottle is there
+because it looks better, and the docstring that claimed it was load-bearing
+for separation was corrected rather than defended with a check invented to
+score against it.
+
+`tests/test_worlds.py`, 7 checks. Full suite green.
+
+Answered a question about gravity along the way, and it exposed a real gap
+(now task #81): every **body** has mass — `mu = g·R²`, integrated as `mu/r²`
+each tick, spanning a million-fold from an asteroid's 12.6 to a giant's 14.2
+million — but a **star** has none. The largest object in every system pulls
+on nothing, which is newly conspicuous now that stars differ by five orders
+of magnitude in size. Nor does anything but the conn's current target pull:
+no slingshots, no third-body perturbation.
+
 ## 2026-07-29 — SEEDFALL: a conn that teleported
 
 Two more reports, both about the window losing touch with the ship.

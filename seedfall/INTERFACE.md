@@ -447,6 +447,58 @@ berth it answered that the planet was at zero range and therefore 180° wide,
 which is a picture of being inside it. Co-located sights are placed where they
 physically are: the world below a berth reads 98° across.
 
+**A sky with eight kinds of star and seven of world.** The sky then had *one*
+star and *one* world, painted different colours. Eight spectral classes have
+existed since the game was written — M dwarf, K, G, F, A, binary, white dwarf,
+neutron star, each with its own name and tint on the chart — and every one was
+drawn as the same 695,700 km ball, because `sim/sky.py` held one number for a
+star's size and never asked which star. `data/starclasses.py` gives each its
+real radius and luminosity: **104,355 to one**, a 12 km neutron star against
+an A-type at 1.8 solar. The data already said which was which.
+
+`data/worlds3d.py` does the same for bodies, on one idea — **latitude**.
+`by_latitude(paint)` colours a sphere's bands by how far up them they sit, and
+that one hook is the whole vocabulary: `capped()` gets polar caps for nothing,
+`banded()` varies the bands into a gas giant, and `ring_disc()` is a flat
+annulus of concentric bands. Rings are drawn in two halves — the far arc
+before the world and the near arc after it — because a flat annulus
+interpenetrates the sphere it circles and painter's algorithm has no answer to
+that. Which giants carry rings is derived from the body's **name** in
+`sky.has_rings`, so a ringed world is ringed in every chronicle from that seed
+and there is nothing to save.
+
+`tests/test_worlds.py` (6 checks) measures all of it in pixels rather than
+asserting it from the table that made it. Three lessons:
+
+- **The first "do these look alike?" measure was measuring the background.**
+  A 6×6 grid of mean colours over the whole plate, three quarters identical
+  black sky — it reported seventeen pairs rendering alike. Over lit pixels
+  only, plus a vertical profile (a bare mean cannot see *banding*, which is
+  the whole of what makes a giant a giant), nothing collides.
+- **A share test cannot catch a low-entropy key.** Ring assignment was once
+  keyed on `body.id`, and there are only **seven distinct ids across 192
+  giants** — so the ringed share is seven coin flips and lands on 47% by luck.
+  The check that bites asks whether all thirty-one giants in the *same
+  orbital slot* agree. Groups of eight or more only: the outermost slot holds
+  one giant in the whole sector, and one body agreeing with itself proves
+  nothing.
+- **Every sphere in the game wore a faint wireframe.** Two adjacent
+  antialiased polygons each cover half the pixel on their shared edge and each
+  blends its half with the background, so `NoPen` ruled every solid hull with
+  hairlines of empty space. `ui/render3d.py` strokes each face in its *own*
+  colour: **1,194 seam pixels → 54**, on every 3D object in the game.
+
+And then flying at one found the bug the plates could not. The **sky** drew
+rings on a ringed giant; the thing being *approached* did not, because
+`Target` had a `look` and no `ringed` and `viewport._model_for` returned a
+bare world mesh. So a giant's rings vanished at exactly the point you got
+close enough for them to be worth looking at — two doors into the same
+question disagreeing, which is this project's most reliable bug shape. The
+check is the general one: every body in the sector must give the same answer
+to `sky.has_rings` and to `targets.target_from_body(...).ringed`, and the
+picture is differenced against the identical approach with the rings taken
+off (10,440 lit samples against 3,443).
+
 **An anchor with nowhere to be.** A player reported it plainly: the gate is on
 the sector chart, invisible on the helm, impossible to fly to, and nothing is
 happening around it. All true. A Weave anchor was a *sector* abstraction — a
@@ -923,6 +975,12 @@ seedfall/
 │   ├── lineages.py     what a crew member is made of: span, upkeep, ageing
 │   ├── crossings.py    how hard to fly a jump, and which clock pays for it
 │   ├── fieldnotes.py   the eight things the ground can tell you
+│   ├── mounts.py       where an engine sits on a hull, and which way it pushes
+│   ├── gates.py        the Weave's ancient anchors: tolls, rings and chords
+│   ├── models3d.py     meshes at radius 1: shipyard, hull, anchor, asteroid
+│   ├── starclasses.py  8 spectral classes with real radii and luminosities —
+│   │                   a 12 km neutron star to an A-type at 1.8 solar
+│   ├── worlds3d.py     worlds by latitude: caps, bands, and concentric rings
 │   └── lore.py         intro, victories, endings, name pools, glossary
 ├── world/              generated content
 │   ├── galaxy.py       sector generation, lane relaxation, distance/transit
@@ -2479,6 +2537,21 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   at all, and five repaints of a still ship must give one picture. Asking
   `viewport.project` whether the aft camera can see something in front would
   be asking the code to confirm itself.
+- **`test_gunfire.py`** ties the picture of an exchange to the resolver that
+  produced it: every point of damage must come from a recorded shot (2,138.9
+  recorded against 2,138.9 taken over six chronicles), refusals are recorded
+  rather than merely logged, and the plot is differenced against the identical
+  frame with the shots removed.
+- **`test_connwindow.py`** holds the window against the ship: that "close and
+  berth" flies the last kilometres rather than running four hundred ticks
+  inside the click, and that a conn notices the hull being flown from the helm
+  instead of showing an approach on somewhere it has left.
+- **`test_worlds.py`** holds the astronomical catalogue, and measures it in
+  pixels rather than asserting it from the tables that made it: no two kinds
+  of world render alike, a star's size is its class's, a gas giant is banded
+  and nothing else is, rings are concentric *in the mesh* and belong to the
+  world rather than to its number in the system, faces meet with no seams
+  between them, and a ringed giant keeps its rings when you fly at it.
 - **`test_ui.py`** builds the real `MainWindow` on Qt's `offscreen` platform and
   paints every screen and every tab, including a live engagement. It stubs
   `win.dialog` because `QDialog.exec()` would block. One check builds its own

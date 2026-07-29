@@ -29,7 +29,7 @@ from PyQt6.QtGui import QColor, QFont, QPainter, QPen, QRadialGradient
 from PyQt6.QtWidgets import QWidget
 
 from ..core.rng import RNG
-from ..data import models3d
+from ..data import models3d, worlds3d
 from ..sim import conn as conn_sim
 from . import render3d, theme
 
@@ -252,10 +252,21 @@ class Viewport(QWidget):
         for sight in sky_sim.shapes(seen):
             if sight.kind == "star":
                 continue
-            mesh = (models3d.WORLDS.get("rocky", models3d.WORLD)
-                    if sight.kind == "body" else models3d.SHIPYARD)
+            if sight.kind == "body":
+                mesh = worlds3d.mesh_for(sight.look)
+            else:
+                mesh = models3d.SHIPYARD
+            # Rings first when they are behind, so the world occludes them,
+            # then again in front. Two passes is cheaper than sorting a flat
+            # annulus against a sphere it interpenetrates.
+            if sight.ringed:
+                render3d.draw(p, camera, worlds3d.RINGS_MESH, sight.at,
+                              sight.radius_km, self.light(conn), tilt=0.42)
             render3d.draw(p, camera, mesh, sight.at, sight.radius_km,
-                          self.light(conn), tilt=0.3)
+                          self.light(conn), tilt=0.42)
+            if sight.ringed:
+                render3d.draw(p, camera, worlds3d.RINGS_FRONT, sight.at,
+                              sight.radius_km, self.light(conn), tilt=0.42)
 
     def _star(self, p: QPainter, camera, sight) -> None:
         """The star: a disc that is its own light, and a corona."""
@@ -282,11 +293,10 @@ class Viewport(QWidget):
         """Which mesh, and how it is oriented, for what is out there."""
         kind = conn.target.kind
         if kind == "body":
-            # Its own colour: an ice moon and a gas giant should not be the
-            # same grey sphere with a different label over it.
-            look = getattr(conn.target, "detail", "").split("\u00b7")[0].strip().lower()
-            return (models3d.WORLDS.get(look, models3d.WORLD),
-                    conn.elapsed / 5400.0)
+            # Its own kind: an ice moon, an ocean and a gas giant should not
+            # be the same grey ball with different labels over them.
+            look = getattr(conn.target, "look", "") or "rocky"
+            return worlds3d.mesh_for(look), conn.elapsed / 5400.0
         if kind == "anchorage":
             if getattr(conn.target, "berth", "") == "gate":
                 return models3d.GATE, conn.elapsed / 2600.0
@@ -327,9 +337,23 @@ class Viewport(QWidget):
             p.setPen(Qt.PenStyle.NoPen)
             p.drawEllipse(QPointF(at[0], at[1]), 6.0, 6.0)
         else:
+            # A ringed world in two halves, the same as the sky does it: the
+            # far arc before the world and the near arc after, so the world
+            # occludes the part of the ring passing behind it. Painter's
+            # algorithm has no other answer to a flat annulus that
+            # interpenetrates the sphere it circles.
+            ringed = getattr(conn.target, "ringed", False)
+            if ringed:
+                render3d.draw(p, camera, worlds3d.RINGS_MESH, (0.0, 0.0, 0.0),
+                              conn.target.radius_km, self.light(conn),
+                              spin=spin, tilt=0.35)
             render3d.draw(p, camera, mesh, (0.0, 0.0, 0.0),
                           conn.target.radius_km, self.light(conn), spin=spin,
                           tilt=0.35)
+            if ringed:
+                render3d.draw(p, camera, worlds3d.RINGS_FRONT, (0.0, 0.0, 0.0),
+                              conn.target.radius_km, self.light(conn),
+                              spin=spin, tilt=0.35)
 
         if self.compact:
             return

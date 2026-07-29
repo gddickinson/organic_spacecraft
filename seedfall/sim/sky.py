@@ -25,10 +25,12 @@ from dataclasses import dataclass
 #: Kilometres in an astronomical unit.
 AU_KM = 1.495_978_707e8
 
-#: A star's radius, in km. The game does not give its stars a size — they are
-#: a spectral class and a tint — so this is the one number invented here, and
-#: it is a middling main-sequence star. At 0.40 AU that is 1.34° of sky.
-STAR_RADIUS_KM = 700_000.0
+#: A fallback star radius, in km, for a class nobody has described yet.
+#: Real sizes come from `data/starclasses.py`, which knows that a white dwarf
+#: is the size of a rocky world and a neutron star the size of a city — a
+#: range of a hundred thousand to one that the sky used to flatten into one
+#: yellow ball.
+STAR_RADIUS_KM = 695_700.0
 
 #: Below this apparent width, in degrees, a thing is a point of light rather
 #: than a shape. A pixel is about 0.08° on a 60° field at 760 px, so this is
@@ -57,6 +59,11 @@ class Sight:
     radius_km: float
     #: What colour it reads as. A hint for the window, not a rule.
     tint: str = ""
+    #: For a body, what sort of place it is, so the window can pick a mesh
+    #: with the right caps and bands on it.
+    look: str = ""
+    #: True for a world that carries a ring system.
+    ringed: bool = False
 
     @property
     def range_km(self) -> float:
@@ -113,9 +120,11 @@ def build(game, contact=None) -> list:
         return (math.cos(angle) * lift * 0.3, math.sin(angle) * lift * 0.3,
                 -lift)
 
-    out = [Sight(name=system.star_name or "the star", kind="star",
-                 at=offset(0.0, 0.0, STAR_RADIUS_KM), radius_km=STAR_RADIUS_KM,
-                 tint=getattr(system, "tint", "") or "#ffd9a0")]
+    from ..data.starclasses import of as star_class
+    star = star_class(system)
+    out = [Sight(name=system.star_name or star.name, kind="star",
+                 at=offset(0.0, 0.0, star.radius_km),
+                 radius_km=star.radius_km, tint=star.core, look=star.id)]
 
     for index, other in enumerate(track_sim.contacts(game, system)):
         if other.id == skip or other.kind == "star":
@@ -125,17 +134,40 @@ def build(game, contact=None) -> list:
         except Exception:
             continue
         if other.kind == "body" and other.body_index is not None:
-            radius = float(getattr(system.bodies[other.body_index],
-                                   "radius_km", 1000))
+            body = system.bodies[other.body_index]
+            radius = float(getattr(body, "radius_km", 1000))
             kind = "body"
+            look = getattr(body, "kind", "rocky")
+            ringed = has_rings(body)
         elif other.kind == "anchorage":
-            radius, kind = 0.6, "anchorage"
+            radius, kind, look, ringed = 0.6, "anchorage", "", False
         else:
-            radius, kind = 0.08, "hull"
+            radius, kind, look, ringed = 0.08, "hull", "", False
         out.append(Sight(name=other.name, kind=kind,
                          at=offset(x, y, radius, index),
-                         radius_km=radius, tint=other.tint))
+                         radius_km=radius, tint=other.tint,
+                         look=look, ringed=ringed))
     return out
+
+
+def has_rings(body) -> bool:
+    """Does this world carry a ring system?
+
+    Derived from the body's **name**, so a ringed world is ringed in every
+    chronicle grown from that seed and there is nothing to save. Only giants
+    get them — a ring round a 2,000 km ice ball would be a decoration rather
+    than a fact.
+
+    The name and not the id: a body's id is "1", "2" or "3" and repeats in
+    every system, so a digest of it had almost no entropy at all and produced
+    **1% ringed against a target of 45%**. A name carries its system with it.
+    """
+    from ..core.rng import RNG
+    from ..data.worlds3d import RINGED_SHARE
+    if getattr(body, "kind", "") != "gas":
+        return False
+    return RNG(f"rings:{getattr(body, 'name', '') or body.id}").chance(
+        RINGED_SHARE)
 
 
 def shapes(sky) -> list:
