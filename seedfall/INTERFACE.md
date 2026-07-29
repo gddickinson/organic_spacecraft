@@ -662,6 +662,7 @@ seedfall/
     ├── test_watches.py 5 checks — every option a real trade, every risk priced
     ├── test_courtship.py 7 checks — diminishing returns on goodwill
     ├── test_routing.py 5 checks — power routing lands the turn it is ordered
+    ├── test_magazine.py 6 checks — the other side can actually fight
     ├── test_customs.py 9 contraband checks — the premium, the search, heat
     ├── test_allegiance.py 8 checks — taking sides, and brokering out of it
     ├── test_territory.py 8 checks — annexation, levy, defiance, seizure
@@ -1240,6 +1241,27 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **An NPC's magazine is sized to its own mounts, not to salvage.**
+  `make_enemy` gave every hull a flat 4–20 t of ore, alloy and biomass —
+  stores meant for the wreck — and those were quietly doubling as ammunition
+  nobody had sized against a fight. Measured: a mean of 12 rounds against a
+  31-turn fight, dry on turn 11, **unarmed for 63% of every engagement**, and
+  the player taking no damage at all in 13 of 20 fights. `ROUNDS_MIN/MAX`
+  stock each ammo-hungry mount separately now.
+- **A warship needs a gun that can hurt you, not just a gun.**
+  `_weapon_pool` raised the tier until *some* weapon existed, and for a
+  fabricated hull the first to appear is the point-defence cannon — so **40%
+  of NPC hulls arrived armed with nothing but flak**, Concordat warships at
+  difficulty two included. `MAIN_GUN_DAMAGE` (12, against a median mount of
+  30) is the bar. Specialists are still fitted alongside a battery, which is
+  what they are for.
+- **The difficulty curve was a cliff, and `_rack` is what gave it a bottom.**
+  Scales 0.5, 1 and 2 all came out at 8–16 points of throw because every one
+  of them carried flak, and scale 3 jumped to 85. Requiring a main gun fixed
+  the flat bottom and created a new fault in its place: a fabricated hull's
+  first main gun is tier three, and tier three holds the breach torpedo, so a
+  light patrol drew from a battleship's rack. `_rack` widens the pool with
+  difficulty. Now 27 · 28 · 45 · 88.
 - **The seats run engineering first, then the helm, then the guns.** That
   order is load-bearing, not incidental. Engineering is what sets
   `side.route`, and its two consumers sit either side of it: the guns read it

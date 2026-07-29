@@ -65,22 +65,51 @@ def _win_rate(game, build: str, scale: float, trials: int = 24,
 def run(suite: Suite) -> None:
     check = suite.check
 
-    @check("no faction ever sends out an unarmed warship")
+    @check("no faction sends out a warship that cannot hurt you")
     def _():
         # Every weapon below tier two is grown-family, so a fabricated hull at
         # low difficulty could mount nothing at all and arrived unable to fire.
-        naked = []
+        #
+        # This asked only whether the throw was above zero, and a hull with a
+        # single point-defence cannon clears that at 8 damage. `_weapon_pool`
+        # raised the tier until *some* weapon existed, and for a fabricated
+        # hull the first one to appear is the flak gun — so 40% of NPCs came
+        # out carrying nothing but point-defence and this check called them
+        # armed. Being armed is not the claim worth making; being able to
+        # hurt somebody is.
+        from ..data.parts import PARTS
+        from ..sim.encounters import MAIN_GUN_DAMAGE
+
+        naked, toothless = [], []
         for faction in ("charter", "concordat", "freeholds", "sanhedrin"):
             for scale in (0.5, 1.0, 1.5, 2.0, 3.0, 4.0):
                 for index in range(12):
                     rng = RNG(f"armed-{faction}-{scale}-{index}")
                     enemy = encounters.make_enemy(rng, faction, scale)
-                    throw = sum(w.wpn.dmg for w in enemy["stats"].weapons if w.wpn)
-                    if throw <= 0:
+                    mounts = [w for w in enemy["stats"].weapons if w.wpn]
+                    if not sum(w.wpn.dmg for w in mounts):
                         naked.append(f"{faction}@{scale}")
+                    elif not any(w.wpn.dmg >= MAIN_GUN_DAMAGE for w in mounts):
+                        toothless.append(
+                            f"{faction}@{scale} "
+                            f"[{', '.join(w.name for w in mounts)}]")
         assert not naked, (
             f"{len(naked)} unarmed warships, e.g. {sorted(set(naked))[:4]}")
-        return "288 hulls across four factions and six difficulties, all armed"
+        assert not toothless, (
+            f"{len(toothless)} warships carrying only specialist mounts, "
+            f"e.g. {sorted(set(toothless))[:3]}")
+
+        # And the bar itself is a real one, stated against the parts table so
+        # that dropping MAIN_GUN_DAMAGE to nothing cannot satisfy the above.
+        guns = sorted(p.wpn.dmg for p in PARTS
+                      if p.slot == "weapon" and p.wpn)
+        median = guns[len(guns) // 2]
+        assert 9 < MAIN_GUN_DAMAGE < median, (
+            f"MAIN_GUN_DAMAGE is {MAIN_GUN_DAMAGE}: it has to sit above the "
+            f"specialist mounts (the boarding pod is 9) and below the median "
+            f"gun ({median}) to mean anything")
+        return (f"288 hulls, every one with a mount of {MAIN_GUN_DAMAGE}+ "
+                f"damage against a median of {median}")
 
     @check("warships carry no civilian kit, and the player still can")
     def _():

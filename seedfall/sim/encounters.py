@@ -14,6 +14,38 @@ PERSONALITY = {
     "sanhedrin": "cautious", "bloom": "feral",
 }
 
+#: Rounds an NPC hull carries for each mount that needs feeding.
+#:
+#: It used to be given a flat 4–20 tonnes of ore, alloy and biomass — stores
+#: meant for salvage, doing double duty as ammunition nobody had sized.
+#: Measured over forty engagements: a mean of 12 rounds against a 31-turn
+#: fight. NPCs ran dry in 35 of 40, on turn 11, and spent **63% of every
+#: engagement unarmed** — which is why the player took no damage at all in 13
+#: of 20 fights.
+#:
+#: Sized against what a fight actually eats rather than by taste. Over fifty
+#: long engagements against a hull built to soak them, an NPC spends a median
+#: 58% of its magazine and at worst 85%: enough to fight the whole engagement,
+#: low by the end of a hard one, and dry only if it goes very long. Running
+#: out is a real thing that happens to a ship in a long fight; being unarmed
+#: for two-thirds of every fight is not.
+ROUNDS_MIN = 22
+ROUNDS_MAX = 38
+
+#: Damage at or above which a mount is a main gun rather than a specialist.
+#: Below it sit the flash organ (3), the grapple (5), the point-defence cannon
+#: (8) and the boarding pod (9); above it every gun in the game, against a
+#: median mount damage of 30.
+#:
+#: `_weapon_pool` used to raise the tier until *some* weapon existed, and for
+#: a fabricated hull the first to appear is the flak gun — so **40% of NPC
+#: hulls arrived armed with nothing but point-defence**, Concordat warships at
+#: difficulty two included. `test_balance` asked whether they were armed and
+#: they were; nothing asked whether they were armed with anything that could
+#: hurt you. Specialists are still fitted, alongside a battery, which is what
+#: they are for.
+MAIN_GUN_DAMAGE = 12
+
 
 def _tier_for(rng, difficulty: float) -> int:
     """A fractional difficulty picks between the tiers either side of it.
@@ -27,19 +59,45 @@ def _tier_for(rng, difficulty: float) -> int:
     return min(4, low + (1 if rng.chance(frac) else 0))
 
 
+def _main_guns(pool: list) -> list:
+    """The mounts in a pool that can actually decide an engagement."""
+    return [p for p in pool if p.wpn and p.wpn.dmg >= MAIN_GUN_DAMAGE]
+
+
+def _rack(pool: list, difficulty: float) -> list:
+    """The main guns a hull of this weight would actually be carrying.
+
+    A fabricated hull cannot mount a main gun below tier three, and tier three
+    holds the railgun, the mass driver and the breach torpedo — so simply
+    handing it the pool at the reach where a gun first appears armed a light
+    patrol like a battleship. Requiring a main gun turned the old cliff
+    (flak, flak, flak, then 85 points of throw at scale three) into a curve;
+    this is what gives the curve a bottom as well as a top.
+    """
+    guns = sorted(_main_guns(pool), key=lambda p: p.wpn.dmg)
+    if not guns:
+        return []
+    reach = max(1, round(len(guns) * min(1.0, 0.2 + difficulty * 0.25)))
+    return guns[:reach]
+
+
 def _weapon_pool(chassis, tier: int) -> list:
-    """Weapons this hull can actually mount, raising the tier until some exist.
+    """Weapons this hull can mount, raising the tier until a main gun exists.
 
     Every low-tier weapon in the game is grown-family, so a fabricated hull at
     tier one has nothing whatever it can bolt on — which is why Concordat
     warships used to arrive completely unarmed and lose every fight without
     firing. A warship is armed; if its tech level says otherwise, the tech
     level is what gives.
+
+    Raising it until *some* weapon existed was not enough: the first mount a
+    fabricated hull can reach is the point-defence cannon, so warships came
+    out carrying nothing but flak. The bar is a main gun, not a gun.
     """
     for reach in range(tier, 5):
         unlocked = [t.id for t in TECH if t.tier <= reach]
         pool = parts_available("weapon", chassis, unlocked)
-        if pool:
+        if _main_guns(pool):
             return pool
     return parts_available("weapon", chassis, [t.id for t in TECH])
 
@@ -66,8 +124,18 @@ def _outfit(rng, chassis, tier: int, difficulty: float = 1.0) -> list[str]:
         if pool:
             # A light encounter carries one gun; a heavy one fills the rack.
             want = max(1, min(mounts, round(mounts * min(1.0, 0.35 + difficulty * 0.22))))
-            for _ in range(want):
-                fitted.append(rng.pick(pool).id)
+            # The first mount is a main gun. The rest may be anything the hull
+            # can carry, so point-defence and grapples still turn up — beside
+            # a battery, which is where they belong.
+            # The first mount is a main gun this hull's weight would carry.
+            # The rest may be anything at or below it, so point-defence and
+            # grapples still turn up — beside a battery, where they belong.
+            battery = _rack(pool, difficulty)
+            heavy = {p.id for p in _main_guns(pool)} - {p.id for p in battery}
+            allowed = [p for p in pool if p.id not in heavy] or pool
+            fitted.append(rng.pick(battery or pool).id)
+            for _ in range(want - 1):
+                fitted.append(rng.pick(allowed).id)
     return fitted
 
 
@@ -105,8 +173,15 @@ def make_enemy(rng, faction_id: str, difficulty: float = 1.0) -> dict:
     build_layers(ship, bonus)
     st = stats(ship, bonus)
 
+    # Salvage worth taking off the wreck, and separately a magazine sized to
+    # what this hull's own mounts actually eat.
     for cid in ("ore", "alloy", "biomass"):
         add_cargo(ship, cid, rng.int(4, 20))
+    for mount in st.weapons:
+        if not mount.wpn.ammo:
+            continue
+        cid, per = mount.wpn.ammo
+        add_cargo(ship, cid, per * rng.int(ROUNDS_MIN, ROUNDS_MAX))
 
     return {
         "ship": ship,

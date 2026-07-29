@@ -2,6 +2,68 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: the other side could not fight
+
+Last cycle I noticed in passing that the enemy AI runs its helm but never its
+engineering section, and said so without acting. Chasing it this cycle turned
+up something much worse underneath.
+
+**Enemy heat never rose above 0.14× its own cap, and usually sat at zero.**
+Not because heat was exempt — `add_heat` is symmetric — but because NPCs were
+barely firing. 684 "the gun is dry" messages across twenty fights.
+
+`make_enemy` gave every hull a flat 4–20 tonnes of ore, alloy and biomass.
+Those are *salvage*, meant to be worth pulling off a wreck, and they had been
+quietly doing a second job as ammunition that nobody had ever sized against a
+fight. Measured over forty engagements:
+
+- mean **12 rounds** carried, against a **31-turn** fight
+- dry in **35 of 40** fights, on **turn 11**
+- **unarmed for 63% of every engagement**
+- and so: *the player took no damage at all in 13 of 20 fights*
+
+Every ammunition *type* was stocked — alloy, biomass and ore cover all
+eighteen armed mounts — so the usual "is every declared thing consumed"
+question came back clean. It was the quantity that had never been measured
+against anything.
+
+Fixing that left 7 of 24 fights still bloodless, so I looked at those rather
+than loosening the threshold. **Every one was against a hull armed with
+nothing but point-defence cannons** — a flak mount doing 8 damage against a
+median of 30. `_weapon_pool` raises the tier until *some* weapon exists, and
+for a fabricated hull the first to appear is the flak gun. **40% of NPC hulls
+in the game were armed entirely with anti-missile guns**, Concordat warships
+at difficulty two included.
+
+`test_balance` had a check for exactly this and it passed happily, because it
+asked whether the throw was above zero. A single flak gun clears that. Being
+armed was never the claim worth making; being able to hurt somebody is. That
+check asks the right question now.
+
+And requiring a main gun exposed a third thing. The old difficulty curve was
+a **cliff**, not a curve — scales 0.5, 1 and 2 all sat at 8–16 points of
+throw because every one of them was carrying flak, then scale 3 jumped to 85.
+My fix gave the bottom a floor and immediately created a new fault: a
+fabricated hull's first main gun is tier three, and tier three holds the
+breach torpedo, so a light patrol was drawing from a battleship's rack. The
+balance suite caught it — an armed hull's win rate against a scale-0.5 patrol
+fell from 99% to 75%. `_rack` widens the gun pool with difficulty. The curve
+is 27 · 28 · 45 · 88 now, and the win rates 88% / 31% / 16%.
+
+What this cost, honestly: combat is a different game. Mean damage to the
+player went from **21 to 150–196**, and the player now loses 4 to 10
+engagements in 40 where it had never happened once. Wrecks are worth more
+too — unspent rounds are legitimate salvage — 31 tonnes recovered per kill
+against 60 now.
+
+Seven mutations, all caught. Two of my own checks needed a second pass: the
+magazine check read its bar off `ROUNDS_MIN`, the constant it was guarding,
+and passed without blinking on a three-round magazine; and the dry-share
+threshold was loose enough that the salvage stores alone satisfied it. Both
+measure against absolute numbers now.
+
+692 → 698 green.
+
 ## 2026-07-29 — SEEDFALL: the order you give the drive arrives a turn late
 
 Priority #3, positional combat with crew stations. I measured the system
