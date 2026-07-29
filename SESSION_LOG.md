@@ -2,6 +2,61 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: two of seven watches had no decision in them
+
+Priority #4, the crossing. The panel prices every option's days, mass, hull,
+heat, salvage and research — and then renders the risk as a bare "Might go
+wrong: 30%". `risk_text` and `risk_damage` were in the data, read by
+`sim/transit.py` when the risk fired, and referenced by no screen at all. So
+holding through debris (30% of thirty off the hull) and running a bad slug
+(35% of twenty-four) looked like the same gamble.
+
+Fixing the display meant reading every risk, and one of them was empty:
+
+- **`contact/hold` declared 45% — the largest risk in the table — and cost
+  nothing.** It printed "They were not nobody." and that was the whole of it.
+
+Which raised the general question, and the general question is the one that
+paid. `data/watches.py` states its own design rule in its docstring: *"there
+is no option that is simply best."* **Does any option dominate another** —
+cost no more on every axis, and pay at least as much?
+
+Four did, across two watches:
+
+- `hulk/beacon` was free and paid 12 research + 3 components; `hulk/log` was
+  free and paid 4. Logging it was never worth picking.
+- On `contact`, all three collapsed. `hail` was free, riskless, and the only
+  one that paid, so running dark (two days) and holding course (nothing) were
+  both pointless.
+
+**Two of seven watches contained no choice at all.** Every option now trades
+something different: hailing tells a stranger who you are (25% of 48 off the
+hull) and learns who they are; running dark costs two certain days; holding
+course is free until they come alongside and take three days over you.
+Stripping a hulk's beacon costs the day the blurb always said it did.
+
+`risk_days` is new. A risk could only ever cost hull, which is precisely why
+the contact could not be priced — being stopped and searched costs *time*.
+
+**The hull regrows and the calendar does not**, and that nearly cost me the
+fix. My first retune of `contact/hold` was ten off the hull plus two days —
+and the two days healed the ten exactly, so the option's own cost cancelled
+itself out. Measured: about 2.3 hull a day when badly hurt, faster near full.
+The lesson generalises past this watch: **hull damage is a cheap currency and
+days are an expensive one.**
+
+So the domination check does not read declared damage. It plays each option
+from one shared state per watch, both branches of the risk, and compares what
+is *still missing* once that option's own days have elapsed. A check that
+reasoned from the numbers blessed a trade worth three hull as though it were
+worth eighteen.
+
+Five checks in `test_watches.py`, every one proven to bite by reintroducing
+the bug it exists for. The domination check catches four of the five on its
+own, which is the shape a good general question has.
+
+Suite green.
+
 ## 2026-07-29 — SEEDFALL: all one hundred and fifty-three
 
 Task #60 has been open since long before this run and I have twice said it

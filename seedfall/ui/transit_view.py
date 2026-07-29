@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-from ..core.util import duration, num, pct
+from ..core.util import num, pct
 from ..data.watches import WATCHES_BY_ID
 from ..sim import transit as transit_sim
 from ..sim.ship import hull_pct
 from .widgets import (Panel, Pill, View, button, label, mono_label, note,
                       spacer)
+
+
+def _days(n: int) -> str:
+    return f"{n} day" if n == 1 else f"{n} days"
 
 
 class TransitView(View):
@@ -76,7 +80,7 @@ class TransitView(View):
             p.add(note(option.blurb))
             cost = []
             if option.days:
-                cost.append(f"{option.days} day(s)")
+                cost.append(_days(option.days))
             if option.fuel:
                 cost.append(f"{option.fuel:g} t of mass")
             if option.damage:
@@ -87,6 +91,22 @@ class TransitView(View):
                 p.add_row("Costs", " · ".join(cost))
             if option.risk:
                 p.add_row("Might go wrong", pct(option.risk), "warn")
+                # And what going wrong costs. The percentage on its own made
+                # the choice unreadable: holding through debris risks 30% of
+                # thirty more off the hull, running a bad slug risks 35% of
+                # twenty-four, and the two read as the same gamble.
+                toll = []
+                if option.risk_days:
+                    toll.append(_days(option.risk_days))
+                if option.risk_damage:
+                    toll.append(f"{round(option.risk_damage)} more off "
+                                "the hull")
+                said = " · ".join(toll)
+                if option.risk_text:
+                    said = f"{said} — {option.risk_text}" if said \
+                        else option.risk_text
+                if said:
+                    p.add(note(f"If it does: {said}"))
             if option.salvage or option.research:
                 worth = [f"{round(v)} t {k}" for k, v in option.salvage.items()]
                 if option.research:

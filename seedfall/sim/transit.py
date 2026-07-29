@@ -150,6 +150,8 @@ def choose(game, transit: Transit, option_id: str, rng) -> dict:
         out["went_wrong"] = True
         if option.risk_damage:
             apply_damage(game.ship, option.risk_damage)
+        if option.risk_days:
+            _spend(game, transit, days=option.risk_days, fuel=0.0)
         say(transit, option.risk_text or "It went badly.", "bad")
     else:
         say(transit, f"{option.label}.", "")

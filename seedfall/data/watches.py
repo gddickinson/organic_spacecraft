@@ -28,6 +28,9 @@ class Option:
     #: Chance the choice goes badly anyway, and what it costs if it does.
     risk: float = 0.0
     risk_damage: float = 0.0
+    #: Days lost if it goes badly. A risk that can only cost hull left the
+    #: contact watch with a 45% chance of nothing at all.
+    risk_days: int = 0
     risk_text: str = ""
     #: What it is worth if it comes off.
     salvage: dict = field(default_factory=dict)
@@ -93,8 +96,8 @@ WATCHES: list[Watch] = [
                      research=40, risk=0.18, risk_damage=12,
                      risk_text="Something aboard was still under pressure."),
               Option("beacon", "Strip the beacon and go",
-                     "An hour's work and a transponder worth selling.",
-                     salvage={"components": 3}, research=12),
+                     "A day held alongside, and a transponder worth selling.",
+                     days=1, salvage={"components": 3}, research=12),
               Option("log", "Log it and pass",
                      "Somebody else's problem, and somebody else's salvage.",
                      research=4),
@@ -150,15 +153,20 @@ WATCHES: list[Watch] = [
           "transponder, which is not in itself unusual out here.",
           options=(
               Option("hail", "Hail them",
-                     "Say who you are and see what comes back.",
-                     research=8),
+                     "Say who you are and see what comes back. They will know "
+                     "who you are either way.",
+                     research=8, risk=0.25, risk_damage=48,
+                     risk_text="They knew the name, and they had been waiting "
+                               "for it."),
               Option("dark", "Run dark and let them pass",
                      "Cold hull, no emissions, two days of drifting.",
                      days=2),
               Option("hold", "Hold course and see",
                      "They are probably nobody. Probably.",
-                     risk=0.45, risk_damage=0,
-                     risk_text="They were not nobody."),
+                     risk=0.45, risk_damage=30, risk_days=3,
+                     risk_text="They were not nobody. They come alongside, "
+                               "take three days looking you over, and leave "
+                               "a plate short."),
           )),
 ]
 

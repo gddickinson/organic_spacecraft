@@ -659,6 +659,7 @@ seedfall/
     ├── test_balance.py 8 balance checks — measured by playing the fights
     ├── test_bloom_arc.py 7 Bloom checks — provocation, answers, study
     ├── test_transit.py 6 crossing checks — watches, aborting, tension
+    ├── test_watches.py 5 checks — every option a real trade, every risk priced
     ├── test_customs.py 9 contraband checks — the premium, the search, heat
     ├── test_allegiance.py 8 checks — taking sides, and brokering out of it
     ├── test_territory.py 8 checks — annexation, levy, defiance, seizure
@@ -1237,6 +1238,25 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **The hull regrows and the calendar does not.** About 2.3 a day when badly
+  hurt, and faster near full. So *hull damage is a cheap cost and days are an
+  expensive one*, and an option that charges both can cancel itself out:
+  `contact/hold` was first retuned to ten off the hull plus two days, and the
+  two days healed the ten exactly. Never price a watch option — or judge one —
+  on declared damage alone; `test_watches.py` measures what is still missing
+  after the option's own days have passed.
+- **Every watch option must be a trade nobody can dismiss.** `data/watches.py`
+  states the rule in its own docstring — "there is no option that is simply
+  best" — and four options broke it. The check is *domination*: does any
+  option cost no more on every axis and pay at least as much? That single
+  question found all four, across two watches, and it catches four of the five
+  regressions in the mutation sweep. Testing the options that worked would
+  have found none of them.
+- **A declared risk has to cost something when it fires.** `contact/hold`
+  carried the largest risk in the table, 45%, and `risk_damage=0`: it printed
+  "They were not nobody." and nothing happened. `risk_days` exists because a
+  risk could previously only cost hull, and being stopped and searched costs
+  time — without it the option could not be priced at all.
 - **The price register holds price quotes and nothing else.** Chart completion
   dates used to be stashed in `game.register` beside them, and
   `market.best_markets` walks every value in it and reads `.sell` — so charting
@@ -1244,6 +1264,11 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   where Qt swallows it and the panel simply fails to draw. Chart dates live in
   `game.charts_made` now, with a migration for old saves. Found by rendering
   the screens for the README, which is a kind of play the suite was not doing.
+- **A watch option states what going wrong costs, not just its odds.** The
+  panel rendered "Might go wrong: 30%" and stopped, so holding through debris
+  (30% of thirty off the hull) and running a bad slug (35% of twenty-four)
+  read as the same gamble. `risk_text` and `risk_damage` existed in the data
+  and were read by `sim/transit.py` alone — the screen referenced neither.
 - **A ground option states its odds, its prize and its risk.** The screen
   listed "(science, difficulty 3)" and nothing else. Resolution is
   `1d6 + officer level >= difficulty + 2`, so that same string is a
