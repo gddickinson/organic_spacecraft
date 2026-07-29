@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..core.save import register
-from ..data.diplomacy import (ACTIONS_BY_ID, AGENDAS, CONCORD_RELATION,
+from ..data.diplomacy import (TREATY_WEIGHT, ACTIONS_BY_ID, AGENDAS, CONCORD_RELATION,
                               CONCORD_STANDING, INITIAL_RELATIONS,
                               RELATION_BANDS)
 from ..data.factions import FACTIONS_BY_ID
@@ -159,7 +159,8 @@ def preview(game, action_id: str, faction: str,
         out["standing"] = [(faction, gain)]
         # The half nobody was told about.
         out["standing"] += [(power, -cost)
-                            for power, cost in allegiance.price(game, faction, 8)]
+                            for power, cost in allegiance.price(game, faction,
+                                               TREATY_WEIGHT)]
     else:
         # A gift is a public act. Courting one power in front of the power it
         # is losing a war to used to cost exactly nothing — which is why a
@@ -238,7 +239,7 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
         # Signing with one power cools you with its enemies — by how much the
         # rift is actually worth, rather than the flat -4 this used to be,
         # which made brokering a war down to a grudge worth nothing.
-        allegiance.charge(game, faction, 8)
+        allegiance.charge(game, faction, TREATY_WEIGHT)
         lines.append("Signed. Berthing, charts, and a clause about the Bloom.")
     else:
         game.adjust_rep(faction, gain)

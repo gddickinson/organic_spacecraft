@@ -28,7 +28,9 @@ from dataclasses import dataclass, field
 from ..core.save import register
 from ..data.approaches import (APPROACHES_BY_ID, ODDS_PER_DAY, QUIET_DAYS)
 from ..data.commodities import TRADE_IDS
+from ..data.diplomacy import TREATY_WEIGHT
 from ..data.factions import FACTIONS_BY_ID
+from . import allegiance
 from . import diplomacy as dip
 from .ship import add_cargo
 
@@ -229,8 +231,8 @@ def preview(game, envoy, answer: str) -> dict:
     action = envoy.action
     if action is None:
         return {}
-    out = {"answer": answer, "rep": {}, "credits": 0, "goods": None,
-           "lines": []}
+    out = {"answer": answer, "rep": {}, "credits": 0, "offer": 0,
+           "goods": None, "relations": None, "lines": []}
     if answer == "accept":
         out["rep"][envoy.faction] = action.accept_rep
         if envoy.kind == "requisition":
@@ -245,18 +247,26 @@ def preview(game, envoy, answer: str) -> dict:
         elif envoy.kind == "denounce_rival":
             out["credits"] = envoy.credits
             out["rep"][envoy.rival] = -18.0
+            out["relations"] = (envoy.faction, envoy.rival, -6.0)
             out["lines"].append(
                 f"{envoy.credits:,} credits, and {_short(envoy.rival)} hears "
-                "every word of it.")
+                f"every word of it. It also drives {_short(envoy.faction)} "
+                f"and {_short(envoy.rival)} six further apart.")
         elif envoy.kind == "treaty_offer":
             out["lines"].append("A treaty signed at their expense — berthing "
                                 "rights and a tariff line.")
+            for power, cost in allegiance.price(game, envoy.faction,
+                                                TREATY_WEIGHT):
+                out["rep"][power] = out["rep"].get(power, 0.0) - cost
         elif envoy.kind == "warning":
             out["lines"].append(
                 f"The file closes. Taking {_short(envoy.rival)}'s work again "
                 "inside a season will reopen it.")
     elif answer == "refuse":
         out["rep"][envoy.faction] = action.refuse_rep
+        if envoy.kind == "levy":
+            out["lines"].append("They will file it as a grievance, and "
+                                "grievances are counted.")
         out["lines"].append(action.costs.format(
             power=_short(envoy.faction),
             rival=_short(envoy.rival) if envoy.rival else "them"))
@@ -269,7 +279,11 @@ def preview(game, envoy, answer: str) -> dict:
         else:
             better = int(envoy.credits * action.haggle)
             way = "more" if envoy.kind != "levy" else "less"
-            out["credits"] = better if envoy.kind != "levy" else -better
+            # `offer`, not `credits`: haggling moves what is *on the table*,
+            # and nothing reaches the treasury until you accept. This was
+            # reported as `credits`, so the screen printed "Treasury: +794"
+            # for a push that pays nothing at all.
+            out["offer"] = better if envoy.kind != "levy" else -better
             out["rep"][envoy.faction] = -2.0
             out["lines"].append(
                 f"{better:,} credits {way}, and they will think slightly "
@@ -335,6 +349,10 @@ def answer(game, envoy, choice: str) -> dict:
             dip.shift_relation(game, envoy.faction, envoy.rival, -6.0)
     elif envoy.kind == "treaty_offer":
         dip.ensure(game).treaties.append(envoy.faction)
+        # The same instrument, so the same price. Signing one you proposed
+        # charged the signatory's enemies and signing one they offered charged
+        # nobody, which made waiting to be asked the way to sign for free.
+        allegiance.charge(game, envoy.faction, TREATY_WEIGHT)
     elif envoy.kind == "warning" and envoy.rival:
         game.flags[f"warned_off:{envoy.rival}"] = game.day + 180
 

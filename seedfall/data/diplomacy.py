@@ -106,6 +106,14 @@ RELATION_BANDS = [
 ]
 
 #: Concord needs the powers at peace with each other, not merely with you.
+#: How heavily a treaty registers with the signatory's enemies. Read by both
+#: doors into signing one — `diplomacy.perform` when you propose it, and
+#: `approach.answer` when their envoy offers it. They disagreed: proposing it
+#: charged the signatory's enemies and accepting the identical instrument
+#: charged nobody, so the way to sign a treaty for free was to wait to be
+#: asked.
+TREATY_WEIGHT = 8.0
+
 CONCORD_RELATION = 15
 CONCORD_STANDING = 70
 

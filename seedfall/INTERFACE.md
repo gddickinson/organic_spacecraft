@@ -586,7 +586,8 @@ seedfall/
 │   ├── works.py        colony development: what a settlement becomes
 │   ├── flight.py       the helm: orbits, intercepts, routing, transfer burns
 │   ├── survey.py       what a way of looking costs, finds, and is blind to
-│   ├── approach.py     a power's envoy: caused, costed, and answerable
+│   ├── approach.py     a power's envoy: caused, costed, and answerable;
+│   │                   a treaty signed here costs what one you propose costs
 │   ├── officials.py    who runs the quay, what they think, what you know
 │   ├── anchorage.py    quays, hubs and holdings — places you can put in
 │   ├── traffic.py      other hulls: where they are and what they are doing
@@ -687,6 +688,7 @@ seedfall/
     ├── test_charting.py 5 checks — a chart is dated, and goes off
     ├── test_conviction.py 6 checks — every event an officer cares about fires
     ├── test_bench_kinds.py 5 checks — evidence names are real, tech is reachable
+    ├── test_envoy.py   7 checks — the preview is the answer, both doors alike
     ├── ground_ai.py    a party leader good enough to measure the ground with
     ├── suites.py       the suite table `__main__` dispatches from
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
@@ -864,6 +866,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   game that adds heat, so one clamp at the source covers every hull. An
   end-of-turn clamp was tried too and measured to change nothing at all, so it
   was removed rather than left in looking useful.
+- **`TREATY_WEIGHT` is read by both doors into signing one.**
+  `diplomacy.perform` charges the signatory's enemies through
+  `sim/allegiance.py`; `approach.answer` did not, so the same instrument with
+  the same signatory cost −6 with each of three powers when you proposed it
+  and **nothing** when you accepted their offer. Waiting to be asked was how
+  you signed a treaty for free. Both read the one constant now, and
+  `preview` states the price.
+- **`preview["credits"]` is money moving; `preview["offer"]` is the price on
+  the table.** They were one field, and the envoy screen rendered a haggle as
+  "Treasury: +794" — a captain reading that row believed they had been paid
+  for asking. Nothing is paid until the offer is accepted.
 - **A fixture that names something the game does not know is invisible.**
   `inquiry.add` returns 0.0 for an unrecognised kind — silently, which is
   right for a sim that must survive an old save. `test_provisional` typed six

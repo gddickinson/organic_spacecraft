@@ -68,6 +68,12 @@ class EnvoyView(View):
             if plan["credits"]:
                 card.add(label(f"Treasury: {plan['credits']:+,}", "",
                                "chloro" if plan["credits"] > 0 else "warn"))
+            # Haggling moves the offer, not the treasury. Printing it as
+            # `Treasury: +794` told a captain they had been paid for asking.
+            if plan.get("offer"):
+                card.add(label(
+                    f"What is on the table: {plan['offer']:+,} credits", "",
+                    "chloro" if plan["offer"] > 0 else "warn"))
             usable = self._usable(g, envoy, choice)
             card.add(button(title, lambda c=choice: self._answer(c),
                             kind="primary" if choice == "accept" else "",

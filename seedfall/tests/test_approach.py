@@ -216,8 +216,12 @@ def run(suite: Suite) -> None:
         res = approach.answer(game, envoy, "push")
         assert res.get("ok"), res.get("why")
         assert envoy.credits > opening, (opening, envoy.credits)
-        assert envoy.credits - opening == said["credits"], (
-            f"said {said['credits']:+,}, moved {envoy.credits - opening:+,}")
+        # `offer`, not `credits`. This check always compared the movement of
+        # what is *on the table* — which was right — against a field the envoy
+        # screen was rendering as "Treasury: +794". One number, two readings,
+        # and the screen's was the wrong one. See `tests/test_envoy.py`.
+        assert envoy.credits - opening == said["offer"], (
+            f"said {said['offer']:+,}, moved {envoy.credits - opening:+,}")
         again = approach.answer(game, envoy, "push")
         assert not again.get("ok"), "you can push forever"
         return (f"{opening:,} → {envoy.credits:,} credits, and no second "

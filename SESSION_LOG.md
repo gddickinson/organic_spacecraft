@@ -2,6 +2,46 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: a treaty that was free if you waited to be asked
+
+Every area of the breadth list has now had a cycle, so back to the top of the
+priority list: diplomacy. Last time was the overtures you make; this is the
+half where the powers come to you.
+
+`approach.answer` carries the comment "everything here must match `preview`
+exactly". Four things did not.
+
+- **Signing a treaty was free through one door.** `diplomacy.perform` charges
+  the signatory's enemies when you propose one; `approach.answer` appended
+  the treaty and charged nobody. Measured with all four powers at −70 with
+  each other: proposing cost −6 with each of the other three, accepting the
+  identical instrument cost **nothing at all**. A treaty is the most public
+  act in the game, and there was a door through which it was invisible —
+  which is precisely what the last diplomacy cycle set out to end.
+  `TREATY_WEIGHT` now lives in `data/diplomacy.py` and both doors read it.
+- **Haggling claimed the treasury.** The envoy screen printed "Treasury:
+  +794" for a push. Pushing raises what is *on the table*; nothing is paid
+  until you accept. `preview` reports `offer` separately from `credits` now,
+  and the card reads "What is on the table: +794 credits".
+- **Two silences**: accepting a denunciation drives the two powers a further
+  six apart, and refusing a levy is filed as a grievance. Both happened, and
+  neither appeared in the preview the screen is built from. Both do now.
+
+**A detail worth keeping.** The existing check `pushing moves the price once
+and only once` compared the movement of the offer against `preview["credits"]`
+— and was right about the semantics all along. The screen read the same field
+as the treasury. One number, two readings, and the screen had the wrong one; a
+check can be correct and still leave a defect standing if something else reads
+its subject differently.
+
+The envoy triggers themselves measured clean: all five kinds reachable once
+their preconditions are built, and my first sweep only missed two because the
+driver never raised standing or planted a colony — the same confounding as the
+combat cycle, caught by constructing the conditions instead.
+
+Seven checks in a new `test_envoy` suite, every one proven to bite.
+650 checks green, nothing over 500 lines.
+
 ## 2026-07-29 — SEEDFALL: a bench that was never fully stocked
 
 Research, the last area of the breadth list this run had not touched. The
