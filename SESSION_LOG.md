@@ -2,6 +2,89 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: the Weave, and the road the Bloom walks
+
+The captain asked for faster-than-light travel: gates, a network of them, more
+being built, ancient alien technology mixed with modern.
+
+**What I did not rebuild.** The relativistic side is already there and good —
+four crossing profiles with real dilation, two clocks (`Game.day` for the
+Verge, `Game.ship_day` for the people aboard) and a documented trade between
+reaction mass, the crew's remaining years and everything they would otherwise
+have got done. Rewriting that would have been busywork. What is missing is
+**reach**: jump range is 10 ly, the sector is 68 across with a median pair
+distance of 28.6, so a fresh captain reaches three systems of forty-one.
+
+**The Weave.** Nine ancient anchors, derived from the galaxy seed by
+farthest-point sampling so they are landmarks in every chronicle and need no
+save migration — the same trick anchorages and traffic use. Paired in a ring
+with chords across it. Three burn at dawn.
+
+A link burns only when **both** ends do, which is the whole shape of the
+progression: the first anchor you wake buys nothing at all, and the log says
+so — "Nothing answers yet." My first draft lit the three best-connected
+anchors independently and produced a sector with one working link and two
+rings standing alone in the dark. They are lit as a chain now.
+
+Transit is instant — the only act in the game that does not spend the calendar
+— and pays a toll to whoever holds the far end, priced on the light years
+saved and scaled by standing. A power that loathes you will not open at all.
+Waking a dark anchor needs `weavecraft`, which requires Xenolith Metallurgy
+*and* the Foldrunner Coil: learn one half and you have a very expensive ring
+you cannot switch on. That is the ancient-and-modern mixture the request asked
+for, made mechanical.
+
+Measured across five sectors: a drive alone reaches 2 to 35 systems of 42, and
+a fully-lit Weave adds **eight destinations, never fewer than two of them
+beyond any amount of hopping**.
+
+**And the price, which is the part I like.** The Bloom travels the Weave. A lit
+ring hands a share of an infested system's growth to the far end regardless of
+the light years between them. Differenced against the same chronicle with the
+carry disabled: **0.70 infested against 0.00** after 180 days. The network you
+built to move fast is the network the enemy uses.
+
+That broke things, honestly and instructively — twice.
+
+The carry was flat, so it was a growth channel that did not care what the
+Bloom had been through, and it swamped the existing check that provoking the
+Bloom makes it grow faster (31.8 against 33.4, when the provoked run should be
+larger). Scaling it by `stage` and `provoked` fixed that and made it a
+firehose: three long-chronicle suites fell over, and the cause was the same
+for all of them — `clock.advance_days` returns early once `victory` is set, so
+a sector that drowns **freezes the calendar** and nothing ages, escalates or
+flies again. The Bloom's own escalation check saw three stages where it wanted
+four because the burden was *jumping* thresholds rather than climbing them.
+
+I caught myself tuning one constant against four checks at once, which is
+fitting to tests rather than designing, and stopped. The real mistake was
+charging the world afresh every tick for rings the powers have run for four
+hundred years. Only what the **captain** lights carries growth now: the
+anchors burning at dawn are part of the sector as it already is, the baseline
+is untouched, every long-running check is valid again — and the consequence
+lands exactly where the decision is made, which is where it always belonged.
+
+**What the mutation sweep taught me this time.** 8/11 first, and all three
+misses were defects in my *checks* rather than in the code. The standing block
+sat behind `if far.faction:` and silently ran nothing where the far end had no
+owner, so a toll that ignored standing entirely and a ring that opened for a
+power that loathed you both went unnoticed. And the helper that builds a rich
+captain always granted Weavecraft, so removing the requirement broke nothing
+anywhere. Fixed by giving the far end an owner and adding a check that asks a
+captain who has not done the reading. 11/11 after.
+
+Also this cycle, before the request arrived: I went looking in diplomacy and
+found that **brokering a settlement costs nothing with anyone else** — every
+ordinary overture charges `allegiance` for being seen, but `broker` and
+`denounce` never got the same treatment, though brokering is the most public
+act in the game and the only lever on the Concord ending. Parked as a task
+rather than half-done.
+
+Shipped: `data/gates.py`, `sim/weave.py`, `sim/gates.py`, the `weavecraft`
+technology, the Weave drawn on the sector chart, `ui/weave_panel.py`, the
+Bloom's road through `sim/threat.py`, and `tests/test_weave.py` (8 checks).
+Full suite green.
+
 ## 2026-07-29 — SEEDFALL: engines with places, and a hull that has to point them
 
 The captain picked the three gaps I had reported at the end of last cycle: no

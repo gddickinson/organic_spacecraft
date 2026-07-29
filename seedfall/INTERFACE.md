@@ -397,6 +397,72 @@ one cause. The Fleet Hub was drawn on the helm chart, labelled, and inert:
   selected, so nothing appeared to happen. `QUAY_OFFSET` is one number now,
   read by the painter and the hit test alike, and quays are tested first.
 
+**The Weave.** A hull's jump range is ten light years. The sector is
+sixty-eight across with a median pair distance of twenty-nine, so a fresh
+captain reaches **three systems of forty-one** and the rest of the Verge is
+scenery. The interstellar model was never the problem — `data/crossings.py`
+has four profiles with real time dilation and a documented three-cornered
+trade between reaction mass, the crew's remaining years and all the work they
+would otherwise have done. The problem was *reach*.
+
+`sim/weave.py` derives nine ancient anchors from the galaxy's own seed by
+farthest-point sampling — take the system nearest the middle, then repeatedly
+take whichever is furthest from everything chosen so far — so they are
+landmarks, identical in every process, and need no save migration. They are
+paired in a ring with chords across it: the ring makes the network legible and
+the chords are what make holding one system worth anything. Three burn at
+dawn, lit as a connected *chain*, because a link burns only when both ends do
+and three scattered singletons would have been a Weave with one working link
+in it.
+
+`sim/gates.py` is what a captain can do about it:
+
+- **Transit is instant** — the only act in the game that does not spend the
+  calendar — and pays a toll to whoever holds the far end, priced on the light
+  years saved. Standing halves it or closes the ring entirely, which makes the
+  Weave a political object rather than a convenience.
+- **Waking a dark anchor** needs `weavecraft`, which requires Xenolith
+  Metallurgy *and* the Foldrunner Coil. Learn only one and you have a very
+  expensive ring you cannot switch on — the ancient-and-modern mixture the
+  whole system is built on.
+- **Laying your own** costs more again, and only ever onto a ring already lit.
+
+Measured, across five sectors: a drive alone reaches 2–35 systems of 42; a
+fully-lit Weave adds **8 destinations, never fewer than 2 of them beyond any
+amount of hopping**.
+
+And the price. **The Bloom travels the Weave.** A lit ring hands a share of an
+infested system's growth to the far end regardless of the light years, scaled
+by the same stage and provocation as everything else it does. Differenced
+against the same chronicle with the carry disabled, the far end of one ring
+went from clean to **0.70 infested in 180 days against 0.00**. One link is
+survivable; a fully-woken Weave with something bad on it is how a sector dies.
+That is the decision the system exists to pose, and it is why waking an anchor
+is not simply an upgrade.
+
+**Only rings the captain lit carry.** The three anchors burning at dawn have
+been burning for four centuries; whatever they were going to spread, they
+spread long ago, and the sector's present state is the equilibrium that
+already includes them. This is not a dodge — it is where the decision belongs,
+and it fell out of a real regression.
+
+The first draft's carry was flat, which made it a growth channel that did not
+care what the Bloom had been through, and it swamped the check that provoking
+the Bloom makes it grow faster (31.8 against 33.4, when the provoked run
+should be larger). Scaling it by `stage` and `provoked` fixed that and made it
+a firehose instead: the sector's burden crossed several stage thresholds
+inside a single tick, so the escalation check saw three stages where it wanted
+four — it was *jumping* them. Three long-chronicle suites went with it, all
+for the same reason: `clock.advance_days` returns early once `victory` is set,
+so a sector that drowns freezes the calendar and nothing ages, escalates or
+flies again.
+
+Tuning the constant against four checks at once is fitting to tests, not
+designing. Charging the world afresh every tick for rings the powers have run
+for centuries was the actual mistake. With the carry restricted to what the
+captain wakes, the baseline is untouched, every long-running check is valid
+again, and the consequence lands exactly where the choice is made.
+
 **Engines with places, a hull that has to point them.** A player asked three
 questions the game could not answer: is there a braking burn as well as an
 accelerating one, does the ship turn to aim its engines, and where are the
@@ -2224,6 +2290,13 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   the branch that kills velocity *across* the approach passed everything else,
   because `start` always puts the ship dead ahead — so there is now a check
   that arrives off-axis on purpose, and it failed on the first run.
+- **`test_weave.py`** holds the gate network. Its first sweep missed three
+  mutations and all three were the same defect in the *checks*: the standing
+  block sat behind `if far.faction:` and silently ran nothing where the far
+  end had no owner, and the helper that builds a rich captain always granted
+  Weavecraft, so removing the requirement broke nothing. The far end is given
+  an owner now, and a separate check asks a captain who has not done the
+  reading. Sweep: 11/11.
 - **`test_thrusters.py`** holds the propulsion model, and its general claim
   is the one that caught all three faults above: **more thrust is never
   worse.** Each time a hull flew *worse* for a better engine, that check

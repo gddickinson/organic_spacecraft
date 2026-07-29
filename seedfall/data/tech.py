@@ -295,6 +295,17 @@ TECH: list[Tech] = [
        "A method for speaking to something that shares no ancestor with you, and "
        "a standing rule about what you may do afterwards. Both halves are "
        "load-bearing.", diplomacy=0.25, research=0.25),
+
+    # The Weave. Deliberately requires both halves: the material the anchors
+    # are made of, and the fold physics that says what they are doing. Learn
+    # only one and you have a very expensive ring you cannot switch on.
+    _t("weavecraft", "Weavecraft", "xenology", 5,
+       ["xenoalloy", "foldrunner"], 1600,
+       "The anchors are not made of anything. Xenolith metallurgy gets far "
+       "enough to say so; the fold coil gets far enough to say what the "
+       "nothing is doing. Together they are almost enough to wake one, "
+       "which is the most anybody has managed in four hundred years.",
+       research=0.3),
 ]
 
 TECH_BY_ID: dict[str, Tech] = {t.id: t for t in TECH}

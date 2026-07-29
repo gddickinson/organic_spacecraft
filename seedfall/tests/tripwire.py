@@ -174,6 +174,7 @@ KIN = {
     "viewport": ("cameras",), "berthing": ("berthing", "conn"),
     "orbits": ("conn",), "targets": ("conn", "berthing"),
     "thrusters": ("thrusters",), "attitude": ("thrusters", "conn"),
+    "weave": ("weave",), "gates": ("weave",),
     "mounts": ("thrusters",), "burnplan": ("thrusters", "helm"),
 }
 

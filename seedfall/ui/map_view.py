@@ -13,7 +13,7 @@ from ..core.util import credits as cr
 from ..core.util import duration, num
 from ..data.factions import FACTIONS_BY_ID
 from ..sim import intel as intel_sim
-from . import orders_panel
+from . import orders_panel, weave_panel
 from ..sim import rumours as rumour_sim
 from ..sim import reach as reach_sim
 from ..sim import anchorage as anchorage_sim
@@ -98,6 +98,11 @@ class StarChart(QWidget):
             if sys.id != here.id and distance(sys, here) <= reach:
                 p.drawLine(hs, self._to_screen(sys))
 
+        # The Weave. Lit rings first, in gold, because they are the only
+        # lines on this chart that cost no time at all — and the dark ones
+        # behind them, so a captain can see what the sector *would* be.
+        self._draw_weave(p, g)
+
         # Which stars are reachable *at all*, by hopping. The dashed ring
         # only ever said what is one jump away, so a star behind a gap no
         # amount of hopping closes was drawn exactly like the one next door.
@@ -110,6 +115,36 @@ class StarChart(QWidget):
             self._draw_marker(p, self._to_screen(g.galaxy.systems[self.selected]),
                               QColor(theme.tint("lumen")), 10)
         p.end()
+
+    def _draw_weave(self, p: QPainter, g) -> None:
+        """Ancient rings and the anchors that stand on them."""
+        from ..sim import weave as weave_sim
+        anchors = {gate.system_id: gate for gate in weave_sim.gates(g)}
+        drawn = set()
+        for gate in anchors.values():
+            for other in gate.links:
+                if other not in anchors or (other, gate.system_id) in drawn:
+                    continue
+                drawn.add((gate.system_id, other))
+                far = anchors[other]
+                both = gate.lit and far.lit
+                a = self._to_screen(g.galaxy.systems[gate.system_id])
+                b = self._to_screen(g.galaxy.systems[other])
+                if both:
+                    p.setPen(QPen(QColor(226, 186, 96, 190), 2.0))
+                else:
+                    pen = QPen(QColor(120, 104, 74, 70), 1.0)
+                    pen.setStyle(Qt.PenStyle.DotLine)
+                    p.setPen(pen)
+                p.drawLine(a, b)
+        for gate in anchors.values():
+            at = self._to_screen(g.galaxy.systems[gate.system_id])
+            tint = QColor(226, 186, 96) if gate.lit else QColor(120, 104, 74)
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.setPen(QPen(tint, 1.6 if gate.lit else 1.0))
+            p.drawEllipse(at, 11, 11)
+            if gate.lit:
+                p.drawEllipse(at, 14, 14)
 
     def _draw_system(self, p: QPainter, sys, here, reach,
                      reachable: bool = True) -> None:
@@ -233,6 +268,7 @@ class MapView(View):
             "○ catalogued", "◍ scanned", "● visited", "◌ charted",
             "◎ port", "∧ something said about it",
             "dashed ring = jump range", "╲ beyond reach",
+            "◉ Weave anchor (gold = lit)", "gold line = a ring you can use",
         ])
         self.col.addWidget(note(legend))
         # What the ring never said: how much of the sector this drive can
@@ -241,7 +277,38 @@ class MapView(View):
         wall = self._way_out()
         if wall is not None:
             self.col.addWidget(wall)
+        self.col.addWidget(weave_panel.build(self, g))
         self.col.addWidget(self._info())
+
+    def _step(self, dest: int) -> None:
+        from ..sim import gates as gates_sim
+        out = gates_sim.use(self.game, dest)
+        if not out.get("ok"):
+            self.win.toast(out["why"], "warn")
+            return
+        self.selected = dest
+        self.win.toast(f"{out['ly_saved']:.0f} light years, no time at all. "
+                       f"₡{out['credits']:,.0f} in tolls.", "good")
+        self.win.refresh()
+
+    def _wake(self) -> None:
+        from ..sim import gates as gates_sim
+        out = gates_sim.wake(self.game)
+        if not out.get("ok"):
+            self.win.toast(out["why"], "warn")
+            return
+        self.win.toast(f"It is burning. {out.get('links', 0)} ring(s) answer.",
+                       "good")
+        self.win.refresh()
+
+    def _build(self) -> None:
+        from ..sim import gates as gates_sim
+        out = gates_sim.build(self.game)
+        if not out.get("ok"):
+            self.win.toast(out["why"], "warn")
+            return
+        self.win.toast("The anchor is lit, and it is yours.", "good")
+        self.win.refresh()
 
     def _way_out(self):
         """What getting past the wall would actually take, item by item.

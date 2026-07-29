@@ -72,6 +72,32 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
                                      tags=["bloom", "colony"],
                                      among=("faction", "port"))
 
+        # The Weave is a road, and the Bloom is not fussy about who laid it.
+        # Distance means nothing to a lit ring: growth crosses sixty light
+        # years as easily as six. This is the price of the network, and it is
+        # why waking an anchor is a decision rather than a purchase.
+        from . import gates as gates_sim
+        for here, there, share in gates_sim.bloom_links(game):
+            target = systems[there]
+            ward = ward_at(game, there)
+            # Scaled by the same stage and provocation as everything else it
+            # does. A flat carry was a growth channel that did not care what
+            # the Bloom had been through, and it swamped the check that says
+            # provoking it makes it grow faster — 31.8 against 33.4, when the
+            # provoked run should be the larger. It uses the roads harder for
+            # the same reasons it does everything else harder.
+            carried = share * stage.growth * provoked * (1 - ward)
+            if carried <= 0:
+                continue
+            was = target.bloom
+            target.bloom = max(0.0, min(1.0, target.bloom + carried))
+            if was < 0.02 <= target.bloom:
+                loyalty.record(game, "bloom_spread")
+                events.append(
+                    ("bad", f"{target.name} has taken growth off the ring "
+                            f"from {systems[here].name}. The Weave carries "
+                            "more than cargo."))
+
         # A mature system throws a seed at its nearest clean neighbour.
         for s in [x for x in held if x.bloom > 0.6]:
             clean = sorted((t for t in systems if t.bloom < 0.02 and distance(s, t) < 11),
