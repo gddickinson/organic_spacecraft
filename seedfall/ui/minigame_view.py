@@ -47,11 +47,14 @@ class DockingView(View):
         hh.addWidget(self._computer(d), 1)
         self.col.addWidget(holder)
 
-        rng = self.game.rng("readout")
         for axis, name in mg.AXES:
-            err = d.error[axis]
-            shown = d.reading(axis, rng)
-            inside = abs(err) <= mg.TOLERANCE
+            # The instrument, not the truth — and the same instrument the
+            # buttons forecast from. The panel used to print the blurred
+            # number and take its colour from `d.error`, so a reading of +9
+            # could sit in a green panel and a pilot could not tell which of
+            # the two to believe.
+            shown = d.reading(axis)
+            inside = abs(shown) <= mg.TOLERANCE
             p = Panel(name, "chloro" if inside else "")
             p.add_row("Reading", f"{shown:+d}" + (" (noisy)" if d.noise else ""),
                       "chloro" if inside else "warn")

@@ -669,6 +669,7 @@ seedfall/
     ├── test_prospect.py 5 checks — a ground option's prize is the officer's prize
     ├── test_gates.py   4 checks — every "may I?" agrees with the act it guards
     ├── test_beginnings.py 11 checks — the opening card is the chronicle you get
+    ├── test_docking.py 5 checks — the approach instrument can be believed
     ├── test_customs.py 9 contraband checks — the premium, the search, heat
     ├── test_allegiance.py 8 checks — taking sides, and brokering out of it
     ├── test_territory.py 8 checks — annexation, levy, defiance, seizure
@@ -1247,6 +1248,20 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **`Docking.shown` is the instrument; `d.error` is the truth, and screens
+  never touch it.** The readout was rolled fresh inside `reading()` on every
+  call, and the panel called it from `game.rng("readout")` — which advances
+  the save's seed — so an untouched axis read −44, −49, −42, −47, −49 in five
+  consecutive paints. The panel then took its *colour* from `d.error` while
+  printing the blur, and every button's forecast quoted `d.error` outright.
+  The reading is taken once per pass now and the panel, the colours and
+  `forecast` all use it. **If you add a docking readout, read `shown`.**
+- **`NOISE_CEILING` must stay above `TOLERANCE` or the sensor rating is
+  inert.** It was 5 against a tolerance of 6, so nulling the reading put you
+  inside tolerance whatever your instruments: flying on the instrument alone,
+  every noise from 0 to 5 docked 100% of the time in 3.2–3.5 passes. At 9 a
+  bare hull (sensor 2) reads ±7 and pays about a pass; a well-found one reads
+  ±3 and does not.
 - **`CREW_CHOICES` holds station ids, and `make_officer` refuses one it does
   not know.** Two of the six used to be *stat* names — "engineering" and
   "medicine" against the roles "engineer" and "medic" — and `make_officer`

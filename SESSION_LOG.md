@@ -2,6 +2,56 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: an instrument that changed when you looked at it
+
+Task #72, which I raised last cycle: the docking mini-game's forecast had
+never been checked against its act. The premise was half wrong — there *is* a
+suite for it, `test_approach_game`, which my grep for "minigames.forecast"
+missed. Asking the question properly anyway turned up three faults in one
+panel.
+
+**The readout re-rolled on every look.** `reading()` blurred the true error
+with a fresh die each call, and the screen called it from `game.rng("readout")`
+— which advances the save's seed. Five consecutive paints of an axis nobody
+had touched:
+
+    -44   -49   -42   -47   -49
+
+**The panel took its colour from the truth while printing the blur.** A
+reading of +9 could sit in a green panel; measured at noise 5, 3% of readouts
+contradicted their own colour.
+
+**And every button's forecast quoted `d.error` outright** — so whatever the
+instruments said, the tooltip knew exactly where the axis would end up. That
+is the whole of what `noise`, and the sensor rating behind it, was for.
+
+`Docking.shown` is the instrument now: read once when a pass begins, held
+until the next correction, and used by the panel, the colours and the forecast
+alike. The truth stays behind it.
+
+**That left the rating still inert, which I only found by playing it.** `noise`
+topped out at 5 against a `TOLERANCE` of 6 — null the reading and you were
+inside tolerance whatever your hull carried. Flying on the instrument alone,
+400 approaches at each level, noise 0 through 5 all docked **100%** in 3.2–3.5
+passes; only past the tolerance does it cost anything. `NOISE_CEILING` is 9:
+a bare hull (sensor 2) reads ±7, docks 92% and spends 5.2 passes; a well-found
+one (sensor 7) reads ±3, docks 100% and spends 4.3. A fresh captain sits at
+3.8, so the opening is barely touched.
+
+Two existing checks in `test_approach_game` went red, and deserved to: both
+compared the forecast against `d.error`, which passed only because the
+forecast was reading the truth as well. They are stated against `d.reading`
+now — the same claims, in the terms the pilot actually has.
+
+Five mutations, all caught. Two needed a second pass: my forecast check only
+asserted exactness where the instruments were clear (so the leak survived it),
+and my screen check read the printed number but not its colour. Both are
+asserted directly now — the forecast in instrument space, and the colour by
+reading the label's own stylesheet against a state where truth and instrument
+straddle the tolerance.
+
+725 → 730 green.
+
 ## 2026-07-29 — SEEDFALL: the card said two officers and the game gave three
 
 Last cycle's systematic sweep worked, so this one asked the same question of a

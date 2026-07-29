@@ -41,13 +41,21 @@ def run(suite: Suite) -> None:
 
     @check("what the forecast promises is what the burn leaves")
     def _():
+        # Stated against the instruments, which is where the pilot stands.
+        # This used to compare `said["after"]` with `d.error` — the truth
+        # behind the blur — and passed only because the forecast was reading
+        # the truth as well. Both now start from `d.reading`, so on a hull
+        # with clear instruments the two are identical and on a blurred one
+        # the forecast is what the *readout* will say, less its own error.
         checked = 0
         for seed in range(12):
             game, d = _approach(f"fc{seed}")
+            d.noise = 0                       # instruments you can trust
+            mg.take_reading(d, RNG(f"clear{seed}"))
             for axis, _label in mg.AXES:
                 if d.over:
                     break
-                amount = d.precision * (1 if d.error[axis] > 0 else -1)
+                amount = d.precision * (1 if d.reading(axis) > 0 else -1)
                 said = mg.forecast(d, axis, amount)
                 mg.correct(d, axis, amount, RNG(f"r{seed}"))
                 assert d.error == said["after"], (
@@ -70,7 +78,8 @@ def run(suite: Suite) -> None:
         for other in moving:
             if other == axis:
                 continue
-            assert said["after"][other] == d.error[other] + d.drift[other], (
+            # From the readout, like everything else the pilot is shown.
+            assert said["after"][other] == d.reading(other) + d.drift[other], (
                 f"the forecast has {other} unmoved while the burn drifts it "
                 f"{d.drift[other]:+d}")
         return (f"{len(moving)} axes drifting, every one counted in the "

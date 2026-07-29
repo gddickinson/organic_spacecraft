@@ -24,6 +24,21 @@ TUG_FEE = 900
 TOLERANCE = 6
 DOCK_PASSES = 8
 
+#: How blurred the readout is on a hull with no instruments to speak of.
+#:
+#: It was 5 against a tolerance of 6, which meant a pilot who nulled the
+#: reading was inside tolerance *whatever* their sensors — so the rating the
+#: module's own docstring builds the game around ("the ship's sensors tell
+#: you how far off you are") bought nothing at all. Measured, flying on the
+#: instrument alone over 400 approaches at each level: noise 0 through 5 all
+#: dock 100% of the time in 3.2–3.5 passes, and only past the tolerance does
+#: it start to cost anything — 7 costs 4.0 passes and fails 1 in 20, 9 costs
+#: 5.0 and fails 1 in 6.
+#:
+#: At 9 a bare hull (sensor 2) reads ±7 and a well-found one (sensor 6) reads
+#: ±3. A fresh captain sits at 3.8, so the opening is barely touched.
+NOISE_CEILING = 9
+
 #: The best a computer-flown approach can be graded. A clean dock, and none
 #: of the standing that a good one earns.
 AUTO_GRADE = 1
@@ -44,12 +59,19 @@ class Docking:
     #: How many passes the drive computer flew. A machine can bring you
     #: alongside; it does not bring you alongside *well*.
     flown: int = 0
+    #: What the instruments are saying this pass. Taken once when the pass
+    #: begins and held until the next correction.
+    #:
+    #: It used to be rolled inside `reading()` on every call, and the screen
+    #: called it on every repaint from `game.rng("readout")` — which advances
+    #: the save's seed — so an axis nobody had touched read -44, -49, -42,
+    #: -47, -49 in five consecutive paints. An instrument that changes when
+    #: you look at it is not an instrument.
+    shown: dict = field(default_factory=dict)
 
-    def reading(self, axis: str, rng) -> int:
+    def reading(self, axis: str) -> int:
         """What the instruments say, which is not quite what is true."""
-        if self.noise <= 0:
-            return self.error[axis]
-        return self.error[axis] + rng.int(-self.noise, self.noise)
+        return self.shown.get(axis, self.error[axis])
 
     @property
     def aligned(self) -> bool:
@@ -64,10 +86,18 @@ def start_docking(rng, port_name: str, stats, officers) -> Docking:
         d.error[axis] = rng.int(18, 46) * rng.pick([1, -1])
         d.drift[axis] = rng.int(-3, 3)
     d.precision = 4 + nav + int(stats.accuracy * 6)
-    d.noise = max(0, 5 - int(stats.sensor))
+    d.noise = max(0, NOISE_CEILING - int(stats.sensor))
     d.passes = DOCK_PASSES + (1 if nav >= 3 else 0)
+    take_reading(d, rng)
     say(d, f"Approach to {port_name}. Three axes out of tolerance.", "")
     return d
+
+
+def take_reading(d: Docking, rng) -> None:
+    """Read the instruments for this pass, blurred by however good they are."""
+    for axis, _label in AXES:
+        d.shown[axis] = (d.error[axis] if d.noise <= 0
+                         else d.error[axis] + rng.int(-d.noise, d.noise))
 
 
 def say(d: Docking, text: str, kind: str = "") -> None:
@@ -87,6 +117,7 @@ def correct(d: Docking, axis: str, amount: int, rng,
         if other != axis:
             d.error[other] += d.drift[other]
     d.passes -= 1
+    take_reading(d, rng)
     if by_computer:
         d.flown += 1
 
@@ -111,19 +142,23 @@ def forecast(d: Docking, axis: str, amount: int) -> dict:
     said, so a pilot correcting the worst axis could watch the other two walk
     out of tolerance and never learn why. This states it before the burn.
     """
-    after = dict(d.error)
-    after[axis] = d.error[axis] - amount
+    # From the instruments, not from the truth. Quoting `d.error` here handed
+    # a pilot with blurred sensors the exact answer on every button, which is
+    # the whole of what `noise` — and the sensor rating behind it — was for.
+    now = {a: d.reading(a) for a, _l in AXES}
+    after = dict(now)
+    after[axis] = now[axis] - amount
     for other, _label in AXES:
         if other != axis:
-            after[other] = d.error[other] + d.drift[other]
+            after[other] = now[other] + d.drift[other]
     inside = sum(1 for v in after.values() if abs(v) <= TOLERANCE)
-    was = sum(1 for v in d.error.values() if abs(v) <= TOLERANCE)
+    was = sum(1 for v in now.values() if abs(v) <= TOLERANCE)
     return {"after": after, "inside": inside, "was": was,
             "aligned": inside == len(AXES),
             "passes_left": max(0, d.passes - 1),
             "worse": [o for o, _l in AXES
                       if o != axis and abs(after[o]) > TOLERANCE
-                      and abs(d.error[o]) <= TOLERANCE]}
+                      and abs(now[o]) <= TOLERANCE]}
 
 
 def autopilot(d: Docking) -> dict:
