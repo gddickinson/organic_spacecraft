@@ -6,6 +6,7 @@ from __future__ import annotations
 from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
 from ..core.util import cost_line, credits as cr, duration, num, pct
+from ..data.colonies import effect_text
 from ..data.factions import FACTIONS_BY_ID
 from ..data.territory import TRESPASS_NOTE
 from ..sim import colony as colony_sim
@@ -457,7 +458,9 @@ class SystemView(View):
             card.add(label(yields or "Produces nothing directly.", "",
                            "chloro" if yields else "dim", wrap=True))
             if plan.get("effects"):
-                card.add(note("Grants: " + ", ".join(sorted(plan["effects"]))))
+                # What each grant *does*, not the internal name of it.
+                for key in sorted(plan["effects"]):
+                    card.add(note("· " + effect_text(key)))
             if plan.get("upkeep"):
                 card.add(note("Upkeep: " + ", ".join(
                     f"{v:g} {k}/day" for k, v in plan["upkeep"].items())))

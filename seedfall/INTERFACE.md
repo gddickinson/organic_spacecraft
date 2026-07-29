@@ -503,7 +503,8 @@ seedfall/
 │   ├── armaments.py    weapons and defences
 │   ├── parts.py        merged registry over modules + armaments
 │   ├── tech.py         61-node research tree, 10 branches, 5 tiers
-│   ├── colonies.py     19 colony and station classes
+│   ├── colonies.py     19 colony and station classes, and `EFFECT_TEXT`:
+│   │                   what each grant means, in words
 │   ├── factions.py     6 powers + reputation bands
 │   ├── lifeforms.py    xenobiology generation tables + anomalies
 │   ├── strata.py       the four layers of a dig, 3 methods, finds and spoils
@@ -678,6 +679,7 @@ seedfall/
     ├── test_courting.py 8 checks — a gift is seen by the recipient's enemies
     ├── test_thermal.py 12 checks — guns and helm both bounded
     ├── test_helm.py    5 checks — every number on the burn board is accounted
+    ├── test_grants.py  5 checks — every colony grant is read, and explained
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
     ├── test_legacy.py  7 aftermath checks — an ending is a turn, not a stop
     ├── test_instruments.py 5 checks — a gauge agrees with the ship and itself
@@ -853,6 +855,14 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   game that adds heat, so one clamp at the source covers every hull. An
   end-of-turn clamp was tried too and measured to change nothing at all, so it
   was removed rather than left in looking useful.
+- **A vocabulary whitelist is not coverage.** Two suites listed
+  `megastructure` in a `KNOWN_EFFECTS` set, which asserts only that nobody
+  declares an *unknown* key — never that a declared one is consumed. It read
+  like coverage for a flag no line of the game consulted: the ARCA Habitat
+  cost 400,000 credits, 2,600 tonnes of ore and 900 days, and its one
+  distinguishing property did nothing. `test_grants.py` asks the general
+  question instead — *is every declared effect read by something* — and found
+  a second dead key (`drydock`) on its first run.
 - **A quoted burn's risk is the profile plus three surcharges** — distance,
   the star at either end of the leg, and the heat already in the hull — and
   `path_note` must account for all of them. Two were silent, and the third was

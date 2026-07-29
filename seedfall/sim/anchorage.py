@@ -140,9 +140,16 @@ def _colony_services(colony) -> list:
     from . import works
     effects = works.effects_of(colony)
     out = []
-    if effects.get("build_here") or effects.get("harbour"):
+    # `drydock` reads alongside `build_here` rather than instead of it. Every
+    # class and work that grants a drydock today also grants `build_here`, so
+    # this changes nothing that is currently plantable — but the key was read
+    # by *nothing*, which made "refits and repairs here, without flying to a
+    # yard" a promise resting entirely on a second flag happening to be set.
+    # A future dock that is only a dock now works the way its card reads.
+    dock = effects.get("build_here") or effects.get("drydock")
+    if dock or effects.get("harbour"):
         out.append("repair")
-    if effects.get("build_here"):
+    if dock:
         out.append("shipyard")
     if effects.get("xenoyard"):
         out.append("xenoyard")

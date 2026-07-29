@@ -24,7 +24,7 @@ ALL_SUITES = [
     "doctrine", "firing", "approach", "officials", "dormancy", "tuning", "approaching", "harness", "salvage", "provisional", "seams",
     "hands", "chronicle", "dig", "resume", "verbs", "picture",
     "courting", "thermal", "helm",
-    "ui",
+    "grants", "ui",
 ]
 
 
@@ -392,6 +392,12 @@ def main(argv: list[str] | None = None) -> int:
         from . import test_provisional
         suite = Suite("provisional")
         test_provisional.run(suite)
+        ok = suite.report() and ok
+
+    if "grants" in wanted:
+        from . import test_grants
+        suite = Suite("grants")
+        test_grants.run(suite)
         ok = suite.report() and ok
 
     if "helm" in wanted:

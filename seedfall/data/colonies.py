@@ -207,3 +207,37 @@ COLONIES_BY_ID: dict[str, ColonyClass] = {c.id: c for c in COLONIES}
 def colonies_for(body_kind: str, unlocked) -> list[ColonyClass]:
     return [c for c in COLONIES
             if body_kind in c.sites and (c.tech is None or c.tech in unlocked)]
+
+
+#: What each effect in the colony vocabulary actually buys, in words.
+#:
+#: The founding screen used to print `"Grants: " + ", ".join(effects)` — the
+#: raw internal keys. A captain weighing 400,000 credits and nine hundred days
+#: read "Grants: megastructure" and had no way to learn what that meant, which
+#: was just as well, because at the time it meant nothing at all.
+#:
+#: Every key any class declares must appear here, and must be read by the sim.
+#: `tests/test_grants.py` holds both halves.
+EFFECT_TEXT = {
+    "build_here": "Hulls can be laid down and grown in this system.",
+    "diplomacy": "Standing moves faster with every power, wherever you are.",
+    "drift": "Reads the traffic: other hulls in this system stay plotted.",
+    "drydock": "Refits and repairs here, without flying to a yard.",
+    "fabricate": "Fabricated parts can be made rather than bought.",
+    "gestation": "Colonies you plant anywhere come up faster.",
+    "medical": "The crew ages more slowly and recovers from more.",
+    "megastructure": "Too large to overgrow: the Bloom takes far longer to "
+                     "get a hold on it than on anything else you can build.",
+    "port": "A berth of your own: market, and somewhere to put in.",
+    "sensor": "Extends how far you can see from this system, in light years.",
+    "vault": "A seed bank. Some endings need one, and it survives you.",
+    "ward": "Guns on the perimeter: everything in this system is harder for "
+            "the Bloom to overgrow.",
+    "watch": "Keeps an eye on this system whether or not you are in it.",
+    "xenoyard": "Xenotech can be taken apart and incorporated here.",
+}
+
+
+def effect_text(key: str) -> str:
+    """One sentence for an effect, or the bare key if nobody wrote one."""
+    return EFFECT_TEXT.get(key, key)

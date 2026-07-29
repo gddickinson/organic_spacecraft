@@ -2,6 +2,54 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a grant that does nothing, and a card that says nothing
+
+Empire-building, which had not had a cycle. Measured the nineteen colony
+classes for payback first — that turned up nothing damning (pomona_grove pays
+back in 45 days, the negative-income classes justify themselves on effects) —
+so I asked instead whether the effects they advertise are read at all.
+
+- **`megastructure` was declared by the ARCA Habitat and read by nothing.**
+  400,000 credits, 2,600 tonnes of ore, 900 days, a million people, and the
+  one property that made it an ARCA Habitat rather than a very good mine was
+  consulted by no line of the game. A five-by-ten-kilometre drum of spun rock
+  was overgrown by the Bloom on exactly the same roll as a lichen farm.
+- **It now means what it should.** `bloom_attack` already had the machinery —
+  a colony's own `ward` halves its chance of being taken — so a megastructure
+  guards at 0.85. Measured: a farm is taken in 29% of attacks, the drum in 4%.
+  Not immunity; `bloom_attack`'s own comment promises the Bloom gets
+  everything unattended eventually, and a check holds it to that.
+- **The founding screen printed the internal keys.** `"Grants: " + ", ".join
+  (effects)` — so a captain weighing nine hundred days read "Grants:
+  megastructure" and could not find out what it meant, which was just as well.
+  `EFFECT_TEXT` gives all fourteen a sentence and the cards print those.
+
+**What actually found it.** Not a whitelist. Two suites already listed
+`megastructure` in a `KNOWN_EFFECTS` set — but that only asserts nobody
+declares an *unknown* key, never that a declared one is consumed. It read like
+coverage and was not. The new check asks the general question instead — *is
+every declared effect read by something* — and on its first run found a
+**second** dead key I had not looked for: `drydock`.
+
+**And `drydock` turned out not to be the bug it looked like.** Its card says
+"refits and repairs here, without flying to a yard", and I nearly reported it
+as a broken promise. Playing it showed refitting at an Orbital Drydock works
+fine — because every class granting `drydock` also grants `build_here`, which
+`_colony_services` does read. So the promise was kept by a second flag
+happening to be set. `drydock` now reads alongside `build_here`: nothing
+currently plantable changes, and a dock that is only a dock works as its card
+reads instead of silently granting nothing.
+
+My own error worth keeping: I first "found" that a lichen dome lets you refit.
+It does not — I had parked the ship on the body the Fleet Hub orbits, so
+`docked_at` returned the Hub, which has a yard. Checked before reporting.
+
+`ui/system_view.py` is at 494 lines. The next thing added to it should split
+it first.
+
+Five checks in a new `test_grants` suite, every one proven to bite.
+611 checks green.
+
 ## 2026-07-28 — SEEDFALL: the helm, and the half of the fix I missed
 
 Richer helm and flight simulation, the next standing priority. It turned into

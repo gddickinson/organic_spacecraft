@@ -292,6 +292,20 @@ def ward_at(game, system_id: int) -> float:
     return min(0.9, total)
 
 
+#: How much of an attack a megastructure simply shrugs off.
+#:
+#: `megastructure` was declared by the ARCA Habitat and read by **nothing** —
+#: 400,000 credits, 2,600 tonnes of ore and nine hundred days for a flag that
+#: no line of the game consulted. So a five-by-ten-kilometre drum of spun rock
+#: with a million people inside was overgrown on exactly the same roll as a
+#: lichen farm.
+#:
+#: Not immunity: the docstring below is right that given years enough the
+#: Bloom gets everything unattended, and a drum is no exception. It stacks
+#: with a ward the way a hull's own armour stacks with an escort.
+MEGASTRUCTURE_GUARD = 0.85
+
+
 def bloom_attack(game, system, rng) -> list[Colony]:
     """Losses here are reported to the bridge — some of them built the place."""
     """The Bloom eats colonies it reaches — unless something is shooting back.
@@ -304,8 +318,10 @@ def bloom_attack(game, system, rng) -> list[Colony]:
     system_ward = ward_at(game, system.id)
     lost = []
     for col in here:
-        own = COLONIES_BY_ID[col.class_id].effects.get("ward", 0.0)
-        guard = min(0.92, system_ward + own * 0.5)
+        fx = COLONIES_BY_ID[col.class_id].effects
+        guard = min(0.92, system_ward + fx.get("ward", 0.0) * 0.5)
+        if fx.get("megastructure"):
+            guard = min(0.97, max(guard, MEGASTRUCTURE_GUARD))
         if rng.chance(0.30 * system.bloom * (1 - guard)):
             body = next((b for b in system.bodies if b.id == col.body_id), None)
             if body:
@@ -319,4 +335,4 @@ def bloom_attack(game, system, rng) -> list[Colony]:
 
 
 __all__ = ["Colony", "can_found", "found", "tick", "effects", "bloom_attack",
-           "colonies_for", "COLONIES_BY_ID"]
+           "colonies_for", "COLONIES_BY_ID", "MEGASTRUCTURE_GUARD"]
