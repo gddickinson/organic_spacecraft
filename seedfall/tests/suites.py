@@ -120,6 +120,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("tutorial", "test_tutorial", "tutorial"),
     SuiteSpec("grudges", "test_grudges", "grudges"),
     SuiteSpec("gunnery", "test_gunnery", "gunnery"),
+    SuiteSpec("gunfire", "test_gunfire", "gunfire"),
     SuiteSpec("surveys", "test_surveys", "surveys"),
     SuiteSpec("chronicle", "test_chronicle", "chronicle", True),
     SuiteSpec("dig", "test_dig", "dig"),

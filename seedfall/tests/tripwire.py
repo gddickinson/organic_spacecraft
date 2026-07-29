@@ -176,7 +176,9 @@ KIN = {
     "thrusters": ("thrusters",), "attitude": ("thrusters", "conn"),
     "weave": ("weave",), "gates": ("weave",),
     "instruments": ("conn",), "models3d": ("cameras",),
-    "render3d": ("cameras",),
+    "render3d": ("cameras",), "gunfire": ("gunfire",),
+    "sky": ("cameras",),
+    "battle3d": ("gunfire",),
     "mounts": ("thrusters",), "burnplan": ("thrusters", "helm"),
 }
 

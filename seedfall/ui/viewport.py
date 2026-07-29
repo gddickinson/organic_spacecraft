@@ -185,6 +185,7 @@ class Viewport(QWidget):
 
         self._stars(p, cam, w, h)
         if conn is not None:
+            self._sky(p, conn, cam, w, h)
             self._target(p, conn, cam, w, h)
         self._frame(p, label_text, w, h)
         p.end()
@@ -203,6 +204,79 @@ class Viewport(QWidget):
             p.setPen(QPen(QColor(shade, shade, min(255, shade + 18)),
                           1.4 if bright > 0.8 else 1.0))
             p.drawPoint(QPointF(sx, sy))
+
+    def _sky(self, p: QPainter, conn, cam, w: int, h: int) -> None:
+        """The rest of the system: the star, and anything big enough to see.
+
+        The windows used to draw the approach target and a fixed field of
+        stars, and nothing else — so taking the conn with nothing in reach
+        gave a black rectangle. Standing off a body at 0.40 AU the system's
+        own star is **1.34° across**, which is two and a half Suns, and it
+        was not being drawn.
+        """
+        from ..sim import sky as sky_sim
+
+        seen = getattr(conn, "sky", None)
+        if not seen:
+            return
+        fwd, right, up = cam
+        camera = render3d.Camera(at=conn.pos, forward=fwd, up=up,
+                                 width=w, height=h, half_fov=HALF_FOV)
+        # The star always, whatever its angular size. From the system edge
+        # it is a tenth of a degree — a quarter of the Sun from Earth — and
+        # still by orders of magnitude the brightest thing in the sky. It has
+        # no business being a background dot, which is what treating it like
+        # every other object made it.
+        for sight in seen:
+            if sight.kind == "star":
+                self._star(p, camera, sight)
+
+        for sight in sky_sim.points(seen):
+            if sight.kind == "star":
+                continue
+            at = camera.project(sight.at)
+            if at is None:
+                continue
+            point, _ahead = at
+            if not (0 <= point.x() < w and 0 <= point.y() < h):
+                continue
+            # Brighter than the field behind it, and its own colour, so a
+            # world reads as a world rather than as another star.
+            tint = QColor(theme.tint(sight.tint)
+                          if sight.tint in theme.TINTS else theme.INK)
+            size = 2.6 if sight.kind == "body" else 1.6
+            p.setBrush(tint)
+            p.setPen(Qt.PenStyle.NoPen)
+            p.drawEllipse(point, size, size)
+
+        for sight in sky_sim.shapes(seen):
+            if sight.kind == "star":
+                continue
+            mesh = (models3d.WORLDS.get("rocky", models3d.WORLD)
+                    if sight.kind == "body" else models3d.SHIPYARD)
+            render3d.draw(p, camera, mesh, sight.at, sight.radius_km,
+                          self.light(conn), tilt=0.3)
+
+    def _star(self, p: QPainter, camera, sight) -> None:
+        """The star: a disc that is its own light, and a corona."""
+        at = camera.project(sight.at)
+        if at is None:
+            return
+        point, _ahead = at
+        # Never smaller than a bright point: a star at four AU is a tenth of
+        # a degree and would round to nothing.
+        radius = max(2.4, render3d.screen_radius(camera, sight.range_km,
+                                                 sight.radius_km))
+        tint = QColor(sight.tint if sight.tint.startswith("#") else "#ffd9a0")
+        glow = QRadialGradient(point, radius * 5.0)
+        glow.setColorAt(0.0, QColor(255, 255, 240, 210))
+        glow.setColorAt(0.18, QColor(tint.red(), tint.green(), tint.blue(), 150))
+        glow.setColorAt(1.0, QColor(tint.red(), tint.green(), tint.blue(), 0))
+        p.setBrush(glow)
+        p.setPen(Qt.PenStyle.NoPen)
+        p.drawEllipse(point, radius * 5.0, radius * 5.0)
+        p.setBrush(QColor(255, 253, 244))
+        p.drawEllipse(point, radius, radius)
 
     def _model_for(self, conn):
         """Which mesh, and how it is oriented, for what is out there."""
@@ -229,8 +303,8 @@ class Viewport(QWidget):
         metres — a poor thing to watch while berthing a hull against a yard.
         """
         r_km = conn.range_km
-        if r_km <= 1e-9:
-            return
+        if r_km <= 1e-9 or conn.target.radius_km <= 0:
+            return          # station keeping: there is no target, only sky
         fwd, right, up = cam
         # The renderer works in the target's own frame, where the ship is at
         # `conn.pos` and the thing being approached is at the origin.

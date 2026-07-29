@@ -44,9 +44,11 @@ class ConnWindow(QDialog):
         if contact is None:
             contact = default_target(self.game)
         self.contact = contact
-        self.conn, self.refused = (berth_sim.begin(self.game, contact)
-                                   if contact is not None
-                                   else (None, "Nothing in range to conn."))
+        if contact is not None:
+            self.conn, self.refused = berth_sim.begin(self.game, contact)
+        else:
+            # Nothing alongside is not nothing to see.
+            self.conn, self.refused = conn_sim.observe(self.game), ""
         self.main_view = "fore"
         self.running = False
 
@@ -273,7 +275,9 @@ class ConnWindow(QDialog):
         if conn is None:
             self.title.setText("Nothing in range to approach")
             return
-        self.title.setText(f"Conn — {conn.target.name}")
+        self.title.setText(
+            f"Conn — {conn.target.name}" if conn.outcome != "watching"
+            else f"Conn — station keeping at {self.game.system.name}")
         self.main_btn.setText(f"Main drive: {'ON' if self.use_main else 'off'}")
         self.run_btn.setText("Stop clock" if self.running else "Run clock")
 

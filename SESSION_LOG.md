@@ -2,6 +2,66 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: the broadside you ordered, and the sky you were in
+
+Two halves of one complaint: the game resolved things and then did not show
+them.
+
+**Weapons.** `combat._fire` resolved a shot and wrote a sentence. By the end of
+a turn all that survived of a salvo of seven was seven lines of prose — no
+record of what fired, from where, at what, or whether it connected, so nothing
+could draw it. `sim/gunfire.py` keeps the shots now, one per attempt,
+**including the ones that never left the tube**: a mount that will not train
+that far is exactly the thing a captain should see rather than read, and it is
+the whole argument for having come about.
+
+`ui/battle3d.py` draws the exchange from behind and above your own hull —
+beams, tracers, seeking rounds on a curve, impact flashes sized by what they
+did, and a dashed stub at the muzzle for a mount that would not bear. It sits
+above the tactical plot rather than replacing it: the plot is what you
+*decide* on and this is what the decision produced.
+
+The general check ties the record to the resolver rather than to a second
+model that could drift: **2,138.9 of damage recorded against 2,138.9 taken**
+across six chronicles. If `_fire` ever grows a path that deals damage without
+noting it, the totals part company.
+
+Refusals had to be constructed. `_salvo` pre-filters to the mounts that bear,
+so eight full engagements gave 285 shots and not one refusal — the check finds
+the geometry by asking the sim's own predicates instead of placing hulls at
+angles I had guessed at, which is just as well, because my first three guesses
+about the arc conventions were all wrong.
+
+**The sky.** A player reported that taking the conn with nothing in reach
+showed nothing on any screen, and that large bright bodies ought to be
+visible. Both true. The windows drew the approach target and a fixed field of
+stars; with no target there was only the field. Measured: standing off a body
+at 0.40 AU the system's own star subtends **1.34°**, two and a half Suns, and
+was not drawn at all. From the system edge it is still 0.13° and by orders of
+magnitude the brightest thing there is.
+
+`sim/sky.py` gives an approach the rest of its system, in the approach's own
+frame at its real size, and `conn.observe` opens the conn with nothing to
+approach — because you can always look out of a window. The title reads
+"station keeping at Orrin's Mouth" and the log line is "the watch is kept".
+
+**And it exposed the one place the flight model's simplification shows.** An
+anchorage's position in AU *is* its body's — the reason no screen needs a
+special case for flying to a quay — and asked what the sky looks like *from* a
+berth it answered that the planet was at zero range and therefore 180° wide,
+which is a picture of being inside the planet. Co-located sights are placed
+where they physically are now: the world below a berth reads 98° across.
+
+**Two checks had to stop measuring the wrong thing.** "A camera shows what is
+in front of it" counted total brightness — fine until the sky started drawing
+the world a berth orbits into the ventral view, at which point it was
+measuring the sky rather than the target; it empties the sky first now. And
+the new star check counted bright pixels and was really counting the
+starfield, 111 against 90. A field star is a point and a corona is an area, so
+it counts lit *area*: 41 against 6.
+
+Full suite green.
+
 ## 2026-07-29 — SEEDFALL: an anchor with nowhere to be
 
 A player's report, and a fair one: the Weave anchor is drawn on the sector

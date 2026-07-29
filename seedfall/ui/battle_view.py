@@ -8,7 +8,7 @@ import math
 
 from PyQt6.QtCore import QPointF, QRectF
 from PyQt6.QtGui import QColor, QFont, QPainter, QPen, QPolygonF
-from PyQt6.QtWidgets import QHBoxLayout, QSizePolicy, QWidget
+from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QSizePolicy, QWidget
 
 from ..core.util import credits as cr
 from ..core.util import num, pct
@@ -83,8 +83,24 @@ class BattleView(View):
         return gunnery_picture(self, b)
 
     def _plot(self, b) -> QWidget:
+        """The geometry to decide with, and the picture of what happened.
+
+        Two views of one engagement, stacked. The plot from above is what a
+        captain chooses `come about` or `present the broadside` on; the view
+        from the bridge is what the broadside looked like. Neither replaces
+        the other, and the second one did not exist at all — a salvo of seven
+        was a paragraph in a log.
+        """
+        from .battle3d import Battle3D
         from .tactical_plot import TacticalPlot
-        return TacticalPlot(b)
+
+        holder = QWidget()
+        column = QVBoxLayout(holder)
+        column.setContentsMargins(0, 0, 0, 0)
+        column.setSpacing(8)
+        column.addWidget(Battle3D(b), 5)
+        column.addWidget(TacticalPlot(b), 4)
+        return holder
 
     def _band_track(self, b) -> QWidget:
         w = QWidget()

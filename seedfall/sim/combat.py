@@ -72,6 +72,7 @@ def start(player_ship, player_stats, enemy, *, bonuses=None, officers=(),
 
 def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng,
           scale: float = 1.0) -> None:
+    from . import gunfire
     w = part(weapon_id)
     if w is None or w.wpn is None:
         return
@@ -81,17 +82,20 @@ def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng,
     pen = w.wpn.bears_at(band)
     if pen > firing.CAN_FIRE:
         _say(b, f"{_who(b, frm)} cannot bring the {w.name} to bear at this range.", "dim")
+        gunfire.record(b, frm, to, w.name, w.wpn, gunfire.NO_BEAR)
         return
     in_arc, gap = st_mod.bears_on(frm, to, w)
     if not in_arc:
         _say(b, f"The {w.name} will not train that far — {round(gap)}° outside its "
                 f"{tac.arc_name(tac.arc_of(w)).lower()} arc.", "dim")
+        gunfire.record(b, frm, to, w.name, w.wpn, gunfire.NO_ARC)
         return
 
     if w.wpn.ammo:
         cid, per = w.wpn.ammo
         if frm.ship.cargo.get(cid, 0) < per:
             _say(b, f"{_who(b, frm)}: the {w.name} is dry — no {cid} in the hold.", "dim")
+            gunfire.record(b, frm, to, w.name, w.wpn, gunfire.DRY)
             return
         add_cargo(frm.ship, cid, -per)
 
@@ -101,6 +105,7 @@ def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng,
     if seeking and to.st.flak > 0 and rng.chance(clamp(0.22 * to.st.flak, 0, 0.72)):
         _say(b, f"{_who(b, to)}'s point defence swats the {w.name} round out of the sky.",
              "dim")
+        gunfire.record(b, frm, to, w.name, w.wpn, gunfire.SWATTED)
         return
 
     evade = 0.0 if seeking else to.st.evade + (0.08 if to.braced else 0)
@@ -111,6 +116,7 @@ def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng,
            + st_mod.accuracy_modifier(frm, directed, officers))
     if not rng.chance(clamp(acc - evade, 0.05, 0.95)):
         _say(b, f"{w.name} misses {_who(b, to)}.", "dim")
+        gunfire.record(b, frm, to, w.name, w.wpn, gunfire.MISS)
         return
 
     dmg = w.wpn.dmg * rng.float(*VARIANCE) * scale
@@ -152,6 +158,7 @@ def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng,
     else:
         _say(b, f"{w.name} hits {_who(b, to)} for {round(dealt)}.",
              "good" if frm is b.player else "bad")
+    gunfire.record(b, frm, to, w.name, w.wpn, gunfire.HIT, dealt)
     damage._apply_traits(b, frm, to, w, rng)
 
 
@@ -183,6 +190,8 @@ def _salvo(b: Battle, frm: Side, to: Side, rng) -> None:
 
 
 def take_turn(b: Battle, action: dict, rng) -> Battle:
+    from . import gunfire
+    gunfire.clear(b)
     """Run one full exchange. ``action`` is the player's choice."""
     if b.over:
         return b

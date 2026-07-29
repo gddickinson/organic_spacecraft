@@ -330,6 +330,12 @@ def run(suite: Suite) -> None:
         conn = conn_sim.start(game, contact)
         pilot_sim.fly(conn, "close", 30)      # close enough to fill the frame
         assert not conn.over, conn.outcome
+        # With the sky out of it. This check is about whether a camera sees
+        # the thing in front of it; once the windows started drawing the rest
+        # of the system, the world a berth orbits legitimately filled the
+        # ventral view and the comparison stopped being about the target.
+        assert conn.sky, "no sky to remove"
+        conn.sky = []
         seen = {vid: brightness(vid, conn) for vid, _l, _v in conn_sim.VIEWS}
         # The starfield puts a handful of bright points in every frame, so
         # "nothing" is a small number rather than zero.
@@ -388,6 +394,114 @@ def run(suite: Suite) -> None:
         assert sum(x * y for x, y in zip(ventral, toward)) > 0.9, (
             f"the belly camera looks {ventral} and the target is {toward}")
         return "the nose camera follows the nose, and the belly the target"
+
+    @check("there is always something out of the window")
+    def _():
+        # A player's report: take the conn with nothing in reach and every
+        # screen is blank. It was — the windows drew the approach target and
+        # a fixed field of stars, and with no target there was only the
+        # field. Measured, standing off a body at 0.40 AU, the system's own
+        # star subtends **1.34°**: two and a half Suns, undrawn.
+        from .test_ui import _use_offscreen
+        _use_offscreen()
+        from PyQt6.QtWidgets import QApplication
+        from ..sim import conn as conn_sim_local
+        from ..sim import sky as sky_sim
+        from ..ui.conn_window import ConnWindow
+        from ..ui.viewport import Viewport
+        from ..ui.window import MainWindow
+
+        app = QApplication.instance() or QApplication([])
+        assert app is not None
+        game = new_game("nothing-in-reach")
+        win = MainWindow(game)
+        win.toast = lambda *a, **k: None
+        window = ConnWindow(win)
+        assert window.conn is not None, (
+            "the conn refuses to open with nothing alongside, so there is "
+            "nowhere to look out of")
+        assert window.conn.outcome == "watching", window.conn.outcome
+        assert window.conn.sky, "the sky is empty in a system with a star in it"
+
+        star = next((s for s in window.conn.sky if s.kind == "star"), None)
+        assert star is not None, "no star in the sky"
+        assert star.range_km > 1e8, star.range_km
+
+        # It is drawn, at whatever angular size. From the edge that is a
+        # tenth of a degree and it is still the brightest thing there is.
+        #
+        # Measured as lit *area*, not as lit pixels: a field star is a point
+        # and a star's corona is a region, and counting bare pixels merely
+        # counts the starfield — 111 against 90, which is noise.
+        def brightest(conn) -> int:
+            best = 0
+            for view_id, _label, _vec in conn_sim.VIEWS:
+                feed = Viewport(conn, view_id)
+                feed.resize(300, 240)
+                image = feed.grab().toImage()
+
+                def solid(x: int, y: int) -> bool:
+                    for dx, dy in ((0, 0), (2, 0), (0, 2), (2, 2)):
+                        px = image.pixelColor(min(299, x + dx),
+                                              min(239, y + dy))
+                        if px.red() + px.green() + px.blue() < 150:
+                            return False
+                    return True
+
+                best = max(best, sum(1 for x in range(0, 296, 2)
+                                     for y in range(0, 236, 2)
+                                     if solid(x, y)))
+            return best
+
+        with_sky = brightest(window.conn)
+        bare = conn_sim_local.observe(game)
+        bare.sky = []
+        without = brightest(bare)
+        window.close()
+        win.close()
+        assert with_sky > without + 8, (
+            f"the sky adds {with_sky - without} samples of lit area to the "
+            "brightest camera — the star is not being drawn")
+        return (f"station keeping: {len(window.conn.sky)} things in the sky, "
+                f"the star {star.apparent_deg:.3f}° across, "
+                f"{with_sky} bright samples against {without} with it removed")
+
+    @check("what is in the sky is the size it really is")
+    def _():
+        # The arithmetic, and the one place the flight model's simplification
+        # shows: an anchorage's position in AU *is* its body's, so asked what
+        # the sky looks like from a berth it said the planet was at zero
+        # range and 180° wide — a picture of being inside it.
+        import math
+
+        from ..sim import anchorage as anchorage_sim
+        from ..sim import sky as sky_sim
+
+        game = new_game("skysize")
+        quay = anchorage_sim.in_system(game)[0]
+        game.orbit_body = game.system.bodies[quay.body_index].id
+        contact = next(c for c in _contacts(game, ("anchorage",)))
+        conn = conn_sim.start(game, contact)
+
+        for sight in conn.sky:
+            assert sight.range_km > 0, f"{sight.name} is at zero range"
+            assert sight.apparent_deg < 180.0, (
+                f"{sight.name} fills the entire sky — it is being placed on "
+                "top of the ship")
+            # And the size is the arithmetic, not a guess.
+            want = math.degrees(
+                math.asin(min(0.999, sight.radius_km / sight.range_km))) * 2
+            assert abs(sight.apparent_deg - want) < 1e-6, sight.name
+
+        world = next((s for s in conn.sky if s.kind == "body"), None)
+        assert world is not None, "no world in the sky from a berth"
+        assert 5.0 < world.apparent_deg < 175.0, (
+            f"the world a quay orbits is {world.apparent_deg:.1f}° across")
+        assert sky_sim.shapes(conn.sky), "nothing is big enough to draw"
+        assert all(s.is_shape for s in sky_sim.shapes(conn.sky))
+        assert not any(s.is_shape for s in sky_sim.points(conn.sky))
+        return (f"{len(conn.sky)} sights, none at zero range; the world below "
+                f"a berth is {world.apparent_deg:.0f}° across")
 
     @check("the starfield does not shimmer, and does not touch the save")
     def _():

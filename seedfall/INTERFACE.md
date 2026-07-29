@@ -397,6 +397,41 @@ one cause. The Fleet Hub was drawn on the helm chart, labelled, and inert:
   selected, so nothing appeared to happen. `QUAY_OFFSET` is one number now,
   read by the painter and the hit test alike, and quays are tested first.
 
+**The broadside you ordered, and the sky you were flying in.** Two halves of
+the same complaint: the game resolved things and then did not show them.
+
+`combat._fire` resolved a shot and wrote a sentence. By the end of a turn all
+that survived of a salvo of seven was seven lines of prose — no record of what
+fired, from where, at what, or whether it connected, so nothing could draw it.
+`sim/gunfire.py` keeps the shots: one per attempt, **including the ones that
+never left the tube**, because "the lance will not train that far" is exactly
+the thing worth seeing rather than reading and it is the whole argument for
+coming about. `ui/battle3d.py` draws them — beams, tracers, seeking rounds on
+a curve, impact flashes sized by what they did — from a camera behind and
+above your own hull. The general check ties the record to the resolver:
+**2,138.9 of damage recorded against 2,138.9 taken** over six chronicles.
+
+Refusals had to be *constructed* to test. `_salvo` pre-filters to the mounts
+that bear, so eight full engagements produced 285 shots and not one refusal;
+the check finds the geometry by asking the sim's own predicates rather than by
+placing hulls at angles guessed at.
+
+And a player reported that taking the conn with nothing in reach showed
+nothing at all. It did: the windows drew the approach target and a fixed field
+of stars, so with no target there was only the field. Measured, standing off a
+body at 0.40 AU, **the system's own star subtends 1.34°** — two and a half
+Suns — and was not being drawn. `sim/sky.py` gives an approach the rest of its
+system, placed in the approach's own frame at the size it really has, and
+`conn.observe` opens the conn with nothing to approach at all, because a
+captain can always look out of a window.
+
+That exposed the one place the flight model's simplification shows. An
+anchorage's position in AU *is* its body's — which is why no screen needs a
+special case for flying to a quay — and asked what the sky looks like *from* a
+berth it answered that the planet was at zero range and therefore 180° wide,
+which is a picture of being inside it. Co-located sights are placed where they
+physically are: the world below a berth reads 98° across.
+
 **An anchor with nowhere to be.** A player reported it plainly: the gate is on
 the sector chart, invisible on the helm, impossible to fly to, and nothing is
 happening around it. All true. A Weave anchor was a *sector* abstraction — a

@@ -112,6 +112,10 @@ class Conn:
     #: along the target's own position vector — which is what gives a world
     #: a terminator on the correct side.
     star_dir: list = field(default_factory=lambda: [0.0, 1.0, 0.0])
+    #: Everything else in the system, placed in this frame. Built once when
+    #: the approach opens — bodies move on a scale of months and an approach
+    #: is over in hours.
+    sky: list = field(default_factory=list)
     #: Set once the chronicle has been charged for this approach.
     landed: bool = False
     log: list = field(default_factory=list)
@@ -150,6 +154,28 @@ class Conn:
         return -sum(p * v for p, v in zip(self.pos, self.vel)) / r
 
 
+def observe(game) -> Conn:
+    """The view from where the ship is standing, with nothing to approach.
+
+    A captain with nothing in reach was shown an empty rectangle: the windows
+    drew the approach target and a fixed field of stars, and with no target
+    there was nothing but the field. There is always something to see — at
+    0.40 AU the system's own star is 1.34° across — so the conn opens anyway
+    and simply says it has no approach running.
+    """
+    from . import sky as sky_sim
+    watching = Target(id="watch", name="Station keeping", kind="point",
+                      radius_km=0.0, detail="Nothing within reach to close.")
+    conn = Conn(target=watching, pos=[0.0, 0.0, 0.0], vel=[0.0, 0.0, 0.0],
+                start_km=1.0, rcs=float(game.ship.cargo.get("volatiles", 0)),
+                opening_rcs=float(game.ship.cargo.get("volatiles", 0)))
+    conn.outcome = "watching"
+    conn.landed = True                      # nothing to charge for looking
+    conn.sky = sky_sim.build(game, None)
+    conn.log.append("Nothing within reach. The watch is kept.")
+    return conn
+
+
 def start(game, contact, range_km: float | None = None,
           drift: float = 2.0) -> Conn:
     """Begin an approach, arriving off the target with way on.
@@ -182,6 +208,8 @@ def start(game, contact, range_km: float | None = None,
                 turn_rate_cost=attitude_sim.turn_cost(game.ship, 6.283185))
     conn.nose = list(attitude_sim.unit([-p for p in conn.pos]))
     conn.star_dir = list(starlight(game, contact))
+    from . import sky as sky_sim
+    conn.sky = sky_sim.build(game, contact)
     if target.mu > 0:
         # Across the line of sight at circular speed, less the error the
         # transfer left. Radially inward a little, so it is falling: an
@@ -271,7 +299,7 @@ def _copy(conn: Conn) -> Conn:
                 heading=conn.heading, rcs=conn.rcs, elapsed=conn.elapsed,
                 start_km=conn.start_km, opening_rcs=conn.opening_rcs,
                 nose=list(conn.nose), star_dir=list(conn.star_dir),
-                main_dv=conn.main_dv,
+                sky=conn.sky, main_dv=conn.main_dv,
                 rcs_dv=conn.rcs_dv, slew_rate=conn.slew_rate,
                 turn_rate_cost=conn.turn_rate_cost)
 
