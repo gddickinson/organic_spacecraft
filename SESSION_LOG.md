@@ -2,6 +2,43 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: all one hundred and fifty-three
+
+Task #60 has been open since long before this run and I have twice said it
+needed a cycle of its own. This is that cycle, and it is closed.
+
+- **Every tuning constant in the game is pinned.** 53 modules, 153
+  module-level numeric constants across `data/`, `sim/` and `core/`, each
+  doubled, halved and zeroed. Every single one is noticed by at least one
+  check. Nothing is unprotected.
+- **The original "52" was an artefact.** It was counted when `tripwire.py`
+  kept its own copy of the suite list, which went stale the moment a suite was
+  added — constants protected by the newer suite read as unprotected. The
+  tool's own docstring records that failure; `SUITES` derives from the
+  canonical list now, and the count predates the fix.
+
+**A pass/fail sweep that reports nothing but "all clear" is a poor use of
+seventy minutes.** So the tool now says *where* each constant's protection
+comes from: its own neighbourhood, or only the wide set. The second is worth
+knowing — it means the constant is held up by a suite that happened to walk
+past rather than by a check written for its subject.
+
+One constant was in that state: **`consorts.WITHDRAW_AT`**, the hull fraction
+below which an escort breaks off and falls out of the line. Something
+somewhere noticed it moving; nothing in the combat suite did, which is where a
+rule about consorts belongs. `test_combat` has a check for it now — in the
+line at 60% and 35%, out of it at 10% and 5%, measured against fractions
+written in the check rather than against the constant — and the sweep now
+reports it caught by `combat` directly.
+
+Three mutations bite it: never breaking off, breaking off at the first
+scratch, and skipping the check entirely. A fourth mutation I tried aimed at
+the tool's new reporting line and missed; that is a diagnostic rather than a
+rule, and I am not going to pretend a print statement is load-bearing by
+writing a check for it.
+
+674 checks green, nothing over 500 lines.
+
 ## 2026-07-29 — SEEDFALL: what the order will cost you, before you give it
 
 Priority three. The seats already say what taking one personally is worth —

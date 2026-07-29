@@ -880,6 +880,15 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   game that adds heat, so one clamp at the source covers every hull. An
   end-of-turn clamp was tried too and measured to change nothing at all, so it
   was removed rather than left in looking useful.
+- **Every tuning constant is pinned, and that is measured rather than
+  assumed.** All 153 module-level numeric constants across `data/`, `sim/` and
+  `core/` were swept: doubled, halved and zeroed, and every one is noticed by
+  a check. The sweep also reports *where* the protection comes from — a
+  constant caught only by the wide set is held up by a suite that happened to
+  walk past, which is a thinner thread than a check written for it.
+  `consorts.WITHDRAW_AT` was the only one in that state and now has its own.
+  Re-run with `python3 -m seedfall.tests.tripwire`; about seventy minutes, and
+  never alongside the suite, because it rewrites source while it works.
 - **A forecast has to clamp what the hull clamps.** `order_preview` quotes
   what the heat *becomes*, not the raw sum: a salvo worth 74 on a hull at 30
   with a 50 cap stops at the ceiling, so the line reads "heat 30 → 100 of 50 —

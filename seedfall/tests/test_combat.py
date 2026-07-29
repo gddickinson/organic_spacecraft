@@ -77,6 +77,56 @@ def run(suite: Suite) -> None:
             "firing outside the arc was not refused")
         return f"a fixed mount {round(gap)}° off the target refuses to fire"
 
+    @check("a holed consort falls out of the line, and a sound one does not")
+    def _():
+        """`WITHDRAW_AT` decides when a consort has had enough.
+
+        The tripwire found it protected only by the wide sweep — something
+        somewhere noticed it moving, but nothing in the combat suite, which is
+        where a rule about consorts breaking off belongs. A constant held up
+        by a suite that happened to walk past is a thinner thread than a check
+        written for it.
+
+        Measured against hull fractions written here, not against
+        `WITHDRAW_AT`, so moving the threshold has to be re-measured.
+        """
+        from ..core.state import new_game
+        from ..sim import combat, consorts as cs, encounters
+        from ..sim.ship import build_layers, make_ship, stats as ship_stats
+
+        def line_at(fraction: float) -> bool:
+            """True if a consort at this hull fraction is still fighting."""
+            game = new_game("holed")
+            rng = RNG("holed")
+            flag = make_ship("navis", ["slug_battery", "reaction_organ",
+                                       "opsin_eyes"])
+            build_layers(flag, game.bonuses)
+            flag.cargo = {"ore": 400}
+            escort = make_ship("vesper", ["mag_lance", "reaction_organ",
+                                          "opsin_eyes"], "Escort")
+            build_layers(escort, game.bonuses)
+            escort.cargo = {"ore": 400}
+            game.ship, game.fleet = flag, [escort]
+            game.recompute()
+            battle = combat.start(flag, ship_stats(flag),
+                                  encounters.make_enemy(rng, "concordat", 1.0),
+                                  rng=rng, game=game, officers=game.officers)
+            cs.deploy(battle, [escort], rng, game.bonuses)
+            assert battle.consorts, "no consort was deployed"
+            consort = battle.consorts[0]
+            for layer in consort.ship.layers:
+                layer.hp = layer.max * fraction
+            cs.run(battle, rng, lambda *a, **k: None, lambda *a, **k: None)
+            return not consort.withdrawn
+
+        assert line_at(0.60), "a consort at 60% hull broke off"
+        assert line_at(0.35), "a consort at 35% hull broke off"
+        assert not line_at(0.10), (
+            "a consort at 10% hull is still in the line — nothing makes them "
+            "break off")
+        assert not line_at(0.05), "a consort at 5% hull is still fighting"
+        return "in the line at 60% and 35%, out of it at 10% and 5%"
+
     @check("consorts fight, and screening pulls fire off the flag")
     def _():
         from ..core.state import new_game

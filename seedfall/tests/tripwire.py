@@ -227,7 +227,7 @@ def main(argv: list) -> int:
     for sig in (signal.SIGINT, signal.SIGTERM):
         signal.signal(sig, lambda *_a: (restore(), sys.exit(130)))
 
-    survived = []
+    survived, distant = [], []
     for index, (path, name, value) in enumerate(found, 1):
         print(f".. [{index:3d}/{len(found)}] {path.stem}.{name}", flush=True)
         noticed = False
@@ -249,10 +249,11 @@ def main(argv: list) -> int:
         # Stage one: every variant against the constant's own neighbourhood.
         # Two seconds a go, and it catches most of them.
         near = KIN.get(path.stem)
+        caught_by = ""
         if near:
             for candidate in variants(value):
                 if try_value(candidate, near):
-                    noticed = True
+                    noticed, caught_by = True, ", ".join(near)
                     break
 
         # Stage two, only for survivors: the wide set, and only the single
@@ -260,16 +261,29 @@ def main(argv: list) -> int:
         # confirm a finding; it is not worth paying three times to reconfirm.
         if not noticed:
             noticed = try_value(variants(value)[0], SUITES)
+            if noticed:
+                caught_by = "the wide set only"
 
         flag = "  " if noticed else "??"
         print(f"{flag} [{index:3d}/{len(found)}] {path.stem}.{name} = {value!r}"
-              + ("" if noticed else "   — nothing noticed"), flush=True)
+              + (f"   — {caught_by}" if noticed else "   — nothing noticed"),
+              flush=True)
         if not noticed:
             survived.append((path.stem, name, value))
+        elif not near or caught_by == "the wide set only":
+            # Protected, but by nothing that names its subject. Worth knowing:
+            # it is held up by a suite that happened to walk past, which is a
+            # thinner thread than a check written for it.
+            distant.append((path.stem, name, value))
 
     print(f"\n{len(survived)} of {len(found)} constants are unprotected:")
     for module, name, value in survived:
         print(f"    {module}.{name} = {value!r}")
+    if distant:
+        print(f"\n{len(distant)} are protected only by a suite that does not "
+              "name their subject:")
+        for module, name, value in distant:
+            print(f"    {module}.{name} = {value!r}")
     return 0
 
 
