@@ -273,6 +273,16 @@ class BattleView(View):
                                        self._act({"type": "station", "order": o})))
             h.addStretch(1)
             p.add(row)
+            # What each order will actually do. They were bare buttons with a
+            # sentence of prose, so a captain at 30 of a 50 cap could fire
+            # everything, make 74 more, and find out afterwards.
+            for order in st_mod.orders_for(sid):
+                plan = st_mod.order_preview(b.player, b.enemy, order.id,
+                                            b.officers, b.band)
+                if not plan["lines"]:
+                    continue
+                p.add_row(order.name, " · ".join(plan["lines"]),
+                          "warn" if plan["over"] else "dim")
 
         p.add(spacer(4), mono_label("Other"))
         p.add_buttons(

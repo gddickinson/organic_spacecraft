@@ -693,6 +693,7 @@ seedfall/
     ├── test_seatwork.py 5 checks — the crew hold their seats either way
     ├── test_thermal_doors.py 5 checks — every heat door goes through one gate
     ├── test_ventures.py 6 checks — both sides of a venture are costed
+    ├── test_orderplan.py 6 checks — every order says what it will do
     ├── ground_ai.py    a party leader good enough to measure the ground with
     ├── suites.py       the suite table `__main__` dispatches from
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
@@ -879,6 +880,11 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   game that adds heat, so one clamp at the source covers every hull. An
   end-of-turn clamp was tried too and measured to change nothing at all, so it
   was removed rather than left in looking useful.
+- **A forecast has to clamp what the hull clamps.** `order_preview` quotes
+  what the heat *becomes*, not the raw sum: a salvo worth 74 on a hull at 30
+  with a 50 cap stops at the ceiling, so the line reads "heat 30 → 100 of 50 —
+  pinned at the ceiling" and not "→ 104". My first draft quoted the sum, which
+  is the same defect the function exists to fix, one layer up.
 - **A screen with two buttons has to price both of them.** The ventures panel
   showed the odds as they stood, priced *backing*, and left "Work against it"
   bare — no standing cost, and no hint that either button moves the odds by

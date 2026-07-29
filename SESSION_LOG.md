@@ -2,6 +2,43 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: what the order will cost you, before you give it
+
+Priority three. The seats already say what taking one personally is worth —
+`seat_value` has done that since task #40. The orders *inside* the seats were
+bare buttons with a sentence of prose and no number anywhere.
+
+That mattered most at gunnery, and more since the thermal work. A Bastion at
+30 of a 50 cap presses **fire everything that bears**, makes seventy-four
+more, and ends the turn pinned at the ceiling — where every penalty for
+running hot is charged against it. Nothing said so until the turn resolved.
+
+`stations.order_preview` says it now, and the panel prints a line under each
+button:
+
+- *Fire everything that bears* — 5 of 5 mounts bear · heat 30 → 100 of 50 —
+  pinned at the ceiling  (in warn)
+- *Aimed shot* — Standing Wave Projector, 52 damage · heat 30 → 48 of 50
+- *Vent heat* — sheds up to 25 · heat 30 → 5 of 50
+- *Damage control* — patches about 16 of Whipple Bumper
+
+Helm orders are left deliberately silent: the firing picture already reports
+what coming about would bring on, in degrees, and saying it twice is noise. A
+check holds that both ways — no gunnery or engineering order may be a bare
+button, and no helm order may start speaking here.
+
+**I made the same mistake I was fixing, one layer up.** The first draft quoted
+the raw sum: "heat 30 → 104 of 50" for a salvo that actually stops at 100,
+because the ceiling clamps it. A forecast that does not clamp what the hull
+clamps is exactly the defect this function exists to end. It now reports the
+clamped figure and distinguishes *over the cap* from *pinned at the ceiling* —
+which are different places to be — and the check measures the forecast against
+`_salvo` itself from three starting heats: 0 → +74, 30 → +70, 95 → +5, every
+one exact.
+
+Six checks in a new `test_orderplan` suite, every one proven to bite.
+673 checks green, nothing over 500 lines.
+
 ## 2026-07-29 — SEEDFALL: two buttons, one of them priced
 
 Back to diplomacy. The piece I had not measured is ventures — the powers
