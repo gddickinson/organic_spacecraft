@@ -35,9 +35,10 @@ import collections
 from ..core.rng import RNG
 from ..core.state import new_game
 from ..data.parts import PARTS
-from ..sim import combat, encounters
+from ..sim import combat, encounters, flight
 from ..sim import stations as st_mod
-from ..sim.ship import build_layers, make_ship, stats
+from ..sim import ship as ship_mod
+from ..sim.ship import build_layers, hull_pct, make_ship, stats
 from .harness import Suite
 from . import captain_ai
 
@@ -231,6 +232,98 @@ def run(suite: Suite) -> None:
         return (f"{len(battle.player.st.weapons)} mounts fired from nearly "
                 f"cooked, peak {battle.player.ship.heat:.0f} on a "
                 f"{rated:.0f} cap")
+
+    @check("the helm cannot cook a hull without limit either")
+    def _():
+        # The guns were fixed first and the helm was left open. A hard burn
+        # adds heat on arrival and only `cool()` takes it away, at 0.84 a day
+        # against the ~32 a burn puts in — so bouncing between two bodies
+        # drove a hull to 5.4x its rated cap with nothing to stop it.
+        game = new_game("helm")
+        game.ship.cargo["volatiles"] = 9999
+        rated = game.ship_stats.heat_cap
+        for leg in range(12):
+            game.ship.cargo["volatiles"] = 9999
+            flight.travel_to(game, leg % len(game.system.bodies), "hard")
+            if game.dead:
+                break
+        ratio = game.ship.heat / rated
+        assert ratio <= 2.5, (
+            f"twelve hard burns left the hull at {ratio:.1f}x its rated cap — "
+            "the helm puts heat in with no ceiling on it")
+        assert game.ship.heat > rated, (
+            f"twelve hard burns and the hull is at {game.ship.heat:.0f} "
+            f"against a cap of {rated:.0f} — the burn heat is not arriving "
+            "at all")
+        return f"twelve hard burns settle at {ratio:.2f}x the rated cap"
+
+    @check("arriving hot is a handicap, not a death sentence")
+    def _():
+        # Measured before the ceiling: ten hard burns then an engagement, and
+        # the captain routed on turn three at 51% hull **holding fire the
+        # whole way**. They lost to their own radiators without firing a shot.
+        def meet(legs: int):
+            game = new_game("arrive")
+            game.ship.cargo["volatiles"] = 9999
+            for leg in range(legs):
+                game.ship.cargo["volatiles"] = 9999
+                flight.travel_to(game, leg % len(game.system.bodies), "hard")
+            rng = RNG("arrive")
+            battle = combat.start(game.ship, stats(game.ship),
+                                  encounters.make_enemy(rng, "concordat", 1.2),
+                                  rng=rng, game=game, officers=game.officers)
+            turn = 0
+            while not battle.over and turn < 40:
+                combat.take_turn(battle,
+                                 {"type": "station", "order": "hold_fire"}, rng)
+                turn += 1
+            return battle, turn
+
+        cold, cold_turns = meet(0)
+        hot, hot_turns = meet(10)
+        assert hot_turns >= 12, (
+            f"a captain who flew ten hard burns lasted {hot_turns} turns "
+            f"without firing a shot, against {cold_turns} for a cold hull — "
+            "the helm can hand you an unwinnable fight")
+        assert hot.result != "routed" or cold.result == "routed", (
+            f"flying hard turned a {cold.result} into a {hot.result}")
+        return (f"cold: {cold.result} on turn {cold_turns} · after ten hard "
+                f"burns: {hot.result} on turn {hot_turns}")
+
+    @check("flying hot still costs, or the ceiling has made it free")
+    def _():
+        def fly(burn: str, legs: int = 14):
+            game = new_game("cost")
+            for leg in range(legs):
+                game.ship.cargo["volatiles"] = 9999
+                flight.travel_to(game, leg % len(game.system.bodies), burn)
+                if game.dead:
+                    break
+            return game
+
+        easy = fly("economy")
+        hard = fly("hard")
+        assert hard.day < easy.day, (
+            f"a hard burn took {hard.day} days against economy's {easy.day} — "
+            "it is not buying the time it is supposed to")
+        assert hull_pct(hard.ship) < hull_pct(easy.ship) - 0.1, (
+            f"fourteen hard burns left the hull at {hull_pct(hard.ship):.0%} "
+            f"against {hull_pct(easy.ship):.0%} for economy — running over "
+            "the cap is not cooking anything")
+        assert hard.ship.heat > easy.ship.heat + 10, (
+            f"hard {hard.ship.heat:.0f} against economy {easy.ship.heat:.0f}")
+        return (f"hard: {hard.day} days at {hull_pct(hard.ship):.0%} hull · "
+                f"economy: {easy.day} days at {hull_pct(easy.ship):.0%}")
+
+    @check("there is one thermal rule, in one place")
+    def _():
+        # It was briefly written twice — once in `combat`, once implied by the
+        # helm doing nothing. Two copies of a rule drift.
+        assert combat.cook is ship_mod.cook, (
+            "combat has its own copy of cook() again")
+        assert combat.HEAT_CEILING is ship_mod.HEAT_CEILING, (
+            "combat has its own copy of the ceiling again")
+        return "combat and flight both defer to sim/ship.py"
 
     @check("cook() is what holds the line, and it holds it both ways")
     def _():

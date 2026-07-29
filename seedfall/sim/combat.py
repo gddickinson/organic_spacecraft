@@ -34,36 +34,10 @@ MAX_TURNS = 40
 
 GRIND_TURN = 9      # turns of clean fighting before either side starts wanting out
 
-#: How far past its rated cap a hull's heat can climb, as a multiple.
-#:
-#: Heat used to have no ceiling at all. A Bastion firing the five heavy mounts
-#: it has slots for makes 74 heat a turn against a rated cap of 50 and a vent
-#: of 6, so heat ran 68 → 132 → 187 → 243 → 279 and kept going. The overheat
-#: penalty is a share of how far over the cap you are, so it compounded —
-#: resolve fell 26, then 39, then 53, then 65 — and the ship routed on turn
-#: five at 93% hull, beaten by its own radiators while the enemy did little.
-#:
-#: There was no way back either: cooling from 279 at six a turn takes 38
-#: turns, longer than the engagement, so `vent` could never catch up and only
-#: cost you the gunnery seat. Every thermal decision in the game was fake.
-#:
-#: A ceiling makes the penalty a steady pressure instead of a spiral and puts
-#: recovery back inside a fight — from the ceiling, venting hard clears it in
-#: two turns. Measured over 40 fights with the heavy battery, favourable
-#: outcomes went from 7/40 to 24/40 and kills from 4 to 12.
-HEAT_CEILING = 2.0
-
-
-def cook(ship, cap: float) -> float:
-    """Hold a hull's heat at or below what it can physically hold.
-
-    Called from `_fire`, which is the only thing in the game that adds heat —
-    so one clamp at the source covers every hull, the enemy's included. An
-    end-of-turn clamp was tried as well and measured to change nothing at all
-    (peak 2.32x the rated cap either way), so it is not here.
-    """
-    ship.heat = max(0.0, min(ship.heat, cap * HEAT_CEILING))
-    return ship.heat
+#: The thermal rule lives in `sim/ship.py`, next to `cool()`, because the hull
+#: owns its own physics and both the guns and the helm put heat into it. Kept
+#: importable from here because that is where the fight reads it.
+from .ship import HEAT_CEILING, cook  # noqa: E402,F401
 
 #: personality -> (close preference, fire chance, flee chance)
 def start(player_ship, player_stats, enemy, *, bonuses=None, officers=(),

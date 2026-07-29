@@ -2,6 +2,50 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: the helm, and the half of the fix I missed
+
+Richer helm and flight simulation, the next standing priority. It turned into
+finishing last cycle's job properly and then finding what a *general* question
+catches that a specific one does not.
+
+- **Last cycle bounded heat in the guns and left the helm wide open.** A hard
+  burn adds heat on arrival; only `cool()` takes it away, at 0.84 a day
+  against the ~32 a burn puts in. Bouncing between two bodies drove a hull to
+  **5.4x its rated cap**, climbing linearly with nothing to stop it.
+- **And it was worse than in combat, because it was quiet.** Ten hard burns
+  then an engagement: the captain **routed on turn three at 51% hull while
+  holding fire every single turn**. They lost to their own radiators without
+  firing a shot. Now: driven off on turn 35 at 88% hull.
+- **One rule, one place.** `HEAT_CEILING` and `cook()` moved to `sim/ship.py`
+  beside `cool()`, because the hull owns its physics and both the guns and the
+  helm put heat into it. `combat` re-exports them. A check asserts they are
+  the *same objects*, because two copies of this rule drifted within a cycle.
+- **Flying hot still costs.** Fourteen hard burns: 87 days at 68% hull against
+  economy's 235 days at 100%, and double the incident rate. Bounded, not free.
+
+**Then the general check earned its keep.** The burn board quotes a risk, and
+that risk is the profile plus *three* surcharges. Two were charged silently:
+the heat in the hull (a captain saw coast at 0.34 where its profile says 0.06)
+and the star at your back (`_heat_risk` takes the nearer end of the leg, so a
+hull parked at 0.40 AU paid on every departure, including one nine AU outward,
+while the note only ever described arrivals).
+
+I wrote a check asking the general question — *does anything cost more than
+its profile without the screen saying why* — and it immediately found a
+**third** surcharge I had not looked for: a distance term, up to +0.10, never
+mentioned anywhere. All three are stated now, with their amounts.
+
+**And the check was too weak at first, which I caught by mutation.** It asked
+only whether *some* note existed. With the star warning deleted, the distance
+note kept the quote looking explained and nothing failed. It now checks each
+component separately, reconciles the components against the quoted total so a
+fourth surcharge cannot appear unnamed, and caps what may go unsaid so the
+noise threshold cannot be raised to hide something large.
+
+Five checks in a new `test_helm` suite and four more in `test_thermal`, every
+one proven to bite — including a mutation that raises the threshold to hide a
+surcharge. 606 checks green.
+
 ## 2026-07-28 — SEEDFALL: a warship that can fire its own guns
 
 Positional combat with crew stations, the next standing priority. Measure

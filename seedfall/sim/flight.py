@@ -13,7 +13,7 @@ import math
 from dataclasses import dataclass
 
 from ..core.rng import RNG, hash_seed
-from .ship import add_cargo, apply_damage
+from .ship import add_cargo, apply_damage, cook
 
 #: Orbital radius in AU for a body's normalised orbit slot (0 inner, 1 outer).
 R_INNER, R_OUTER = 0.4, 9.0
@@ -160,7 +160,7 @@ def intercept(game, body, burn_id: str = "standard") -> dict:
             "aim": (tx, ty), "arrival_day": game.day + days,
             "lead": math.hypot(tx - nx, ty - ny), "passes": passes,
             "legs": legs, "detour": au - math.hypot(tx - sx, ty - sy),
-            "risk": (burn.risk + min(0.10, au * 0.012)
+            "risk": (burn.risk + min(LONG_LEG_CAP, au * PER_AU)
                      + _heat_risk(sx, sy, tx, ty)
                      + hot_risk(game))}
 
@@ -226,6 +226,18 @@ def burn_heat(burn, stats) -> float:
 #: How much a hull already running hot adds to the risk of a burn.
 HOT_RISK = 0.28
 
+#: Below this share of the cap, the heat you are carrying adds so little risk
+#: that saying so would be noise on every screen in the game.
+WORTH_SAYING = 0.25
+
+#: How much risk a long leg adds per AU, and the most it can add. A longer arc
+#: is more time for something to go wrong.
+PER_AU = 0.012
+LONG_LEG_CAP = 0.10
+
+#: Below this the distance surcharge is not worth a line on the screen.
+LONG_ENOUGH = 0.03
+
 
 def hot_risk(game) -> float:
     """A hull with heat still in it is a worse thing to burn hard in.
@@ -250,6 +262,16 @@ def path_note(game, body, burn_id: str = "standard") -> str | None:
     """A warning about the leg itself, if it deserves one."""
     q = intercept(game, body, burn_id)
     notes = []
+    # The distance surcharge. Found by a check asking the general question —
+    # "does anything cost more than its profile without the screen saying
+    # why" — rather than by looking for it: two surcharges had words written
+    # for them and this third one never had.
+    span = min(LONG_LEG_CAP, q["au"] * PER_AU)
+    if span >= LONG_ENOUGH:
+        notes.append(f"It is {q['au']:.1f} AU on this arc, which is "
+                     f"+{span:.2f} on the risk before anything else"
+                     + (" — as far as distance alone can make it."
+                        if span >= LONG_LEG_CAP - 1e-9 else "."))
     if q["detour"] > 0.05:
         notes.append(f"The star is in the way: the course bends around it, "
                      f"adding {q['detour']:.2f} AU.")
@@ -263,6 +285,30 @@ def path_note(game, body, burn_id: str = "standard") -> str | None:
     if deep < HOT_RADIUS:
         notes.append(f"You will be working {deep:.2f} AU from the star. The "
                      "radiators will not enjoy it and neither will the crew.")
+    else:
+        # `_heat_risk` takes the *nearer* of the two ends, so a hull parked
+        # deep pays the surcharge on every departure — including one nine AU
+        # outward. Only the arrival half was ever explained, so a captain
+        # sitting close in saw every burn on the board priced above its
+        # profile with nothing on the screen accounting for it.
+        here = math.hypot(*ship_position(game))
+        if here < HOT_RADIUS:
+            notes.append(f"You are starting {here:.2f} AU from the star, so "
+                         "the first part of any burn out of here runs hot "
+                         "whichever way you go.")
+    # The heat already in the hull, which `hot_risk` charges against *every*
+    # burn on the board. It was charged silently: a captain fresh off a run of
+    # hard burns saw coast at 0.34 where the profile says 0.06, and nothing on
+    # the screen accounted for the difference.
+    cap = getattr(game.ship_stats, "heat_cap", 0) or 1
+    share = game.ship.heat / cap
+    if share >= WORTH_SAYING:
+        added = hot_risk(game)
+        notes.append(f"You are carrying {game.ship.heat:.0f} of heat against "
+                     f"a rated {cap:.0f}. That is +{added:.2f} on every burn "
+                     "here, this one included, until she sheds it."
+                     + (" She is over the cap and cooking." if share > 1
+                        else ""))
     return " ".join(notes) or None
 
 
@@ -294,6 +340,11 @@ def travel_to(game, body_index: int, burn_id: str = "standard") -> dict:
     burnt = burn_heat(q["burn"], game.ship_stats)
     if burnt:
         game.ship.heat += burnt
+        # The same ceiling the guns work under. Without it a hurried captain
+        # bouncing between two bodies reached 5.4x the cap, and every penalty
+        # that scales with the excess — the daily cooking of the hull, and the
+        # resolve loss the moment anybody shot at them — scaled with it.
+        cook(game.ship, game.ship_stats.heat_cap)
 
     out = {"ok": True, "already": False, "days": q["days"], "fuel": q["fuel"],
            "body": body, "burn": q["burn"], "incident": None,

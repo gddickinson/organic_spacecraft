@@ -676,7 +676,8 @@ seedfall/
     ├── test_plans.py   8 plan checks — the model is the ship, and it is solid
     ├── test_picture.py 8 checks — the picture shows the ship's condition
     ├── test_courting.py 8 checks — a gift is seen by the recipient's enemies
-    ├── test_thermal.py 8 checks — a warship can fire its own guns
+    ├── test_thermal.py 12 checks — guns and helm both bounded
+    ├── test_helm.py    5 checks — every number on the burn board is accounted
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
     ├── test_legacy.py  7 aftermath checks — an ending is a turn, not a stop
     ├── test_instruments.py 5 checks — a gauge agrees with the ship and itself
@@ -836,6 +837,14 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`GRIND_TURN` / `MAX_TURNS` in `sim/combat.py`** stop two well-armoured hulls
   grinding forever. Armour is also floored at 15% damage leak-through for the
   same reason.
+- **`sim/ship.py` owns the thermal rule; `combat` and `flight` both defer.**
+  `HEAT_CEILING` and `cook()` live next to `cool()`, because the hull owns its
+  own physics and both the guns and the helm put heat into it. `combat`
+  re-exports them. Two copies of this rule existed briefly and drifted
+  immediately — the guns were bounded and the helm was not, and a captain
+  fresh off ten hard burns routed on turn three at 51% hull *holding fire the
+  whole way*. Call `cook()` wherever heat is **added**; there are exactly two
+  such places, `combat._fire` and `flight.travel_to`.
 - **Heat is bounded by `HEAT_CEILING`, and that is load-bearing.** It used to
   be unbounded, and because the overheat penalty scales with how far over the
   cap you are, it compounded: a Bastion firing the five heavy mounts it has
@@ -844,6 +853,14 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   game that adds heat, so one clamp at the source covers every hull. An
   end-of-turn clamp was tried too and measured to change nothing at all, so it
   was removed rather than left in looking useful.
+- **A quoted burn's risk is the profile plus three surcharges** — distance,
+  the star at either end of the leg, and the heat already in the hull — and
+  `path_note` must account for all of them. Two were silent, and the third was
+  found only because a check asked the *general* question ("does anything cost
+  more than its profile without the screen saying why") rather than testing
+  the two known cases. That check verifies each component separately: an
+  earlier version asked only whether *some* note existed, and a surviving note
+  masked a deleted one.
 - **Never `git checkout <path>` to undo a scratch mutation.** Mutation testing
   wants the file back exactly as it was, and `git checkout` restores it from
   the *index* — which silently throws away the uncommitted work the cycle is

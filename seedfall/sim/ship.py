@@ -325,6 +325,30 @@ REST_VENT = 0.14
 COOK = 0.05
 
 
+#: How far past its rated cap a hull's heat can climb, as a multiple.
+#:
+#: Every penalty for running hot scales with how far over the cap you are, so
+#: an unbounded number makes them all compound. In combat that routed a
+#: warship on turn five at 93% hull. Through the helm it was worse and quieter:
+#: a hard burn adds heat on arrival, nothing but `cool()` takes it away at
+#: 0.84 a day, so bouncing between two bodies drove a hull to 5.4x its cap —
+#: and a captain who then met somebody routed on turn three, at 51% hull,
+#: while holding fire. They lost to their own radiators, in a fight they never
+#: shot in.
+HEAT_CEILING = 2.0
+
+
+def cook(ship: Ship, cap: float) -> float:
+    """Hold a hull's heat at or below what it can physically hold.
+
+    Called wherever heat is *added* — `combat._fire` and `flight.travel_to`
+    are the only two places in the game that do — so the ceiling holds without
+    anything having to remember to check it later.
+    """
+    ship.heat = max(0.0, min(ship.heat, cap * HEAT_CEILING))
+    return ship.heat
+
+
 def cool(ship: Ship, stats, days: float) -> dict:
     """Shed heat on the clock, and cook the hull while it is over the cap."""
     out = {"shed": 0.0, "cooked": 0.0}
