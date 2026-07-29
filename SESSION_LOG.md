@@ -2,6 +2,50 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: asking every gate whether it agrees with its own act
+
+Two of the last few cycles found the same shape by accident: a function whose
+job is to answer "may I?" disagreeing with the thing it guards. `is_stranded`
+read a body's richness where `extract` reads its depletion. `quote` priced two
+contract kinds where `check` completed three. So this cycle asked it on
+purpose, across all seventeen `can_*`/`is_*` functions in the sim.
+
+It found a third immediately. **`crew.hire` refuses a station that is already
+crewed, and nothing on the berths board knew.** A fresh bridge holds science,
+engineering and nav; the recruit pool draws evenly from all six roles. Measured
+over sixty ports:
+
+- **49% of candidates could not be signed** — 107 of 219
+- 55 boards in 60 had at least one, and four had four
+- every one of them drew a live "Sign on" that answered with a toast
+
+The panel had the ingredients: a *different* button on the same screen already
+gates itself on `lifespan.can_sign_on`. The officer cards simply had no
+`enabled=` at all. `crew.can_hire` is the one door now — `hire` calls it, the
+board calls it — and a closed berth says which officer holds the chair, so the
+alternative (Pay off, already on the bridge panel) is legible.
+
+**The check taught me its own limit, which is worth more than the bug.** Once
+`hire` calls `can_hire`, mutating `can_hire` moves *both* answers and they
+agree all the way down. Deleting the signing-fee rule entirely passed the
+agreement sweep. So did making `can_build_here` return yes everywhere — and
+that one passed **every check in the project**, which is a real hole the sweep
+exposed rather than caused. Agreement guards the architecture; the rule needs
+a check measured by outcome. There is one now: the fee is charged and refused
+on its own terms, and 39 systems in a fresh sector will not take a keel.
+
+I also recorded what came back clean, because most of it did: `can_found`
+against `found` over 1,805 states, `can_afford` against `extract` over 360,
+`can_build_here` against `start_build` over 144 — no disagreements anywhere.
+And before settling on gates I swept the whole suite for last cycle's pattern
+(a check selecting its subjects with the code's own vocabulary) and found the
+rest were content tables, where iterating every entry is the right thing.
+
+Five mutations, all caught — two of them only after adding the outcome checks,
+which is the point.
+
+719 → 723 green.
+
 ## 2026-07-29 — SEEDFALL: the whitelist that was written three times
 
 Breadth cycle into missions, the last area these cycles had not touched. Two

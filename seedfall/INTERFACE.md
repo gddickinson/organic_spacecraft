@@ -667,6 +667,7 @@ seedfall/
     ├── test_geography.py 5 checks — a port stays the kind of port it is
     ├── test_grants.py  8 checks — every colony effect is read, and does something
     ├── test_prospect.py 5 checks — a ground option's prize is the officer's prize
+    ├── test_gates.py   4 checks — every "may I?" agrees with the act it guards
     ├── test_customs.py 9 contraband checks — the premium, the search, heat
     ├── test_allegiance.py 8 checks — taking sides, and brokering out of it
     ├── test_territory.py 8 checks — annexation, levy, defiance, seizure
@@ -1245,6 +1246,20 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **Every gate must agree with the act it guards, and the act should call the
+  gate.** The sim has seventeen `can_*`/`is_*` functions; a screen asks the
+  gate whether to offer a button and the act asks its own conditions when the
+  button is pressed. Two real bugs came from that gap before it was asked on
+  purpose (`is_stranded` against `extract`, `quote` against `check`), and
+  `test_gates` found a third: `crew.hire` refused a station that was already
+  crewed and the berths board did not know — **49% of candidates over sixty
+  ports could not be signed**, every one under a live button.
+- **An agreement check cannot guard a shared gate, and must not pretend to.**
+  Once `hire` calls `can_hire` and `start_build` calls `can_build_here`,
+  changing the gate moves both answers together and they agree all the way
+  down — which is the architecture you want. The *rule* then needs a separate
+  check measured by outcome. Making `can_build_here` answer yes everywhere
+  passed every check in the project until one was written for it.
 - **`contracts.CARGO_KINDS` is the one list of kinds completed by carrying
   something.** It was written out three times — in `quote`, in `shape`, and
   again in `test_cargo` — and all three said `("deliver", "prospect")` while

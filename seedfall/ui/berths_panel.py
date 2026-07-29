@@ -79,8 +79,15 @@ class BerthsMixin:
                 card.add(label(conviction.name, "", "lumen"))
                 card.add(note(conviction.blurb))
             card.add(note(f"level {o.level} · {cr(o.wage)}/month"))
+            # Whether this hand can actually be taken, asked of the same
+            # function `hire` asks. Half a berth board is stations you
+            # already have somebody in, and every one of them used to draw a
+            # live button that answered with a toast.
+            can, why = crew_sim.can_hire(g, o)
+            if not can:
+                card.add(label(why, "", "warn", wrap=True))
             card.add(button("Sign on", lambda _=False, who=o: self._hire(who),
-                            kind="primary"))
+                            kind="primary" if can else "", enabled=can))
             cards.append(card)
         if cards:
             self.col.addWidget(label("Looking for a berth", "h3"))

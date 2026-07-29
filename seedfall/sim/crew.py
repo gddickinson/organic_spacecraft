@@ -182,14 +182,30 @@ def bonus_cost(officers) -> int:
     return int(sum(o.wage for o in officers) * 0.6)
 
 
+def can_hire(game, officer) -> tuple[bool, str]:
+    """Whether this hand can be signed, and what stops it.
+
+    The berths board drew a live "Sign on" under every candidate and let the
+    refusal arrive as a toast. Measured over sixty ports, **49% of candidates
+    could not be signed** — a fresh bridge already holds science, engineering
+    and nav, and the pool draws evenly from all six roles — so half the board
+    was buttons that did nothing. Fifty-five of sixty boards had at least one.
+    """
+    held = next((x for x in game.officers if x.stat == officer.stat), None)
+    if held is not None:
+        return False, (f"{held.name} already holds {officer.role_name.lower()}. "
+                       "Pay them off first.")
+    if game.credits < officer.wage:
+        return False, (f"The signing fee is {round(officer.wage):,} and the "
+                       f"treasury holds {round(game.credits):,}.")
+    return True, ""
+
+
 def hire(game, officer) -> dict:
     """Sign an officer on. One station, one incumbent."""
-    if any(x.stat == officer.stat for x in game.officers):
-        return {"ok": False,
-                "why": "That station is already crewed. Pay off the incumbent "
-                       "first."}
-    if game.credits < officer.wage:
-        return {"ok": False, "why": "Not enough credits for the signing fee."}
+    ok, why = can_hire(game, officer)
+    if not ok:
+        return {"ok": False, "why": why}
     game.credits -= officer.wage
     game.officers.append(officer)
     game.add_log(f"{officer.name} signed on as {officer.role_name}.", "good")
