@@ -214,6 +214,8 @@ class Viewport(QWidget):
             return (models3d.WORLDS.get(look, models3d.WORLD),
                     conn.elapsed / 5400.0)
         if kind == "anchorage":
+            if getattr(conn.target, "berth", "") == "gate":
+                return models3d.GATE, conn.elapsed / 2600.0
             return models3d.SHIPYARD, conn.elapsed / 900.0
         if kind == "hull":
             return models3d.HULL, 0.0

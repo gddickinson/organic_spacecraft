@@ -41,6 +41,7 @@ from ..data.gates import (ANCIENT_LIT, ANCIENT_SITES, BUILD_GOODS,
                           TOLL_REFUSED_BELOW, WAKE_GOODS)
 from ..sim import gates as gates_sim
 from ..sim import reach as reach_sim
+from ..sim import track as track_sim
 from ..sim import weave as weave_sim
 from ..world.galaxy import distance
 from .harness import Suite

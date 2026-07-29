@@ -315,7 +315,14 @@ class HelmView(View):
     def _pick(self, index: int) -> None:
         # The chart decides whether a quay or a bare body was hit; the view
         # only has to remember which.
-        self.place = getattr(self.chart, "place", None)
+        #
+        # From the *sender*, not from `self.chart`: `refresh()` builds a new
+        # chart every time, so reading the attribute off the view's current
+        # one gave the answer from a widget that had not been clicked. It
+        # only ever showed up once a system held two berths — which it did
+        # the day Weave anchors got a place of their own.
+        chart = self.sender() or getattr(self, "chart", None)
+        self.place = getattr(chart, "place", None)
         self.target = index
         self.refresh()
 

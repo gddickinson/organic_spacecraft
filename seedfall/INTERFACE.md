@@ -397,6 +397,31 @@ one cause. The Fleet Hub was drawn on the helm chart, labelled, and inert:
   selected, so nothing appeared to happen. `QUAY_OFFSET` is one number now,
   read by the painter and the hit test alike, and quays are tested first.
 
+**An anchor with nowhere to be.** A player reported it plainly: the gate is on
+the sector chart, invisible on the helm, impossible to fly to, and nothing is
+happening around it. All true. A Weave anchor was a *sector* abstraction — a
+system id and a list of links — with no place inside the system it stood in.
+
+It is an `Anchorage` now, of kind `gate`, and almost everything else fell out
+of that: the helm chart already draws anchorages, `track.contacts` already
+turns them into things the conn and the plotting board can aim at, and the
+"where you can put in" panel already offers a course to one. `gate_body` puts
+it at the **outermost** body and deliberately not the one the quay is built
+over — an anchor predates every port in the Verge, it was put where there was
+room and no gravity to fight, and arriving through the Weave should drop you
+at the edge of a system rather than in the middle of its traffic.
+
+The other half of the report — *shouldn't there be a lot of activity around
+any gates?* — is `traffic._busyness`, which now adds two hulls for a lit
+anchor. Measured: lit anchors work 3.7 hulls against a dark one's 2.1, and
+waking one takes its system from 2 to 4.
+
+*A latent bug it exposed.* `HelmView._pick` read the quay that was clicked off
+`self.chart` — but `refresh()` builds a new chart every time, so it was asking
+a widget that had not been clicked. It could only ever show up in a system
+holding **two** berths, which no system did until anchors got a place of their
+own. It reads the signal's sender now.
+
 **Something worth looking at.** The conn's windows drew a flat coloured circle
 with a radial gradient behind it. At twelve kilometres that reads as a distant
 object; at six hundred metres it reads as a flat coloured circle, which is a

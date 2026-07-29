@@ -15,6 +15,9 @@ from __future__ import annotations
 from ..core.state import new_game
 from ..data.colonies import COLONIES
 from ..sim import anchorage, colony as colony_sim, flight
+from ..sim import gates as gates_sim
+from ..sim import track as track_sim
+from ..sim import weave as weave_sim
 from .harness import Suite
 
 
@@ -32,8 +35,119 @@ def _with_holding(seed: str, want: str = "build_here"):
     return game, col
 
 
+
+
+def conn_from(game, contact):
+    """An approach on a contact, for asking what the window would draw."""
+    from ..sim import conn as conn_sim
+    return conn_sim.start(game, contact)
+
+
+def _rich(seed: str):
+    """A captain who can pay for anything, so only the rules bite."""
+    from ..data.gates import BUILD_GOODS, WAKE_GOODS
+    game = new_game(seed)
+    game.credits = 20_000_000
+    game.research.unlocked = list({*game.research.unlocked, "weavecraft"})
+    for goods in (WAKE_GOODS, BUILD_GOODS):
+        for cid, need in goods.items():
+            game.stores[cid] = need * 20
+    game.recompute()
+    return game
+
 def run(suite: Suite) -> None:
     check = suite.check
+    @check("every anchor stands somewhere you can fly to")
+    def _():
+        # A player's report: the anchor is on the sector chart, invisible on
+        # the helm, impossible to fly to, and nothing is happening around it.
+        # It had no place *inside* its own system at all — it was a sector
+        # abstraction. It is a berth like any other now, so every screen that
+        # can plot an anchorage plots it for free.
+        from ..sim import anchorage as anchorage_sim
+
+        checked, faults = 0, []
+        for seed in range(4):
+            game = new_game(f"placed-{seed}")
+            for gate in weave_sim.gates(game):
+                game.location_id = gate.system_id
+                system = game.system
+                berths = anchorage_sim.in_system(game)
+                mine = [a for a in berths if a.kind == "gate"]
+                checked += 1
+                if len(mine) != 1:
+                    faults.append(f"{system.name}: {len(mine)} gate berths")
+                    continue
+                berth = mine[0]
+                if not 0 <= berth.body_index < len(system.bodies):
+                    faults.append(f"{berth.name} is at body "
+                                  f"{berth.body_index} of {len(system.bodies)}")
+                if berth.name != gate.name:
+                    faults.append(f"{berth.name} against {gate.name}")
+                # And not on top of the quay — arriving through the Weave
+                # should drop you at the edge, not in the middle of a port.
+                quay = next((a for a in berths if a.kind in ("quay", "hub")),
+                            None)
+                if quay is not None and quay.body_index == berth.body_index:
+                    faults.append(f"{berth.name} shares a body with "
+                                  f"{quay.name}")
+        assert not faults, faults
+        assert checked >= 30, checked
+
+        # It reaches the screens that matter, by being a berth rather than by
+        # any of them knowing what a gate is.
+        game = new_game("placed-0")
+        game.location_id = weave_sim.lit_at_dawn(game.galaxy)[0]
+        contact = next((c for c in track_sim.contacts(game)
+                        if c.berth == "gate"), None)
+        assert contact is not None, "no gate contact for the conn or the plot"
+        assert contact.body_index is not None
+        from ..sim import berthing as berth_sim
+        game.orbit_body = game.system.bodies[contact.body_index].id
+        ok, why = berth_sim.can_conn(game, contact)
+        assert ok, f"cannot take the conn on an anchor you are alongside: {why}"
+        conn = conn_from(game, contact)
+        assert conn.target.berth == "gate", conn.target.berth
+        assert conn.target.radius_km > 0.8, (
+            f"an anchor is {conn.target.radius_km} km across — smaller than "
+            "a quay, which it is not")
+        return (f"{checked} anchors, every one standing off a body of its "
+                "own and reachable from the helm")
+
+    @check("a lit anchor makes a system busy")
+    def _():
+        # The other half of the report: "shouldn't there be a lot of activity
+        # around any gates?" There should, and now there is.
+        from ..sim import traffic as traffic_sim
+
+        lit_counts, dark_counts = [], []
+        for seed in range(5):
+            game = new_game(f"busy-{seed}")
+            for gate in weave_sim.gates(game):
+                system = game.galaxy.systems[gate.system_id]
+                hulls = len(traffic_sim.in_system(game, system))
+                (lit_counts if gate.lit else dark_counts).append(hulls)
+        assert lit_counts and dark_counts, (len(lit_counts), len(dark_counts))
+        lit_mean = sum(lit_counts) / len(lit_counts)
+        dark_mean = sum(dark_counts) / len(dark_counts)
+        assert lit_mean > dark_mean + 0.8, (
+            f"a lit anchor works {lit_mean:.1f} hulls against a dark one's "
+            f"{dark_mean:.1f} — nothing is coming through it")
+
+        # And waking one is felt where the captain is standing.
+        game = _rich("busy-wake")
+        dark = next(g for g in weave_sim.gates(game) if not g.lit)
+        system = game.galaxy.systems[dark.system_id]
+        before = len(traffic_sim.in_system(game, system))
+        game.location_id = dark.system_id
+        assert gates_sim.wake(game)["ok"]
+        after = len(traffic_sim.in_system(game, system))
+        assert after > before, (
+            f"the anchor is burning and the system still works {after} hulls "
+            f"against {before}")
+        return (f"lit anchors work {lit_mean:.1f} hulls, dark ones "
+                f"{dark_mean:.1f}; waking one took {before} to {after}")
+
 
     @check("a berth is a place, not a screen you switch to")
     def _():

@@ -32,6 +32,8 @@ class Target:
     #: Which body this is, or the body it orbits. A berth is a place, and
     #: `orbit_body` is how the game records one.
     body_index: int | None = None
+    #: For an anchorage, what sort of berth: quay, hub, holding or gate.
+    berth: str = ""
 
 
 def target_from_body(body, name: str | None = None,
@@ -59,8 +61,12 @@ def target_from_contact(game, contact) -> Target:
             return target_from_body(body, contact.name, contact.body_index)
         # A quay orbits its body but is a structure in its own right: you come
         # alongside the station, not the planet underneath it.
+        berth = getattr(contact, "berth", "")
+        # An anchor is a far bigger thing than a quay, and it should read
+        # that way in the window on the way in.
         return Target(id=contact.id, name=contact.name, kind="anchorage",
-                      radius_km=0.4, detail=contact.detail,
+                      radius_km=1.1 if berth == "gate" else 0.4,
+                      detail=contact.detail, berth=berth,
                       body_index=contact.body_index)
     if contact.kind == "hull":
         return Target(id=contact.id, name=contact.name, kind="hull",

@@ -44,7 +44,7 @@ SERVICE_NAMES = {
 
 #: Glyphs the chart draws. Here rather than in the widget so every view that
 #: plots a system agrees about what a quay looks like.
-GLYPHS = {"quay": "▣", "hub": "◈", "holding": "⬡"}
+GLYPHS = {"quay": "▣", "hub": "◈", "holding": "⬡", "gate": "◉"}
 
 
 @dataclass
@@ -70,6 +70,23 @@ class Anchorage:
 
     def offers(self, service: str) -> bool:
         return service in self.services
+
+
+def gate_body(system):
+    """Which body a Weave anchor stands off.
+
+    The outermost, and deliberately not the one the quay is built over. An
+    anchor predates every port in the Verge; it was put where there was room
+    and no gravity to fight, and keeping it out at the edge means arriving
+    through the Weave drops you at the *edge* of a system rather than in the
+    middle of its traffic.
+    """
+    if not system.bodies:
+        return None, -1
+    from . import flight
+    index = max(range(len(system.bodies)),
+                key=lambda i: flight.orbit_radius(system.bodies[i]))
+    return system.bodies[index], index
 
 
 def anchor_body(system):
@@ -111,6 +128,27 @@ def in_system(game, system=None) -> list:
                 services=tuple(port.services), faction=port.faction,
                 here=(here_id == body.id),
                 extras={"level": port.level, "capital": port.capital}))
+
+    # The Weave. An anchor was drawn on the sector chart and had no place
+    # inside its own system at all: invisible on the helm, impossible to fly
+    # to, and with nothing happening around it — which a player reported, and
+    # which was fair. It is a berth like any other now, so every screen that
+    # can plot an anchorage plots it for free.
+    from . import weave as weave_sim
+    anchor = weave_sim.gate_at(game, system.id)
+    if anchor is not None:
+        body, index = gate_body(system)
+        if body is not None:
+            lit = anchor.lit
+            out.append(Anchorage(
+                id=f"gate-{system.id}", name=anchor.name, kind="gate",
+                body_id=body.id, body_index=index,
+                what=(f"A Weave anchor standing off {body.name}. "
+                      + ("Lit, and busy with it." if lit else
+                         "Dark. Whatever it is waiting for, it is not us.")),
+                services=(("refuel",) if lit else ()),
+                here=(here_id == body.id),
+                extras={"lit": lit, "gate": True, "kind": anchor.kind}))
 
     # Your own ground. A holding that can take a hull is exactly the thing a
     # captain wants to be able to find again.

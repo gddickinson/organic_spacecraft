@@ -2,6 +2,46 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: an anchor with nowhere to be
+
+A player's report, and a fair one: the Weave anchor is drawn on the sector
+chart, invisible on the helm, impossible to fly to, and nothing is happening
+around it. Where is it? How do I get there? Shouldn't a gate be busy?
+
+All true. An anchor was a *sector* abstraction — a system id and a list of
+links — with no position inside the system it stood in. The sector chart drew
+it because the sector chart knew about the Weave; nothing else did.
+
+The fix was to stop treating it as special. It is an `Anchorage` of kind
+`gate`, and almost everything else fell out for free: the helm chart already
+draws anchorages, `track.contacts` already turns them into things the conn and
+the plotting board can aim at, and the "where you can put in" panel already
+offers a course. One new derivation — `gate_body`, which parks it at the
+**outermost** body and deliberately not the one the quay is built over. An
+anchor predates every port in the Verge; it went where there was room and no
+gravity to fight, and coming through the Weave ought to drop you at the edge
+of a system rather than in the middle of its traffic.
+
+Busyness was the other half. `traffic._busyness` adds two hulls for a lit
+anchor, which is the whole reason the powers built their capitals on the ones
+they found first. Measured: lit anchors work 3.7 hulls against a dark one's
+2.1, and waking one takes its system from 2 to 4.
+
+The conn draws it as the torus `data/models3d.py` already had, at 1.1 km
+rather than a quay's 0.4 — an anchor is a far bigger thing than a berth and
+should read that way on the way in.
+
+**And it exposed a latent bug that had been sitting there for two cycles.**
+`HelmView._pick` read which quay had been clicked off `self.chart` — but
+`refresh()` builds a *new* chart every time, so it was asking a widget that
+had not been clicked. It could only ever go wrong in a system holding **two**
+berths, and no system held two until anchors got a place of their own. It
+reads the signal's sender now. The check that caught it was the one written
+two cycles ago for the original clickable-quay report, which is a pleasing
+argument for writing the check even when the fix looks obvious.
+
+Sweep 6/6 against a green baseline. Full suite green.
+
 ## 2026-07-29 — SEEDFALL: something worth looking at
 
 The captain asked for the piloting to be worth watching — docking at a

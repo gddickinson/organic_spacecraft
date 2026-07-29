@@ -101,7 +101,14 @@ def _busyness(game, system) -> int:
     # Somebody is always prospecting where there is something to prospect.
     if not base and any(getattr(b, "resources", None) for b in system.bodies):
         base = 1
-    return min(5, base)
+    # A lit Weave anchor is the busiest thing in a system. Everything that
+    # can afford the toll comes through it, which is the whole reason the
+    # powers built their capitals on the ones they found first.
+    from . import weave as weave_sim
+    anchor = weave_sim.gate_at(game, system.id)
+    if anchor is not None and anchor.lit:
+        base += 2
+    return min(6, base)
 
 
 def _errand_for(rng, system, slot: int, hostile_ok: bool) -> str:

@@ -65,6 +65,10 @@ class Contact:
     hull_id: str | None = None
     at_xy: tuple | None = None      # for a bare point in space
     hostile: bool = False
+    #: For an anchorage, what sort: quay, hub, holding or gate. A screen
+    #: should not have to read an id to know whether it is looking at a
+    #: shipyard or at something older than the Charter.
+    berth: str = ""
 
     @property
     def predictable(self) -> bool:
@@ -93,8 +97,9 @@ def contacts(game, system=None) -> list[Contact]:
         # needs no special case for one and neither does this.
         out.append(Contact(
             id=f"quay:{place.id}", name=place.name, kind="anchorage",
-            tint="lumen", detail=place.what or place.kind.title(),
-            body_index=place.body_index))
+            tint="warn" if place.kind == "gate" else "lumen",
+            detail=place.what or place.kind.title(),
+            body_index=place.body_index, berth=place.kind))
     for hull in traffic_sim.in_system(game, system):
         out.append(Contact(
             id=f"hull:{hull.id}", name=hull.name, kind="hull",
