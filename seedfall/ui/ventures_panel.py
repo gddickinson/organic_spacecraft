@@ -48,13 +48,29 @@ def build(view, game) -> Panel:
             continue
 
         can_back, why_back = venture_sim.can_intervene(game, venture, "back")
-        p.add_row("Backing it costs", cr(kind.back_cost),
-                  "" if can_back else "warn")
-        p.add(note(f"Backing buys {kind.back_rep:+.0f} standing with "
-                   f"{power.short}"
-                   + (f" and costs you with "
-                      f"{FACTIONS_BY_ID[venture.other].short}."
-                      if venture.other else ".")))
+        # Both sides, fully costed. The panel used to price backing and say
+        # nothing at all about opposing, and never mentioned that either one
+        # moves the odds thirty points — which is the whole reason to do it.
+        for stance, title in (("back", "If you back it"),
+                              ("oppose", "If you work against it")):
+            plan = venture_sim.preview(game, venture, stance)
+            p.add(spacer(3))
+            p.add(label(title, "h3",
+                        "chloro" if stance == "back" else "warn"))
+            p.add_row("Odds become", f"{pct(plan['odds_now'])} → "
+                                     f"{pct(plan['odds_after'])}",
+                      "chloro" if plan["odds_after"] > plan["odds_now"]
+                      else "warn")
+            if plan["credits"]:
+                p.add_row("Costs", cr(-plan["credits"]),
+                          "" if can_back else "warn")
+            for who, delta in plan["rep"].items():
+                p.add_row(f"Standing with {FACTIONS_BY_ID[who].short}",
+                          f"{delta:+.0f}", "chloro" if delta > 0 else "warn")
+            if plan["if_right"]:
+                said = ", ".join(f"{FACTIONS_BY_ID[w].short} {d:+.0f}"
+                                 for w, d in plan["if_right"].items())
+                p.add(note(f"And if it goes your way: {said}."))
         if not can_back:
             p.add(label(why_back, "", "warn"))
         p.add_buttons(

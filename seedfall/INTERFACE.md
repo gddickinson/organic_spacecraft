@@ -692,6 +692,7 @@ seedfall/
     ├── test_envoy.py   7 checks — the preview is the answer, both doors alike
     ├── test_seatwork.py 5 checks — the crew hold their seats either way
     ├── test_thermal_doors.py 5 checks — every heat door goes through one gate
+    ├── test_ventures.py 6 checks — both sides of a venture are costed
     ├── ground_ai.py    a party leader good enough to measure the ground with
     ├── suites.py       the suite table `__main__` dispatches from
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
@@ -878,6 +879,13 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   game that adds heat, so one clamp at the source covers every hull. An
   end-of-turn clamp was tried too and measured to change nothing at all, so it
   was removed rather than left in looking useful.
+- **A screen with two buttons has to price both of them.** The ventures panel
+  showed the odds as they stood, priced *backing*, and left "Work against it"
+  bare — no standing cost, and no hint that either button moves the odds by
+  `SWAY`: measured, a 51% venture becomes 81% backed and 21% opposed. It never
+  mentioned that being right afterwards pays again either. `RIGHT_BACKED` and
+  `RIGHT_OPPOSED` were bare numbers inside `_resolve`; they are in
+  `data/ventures.py` now and `ventures.preview` reads the same ones.
 - **`tripwire.KIN` is hand-written, and a stale entry fails silently.** The
   tool runs a constant against its own neighbourhood first and only pays for
   the wide sweep if that passes. An entry naming a suite that no longer

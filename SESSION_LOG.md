@@ -2,6 +2,39 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: two buttons, one of them priced
+
+Back to diplomacy. The piece I had not measured is ventures — the powers
+acting on their own account, which you may back, work against, or let happen.
+
+The system itself is healthy: all six kinds fire, hundreds of them over twenty
+chronicles. The screen was the problem.
+
+- **Neither button said what it does to the odds.** The panel showed "Odds as
+  things stand: 51%" and two buttons. Backing takes that to **81%** and
+  opposing to **21%** — a thirty-point swing either way, which is the entire
+  reason to intervene, and it was stated nowhere.
+- **Only one of the two buttons was priced.** "Backing it costs ₡5,000" and
+  "Backing buys +12 standing" were both there. "Work against it" had nothing
+  beside it at all — not the −14 standing with the power, not the +8 with
+  whoever they are against.
+- **And being right pays again, silently.** Backing something that comes off
+  is worth +8 more with the power; opposing something that fails is worth +5
+  with every power that already disliked them. Both were bare numbers inside
+  `_resolve`, mentioned on no screen.
+
+`RIGHT_BACKED` and `RIGHT_OPPOSED` are in `data/ventures.py` now, and
+`ventures.preview` reads the same constants `_resolve` does — the arrangement
+`TREATY_WEIGHT` was extracted to get. The panel prints both stances in full:
+odds before and after, credits, every power whose standing moves, and what it
+pays if you turn out to be right.
+
+Six checks in a new `test_ventures` suite, every one proven to bite —
+including one that restores the old panel, pricing backing only, and one that
+makes the forecast and the outcome read different numbers.
+
+667 checks green, nothing over 500 lines.
+
 ## 2026-07-29 — SEEDFALL: the fifty-two that were not there
 
 Task #60 — "pin the remaining 52 unprotected tuning constants" — has sat on

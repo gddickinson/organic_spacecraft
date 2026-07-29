@@ -11,7 +11,8 @@ import itertools
 from dataclasses import dataclass
 
 from ..core.save import register
-from ..data.ventures import (BASE_ODDS, MAX_PER_POWER, ONSET_PER_MONTH, SWAY,
+from ..data.ventures import (BASE_ODDS, MAX_PER_POWER, ONSET_PER_MONTH,
+                             RIGHT_BACKED, RIGHT_OPPOSED, SWAY,
                              VENTURES, VENTURES_BY_ID)
 from ..data.diplomacy import AGENDAS
 from ..data.factions import FACTIONS_BY_ID
@@ -163,6 +164,43 @@ def odds(game, venture) -> float:
     return max(0.05, min(0.95, chance))
 
 
+def preview(game, venture, stance: str) -> dict:
+    """What taking this side would do, before you take it.
+
+    The panel showed the odds as they stood and two buttons. It never said
+    that pressing one takes a 51% venture to 81% and the other to 21% — a
+    thirty-point swing either way, which is the entire reason to intervene.
+    It stated what backing costs and bought, and said nothing at all about
+    what opposing costs, or about what being right is worth afterwards.
+
+    Everything here is read from the same constants `_resolve` reads.
+    """
+    kind = venture.definition
+    was = venture.stance
+    try:
+        venture.stance = "backed" if stance == "back" else "opposed"
+        after = odds(game, venture)
+    finally:
+        venture.stance = was
+
+    out = {"stance": stance, "odds_now": odds(game, venture),
+           "odds_after": after,
+           "credits": -kind.back_cost if stance == "back" else 0,
+           "rep": {}, "if_right": {}}
+    move = kind.back_rep if stance == "back" else kind.oppose_rep
+    out["rep"][venture.power] = float(move)
+    if venture.other:
+        out["rep"][venture.other] = -move * 0.6
+    if stance == "back":
+        out["if_right"][venture.power] = RIGHT_BACKED
+    else:
+        for power in dip.POWERS:
+            if power != venture.power \
+                    and dip.relation(game, power, venture.power) < 0:
+                out["if_right"][power] = RIGHT_OPPOSED
+    return out
+
+
 def can_intervene(game, venture, stance: str) -> tuple[bool, str]:
     kind = venture.definition
     if venture.resolved:
@@ -216,11 +254,12 @@ def _resolve(game, venture, rng) -> list[tuple[str, str]]:
 
     # Having been right about it is worth something either way.
     if venture.stance == "backed" and venture.succeeded:
-        game.adjust_rep(venture.power, 8)
+        game.adjust_rep(venture.power, RIGHT_BACKED)
     elif venture.stance == "opposed" and not venture.succeeded:
         for power in dip.POWERS:
-            if power != venture.power and dip.relation(game, power, venture.power) < 0:
-                game.adjust_rep(power, 5)
+            if power != venture.power \
+                    and dip.relation(game, power, venture.power) < 0:
+                game.adjust_rep(power, RIGHT_OPPOSED)
     return events
 
 

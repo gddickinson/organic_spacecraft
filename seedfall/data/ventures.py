@@ -112,5 +112,13 @@ MAX_PER_POWER = 1
 #: How far backing or opposing moves the odds.
 SWAY = 0.30
 
+#: What being right is worth once it lands. Read by `ventures.preview` as well
+#: as by `_resolve`, so the screen cannot promise one figure and the outcome
+#: pay another — the mistake `TREATY_WEIGHT` was extracted to end.
+RIGHT_BACKED = 8.0
+#: Opposing something that then failed is worth this with every power that
+#: already disliked the one that tried it.
+RIGHT_OPPOSED = 5.0
+
 #: Base chance a venture succeeds if nobody interferes.
 BASE_ODDS = 0.62
