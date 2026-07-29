@@ -181,7 +181,7 @@ def move(exp: Expedition, dx: int, dy: int, officers, rng) -> dict:
     cost = weather_sim.move_cost(exp, base)
     exp.x, exp.y = dest.x, dest.y
     exp.days += cost
-    exp.supply -= cost
+    exp.supply = max(0, exp.supply - cost)
     dest.visited = True
 
     changed = weather_sim.tick(exp, cost, rng, exp.biome)
@@ -207,7 +207,7 @@ def _spring_hazard(exp: Expedition, officers, rng) -> dict:
         say(exp, f"{hz.name}: {hz.blurb} Handled.", "good")
         return {"hazard": hz, "beaten": True}
 
-    exp.supply -= hz.supply
+    exp.supply = max(0, exp.supply - hz.supply)
     exp.rover = max(0, exp.rover - hz.rover)
     hurt = None
     if hz.injury and rng.chance(hz.injury) and officers:
@@ -291,7 +291,7 @@ def attempt(exp: Expedition, index: int, officers, rng) -> dict:
     label, stat, difficulty, reward = opts[index]
     t.resolved = True
     exp.days += 1
-    exp.supply -= 1
+    exp.supply = max(0, exp.supply - 1)
 
     if not stat:                       # walking away is always allowed
         say(exp, f"{label}. Nothing gained and nothing risked.", "dim")
@@ -383,7 +383,7 @@ def rest(exp: Expedition, officers, rng) -> dict:
     if exp.over:
         return {"ok": False, "why": "The expedition is over."}
     exp.days += 1
-    exp.supply -= 1
+    exp.supply = max(0, exp.supply - 1)
     weather_sim.tick(exp, 1, rng, exp.biome)
     eng = max((o.level for o in officers if o.stat == "engineering"), default=0)
     med = max((o.level for o in officers if o.stat == "medicine"), default=0)
@@ -430,15 +430,53 @@ def lift_off(exp: Expedition) -> None:
     finish(exp, "returned")
 
 
+#: What a stranded party gets home with, as a share of what they could carry.
+STRANDED_SHARE = 0.4
+
+
 def haul_kept(exp: Expedition) -> dict[str, float]:
-    """What actually comes home. Stranding costs most of it."""
+    """What actually comes home: what they can carry, less what stranding costs.
+
+    The order matters and used to be the other way round. Stranding returned
+    40% of the pile **without applying the carrying limit at all**, so a party
+    that stayed out until the supplies ran out brought home 40% of everything
+    they had ever picked up, while a party that walked back to the lander was
+    capped at what four people can lift. Measured: 500 t collected came home
+    as 200 t stranded against 60 t returned, and a driver that never turned
+    back kept 933 t against 41 t for one that always did.
+
+    So the penalty was a reward, by a factor of twenty-three, and the way to
+    play the ground was to strand the party on purpose — which is also the
+    opposite of what the ending says happens, since everything not on their
+    backs is supposed to stay where it fell.
+    """
+    kept = dict(exp.haul)
+    if exp.carried > PARTY_CAPACITY:
+        scale = PARTY_CAPACITY / exp.carried
+        kept = {k: v * scale for k, v in kept.items()}
     if exp.outcome == "stranded":
-        return {k: v * 0.4 for k, v in exp.haul.items()}
-    over = max(0.0, exp.carried - PARTY_CAPACITY)
-    if over <= 0:
-        return dict(exp.haul)
-    scale = PARTY_CAPACITY / exp.carried
-    return {k: v * scale for k, v in exp.haul.items()}
+        kept = {k: v * STRANDED_SHARE for k, v in kept.items()}
+    return kept
+
+
+def landing_forecast(exp: Expedition) -> dict:
+    """What comes up, what stays, and what stranding would cost — now.
+
+    The screen showed "Carrying 140 / 60" in amber and left the captain to
+    infer that eighty tonnes would simply cease to exist, and said nothing at
+    all about the further share stranding takes. Both numbers come from
+    `haul_kept`, so the forecast and the outcome cannot drift apart.
+    """
+    was = exp.outcome
+    try:
+        exp.outcome = "returned"
+        kept = sum(haul_kept(exp).values())
+        exp.outcome = "stranded"
+        stranded = sum(haul_kept(exp).values())
+    finally:
+        exp.outcome = was
+    return {"carried": exp.carried, "kept": kept, "stranded": stranded,
+            "left": max(0.0, exp.carried - kept)}
 
 
 def study_kept(exp: Expedition) -> float:

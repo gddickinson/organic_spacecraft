@@ -683,6 +683,8 @@ seedfall/
     ├── test_grants.py  5 checks — every colony grant is read, and explained
     ├── test_postings.py 5 checks — the board only offers work you can reach
     ├── test_counter.py 5 checks — the board's price is the counter's price
+    ├── test_landing.py 6 checks — walking home beats stranding
+    ├── ground_ai.py    a party leader good enough to measure the ground with
     ├── suites.py       the suite table `__main__` dispatches from
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
     ├── test_legacy.py  7 aftermath checks — an ending is a turn, not a stop
@@ -859,6 +861,18 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   game that adds heat, so one clamp at the source covers every hull. An
   end-of-turn clamp was tried too and measured to change nothing at all, so it
   was removed rather than left in looking useful.
+- **Order the penalties after the limits, not instead of them.**
+  `haul_kept` applied the carrying limit on the way home and skipped it
+  entirely when the party stranded, so stranding returned 40% of an *uncapped*
+  pile: 500 t collected came home as 200 t stranded against 60 t returned. The
+  penalty was a reward by a factor of twenty-three, and the way to play the
+  ground was to strand the party deliberately. Cap first, charge second.
+- **`tests/ground_ai.py` is to the ground what `captain_ai` is to combat.**
+  Walking a party at random and grabbing whatever is underfoot measures
+  nothing, because it never returns to the lander, so every policy strands and
+  scores the same. `margin` — supply held back for the walk home — is the one
+  decision the ground poses, and sweeping it should show a peak in the middle:
+  measured 29 t at margin 0, 35 t at 4, 23 t at 14.
 - **Establishing state by hand can make a check unreachable.**
   `test_officials` proved the office rate worked by writing it into the dated
   `favours` dict directly. It does not get there that way: a quiet price is

@@ -158,6 +158,17 @@ class ExpeditionView(View):
         p.add_bar(exp.rover / 10, "osteo")
         p.add_row("Carrying", f"{round(exp.carried)} / {round(PARTY_CAPACITY)}",
                   "warn" if exp.carried > PARTY_CAPACITY else "")
+        # What that actually means when the lander goes up. "140 / 60" in
+        # amber left the captain to work out that eighty tonnes would cease
+        # to exist, and said nothing about the further share stranding takes.
+        if exp.carried > 0:
+            land = exp_sim.landing_forecast(exp)
+            if land["left"] > 0.5:
+                p.add_row("Comes up", f"{round(land['kept'])} t — "
+                                      f"{round(land['left'])} t stays", "warn")
+            else:
+                p.add_row("Comes up", f"{round(land['kept'])} t", "chloro")
+            p.add_row("If they strand", f"{round(land['stranded'])} t", "warn")
         p.add(spacer(4), mono_label("On the ground"))
         for oid in exp.officers:
             o = next((x for x in self.game.officers if x.id == oid), None)

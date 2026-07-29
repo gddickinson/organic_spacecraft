@@ -2,6 +2,47 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: a penalty that paid better than the reward
+
+Surface expeditions, which had not had a cycle.
+
+- **Stranding was the best way to play the ground.** `haul_kept` applied the
+  carrying limit when the party walked home and **skipped it entirely when
+  they stranded**, returning 40% of everything ever picked up, uncapped. Five
+  hundred tonnes collected came home as **200 t stranded against 60 t
+  returned**. Measured end to end: a leader who never turned back kept 933 t,
+  one who always walked home kept 41 t. Twenty-three times better to fail.
+- **It also contradicted its own ending**, which says everything not on their
+  backs stays where it fell.
+- **The order is the fix**: what they can carry, and *then* what stranding
+  costs. Now 500 t is 60 t home and 24 t stranded, and walking home wins.
+- **The turn-back margin is a real decision again**, with a peak in the
+  middle: 29 t at margin 0, 35 t at 4, 23 t at 14. Too little strands the
+  party; too much spends the expedition walking.
+- **Supply could go to −1**, because a crossing costing two could be paid out
+  of one. Floored, so no screen has to print it.
+- **The screen says what the lander will lift.** "Carrying 140 / 60" in amber
+  left the captain to infer that eighty tonnes would cease to exist, and said
+  nothing about stranding. It now reads "Comes up 60 t — 80 t stays" and "If
+  they strand 24 t", both off `landing_forecast`, which is `haul_kept` — so
+  the forecast and the outcome cannot drift.
+
+**`tests/ground_ai.py`, because there was no way to measure this.** The same
+gap combat had before `captain_ai`: a driver that wanders and grabs never goes
+back to the lander, so every party strands and every policy scores identically.
+The one decision the ground poses is how much supply to keep for the walk home,
+and it was invisible to a driver that never walked home.
+
+**On thresholds.** The peak-in-the-middle check first failed at 40 seeds a
+margin — the gap to margin 0 wobbles between 1.12x and 1.21x there. Rather
+than loosen the threshold to whatever passed, I measured at 120 (three seconds
+for six hundred expeditions) and asserted below what that showed. The claim
+that held at every sample size is the structural one: the best margin is
+inside the range rather than at an end of it.
+
+Six checks in a new `test_landing` suite, every one proven to bite.
+627 checks green, nothing over 500 lines.
+
 ## 2026-07-29 — SEEDFALL: a favour that was never granted
 
 Trading, which had not had a cycle. `market.quote_buy`'s own docstring names
