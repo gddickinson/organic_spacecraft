@@ -686,6 +686,7 @@ seedfall/
     ├── test_landing.py 6 checks — walking home beats stranding
     ├── test_charting.py 5 checks — a chart is dated, and goes off
     ├── test_conviction.py 6 checks — every event an officer cares about fires
+    ├── test_bench_kinds.py 5 checks — evidence names are real, tech is reachable
     ├── ground_ai.py    a party leader good enough to measure the ground with
     ├── suites.py       the suite table `__main__` dispatches from
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
@@ -863,6 +864,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   game that adds heat, so one clamp at the source covers every hull. An
   end-of-turn clamp was tried too and measured to change nothing at all, so it
   was removed rather than left in looking useful.
+- **A fixture that names something the game does not know is invisible.**
+  `inquiry.add` returns 0.0 for an unrecognised kind — silently, which is
+  right for a sim that must survive an old save. `test_provisional` typed six
+  evidence kinds by hand; three (`field`, `relic`, `trade`) do not exist and
+  one that does (`reading`) was missing. Six of the ten branch mixes want
+  `reading`, cognition 35% of it, so the suite that decides whether any
+  research approach dominates measured those branches 20–30% slow. Derive
+  from `EVIDENCE`, as `test_bench` always did. `tests/test_bench_kinds.py`
+  checks the call sites **and** any hand-written `*KINDS` list, because the
+  call site passed a variable and no search of call sites could have seen it.
 - **A returned value nobody reads is a feature nobody gets.** `crew.grant_xp`
   hands back the officers it has just promoted — that is what the return is
   *for* — and all eight call sites dropped it, so `promoted` (+5 to everyone

@@ -24,13 +24,19 @@ from __future__ import annotations
 
 import statistics
 
-from ..data.inquiry import APPROACHES
+from ..data.inquiry import APPROACHES, EVIDENCE
 from ..data.tech import PROVISIONAL_WORTH, TECH, TECH_BY_ID, bonuses
 from ..core.state import new_game
 from ..sim import inquiry
 from .harness import Suite
 
-KINDS = ("survey", "specimen", "field", "relic", "trade", "hardware")
+#: Derived from the data, not written out. The hand-written tuple here named
+#: `field`, `relic` and `trade` — none of which are evidence kinds — and
+#: omitted `reading`, which is. `inquiry.add` returns 0.0 for a name it does
+#: not know, silently, so three of the six did nothing and every programme in
+#: a branch that wants `reading` (cognition asks for 35% of it) was measured
+#: on a bench starved of it. `test_bench` has always derived this correctly.
+KINDS = tuple(e.id for e in EVIDENCE)
 
 
 def _programmes(approach: str, count: int, seed: str, trickle: float = 400,

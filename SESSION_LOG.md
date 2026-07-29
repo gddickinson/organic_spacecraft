@@ -2,6 +2,43 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: a bench that was never fully stocked
+
+Research, the last area of the breadth list this run had not touched. The
+technology tree measured clean — all 61 reachable, no dangling prerequisites,
+all eight bonus keys consumed. The defect was in the suite that measures it.
+
+- **`test_provisional` hand-typed its evidence kinds and got three of them
+  wrong.** It stocked `survey`, `specimen`, `field`, `relic`, `trade`,
+  `hardware`. There are four kinds: `survey`, `specimen`, `hardware`,
+  `reading`. So three names did nothing — `inquiry.add` returns 0.0 for a name
+  it does not know, silently — and `reading`, which is real, was never stocked
+  at all.
+- **Six of the ten branch mixes ask for `reading`.** Cognition wants 35% of
+  it, xenology 65%. So every programme in those branches was being measured on
+  a bench starved of a quarter to a third of its input, in the suite that
+  decides whether any research approach dominates. Measured: cognition
+  unlocks in 165 days on a full bench and 214 without it; xenology 170 against
+  215.
+- **The conclusion survived, but the numbers moved a long way.** With the
+  bench correct, `push` is now the *slowest* route to sound technology at 420
+  days where it had been the fastest. "No approach is best at everything"
+  still holds, and now holds against a measurement that is true.
+- **The screen was right all along** — the research panel has always shown
+  "Xenolith readings · 140 held · 33 wanted". Only the fixture was wrong.
+
+**The guard, and the first version of it that did not work.** I wrote a check
+that scans call sites for evidence-kind literals. It passed the mutation that
+restored the bad tuple — because `test_provisional` passes a *variable*, so no
+search of call sites could ever have seen the bug it was written for. It now
+also walks the AST for any `*KINDS` constant that is a plain list of strings,
+under the rule that a list naming any real kind must name only real ones —
+which catches the hand-typed six and leaves `test_cargo`'s `CARGO_KINDS`,
+about contracts and mentioning no evidence, alone.
+
+Five checks in a new `test_bench_kinds` suite, every one proven to bite.
+643 checks green, nothing over 500 lines.
+
 ## 2026-07-29 — SEEDFALL: five things the bridge never noticed
 
 Political machinations — the convictions officers hold and what moves them.
