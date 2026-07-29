@@ -2,6 +2,64 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: the order you give the drive arrives a turn late
+
+Priority #3, positional combat with crew stations. I measured the system
+before touching it, asking whether the captain's choice of seat matters at
+all — if officers hold the other two competently, the whole idea is
+decoration.
+
+It matters, and it *reverses by hull*, which is the healthiest answer I could
+have got. Over 40 engagements apiece:
+
+| hull | captain at the helm | captain at the guns |
+|---|---|---|
+| navis, beam-armed | enemy at **46%** hull | enemy at 92% |
+| bastion, heavy | enemy at 66% | enemy at **30%** |
+
+Taking the gunnery seat costs you the helm, which repeats its last order at
+seven-tenths turn rate. For a ship that must keep its beam on the target that
+costs far more than the accuracy is worth; for a turret boat it costs nothing.
+No dominant seat. That is now written into `INTERFACE.md` as something not to
+"fix".
+
+What I did find was in the turn order. `_run_seats` ran the helm first and
+engineering second — but **engineering is what sets `side.route`**, and its
+two consumers sit on opposite sides of that:
+
+- the guns read it when they fire, which is *after* both seats, so
+  `route_guns` landed on the turn it was given;
+- the helm reads it while steering, which is *before* engineering set it, so
+  `route_engines` landed a turn late.
+
+Measured by playing, ordering "power to the drive" on turn three:
+
+    turn 3   route_engines   route=engines   speed  0.00
+    turn 4   hold            route=None      speed 74.90
+
+**The captain who ordered it saw nothing happen, and the ship leapt forward on
+the turn they ordered *hold station*.** Engineering runs first now — whatever
+allocates a resource has to run before whatever spends it.
+
+The panel was the other half of it, and it was already wrong before the fix:
+it said "takes effect next turn" for *both* routing orders, which was untrue
+of the mounts even then. `ROUTE_ACCURACY`, `ROUTE_SPEED` and `ROUTE_ACCEL`
+are named constants now, read by the act and by the forecast, and the panel
+quotes them: "+12% to hit, this turn" and "+25% top speed and +60%
+acceleration, this turn".
+
+Combat outcomes are unchanged within noise across four hull/strength
+combinations — the fix corrects the timing without moving the balance, which
+is what I wanted to be able to say before committing it.
+
+Seven mutations, every one caught. One needed a second attempt: I had asserted
+the routed speed against `top * ROUTE_SPEED`, which is the tautology trap
+again — both sides of that comparison come from the constant under test. It
+measures the ratio of two played-out speeds now, and separately states the
+design bound (routing is a lever on the ship you have, not a different ship).
+
+687 → 692 green.
+
 ## 2026-07-29 — SEEDFALL: goodwill had no price curve, so the Concord was a shopping list
 
 Priority #2, diplomacy. I measured before touching anything: ten years of

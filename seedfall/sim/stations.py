@@ -122,7 +122,7 @@ def run_helm(side, other, order_id: str | None, directed: bool, officers) -> str
         text = "holding station"
 
     if side.route == "engines":
-        tac.throttle(side.body, top * 1.25, accel * 1.6)
+        tac.throttle(side.body, top * ROUTE_SPEED, accel * ROUTE_ACCEL)
     tac.advance(side.body)
     return text
 
@@ -189,7 +189,7 @@ def accuracy_modifier(side, directed: bool, officers) -> float:
     else:
         mod -= 0.12 - 0.02 * officer_level(officers, "tactical")
     if side.route == "guns":
-        mod += 0.12
+        mod += ROUTE_ACCURACY
     return mod
 
 
@@ -202,6 +202,13 @@ TURN_PER_LEVEL = 0.06
 #: Heat an unattended engineering section sheds, as a share of the vent rate.
 UNATTENDED_VENT = 0.5
 VENT_PER_LEVEL = 0.08
+
+#: What routing the power actually buys. Named because the act and the
+#: forecast both need them and each had its own bare literal — the panel said
+#: only "takes effect next turn", which was wrong about the mounts even then.
+ROUTE_ACCURACY = 0.12
+ROUTE_SPEED = 1.25
+ROUTE_ACCEL = 1.6
 
 
 def order_preview(side, other, order_id: str, officers, band: int = 0) -> dict:
@@ -258,8 +265,12 @@ def order_preview(side, other, order_id: str, officers, band: int = 0) -> dict:
             out["lines"].append(
                 f"patches about {min(gain, hurt.max - hurt.hp):.0f} of "
                 f"{hurt.name}")
-    elif order.id in ("route_guns", "route_engines"):
-        out["lines"].append("takes effect next turn")
+    elif order.id == "route_guns":
+        out["lines"].append(f"{ROUTE_ACCURACY:+.0%} to hit, this turn")
+    elif order.id == "route_engines":
+        out["lines"].append(
+            f"{ROUTE_SPEED - 1:+.0%} top speed and {ROUTE_ACCEL - 1:+.0%} "
+            "acceleration, this turn")
 
     # Clamped, because the hull is: a salvo that would make 104 on a 50 cap
     # actually stops at the ceiling, and a forecast that quotes the raw sum is

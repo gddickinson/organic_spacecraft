@@ -308,14 +308,21 @@ def _run_seats(b: Battle, seat: str, order=None) -> list:
     engineering section at all. Measured: heat 30 became 24.0 through the old
     door against 19.44 through the new one, and `helm_order` stayed `None`.
     """
+    # Engineering first, because it is what decides where the power goes and
+    # both the other seats spend it. `route_guns` was read by the guns, which
+    # fire after the seats, so it landed on the turn it was given;
+    # `route_engines` was read by the helm, which used to run *before*
+    # engineering set it, so it landed a turn late. Measured: ordering "power
+    # to the drive" left the ship at a dead stop, and it leapt to 74.9 on the
+    # following turn — the turn the captain had ordered *hold station*.
+    eng_text = st_mod.run_engineering(
+        b.player, order.id if order and order.station == "engineering" else None,
+        seat == "engineering", b.officers, b.enemy)
     helm_text = st_mod.run_helm(
         b.player, b.enemy,
         order.id if order and order.station == "helm" else None,
         seat == "helm", b.officers)
-    eng_text = st_mod.run_engineering(
-        b.player, order.id if order and order.station == "engineering" else None,
-        seat == "engineering", b.officers, b.enemy)
-    return [t for t in (helm_text, eng_text) if t]
+    return [t for t in (eng_text, helm_text) if t]
 
 
 def _run_stations(b: Battle, rng) -> None:

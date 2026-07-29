@@ -661,6 +661,7 @@ seedfall/
     ├── test_transit.py 6 crossing checks — watches, aborting, tension
     ├── test_watches.py 5 checks — every option a real trade, every risk priced
     ├── test_courtship.py 7 checks — diminishing returns on goodwill
+    ├── test_routing.py 5 checks — power routing lands the turn it is ordered
     ├── test_customs.py 9 contraband checks — the premium, the search, heat
     ├── test_allegiance.py 8 checks — taking sides, and brokering out of it
     ├── test_territory.py 8 checks — annexation, levy, defiance, seizure
@@ -1239,6 +1240,22 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **The seats run engineering first, then the helm, then the guns.** That
+  order is load-bearing, not incidental. Engineering is what sets
+  `side.route`, and its two consumers sit either side of it: the guns read it
+  when they fire (after both seats) and the helm reads it while steering. With
+  the helm running first, `route_guns` landed on the turn it was given and
+  `route_engines` landed a turn late — ordering "power to the drive" left the
+  ship at a dead stop, and it leapt to 74.9 on the following turn, the turn
+  the captain had ordered *hold station*. If you add a seat, put whatever
+  allocates a resource before whatever spends it.
+- **The best seat depends on the hull, and that is working as intended.**
+  Measured over 40 engagements apiece: a beam-armed navis leaves the enemy at
+  46% hull with the captain at the helm and 92% with the captain at the guns;
+  a heavy bastion reverses it, 66% at the helm against 30% at the guns.
+  Taking the gunnery seat costs you the helm, which repeats its last order at
+  seven-tenths turn rate — for a ship that has to keep its beam on, that costs
+  more than the accuracy is worth. Do not "fix" this.
 - **`offer_gain` is the only thing that decides what an overture buys.**
   `preview` and `perform` each carried their own copy of
   `action.gain * (1 + diplomacy)`, which is the arrangement that produced a
