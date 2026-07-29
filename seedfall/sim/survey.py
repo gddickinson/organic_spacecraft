@@ -187,7 +187,7 @@ def perform(game, body_index: int, method_id: str = DEFAULT) -> dict:
     research_sim.grant(game.research, found["research"])
     inquiry.add(game.research, "survey", found["research"] * 0.9)
     inquiry.add(game.research, "specimen", len(found["lifeforms"]) * 9)
-    grant_xp(game.officers, "science", 25)
+    grant_xp(game.officers, "science", 25, game=game)
 
     free = cargo_free(game.ship, game.ship_stats)
     data = min(found["data"], int(free / 0.1))

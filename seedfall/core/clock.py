@@ -224,7 +224,7 @@ def advance_days(game, n: float, dilation: float = 1.0) -> None:
         return
 
     crew_sim.morale_tick(game.ship, ship_n, paid, is_breached(game.ship), st.morale)
-    crew_sim.grant_xp(game.officers, "*", ship_n * 1.5)
+    crew_sim.grant_xp(game.officers, "*", ship_n * 1.5, game=game)
     if is_breached(game.ship):
         loyalty_sim.record(game, "breach", scale=min(2.0, n / 10))
     for kind, text in loyalty_sim.tick(game, n, paid):

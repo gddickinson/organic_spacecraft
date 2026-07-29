@@ -685,6 +685,7 @@ seedfall/
     ├── test_counter.py 5 checks — the board's price is the counter's price
     ├── test_landing.py 6 checks — walking home beats stranding
     ├── test_charting.py 5 checks — a chart is dated, and goes off
+    ├── test_conviction.py 6 checks — every event an officer cares about fires
     ├── ground_ai.py    a party leader good enough to measure the ground with
     ├── suites.py       the suite table `__main__` dispatches from
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
@@ -862,6 +863,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   game that adds heat, so one clamp at the source covers every hull. An
   end-of-turn clamp was tried too and measured to change nothing at all, so it
   was removed rather than left in looking useful.
+- **A returned value nobody reads is a feature nobody gets.** `crew.grant_xp`
+  hands back the officers it has just promoted — that is what the return is
+  *for* — and all eight call sites dropped it, so `promoted` (+5 to everyone
+  aboard, it is in `UNIVERSAL`) never once fired and a promotion was not even
+  logged. Pass `game=` and it reports itself: the ship feels the event, the
+  officer gets `PROMOTION_OWN` on top, and it goes in the log.
+- **An event whose name is composed cannot be found by searching for it.**
+  `loyalty.served` builds `f"{conviction.id}_served"`, so the audit in
+  `tests/test_conviction.py` keeps an explicit `COMPOSED` allowance and proves
+  those separately by behaviour. Anything else must appear literally in
+  `sim/`, `core/`, `ui/`, `world/` or `bridge/`.
 - **Two doors into the same event will drift, and the drivers use the working
   one.** Surveying a body can be reached through `actions.survey` — which the
   remote bridge and every test driver call — and through `survey.perform`,

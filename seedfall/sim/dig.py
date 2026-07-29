@@ -204,7 +204,7 @@ def _bank(game, dig: Dig, points: float, relics: float) -> None:
         if taken > 0:
             add_cargo(game.ship, "xenolith", taken)
             dig.relics += taken
-    grant_xp(game.officers, "science", 12)
+    grant_xp(game.officers, "science", 12, game=game)
 
 
 def stop(game, dig: Dig) -> dict:

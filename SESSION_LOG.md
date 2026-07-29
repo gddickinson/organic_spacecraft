@@ -2,6 +2,44 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: five things the bridge never noticed
+
+Political machinations — the convictions officers hold and what moves them.
+The audit that found the dead colony effect, asked here: does every event an
+officer has an opinion about ever actually happen? Five did not.
+
+- **`promoted`, +5 to every officer aboard**, because it sits in `UNIVERSAL`
+  and applies whatever they believe. `crew.grant_xp` returns the list of
+  people it has just promoted — the return value exists for this — and **all
+  eight call sites threw it away**. So a career built over a decade moved
+  nobody, and was not even written in the log. It now reports itself: the ship
+  feels the event, the officer promoted gets `PROMOTION_OWN` on top (+14
+  against a bystander's +5), and the log reads "Feodor Sarkis is made Science
+  Officer 4."
+- **`licence_served` and `free_served`, +11 each** — the largest single thing
+  either conviction believes in, and never delivered. A Charter partisan could
+  run Charter commissions for ten years and feel it only as the
+  `commission_done` everybody else felt. `loyalty.served` fires when a
+  commission is paid, and only for partisans of the power that issued it.
+- **`burner_served` and `xeno_served`** were unreachable — their convictions
+  have no aligned power — and duplicated `bloom_cleansed` and
+  `xeno_incorporated`, which do fire. Removed, rather than left in the data
+  claiming something untrue.
+- **Loyalty still bites**, checked deliberately so none of this makes it
+  toothless: an unpaid bridge goes restless around month eight and is empty by
+  month twelve.
+
+**Two of my own checks were too weak and mutation caught both.**
+- "Finishing a commission delivers it" asserted only that loyalty moved. But
+  `_pay` also adjusts standing, and `loyalty.align` drags partisans along at a
+  quarter rate — about +1.25, enough to pass with `served` deleted entirely.
+  It now asserts the partisan moves by at least what the conviction declares.
+- Both promotion checks asserted that officers were *reported* promoted and
+  never that their level rose. Deleting `o.level += 1` passed everything.
+
+Six checks in a new `test_conviction` suite, every one proven to bite.
+638 checks green, nothing over 500 lines.
+
 ## 2026-07-29 — SEEDFALL: a chart that never went off
 
 Exploration and mapping, which had not had a cycle. Surveys measured clean —

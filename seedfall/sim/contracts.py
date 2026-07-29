@@ -18,6 +18,7 @@ from ..data.contracts import CARGO_WANTED, KINDS, POSTINGS
 from ..data.factions import FACTIONS_BY_ID
 from ..world.galaxy import distance
 from . import allegiance
+from . import loyalty as loyalty_sim
 
 _uid = itertools.count(1)
 
@@ -383,6 +384,9 @@ def _pay(game, c: Contract) -> None:
     # Being seen to do a power's work is a position, not a neutral errand.
     # Whose enemies mind, and how much, is `sim/allegiance.py`.
     c.cost = allegiance.charge(game, c.issuer, c.rep)
+    # And the partisans of that power, on this bridge, who signed on for
+    # exactly this. See `loyalty.served`.
+    loyalty_sim.served(game, c.issuer)
 
 
 def active(game) -> list[Contract]:

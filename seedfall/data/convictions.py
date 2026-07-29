@@ -48,14 +48,14 @@ CONVICTIONS: list[Conviction] = [
         "Was at Kessel's Reach, or lost somebody who was. Does not think the "
         "wild lineage is a research subject.",
         reacts={"bloom_kill": 8, "bloom_cleansed": 12, "bloom_spread": -5,
-                "parley": -2, "xeno_study": -2, "burner_served": 11}),
+                "parley": -2, "xeno_study": -2}),
 
     Conviction(
         "xenophile", "Thinks it should be studied",
         "Every burned system is a library nobody read. Argues for the sample "
         "jar over the flamethrower, and is often right and never popular.",
         reacts={"xeno_study": 8, "xeno_incorporated": 10, "bloom_cleansed": -6,
-                "first_contact": 12, "bloom_kill": -2, "xeno_served": 13}),
+                "first_contact": 12, "bloom_kill": -2}),
 
     Conviction(
         "free", "Freehold to the bone",
@@ -90,6 +90,11 @@ CONVICTIONS: list[Conviction] = [
 CONVICTIONS_BY_ID = {c.id: c for c in CONVICTIONS}
 
 #: Events any officer feels, whatever they believe.
+#: What a promotion is worth to the officer who got it, on top of the
+#: `promoted` event below that the whole ship feels. Their career, not just
+#: the news of it.
+PROMOTION_OWN = 9.0
+
 UNIVERSAL: dict[str, float] = {
     "missed_pay": -6.0,
     "payday": 1.5,

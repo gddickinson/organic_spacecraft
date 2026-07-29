@@ -122,8 +122,16 @@ def recruit_pool(rng, port_level: int) -> list[Officer]:
     return out
 
 
-def grant_xp(officers, stat: str, amount: float) -> list[Officer]:
-    """Experience from doing the job. Levels cap at 6."""
+def grant_xp(officers, stat: str, amount: float, game=None) -> list[Officer]:
+    """Experience from doing the job. Levels cap at 6.
+
+    Pass `game` and a promotion reports itself. Every officer in the game
+    values `promoted` at +5 — it is in `UNIVERSAL`, so it applies whatever
+    they believe — and nothing ever recorded it: this returned the list of
+    people who had just been promoted and all eight call sites threw it away.
+    So a career built over a decade moved nobody at all, and the crew screen
+    never mentioned it.
+    """
     gained = []
     for o in officers:
         if stat != "*" and o.stat != stat:
@@ -134,6 +142,15 @@ def grant_xp(officers, stat: str, amount: float) -> list[Officer]:
             o.xp -= need
             o.level += 1
             gained.append(o)
+    if gained and game is not None:
+        for officer in gained:
+            game.add_log(f"{officer.name} is made {officer.role_name} "
+                         f"{officer.level}.", "good")
+            # Their own career, on top of the news everybody hears.
+            loyalty.shift(officer, convictions.PROMOTION_OWN)
+        # And once for the ship, not once per person promoted: `record`
+        # already walks every officer aboard.
+        loyalty.record(game, "promoted")
     return gained
 
 

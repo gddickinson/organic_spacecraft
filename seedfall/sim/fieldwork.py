@@ -65,7 +65,7 @@ def excavate(game, body_index: int) -> dict:
 
     research_sim.grant(game.research, round(points * 0.5))
     inquiry.add(game.research, "reading", points * 0.55)
-    grant_xp(game.officers, "science", 30)
+    grant_xp(game.officers, "science", 30, game=game)
 
     mishap = None
     if r.chance(0.16):
@@ -103,7 +103,7 @@ def analyse(game, tech_id: str, count: int) -> dict:
     add_cargo(game.ship, "xenolith", -n)
     points = xeno_sim.analyse_value(n, lab, game.ship_stats.research)
     _p, done = xeno_sim.add_study(game, tech_id, points)
-    grant_xp(game.officers, "science", 20 * n)
+    grant_xp(game.officers, "science", 20 * n, game=game)
     game.add_log(f"Analysed {n} relic(s) toward {tech.name}: "
                  f"{round(points)} points.", "good" if done else "")
     return {"ok": True, "tech": tech, "points": points, "used": n,

@@ -57,6 +57,37 @@ def record(game, event: str, scale: float = 1.0) -> list[tuple]:
     return moved
 
 
+def served(game, faction: str | None, scale: float = 1.0) -> list[tuple]:
+    """The ship did a power's work. Its partisans aboard take it personally.
+
+    Each of the four convictions with a cause has a signature event —
+    `licence_served`, `free_served` and so on — worth more to them than
+    anything else they believe, and **nothing ever recorded one**. A Charter
+    partisan could spend a decade running Charter commissions and feel it only
+    as the same `commission_done` everybody else felt.
+
+    Only convictions with an `aligned` power are reachable this way, which is
+    the two that have one. The other two are served by burning the Bloom and
+    by studying xenotech, and those events already fire.
+    """
+    if not faction:
+        return []
+    moved = []
+    for conviction in CONVICTIONS:
+        if conviction.aligned != faction:
+            continue
+        event = f"{conviction.id}_served"
+        if event not in conviction.reacts:
+            continue
+        for officer in getattr(game, "officers", []):
+            if conviction_of(officer) is not conviction:
+                continue
+            delta = conviction.reacts[event] * scale
+            shift(officer, delta)
+            moved.append((officer, delta))
+    return moved
+
+
 def align(game, faction: str, delta: float) -> None:
     """Standing with a power drags its partisans along with it."""
     for officer in getattr(game, "officers", []):

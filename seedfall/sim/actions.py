@@ -146,7 +146,7 @@ def survey(game, body_index: int) -> dict:
         game.discovered["anomalies"] += 1
     if found["new_body"]:
         game.discovered["bodies"] += 1
-    grant_xp(game.officers, "science", 25)
+    grant_xp(game.officers, "science", 25, game=game)
 
     free = cargo_free(game.ship, game.ship_stats)
     data = min(found["data"], int(free / 0.1))
@@ -238,7 +238,7 @@ def extract(game, body_index: int, days: int,
 
     wear = mining.apply_wear(game, method.id, days)
     mining.deplete(game, body, method.id, days, st.mine + st.drink)
-    grant_xp(game.officers, "engineering", days * 2)
+    grant_xp(game.officers, "engineering", days * 2, game=game)
 
     summary = ", ".join(f"{round(v)} t {k}" for k, v in got.items())
     game.add_log(f"{method.name} at {body.name}: {summary}." if summary
