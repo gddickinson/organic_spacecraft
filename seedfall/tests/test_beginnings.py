@@ -113,6 +113,74 @@ def run(suite: Suite) -> None:
                 checked += 1
         return f"{checked} openings, every figure on the screen matching"
 
+    @check("the bridge on the card is the bridge that sails")
+    def _():
+        # `preview` reported `crew_slots(stock)` — two for a dry stack — and
+        # `apply` only touched the officers when the player had picked some,
+        # which no screen let them do. So every chronicle opened with the
+        # same three whoever you were, and the card said two for 30 of 90
+        # stock/origin/posting openings.
+        from ..data.beginnings import CREW_SLOTS
+
+        assert len(set(CREW_SLOTS.values())) > 1, (
+            "every lineage sails the same bridge, so this proves nothing")
+        wrong, checked = [], 0
+        for stock in STOCKS:
+            for origin in ORIGINS:
+                for posting in POSTINGS:
+                    choices = beginning_sim.Choices(
+                        stock=stock.id, origin=origin.id, posting=posting.id)
+                    said = beginning_sim.preview(choices)
+                    game = new_game("bridge", choices=choices)
+                    checked += 1
+                    if len(game.officers) != said["crew"]:
+                        wrong.append(f"{stock.id}/{origin.id}: card says "
+                                     f"{said['crew']}, sails with "
+                                     f"{len(game.officers)}")
+        assert not wrong, (
+            f"{len(wrong)} opening(s) seat a bridge the card did not promise: "
+            f"{wrong[:4]}")
+        assert checked >= 45, checked
+        return (f"{checked} openings, every bridge the size its card promised "
+                f"({dict(CREW_SLOTS)})")
+
+    @check("the stations you pick are the stations you get")
+    def _():
+        # `Choices.crew` was honoured by `apply` from the day it was written
+        # and no screen ever set it — so the ids in `CREW_CHOICES` were never
+        # exercised, and two of them were stat names. `make_officer` answered
+        # a station it did not know by picking one at random, so choosing the
+        # engineer would have seated somebody else.
+        from ..data.beginnings import CREW_CHOICES
+        from ..core.rng import RNG
+        from ..sim.crew import CREW_ROLES, make_officer
+
+        ids = {r[0] for r in CREW_ROLES}
+        stray = [s for s in CREW_CHOICES if s not in ids]
+        assert not stray, (
+            f"{stray} are offered as stations and match no role — "
+            f"`make_officer` would seat somebody at random")
+
+        for stock in STOCKS:
+            room = beginning_sim.crew_slots(stock.id)
+            want = tuple(CREW_CHOICES[-room:])       # the unusual end
+            choices = beginning_sim.Choices(stock=stock.id, crew=want)
+            game = new_game("picked", choices=choices)
+            got = tuple(o.role for o in game.officers)
+            assert got == want, (
+                f"{stock.id}: asked for {want} and got {got}")
+
+        # And an id nobody knows is refused rather than answered at random.
+        try:
+            make_officer(RNG("unknown"), "engineering")
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(
+                "make_officer answered an unknown station instead of saying so")
+        return (f"{len(CREW_CHOICES)} stations, every one seating the officer "
+                "asked for; an unknown one refused")
+
     @check("an origin that claims a cost actually charges it")
     def _():
         # A card that says "the Charter files you as a licence risk" and moves

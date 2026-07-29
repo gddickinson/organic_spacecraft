@@ -17,11 +17,18 @@ from PyQt6.QtWidgets import (QDialog, QHBoxLayout, QLineEdit, QScrollArea,
                              QVBoxLayout, QWidget)
 
 from ..core.util import credits as cr
-from ..data.beginnings import ORIGINS, POSTINGS, STOCKS
+from ..data.beginnings import (CREW_CHOICES, ORIGINS, POSTINGS,
+                               STOCKS)
 from ..data.factions import FACTIONS_BY_ID
 from ..sim import beginning as beginning_sim
 from . import theme
-from .widgets import Card, Panel, button, label, note, spacer
+from ..sim.crew import CREW_ROLES
+from .widgets import (Card, Panel, button, label, mono_label,
+                      note, spacer)
+
+#: Filled in order, so the first three are the bridge the game has always
+#: shipped. `CREW_CHOICES` is the one list of station ids.
+DEFAULT_STATIONS = CREW_CHOICES
 
 
 class BeginningDialog(QDialog):
@@ -149,7 +156,45 @@ class BeginningDialog(QDialog):
             p.add(self._card(posting.name, posting.blurb, posting.gives, "",
                              chosen=self.picked.posting == posting.id,
                              on_pick=lambda x=posting: self._pick("posting", x.id)))
+        p.add(spacer(6), self._bridge())
         return p
+
+    def _bridge(self) -> QWidget:
+        """Which stations the opening bridge holds.
+
+        `Choices.crew` has been honoured by `beginning.apply` from the day it
+        was written, and no screen ever set it — so the card said "Officers:
+        2" for a dry stack and every chronicle opened with the same three,
+        whoever you were. Six stations exist; the lineage decides how many of
+        them you take.
+        """
+        room = beginning_sim.crew_slots(self.picked.stock)
+        chosen = list(self.picked.crew) or list(DEFAULT_STATIONS[:room])
+        holder = QWidget()
+        col = QVBoxLayout(holder)
+        col.setContentsMargins(0, 0, 0, 0)
+        col.addWidget(mono_label("The bridge"))
+        col.addWidget(note(f"Your lineage sails with {room}. Pick which "
+                           f"{room} of the six stations you take out."))
+        for station, role_name, _stat, what in CREW_ROLES:
+            on = station in chosen
+            full = len(chosen) >= room and not on
+            row = button(("● " if on else "○ ") + role_name
+                         + (f" — {what}" if not full else " — no berth left"),
+                         lambda _=False, sid=station: self._toggle_station(sid),
+                         kind="primary" if on else "", enabled=on or not full)
+            col.addWidget(row)
+        return holder
+
+    def _toggle_station(self, station: str) -> None:
+        room = beginning_sim.crew_slots(self.picked.stock)
+        chosen = list(self.picked.crew) or list(DEFAULT_STATIONS[:room])
+        if station in chosen:
+            chosen.remove(station)
+        elif len(chosen) < room:
+            chosen.append(station)
+        self.picked.crew = tuple(chosen)
+        self._rebuild()
 
     def _card(self, title, blurb, gives, costs, chosen, on_pick) -> Card:
         card = Card()

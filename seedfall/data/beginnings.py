@@ -170,5 +170,13 @@ DEFAULT_HULL = {"wet": "navis", "dry": "cantor", "grafted": "graft"}
 
 #: Officers you may sign at the start, by station. A wet crew needs people; a
 #: dry one is the ship, and takes fewer.
-CREW_CHOICES = ("science", "nav", "engineering", "tactical", "comms", "medicine")
+#: The station ids the opening may seat, in the order a chronicle fills them.
+#:
+#: These are *role* ids, which is what `crew.make_officer` matches on. Two of
+#: them used to be stat names — "engineering" and "medicine" against the roles
+#: "engineer" and "medic" — and `make_officer` answered an id it did not know
+#: by picking a role at random. Nothing exercised it, because no screen ever
+#: set `Choices.crew`; the moment the opening grew a bridge picker, choosing
+#: the engineer would have seated somebody else.
+CREW_CHOICES = ("science", "nav", "engineer", "tactical", "comms", "medic")
 CREW_SLOTS = {"wet": 3, "dry": 2, "grafted": 3}

@@ -2,6 +2,53 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: the card said two officers and the game gave three
+
+Last cycle's systematic sweep worked, so this one asked the same question of a
+second family: the sim has nineteen functions that promise what an act will do
+— `preview`, `forecast`, `quote`, `odds_for`. Most have a forecast-versus-act
+check somewhere. **Three had none at all**: the docking mini-game's, and both
+of the opening screen's.
+
+The opening is the first thing a player sees, so I compared its card against
+the chronicle it builds, across every stock, origin and posting. Credits,
+cargo, standing and hull all matched. The bridge did not:
+
+> **For 30 of 90 openings the card promises two officers and the game seats
+> three.**
+
+`CREW_SLOTS` says a Dry Choir stack sails with two — "a wet crew needs people;
+a dry one is the ship, and takes fewer" — and it was read by `preview` and by
+absolutely nothing else. `apply` only touched the officers when the player had
+picked some, and no screen let them.
+
+**I nearly shipped the wrong fix.** My first move was to make it a hiring cap
+too, so a dry lineage could never hold more than two. Then I read the constant's
+own comment — "Officers you may sign *at the start*" — and the berths board,
+which says plainly that in play "you may keep as many as you can pay". It is an
+opening complement, not a ceiling. I reverted that half; `can_hire` deliberately
+does not consult it.
+
+So `Choices.crew` has been honoured by `apply` since the day it was written and
+no screen ever set it. The opening has a bridge picker now: six stations, take
+as many as your lineage seats, and the card's number becomes a real decision —
+which two, for a dry stack.
+
+**Building the picker exposed a third vocabulary.** `CREW_CHOICES` lists the
+stations the opening may seat, and two of its six were *stat* names —
+"engineering" and "medicine" against the roles "engineer" and "medic". And
+`make_officer` answered an id it did not recognise by picking a role **at
+random**. Measured: asking for "engineering" seated a science officer, a
+navigator, a medic or anybody else, thirty times out of thirty. Nothing had
+ever exercised it because nothing had ever set `Choices.crew` — the picker
+would have been the first thing to, and choosing the engineer would have
+seated somebody else. One vocabulary now, and an unknown station is a
+`ValueError` rather than a shrug.
+
+Four mutations, all caught.
+
+723 → 725 green.
+
 ## 2026-07-29 — SEEDFALL: asking every gate whether it agrees with its own act
 
 Two of the last few cycles found the same shape by accident: a function whose

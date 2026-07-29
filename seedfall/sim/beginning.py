@@ -95,6 +95,12 @@ def crew_slots(stock_id: str) -> int:
     return CREW_SLOTS.get(stock_id, 3)
 
 
+#: `CREW_SLOTS` is what you may sign *at the opening* — the berths board is
+#: explicit that in play "you may keep as many as you can pay", and six roles
+#: exist to be filled. So this is a starting complement, not a ceiling, and
+#: `can_hire` deliberately does not consult it.
+
+
 def fit_for(chassis, known=None) -> list:
     """A working outfit for a hull nobody has chosen parts for yet.
 
@@ -263,6 +269,8 @@ def apply(game, choices: Choices, rng) -> None:
     if choices.crew:
         game.officers = [crew_sim.make_officer(rng, station)
                          for station in choices.crew]
+    # The bridge this lineage actually holds. A dry stack sails with two.
+    game.officers = game.officers[:crew_slots(choices.stock)]
     game.recompute()
 
 

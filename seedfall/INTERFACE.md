@@ -668,6 +668,7 @@ seedfall/
     ├── test_grants.py  8 checks — every colony effect is read, and does something
     ├── test_prospect.py 5 checks — a ground option's prize is the officer's prize
     ├── test_gates.py   4 checks — every "may I?" agrees with the act it guards
+    ├── test_beginnings.py 11 checks — the opening card is the chronicle you get
     ├── test_customs.py 9 contraband checks — the premium, the search, heat
     ├── test_allegiance.py 8 checks — taking sides, and brokering out of it
     ├── test_territory.py 8 checks — annexation, levy, defiance, seizure
@@ -1246,6 +1247,19 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **`CREW_CHOICES` holds station ids, and `make_officer` refuses one it does
+  not know.** Two of the six used to be *stat* names — "engineering" and
+  "medicine" against the roles "engineer" and "medic" — and `make_officer`
+  answered an unrecognised id by picking a role at random. Nothing exercised
+  it, because no screen ever set `Choices.crew`; the moment the opening grew
+  a bridge picker, choosing the engineer would have seated somebody else.
+  `role_id=None` still means "anybody"; a name is now either known or an
+  error.
+- **`CREW_SLOTS` is the opening complement, not a ceiling.** The berths board
+  is explicit that in play "you may keep as many as you can pay", and six
+  roles exist to be filled — so `can_hire` deliberately does not consult it.
+  `beginning.apply` trims to it, which is what makes a dry stack sail with
+  two, as its card has always said.
 - **Every gate must agree with the act it guards, and the act should call the
   gate.** The sim has seventeen `can_*`/`is_*` functions; a screen asks the
   gate whether to offer a button and the act asks its own conditions when the

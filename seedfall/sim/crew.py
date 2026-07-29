@@ -60,7 +60,15 @@ class Officer:
 
 
 def make_officer(rng, role_id: str | None = None, min_level: int = 1) -> Officer:
-    role = next((r for r in CREW_ROLES if r[0] == role_id), None) or rng.pick(CREW_ROLES)
+    # `role_id=None` asks for anybody; a name that matches nothing is a
+    # mistake, and answering it with a random officer is how a stat name in
+    # `CREW_CHOICES` went unnoticed for as long as it did.
+    role = None
+    if role_id is not None:
+        role = next((r for r in CREW_ROLES if r[0] == role_id), None)
+        if role is None:
+            raise ValueError(f"no station called {role_id!r}")
+    role = role or rng.pick(CREW_ROLES)
     level = rng.weighted([(5, min_level), (4, min_level + 1),
                           (2, min_level + 2), (1, min_level + 3)])
     trait = rng.pick(TRAITS) if rng.chance(0.55) else None
