@@ -2,6 +2,86 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: eight things declared and read by nobody
+
+`test_reachable.py` has asked "is every function reachable?" for a long time and
+caught two of my own orphans this session. Asking the same of **data** turned out
+to be the richer seam. An audit of every field on every dataclass in `data/`
+found **eight that nothing anywhere reads** — and several had docstrings
+*asserting* they mattered:
+
+    starclasses.luminosity   "drives how hard the light falls on everything
+                              else, which is why an M dwarf's worlds are dim
+                              and an A-type's are glaring" — it drove nothing
+    starclasses.halo         the corona colour, drawn in the disc's colour
+    lineages.boredom         "what that costs in morale" — morale_tick had no
+                              lineage term at all
+    lineages.time_sense      a written line no player had ever seen
+    lessons.skip_if          a tutorial step that should skip itself, and did not
+    consorts.shield          1.0 screening, 0.0 flanking — never read
+    mounts.axis              "losing one leaves the thrust off-axis" — it did not
+    commodities.cat          a category nothing grouped by
+
+A dead field is worse than a missing one: it reads as a feature to anyone
+looking at the table, it gets quoted in the prose beside it, and it silently
+promises behaviour the game does not have. Two of these eight were **mine**,
+from the star-catalogue cycle two days ago.
+
+**The deliverable is the guard.** `tests/test_declared.py` fails on any field in
+`data/` that nothing reads, with an allowlist carrying a **written reason per
+entry** — because an allowlist used to dodge the work is the anti-pattern, and
+one with a reason is how "known and deliberate" gets said. It also fails if an
+allowlist entry names a field that no longer exists, or one that *is* now read,
+so the excuses cannot go stale. The scan counts `getattr(x, "name")` as a read:
+a first version missed that and would have cried wolf on `System.star` and
+`Target.berth`, and a guard that cries wolf is worse than none.
+
+Four wired this cycle, each with a differenced check:
+
+- **Luminosity now lights the picture.** `conn.star_lum` carries the fact the
+  way `star_dir` already carried the light's direction, and the window decides
+  how many stops of it to show — a fourth root, because the raw range is five
+  hundred to one and a display has about four. Measured over the same world at
+  the same range with only the star changed: M 293 · K 303 · G 312 · F 323 ·
+  A 324 on the brightest tenth of the frame, and 1.48x per lit face.
+- **A corona is its own colour.** Nine classes have a halo distinct from their
+  disc; the window drew the disc's colour blurred.
+- **A crossing is harder on some crews.** Measured on the *same* voyage with
+  only the lineage changed: wet 0.770, grafted 0.845, dry 0.920 morale after
+  300 days.
+- **And the crew say how it feels.** `TEDIUM_WORTH_SAYING` was 30 days in a
+  first draft and the line then almost never appeared — the longest crossing in
+  the system I tried was 29. Measured across 354 crossings in eight sectors the
+  median is nine days and the ninetieth percentile twenty-three, so it is 20.
+
+**Mutation sweep 15/15 on source, and it took two passes.** The first ran 11/17
+and the six misses split cleanly:
+
+- **Four were real holes, all the same species** — measuring near the thing
+  instead of the thing. Every check set `conn.star_lum` by hand, so nothing
+  asserted `conn.start` reads it off the star. The corona checks examined the
+  data path and the class table and **never a picture**, so making the corona
+  fall back to the disc's colour passed all of them; it is now drawn on a blank
+  plate, where a red corona and a blue one differ by 137. "At least eight of
+  nine" classes let one sharing slip through — all nine must now. And the
+  tedium floor was checked as `TEDIUM_WORTH_SAYING - 1`, which is precisely the
+  trap this project has a rule about: a bar read off the constant under test
+  cannot fail for *any* value of it, and at zero `how_it_feels(-1)` is still
+  silent. It is an absolute ten days now.
+- **Two were bad mutations of mine.** I mutated `test_declared.py` itself —
+  deleted its assertion, gutted its reason-length rule — and expected the suite
+  to notice. Nothing can: a check cannot catch its own assertion being removed.
+  That is a flaw in how I built the sweep, not a gap in the guard, and the
+  honest response is to say so rather than invent a meta-check to paper over it.
+
+Four allowlisted with reasons and tasks: mount axis (#85), consort interposing
+risk (#86), tutorial skip (#87), commodity category (display metadata, and
+nothing in the sim should ever read it). The same scan over `sim/` and `world/`
+finds fifteen more — three of them mine from the gunfire cycle, and three
+`Options` fields, which is the worse smell because `test_options` exists to hold
+"an option that changes nothing is a lie". Task #88, deliberately not folded in
+here: the guard would land red.
+
 ## 2026-07-29 — SEEDFALL: the bench after the tree
 
 The tech tree is sixty-two nodes and 28,790 points end to end, and the game is

@@ -90,15 +90,16 @@ class Camera:
                        self.h * 0.5 - y / ahead * self.focal), ahead
 
 
-def _shade(base: QColor, lit: float, rim: float) -> QColor:
-    level = max(0.0, min(1.6, AMBIENT + DIFFUSE * lit + RIM * rim))
+def _shade(base: QColor, lit: float, rim: float, glare: float = 1.0) -> QColor:
+    level = max(0.0, min(1.6, AMBIENT + DIFFUSE * lit * glare + RIM * rim))
     return QColor(min(255, int(base.red() * level)),
                   min(255, int(base.green() * level)),
                   min(255, int(base.blue() * level)))
 
 
 def draw(painter, camera: Camera, mesh, at, scale: float, light,
-         spin: float = 0.0, tilt: float = 0.0, outline: bool = False) -> int:
+         spin: float = 0.0, tilt: float = 0.0, outline: bool = False,
+         glare: float = 1.0) -> int:
     """Paint one model. Returns how many faces actually landed on screen.
 
     `mesh` is `(verts, faces)` where a face is `(indices, colour)`. `at` is
@@ -146,7 +147,8 @@ def draw(painter, camera: Camera, mesh, at, scale: float, light,
             continue
         lit = max(0.0, dot(normal, [-c for c in lit_from]))
         rim = (1.0 - facing) ** 2
-        drawn.append((depth, points, _shade(QColor(colour), lit, rim)))
+        drawn.append((depth, points,
+                      _shade(QColor(colour), lit, rim, glare)))
 
     drawn.sort(key=lambda row: -row[0])
     for _depth, points, colour in drawn:

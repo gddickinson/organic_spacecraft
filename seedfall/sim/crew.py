@@ -166,6 +166,72 @@ def daily_wages(officers) -> float:
     return sum(o.wage for o in officers) / 30
 
 
+#: Below this many days a crossing is a hop, and nobody philosophises about
+#: the nature of time over a fortnight.
+#:
+#: Measured rather than picked. Across eight sectors and 354 crossings the
+#: median is nine days and the ninetieth percentile twenty-three, with the very
+#: longest at thirty-four — so a floor of thirty, which a first draft used,
+#: means the line almost never appears at all: the longest crossing in the
+#: system it was first tried in was twenty-nine days. Twenty puts it on roughly
+#: the top eighth of voyages, which is what "long enough to remark on" should
+#: mean.
+TEDIUM_WORTH_SAYING = 20
+
+
+def tedium(officers, days: float) -> float:
+    """What a long crossing costs in morale, decided by who is aboard.
+
+    `data/lineages.py` has declared a `boredom` per lineage since it was
+    written — 0.012 a day for a wet crew, 0.006 for a graft, and its own
+    docstring said "`boredom` is what that costs in morale". Nothing read it:
+    `morale_tick` had no lineage term at all, so a hundred days in a hull was
+    the same to a wet crew as to a lineage of recordings that measures its life
+    in centuries.
+
+    Averaged over the bridge, because a bridge is a mix. A Choir navigator does
+    not stop a wet engineer from climbing the walls, but it does dilute it.
+    """
+    if days <= 0:
+        return 0.0
+    rates = [lineages.LINEAGES_BY_ID[
+                 o.lineage if o.lineage in lineages.LINEAGES_BY_ID
+                 else lineages.DEFAULT].boredom
+             for o in (officers or [])]
+    if not rates:
+        rates = [lineages.LINEAGES_BY_ID[lineages.DEFAULT].boredom]
+    return (sum(rates) / len(rates)) * days
+
+
+def how_it_feels(game, days: float) -> str:
+    """What the bridge says about a crossing of this length, or nothing.
+
+    The line comes from whichever lineage most of the bridge is, because a
+    mixed bridge cannot have one opinion and the majority's is the one said out
+    loud. Only for crossings long enough to be worth remarking on — a
+    fortnight's hop does not get a line about the nature of time.
+    """
+    if days < TEDIUM_WORTH_SAYING:
+        return ""
+    aboard = [o.lineage if o.lineage in lineages.LINEAGES_BY_ID
+              else lineages.DEFAULT
+              for o in (getattr(game, "officers", None) or [])]
+    if not aboard:
+        aboard = [lineages.DEFAULT]
+    most = max(set(aboard), key=aboard.count)
+    return lineages.LINEAGES_BY_ID[most].time_sense
+
+
+def bear_tedium(game, days: float) -> float:
+    """Wear a crossing's tedium into the crew's morale. Returns what it cost."""
+    lost = tedium(getattr(game, "officers", None), days)
+    if lost <= 0:
+        return 0.0
+    before = game.ship.morale
+    game.ship.morale = max(0.0, game.ship.morale - lost)
+    return before - game.ship.morale
+
+
 def morale_tick(ship, days: float, paid: bool, breached: bool,
                 morale_fx: float = 0.0) -> float:
     """Morale drifts toward a target set by pay, air and recent disasters."""

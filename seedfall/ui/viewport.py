@@ -35,6 +35,13 @@ from . import render3d, theme
 
 #: Half the field of view, in radians. A wide-ish lens: enough to keep a
 #: target in frame while manoeuvring, tight enough that motion reads.
+#: The floor and ceiling on how bright a star may make the picture, and the
+#: root that compresses the raw luminosity into them. A fourth root turns a
+#: five-hundred-fold range into about four and a half, which is what a screen
+#: can actually show; the floor keeps a red dwarf's worlds readable and the
+#: ceiling keeps an A-type's from being a white rectangle.
+GLARE_FLOOR, GLARE_CEILING, GLARE_ROOT = 0.55, 1.45, 0.25
+
 HALF_FOV = math.radians(31.0)
 
 
@@ -249,6 +256,7 @@ class Viewport(QWidget):
             p.setPen(Qt.PenStyle.NoPen)
             p.drawEllipse(point, size, size)
 
+        hard = self.glare(conn)
         for sight in sky_sim.shapes(seen):
             if sight.kind == "star":
                 continue
@@ -261,12 +269,14 @@ class Viewport(QWidget):
             # annulus against a sphere it interpenetrates.
             if sight.ringed:
                 render3d.draw(p, camera, worlds3d.RINGS_MESH, sight.at,
-                              sight.radius_km, self.light(conn), tilt=0.42)
+                              sight.radius_km, self.light(conn), tilt=0.42,
+                              glare=hard)
             render3d.draw(p, camera, mesh, sight.at, sight.radius_km,
-                          self.light(conn), tilt=0.42)
+                          self.light(conn), tilt=0.42, glare=hard)
             if sight.ringed:
                 render3d.draw(p, camera, worlds3d.RINGS_FRONT, sight.at,
-                              sight.radius_km, self.light(conn), tilt=0.42)
+                              sight.radius_km, self.light(conn), tilt=0.42,
+                              glare=hard)
 
     def _star(self, p: QPainter, camera, sight) -> None:
         """The star: a disc that is its own light, and a corona."""
@@ -278,11 +288,20 @@ class Viewport(QWidget):
         # a degree and would round to nothing.
         radius = max(2.4, render3d.screen_radius(camera, sight.range_km,
                                                  sight.radius_km))
+        # The disc is `tint` — the core — and the corona is `halo`. Two
+        # colours per class have been in `data/starclasses.py` since it was
+        # written and the corona was being drawn in the core's colour, so the
+        # second one did nothing: an A-type's blue-white corona and an M
+        # dwarf's dull red one were each just their own disc, blurred.
         tint = QColor(sight.tint if sight.tint.startswith("#") else "#ffd9a0")
+        crown = QColor(sight.halo if sight.halo.startswith("#") else sight.tint
+                       if sight.tint.startswith("#") else "#e07a5f")
         glow = QRadialGradient(point, radius * 5.0)
         glow.setColorAt(0.0, QColor(255, 255, 240, 210))
-        glow.setColorAt(0.18, QColor(tint.red(), tint.green(), tint.blue(), 150))
-        glow.setColorAt(1.0, QColor(tint.red(), tint.green(), tint.blue(), 0))
+        glow.setColorAt(0.18, QColor(crown.red(), crown.green(), crown.blue(),
+                                     150))
+        glow.setColorAt(1.0, QColor(crown.red(), crown.green(), crown.blue(),
+                                    0))
         p.setBrush(glow)
         p.setPen(Qt.PenStyle.NoPen)
         p.drawEllipse(point, radius * 5.0, radius * 5.0)
@@ -343,17 +362,18 @@ class Viewport(QWidget):
             # algorithm has no other answer to a flat annulus that
             # interpenetrates the sphere it circles.
             ringed = getattr(conn.target, "ringed", False)
+            hard = self.glare(conn)
             if ringed:
                 render3d.draw(p, camera, worlds3d.RINGS_MESH, (0.0, 0.0, 0.0),
                               conn.target.radius_km, self.light(conn),
-                              spin=spin, tilt=0.35)
+                              spin=spin, tilt=0.35, glare=hard)
             render3d.draw(p, camera, mesh, (0.0, 0.0, 0.0),
                           conn.target.radius_km, self.light(conn), spin=spin,
-                          tilt=0.35)
+                          tilt=0.35, glare=hard)
             if ringed:
                 render3d.draw(p, camera, worlds3d.RINGS_FRONT, (0.0, 0.0, 0.0),
                               conn.target.radius_km, self.light(conn),
-                              spin=spin, tilt=0.35)
+                              spin=spin, tilt=0.35, glare=hard)
 
         if self.compact:
             return
@@ -371,6 +391,21 @@ class Viewport(QWidget):
         span = (f"{r_km * 1000:,.0f} m" if r_km < 2 else f"{r_km:,.1f} km")
         p.drawText(QPointF(sx - box, sy - box - 6),
                    f"{conn.target.name} · {span}")
+
+    def glare(self, conn) -> float:
+        """How hard this star lights everything, against the Sun.
+
+        The *fact* is `conn.star_lum`, recorded when the approach opens the
+        same way `star_dir` is. How much of it a screen can show is this
+        window's decision, and the answer is not "all of it": the raw range is
+        five hundred to one — 0.04 for an M dwarf against 22 for an A-type —
+        and a display has about four stops before everything is either black
+        or white. A fourth root puts that into a factor of about four and a
+        half, which reads as a real difference and still leaves a red dwarf's
+        worlds legible.
+        """
+        lum = max(1e-4, float(getattr(conn, "star_lum", 1.0) or 1.0))
+        return max(GLARE_FLOOR, min(GLARE_CEILING, lum ** GLARE_ROOT))
 
     def light(self, conn) -> tuple:
         """Which way the starlight travels, in the target's frame.

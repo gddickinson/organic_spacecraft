@@ -181,6 +181,7 @@ KIN = {
     "sky": ("cameras", "worlds"), "worlds3d": ("worlds",),
     "starclasses": ("worlds", "orbits"),
     "programmes": ("programmes",),
+    "declared": ("declared",),
     "battle3d": ("gunfire",),
     "mounts": ("thrusters",), "burnplan": ("thrusters", "helm"),
 }

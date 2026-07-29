@@ -15,6 +15,7 @@ import itertools
 from dataclasses import dataclass, field
 
 from ..core.save import register
+from . import crew as crew_sim
 from ..data.watches import EVENT_CHANCE, WATCHES, WATCHES_BY_ID, watches_for
 from . import flight
 from .ship import add_cargo, add_heat, apply_damage
@@ -73,6 +74,15 @@ def begin(game, body_index: int, burn_id: str) -> dict:
     say(transit, f"{quote['burn'].name} to {body.name}: "
                  f"{quote['days']} days planned, {quote['fuel']} t of mass.",
         "")
+    # And what the crew make of the length of it. `data/lineages.py` has
+    # written a `time_sense` line per lineage since it was written — "a season
+    # out of a life that has a season to spare", against "long enough to be
+    # tedious, not long enough to matter" — and no player had ever seen one,
+    # because nothing read the field. A hundred days is a different thing to a
+    # wet crew and to a lineage of recordings, and now the crossing says so.
+    felt = crew_sim.how_it_feels(game, quote["days"])
+    if felt:
+        say(transit, felt, "dim")
     return {"ok": True, "transit": transit, "quote": quote}
 
 
@@ -122,6 +132,11 @@ def _spend(game, transit: Transit, days: int = 0, fuel: float = 0.0) -> None:
     if days > 0:
         transit.days_spent += days
         game.advance_days(days)
+        # A crossing is tedious, and how tedious depends on who is aboard.
+        # See `crew.tedium`: the per-lineage figure has been in the tables
+        # since they were written and nothing read it, so a hundred days was
+        # the same to a wet crew as to a lineage of recordings.
+        crew_sim.bear_tedium(game, days)
 
 
 def options(transit: Transit) -> list:

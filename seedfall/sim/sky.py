@@ -64,6 +64,13 @@ class Sight:
     look: str = ""
     #: True for a world that carries a ring system.
     ringed: bool = False
+    #: For a star, the colour of the corona *around* the disc, as against
+    #: `tint`, which is the disc itself. Both have been in
+    #: `data/starclasses.py` since the classes were written; the window drew
+    #: the corona in the core colour and `halo` was read by nobody, so a
+    #: blue-white A-type and a red dwarf had coronae of the same hue as their
+    #: own discs and the pair of colours did one colour's work.
+    halo: str = ""
 
     @property
     def range_km(self) -> float:
@@ -124,7 +131,8 @@ def build(game, contact=None) -> list:
     star = star_class(system)
     out = [Sight(name=system.star_name or star.name, kind="star",
                  at=offset(0.0, 0.0, star.radius_km),
-                 radius_km=star.radius_km, tint=star.core, look=star.id)]
+                 radius_km=star.radius_km, tint=star.core, look=star.id,
+                 halo=star.halo)]
 
     for index, other in enumerate(track_sim.contacts(game, system)):
         if other.id == skip or other.kind == "star":

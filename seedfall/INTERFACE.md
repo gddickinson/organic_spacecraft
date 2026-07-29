@@ -447,6 +447,37 @@ berth it answered that the planet was at zero range and therefore 180° wide,
 which is a picture of being inside it. Co-located sights are placed where they
 physically are: the world below a berth reads 98° across.
 
+**Eight things declared and read by nobody.** `test_reachable.py` asks this of
+functions; asking it of **data** is the richer seam. Every field on every
+dataclass in `data/` against whether anything reads it: **eight that nothing
+does**, several with docstrings asserting they mattered — `luminosity` "drives
+how hard the light falls on everything else" and drove nothing; `halo` was the
+corona colour and the corona was drawn in the disc's; `boredom` was "what that
+costs in morale" and `morale_tick` had no lineage term at all; `time_sense` was
+a written line nobody had seen. Two of the eight were mine, from the
+star-catalogue cycle.
+
+A dead field is worse than a missing one: it reads as a feature, gets quoted in
+the prose beside it, and promises behaviour the game does not have.
+
+`tests/test_declared.py` is the guard. It fails on any unread field in `data/`,
+with an allowlist carrying a **reason per entry** — an allowlist used to dodge
+work is the anti-pattern; one with a written reason is how "known and
+deliberate" gets said. It also fails when an entry names a field that has gone,
+or one that *is* now read, so excuses cannot go stale. The scan counts
+`getattr(x, "name")` as a read: without that it cried wolf on `System.star` and
+`Target.berth`, and a guard that cries wolf is worse than none.
+
+Four wired, each differenced: `conn.star_lum` carries the star's brightness as
+a *fact* (the way `star_dir` carries the light's direction) and `viewport.glare`
+decides how many stops to show — a fourth root, since the raw range is five
+hundred to one and a screen has four. Measured M 293 → A 324 on the brightest
+tenth, 1.48x per lit face. Coronae now use `halo`. `crew.tedium` puts a
+lineage's boredom into morale over a crossing: same voyage, wet 0.770 against
+dry 0.920. And `crew.how_it_feels` says the line, above a threshold set from
+354 measured crossings rather than picked (a first draft's 30 days meant it
+almost never appeared).
+
 **The bench after the tree.** The tech tree is sixty-two nodes and 28,790
 points end to end, and the game carries on past every one of its ten endings. So
 `research.banked` grew for ever once `researchable` came back empty — **146,040
@@ -2675,6 +2706,14 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berth" flies the last kilometres rather than running four hundred ticks
   inside the click, and that a conn notices the hull being flown from the helm
   instead of showing an approach on somewhere it has left.
+- **`test_declared.py`** is the standing guard that nothing in `data/` is
+  declared and read by nobody, plus the four revivals it forced. Its allowlist
+  carries a reason per entry and fails on stale excuses in both directions.
+  Mutation sweep 15/15 on source, after a first pass at 11/17 whose four real
+  misses were all the same fault — measuring near the thing rather than the
+  thing. Notably the corona was checked in the tables and never in a picture,
+  and the tedium floor was checked as `THRESHOLD - 1`, which cannot fail for any
+  value of the threshold.
 - **`test_programmes.py`** holds the endgame bench: that nothing accrues on a
   finished tree that cannot be spent, that every round costs more than the last,
   that all three doors are live and none dominated, that every point of standing

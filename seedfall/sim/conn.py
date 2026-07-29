@@ -36,6 +36,7 @@ from dataclasses import dataclass, field
 # so they live with the mounts. Re-exported because every caller in the conn
 # and its windows reaches for them through this module.
 from ..data.mounts import AXES, AXES_BY_ID, VIEWS  # noqa: F401
+from ..data.starclasses import of as star_class
 from . import outcome as outcome_sim
 from .orbits import (ORBIT_BAND, ORBIT_BAND_SHARE, ORBIT_FLOOR_KM, in_orbit,
                      orbit_band, orbit_note, orbital_speed, semi_major_km)
@@ -113,6 +114,12 @@ class Conn:
     #: along the target's own position vector — which is what gives a world
     #: a terminator on the correct side.
     star_dir: list = field(default_factory=lambda: [0.0, 1.0, 0.0])
+    #: How bright this system's star is, against the Sun. A *fact* about the
+    #: star; how many stops of it a screen can show is the window's business.
+    #: `StarClass.luminosity` has existed since the classes were written and
+    #: its docstring claimed it drove the light on everything else. It drove
+    #: nothing: every world in the sector was lit identically.
+    star_lum: float = 1.0
     #: Everything else in the system, placed in this frame. Built once when
     #: the approach opens — bodies move on a scale of months and an approach
     #: is over in hours.
@@ -178,6 +185,7 @@ def observe(game) -> Conn:
     conn.outcome = "watching"
     conn.landed = True                      # nothing to charge for looking
     conn.sky = sky_sim.build(game, None)
+    conn.star_lum = star_class(game.system).luminosity
     conn.log.append("Nothing within reach. The watch is kept.")
     return conn
 
@@ -214,6 +222,7 @@ def start(game, contact, range_km: float | None = None,
                 turn_rate_cost=attitude_sim.turn_cost(game.ship, 6.283185))
     conn.nose = list(attitude_sim.unit([-p for p in conn.pos]))
     conn.star_dir = list(starlight(game, contact))
+    conn.star_lum = star_class(game.system).luminosity
     from . import sky as sky_sim
     conn.sky = sky_sim.build(game, contact)
     if target.mu > 0:
