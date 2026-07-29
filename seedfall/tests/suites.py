@@ -49,6 +49,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("courtship", "test_courtship", "courtship"),
     SuiteSpec("routing", "test_routing", "routing"),
     SuiteSpec("magazine", "test_magazine", "magazine"),
+    SuiteSpec("stranded", "test_stranded", "stranded"),
     SuiteSpec("customs", "test_customs", "customs"),
     SuiteSpec("allegiance", "test_allegiance", "allegiance"),
     SuiteSpec("territory", "test_territory", "territory"),

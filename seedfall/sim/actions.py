@@ -338,23 +338,43 @@ def burn_bloom(game) -> dict:
 
 
 def is_stranded(game) -> bool:
-    """No fuel for any reachable system, and no way to make any here."""
+    """No fuel for any reachable system, and no way to make any here.
+
+    Every way out has to be asked of whatever actually grants it, not guessed
+    at with a literal. Both of these were guesses:
+
+    * The ice test read `resources["volatiles"] > 0.05`, which is how *rich* a
+      body is. Whether a rig may be put on it is `mining.worked_out`, which
+      reads how much has been *taken* — a different quantity entirely, so a
+      rich body worked to exhaustion read as fuel for ever. Measured: a
+      captain at Amber Anchorage with 0 credits and 2.3 tonnes, one body in
+      the system holding 0.271 volatiles and worked out, `extract` refusing
+      it and this function answering "you can still move".
+    * The port test fell back to `or 40` when `buy_price` returned None, and
+      None is what it returns when the market holds none to sell. No port in
+      the sector is currently dry, so nothing was reaching it — but a way out
+      that does not exist must not count as one.
+    """
+    from ..world.economy import buy_price
     from ..world.galaxy import in_range
+    from . import mining
+
     reach = in_range(game.galaxy.systems, game.system, game.ship_stats.jump)
     fuel = game.ship.cargo.get("volatiles", 0)
     if any(fuel >= jump_quote(game, s)["fuel"] for s in reach):
         return False
     if game.system.port and game.system.market:
-        # A port can always sell you fuel, if you can pay for anything at all.
+        # A port can sell you fuel, if it has any and you can pay for it.
         cheapest = min((jump_quote(game, s)["fuel"] for s in reach), default=99)
-        from ..world.economy import buy_price
         price = buy_price(game.system.market, "volatiles",
-                          game.rep.get(game.system.port.faction, 0)) or 40
-        if game.credits >= price * (cheapest - fuel):
+                          game.rep.get(game.system.port.faction, 0))
+        if price is not None and game.credits >= price * (cheapest - fuel):
             return False
-    # Can we make our own out of ice in this system?
+    # Can we make our own out of ice in this system? Only off a body a rig
+    # will actually go on — the same question `extract` asks.
     if game.ship_stats.drink > 0 and any(
-            b.resources.get("volatiles", 0) > 0.05 for b in game.system.bodies):
+            b.resources.get("volatiles", 0) > 0.05 and not mining.worked_out(b)
+            for b in game.system.bodies):
         return False
     return bool(reach)
 

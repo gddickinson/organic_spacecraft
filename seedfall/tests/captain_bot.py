@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from ..core.rng import RNG
 from ..core.state import new_game
-from ..sim import actions
+from ..sim import actions, mining
 from ..sim import trade as trade_sim
 from ..sim.ship import add_cargo, cargo_free
 from ..world.economy import sell_price
@@ -54,10 +54,23 @@ def _bot(seed: str, years: int = 5):
                       >= actions.jump_quote(g, s)["fuel"]]
         if not affordable:
             # top up from ice rather than sitting there
-            ice = next((i for i, b in enumerate(sysm.bodies)
-                        if b.resources.get("volatiles", 0) > 0.1), None)
+            # The richest ice a rig will actually go on. Taking the first
+            # body over a threshold picked a worked-out one at Nine's
+            # Crossing and reported a deadlock beside four bodies that would
+            # have answered — the bot's fault, not the game's.
+            usable = [(b.resources.get("volatiles", 0), i)
+                      for i, b in enumerate(sysm.bodies)
+                      if b.resources.get("volatiles", 0) > 0.05
+                      and not mining.worked_out(b)]
+            ice = max(usable)[1] if usable else None
             if ice is None:
-                break
+                # Nothing here to make fuel from. Ask for a tow before giving
+                # up: the answer used to be "you can still move", which is
+                # how a one-body system with its ice worked out read as a
+                # deadlock rather than as the thing the tow exists for.
+                if not actions.distress_call(g).get("ok"):
+                    break
+                continue
             sysm.bodies[ice].surveyed = True
             # A hold with no room cannot take reaction mass either, so make
             # some. Without this the bot span forever: extract refuses, no
@@ -69,7 +82,12 @@ def _bot(seed: str, years: int = 5):
                     break
                 trade_sim.jettison(g, spare)
             if not actions.extract(g, ice, 40).get("ok"):
-                break
+                # The ice is worked out. That is what the distress call is
+                # for, and giving up here instead reported a hole in the game
+                # that the game already had an answer to — `is_stranded` was
+                # the thing that was wrong, not the absence of a way out.
+                if not actions.distress_call(g).get("ok"):
+                    break
             continue
         target = next((s for s in affordable if not s.visited), r.pick(affordable))
         if not actions.jump_to(g, target.id)["ok"]:

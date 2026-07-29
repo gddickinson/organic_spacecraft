@@ -663,6 +663,7 @@ seedfall/
     ├── test_courtship.py 7 checks — diminishing returns on goodwill
     ├── test_routing.py 5 checks — power routing lands the turn it is ordered
     ├── test_magazine.py 6 checks — the other side can actually fight
+    ├── test_stranded.py 6 checks — the way out of a dead end is real
     ├── test_customs.py 9 contraband checks — the premium, the search, heat
     ├── test_allegiance.py 8 checks — taking sides, and brokering out of it
     ├── test_territory.py 8 checks — annexation, levy, defiance, seizure
@@ -1241,6 +1242,25 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **`is_stranded` must ask whoever grants each way out, not guess.** It is
+  the gate on `distress_call`, the game's only answer to being out of fuel and
+  money at once, and it carried two guesses. The ice test read
+  `resources["volatiles"] > 0.05` — how *rich* a body is — while whether a rig
+  will go on it is `mining.worked_out`, which reads how much has been *taken*.
+  Different quantities, so a rich body worked to exhaustion counted as fuel
+  for ever: a captain at Amber Anchorage, a one-body system, with 0 credits
+  and 2.3 tonnes, was refused a tow with "you can still move". The port test
+  fell back to `or 40` when `buy_price` returned None, which is exactly what
+  it returns when the shelf is empty. **If you add a fourth way out, ask its
+  owner.**
+- **A fresh sector is not the state the bug lives in.** No port in 417 is out
+  of reaction mass at generation, which is why the empty-shelf branch went
+  unseen for so long. Played sectors get there. Construct the state.
+- **`captain_bot` is the deadlock check and it has to reach the end.** Its own
+  docstring says a stall means a hole a player would fall into, and nothing
+  was asserting it ran its full five years — two of six stopped short, one on
+  day 1406 of 1825, while the solvency check beside it passed on the *mean*
+  treasury of all six.
 - **An NPC's magazine is sized to its own mounts, not to salvage.**
   `make_enemy` gave every hull a flat 4–20 t of ore, alloy and biomass —
   stores meant for the wreck — and those were quietly doubling as ammunition

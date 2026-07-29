@@ -2,6 +2,63 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: told "you can still move" with nowhere to go
+
+Breadth cycle — away from combat, into the economy. I set out to ask whether a
+captain can make a living at each profession, and built bots for surveying,
+mining, trading and hauling. All four lost money, which told me more about my
+bots than about the game, so I switched to the project's own `captain_bot`:
+the one whose docstring says it "catches deadlocks — when it cannot make
+progress, the game has a hole a player would fall into".
+
+Six five-year runs. **Two of them stopped short.** One at day 1406 of 1825,
+moored at Amber Anchorage — a system with exactly one body — holding
+**0 credits and 2.3 tonnes of reaction mass**. The body had 0.271 volatiles
+and was worked out. `extract` refused it: *"there are other bodies."* There
+were none. The captain called for a tow and the game answered:
+
+> **You are not stranded — you can still move.**
+
+`is_stranded` is the gate on `distress_call`, which is the only way back from
+exactly that position, and it was answering a different question from the ones
+that actually grant a way out. Two guesses in one function:
+
+- **The ice test read abundance where mining reads depletion.**
+  `resources["volatiles"] > 0.05` is how *rich* a body is; `worked_out` reads
+  how much has been *taken*. Different quantities entirely, so a rich body
+  worked to exhaustion counted as a fuel supply for ever.
+- **The port test priced an empty shelf at 40.** `buy_price` returns None when
+  the market holds none, and `or 40` turned that into "you can buy your way
+  out". I checked and no port in a fresh sector is dry — 0 of 417 — which is
+  why nothing had caught it. A *played* sector gets there: run-a found Nine's
+  Crossing with no reaction mass on the board.
+
+Both now ask the thing that owns the answer. And `nearest_port` no longer
+answers a distress call with the berth you are already moored at.
+
+Two of the six stalls turned out to be the bot, not the game, and I checked
+rather than assumed: at Nine's Crossing it took the first body over a
+threshold, got a worked-out one, and gave up beside four bodies that would
+have answered. It picks the richest workable seam now, and calls for a tow
+before giving up.
+
+**And the check beside it was hiding this.** `test_play` asserts the naive
+strategy "stays solvent for five years" on the *mean* treasury of six runs —
+which was 12,159 while three individual runs ended at 0, 254 and 546 credits.
+A mean cannot see ruin. There is a check now that every run reaches the end of
+its five years with moves left.
+
+Worth recording separately, measured and not fixed: surveying earns 41,579
+credits over 4.6 years and spends 44,503 on fuel and rig time. The naive
+strategy is *exactly* break-even and tips either way on seed luck. That is a
+balance question rather than a bug, and it wants its own cycle.
+
+Six mutations, all caught. One needed a second pass: disabling the jump escape
+entirely went unnoticed, because every state in my sweep had a second way out
+— I had never constructed one where jumping was the only answer.
+
+698 → 704 green.
+
 ## 2026-07-29 — SEEDFALL: the other side could not fight
 
 Last cycle I noticed in passing that the enemy AI runs its helm but never its

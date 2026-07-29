@@ -251,5 +251,10 @@ def transit_days(ly: float, speed: float) -> int:
 
 
 def nearest_port(systems, origin):
-    ports = [s for s in systems if s.port]
+    """The closest port that is not the one you are already sitting at.
+
+    A tow that answers with "towed to Amber Anchorage" while you are moored at
+    Amber Anchorage reads as a bug even when the fuel it brings is real.
+    """
+    ports = [s for s in systems if s.port and s is not origin]
     return min(ports, key=lambda s: distance(s, origin)) if ports else None
