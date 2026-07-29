@@ -126,6 +126,33 @@ def tick(game, days: float, rng) -> list:
         return []
     out: list = []
     years = days / YEAR
+
+    # The hands, as a mass. Their mean ages at the lineage's rate, slowed by
+    # whatever share of them is asleep, and once the spread pushes part of the
+    # mess deck past the span they start leaving.
+    ship = game.ship
+    if getattr(ship, "crew", 0) > 0:
+        from . import dormancy
+        slowed, _fed = dormancy.rates(game, None)
+        read = crew_profile(game)
+        ship.crew_age = read["mean"] + years * read["lineage"].ageing * slowed
+        read = crew_profile(game)
+        if read["over"] > 0.001:
+            leaving = read["count"] * read["over"] * LEAVING * years
+            gone = int(leaving)
+            # The remainder is carried so a slow trickle is not rounded to
+            # nothing every tick and then never happens at all.
+            game.crew_leaving = getattr(game, "crew_leaving", 0.0) + \
+                (leaving - gone)
+            if game.crew_leaving >= 1.0:
+                extra = int(game.crew_leaving)
+                gone += extra
+                game.crew_leaving -= extra
+            if gone > 0:
+                ship.crew = max(0, ship.crew - gone)
+                out.append(("warn", f"{gone} of the hands have come to the "
+                                    "end of it. The berths are open."))
+
     for officer in list(getattr(game, "officers", [])):
         if getattr(officer, "retired", False):
             continue
@@ -164,6 +191,126 @@ def tick(game, days: float, rng) -> list:
                                    f"{crossed:.0f} years old. The berth is "
                                    "open."))
     return out
+
+
+#: A fresh intake is drawn from people at the start of a working life, and a
+#: quay never sends you a single cohort — the spread is what makes a crew age
+#: out gradually rather than all at once.
+INTAKE_SHARE = 0.34
+INTAKE_SPREAD = 7.0
+
+#: Hands past their span leave at this rate per year — a share of the number
+#: who are actually over it, which the spread decides.
+LEAVING = 0.55
+
+
+def crew_profile(game) -> dict:
+    """The hands' age, and how much of the mess deck is near the end.
+
+    They are a headcount, not records: `ship.crew` is an integer and the game
+    treats the hands as a mass on purpose. A mass still gets older, and until
+    this existed the only people in the Verge who aged were the three with
+    names — so a twenty-year chronicle retired the bridge and left the lower
+    decks untouched, and sleeping the hands saved something unmeasurable.
+    """
+    ship = game.ship
+    lineage = LINEAGES_BY_ID[of_stock(
+        getattr(getattr(game, "beginning", None), "stock", None))]
+    if not getattr(ship, "crew_age", 0):
+        ship.crew_age = lineage.prime * 0.55
+    spread = max(1.0, getattr(ship, "crew_spread", INTAKE_SPREAD))
+    mean = ship.crew_age
+
+    # What share of the mess deck is past the lineage's span, assuming the
+    # ages are spread evenly about the mean. Crude, and enough: it turns one
+    # number into a gradient instead of a cliff.
+    low, high = mean - spread, mean + spread
+    if high <= lineage.span:
+        over = 0.0
+    elif low >= lineage.span:
+        over = 1.0
+    else:
+        over = (high - lineage.span) / (high - low)
+    return {"mean": mean, "spread": spread, "lineage": lineage,
+            "over": over, "count": max(0, int(getattr(ship, "crew", 0))),
+            "band": ("young" if mean < lineage.prime * 0.6 else
+                     "in their prime" if mean < lineage.prime else
+                     "greying" if mean < lineage.span * 0.85 else
+                     "old"),
+            "span": lineage.span, "prime": lineage.prime}
+
+
+def crew_note(game) -> str:
+    """One line for the crew screen: how old the mess deck is."""
+    read = crew_profile(game)
+    line = (f"{read['count']} hands, {read['mean']:.0f} on average "
+            f"({read['band']}) — the lineage manages about "
+            f"{read['span']:.0f}.")
+    if read["over"] > 0.02:
+        line += (f" Roughly {read['over'] * 100:.0f}% of them are past it "
+                 "and will not be aboard much longer.")
+    return line
+
+
+#: What a hand costs to take on: a hiring fee, and they eat from then on.
+SIGNING_FEE = 260
+
+
+def berths_free(game) -> int:
+    """How many more hands the hull can actually hold.
+
+    The first cut had no cap at all and cheerfully put a hundred hands into
+    seventy-four berths.
+    """
+    berths = int(getattr(game.ship_stats, "berths", 0) or 0)
+    return max(0, berths - int(getattr(game.ship, "crew", 0))
+               - len(active(getattr(game, "officers", []))))
+
+
+def can_sign_on(game, count: int) -> tuple[bool, str]:
+    """Whether this many can be taken on, and what is stopping it."""
+    room = berths_free(game)
+    if room <= 0:
+        return False, "Every berth aboard is filled."
+    if count > room:
+        return False, f"Only {room} berth{'' if room == 1 else 's'} free."
+    cost = SIGNING_FEE * count
+    if game.credits < cost:
+        return False, (f"Signing {count} on costs {cost:,} credits; you have "
+                       f"{int(game.credits):,}.")
+    return True, ""
+
+
+def sign_on(game, count: int) -> dict:
+    """Take on hands. A young intake pulls the average down.
+
+    The headcount could only ever fall — combat, hunger, a sleep somebody did
+    not come up from — and there was no way at all to take anybody on. A crew
+    that can only shrink is a slow, unfixable loss rather than a thing you
+    manage.
+    """
+    ship = game.ship
+    count = max(0, int(count))
+    ok, why = can_sign_on(game, count)
+    if not ok:
+        return {"ok": False, "why": why}
+    game.credits -= SIGNING_FEE * count
+    read = crew_profile(game)
+    if count <= 0:
+        return {"ok": False, "why": "Nobody to sign on."}
+    fresh = read["lineage"].prime * INTAKE_SHARE
+    have = read["count"]
+    total = have + count
+    ship.crew = total
+    ship.crew_age = (read["mean"] * have + fresh * count) / max(1, total)
+    # A mixed intake widens the mess deck's range; a wholesale replacement
+    # narrows it back toward the intake's own.
+    share = count / max(1, total)
+    ship.crew_spread = max(2.0, read["spread"] * (1 - share)
+                           + INTAKE_SPREAD * share)
+    game.recompute()
+    return {"ok": True, "count": count, "mean": ship.crew_age,
+            "fresh": fresh, "paid": SIGNING_FEE * count}
 
 
 def active(officers) -> list:

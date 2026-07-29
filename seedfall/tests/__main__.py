@@ -7,17 +7,29 @@ import sys
 from .harness import Suite
 
 
+#: Every suite, in the order they run. Published so tools do not keep
+#: their own copy — `tests/tripwire.py` had one, it went stale the day
+#: a new suite was added, and the constants that suite protected looked
+#: unprotected because nothing was running it.
+ALL_SUITES = [
+    "sim", "xeno", "play", "combat", "flight", "empire", "crew",
+    "missions", "explore", "mining", "research", "trade", "ground",
+    "politics", "design", "orders", "assessment", "balance", "bloom",
+    "reachable", "efficacy", "transit", "customs", "allegiance",
+    "territory", "charts", "aftermath", "notes", "layers", "cargo",
+    "freight", "workings", "burns", "bench", "works", "overtures",
+    "seats", "founding", "attempts", "reach", "plans", "beginnings",
+    "legacy", "instruments", "voices", "bridge", "manual", "tutorial",
+    "grudges", "gunnery", "surveys", "time", "anchorage", "traffic",
+    "doctrine", "firing", "approach", "officials", "dormancy", "tuning",
+    "hands", "chronicle", "dig", "resume", "verbs", "ui",
+]
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = argv if argv is not None else sys.argv[1:]
-    wanted = [a for a in argv if not a.startswith("-")] or ["sim", "xeno", "play", "combat", "flight", "empire", "crew",
-                                       "missions", "explore", "mining", "research", "trade",
-                                       "ground", "politics", "design", "orders",
-                                       "assessment", "balance", "bloom", "reachable",
-                                       "efficacy", "transit", "customs", "allegiance", "territory", "charts", "aftermath", "notes", "layers", "cargo", "freight", "workings", "burns", "bench", "works", "overtures", "seats", "founding", "attempts", "reach", "plans", "beginnings", "legacy",
-           "instruments", "voices", "bridge", "manual", "tutorial",
-           "grudges", "gunnery", "surveys", "time", "anchorage", "traffic", "doctrine", "firing", "approach", "officials", "dormancy", "tuning",
-           "chronicle", "dig",
-                                       "resume", "verbs", "ui"]
+    wanted = [a for a in argv if not a.startswith("-")] \
+        or list(ALL_SUITES)
     ok = True
 
     if "sim" in wanted:
@@ -348,6 +360,12 @@ def main(argv: list[str] | None = None) -> int:
         from . import test_tuning
         suite = Suite("tuning")
         test_tuning.run(suite)
+        ok = suite.report() and ok
+
+    if "hands" in wanted:
+        from . import test_hands
+        suite = Suite("hands")
+        test_hands.run(suite)
         ok = suite.report() and ok
 
     if "manual" in wanted:

@@ -2,6 +2,43 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: the hands get older, and can finally be replaced
+
+A player asked why hands have no ages. Because `ship.crew` was an integer.
+
+- **A mean and a spread on the hull**, aged by proper time at the lineage's
+  rate. Still a mass — the game treats the hands as a headcount on purpose —
+  but a mass that gets older. Measured: a fed crew goes from 29 to 98 over
+  seventy years and falls from 34 aboard to 6.
+- **The spread makes it a slope.** Forty hands started four years short of the
+  span leave over seven years in six separate losses, not one cliff.
+- **They can be signed on.** `ship.crew` only ever fell before — combat,
+  hunger, a sleep somebody did not wake from — and there was no way to take
+  anybody on at all. A crew that can only shrink is an unfixable loss rather
+  than something you manage. Within the berths that exist, for a fee, and a
+  young intake pulls an old deck from 80 back to 49.
+- **Dormancy now reaches them**, which closes the loop on last cycle: a
+  sleeping mess deck ages 0.21 years where an awake one ages 1.00. That saving
+  was previously real and unmeasurable, which is precisely why the
+  `put_under` bug hid.
+
+**Three faults of my own, two of them found by the tool I built last cycle.**
+
+- The tripwire immediately reported four of my *new* constants unprotected —
+  including `SIGNING_FEE`, whose check asserted `spent == SIGNING_FEE * 8`.
+  That is the tautology again, on brand-new code, caught before it shipped
+  rather than three cycles later. It asserts a range written in the check now.
+- It also reported them unprotected for a second, different reason: the
+  tripwire kept its **own copy of the suite list**, which went stale the
+  moment a suite was added, so the `hands` suite was never run and the
+  constants it protects looked unguarded. `ALL_SUITES` is published from
+  `tests/__main__` now and the tool derives from it.
+- And a `git checkout` I ran to undo a bad edit quietly reverted this cycle's
+  suite registration, so `python3 -m seedfall.tests hands` printed nothing at
+  all and exited zero. A suite that does not exist looks exactly like a suite
+  that passes.
+- 550 checks green, every file under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: auditing the tests instead of trusting them
 
 Last cycle I said the tautological-check habit was mine and I would watch for

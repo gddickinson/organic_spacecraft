@@ -7,6 +7,7 @@ is where loyalty, convictions and the two things that mend them live.
 from __future__ import annotations
 
 from ..sim import crew as crew_sim
+from ..sim import lifespan as lifespan_sim
 
 from PyQt6.QtWidgets import QHBoxLayout, QWidget
 
@@ -29,6 +30,8 @@ class BerthsMixin:
         self.col.addWidget(note(
             f"Bridge wages run {cr(round(daily_wages(g.officers)))} a day. Six roles; "
             "you may keep as many as you can pay."))
+
+        self.col.addWidget(self._mess_deck(g))
 
         bridge = Panel("Your bridge")
         if g.officers:
@@ -114,3 +117,46 @@ class BerthsMixin:
     def _dismiss(self, officer) -> None:
         self.game.officers = [o for o in self.game.officers if o is not officer]
         self.win.refresh()
+
+    # ── the hands ──────────────────────────────────────────────────────────
+
+    def _mess_deck(self, g):
+        """The headcount, its age, and taking more on.
+
+        The hands could only ever be lost — to fighting, to hunger, to a sleep
+        somebody did not come up from — and there was no way to sign anybody
+        on at all. They also never got older, so a twenty-year chronicle
+        retired the bridge and left the lower decks untouched.
+        """
+        read = lifespan_sim.crew_profile(g)
+        room = lifespan_sim.berths_free(g)
+        panel = Panel("The mess deck")
+        panel.add(label(lifespan_sim.crew_note(g), "",
+                        "warn" if read["over"] > 0.1 else "", wrap=True))
+        panel.add_row("Berths free", str(room))
+        panel.add_row("Signing fee", cr(lifespan_sim.SIGNING_FEE) + " a head")
+
+        for count in (5, 20):
+            take = min(count, room)
+            ok, why = lifespan_sim.can_sign_on(g, take) if take else \
+                (False, "Every berth aboard is filled.")
+            panel.add_buttons(button(
+                f"Sign on {take} — {cr(lifespan_sim.SIGNING_FEE * take)}"
+                if take else "No berths free",
+                lambda n=take: self._sign_on(n),
+                kind="primary" if ok and count == 5 else "",
+                enabled=ok, tip=why))
+            if not ok and why:
+                panel.add(note(why))
+                break
+        return panel
+
+    def _sign_on(self, count: int) -> None:
+        res = lifespan_sim.sign_on(self.game, count)
+        if not res.get("ok"):
+            self.win.toast(res.get("why", "No."), "warn")
+            return
+        self.win.toast(f"{res['count']} signed on. The mess deck is younger "
+                       f"by {res['mean']:.0f} on average.", "")
+        self.win.save()
+        self.refresh()

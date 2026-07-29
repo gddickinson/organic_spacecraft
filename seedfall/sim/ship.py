@@ -51,6 +51,13 @@ class Ship:
     layers: list[HullLayer] = field(default_factory=list)
     heat: float = 0.0
     crew: int = 1
+    #: The hands' age profile. They are a headcount rather than records — the
+    #: game deliberately treats them as a mass — but a mass still gets older.
+    #: Without these two numbers "your crew ages on a long crossing" was true
+    #: of the three named officers and of nobody else aboard. See
+    #: `sim/lifespan.py`.
+    crew_age: float = 0.0
+    crew_spread: float = 9.0
     morale: float = 0.75
     cargo: dict[str, float] = field(default_factory=dict)
     o2: float = 1.0

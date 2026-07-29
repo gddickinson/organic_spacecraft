@@ -37,14 +37,22 @@ import pathlib
 import subprocess
 import sys
 
-#: Suites that are fast and do not need Qt. Enough coverage to catch a real
-#: change; cheap enough to run a hundred times.
-SUITES = ("sim combat flight crew mining research trade politics bloom time "
-          "dormancy officials approach doctrine firing surveys anchorage "
-          "traffic empire explore missions ground design orders assessment "
-          "customs allegiance territory charts aftermath notes cargo freight "
-          "workings burns bench works overtures seats founding attempts reach "
-          "beginnings legacy grudges gunnery transit").split()
+#: Every suite except the slow ones and the ones that need a window. Derived
+#: from the canonical list rather than copied: this module kept its own, it
+#: went stale the moment a suite was added, and the constants that suite
+#: protected looked unprotected because nothing here was running it. My own
+#: `SIGNING_FEE` check was reported unprotected for exactly that reason.
+SLOW = {"chronicle", "verbs", "ui", "resume", "efficacy", "balance",
+        "instruments", "bridge", "manual", "tutorial", "voices", "play",
+        "layers", "plans", "xeno", "dig", "reachable", "tuning"}
+
+
+def _suites() -> list:
+    from .__main__ import ALL_SUITES
+    return [name for name in ALL_SUITES if name not in SLOW]
+
+
+SUITES = _suites()
 
 #: Constants that are deliberately structural rather than tuning — changing
 #: them is a different kind of edit and the sweep only adds noise.

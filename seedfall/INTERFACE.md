@@ -237,6 +237,25 @@ the original question directly. Known *hulls* are still not plotted — nothing
 in the game gives another ship a persistent position, so that is honestly a
 separate piece of work rather than a marker.
 
+**The hands get older too.** A player asked why they did not. Because
+`ship.crew` was an integer — a headcount with nothing to hang an age on — so
+"your crew ages on a long crossing" was true of the three named officers and
+of nobody else aboard. A twenty-year chronicle retired the bridge and left the
+lower decks untouched, and sleeping the hands saved something no number
+recorded, which is exactly why a dormancy bug hid there for a cycle.
+
+They are still a mass, deliberately: two numbers on the `Ship`, a mean and a
+spread, aged by proper time at the lineage's rate and slowed by whatever share
+of them is under. The spread is what makes ageing-out a slope — as it carries
+part of the mess deck past the lineage's span they start leaving, a few a
+year, rather than the hull emptying on one tick.
+
+And they can finally be **replaced**. `ship.crew` moved in exactly one
+direction before — down, through fighting, hunger, and sleeps somebody did not
+come up from — with no way to sign anybody on at all. `lifespan.sign_on` takes
+hands within the berths that exist, for a fee, and a young intake pulls the
+average down: an old deck at 80 comes back to 49.
+
 **And you can sleep through it.** Dilation was the only answer to a long
 crossing: fly harder and pay in reaction mass — an engineering answer to a
 biological problem. `sim/dormancy.py` is the other one. `trehalose` has sat in
