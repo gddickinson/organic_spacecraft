@@ -37,7 +37,7 @@ GRIND_TURN = 9      # turns of clean fighting before either side starts wanting 
 #: The thermal rule lives in `sim/ship.py`, next to `cool()`, because the hull
 #: owns its own physics and both the guns and the helm put heat into it. Kept
 #: importable from here because that is where the fight reads it.
-from .ship import HEAT_CEILING, cook  # noqa: E402,F401
+from .ship import HEAT_CEILING, add_heat, cook  # noqa: E402,F401
 
 #: personality -> (close preference, fire chance, flee chance)
 def start(player_ship, player_stats, enemy, *, bonuses=None, officers=(),
@@ -95,8 +95,7 @@ def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng,
             return
         add_cargo(frm.ship, cid, -per)
 
-    frm.ship.heat += w.wpn.heat
-    cook(frm.ship, frm.st.heat_cap)
+    add_heat(frm.ship, w.wpn.heat, frm.st.heat_cap)
     seeking = "seeking" in w.wpn.traits
 
     if seeking and to.st.flak > 0 and rng.chance(clamp(0.22 * to.st.flak, 0, 0.72)):

@@ -13,7 +13,7 @@ import math
 from dataclasses import dataclass
 
 from ..core.rng import RNG, hash_seed
-from .ship import add_cargo, apply_damage, cook
+from .ship import add_cargo, add_heat, apply_damage, cook
 
 #: Orbital radius in AU for a body's normalised orbit slot (0 inner, 1 outer).
 R_INNER, R_OUTER = 0.4, 9.0
@@ -339,7 +339,7 @@ def travel_to(game, body_index: int, burn_id: str = "standard") -> dict:
     # during the crossing, which is the opposite of the point.
     burnt = burn_heat(q["burn"], game.ship_stats)
     if burnt:
-        game.ship.heat += burnt
+        add_heat(game.ship, burnt, game.ship_stats.heat_cap)
         # The same ceiling the guns work under. Without it a hurried captain
         # bouncing between two bodies reached 5.4x the cap, and every penalty
         # that scales with the excess — the daily cooking of the hull, and the
@@ -377,12 +377,17 @@ def _incident(game, rng, burn: Burn) -> dict:
         apply_damage(game.ship, dmg)
         detail = f"{dmg} points off the hull."
     elif effect == "heat":
-        game.ship.heat += rng.int(10, 26)
+        add_heat(game.ship, rng.int(10, 26), game.ship_stats.heat_cap)
         detail = "The hull is running hot."
     else:
-        lost = rng.int(2, 8)
-        add_cargo(game.ship, "volatiles", -min(lost, game.ship.cargo.get("volatiles", 0)))
-        detail = f"{lost} t of reaction mass gone."
+        # Report what was actually taken, not what was rolled. A hull with
+        # three tonnes aboard and an eight-tonne fault was told "8 t of
+        # reaction mass gone" and had lost three — one in five of these.
+        want = rng.int(2, 8)
+        lost = min(want, game.ship.cargo.get("volatiles", 0))
+        add_cargo(game.ship, "volatiles", -lost)
+        detail = (f"{lost:g} t of reaction mass gone."
+                  if lost > 0 else "The tank was already dry.")
     game.add_log(f"{name}: {detail}", "warn")
     return {"name": name, "text": text, "detail": detail}
 

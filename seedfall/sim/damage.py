@@ -16,7 +16,7 @@ from ..core.util import clamp
 from ..data.parts import part
 from . import loyalty as loyalty_sim
 from .battle_state import Battle, Side
-from .ship import add_cargo, is_breached, stats
+from .ship import add_cargo, add_heat, is_breached, stats
 
 
 def _apply_to_layers(b: Battle, to: Side, dmg: float, traits, rng) -> float:
@@ -76,7 +76,7 @@ def _apply_traits(b: Battle, frm: Side, to: Side, w, rng) -> None:
         to.grappled = 2
         _say(b, f"Tendrils have hold of {_who(b, to)}.", "dim")
     if "emp" in t:
-        to.ship.heat += 8
+        add_heat(to.ship, 8, to.st.heat_cap)
         if rng.chance(0.35):
             _disable(b, to, rng)
     if "board" in t and rng.chance(0.42):

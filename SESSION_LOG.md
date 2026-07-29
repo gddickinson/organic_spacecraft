@@ -2,6 +2,42 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: four more doors into the same hull
+
+Priority four: richer helm and flight. Two cycles went into bounding heat, and
+this is the one that found out how incomplete that was.
+
+- **`INTERFACE.md` said there were exactly two places heat is added.** There
+  were six. A crossing watch in `transit`, a flight incident in `flight`, an
+  action's own effects in `actions` and taking a hit in `damage` all put heat
+  into a hull without ever consulting the ceiling.
+- **A single fault took a hull sitting at the ceiling to 2.36x its cap** —
+  the incident fires *after* `travel_to` clamps, so it lands on top. That is
+  precisely the compounding the ceiling exists to stop, since every penalty
+  for running hot scales with how far over you are.
+- **The fix is not another `cook()` call.** `ship.add_heat` is now the only
+  way to put heat into a hull, and it clamps on the way in. Asking six callers
+  to remember is what four of them did not do. Measured after: eight hard
+  burns with faults land at exactly 2.00x, never past it.
+- **A smaller thing in the same function.** A fuel fault rolled two to eight
+  tonnes, took as much as the tank actually held, and reported the *roll*.
+  One in five told a captain with three tonnes aboard that eight had gone.
+
+**On the guard, and on redundant guards.** The check that would have found all
+four is a static one: nothing outside `sim/ship.py` may write `\.heat +=`. It
+needs one deliberate exception noted in the file — `sim/customs.py` has its own
+`add_heat`, which is scrutiny from the revenue and shares nothing with the
+thermal system.
+
+One mutation missed: removing `add_heat`'s own `max(0.0, ...)` changed
+nothing, because `cook` already floors at zero. That is a redundant guard
+rather than a hole in the check, so I removed the redundancy instead of
+excusing it — one floor, in one place — and pointed the mutation at the floor
+that is actually load-bearing. It bites.
+
+Five checks in a new `test_thermal_doors` suite, every one proven to bite.
+660 checks green, nothing over 500 lines.
+
 ## 2026-07-29 — SEEDFALL: a turn where nobody flew the ship
 
 Priority three: positional combat with crew stations. Two doors again, and

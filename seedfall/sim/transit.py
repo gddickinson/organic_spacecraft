@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from ..core.save import register
 from ..data.watches import EVENT_CHANCE, WATCHES, WATCHES_BY_ID, watches_for
 from . import flight
-from .ship import add_cargo, apply_damage
+from .ship import add_cargo, add_heat, apply_damage
 
 _uid = itertools.count(1)
 
@@ -143,7 +143,7 @@ def choose(game, transit: Transit, option_id: str, rng) -> dict:
     if option.damage:
         apply_damage(game.ship, option.damage)
     if option.heat:
-        game.ship.heat += option.heat
+        add_heat(game.ship, option.heat, game.ship_stats.heat_cap)
 
     out = {"ok": True, "option": option, "went_wrong": False}
     if option.risk and rng.chance(option.risk):

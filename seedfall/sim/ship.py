@@ -349,6 +349,23 @@ def cook(ship: Ship, cap: float) -> float:
     return ship.heat
 
 
+def add_heat(ship: Ship, amount: float, cap: float) -> float:
+    """Put heat into a hull and hold it under the ceiling.
+
+    The one way to add heat, because `cook()` on its own asks every caller to
+    remember, and four of the six did not. `INTERFACE.md` said there were two
+    such places; there were six — a crossing watch, a flight incident, an
+    action's own effects and taking a hit in combat all put heat in without
+    ever consulting the ceiling. An incident alone took a hull sitting at the
+    ceiling to 2.36x its cap, which is the compounding this was supposed to
+    have ended.
+    """
+    # No floor here: `cook` floors at nothing and clamps at the ceiling, and
+    # one guard in one place is the whole point of routing through it.
+    ship.heat = ship.heat + amount
+    return cook(ship, cap)
+
+
 def cool(ship: Ship, stats, days: float) -> dict:
     """Shed heat on the clock, and cook the hull while it is over the cap."""
     out = {"shed": 0.0, "cooked": 0.0}

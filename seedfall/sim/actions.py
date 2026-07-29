@@ -18,7 +18,8 @@ from . import research as research_sim
 from . import rumours as rumour_sim
 from .crew import grant_xp
 from .encounters import roll_encounter, roll_event
-from .ship import add_cargo, apply_damage, cargo_free, hull_pct
+from .ship import (add_cargo, add_heat, apply_damage, cargo_free,
+                   hull_pct)
 from .threat import cleanse
 from . import flight
 
@@ -104,7 +105,7 @@ def _apply_event(game, fx: dict) -> None:
     if fx.get("damage"):
         apply_damage(game.ship, fx["damage"])
     if fx.get("heat"):
-        game.ship.heat += fx["heat"]
+        add_heat(game.ship, fx["heat"], game.ship_stats.heat_cap)
     if fx.get("morale"):
         game.ship.morale = max(0.0, min(1.0, game.ship.morale + fx["morale"]))
     for cid, n in (fx.get("cargo") or {}).items():

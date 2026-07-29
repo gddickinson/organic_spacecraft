@@ -691,6 +691,7 @@ seedfall/
     ├── test_bench_kinds.py 5 checks — evidence names are real, tech is reachable
     ├── test_envoy.py   7 checks — the preview is the answer, both doors alike
     ├── test_seatwork.py 5 checks — the crew hold their seats either way
+    ├── test_thermal_doors.py 5 checks — every heat door goes through one gate
     ├── ground_ai.py    a party leader good enough to measure the ground with
     ├── suites.py       the suite table `__main__` dispatches from
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
@@ -858,8 +859,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   re-exports them. Two copies of this rule existed briefly and drifted
   immediately — the guns were bounded and the helm was not, and a captain
   fresh off ten hard burns routed on turn three at 51% hull *holding fire the
-  whole way*. Call `cook()` wherever heat is **added**; there are exactly two
-  such places, `combat._fire` and `flight.travel_to`.
+  whole way*.
+
+  **Put heat in with `ship.add_heat`, which clamps on the way in.** This used
+  to say "call `cook()` wherever heat is added; there are exactly two such
+  places" — and there were six. A crossing watch, a flight incident, an
+  action's own effects and taking a hit in combat all added heat raw, so a
+  fault alone took a hull sitting at the ceiling to 2.36x its cap. Asking
+  callers to remember is what four of six did not do.
+  `tests/test_thermal_doors.py` fails on any `\.heat +=` outside `ship.py`.
+  (`sim/customs.py` has its own unrelated `add_heat` — scrutiny from the
+  revenue, not thermal load.)
 - **Heat is bounded by `HEAT_CEILING`, and that is load-bearing.** It used to
   be unbounded, and because the overheat penalty scales with how far over the
   cap you are, it compounded: a Bastion firing the five heavy mounts it has
