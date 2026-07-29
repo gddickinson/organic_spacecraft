@@ -2,6 +2,55 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a warship that can fire its own guns
+
+Positional combat with crew stations, the next standing priority. Measure
+first, as usual — but this time the measurement took several passes because
+the first three readings were all my own errors.
+
+- **False start one:** drove fights with a repeated order and got 0 wins and
+  0 losses in 280 fights. INTERFACE.md already warns about this in writing —
+  "driving a fight with one repeated order measures nothing, use
+  `tests/captain_ai.py`" — and I had not read my own note.
+- **False start two:** the test ship's magazine was empty, so the slug battery
+  could never fire. Same class as the 9000 t of fuel in a 340 t hold.
+- **False start three:** concluded heat was dead because a two-gun mining ship
+  never overheats. It is not dead; that hull is simply not thermally limited.
+
+**The real finding, once the measurements were sound.** Heat had no ceiling.
+A Bastion firing the five heavy mounts it has slots for makes 74 heat a turn
+against a rated cap of 50 and a vent of 6, so heat ran 68 → 132 → 187 → 243 →
+279 and kept climbing. The overheat penalty is a share of how far over you
+are, so it compounded — resolve fell 26, then 39, then 53, then 65 — and the
+ship routed on turn five **at 93% hull**, beaten by its own radiators while
+the enemy did almost nothing. There was no way back either: cooling from 279
+at six a turn takes 38 turns, longer than the engagement, so `vent` could
+never catch up and only cost you the gunnery seat.
+
+So every thermal decision in the game was fake: salvo's "far more heat", the
+aimed shot's "less heat", holding fire to cool, both power routings.
+
+- **`combat.cook()` holds heat at twice the rated cap.** Measured over 40
+  fights with the heavy battery: favourable outcomes 7/40 → 24/40, kills
+  4 → 12. Recovery is back inside a fight — two turns of venting hard.
+- **And salvo against aimed became a real choice**: salvo decisive and swingy
+  (12 kills, 16 routs), aimed attritional (24 driven off, 2 kills).
+- **The light explorer is untouched** — it peaks at 9% of its cap, so the
+  ceiling is never consulted. This is a fix for a broken regime, not a
+  rebalance.
+- **One clamp, not two.** An end-of-turn clamp was tried and measured to
+  change nothing (peak 2.32x either way), so it came out again.
+
+**A costly mistake worth recording.** While measuring which clamp mattered I
+used `git checkout seedfall/sim/combat.py` to undo a scratch mutation. That
+restores from the index and threw away the entire cycle's uncommitted work on
+that file. Rebuilt it, and the mutation harness now keeps the original bytes
+in memory and writes them back in a `finally:`. Added to the traps list in
+INTERFACE.md.
+
+Eight checks in a new `test_thermal` suite, every one proven to bite.
+597 checks green.
+
 ## 2026-07-28 — SEEDFALL: a gift is a public act
 
 Diplomacy, the standing priority. Same method as the last three cycles —

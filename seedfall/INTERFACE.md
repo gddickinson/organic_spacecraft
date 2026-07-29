@@ -525,7 +525,8 @@ seedfall/
 ├── sim/                game rules — never import Qt
 │   ├── ship.py         Ship model, stats(), layer stack, cargo, repair
 │   ├── shipyard.py     design validation, costing, build queue, refit
-│   ├── combat.py       turn resolution, firing, damage, endings
+│   ├── combat.py       turn resolution, firing, damage, endings;
+│   │                   `cook()` holds heat under `HEAT_CEILING`
 │   ├── battle_state.py the Side and Battle shapes, shared by resolver/AI/UI
 │   ├── tactical.py     the plane: positions, headings, firing arcs, bands
 │   ├── stations.py     helm / gunnery / engineering orders
@@ -675,6 +676,7 @@ seedfall/
     ├── test_plans.py   8 plan checks — the model is the ship, and it is solid
     ├── test_picture.py 8 checks — the picture shows the ship's condition
     ├── test_courting.py 8 checks — a gift is seen by the recipient's enemies
+    ├── test_thermal.py 8 checks — a warship can fire its own guns
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
     ├── test_legacy.py  7 aftermath checks — an ending is a turn, not a stop
     ├── test_instruments.py 5 checks — a gauge agrees with the ship and itself
@@ -834,6 +836,19 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`GRIND_TURN` / `MAX_TURNS` in `sim/combat.py`** stop two well-armoured hulls
   grinding forever. Armour is also floored at 15% damage leak-through for the
   same reason.
+- **Heat is bounded by `HEAT_CEILING`, and that is load-bearing.** It used to
+  be unbounded, and because the overheat penalty scales with how far over the
+  cap you are, it compounded: a Bastion firing the five heavy mounts it has
+  slots for went 68 → 132 → 187 → 243 → 279 and routed itself on turn five at
+  93% hull. `cook()` is called from `_fire`, which is the only thing in the
+  game that adds heat, so one clamp at the source covers every hull. An
+  end-of-turn clamp was tried too and measured to change nothing at all, so it
+  was removed rather than left in looking useful.
+- **Never `git checkout <path>` to undo a scratch mutation.** Mutation testing
+  wants the file back exactly as it was, and `git checkout` restores it from
+  the *index* — which silently throws away the uncommitted work the cycle is
+  about. It cost this file its whole change once. Read the bytes into memory
+  first and write them back in a `finally:`; `tests/` mutation harnesses do.
 - **Driving a fight with one repeated order measures nothing.** Combat is
   positional: a hull whose mounts are all on the beam never fires while it
   steers straight at the enemy, so a test that only ever says "salvo" reports
