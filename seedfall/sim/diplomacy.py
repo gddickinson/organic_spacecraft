@@ -10,9 +10,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..core.save import register
-from ..data.diplomacy import (TREATY_WEIGHT, ACTIONS_BY_ID, AGENDAS, CONCORD_RELATION,
-                              CONCORD_STANDING, INITIAL_RELATIONS,
-                              RELATION_BANDS)
+from ..data.diplomacy import (TREATY_WEIGHT, ACTIONS_BY_ID, AGENDAS,
+                              CONCORD_RELATION, CONCORD_STANDING,
+                              COURTSHIP_FALLOFF, COURTSHIP_FLOOR,
+                              COURTSHIP_KNEE,
+                              INITIAL_RELATIONS, RELATION_BANDS)
 from ..data.factions import FACTIONS_BY_ID
 from . import loyalty
 
@@ -80,6 +82,34 @@ def drift(game, days: float) -> None:
         state.relations[key] = value + (base - value) * min(0.5, 0.00035 * days)
 
 
+def courtship(rep: float) -> float:
+    """What an overture is worth to a power that already thinks well of you.
+
+    Full value while they barely know you, tapering as they come to regard
+    you as Kin. Diplomacy had no diminishing return of any kind: the same
+    forty tonnes of biomass moved a power at 95 exactly as far as one at 0,
+    so standing was a commodity bought at a flat rate and the Concord — the
+    sector's whole political condition — could be shopped for in two years
+    without leaving port.
+    """
+    if rep <= COURTSHIP_KNEE:
+        return 1.0
+    span = 100.0 - COURTSHIP_KNEE
+    reached = min(1.0, (rep - COURTSHIP_KNEE) / span)
+    return max(COURTSHIP_FLOOR, (1.0 - reached) ** COURTSHIP_FALLOFF)
+
+
+def offer_gain(game, action, faction: str) -> float:
+    """The standing an overture actually buys — the one place this is decided.
+
+    `preview` and `perform` each carried their own copy of this expression,
+    which is the arrangement that has produced a free treaty, an ungranted
+    favour and a phantom haggle payment in this file's history.
+    """
+    base = action.gain * (1 + game.ship_stats.diplomacy)
+    return base * courtship(game.rep.get(faction, 0.0))
+
+
 def rivals_of(game, faction: str) -> list[str]:
     """Powers this one is currently on bad terms with."""
     return [p for p in POWERS
@@ -139,8 +169,9 @@ def preview(game, action_id: str, faction: str,
     action = ACTIONS_BY_ID.get(action_id)
     if action is None:
         return {}
-    gain = action.gain * (1 + game.ship_stats.diplomacy)
-    out = {"standing": [], "relations": None, "gain": gain}
+    gain = offer_gain(game, action, faction)
+    out = {"standing": [], "relations": None, "gain": gain,
+           "courtship": courtship(game.rep.get(faction, 0.0))}
 
     if action_id == "denounce":
         if other is None:
@@ -153,7 +184,9 @@ def preview(game, action_id: str, faction: str,
     elif action_id == "broker":
         if other is None:
             return out
-        out["standing"] = [(faction, gain), (other, gain)]
+        # Each side is thanked according to what it already thinks of you.
+        out["standing"] = [(faction, gain),
+                           (other, offer_gain(game, action, other))]
         out["relations"] = (faction, other, 28.0)
     elif action_id == "treaty":
         out["standing"] = [(faction, gain)]
@@ -203,7 +236,7 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
     _spend(game, action)
     state.cooldowns[f"{action_id}|{faction}"] = game.day + action.cooldown
     lines: list[str] = []
-    gain = action.gain * (1 + game.ship_stats.diplomacy)
+    gain = offer_gain(game, action, faction)
 
     if action_id == "denounce":
         if other is None:
@@ -229,7 +262,7 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
         before = relation(game, faction, other)
         after = shift_relation(game, faction, other, 28)
         game.adjust_rep(faction, gain)
-        game.adjust_rep(other, gain)
+        game.adjust_rep(other, offer_gain(game, action, other))
         lines.append(f"{FACTIONS_BY_ID[faction].short} and "
                      f"{FACTIONS_BY_ID[other].short}: {before:+.0f} → {after:+.0f}.")
     elif action_id == "treaty":

@@ -60,6 +60,27 @@ ACTIONS: list[Action] = [
 ACTIONS_BY_ID = {a.id: a for a in ACTIONS}
 
 
+#: Standing below which an overture is worth its full declared value. A power
+#: that does not know you yet is glad of forty tonnes of biomass.
+COURTSHIP_KNEE = 25.0
+#: And what it is worth at the ceiling. Never nothing — a gift is a gift — but
+#: a power that already regards you as Kin has less to gain by saying so.
+#: Without this, the thirty-first relief parcel bought exactly as much as the
+#: first, and Concord was a shopping list: 460,000 credits and 1,270 tonnes of
+#: biomass over 2.3 years, without leaving port.
+#:
+#: Not lower than this. Standing erodes on its own — the sector's churn takes
+#: a power at 90 down to 83 inside two years — so an ally has to stay worth
+#: courting or high standing becomes unholdable and the Concord unreachable,
+#: which is a worse fault than the one being fixed. Measured at 0.08 and 0.15,
+#: a determined broker reached it in only two games of four.
+COURTSHIP_FLOOR = 0.30
+#: How sharply it falls away. Squared, so the early climb is untouched — four
+#: relief parcels still carry a stranger to Correct — and the last stretch to
+#: Kin is where the work is: seven parcels at a flat rate, eleven now.
+COURTSHIP_FALLOFF = 2.0
+
+
 @dataclass(frozen=True)
 class Agenda:
     faction: str

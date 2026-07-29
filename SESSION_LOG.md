@@ -2,6 +2,85 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: goodwill had no price curve, so the Concord was a shopping list
+
+Priority #2, diplomacy. I measured before touching anything: ten years of
+doing nothing, to see whether the powers move on their own account. They do —
+164 improvements against 142 worsenings across twelve sectors and thirty
+years, net mildly downward. Healthy. Every faction field is consumed too;
+`buys` reaches the economy as a 0.62 supply multiplier, not just the codex.
+
+Then I played the diplomacy screen as a captain with money and no scruples:
+press the four buttons, never leave port, never take a risk.
+
+**The Concord arrived on day 855.** Two and a third years for the sector's
+whole political condition, at 460,000 credits and 1,270 tonnes of biomass.
+Across three sectors it landed on day 855, 930 and 840 — a shopping list on a
+cooldown timer, not a challenge. All four powers finished pinned at 100.
+
+The cause: **nothing in diplomacy had a diminishing return.** `gain` was a
+flat number on the action. Forty tonnes of biomass moved a power sitting at
+95 exactly as far as one sitting at 0, so standing was a commodity bought at
+a fixed price.
+
+`courtship()` is the curve — squared, knee at 25, floor at 0.30. Chosen by
+measuring candidate shapes against the climb, not by taste:
+
+- 3 relief parcels still carry a stranger to Correct. The opening is untouched.
+- Kin costs 11 parcels where a flat rate charged 7.
+- 95 costs 8 more on top of that.
+
+The same captain now takes **3.2 years**, spends 576,000–628,000 credits and
+about 1,700 tonnes, and finishes with the powers sitting *at* Kin — 70 to 73
+— rather than pinned at 100.
+
+**The floor was nearly set too low, and the suite caught it.** I first chose
+0.08 on the strength of the climb numbers alone. Two suites I had not been
+running failed: a determined broker reached the Concord in two games of four,
+and committing to one side of a feud topped out at 75. The cause is that
+standing erodes on its own — the churn takes a power at 90 down to 83 inside
+two years — so throttling gains to 8% at the top makes high standing
+unholdable and the ending unreachable. That is a worse fault than the one I
+set out to fix. Swept 0.08 / 0.15 / 0.22 / 0.30 against the climb, the
+Concord playthrough and both suites; 0.30 is the first value that satisfies
+all of them.
+
+**Two doors, one rule.** `preview` and `perform` each carried their own copy
+of `action.gain * (1 + diplomacy)`. That is the arrangement that has already
+produced a free treaty, an ungranted favour and a phantom haggle payment in
+this same file. `offer_gain()` decides it once; the suite greps the source so
+a third copy cannot appear.
+
+**And the curve exposed a trap that had been sitting under it.**
+`allegiance.price` computes what serving a power costs with its enemies, and
+`BITE` calls itself "a share of what you gained with the issuer" — but there
+was a flat `max(1.0, ...)` under it. Invisible while every act was worth five
+or more. Once a gift to an old friend was worth 0.88, the floored penalty of
+1.0 with each of two rivals meant **relief at 85 standing cost forty tonnes
+of biomass to leave you 1.12 worse off overall.** The button was a trap.
+
+The floor was also flattening the severity ramp that module exists to create
+— its own docstring argues against "a flat penalty for anyone under some
+line" — so removing it made a mildly-offended power (rift 0.09) charge 0.3
+where it had charged a full point. One allegiance check failed on that, and it
+deserved to: it asserted two flat thresholds, which a flat floor satisfies by
+construction. It now asserts the ramp — a deeper rift costs strictly more —
+which is the claim actually worth defending.
+
+Eight mutations, every one caught. Two needed a second attempt: my floor check
+read its expectation off `COURTSHIP_FLOOR` itself and passed happily with the
+floor set to zero — the tautology trap again. It asks the panel's question
+now: does any overture cost real resources and render nothing you can see?
+
+Two smaller things fell out of the same work. The panel began printing
+"−0 standing" once penalties got small enough to round to nothing — a figure
+that reads as neither zero nor a quantity. And my first guard against it
+tested `abs(delta) < 0.5`, which misses exactly −0.5: Python rounds a half to
+even, so that formats as "−0" as well. `standing_figure` asks what the number
+rounds to instead.
+
+679 → 687 green: seven new courtship checks and one new allegiance check.
+
 ## 2026-07-29 — SEEDFALL: two of seven watches had no decision in them
 
 Priority #4, the crossing. The panel prices every option's days, mass, hull,

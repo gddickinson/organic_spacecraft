@@ -53,11 +53,21 @@ def offended_by(game, power: str) -> list[tuple[str, float]]:
 
 
 def price(game, power: str, weight: float) -> list[tuple[str, float]]:
-    """What serving `power` for `weight` standing would cost, unapplied."""
+    """What serving `power` for `weight` standing would cost, unapplied.
+
+    Strictly a share of what you gained, as `BITE` says. There used to be a
+    flat floor of one point under this — harmless while every overture was
+    worth six to fourteen standing, and ruinous the moment `courtship` made a
+    gift to an old friend worth less than that. At 85 standing, relief bought
+    +0.88 with the Charter and cost a floored 1.0 with each of two offended
+    rivals: forty tonnes of biomass to end up 1.12 worse off overall. The
+    button was a trap, and the floor was the whole reason.
+    """
     if weight <= 0:
         return []
-    return [(other, max(1.0, round(weight * sev * BITE, 1)))
-            for other, sev in offended_by(game, power)]
+    out = [(other, round(weight * sev * BITE, 1))
+           for other, sev in offended_by(game, power)]
+    return [(other, cost) for other, cost in out if cost > 0]
 
 
 def charge(game, power: str, weight: float) -> list[tuple[str, float]]:

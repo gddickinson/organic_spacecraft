@@ -660,6 +660,7 @@ seedfall/
     ├── test_bloom_arc.py 7 Bloom checks — provocation, answers, study
     ├── test_transit.py 6 crossing checks — watches, aborting, tension
     ├── test_watches.py 5 checks — every option a real trade, every risk priced
+    ├── test_courtship.py 7 checks — diminishing returns on goodwill
     ├── test_customs.py 9 contraband checks — the premium, the search, heat
     ├── test_allegiance.py 8 checks — taking sides, and brokering out of it
     ├── test_territory.py 8 checks — annexation, levy, defiance, seizure
@@ -1238,6 +1239,37 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **`offer_gain` is the only thing that decides what an overture buys.**
+  `preview` and `perform` each carried their own copy of
+  `action.gain * (1 + diplomacy)`, which is the arrangement that produced a
+  free treaty, an ungranted favour and a phantom haggle payment in this same
+  file. One function now, and `test_courtship` greps the source to keep it
+  that way — `.gain` may appear exactly once in `sim/diplomacy.py`.
+- **Goodwill is cheapest from people who barely know you.** `courtship()`
+  tapers an overture's worth above 25 standing, squared, to a floor of 0.30.
+  Without it nothing in diplomacy had a diminishing return at all: the same
+  forty tonnes moved a power at 95 exactly as far as one at 0, and the
+  Concord — the sector's whole political condition — arrived on day 855 for a
+  captain who never left port. It is 3.2 years now, and the powers finish
+  sitting *at* Kin (70–73) rather than pinned at 100.
+  **The floor must not go below about 0.30.** Standing erodes on its own — the
+  churn takes a power at 90 down to 83 inside two years — so an ally has to
+  stay worth courting. At 0.08 and 0.15 the determined broker in
+  `test_politics` reached the Concord in only two games of four: an ending
+  made unreachable is a worse fault than one made too cheap.
+- **A penalty is a share of the gain, never a flat amount.**
+  `allegiance.price` had `max(1.0, ...)` under it — invisible while every act
+  was worth five or more, and a trap the moment `courtship` made a gift worth
+  0.88: the floored penalty of 1.0 with each of two rivals turned relief at
+  high standing into a button that cost forty tonnes to leave you 1.12 worse
+  off. The floor also flattened the severity ramp this module exists to
+  create. Keep costs strictly proportional to `weight`.
+- **A movement of "−0" is a rounding artefact, not a number.** Courtship made
+  the small end of the standing range real, and a penalty of a tenth of a
+  point formatted as "−0 standing" — which reads as nothing and looks like a
+  bug. `diplomacy_view.standing_figure` decides it; note that
+  `abs(delta) < 0.5` is *not* the right test, because Python rounds a half to
+  even and exactly −0.5 formats as "−0" too. Ask what it rounds to.
 - **The hull regrows and the calendar does not.** About 2.3 a day when badly
   hurt, and faster near full. So *hull damage is a cheap cost and days are an
   expensive one*, and an option that charges both can cancel itself out:

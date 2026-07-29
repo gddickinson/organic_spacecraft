@@ -123,20 +123,77 @@ def run(suite: Suite) -> None:
         assert said and "cost" in said, f"the card says {said!r}"
         return f"{len(quoted)} quoted costs, all matched to the penny"
 
-    @check("serving one power makes you its partisan, not everyone's friend")
+    @check("what taking sides costs is a share of what it gained")
     def _():
+        # `BITE` calls itself "a share of what you gained with the issuer",
+        # and a flat floor of one point sat on top of it. Harmless while
+        # every act was worth five or more; ruinous once `courtship` made a
+        # gift to an old friend worth 0.88, because the floor did not shrink
+        # with it. Measured then: +0.88 with the Charter and a floored −1.0
+        # with each of two rivals — forty tonnes of biomass to finish 1.12
+        # worse off. The button was a trap.
+        #
+        # So: the cost must be linear in the weight. Not "small weights are
+        # cheap", which a smaller floor would also satisfy — proportional.
+        game = new_game("share")
+        _war(game)
+        base = dict(allegiance.price(game, "charter", 10.0))
+        assert base, "nobody objects, so this measures nothing"
+        for factor in (0.05, 0.1, 0.5, 2.0):
+            scaled = dict(allegiance.price(game, "charter", 10.0 * factor))
+            for other, cost in base.items():
+                want = cost * factor
+                got = scaled.get(other, 0.0)
+                assert abs(got - want) <= 0.05 + abs(want) * 0.02, (
+                    f"{other}: serving for {10 * factor:g} standing costs "
+                    f"{got:g}, against {want:g} for a proportional share of "
+                    f"the {cost:g} charged at 10")
+        # And nobody is charged for an act worth nothing at all.
+        assert allegiance.price(game, "charter", 0.0) == []
+        return (f"cost stays a flat {base[max(base, key=base.get)] / 10:.0%} "
+                "share of the gain from 0.5 standing to 20")
+
+    @check("serving one power makes you its partisan, by degrees")
+    def _():
+        # This asked only that two named powers each finish below -20, which
+        # a flat one-point floor inside `price` satisfied by making every
+        # offended power mind the same amount. That floor is gone — it was
+        # the "flat penalty for anyone under some line" this module's own
+        # docstring exists to argue against — so the claim is now the ramp
+        # itself, which is the thing actually worth defending: how much a
+        # power minds is how deep its rift with your patron is.
         loyal = new_game("partisan")
+        rifts = {p: allegiance.severity(loyal, "charter", p) for p in POWERS
+                 if p != "charter"}
         for _ in range(30):
             loyal.adjust_rep("charter", 5)
             allegiance.charge(loyal, "charter", 5)
         assert loyal.rep["charter"] >= 70, "thirty jobs and not even Trusted"
-        enemies = [p for p in ("concordat", "freeholds")
-                   if loyal.rep.get(p, 0) < -20]
-        assert len(enemies) == 2, (
-            "the Charter's enemies do not mind you being its courier: "
-            + str({p: round(loyal.rep.get(p, 0)) for p in POWERS}))
+
+        offended = sorted((p for p, s in rifts.items() if s > 0),
+                          key=lambda p: -rifts[p])
+        assert len(offended) >= 2, (
+            f"only {offended} are at odds with the Charter at all, so this "
+            "measures nothing")
+        for power in offended:
+            assert loyal.rep.get(power, 0) < 0, (
+                f"{power} is at odds with the Charter and does not mind you "
+                f"couriering for it: {loyal.rep.get(power, 0):+.0f}")
+        # The ramp: a deeper rift costs strictly more than a shallower one.
+        worst, mildest = offended[0], offended[-1]
+        assert loyal.rep[worst] < loyal.rep[mildest] - 1.0, (
+            f"{worst} (severity {rifts[worst]:.2f}) and {mildest} "
+            f"(severity {rifts[mildest]:.2f}) both end at about "
+            f"{loyal.rep[worst]:+.0f} — the penalty is flat, so brokering a "
+            "rift from dreadful to merely bad buys nothing")
+        # And a power that is not at odds with them is untouched.
+        for power, sev in rifts.items():
+            if sev == 0:
+                assert loyal.rep.get(power, 0) == new_game("partisan").rep.get(
+                    power, 0), f"{power} minds, and has no quarrel to mind with"
         return ("charter " + f"{loyal.rep['charter']:+.0f}, "
-                + ", ".join(f"{p} {loyal.rep.get(p, 0):+.0f}" for p in enemies))
+                + ", ".join(f"{p} {loyal.rep.get(p, 0):+.0f} "
+                            f"(rift {rifts[p]:.2f})" for p in offended))
 
     @check("brokering the peace first pays for itself")
     def _():

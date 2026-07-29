@@ -15,6 +15,17 @@ from .widgets import (defer, Panel, Pill, TabBar, View, button, label, mono_labe
                       note, spacer)
 
 
+def standing_figure(delta: float) -> str:
+    """A movement in standing, never rendered as "-0".
+
+    Courtship made the small end of this range real: a penalty of a tenth of
+    a point formatted as "-0 standing", which reads as nothing and looks like
+    a bug. Testing `abs(delta) < 0.5` was not enough — Python rounds a half to
+    even, so exactly -0.5 formats as "-0" too. Ask what it rounds to.
+    """
+    return f"{delta:+.1f}" if round(delta) == 0 else f"{delta:+.0f}"
+
+
 class DiplomacyView(View):
     def __init__(self, win):
         super().__init__(win)
@@ -124,6 +135,17 @@ class DiplomacyView(View):
         h.addWidget(combo, 1)
         p.add(partner_row)
 
+        # Why the numbers below are smaller than they were. An overture used
+        # to be worth the same at every standing, so a power that already
+        # regarded you as Kin valued forty tonnes of biomass exactly as much
+        # as one that distrusted you — and Concord was a shopping list.
+        warmth = dip.courtship(g.rep.get(fid, 0.0))
+        if warmth < 0.95:
+            p.add(note(f"{FACTIONS_BY_ID[fid].short} already think well of "
+                       f"you. An overture moves them about "
+                       f"{warmth:.0%} of what it would move a stranger — "
+                       "goodwill is cheapest from people who barely know you."))
+
         for action, ok, why in dip.available(g, fid):
             p.add(spacer(3))
             p.add(label(action.name, "h3", "chloro" if ok else "dim"))
@@ -142,7 +164,7 @@ class DiplomacyView(View):
             moved = dip.preview(g, action.id, fid, partner)
             for power, delta in moved.get("standing", []):
                 p.add_row(FACTIONS_BY_ID[power].short,
-                          f"{delta:+.0f} standing",
+                          f"{standing_figure(delta)} standing",
                           "chloro" if delta > 0 else "warn")
             rel = moved.get("relations")
             if rel:
