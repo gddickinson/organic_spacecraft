@@ -1245,6 +1245,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **`contracts.CARGO_KINDS` is the one list of kinds completed by carrying
+  something.** It was written out three times — in `quote`, in `shape`, and
+  again in `test_cargo` — and all three said `("deliver", "prospect")` while
+  `check` completed a `relic` in the *same branch* as a prospect. So relic was
+  the one cargo contract neither priced on the board nor floored against what
+  its goods cost: measured over 271 of them, median net **−402** and **62%
+  losing money**, against 0% for the two that were covered. A check that
+  shares the code's whitelist can only confirm what the code already assumed —
+  `test_cargo` derives the set by playing now, handing each kind its
+  completion state with an empty hold and then a full one.
 - **A ground option's prize depends on who you send, and the card must say
   so.** `attempt` multiplies a success by `1 + margin * MARGIN_BONUS`, but
   `odds_for` quoted the bare `REWARD_SCALE` band — so the card read the same

@@ -69,13 +69,23 @@ def cargo_cost(game, sysm, cid: str, amount: float,
     return price * amount
 
 
+#: The kinds a captain completes by putting a commodity in the hold and
+#: carrying it somewhere. `check` needs cargo for all three; `quote` priced
+#: two of them and `shape` derived the fee from the goods for two of them, so
+#: `relic` was the one cargo contract that was neither priced nor floored.
+#: Measured over 271 of them: median net −402 against the market, **62%
+#: losing money**, while deliver and prospect never lose a credit. The
+#: whitelist was written twice and read like coverage both times.
+CARGO_KINDS = ("deliver", "prospect", "relic")
+
+
 def quote(game, contract) -> dict | None:
     """What the cargo will cost you here, and what you would clear.
 
     The board used to show a fee and nothing else, so a contract that lost
     fifty thousand credits looked exactly like one that made twelve.
     """
-    if contract.kind not in ("deliver", "prospect") or not contract.commodity:
+    if contract.kind not in CARGO_KINDS or not contract.commodity:
         return None
     sysm = game.galaxy.systems[contract.issued_at]
     held = game.ship.cargo.get(contract.commodity, 0)
@@ -240,7 +250,14 @@ def shape(rng, game, sysm, c: Contract, faction: str, scale: float = 1.0) -> boo
     elif kind == "relic":
         c.commodity = "xenolith"
         c.amount = max(1, round(rng.int(1, 3) * scale))
-        c.reward = round(d.rate * c.amount * rng.float(0.9, 1.3))
+        # Priced off the goods, like every other cargo contract. A flat rate
+        # per xenolith took no notice of what a xenolith costs, and a
+        # xenolith is dear and moves about — so most of these asked a captain
+        # to buy at 5,000 and hand it over for 4,200. The rate stays on top
+        # of it, because a relic is a find and not merely freight.
+        c.reward = round(cargo_cost(game, sysm, c.commodity, c.amount)
+                         * rng.float(*CARGO_MARGIN)
+                         + d.rate * c.amount * rng.float(0.2, 0.45))
         c.title = f"Deliver {c.amount:g} intact xenolith(s)"
     else:                                   # expedition
         target = _pick_target(rng, game, sysm, far=rng.chance(0.6))

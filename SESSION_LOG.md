@@ -2,6 +2,59 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: the whitelist that was written three times
+
+Breadth cycle into missions, the last area these cycles had not touched. Two
+sweeps came back clean and are worth recording as such: the contract board
+offers all six kinds every year for nine years running, and every kind has a
+completion path that `check` can actually reach.
+
+The finding was in what the board *says*. `quote()` — the function that tells
+a captain what a contract's cargo will cost and what they would clear — opens
+with `if contract.kind not in ("deliver", "prospect")`. But `check()`
+completes a **relic in the same branch as a prospect**: both want the
+commodity in the hold at the issuing port. One of two identical contracts was
+priced and the other was not.
+
+Worse, `shape()` had the same pair written out again. `deliver` and `prospect`
+derive their fee from `cargo_cost(...)` — that is task #34's floor, which is
+why neither can lose money. `relic` used a flat `rate × amount` that takes no
+notice of what a xenolith costs, and a xenolith is dear and moves about.
+Measured over 271 relic contracts against the market:
+
+| kind | median net | worst | % losing | priced? |
+|---|---|---|---|---|
+| deliver | +15,797 | +2,020 | 0% | yes |
+| prospect | +7,346 | +846 | 0% | yes |
+| **relic** | **−402** | **−4,694** | **62%** | **no** |
+
+**And the check that exists to prevent exactly this had the list a third
+time.** `test_cargo` opens `CARGO_KINDS = ("deliver", "prospect")` — its own
+copy of the code's whitelist, so "no cargo contract pays less than its own
+cargo costs" could only ever confirm what `shape` already assumed. Xenolith is
+stocked at all 20 ports, so buying really is the route it was pricing.
+
+One list in the sim now, imported by the test. Relic's fee is derived from the
+goods like the other two, with its rate on top because a relic is a find and
+not merely freight: median net +7,267 against prospect's +7,005, and 0%
+losing. The board card prints "clears ₡8,266" where it printed nothing.
+
+The general check is the point though: **a check that shares the code's
+whitelist proves nothing.** `test_cargo` derives the set by playing now — hand
+each of the six kinds its completion state with an empty hold, then a full
+one, and see which needs the cargo. It answers `deliver, prospect, relic`.
+
+One existing check had to be re-aimed rather than re-thresholded: "distance
+pays haulage on cargo" started sampling relics once the list grew, and a relic
+has no destination — it goes back to the desk that asked — so it never takes
+the haulage premium, and "per tonne" means nothing for 1–3 xenoliths worth
+thousands each. It selects contracts that have somewhere to fly to now, which
+is what the claim was always about.
+
+Four mutations, all caught.
+
+717 → 719 green.
+
 ## 2026-07-29 — SEEDFALL: skill moved the odds on screen and the prize in secret
 
 Breadth cycle into surface expeditions, which these cycles had not touched.
