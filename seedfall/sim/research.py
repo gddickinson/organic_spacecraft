@@ -25,6 +25,13 @@ class Research:
     banked: float = 0.0
     evidence: dict = field(default_factory=dict)
     approach: str = "careful"
+    #: Technologies unlocked on unreplicated results. They work, and they do
+    #: not work fully, until somebody goes back and confirms them. See
+    #: `data/tech.PROVISIONAL_WORTH` and `sim/inquiry.confirm`.
+    provisional: list[str] = field(default_factory=list)
+    #: The tech currently being confirmed, and how far along.
+    confirming: str | None = None
+    confirm_days: float = 0.0
     #: Which inputs the bench ran short of last tick, for the readout only.
     starved: list = field(default_factory=list, metadata={"transient": True})
     last_event: str | None = field(default=None, metadata={"transient": True})
@@ -67,9 +74,29 @@ def tick(res: Research, days: float, rate: float, rng=None) -> str | None:
     if t and res.progress >= t.cost:
         res.progress -= t.cost
         res.unlocked.append(t.id)
+        # An approach that skips the confirmations sometimes hands you a
+        # result nobody has replicated. It unlocks; it does not deliver all
+        # of what it promises until somebody checks the work.
+        if rng is not None and inquiry.unconfirmed(res, rng):
+            res.provisional.append(t.id)
+            res.last_event = "provisional"
         res.current = None
         return t.id
     return None
+
+
+def confirm_tick(res: Research, days: float) -> str | None:
+    """Spend a spell checking a provisional result. Returns it when sound."""
+    if not res.confirming or res.confirming not in res.provisional:
+        res.confirming = None
+        return None
+    res.confirm_days = max(0.0, res.confirm_days - days)
+    if res.confirm_days > 0:
+        return None
+    done = res.confirming
+    res.provisional.remove(done)
+    res.confirming = None
+    return done
 
 
 def grant(res: Research, amount: float) -> None:

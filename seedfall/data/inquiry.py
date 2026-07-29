@@ -79,6 +79,11 @@ class Approach:
     breakthrough: float
     #: Requires alien technology or captured hardware in hand.
     needs_precedent: bool = False
+    #: How often the result comes out unreplicated — a technology that works
+    #: and does not deliver all of it until somebody confirms the work. This
+    #: is the cost that "days to unlock" could not see, and without it `push`
+    #: was the fastest approach with no downside at all.
+    provisional: float = 0.0
 
 
 APPROACHES: list[Approach] = [
@@ -90,18 +95,21 @@ APPROACHES: list[Approach] = [
     Approach("parallel", "Run parallel tracks",
              "Three benches on the same problem. It costs three benches' worth "
              "of material and it does get there sooner.",
-             speed=1.45, draw=1.9, setback=0.05, breakthrough=0.08),
+             speed=1.45, draw=1.9, setback=0.05, breakthrough=0.08,
+             provisional=0.08),
 
     Approach("push", "Push it",
              "Skip the confirmations, build on results nobody has replicated. "
              "You will either be a season ahead or back where you started.",
-             speed=1.9, draw=1.3, setback=0.28, breakthrough=0.18),
+             speed=1.9, draw=1.3, setback=0.28, breakthrough=0.18,
+             provisional=0.55),
 
     Approach("copy", "Reverse-engineer",
              "Do not solve it — find somebody who already has and take theirs "
              "apart. Cheap, fast, and you will not fully understand it.",
              speed=1.7, draw=0.55, setback=0.12, breakthrough=0.05,
-             needs_precedent=True),
+             needs_precedent=True,
+             provisional=0.35),
 ]
 
 APPROACHES_BY_ID = {a.id: a for a in APPROACHES}
@@ -112,6 +120,10 @@ DEFAULT_APPROACH = "careful"
 #: floor here a captain who sets a project on turn one and flies makes no
 #: progress at all, which reads as a broken game rather than a hungry one.
 STARVED_FLOOR = 0.35
+
+#: Days on the bench per point of a technology's cost to confirm a
+#: provisional result.
+CONFIRM_DAYS_PER_COST = 0.22
 
 #: A setback costs this share of the progress made so far.
 SETBACK_LOSS = 0.35

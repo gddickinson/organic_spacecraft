@@ -32,6 +32,9 @@ class TechView(View):
             approaches = inquiry_panel.approaches(self, g)
             self.row(inquiry_panel.lockers(g), approaches) if approaches \
                 else self.col.addWidget(inquiry_panel.lockers(g))
+            shaky = inquiry_panel.unconfirmed(self, g)
+            if shaky is not None:
+                self.col.addWidget(shaky)
 
         tabs = TabBar([("all", "All")] + [(k, v[0]) for k, v in BRANCHES.items()]
                       + [("xeno", "Xenotech ✦")], self.branch)
@@ -67,6 +70,18 @@ class TechView(View):
                   else "stalled — no research rate")
         p.add_buttons(button("Set aside", self._clear, kind="flat"))
         return p
+
+    def confirm(self, tech_id: str) -> None:
+        """Put the bench on checking a result nobody replicated."""
+        from ..sim import inquiry as inquiry_sim
+        res = self.game.research
+        if getattr(res, "confirming", None):
+            self.win.toast("Something is already being checked.", "warn")
+            return
+        res.confirming = tech_id
+        res.confirm_days = inquiry_sim.confirm_cost(res, tech_id)
+        self.win.save()
+        self.refresh()
 
     def set_approach(self, approach_id: str) -> None:
         inquiry.set_approach(self.game.research, approach_id)

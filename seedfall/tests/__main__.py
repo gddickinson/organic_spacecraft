@@ -21,7 +21,7 @@ ALL_SUITES = [
     "seats", "founding", "attempts", "reach", "plans", "beginnings",
     "legacy", "instruments", "voices", "bridge", "manual", "tutorial",
     "grudges", "gunnery", "surveys", "time", "anchorage", "traffic",
-    "doctrine", "firing", "approach", "officials", "dormancy", "tuning", "approaching", "harness", "salvage",
+    "doctrine", "firing", "approach", "officials", "dormancy", "tuning", "approaching", "harness", "salvage", "provisional",
     "hands", "chronicle", "dig", "resume", "verbs", "ui",
 ]
 
@@ -384,6 +384,12 @@ def main(argv: list[str] | None = None) -> int:
         from . import test_salvage
         suite = Suite("salvage")
         test_salvage.run(suite)
+        ok = suite.report() and ok
+
+    if "provisional" in wanted:
+        from . import test_provisional
+        suite = Suite("provisional")
+        test_provisional.run(suite)
         ok = suite.report() and ok
 
     if "manual" in wanted:

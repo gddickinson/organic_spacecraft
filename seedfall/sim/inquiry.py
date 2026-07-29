@@ -10,7 +10,8 @@ from __future__ import annotations
 
 from ..data.inquiry import (APPROACHES_BY_ID, BRANCH_MIX, BREAKTHROUGH_GAIN,
                             DEFAULT_APPROACH, DEFAULT_MIX, EVIDENCE_BY_ID,
-                            MAX_SHARE, SETBACK_LOSS, STARVED_FLOOR)
+                            CONFIRM_DAYS_PER_COST, MAX_SHARE, SETBACK_LOSS,
+                            STARVED_FLOOR)
 from ..data.tech import TECH_BY_ID
 
 
@@ -129,6 +130,28 @@ def draw(res, tech_id: str, days: float,
     fraction = sum(served) / len(served) if served else 1.0
     fed = STARVED_FLOOR + (1.0 - STARVED_FLOOR) * fraction
     return fed, missing
+
+
+def unconfirmed(res, rng) -> bool:
+    """Did this result come out of work nobody replicated?
+
+    The whole cost of `push`. Before this it was the fastest approach by a
+    third with its setback risk already inside that figure — four ways to run
+    a programme and one answer.
+    """
+    return rng.chance(approach_of(res).provisional)
+
+
+def confirm_cost(res, tech_id: str) -> float:
+    """Days on the bench to check a provisional result.
+
+    Cheaper than the programme was, and not free — going back over unchecked
+    work is the price of having skipped it.
+    """
+    tech = TECH_BY_ID.get(tech_id)
+    if tech is None:
+        return 0.0
+    return max(10.0, tech.cost * CONFIRM_DAYS_PER_COST)
 
 
 def roll(res, rng, days: float) -> str | None:

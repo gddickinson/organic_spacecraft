@@ -106,6 +106,17 @@ def advance_days(game, n: float, dilation: float = 1.0) -> None:
     for kind, text in dormancy_sim.tick(game, ship_n, r):
         game.add_log(text, kind)
     done = research_sim.tick(game.research, ship_n, rate * manned, r)
+    # Checking unreplicated work is bench time like any other.
+    firmed = research_sim.confirm_tick(game.research, ship_n * manned)
+    if firmed:
+        from ..data.tech import TECH_BY_ID
+        game.recompute()
+        game.add_log(f"{TECH_BY_ID[firmed].name} is confirmed. The figures "
+                     "hold up.", "good")
+    if game.research.last_event == "provisional":
+        game.add_log("The result is in, and nobody has replicated it. It "
+                     "works. It does not work as well as the paper says.",
+                     "warn")
     if game.research.last_event == "setback":
         game.add_log("The programme has gone backwards — a result nobody "
                      "could replicate, and a season spent on it.", "bad")

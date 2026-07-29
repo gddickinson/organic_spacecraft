@@ -181,7 +181,9 @@ class Game:
 
     def recompute(self):
         """Recompute derived values after any change to ship, crew or research."""
-        self.bonuses = bonuses(self.research.unlocked)
+        self.bonuses = bonuses(
+            self.research.unlocked,
+            getattr(self.research, 'provisional', ()))
         # What you are made of is a passive bonus like any other. Without this
         # the opening screen's "superb instruments" was a sentence the
         # simulation never read — the exact defect this project keeps finding.

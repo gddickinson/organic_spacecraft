@@ -2,6 +2,39 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: pushing a programme finally costs something
+
+Research, untouched until now. It looked deep — evidence types, four
+approaches, setbacks and breakthroughs — so I measured it before touching it,
+and found that `push` was simply the correct answer: 76 days to unlock against
+`careful`'s 132, with its 28%-a-season setback already priced into that
+number, because a setback costs progress and progress is exactly what the
+measurement counts. Four ways to run a programme and one of them right.
+
+- **A pushed result is provisional.** The blurb had said so all along — "build
+  on results nobody has replicated" — and nothing read it. The technology
+  unlocks and delivers 55% of its bonuses until somebody checks the work,
+  which costs bench time and no evidence.
+- **Measured after**: to two *sound* technologies, `parallel` wins with a full
+  bench, `copy` with a thin one, and `push` — still fastest to raw capability
+  — is now the slowest of the four to soundness. The screen states the
+  unreplicated rate beside the pace, and the debt has its own panel.
+
+**Four measurement errors of my own, all caught by looking twice.**
+
+- I "found" that evidence scarcity did nothing — identical times whether the
+  bench was flooded or starved. It was my trickle: the tech wanted `hardware`,
+  which I never supplied, and even my "starved" rate of 8 a month exceeded the
+  real requirement of 5–7. A genuinely empty bench takes 2.4× as long.
+- I asserted confirming costs no credits. Days pass and wages are paid; that
+  is the clock's business, not the bench's.
+- I looked for a bonus-granting technology among the *starting* ones. None of
+  them grants a passive bonus, so `next()` raised `StopIteration` and the
+  harness reported an empty failure message.
+- And I twice wrote a test file with a `def _();` stub in it, which is a
+  syntax error, not a placeholder.
+- 568 checks green, every file under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a near miss on the ground finally pays
 
 Breadth, and a lead from the tripwire: `expedition.SPOILED` was a constant

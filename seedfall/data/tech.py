@@ -322,12 +322,28 @@ def researchable(unlocked) -> list[Tech]:
     return [t for t in TECH if can_research(t.id, unlocked)]
 
 
-def bonuses(unlocked) -> dict[str, float]:
-    """Sum every passive bonus granted by what has been unlocked."""
+#: What a provisional result is worth against a confirmed one. Work finished
+#: by pushing is built on results nobody replicated — it unlocks the
+#: technology and it does not deliver all of it until somebody goes back and
+#: checks. Without this, `push` was simply the best approach: fastest mean
+#: time, with its setback risk already priced into that time, and no cost at
+#: all that "days to unlock" could see.
+PROVISIONAL_WORTH = 0.55
+
+
+def bonuses(unlocked, provisional=()) -> dict[str, float]:
+    """Sum every passive bonus granted by what has been unlocked.
+
+    Anything in `provisional` contributes a fraction: the technology works,
+    and it does not work as well as the paper says, because the paper has not
+    been checked.
+    """
+    shaky = set(provisional or ())
     out = {k: 0.0 for k in BONUS_KEYS}
     for tid in unlocked:
         t = TECH_BY_ID.get(tid)
         if t:
+            share = PROVISIONAL_WORTH if tid in shaky else 1.0
             for k, v in t.bonus.items():
-                out[k] = out.get(k, 0.0) + v
+                out[k] = out.get(k, 0.0) + v * share
     return out

@@ -145,6 +145,23 @@ each costed in full before it is taken — and **letting the window lapse costs
 exactly what refusing costs**, because an offer with a free deadline is a
 button that waits forever rather than a decision.
 
+**The four ways to run a programme are finally four choices.** Measured,
+`push` was simply the best: fastest mean time to unlock — 76 days against
+`careful`'s 132 — with its 28%-a-season setback risk *already inside that
+figure*, because a setback costs progress and progress is what "days to
+unlock" counts. Four approaches on the screen, one answer.
+
+The blurb had named the missing cost from the beginning — *"skip the
+confirmations, build on results nobody has replicated"* — and nothing read it.
+A pushed result is **provisional** now: the technology unlocks and contributes
+`PROVISIONAL_WORTH` (55%) of its bonuses until somebody goes back over the
+figures, which costs bench time and no evidence. That is a cost days-to-unlock
+cannot see, which is exactly why the dominance was invisible.
+
+Measured after: to two *sound* technologies, `parallel` wins on a full bench
+and `copy` on a thin one, and `push` — still the fastest to raw capability —
+is the slowest of the four to soundness. No approach is best at everything.
+
 **A near miss on the ground is worth something.** `SPOILED` sat in
 `sim/expedition.py` with a comment reading "what a spoiled attempt is worth,
 as a share", set to `0.0`, and read by nothing — found by `tests/tripwire.py`,
