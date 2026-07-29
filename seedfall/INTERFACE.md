@@ -145,6 +145,21 @@ each costed in full before it is taken — and **letting the window lapse costs
 exactly what refusing costs**, because an offer with a free deadline is a
 button that waits forever rather than a decision.
 
+**A body can be worked out.** It used to cap at 95% depleted and then pay a
+token tonne a session **for ever** — measured still yielding at trip 199,
+identically to trip 20. So a seam never ended, there was never a reason to go
+and find another, and a method that works a body gently bought nothing at all:
+the cap arrived whatever you did.
+
+`mining.worked_out` ends it, and the four methods finally pull apart. From one
+body: `bore` lifts 2.45 t a day and takes 202 t in total; `leach` lifts 1.01 a
+day and takes 407. Rate against lifetime, and neither number is visible from
+the other, so `mining.prospect` states both — how long the body has left under
+this method, and how much is still in it this way. `WORKING_LOSS` calibrates
+that forecast against what a body actually gives up, because the midpoint
+estimate read 15% high for every method including the one with no mishap risk;
+`test_seams` re-measures it so it cannot drift.
+
 **The four ways to run a programme are finally four choices.** Measured,
 `push` was simply the best: fastest mean time to unlock — 76 days against
 `careful`'s 132 — with its 28%-a-season setback risk *already inside that

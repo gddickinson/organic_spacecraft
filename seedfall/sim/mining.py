@@ -140,10 +140,63 @@ def roll_event(game, body, method_id: str, rng) -> dict | None:
     return None
 
 
+#: Past this, the body is finished: the seams are gone and the rig comes off.
+#:
+#: The cap used to be the *same* number and nothing read it as an ending, so a
+#: worked-out body sat at 95% forever and went on yielding 1.1 t a session
+#: without limit — measured at trip 20 and still going at trip 199. A seam
+#: that never runs out is a seam nobody ever has to leave, which quietly
+#: removes both the reason to prospect and the whole point of a method that
+#: works a body gently.
+WORKED_OUT = 0.95
+
+#: What a body actually gives up against what the arithmetic says it should.
+#:
+#: The midpoint estimate — yield falls linearly with what is left, so average
+#: it — reads 15% high against a body worked to exhaustion, consistently and
+#: for every method including the one with no mishap risk at all. Rather than
+#: ship a forecast that flatters itself, it is calibrated against the thing it
+#: forecasts. `test_seams` re-measures it, so if the extraction arithmetic
+#: moves and this stops being true, something says so.
+WORKING_LOSS = 0.85
+
+
+def worked_out(body) -> bool:
+    """Is there anything left worth putting a rig on?"""
+    return getattr(body, "depleted", 0.0) >= WORKED_OUT - 1e-9
+
+
 def deplete(game, body, method_id: str, days: int, rig: float) -> None:
     method = METHODS_BY_ID.get(method_id, METHODS_BY_ID[DEFAULT_METHOD])
-    body.depleted = min(0.95, body.depleted
+    body.depleted = min(WORKED_OUT, body.depleted
                         + days * 0.0016 * rig * method.depletion_mul)
+
+
+def prospect(body, method_id: str, stats) -> dict:
+    """What this method will get out of this body before it is finished.
+
+    A body used to sit at the depletion cap paying a token tonne a session
+    for ever, so there was nothing to forecast and no reason to choose a
+    gentler method. Now it ends, and the two figures that matter — how fast,
+    and how much in total — pull in opposite directions.
+    """
+    method = METHODS_BY_ID.get(method_id, METHODS_BY_ID[DEFAULT_METHOD])
+    rig = max(getattr(stats, "mine", 0.0), getattr(stats, "drink", 0.0))
+    left = max(0.0, WORKED_OUT - getattr(body, "depleted", 0.0))
+    if rig <= 0 or left <= 0:
+        return {"left": left, "days": 0.0, "total": 0.0, "rate": 0.0,
+                "finished": left <= 0}
+    per_day_depletion = 0.0016 * rig * method.depletion_mul
+    days = left / per_day_depletion if per_day_depletion else 0.0
+    # Yield falls as the body empties, so the average over its life is taken
+    # at the midpoint rather than at today's rate.
+    now = raise_rate(body, method_id, stats)
+    remaining = max(0.0, 1 - getattr(body, "depleted", 0.0))
+    mid = (remaining + (1 - WORKED_OUT)) / 2
+    average = now * (mid / remaining) if remaining > 0 else 0.0
+    return {"left": left, "days": days,
+            "total": average * days * WORKING_LOSS,
+            "rate": now, "finished": False}
 
 
 def raise_rate(body, method_id: str, stats) -> float:

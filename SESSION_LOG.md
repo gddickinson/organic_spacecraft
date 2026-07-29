@@ -2,6 +2,34 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a seam that can actually be worked out
+
+Same method as last cycle — measure a system for a dominant strategy before
+touching it — this time on mining.
+
+- **A body never ended.** It capped at 95% depleted and went on paying 1.1 t a
+  session without limit: measured at trip 20 and still paying at trip 199. So
+  "this seam is finished, move on" was never an event, and the gentle methods
+  bought nothing, because the cap arrived whatever you did.
+- **Now it refuses the rig**, and the four methods pull apart properly. From
+  one body: `bore` 2.45 t/day for 202 t total; `leach` 1.01 t/day for 407.
+  Rate against lifetime — a real decision, and one that depends on whether
+  bodies are plentiful or scarce.
+- **The panel states both**, because neither figure can be worked out from the
+  other.
+- **The forecast is calibrated against the thing it forecasts.** My midpoint
+  estimate read 15% high, consistently, for every method — including `skim`,
+  which has no mishap risk, so it was arithmetic and not collapses. Rather
+  than ship a flattering forecast I measured the gap and named it
+  `WORKING_LOSS`; `test_seams` re-measures it, and it now lands within 2%.
+- **An existing check had encoded the old behaviour** — "a worked-out body
+  still pays, but less" — and broke when the body started refusing outright.
+  Updated to the stronger claim rather than softened.
+- And my first two attempts to measure any of this failed on my own driver: I
+  filled a 340-tonne hold with 9000 tonnes of fuel and then read "no room in
+  the hold" as a mining bug.
+- 573 checks green, every file under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: pushing a programme finally costs something
 
 Research, untouched until now. It looked deep — evidence types, four

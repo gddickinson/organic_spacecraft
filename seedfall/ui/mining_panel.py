@@ -63,6 +63,20 @@ def build(view, game, body, method_id: str) -> Panel:
     p.add_row("Wear on the outer layer",
               f"{method.wear * 100 * 30:.1f}% a month" if method.wear else "none",
               "warn" if method.wear >= 0.004 else "")
+    # What this method will take out of the body *in total*, and how long the
+    # body will last under it. Rate and lifetime pull opposite ways — bore is
+    # twice as fast as leach and gets less than half as much out of the seam
+    # — and neither number is visible from the other.
+    look = mining.prospect(body, method_id, game.ship_stats)
+    if look["finished"]:
+        p.add(label(f"{body.name} is worked out. There are other bodies.",
+                    "", "warn", wrap=True))
+    elif look["days"] > 0:
+        p.add_row("Body lasts", f"{look['days']:.0f} more days at this rate",
+                  "warn" if look["days"] < 60 else "")
+        p.add_row("Total still in it, this way",
+                  f"{look['total']:.0f} t",
+                  "chloro" if look["total"] > 250 else "")
     p.add_row("Takes out of the body", f"×{method.depletion_mul:g}",
               "warn" if method.depletion_mul > 1.5 else "")
     p.add_row("Something goes wrong", pct(method.risk),

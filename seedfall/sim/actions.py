@@ -176,6 +176,13 @@ def extract(game, body_index: int, days: int,
     if cargo_free(game.ship, st) < 1:
         return {"ok": False,
                 "why": "No room in the hold for anything it would raise."}
+    # A body that has given up what it has is finished. It used to sit at the
+    # depletion cap and go on paying a token tonne a session for ever, so
+    # there was never a moment at which you had to move on.
+    if mining.worked_out(body):
+        return {"ok": False,
+                "why": f"{body.name} is worked out. What is left is not worth "
+                       "the rig time — there are other bodies."}
     flight.ensure_at(game, body_index)
     if st.mine <= 0 and st.drink <= 0:
         return {"ok": False, "why": "No mining root or harvest tendril fitted."}

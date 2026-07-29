@@ -154,10 +154,21 @@ def run(suite: Suite) -> None:
             extract(game, index, 90, "bore")
         assert body.depleted > 0.8, f"six seasons of boring left it at {body.depleted:.0%}"
         game.ship.cargo = {"volatiles": 60}
-        late = sum(extract(game, index, 60, "bore")["got"].values())
-        assert late < early * 0.5, (
-            f"a worked-out body still pays {late:.0f} t against {early:.0f} t")
-        return f"{early:.0f} t fresh → {late:.0f} t at {body.depleted:.0%} worked out"
+        last = extract(game, index, 60, "bore")
+        if last["ok"]:
+            # Not finished yet, but plainly on the way out.
+            late = sum(last["got"].values())
+            assert late < early * 0.5, (
+                f"a worked-out body still pays {late:.0f} t against "
+                f"{early:.0f} t")
+            return (f"{early:.0f} t fresh → {late:.0f} t at "
+                    f"{body.depleted:.0%} worked out")
+        # A body that is finished refuses the rig outright now. It used to sit
+        # at the cap paying a token tonne a session for ever, which is what
+        # this check was written against.
+        assert "worked out" in last["why"].lower(), last
+        return (f"{early:.0f} t fresh, then the body refused the rig at "
+                f"{body.depleted:.0%} worked out")
 
     @check("deep work is where the mishaps are")
     def _():
