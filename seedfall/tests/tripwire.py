@@ -166,6 +166,12 @@ KIN = {
     "legacy": ("legacy",), "beginning": ("beginnings",),
     "watches": ("transit",), "rumours": ("missions",),
     "services": ("trade",),
+
+    # The conn and the plotting board. Both own a lot of tuning — thruster
+    # impulses, the orbit band, the horizon — and all of it is answered by
+    # the one suite, so neither should ever pay for the wide run.
+    "conn": ("conn",), "autopilot": ("conn",), "track": ("conn",),
+    "viewport": ("cameras",),
 }
 
 

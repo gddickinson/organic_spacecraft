@@ -287,6 +287,67 @@ same system, same day). Busyness follows the port: a capital works five hulls,
 unclaimed space one, and a system the Bloom has eaten fewer than either,
 because the traffic left.
 
+**Flying is done in days and AU; berthing is done in metres a second.** The
+helm moves the ship body-to-body: pick a target, pick a burn, lose a week of
+calendar, arrive. That is the right grain for a transfer and no grain at all
+for the last ten kilometres, where the only question is whether you can match
+velocity with something before you hit it. Nothing in the game modelled that.
+
+Three modules, and two pop-out windows, do now.
+
+`sim/track.py` makes everything in a system a `Contact` whose position is a
+function of the day — bodies, quays, traffic, and a bare point in empty space
+you simply want to be at. Because position is a function of the day, a track
+runs *backwards* as well as forwards, and a burn can be solved for an arrival
+**date** rather than only for "as soon as possible". `windows()` sweeps the
+horizon, because a moving target is not equally dear on every day and waiting
+is often cheaper than burning. Every cost comes back through `flight.route`
+and `flight._leg`, so a plot cannot disagree with what flying charges; for a
+body, `solve` *is* `flight.intercept`.
+
+How much of that can be believed was measured rather than asserted. Over 735
+predictions across ten chronicles, four systems and horizons out to 270 days,
+**99.9% came true to the digit** — `traffic.in_system` is pure in the system
+and the day, so asking it about a future day *is* the forecast. Every failure
+was the Bloom crossing a threshold in `traffic` (0.15, where raiders can draw;
+0.2, where a system loses a hull) and redrawing the errands. So `confidence`
+is causal: it projects the growth forward and asks whether a crossing falls
+before the arrival, rather than decaying with time for its own sake.
+
+`sim/conn.py` is the close-quarters frame — kilometres, metres a second, and
+a minute a tick. Reaction control for fine work, the main drive for closing
+distance, `mu` taken from the body's own `radius_km` and `gravity` so a heavy
+world genuinely demands a faster orbit. `sim/autopilot.py` is the computer
+that flies it, split off along a real seam: `conn` says what the ship does
+when you fire a thruster, `autopilot` says which thruster a competent pilot
+would fire.
+
+Four faults, all found by flying rather than reading:
+
+- **The closing rate was wrong by a factor of a thousand.** `pos` is in km and
+  `vel` in m/s, so `pos·vel / r` is already a velocity; the first draft
+  divided by another thousand "to convert". The panel read **+0.01 m/s while
+  the ship flew in at twelve**, the autopilot believed it, and every approach
+  ended in the hull. A unit test on `closing` would have seen a plausible
+  number and passed.
+- **The computer managed the closing rate and ignored the rest of the
+  velocity.** Motion across the line of sight does not change the range at
+  all, so it reported itself perfectly on profile while sailing past — it hung
+  at 1.7 km circling a hull, or went into a quay sideways at 12 m/s.
+- **A body approach opened twelve kilometres from the planet's centre**, which
+  is several thousand underground; `mu / r²` there threw the ship out of the
+  system at eleven thousand kilometres a second.
+- **The orbit band was a percentage.** A tenth of circular is 500 m/s at a
+  middling world — forty burns — and wider than the whole orbit at a rock.
+
+`ui/viewport.py` paints what a camera sees: six of them, and the target's
+angular size *is* the range instrument, read the way a pilot reads a window.
+The starfield is fixed at import, because a field drawn from `game.rng()`
+would both shimmer between repaints and quietly advance the save's seed — the
+docking instrument was bitten by exactly that. `ui/conn_window.py` is the conn
+itself; `ui/plot_canvas.py` and `ui/plot3d_window.py` are the plotting board,
+with zoom, pan, tilt, selection, tracking, and an arrival-date slider.
+
 **A berth is a place.** A player asked why the helm shows only the star and
 the planets, and how they would ever navigate back to a shipyard. They could
 not: a `Port` hung off a `System` with **no position at all** — no body, no
@@ -2029,6 +2090,20 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that
   no course is plotted through a star.
+- **`test_conn.py`** flies every contact in five chronicles to a berth or an
+  orbit, and is the check that found the closing-rate fault: before it, none
+  of them arrived. It compares the conn's forecast against the burn over 2,272
+  cases, plays the chronicle forward to see whether the plot's predictions
+  come true, and holds the board and the helm to the same arithmetic. Two
+  checks earn their place by what they caught in a mutation sweep: disabling
+  the branch that kills velocity *across* the approach passed everything else,
+  because `start` always puts the ship dead ahead — so there is now a check
+  that arrives off-axis on purpose, and it failed on the first run.
+- **`test_cameras.py`** holds the screens rather than the flying, and measures
+  them in pixels: the nose camera must be full of a target the tail cannot see
+  at all, and five repaints of a still ship must give one picture. Asking
+  `viewport.project` whether the aft camera can see something in front would
+  be asking the code to confirm itself.
 - **`test_ui.py`** builds the real `MainWindow` on Qt's `offscreen` platform and
   paints every screen and every tab, including a live engagement. It stubs
   `win.dialog` because `QDialog.exec()` would block. One check builds its own

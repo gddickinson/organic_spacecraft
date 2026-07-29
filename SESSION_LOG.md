@@ -2,6 +2,84 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: the last ten kilometres
+
+The captain asked for something the game did not have at any grain: a window
+you actually fly the ship from. Cameras out of the hull in six directions,
+thrusters fine enough to come alongside a station, orbits you insert into —
+and separately, a plotting board where every object in the system can be
+selected, tracked, and intercepted **at a chosen future date**, against where
+it will be then rather than where it is now.
+
+Nothing existed to build on at the near end. `flight.travel_to` moves the ship
+body-to-body over days; `sim/tactical.py` is a separate combat-local plane.
+Between "a week to cross the system" and "guns at knife range" there was
+nothing at all.
+
+**What was already there, and turned out to be exactly enough.** `traffic.py`
+says of its hulls: *"Position is a function of the day and nothing else"*, and
+identity is *"stable for the life of the chronicle"*. If that is true, hull
+positions are not merely estimable — they are **exactly computable for any
+future day**, by asking `traffic.in_system` about that day. I checked it by
+playing rather than by trusting the comment: 735 predictions across ten
+chronicles, four systems, horizons to 270 days, each compared against really
+advancing the sector with `advance_days`. **99.9% came true to the digit.**
+
+The failures were not noise. Every one was the Bloom crossing a threshold
+inside `traffic` — 0.15, where raiders may draw; 0.2, where a system loses a
+hull — and redrawing the errands. So I threw away the decay curve I had
+written first (`0.35` at the horizon, a number I had invented) and made
+confidence *causal*: project the growth forward, ask whether a crossing falls
+before the arrival day. A captain can act on that. A number that merely falls
+with time is decoration.
+
+**Four faults, all found by flying.**
+
+The worst was a unit error. `pos` is in kilometres and `vel` in metres a
+second, so `pos·vel / r` is already a velocity — and I divided by another
+thousand "to convert". The panel read **+0.01 m/s while the ship flew in at
+twelve**. The autopilot believed the panel, so it went on accelerating, and
+every approach in the game ended in the hull. No unit test on `closing` would
+have caught it: the number looked entirely plausible. Only flying showed it.
+
+Then: the computer managed the closing rate and ignored the rest of the
+velocity. Motion *across* the line of sight does not change the range at all,
+so it reported itself perfectly on profile while sailing past — hanging at
+1.7 km circling a hull, or going into a quay sideways at 12 m/s. Then: a body
+approach opened twelve kilometres from the planet's *centre*, several thousand
+underground, where `mu / r²` threw the ship out of the system at eleven
+thousand kilometres a second. Then: the orbit tolerance was a percentage — a
+tenth of circular is 500 m/s at a middling world, forty burns, and wider than
+the whole orbit at a rock.
+
+**What the mutation sweep taught me, twice.**
+
+First run: 11 of 13 caught. One miss was a *bad mutation* — I broke the
+starfield by calling `_starfield()` per paint, but it is seeded, so it drew
+the identical field and nothing changed. Not a weak check; a mutation that
+mutated nothing. I rebuilt it to reseed per paint and it was caught.
+
+The other miss was real and better. Disabling the branch that kills lateral
+drift passed everything, because `start` always puts the ship dead ahead with
+its velocity along the line of sight — the branch never fired. So I added a
+check that arrives off-axis on purpose, and **it failed**: at 15 m/s of drift
+the computer collided. The tolerance was a share of the closing profile, 2.4
+m/s at twelve kilometres — harmless there, fatal at three hundred metres — and
+it never tightened on the way in. Tying it to what the *arrival* can absorb
+fixed it: 144 of 144 off-axis approaches now berth, including 30 m/s.
+
+**And a discipline failure of my own, worth writing down.** That second sweep
+reported 14/14 — from a suite whose new check was failing at baseline, because
+`lateral` had moved modules in a file split and I had not re-run the suite
+after adding it. Every mutation "failed" for a reason that had nothing to do
+with the mutation. The harness now refuses to run unless the baseline is
+green, and says so. A sweep without that guard is not evidence in either
+direction.
+
+Shipped: `sim/track.py`, `sim/conn.py`, `sim/autopilot.py`, `ui/viewport.py`,
+`ui/conn_window.py`, `ui/plot_canvas.py`, `ui/plot3d_window.py`, and
+`tests/test_conn.py` (14 checks). Both windows open from the helm.
+
 ## 2026-07-29 — SEEDFALL: the one thing the fog did not cover
 
 The docking bug last cycle was an instance of a third pattern worth sweeping:

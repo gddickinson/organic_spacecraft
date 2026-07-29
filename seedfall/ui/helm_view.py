@@ -250,7 +250,19 @@ class HelmView(View):
         self.row(left, self._plot(g))
         self.buttons(
             button("System overview", lambda: self.win.go("system")),
-            button("Sector chart", lambda: self.win.go("map")))
+            button("Sector chart", lambda: self.win.go("map")),
+            button("Plotting board…", self._plotting_board),
+            button("Take the conn…", self._take_conn))
+
+    def _plotting_board(self) -> None:
+        """The system in its own window, with time and a zoom on it."""
+        from .plot3d_window import open_plot
+        open_plot(self.win)
+
+    def _take_conn(self) -> None:
+        """Fly by hand, at the range where a metre a second matters."""
+        from .conn_window import open_conn
+        open_conn(self.win)
 
     def _pick(self, index: int) -> None:
         self.target = index
