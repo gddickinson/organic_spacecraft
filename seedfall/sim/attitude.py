@@ -103,7 +103,25 @@ def turned(nose, toward, radians: float) -> tuple:
     # Slerp. The component of the goal perpendicular to the start, normalised,
     # is the direction the nose sweeps through.
     dot = sum(a * b for a, b in zip(start, goal))
-    perp = unit(tuple(g - dot * s for s, g in zip(start, goal)))
+    perp = tuple(g - dot * s for s, g in zip(start, goal))
+    if math.dist(perp, (0.0, 0.0, 0.0)) < 1e-9:
+        # Dead astern. There is no shortest great circle to a point exactly
+        # opposite — every one is the same length — so the perpendicular
+        # component is zero and the arithmetic above has nothing to sweep
+        # through. Left alone it returns the nose unchanged, which means a
+        # hull asked to reverse **can never turn at all**: `conn.apply`
+        # spends every tick slewing, the slew moves nothing, and no thrust is
+        # ever delivered. Nothing asked for a reversal until the orbit
+        # computer did, and then a ship sat at e=0.123 for fifty thousand
+        # ticks with the main drive lit and the hull pointing the wrong way.
+        #
+        # Any perpendicular will do. Pick one that is definitely not parallel
+        # to the nose and start the turn; the next tick has a real gradient
+        # to follow.
+        axis = (1.0, 0.0, 0.0) if abs(start[0]) < 0.9 else (0.0, 1.0, 0.0)
+        drop = sum(a * b for a, b in zip(start, axis))
+        perp = tuple(a - drop * s for s, a in zip(start, axis))
+    perp = unit(perp)
     c, s = math.cos(radians), math.sin(radians)
     return unit(tuple(start[i] * c + perp[i] * s for i in range(3)))
 

@@ -23,8 +23,22 @@ import math
 
 from .conn import (AXES, AXES_BY_ID, ALONGSIDE_KM, ALONGSIDE_RATE, TICK,
                    Conn, apply, can_burn)
-from .orbits import ORBIT_FLOOR_KM, orbit_band, orbital_speed
+from .orbits import (ORBIT_ECCENTRICITY, ORBIT_FLOOR_KM, eccentricity,
+                     orbit_band, orbital_speed, semi_major_km)
 from .conn import _rotate
+
+#: How near the height you asked for counts as being at it, as a share of
+#: that height. Wide enough that the ship settles instead of hunting.
+HEIGHT_TOLERANCE = 0.02
+
+#: The tangential speed, in m/s, below which the direction the ship is going
+#: round is not a reliable answer. See `_across`.
+ACROSS_FLOOR = 1.0
+
+#: A correction the thrusters can finish inside this many ticks is thruster
+#: work, and the main drive is not offered for it however favourably the
+#: swing arithmetic comes out. See `worth_turning`.
+TURN_WORTH_TICKS = 40.0
 
 
 def target_velocity(conn: Conn, mode: str) -> list | None:
@@ -54,21 +68,61 @@ def target_velocity(conn: Conn, mode: str) -> list | None:
         inward = [-p / r for p in conn.pos]
         return [c * safe_rate(conn) for c in inward]
     if mode == "orbit":
-        want = orbital_speed(conn)
+        r = conn.range_km
+        # Where the pilot asked to be, not merely where they happen to be.
+        # `orbit_want_km` of zero is the old behaviour — circularise here —
+        # and it is still what you get if nobody chooses a height.
+        aim = conn.orbit_want_km or r
+        aim = max(aim, conn.target.radius_km + ORBIT_FLOOR_KM * 1.4)
+        want = orbital_speed(conn, aim)
         if want <= 0:
             return [0.0, 0.0, 0.0]
-        r = conn.range_km
-        floor = conn.target.radius_km + ORBIT_FLOOR_KM * 1.4
-        if r < floor:
-            # Too low to be an orbit: climb, and keep the tangential speed.
-            out = [p / max(r, 1e-9) for p in conn.pos]
-            side = _across(conn)
-            length = math.dist(side, (0.0, 0.0, 0.0)) or 1.0
-            return [out[i] * want * 0.25 + side[i] / length * want
-                    for i in range(3)]
         side = _across(conn)
         length = math.dist(side, (0.0, 0.0, 0.0)) or 1.0
-        return [side[i] / length * want for i in range(3)]
+
+        # Circular speed **for the radius the ship is actually at**, nudged
+        # up or down to move the size of the orbit toward the height asked
+        # for. Two properties, and both matter:
+        #
+        #   * A purely tangential demand at circular speed drives the orbit
+        #     *round*. Any radial velocity is error the same law cancels, so
+        #     circularisation needs no second branch.
+        #   * The nudge moves the semi-major axis, which is what "height"
+        #     means — see `orbits.semi_major_km`.
+        #
+        # A vis-viva transfer solution was tried instead and is the reason
+        # this comment is long. `v² = mu(2/r − 1/a)` re-solved from wherever
+        # the ship is looks exactly right and needs no constants at all — but
+        # it only ever burns prograde at the ship's current position, and a
+        # prograde burn raises the *opposite* apse. So it lifted apoapsis
+        # towards the target for ever and never once raised periapsis:
+        # measured at an asteroid, periapsis 418 km and apoapsis 1,630 with
+        # e pinned at 0.52 for sixty thousand ticks, arriving nowhere. A
+        # Hohmann transfer is two burns at opposite ends of the orbit, and a
+        # receding-horizon controller that re-solves every tick does the
+        # first one over and over.
+        #
+        # Both faults underneath this were real and are fixed rather than
+        # tuned around: `attitude.turned` could not reverse a hull at all (no
+        # great circle is shortest to a point dead astern), and
+        # `worth_turning` would order the main drive for a trim the thrusters
+        # should have done, then spend every tick slewing.
+        here = orbital_speed(conn)
+        a_now = semi_major_km(conn)
+        if a_now == float("inf") or a_now <= 0 or eccentricity(conn) > ORBIT_ECCENTRICITY:
+            # Round it off first. Circular speed for the radius the ship is
+            # at, held tangentially — any radial velocity is then error the
+            # same law cancels, so this both circularises and needs no second
+            # branch to do it. An approach can arrive very eccentric indeed:
+            # measured, e = 0.855 at an asteroid, which is a fall rather than
+            # an orbit and nothing sensible can be transferred from.
+            return [side[i] / length * here for i in range(3)]
+        # Round already: now move it. Vis-viva for the transfer from here to
+        # the height asked for, `v² = mu(2/r − 1/a)` with `a` the semi-major
+        # axis of the ellipse between them — no constant of any kind.
+        transfer = (r + aim) * 0.5
+        speed = math.sqrt(max(0.0, conn.target.mu * (2.0 / r - 1.0 / transfer)))
+        return [side[i] / length * speed * 1000.0 for i in range(3)]
     return None
 
 
@@ -144,14 +198,27 @@ def lateral(conn: Conn) -> list:
 
 
 def _across(conn: Conn) -> list:
-    """A direction at right angles to the line of sight, in the orbit plane."""
-    px, py, pz = conn.pos
-    # Prefer the way it is already going, so the computer does not reverse
-    # the orbit it is halfway into establishing.
-    side = (-py, px, 0.0)
-    if sum(a * b for a, b in zip(side, conn.vel)) < 0:
-        side = (py, -px, 0.0)
-    return list(side)
+    """A direction at right angles to the line of sight, in the orbit plane.
+
+    Which of the two right angles is decided by the way the ship is already
+    going, so the computer does not reverse the orbit it is halfway into
+    establishing — but only when there is enough angular momentum for the
+    answer to mean anything.
+
+    That guard is not decoration. The sense used to come from the sign of a
+    dot product with the velocity, and near a small body the tangential
+    velocity is a couple of metres a second: the sign flipped between ticks,
+    so the computer demanded prograde and then retrograde and then prograde,
+    and pumped energy into the orbit instead of shaping it. Measured, a
+    comet's 6.8 m/s orbit was driven from 335 km out to 1,340 and adrift.
+    Below the threshold, commit to one sense and stay with it.
+    """
+    px, py, _pz = conn.pos
+    r = math.hypot(px, py) or 1.0
+    spin = px * conn.vel[1] - py * conn.vel[0]      # angular momentum, km·m/s
+    if abs(spin) / r < max(conn.rcs_dv, ACROSS_FLOOR):
+        return [-py, px, 0.0]
+    return [-py, px, 0.0] if spin > 0 else [py, -px, 0.0]
 
 
 def _toward(conn: Conn, vec, need: float) -> tuple[str | None, bool, float]:
@@ -215,8 +282,23 @@ def worth_turning(conn: Conn, axis_id: str, need: float) -> bool:
         return False
     if angle <= attitude_sim.POINTED_RAD:
         return True                       # already aimed; it costs nothing
-    swing = 2.0 * math.sqrt(angle / conn.slew_rate) / TICK
     on_rcs = need / max(1e-6, conn.rcs_dv)
+    # A small correction is thruster work, whatever the swing arithmetic says.
+    #
+    # The closed-form turn time below is optimistic about what the hull then
+    # does with the tick — `apply` spends a whole tick slewing and delivers no
+    # thrust at all while it does — so for a trim of a few metres a second the
+    # computer would order the main drive, turn for tick after tick, and
+    # correct nothing. At an asteroid, where circular speed is forty metres a
+    # second and every correction is small, an orbit the ship had reached the
+    # height of would not round off: measured, eccentricity stuck at 0.476
+    # against the 0.05 that counts as an orbit, for sixty thousand ticks.
+    #
+    # So the main drive clears a floor as well as winning the comparison.
+    # Below it the thrusters are quicker in wall-clock and cannot be wrong.
+    if on_rcs <= TURN_WORTH_TICKS:
+        return False
+    swing = 2.0 * math.sqrt(angle / conn.slew_rate) / TICK
     on_main = swing + need / max(1e-6, conn.main_dv)
     return on_main < on_rcs
 

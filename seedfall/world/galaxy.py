@@ -27,6 +27,10 @@ STAR_CLASSES = [
     ("D", "white dwarf", 0.18, "#cfe6ff", 5),
     ("N", "neutron star", 0.10, "#9fd8ff", 2),
     ("B", "binary pair", 0.78, "#ffd9a0", 7),
+    # Eight solar masses in a 23.6 km event horizon. Rare on purpose, and
+    # safe to add: a galaxy is *stored* in the save, so an existing chronicle
+    # keeps the sector it was grown with and only new ones can roll this.
+    ("X", "black hole", 0.05, "#6b4fa8", 1),
 ]
 
 SECTOR_W = 74.0

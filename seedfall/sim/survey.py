@@ -156,6 +156,20 @@ def preview(game, body, method_id: str) -> dict:
     }
 
 
+def look_bonus(game, body) -> float:
+    """What the ship's orbit height is worth to a survey of this body.
+
+    One, unless the ship is actually holding an orbit around the body being
+    surveyed — a chart of somewhere you are not standing is not improved by
+    how close you are standing to somewhere else.
+    """
+    from .orbits import look_factor
+    held = float(getattr(game, "orbit_alt_km", 0.0) or 0.0)
+    if held <= 0 or game.orbit_body != body.id:
+        return 1.0
+    return look_factor(float(getattr(body, "radius_km", 0.0)), held)
+
+
 def perform(game, body_index: int, method_id: str = DEFAULT) -> dict:
     """Survey a body the chosen way. Returns what turned up."""
     method = METHODS_BY_ID.get(method_id)
@@ -178,7 +192,10 @@ def perform(game, body_index: int, method_id: str = DEFAULT) -> dict:
                 0.0, game.stores.get(commodity, 0) - (amount - taken))
     game.advance_days(work_days(game, method))
 
-    quality = min(1.0, game.ship_stats.scan * method.quality)
+    # How close you are holding is part of how well you see. The other half
+    # of the trade the orbit height buys: a low orbit resolves about a fifth
+    # more than a standard one and costs about a seventh more to leave.
+    quality = min(1.0, game.ship_stats.scan * method.quality * look_bonus(game, body))
     found = survey_body(body, quality, game.rng("survey"), finds=method.finds)
     found["ok"] = True
     found["method"] = method

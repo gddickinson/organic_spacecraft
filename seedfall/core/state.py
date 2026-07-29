@@ -65,6 +65,10 @@ class Game:
     stores: dict[str, float] = field(default_factory=dict)
     location_id: int = 0
     orbit_body: str | None = None
+    #: The radius from that body's centre, in km, that the ship is holding.
+    #: Zero means an orbit whose height nobody chose — which is every orbit
+    #: made before the conn could be asked for one, and is read as standard.
+    orbit_alt_km: float = 0.0
     colonies: list = field(default_factory=list)
     building: list = field(default_factory=list)
     flags: dict = field(default_factory=dict)

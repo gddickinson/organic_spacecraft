@@ -31,6 +31,7 @@ import math
 from dataclasses import dataclass
 
 from . import anchorage as anchorage_sim
+from ..data.starclasses import mu_of
 from . import flight
 from . import traffic as traffic_sim
 
@@ -117,7 +118,8 @@ def at(game, contact: Contact, day: float, system=None) -> tuple[float, float]:
     if contact.at_xy is not None:
         return contact.at_xy
     if contact.kind in ("body", "anchorage") and contact.body_index is not None:
-        return flight.position(system.bodies[contact.body_index], day)
+        return flight.position(system.bodies[contact.body_index], day,
+                               mu_of(system))
     if contact.kind == "hull":
         return _hull_at(game, contact, day, system)
     return 0.0, 0.0

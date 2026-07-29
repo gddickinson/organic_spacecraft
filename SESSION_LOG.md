@@ -2,6 +2,168 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: gravity that knows which star, and an orbit you choose
+
+Two player reports, one system: *"the player should be able to orbit planets at
+different distances — at the moment it seems like there is only one option"*
+and *"please ensure the gravity is working correctly for all bodies"*.
+
+Both were right, and the second turned out to be the bigger fault.
+
+**Every star weighed one Sun.** `flight.period_days` was `YEAR_AT_1AU · a^1.5`
+— Kepler's third law with the `sqrt(M)` left out. Eight spectral classes have
+existed since the game was written and a world at one AU took the same year
+round a 0.32-solar M dwarf as round an A-type nearly six times heavier.
+Measured after the fix: **645 days round an M dwarf against 272 round an
+A-type and 129 round a black hole**, and 539 bodies in four sectors now sit
+somewhere a one-solar-mass sector would not have put them. `StarClass` gained
+`mass_solar`, `starclasses.mu_of` is the single door, and `period_days` takes
+the star's `mu` as a **required** argument — a default is how half the call
+sites end up quietly assuming the Sun.
+
+Black holes joined the catalogue while I was there: eight solar masses in a
+23.6 km event horizon, weight 1. Safe to add because a galaxy is *stored* in
+the save, so existing chronicles keep the sector they grew with.
+
+**And there was one orbit**, wherever the transfer happened to drop you. There
+is now a ladder — low, standard, high — with the standard rung defined to be
+`targets.approach_range` exactly, so a transfer arrives at the standard orbit
+and the other two are a real piece of flying. It is a trade in both
+directions, from the same geometry: escape speed is `sqrt(2mu/r)`, so **low
+costs 1.3–3.6× what high does to leave** and resolves correspondingly more.
+
+The control law took four attempts and the failures are worth recording,
+because three of them looked perfectly reasonable written down:
+
+1. **A radial rate, capped against circular speed at the destination.** 877
+   m/s of climb where a thruster pulse is half a metre a second. Ballistic,
+   then aground. You do not raise an orbit by thrusting outward.
+2. **Excess tangential speed with a zero radial demand.** A contradiction: it
+   spent every tick cancelling the rise it spent the previous tick creating.
+3. **Vis-viva, re-solved every tick.** Elegant, needs no constants — and only
+   ever burns prograde at the ship's current position, which raises the
+   *opposite* apse. It lifted apoapsis toward the target for ever and never
+   once raised periapsis: e pinned at 0.52 for sixty thousand ticks.
+4. **Round it off, then move it.** Circular speed at the current radius while
+   the orbit is out of round (which drives e→0 with no second branch), and the
+   vis-viva transfer once it is round. 31 of 32 offered heights reached.
+
+Underneath those were two real bugs, both fixed rather than tuned around:
+
+- **A hull could not reverse.** `attitude.turned` sweeps along the shortest
+  great circle, and to a point *exactly* astern there is no shortest one —
+  every great circle is the same length, the perpendicular component is zero,
+  and the function returned the nose unchanged. So `conn.apply` spent every
+  tick slewing, the slew moved nothing, and no thrust was ever delivered.
+  Nothing had asked for a reversal until the orbit computer did.
+- **The computer ordered the main drive for work the thrusters should do.**
+  The swing estimate predicted 2.4 ticks for a 180° turn the ship measurably
+  could not finish, so a five-metre-a-second trim got the main drive, and the
+  hull turned instead of burning.
+
+Three screens disagreed with the sim once `in_orbit` learned to judge the
+ellipse rather than the instant, and all three are the same fault: a readout
+asking an instantaneous question about a thing that is only true at an apse.
+`orbit_note` called a completed orbit "a departure, not an orbit" in the panel
+beside the conn reporting it made; `instruments.readout` marked 9,123 m/s in
+amber on five of twelve approaches — the speed the ship had just got right;
+and `adrift` was measured against the range the approach opened at, so
+climbing to the high orbit the screen had just offered was reported as losing
+the target astern.
+
+`sim/conn.py` went past five hundred lines, so **how an approach ends** came
+out into `sim/outcome.py` — a real seam rather than a line count: `conn`
+answers what the ship does when you fire a thruster, and `outcome` answers
+whether the approach is over. The thresholds stay in `conn` and are passed in,
+because a constant written twice is this project's most frequent fault.
+
+**Adding one star class re-rolled every sector, and five checks fell over that
+had been passing on seed luck.** That is the most useful thing this cycle
+found: not one of the four was measuring what its own name claimed, and each is
+now a real measurement rather than a coincidence.
+
+- **A one-in-twenty tail.** `test_politics` asserted the Concord is not *always*
+  reachable, read off the tail of twenty samples at a true rate near 0.95 —
+  which fails better than a third of the time on nothing at all. The property
+  it wanted is already measured directly two checks above. It is now a
+  differenced claim with real power: the same captain, same billion credits,
+  same standing, who *never brokers* must not arrive at the Concord by
+  waiting. Measured 20/20 determined against 0/20 idle.
+- **One sector standing in for the sector.** `test_bloom_arc` measured
+  provoked-versus-calm growth in a single galaxy. The effect is real —
+  `growth_multiplier` is 2.589 — but three years of growth in a forty-two
+  system sector runs near saturation, which compresses the gap, and provoked
+  wins in *seven of eight* sectors rather than eight. Which one is the
+  exception depends on the sector. Now aggregated over eight, with the tally
+  reported so a real change in the mechanism shows rather than averaging away.
+- **A check that asked one official for five favours.** `test_officials`
+  looped over all five, asked the first, and asserted it had checked two —
+  but asking *spends regard*, 28 of the 48 a well-liked captain has, so only
+  one favour is ever reachable per chronicle. It passed while the seed's desk
+  happened to offer a cheap one first. One official per favour now, and all
+  five get asked.
+- **A price compared across a state change.** `test_counter` checked that a
+  one-shot office rate expires by comparing the board against the price posted
+  *before* the deal — but buying moves the board, two tonnes of ore taking it
+  from 36 to 37. It passed only while the drift on whichever commodity the seed
+  picked stayed under a rounding boundary. Now measured against a control
+  chronicle that made the same purchase and never asked for anything.
+- **A conn that preferred a stranger.** Covered above.
+
+Two of the project's own guards earned their keep on the new code. The harness
+guard noticed that `sim/outcome.py` arrived with a tuning constant and **no
+tripwire fast path**, which is how a constant stops being measured. And the
+reachability check caught `orbits.nearest_height`
+— a function I wrote this cycle and never wired in. It is wired in now, and
+better for it: the panel names the rung as well as the altitude, so it reads
+"Circular at 3,353 km — a standard orbit" rather than a bare number, which is
+what the departure cost and the survey resolution actually follow from.
+
+And the conn's own preference order turned out to rest on a premise this
+cycle removed. It ranked `anchorage, hull, body`, on the reasoning that
+"approaching what you are already orbiting is not a manoeuvre" — true when an
+orbit had no height, false now. Once bodies moved onto their real orbits a
+passing freighter was often the nearest thing in the system, so the conn opened
+on `Patient Ledger` while the hull sat in orbit around a world it was not being
+shown. `default_target` now puts **where the ship actually is** first, and only
+then looks at the rest of the system.
+
+Two more were latent and exposed by bodies being somewhere new: `route` reported a course **bent around the star whose
+detour was exactly zero** — the innermost orbit slot sits at exactly the
+clearance radius, so `near` and `clear` are the same number computed two ways
+and differ by 1e-16, which sent the course down the bend path to a waypoint
+already at the radius it was being pushed to. And a check that spawns a fresh
+interpreter to prove orbits are process-independent needed the new import
+inside its own snippet, which is the sort of thing that only fails honestly.
+
+Mutation sweep **17/17**, and it took two passes to get there — the first ran
+13/17, and every one of the four misses was a hole in a *check* rather than in
+the code. Two are worth writing down:
+
+- **A check that could not fail.** The ladder's trade was asserted with
+  `look == sorted(look, reverse=True)`, and a mutation that made `look_factor`
+  return a flat 1.0 sailed through it, because a constant list is trivially
+  sorted either way. Strictly decreasing now, and measured where the game
+  actually reads it — `survey.look_bonus`, 1.03 from a low orbit against 0.80
+  from a high one. The departure lift had the same shape of hole: computed and
+  never applied passed the forecast-matches-act check, because the quote and
+  the act agreed perfectly while both were wrong.
+- **Two of the seven bug fixes had nothing holding them.** The hull-reversal
+  fix and the adrift-limit fix were both real, both found by flying, and both
+  invisible to every check in the suite — because the control law that finally
+  worked happens not to need a 180° turn, and happens to resolve before the
+  old adrift limit bites. Fixing a bug does not protect it. Both have direct
+  checks now: four hulls turned through 180°, and a ship constructed 227,056
+  km out reading "still flying" when that height was asked for and "adrift"
+  when it was not.
+
+`tests/test_orbits.py`, 9 checks. One measured limitation is recorded rather
+than hidden: the high rung at a 153 km asteroid settles into a sound, round
+orbit (e = 0.049) at 94% of the height asked, because circular speed there is
+44 m/s and the hull moves 0.45 m/s at a time. Short of the mark and safe,
+which is the right way to miss — task #83, and the check asserts `missed <= 1`
+so a second one is a regression rather than a quiet slide.
+
 ## 2026-07-29 — SEEDFALL: a sky with eight kinds of star and seven of world
 
 The standing objective is a catalogue worth looking at. The sky had one star

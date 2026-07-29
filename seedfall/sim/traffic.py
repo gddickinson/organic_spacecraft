@@ -32,6 +32,7 @@ from ..core.rng import RNG
 from ..data.lore import HULL_NAMES
 from ..data.factions import FACTIONS_BY_ID
 from . import anchorage as anchorage_sim
+from ..data.starclasses import mu_of
 from . import flight
 
 #: What a hull is out here doing. Each carries how it reads on a chart and
@@ -203,10 +204,12 @@ def position(game, hull, system=None) -> tuple[float, float]:
     """Where a hull is, in AU, right now."""
     system = _home(game, hull, system)
     bodies = system.bodies
-    start = flight.position(bodies[hull.from_body], game.day)
+    start = flight.position(bodies[hull.from_body], game.day,
+                            mu_of(system))
     if hull.from_body == hull.to_body:
         return start
-    end = flight.position(bodies[hull.to_body], game.day)
+    end = flight.position(bodies[hull.to_body], game.day,
+                          mu_of(system))
     return (start[0] + (end[0] - start[0]) * hull.along,
             start[1] + (end[1] - start[1]) * hull.along)
 

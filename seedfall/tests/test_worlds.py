@@ -378,7 +378,17 @@ def run(suite: Suite) -> None:
         from ..sim import targets, track as track_sim
 
         # The doors agree, for every giant in the sector and not just one.
-        game = new_game("look-0")
+        # The seed is searched for rather than named: adding a star class
+        # changes what every seed generates, and a check that hard-codes one
+        # breaks for a reason that has nothing to do with what it is testing.
+        game = None
+        for seed in range(30):
+            candidate = new_game(f"ringed-{seed}")
+            if any(b.kind == "gas" and sky_sim.has_rings(b)
+                   for b in candidate.system.bodies):
+                game = candidate
+                break
+        assert game is not None, "thirty seeds and no ringed giant in reach"
         asked = agreed = 0
         for index, body in enumerate(game.system.bodies):
             built = targets.target_from_body(body, index=index)

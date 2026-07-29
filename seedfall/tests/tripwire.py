@@ -172,13 +172,14 @@ KIN = {
     # the one suite, so neither should ever pay for the wide run.
     "conn": ("conn",), "autopilot": ("conn",), "track": ("conn",),
     "viewport": ("cameras",), "berthing": ("berthing", "conn"),
-    "orbits": ("conn",), "targets": ("conn", "berthing"),
+    "orbits": ("orbits", "conn", "berthing"),
+    "outcome": ("orbits", "conn", "berthing"), "targets": ("conn", "berthing"),
     "thrusters": ("thrusters",), "attitude": ("thrusters", "conn"),
     "weave": ("weave",), "gates": ("weave",),
     "instruments": ("conn",), "models3d": ("cameras",),
     "render3d": ("cameras",), "gunfire": ("gunfire",),
     "sky": ("cameras", "worlds"), "worlds3d": ("worlds",),
-    "starclasses": ("worlds",),
+    "starclasses": ("worlds", "orbits"),
     "battle3d": ("gunfire",),
     "mounts": ("thrusters",), "burnplan": ("thrusters", "helm"),
 }

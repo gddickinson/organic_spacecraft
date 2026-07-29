@@ -82,8 +82,8 @@ def run(suite: Suite) -> None:
     def _():
         # The multiplier was computed and read by nothing at all for a while —
         # the venture-counter bug in another costume.
-        def spread(forced):
-            game = new_game("growth")
+        def spread(forced, seed):
+            game = new_game(seed)
             state = response_sim.state(game)
             state.responses = list(forced)
             state.stage = 2
@@ -94,13 +94,34 @@ def run(suite: Suite) -> None:
                 game.advance_days(180)
             return sum(s.bloom for s in game.galaxy.systems) - start
 
-        calm = spread([])
-        angry = spread([r.id for r in RESPONSES])
+        # Eight sectors, not one. The first draft measured a single seed and
+        # was passing on luck: the effect is real and noisy — three years of
+        # growth in a forty-two system sector runs close to saturation, which
+        # compresses the gap — and provoked spread beats calm in seven sectors
+        # out of eight, not eight. Which one is the exception depends on the
+        # sector, so a one-sample version goes red for any change that
+        # re-rolls generation, and duly did for the addition of a *star
+        # class*. The aggregate is the measurement; the tally is reported so a
+        # real change in the mechanism is visible rather than averaged away.
+        angry_id = [r.id for r in RESPONSES]
+        seeds = ["growth"] + [f"growth-{n}" for n in range(1, 8)]
+        calm = angry = 0.0
+        agreed = 0
+        for seed in seeds:
+            one, two = spread([], seed), spread(angry_id, seed)
+            calm += one
+            angry += two
+            agreed += two > one
         assert response_sim.growth_multiplier(new_game("x")) == 1.0, (
             "an unprovoked Bloom already grows faster")
-        assert angry > calm, (
-            f"a fully provoked Bloom spread {angry:.1f} against {calm:.1f}")
-        return f"spread {calm:.1f} calm → {angry:.1f} provoked"
+        assert angry > calm * 1.04, (
+            f"a fully provoked Bloom spread {angry:.1f} across eight sectors "
+            f"against {calm:.1f} calm — the multiplier is not reaching the "
+            "growth")
+        assert agreed >= len(seeds) - 2, (
+            f"provoked growth won in only {agreed} of {len(seeds)} sectors")
+        return (f"spread {calm:.1f} calm → {angry:.1f} provoked over "
+                f"{len(seeds)} sectors, ahead in {agreed} of them")
 
     @check("provoked far enough, it comes after you")
     def _():

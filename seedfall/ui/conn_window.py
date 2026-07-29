@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (QDialog, QGridLayout, QHBoxLayout, QLabel,
 
 from ..sim import autopilot as pilot_sim
 from ..sim import berthing as berth_sim
+from ..sim import orbits
 from ..sim import conn as conn_sim
 from ..sim import instruments as panel_sim
 from ..sim import track as track_sim
@@ -160,6 +161,18 @@ class ConnWindow(QDialog):
             grid.addWidget(btn, index // 2, 4 + index % 2)
             self.mode_buttons[mode] = (btn, text)
 
+        # Which orbit, not merely whether. Only the heights this hull can
+        # actually hold at this body are offered — see `orbits.heights_for`,
+        # because a four-kilometre comet cannot be orbited to order by a ship
+        # whose thrusters move it half a metre a second at a time.
+        # One button per rung of the ladder, always built; `refresh` hides
+        # the ones this hull cannot hold at whatever it is looking at now.
+        self.height_buttons = {}
+        for index, (hid, label, _lift, _share) in enumerate(orbits.ORBIT_HEIGHTS):
+            btn = button(label, lambda h=hid: self._set_height(h), kind="flat")
+            grid.addWidget(btn, index // 2, 7 + index % 2)
+            self.height_buttons[hid] = (btn, label)
+
         self.run_btn = button("Run clock", self._toggle_clock, kind="primary")
         grid.addWidget(self.run_btn, 1, 5)
         grid.addWidget(button("New approach…", self._pick_target, kind="flat"),
@@ -173,6 +186,24 @@ class ConnWindow(QDialog):
         self.main_view = view_id
         self.screen.view_id = view_id
         self.refresh()
+
+    def _heights(self) -> list:
+        """The orbit heights on offer here, for this hull at this body."""
+        if self.conn is None or self.conn.target.kind != "body":
+            return []
+        return orbits.heights_for(self.conn.target, self.conn.rcs_dv)
+
+    def _set_height(self, height_id: str) -> None:
+        """Ask for an orbit at a named height, and fly to it."""
+        if self.conn is None:
+            return
+        for hid, label, radius in self._heights():
+            if hid == height_id:
+                self.conn.orbit_want_km = radius
+                up = radius - self.conn.target.radius_km
+                self.win.toast(f"{label} orbit: {up:,.0f} km up.")
+                self._auto("orbit")
+                return
 
     def _toggle_drive(self) -> None:
         self.use_main = not self.use_main
@@ -337,7 +368,31 @@ class ConnWindow(QDialog):
         for mode, (btn, text) in getattr(self, "mode_buttons", {}).items():
             btn.setText(f"▶ {text}" if self.mode == mode else text)
 
+
         live = not conn.over
+
+        # Which heights are on offer depends on the target and the hull, and
+        # the target changes when the ship is flown somewhere — so the row is
+        # relabelled from the live conn every refresh rather than from
+        # whatever was alongside when the window was built. That is the same
+        # window-holding-a-copy-of-the-world fault this file has already been
+        # fixed for twice.
+        offered = {hid: (label, radius)
+                   for hid, label, radius in self._heights()}
+        for hid, (btn, _text) in getattr(self, "height_buttons", {}).items():
+            here = offered.get(hid)
+            btn.setVisible(here is not None)
+            if here is None:
+                continue
+            up = here[1] - conn.target.radius_km
+            chosen = abs(conn.orbit_want_km - here[1]) < 1.0
+            btn.setText(f"▶ {here[0]}" if chosen else here[0])
+            btn.setEnabled(live)
+            btn.setToolTip(f"{here[0]} orbit — {up:,.0f} km up. "
+                           f"Leaving costs "
+                           f"x{orbits.departure_factor(conn.target.radius_km, here[1]):.2f}; "
+                           f"a survey resolves "
+                           f"x{orbits.look_factor(conn.target.radius_km, here[1]):.2f}.")
         ok, why = conn_sim.can_burn(conn, self.use_main)
         for axis_id, btn in self.axis_buttons.items():
             btn.setEnabled(live and ok)
@@ -413,17 +468,40 @@ class ConnWindow(QDialog):
 #: this opened the conn on **the planet** — because `track.contacts` lists
 #: bodies before anchorages and the window took the first row in reach. You
 #: are already in orbit of the body; approaching it is not a manoeuvre.
-DEFAULT_ORDER = ("anchorage", "hull", "body")
+#:
+#: The body came last on the reasoning that approaching what you are already
+#: orbiting is not a manoeuvre. That was true when an orbit had no height.
+#: It is not true now — see `orbits.ORBIT_HEIGHTS` — so a world you are
+#: standing at is something a captain can act on, and it outranks a stranger's
+#: hull that happens to be passing.
+DEFAULT_ORDER = ("anchorage", "body", "hull")
 
 
 def default_target(game):
-    """The most useful thing in reach to open an approach on."""
+    """The most useful thing in reach to open an approach on.
+
+    **Where the ship actually is comes first.** Traffic drifts, and once
+    bodies moved onto their real orbits a passing freighter could easily be
+    the nearest thing in the system — so the conn opened on `Patient Ledger`
+    while the hull sat in orbit around a world it was not being shown. Anything
+    co-located with the ship wins, in the order above; only then does the rest
+    of the system get a look in.
+    """
     reachable = [c for c in track_sim.contacts(game)
                  if c.kind != "star" and berth_sim.can_conn(game, c)[0]]
-    for kind in DEFAULT_ORDER:
-        here = [c for c in reachable if c.kind == kind]
-        if here:
-            return here[0]
+    here_id = getattr(game, "orbit_body", None)
+    index = next((i for i, b in enumerate(game.system.bodies)
+                  if b.id == here_id), None) if here_id else None
+
+    def at_the_ship(contact) -> bool:
+        return index is not None and contact.body_index == index
+
+    for group in (True, False):
+        pool = [c for c in reachable if at_the_ship(c) is group]
+        for kind in DEFAULT_ORDER:
+            found = [c for c in pool if c.kind == kind]
+            if found:
+                return found[0]
     return None
 
 

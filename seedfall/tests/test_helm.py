@@ -40,6 +40,7 @@ import math
 
 from ..core.state import new_game
 from ..data.crossings import CROSSINGS
+from ..data.starclasses import mu_of
 from ..sim import flight
 from ..sim.actions import jump_quote
 from ..world.galaxy import distance
@@ -227,7 +228,7 @@ def run(suite: Suite) -> None:
             assert click(chart.place_mark(game, place)) == place.id, (
                 f"{place.name} is not clickable where it is drawn")
             chart.place = None
-            on_world = chart._to_screen(*flight.position(body, game.day))
+            on_world = chart._to_screen(*flight.position(body, game.day, mu_of(game.system)))
             assert click(on_world) is None, (
                 f"clicking {body.name} itself selected the quay in orbit of "
                 "it — the two marks are on top of each other")

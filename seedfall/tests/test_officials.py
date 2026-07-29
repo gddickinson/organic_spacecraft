@@ -171,10 +171,18 @@ def run(suite: Suite) -> None:
 
     @check("what the desk promises is what asking does")
     def _():
-        game, system = _at_a_quay("promise")
-        _befriend(game, system, 40)
-        checked = 0
+        # A fresh quay for every favour, because **asking spends regard**:
+        # the first favour costs 28 of the 48 a well-liked captain has, which
+        # puts every other favour out of reach inside the same chronicle. The
+        # first draft looped over all five at one desk, asked one, and
+        # asserted it had checked two — it passed only while that one desk
+        # happened to offer a cheap favour first, and went red when a change
+        # to *star generation* re-rolled which harbourmaster the seed lands
+        # on. One favour per official is what the claim actually needs.
+        checked, seen = 0, set()
         for favour in FAVOURS:
+            game, system = _at_a_quay(f"promise-{favour.id}")
+            _befriend(game, system, 40)
             plan = officials.preview(game, system, favour.id, lean=False)
             if not plan["ok"]:
                 continue
@@ -186,9 +194,13 @@ def run(suite: Suite) -> None:
                 f"{favour.id}: said {plan['cost']:.1f}, moved {moved:.1f}")
             if favour.lasts:
                 assert officials.favour_running(game, system, favour.id) > 0
+            seen.add(favour.id)
             checked += 1
-        assert checked >= 2, checked
-        return f"{checked} favours asked, every cost as previewed"
+        assert len(seen) >= 4, (
+            f"only {len(seen)} of {len(FAVOURS)} favours could be asked at "
+            f"all: {sorted(seen)}")
+        return (f"{checked} favours asked, one official each, "
+                "every cost exactly as previewed")
 
     @check("every favour is read somewhere in the game")
     def _():

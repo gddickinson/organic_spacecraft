@@ -11,7 +11,7 @@ ignore it.
 from __future__ import annotations
 
 from .conn import (ALONGSIDE_RATE, MAIN_COST, SAFE_CLOSING, Conn)
-from .orbits import ORBIT_FLOOR_KM, orbit_band, orbital_speed
+from .orbits import ORBIT_FLOOR_KM, in_orbit, orbit_band, orbital_speed
 
 
 def readout(conn: Conn) -> list[tuple[str, str, str]]:
@@ -29,13 +29,21 @@ def readout(conn: Conn) -> list[tuple[str, str, str]]:
         want = orbital_speed(conn)
         band = orbit_band(conn)
         altitude = r - conn.target.radius_km
+        # A sound orbit is the answer to both of these rows, so ask *the
+        # orbit* rather than the instant. The pair of instantaneous tests
+        # below them are true of a good orbit only at its apses: once
+        # `in_orbit` learned to judge the ellipse, a ship correctly
+        # established at 9,123 m/s had the speed it had just got right marked
+        # in amber, on five of twelve approaches. The same fault, and the same
+        # fix, as `orbits.orbit_note`.
+        sound = in_orbit(conn)
         rows = [
             ("Altitude", f"{altitude:,.0f} km",
              "ok" if altitude >= ORBIT_FLOOR_KM else "bad"),
             ("Closing", f"{conn.closing:+,.1f} m/s",
-             "ok" if abs(conn.closing) <= band else "warn"),
+             "ok" if sound or abs(conn.closing) <= band else "warn"),
             ("Relative", f"{conn.speed:,.1f} m/s",
-             "ok" if abs(conn.speed - want) <= band else "warn"),
+             "ok" if sound or abs(conn.speed - want) <= band else "warn"),
             ("Circular here", f"{want:,.0f} m/s", "ok"),
         ]
     else:

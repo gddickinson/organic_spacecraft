@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import QVBoxLayout, QSizePolicy, QWidget
 
 from ..core.util import duration, num
 from ..sim import anchorage as anchorage_sim
+from ..data.starclasses import mu_of
 from ..sim import flight
 from ..sim import traffic as traffic_sim
 from ..sim import transit as transit_sim
@@ -70,7 +71,7 @@ class OrbitChart(QWidget):
         """Where a quay's mark is drawn. The painter and the hit test agree
         because they both come here."""
         body = g.system.bodies[place.body_index]
-        at = self._to_screen(*flight.position(body, g.day))
+        at = self._to_screen(*flight.position(body, g.day, mu_of(g.system)))
         return QPointF(at.x() + QUAY_OFFSET, at.y() - QUAY_OFFSET)
 
     def mousePressEvent(self, ev):  # noqa: N802
@@ -95,7 +96,7 @@ class OrbitChart(QWidget):
 
         best, bd = None, 18.0
         for i, b in enumerate(g.system.bodies):
-            p = self._to_screen(*flight.position(b, g.day))
+            p = self._to_screen(*flight.position(b, g.day, mu_of(g.system)))
             d = math.hypot(p.x() - ev.position().x(), p.y() - ev.position().y())
             if d < bd:
                 best, bd = i, d
@@ -115,7 +116,7 @@ class OrbitChart(QWidget):
         q = flight.intercept(g, body, self.burn)
         ship = self._to_screen(*flight.ship_position(g))
         aim = self._to_screen(*q["aim"])
-        now = self._to_screen(*flight.position(body, g.day))
+        now = self._to_screen(*flight.position(body, g.day, mu_of(g.system)))
 
         # the star's heat zone, if the leg goes anywhere near it
         if q["risk"] > q["burn"].risk + 0.005:
@@ -129,7 +130,7 @@ class OrbitChart(QWidget):
         arc = QPainterPath()
         for step in range(13):
             day = g.day + q["days"] * step / 12
-            pt = self._to_screen(*flight.position(body, day))
+            pt = self._to_screen(*flight.position(body, day, mu_of(g.system)))
             arc.moveTo(pt) if step == 0 else arc.lineTo(pt)
         p.drawPath(arc)
 
@@ -170,7 +171,7 @@ class OrbitChart(QWidget):
             p.setBrush(Qt.BrushStyle.NoBrush)
             p.drawEllipse(QPointF(cx, cy), r, r)
 
-            pos = self._to_screen(*flight.position(b, g.day))
+            pos = self._to_screen(*flight.position(b, g.day, mu_of(g.system)))
             tint = QColor(theme.tint(BODY_KINDS[b.kind][1]))
             p.setPen(Qt.PenStyle.NoPen)
             p.setBrush(tint)
@@ -376,7 +377,7 @@ class HelmView(View):
                        "flying to the other."))
         p.add(note(BODY_KINDS[body.kind][0] + " · "
                    + f"{flight.orbit_radius(body):.1f} AU orbit · "
-                   + f"period {duration(flight.period_days(body))}"))
+                   + f"period {duration(flight.period_days(body, mu_of(g.system)))}"))
         p.add_row("Range now", f"{flight.distance_to(g, body):.2f} AU")
         p.add_row("Reaction mass aboard",
                   f"{round(g.ship.cargo.get('volatiles', 0))} t")

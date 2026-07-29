@@ -447,6 +447,88 @@ berth it answered that the planet was at zero range and therefore 180° wide,
 which is a picture of being inside it. Co-located sights are placed where they
 physically are: the world below a berth reads 98° across.
 
+**Gravity that knows which star it is, and an orbit you choose the height of.**
+Two player reports, one system, and the second was the bigger fault.
+
+`flight.period_days` was `YEAR_AT_1AU · a^1.5` — Kepler's third law with the
+`sqrt(M)` left out, so **every star in the sector weighed exactly one Sun** as
+far as its planets were concerned and a world at one AU took the same year
+round a 0.32-solar M dwarf as round an A-type nearly six times heavier. It now
+takes the star's `mu` as a *required* argument (a default is how half the call
+sites end up quietly assuming the Sun), `StarClass` carries `mass_solar`, and
+`starclasses.mu_of` is the single door. Measured: **645 days at one AU round an
+M dwarf, 272 round an A-type, 129 round a black hole**. Black holes are new —
+eight solar masses in a 23.6 km event horizon — and safe to add because a
+galaxy is *stored* in the save, so an existing chronicle keeps its sector.
+
+And there was one orbit, wherever the transfer dropped you. `sim/orbits.py`
+now holds a ladder whose middle rung is `targets.approach_range` **exactly**,
+so a transfer arrives at the standard orbit and low and high are each a real
+piece of flying. The trade is geometry rather than invention: escape speed is
+`sqrt(2mu/r)`, so `departure_factor` makes low **1.3–3.6× dearer to leave**
+than high, and `look_factor` gives it correspondingly better resolution on a
+survey. `heights_for` withholds rungs the hull cannot hold — a four-kilometre
+comet has a 2 m/s orbit and a thruster pulse is half a metre.
+
+The control law took four attempts, and three of the failures looked perfectly
+reasonable written down: a radial rate (you do not raise an orbit by thrusting
+outward — 877 m/s of climb, ballistic, then aground); excess tangential speed
+with a *zero* radial demand (a contradiction that cancelled the rise it had
+just made); and vis-viva re-solved every tick, which is elegant and needs no
+constants but only ever burns prograde at the ship's current position, so it
+raised apoapsis for ever and never periapsis. What works is **round it off,
+then move it**: circular speed at the current radius drives eccentricity to
+nothing with no second branch, and the vis-viva transfer runs once it is round.
+
+Two real bugs sat underneath, both fixed rather than tuned around:
+
+- **A hull could not reverse.** `attitude.turned` sweeps the shortest great
+  circle, and to a point *exactly* astern there is no shortest one — the
+  perpendicular component is zero and it returned the nose unchanged. So
+  `conn.apply` spent every tick slewing, the slew moved nothing, and no thrust
+  was delivered. Nothing asked for a reversal until the orbit computer did.
+- **`worth_turning` ordered the main drive for thruster work**, predicting 2.4
+  ticks for a turn the hull measurably could not finish.
+
+And three screens disagreed with the sim the moment `in_orbit` learned to judge
+the **ellipse** rather than the instant — all the same fault, an instantaneous
+question about something only true at an apse. `orbit_note` called a completed
+orbit "a departure, not an orbit"; `instruments.readout` marked 9,123 m/s amber
+on five of twelve approaches, the speed the ship had just got right; and
+`adrift` was measured against the range the approach opened at, so climbing to
+the high orbit the screen had offered read as losing the target astern.
+
+**Adding one star class re-rolled every sector, and five checks fell over that
+had been passing on seed luck** — the most useful thing this cycle turned up.
+None was measuring what its name claimed: `test_politics` read "the Concord is
+not always reachable" off a one-in-twenty tail (now a differenced claim,
+determined 20/20 against idle 0/20); `test_bloom_arc` measured provoked growth
+in a single galaxy where the effect wins in seven sectors of eight (now
+aggregated over eight, tally reported); `test_officials` looped five favours at
+one desk, asked the first, and claimed two — asking *spends* regard, so only one
+is ever reachable per chronicle (one official per favour now, all five asked);
+`test_counter` checked that a one-shot office rate expires by
+comparing the board against the price posted *before* the deal, when buying
+moves the board (36 to 37 on two tonnes of ore) — now measured against a
+control chronicle that bought the same and never asked; and the conn preferred
+a stranger's hull to the world it was orbiting.
+
+The conn's default target rested on a premise this work removed. It ranked
+`anchorage, hull, body` because "approaching what you are already orbiting is
+not a manoeuvre" — which stopped being true the moment an orbit had a height
+you could choose. With bodies on real orbits a passing freighter was often the
+nearest thing in the system, and the conn opened on it while the hull sat in
+orbit round a world it was not being shown. `default_target` now prefers
+whatever is **co-located with the ship** before anything else in the system.
+
+`sim/conn.py` went past five hundred lines and **how an approach ends** came
+out into `sim/outcome.py`. The seam is real: `conn` answers what the ship does
+when a thruster fires, `outcome` answers whether the approach is over. Three
+of the four outcomes are about a distance; the fourth is not, and asking about
+an orbit at an instant is the mistake that took four control laws and three
+contradicting screens to find. The thresholds stay in `conn` and are passed
+in — a constant written twice is the fault this project has hit most often.
+
 **A sky with eight kinds of star and seven of world.** The sky then had *one*
 star and *one* world, painted different colours. Eight spectral classes have
 existed since the game was written — M dwarf, K, G, F, A, binary, white dwarf,
@@ -981,6 +1063,8 @@ seedfall/
 │   ├── starclasses.py  8 spectral classes with real radii and luminosities —
 │   │                   a 12 km neutron star to an A-type at 1.8 solar
 │   ├── worlds3d.py     worlds by latitude: caps, bands, and concentric rings
+│   │                   (starclasses also carries each class's mass, which is
+│   │                   what decides how fast its worlds go round)
 │   └── lore.py         intro, victories, endings, name pools, glossary
 ├── world/              generated content
 │   ├── galaxy.py       sector generation, lane relaxation, distance/transit
@@ -1029,6 +1113,22 @@ seedfall/
 │   ├── orders.py       which standing orders apply — the discoverability index
 │   ├── parley.py       breaking off and talking your way out
 │   ├── transit.py      standing the watches of a crossing
+│   ├── conn.py         the last ten kilometres: a local frame, thrusters and
+│   │                   the main drive, and what a contact costs
+│   ├── outcome.py      whether an approach is over — alongside, in orbit,
+│   │                   aground or adrift. An orbit is a shape rather than a
+│   │                   distance, which is why it is not decided in conn.py
+│   ├── orbits.py       what counts as an orbit, its size and roundness, and
+│   │                   the ladder of heights you can ask to hold
+│   ├── autopilot.py    the flight computer: one control law, three modes
+│   ├── attitude.py     pointing the hull, and what the swing costs
+│   ├── thrusters.py    mass, thrust and slew rate from what is actually fitted
+│   ├── burnplan.py     a transfer as a sequence of burns
+│   ├── berthing.py     what an approach charges the chronicle when it ends
+│   ├── instruments.py  the conn's panel, judged against what it is trying to do
+│   ├── targets.py      a body or a quay as something with a mu and a radius
+│   ├── weave.py        the ancient anchors, their rings, and lighting a chain
+│   ├── gates.py        transit through the Weave, and what the toll is
 │   ├── dig.py          working a site stratum by stratum, banking as you go
 │   ├── customs.py      the contraband run: the unposted price and the search
 │   ├── allegiance.py   what serving a power costs you with its enemies
@@ -2546,6 +2646,15 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berth" flies the last kilometres rather than running four hundred ticks
   inside the click, and that a conn notices the hull being flown from the helm
   instead of showing an approach on somewhere it has left.
+- **`test_orbits.py`** (9 checks, mutation sweep 17/17) holds the gravity model
+  and the orbit ladder: that a
+  world's year is its *star's* (645 days at one AU round an M dwarf against 272
+  round an A-type), that every height the conn offers can be flown to and the
+  ones withheld genuinely cannot, that the height is a trade in both
+  directions, that the fuel the helm quotes for leaving an orbit is the fuel
+  the transfer spends, and that the panel and the sim never disagree about
+  whether this is an orbit. One limitation is recorded rather than hidden — see
+  the check's own message and task #83.
 - **`test_worlds.py`** holds the astronomical catalogue, and measures it in
   pixels rather than asserting it from the tables that made it: no two kinds
   of world render alike, a star's size is its class's, a gas giant is banded

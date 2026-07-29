@@ -137,6 +137,7 @@ def run(suite: Suite) -> None:
         from .test_ui import _use_offscreen
         _use_offscreen()
         from PyQt6.QtWidgets import QApplication
+        from ..data.starclasses import mu_of
         from ..sim import flight
         from ..ui.helm_view import OrbitChart
         from ..ui.plot3d_window import PlotWindow
@@ -164,7 +165,7 @@ def run(suite: Suite) -> None:
             for _ in range(2):
                 app.processEvents()
             for index, body in enumerate(game.system.bodies):
-                truth = flight.position(body, game.day)
+                truth = flight.position(body, game.day, mu_of(game.system))
                 # The helm chart, read back through its own projection.
                 on_helm = chart._to_screen(*truth)
                 scale, cx, cy = chart._scale()
@@ -177,9 +178,9 @@ def run(suite: Suite) -> None:
                 worst = max(worst, math.dist(helm_au, truth),
                             math.dist(board_au, truth))
                 samples += 1
-            here = flight.position(game.system.bodies[0], game.day)
+            here = flight.position(game.system.bodies[0], game.day, mu_of(game.system))
             moved = max(moved, math.dist(here,
-                                         flight.position(game.system.bodies[0], 0)))
+                                         flight.position(game.system.bodies[0], 0, mu_of(game.system))))
         board.close()
         win.close()
         assert worst < 1e-9, (

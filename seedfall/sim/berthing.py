@@ -157,6 +157,11 @@ def commit(game, conn) -> dict:
         if game.orbit_body != body.id:
             moved = body
         game.orbit_body = body.id
+        # And *where* in the orbit, which is what the departure cost and the
+        # survey resolution both read. An approach that ended alongside a
+        # quay rather than in orbit carries no height, and neither does one
+        # where the captain never chose.
+        game.orbit_alt_km = (conn.range_km if conn.outcome == "orbit" else 0.0)
 
     game.add_log(_line(conn, fuel, hurt), _tone(conn))
 

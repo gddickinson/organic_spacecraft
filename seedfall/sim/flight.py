@@ -13,6 +13,7 @@ import math
 from dataclasses import dataclass
 
 from ..core.rng import RNG, hash_seed
+from ..data.starclasses import SOLAR_MU, mu_of
 from .ship import add_cargo, add_heat, apply_damage, cook
 
 #: Orbital radius in AU for a body's normalised orbit slot (0 inner, 1 outer).
@@ -63,9 +64,24 @@ def orbit_radius(body) -> float:
     return R_INNER + (R_OUTER - R_INNER) * body.orbit
 
 
-def period_days(body) -> float:
+def period_days(body, star_mu: float) -> float:
+    """A body's year, in days. Kepler's third law, with the mass put back.
+
+    `T = 2π·sqrt(a³/mu)`, so `T ∝ a^1.5 / sqrt(M)`. The `sqrt(M)` was missing:
+    the game had one period function for the whole sector and it quietly
+    assumed every star weighed exactly one Sun. A world at one AU took the
+    same year round a 0.32-solar M dwarf as round an A-type nearly six times
+    heavier, when the real difference is a factor of 2.4 — visible on the helm
+    chart, in every launch window, and in where anything is on any given day.
+
+    `star_mu` is required rather than defaulted on purpose. A default is how
+    half the call sites end up quietly assuming the Sun while the other half
+    do it properly, which is the same two-doors-disagreeing fault this file
+    has been bitten by before.
+    """
     r = orbit_radius(body)
-    return max(30.0, YEAR_AT_1AU * (r ** 1.5))
+    scale = math.sqrt(SOLAR_MU / max(star_mu, 1.0))
+    return max(30.0, YEAR_AT_1AU * (r ** 1.5) * scale)
 
 
 def _phase(body) -> float:
@@ -78,17 +94,17 @@ def _phase(body) -> float:
     return (hash_seed(f"{body.id}|{body.name}") % 3600) / 3600.0 * math.tau
 
 
-def position(body, day: int) -> tuple[float, float]:
-    """Where a body is, in AU, on a given day."""
+def position(body, day: int, star_mu: float) -> tuple[float, float]:
+    """Where a body is, in AU, on a given day, round a star of this mass."""
     r = orbit_radius(body)
-    angle = _phase(body) + math.tau * (day / period_days(body))
+    angle = _phase(body) + math.tau * (day / period_days(body, star_mu))
     return r * math.cos(angle), r * math.sin(angle)
 
 
-def separation(a, b, day: int) -> float:
+def separation(a, b, day: int, star_mu: float) -> float:
     """AU between two bodies right now."""
-    ax, ay = position(a, day)
-    bx, by = position(b, day)
+    ax, ay = position(a, day, star_mu)
+    bx, by = position(b, day, star_mu)
     return math.hypot(ax - bx, ay - by)
 
 
@@ -105,7 +121,7 @@ def ship_position(game) -> tuple[float, float]:
     """Where the ship is: at a body, or holding where the jump left you."""
     body = current_body(game)
     if body is not None:
-        return position(body, game.day)
+        return position(body, game.day, mu_of(game.system))
     return 0.0, -ARRIVAL_RADIUS
 
 
@@ -117,7 +133,7 @@ def current_body(game):
 
 def distance_to(game, body) -> float:
     sx, sy = ship_position(game)
-    bx, by = position(body, game.day)
+    bx, by = position(body, game.day, mu_of(game.system))
     return math.hypot(sx - bx, sy - by)
 
 
@@ -145,7 +161,7 @@ def intercept(game, body, burn_id: str = "standard") -> dict:
 
     passes = 0
     for passes in range(1, 8):
-        tx, ty = position(body, game.day + days)
+        tx, ty = position(body, game.day + days, mu_of(game.system))
         _legs, au = route(sx, sy, tx, ty)
         new_days, fuel = _leg(au, burn, speed)
         if abs(new_days - days) <= 0.5:
@@ -153,9 +169,9 @@ def intercept(game, body, burn_id: str = "standard") -> dict:
             break
         days = new_days
 
-    tx, ty = position(body, game.day + days)
+    tx, ty = position(body, game.day + days, mu_of(game.system))
     legs, au = route(sx, sy, tx, ty)
-    nx, ny = position(body, game.day)
+    nx, ny = position(body, game.day, mu_of(game.system))
     return {"burn": burn, "au": au, "days": days, "fuel": fuel,
             "aim": (tx, ty), "arrival_day": game.day + days,
             "lead": math.hypot(tx - nx, ty - ny), "passes": passes,
@@ -165,9 +181,37 @@ def intercept(game, body, burn_id: str = "standard") -> dict:
                      + hot_risk(game))}
 
 
+def departure_factor(game) -> float:
+    """What the orbit the ship is holding does to the cost of leaving it.
+
+    Deeper in a well is dearer to climb out of: the speed you must find to
+    escape is `sqrt(2·mu/r)`, so this is the square root of the ratio of the
+    radii and `mu` cancels out. A low orbit runs about a seventh dearer than
+    a standard one and a high orbit about a quarter cheaper — which is the
+    price of the closer look a low orbit buys, and the whole reason the
+    height is worth choosing.
+    """
+    from .orbits import departure_factor as by_radius
+    body = current_body(game)
+    held = float(getattr(game, "orbit_alt_km", 0.0) or 0.0)
+    if body is None or held <= 0:
+        return 1.0
+    return by_radius(float(getattr(body, "radius_km", 0.0)), held)
+
+
 def quote(game, body, burn_id: str = "standard") -> dict:
-    """Days and reaction mass for a transfer, aimed where the body will be."""
-    return intercept(game, body, burn_id)
+    """Days and reaction mass for a transfer, aimed where the body will be.
+
+    The fuel carries the cost of climbing out of whatever orbit the ship is
+    holding — in the *quote*, so the forecast the helm shows and the mass the
+    transfer actually spends are the same number rather than two.
+    """
+    out = intercept(game, body, burn_id)
+    lift = departure_factor(game)
+    if out["fuel"] and lift != 1.0:
+        out["fuel"] = max(1, round(out["fuel"] * lift))
+    out["departure_lift"] = lift
+    return out
 
 
 def _closest_approach(sx: float, sy: float, tx: float, ty: float) -> float:
@@ -192,7 +236,16 @@ def route(sx: float, sy: float, tx: float, ty: float) -> tuple[list, float]:
     clear = min(HOT_RADIUS, math.hypot(sx, sy), math.hypot(tx, ty))
     near = _closest_approach(sx, sy, tx, ty)
     direct = math.hypot(tx - sx, ty - sy)
-    if near >= clear or clear <= 1e-6:
+    # The tolerance is not decoration. The innermost orbit slot sits at
+    # exactly `R_INNER`, so for a body there the clearance *is* the target's
+    # own distance and the closest point of the leg is the target itself —
+    # `near` and `clear` are the same number computed two ways, and they
+    # differ by about 1e-16. Without the slack that sends the course down the
+    # bend path, where the waypoint is the closest point pushed out to a
+    # radius it is already at: a three-leg route whose detour is exactly zero,
+    # which is a course reported as bent around the star while going straight
+    # through where it always went.
+    if near >= clear - 1e-9 or clear <= 1e-6:
         return [(sx, sy), (tx, ty)], direct
 
     # Push the tightest point of the leg out to the clearance radius. If it

@@ -404,6 +404,7 @@ def run(suite: Suite) -> None:
 
     @check("the helm moves the ship and never traps it")
     def _():
+        from ..data.starclasses import mu_of
         from ..sim import flight
         g = new_game("helm-test")
         assert g.orbit_body is None, "a jump should arrive at the system edge"
@@ -432,8 +433,10 @@ def run(suite: Suite) -> None:
         assert r["ok"] and r["fuel"] == 0, "an empty ship cannot reach a body"
 
         # bodies actually move
-        moved = abs(flight.separation(g.system.bodies[0], g.system.bodies[-1], 0)
-                    - flight.separation(g.system.bodies[0], g.system.bodies[-1], 900))
+        moved = abs(flight.separation(g.system.bodies[0], g.system.bodies[-1], 0,
+                                  mu_of(g.system))
+                    - flight.separation(g.system.bodies[0], g.system.bodies[-1], 900,
+                                    mu_of(g.system)))
         return (f"{len(opts)} profiles; orbits shift {moved:.2f} AU over 900 days")
 
     @check("the mini-games are winnable and terminate")

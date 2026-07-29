@@ -36,8 +36,9 @@ from dataclasses import dataclass, field
 # so they live with the mounts. Re-exported because every caller in the conn
 # and its windows reaches for them through this module.
 from ..data.mounts import AXES, AXES_BY_ID, VIEWS  # noqa: F401
+from . import outcome as outcome_sim
 from .orbits import (ORBIT_BAND, ORBIT_BAND_SHARE, ORBIT_FLOOR_KM, in_orbit,
-                     orbit_band, orbit_note, orbital_speed)
+                     orbit_band, orbit_note, orbital_speed, semi_major_km)
 from .targets import (G0, Target, approach_range, starlight,
                       target_from_body, target_from_contact)
 
@@ -116,6 +117,11 @@ class Conn:
     #: the approach opens — bodies move on a scale of months and an approach
     #: is over in hours.
     sky: list = field(default_factory=list)
+    #: The radius from the target's centre, in km, that the pilot has asked
+    #: to hold. Zero means "wherever we are" — which is what every orbit in
+    #: the game used to be, because `autopilot` circularised at the current
+    #: range and nothing ever asked for a different one.
+    orbit_want_km: float = 0.0
     #: Set once the chronicle has been charged for this approach.
     landed: bool = False
     log: list = field(default_factory=list)
@@ -440,64 +446,25 @@ def _touch(conn: Conn) -> None:
 
 
 def _resolve(conn: Conn) -> None:
-    """Has this ended — alongside, in orbit, aground, or drifted away?"""
-    r = conn.range_km
-    hull = conn.target.radius_km
-    if conn.target.kind == "body":
-        if r <= hull:
-            conn.outcome = "aground"
-            conn.damage = impact_damage(conn.speed)
-            conn.log.append(
-                f"The hull is down on {conn.target.name} at "
-                f"{conn.speed:,.0f} m/s. That was not a landing.")
-            return
-        if in_orbit(conn):
-            conn.outcome = "orbit"
-            conn.log.append(
-                f"Orbit at {r - hull:.0f} km, "
-                f"{conn.speed:.0f} m/s. The drive can rest.")
-            return
-    elif r <= hull:
-        speed = conn.speed
-        if speed <= SAFE_CLOSING:
-            conn.outcome = "alongside"
-            conn.log.append(f"Alongside {conn.target.name}.")
-        else:
-            conn.outcome = "collision"
-            conn.damage = impact_damage(speed)
-            conn.log.append(
-                f"{conn.target.name} at {speed:,.0f} m/s — the frames took it.")
-        return
-    if alongside(conn):
-        conn.outcome = "alongside"
-        conn.log.append(
-            f"Station held on {conn.target.name}: {r * 1000:.0f} m, "
-            f"{conn.speed:.1f} m/s relative. Lines across.")
-        return
-    if r > conn.start_km * ADRIFT_MULTIPLE:
-        conn.outcome = "adrift"
-        conn.log.append(
-            f"{conn.target.name} is {r:,.0f} km astern and opening. "
-            "The approach is off.")
+    """Has this ended? See `sim/outcome.py`, which asks the questions.
+
+    The thresholds stay here and are passed in, so there is one copy of each.
+    """
+    outcome_sim.resolve(conn, safe_closing=SAFE_CLOSING,
+                        impact_base=IMPACT_BASE,
+                        alongside_km=ALONGSIDE_KM,
+                        alongside_rate=ALONGSIDE_RATE,
+                        adrift_multiple=ADRIFT_MULTIPLE)
 
 
 def impact_damage(speed: float) -> float:
-    """What hitting something at this speed takes off the hull.
-
-    Quadratic and uncapped. A cap is what let a five-kilometre-a-second
-    lithobraking manoeuvre cost less than a bad week in the Bloom.
-    """
-    if speed <= 0:
-        return 0.0
-    return round((speed / SAFE_CLOSING) ** 2 * IMPACT_BASE, 1)
+    """What hitting something at this speed takes off the hull."""
+    return outcome_sim.impact_damage(speed, SAFE_CLOSING, IMPACT_BASE)
 
 
 def alongside(conn: Conn) -> bool:
     """Near enough and slow enough to call it a berth."""
-    if conn.target.kind == "body":
-        return False          # a world is orbited, not moored to
-    return (conn.range_km <= ALONGSIDE_KM + conn.target.radius_km
-            and conn.speed <= ALONGSIDE_RATE)
+    return outcome_sim.alongside(conn, ALONGSIDE_KM, ALONGSIDE_RATE)
 
 
 def readout(conn: Conn) -> list[tuple[str, str, str]]:

@@ -152,9 +152,27 @@ def run(suite: Suite) -> None:
         assert res.get("ok"), res
         assert not officials.pending_once(game, system, "quiet_price"), (
             "the office rate survived the deal it was granted for")
-        assert market.quote_buy(game, system, cid) == posted, (
-            "the board is still quoting the office rate after it was spent")
-        return "one deal, and the counter goes back to posted prices"
+
+        # Against a control that made the same purchase and never asked for
+        # anything, not against the price posted *before* the deal — because
+        # buying moves the board. Measured, two tonnes of ore takes it from 36
+        # to 37, so the old comparison was reading a market that had correctly
+        # drifted as a favour that had not been spent. It passed only while the
+        # drift on whatever commodity the seed picked stayed under a rounding
+        # boundary, and went red when a change to *star generation* re-rolled
+        # which quay and which commodity the chronicle lands on.
+        control, csys = _at_a_quay("spent")
+        control.credits = 400_000
+        again = trade.buy(control, cid, 2)
+        assert again.get("ok"), again
+        unfavoured = market.quote_buy(control, csys, cid)
+        assert market.quote_buy(game, system, cid) == unfavoured, (
+            f"after the deal the favoured board quotes "
+            f"{market.quote_buy(game, system, cid)} against {unfavoured} for a "
+            "captain who never asked — the office rate outlived its one deal")
+        return (f"one deal, and the counter goes back to what anyone else "
+                f"pays ({unfavoured}); the office rate cut it to "
+                f"{posted - 4} for exactly one purchase")
 
     @check("the desk and the board both say it is in hand")
     def _():

@@ -233,11 +233,37 @@ def run(suite: Suite) -> None:
             f"Concord reached in only {wins}/{trials} determined games — a "
             "captain with a billion credits, Kin with all four powers and "
             "fifteen years of brokering should get there most of the time")
-        assert rate < 1.0, (
-            f"all {trials} determined games reached the Concord: the churn "
-            "the powers generate has stopped being able to undo the work")
-        return (f"Concord reached in {wins}/{trials} games against the churn "
-                f"({rate:.0%})")
+        # And the other half of the claim: that the *determination* is what
+        # does it, rather than fifteen years passing. The same captain with
+        # the same billion credits and the same standing, who never brokers
+        # anything, must not arrive at the Concord by waiting.
+        #
+        # This replaces `rate < 1.0`, which was an assertion that the game is
+        # not *always* winnable, read off the tail of twenty samples. At a
+        # true rate near 0.95 that fails better than a third of the time on
+        # nothing at all — and it duly went red for a change to *star
+        # generation*, which re-rolled the sectors and turned the single
+        # losing game into a winning one. A one-in-twenty tail is not a
+        # measurement. The differenced version below has real power, and it
+        # says what the check has always been about.
+        idle = 0
+        for seed in range(trials):
+            game = new_game(f"broker-{seed}")
+            game.credits = 10 ** 9
+            for power in dip.POWERS:
+                game.rep[power] = 90
+            game.recompute()
+            for _ in range(15 * 12):
+                game.advance_days(30)
+                if dip.concord_progress(game)["done"]:
+                    idle += 1
+                    break
+        assert idle == 0, (
+            f"{idle} of {trials} games reached the Concord with the captain "
+            "doing nothing but advance the calendar — the powers are settling "
+            "their own grievances and brokering is decoration")
+        return (f"Concord reached in {wins}/{trials} determined games "
+                f"({rate:.0%}) and {idle}/{trials} idle ones")
 
     @check("ventures survive a save and reload")
     def _():

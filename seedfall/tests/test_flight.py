@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 from ..core.state import new_game
+from ..data.starclasses import mu_of
 from ..sim import flight
 from .harness import Suite
 
@@ -31,10 +32,11 @@ def run(suite: Suite) -> None:
         script = (
             "import sys; sys.path.insert(0, %r)\n"
             "from seedfall.core.state import new_game\n"
+            "from seedfall.data.starclasses import mu_of\n"
             "from seedfall.sim import flight\n"
             "g = new_game('determinism')\n"
             "print([round(v, 6) for b in g.system.bodies\n"
-            "       for v in flight.position(b, g.day)])\n" % str(root)
+            "       for v in flight.position(b, g.day, mu_of(g.system))])\n" % str(root)
         )
         seen = []
         for hashseed in ("0", "1", "12345"):
@@ -61,12 +63,12 @@ def run(suite: Suite) -> None:
         assert gap > 0.05, f"nothing moves enough to test with (best {gap:.3f} AU)"
 
         # The aim point must be where the body actually is on arrival.
-        truth = flight.position(best, q["arrival_day"])
+        truth = flight.position(best, q["arrival_day"], mu_of(g.system))
         miss = math.hypot(q["aim"][0] - truth[0], q["aim"][1] - truth[1])
         assert miss < 1e-6, f"aim point misses the body by {miss:.4f} AU"
 
         # And it must differ from a naive shot at the body's present position.
-        now = flight.position(best, g.day)
+        now = flight.position(best, g.day, mu_of(g.system))
         naive = math.hypot(q["aim"][0] - now[0], q["aim"][1] - now[1])
         assert naive > 0.05, "the aim point is just the current position"
         return f"{best.name}: leads {gap:.2f} AU over {q['days']} d"
