@@ -231,12 +231,20 @@ def run(suite: Suite) -> None:
         results["word_first"] = f"board {len(bare)} → {len(early)}"
 
         # quiet_price: goods move at the office rate.
+        #
+        # Granted through `ask`, not written into the store by hand. Writing
+        # it in as a *dated* favour — which is what this check used to do —
+        # tested the price code against a state the game could not produce:
+        # a quiet price lasts no days, and `ask` dropped zero-day favours
+        # entirely, so the whole thing was unreachable and this check could
+        # not tell. It is the reason `tests/test_counter.py` exists.
         from ..sim import market as market_sim, trade
         game, system = _at_a_quay("fav-price")
         cid = next(c for c, s in system.market.stock.items() if s.units > 8)
         posted = market_sim.quote_buy(game, system, cid)
-        officials._store(officials.mind(game, system))["favours"][
-            "quiet_price"] = game.day + 90
+        officials._store(officials.mind(game, system))["regard"] = 60.0
+        granted = officials.ask(game, system, "quiet_price", False)
+        assert granted.get("ok"), granted
         bought = trade.buy(game, cid, 1)
         assert bought["ok"], bought
         assert bought["price"] < posted, (posted, bought["price"])

@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 
 from ..core.save import register as save_register
 from ..data.commodities import BY_ID, COMMODITIES
+from ..data.officials import QUIET_SHARE
 from ..data.shocks import (MAX_PER_SYSTEM, ONSET_PER_MONTH, SHOCKS,
                            SHOCKS_BY_ID, STALE_DAYS)
 from ..world.economy import buy_price, sell_price
@@ -141,6 +142,13 @@ def book(game) -> dict:
     return game.register
 
 
+def _office_rate(game, system) -> bool:
+    """Does this counter owe you the office rate right now?"""
+    from . import officials as officials_sim
+    return (officials_sim.favour_running(game, system, "quiet_price") > 0
+            or officials_sim.pending_once(game, system, "quiet_price"))
+
+
 def quote_buy(game, system, cid: str):
     """What this quay would actually charge *you*, memory included.
 
@@ -155,7 +163,14 @@ def quote_buy(game, system, cid: str):
     raw = buy_price(system.market, cid, rep, game.ship_stats.trade)
     if raw is None:
         return None
-    return max(1, round(raw * grudge_sim.price_bias(game, system.port.faction)))
+    raw *= grudge_sim.price_bias(game, system.port.faction)
+    # The office rate, if somebody behind the counter owes you one. Applied
+    # here and not at the till: this helper exists precisely so the screen and
+    # the counter cannot quote different numbers, and the favour was breaking
+    # that from the moment it was added.
+    if _office_rate(game, system):
+        raw *= QUIET_SHARE
+    return max(1, round(raw))
 
 
 def quote_sell(game, system, cid: str):
@@ -170,7 +185,11 @@ def quote_sell(game, system, cid: str):
     # A power that remembers you badly charges more and pays less, so the
     # bias is inverted on the way out.
     bias = grudge_sim.price_bias(game, system.port.faction)
-    return max(1, round(raw / bias)) if bias else raw
+    if bias:
+        raw = raw / bias
+    if _office_rate(game, system):
+        raw = raw / QUIET_SHARE          # the same twelve per cent, your way
+    return max(1, round(raw))
 
 
 def note_prices(game, system, rep: float = 0.0, trade: float = 0.0) -> None:

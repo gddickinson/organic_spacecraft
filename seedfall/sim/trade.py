@@ -31,7 +31,6 @@ SELL_TAINT = 8.0
 
 #: What "a quiet price" is worth: goods move at the office rate, which is
 #: about twelve per cent inside the posted one, in whichever direction helps.
-QUIET_SHARE = 0.88
 
 
 def buy(game, cid: str, units: int) -> dict:
@@ -39,12 +38,11 @@ def buy(game, cid: str, units: int) -> dict:
     system = game.system
     if not system.port:
         return {"ok": False, "why": "No port here."}
+    # `quote_buy` is the price, office rate included — the screen and the
+    # counter read the same helper so they cannot disagree.
     price = market_sim.quote_buy(game, system, cid)
     if price is None:
         return {"ok": False, "why": "They do not stock it."}
-    # The office rate rather than the posted one, if somebody owes you that.
-    if officials_sim.anywhere(game, "quiet_price"):
-        price *= QUIET_SHARE
 
     room = int(cargo_free(game.ship, game.ship_stats) / bulk_of(cid))
     afford = int(game.credits // price)
@@ -57,6 +55,8 @@ def buy(game, cid: str, units: int) -> dict:
         return {"ok": False, "why": why}
 
     game.credits -= n * price
+    # "This once" means this once: the office rate is spent by using it.
+    officials_sim.spend_once(game, system, "quiet_price")
     add_cargo(game.ship, cid, n)
     apply_trade(system.market, cid, n)
     officials_sim.dealt_with(game, system, min(2.0, n * price / 9000))
@@ -77,8 +77,6 @@ def sell(game, cid: str, units: int) -> dict:
                 "why": "Not over this counter. Not on this station."}
 
     price = market_sim.quote_sell(game, system, cid)
-    if price is not None and officials_sim.anywhere(game, "quiet_price"):
-        price /= QUIET_SHARE          # the same twelve per cent, your way
     n = min(units, game.ship.cargo.get(cid, 0))
     if n <= 0 or price is None:
         return {"ok": False, "why": "Nothing aboard to sell."}
@@ -91,6 +89,7 @@ def sell(game, cid: str, units: int) -> dict:
         out["logged"] = True
 
     game.credits += n * price
+    officials_sim.spend_once(game, system, "quiet_price")
     if n * price >= NOTICED:
         loyalty_sim.record(game, "trade_profit",
                            scale=min(2.0, n * price / 6000))

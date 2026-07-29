@@ -2,6 +2,52 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: a favour that was never granted
+
+Trading, which had not had a cycle. `market.quote_buy`'s own docstring names
+the invariant worth checking — "a screen that quotes one number and charges
+another is the defect this project keeps finding" — so I checked it.
+
+- **The office rate was applied at the till.** With it running the board
+  showed 36/t and the counter charged 31.68; the board said the port paid 29
+  and it paid 32.95. Exactly the split that helper exists to prevent.
+- **Except it never ran.** `Favour.lasts` is a window in days, a quiet price
+  is granted "this once", so it carries `lasts=0` — and `ask()` recorded
+  favours under `if favour.lasts:`. A zero-day favour fell straight through.
+  Measured by playing: asking cost **12.7 regard**, stored nothing, and the
+  purchase that followed was charged the full posted price. One of the five
+  favours the game advertises as "read somewhere real" bought nothing at all.
+- **Fixed both ways.** A one-shot is held in its own list until used, and the
+  rate lives in `quote_buy`/`quote_sell` so board and counter cannot disagree.
+  The desk says "good once, next time you deal here"; the market board
+  explains why its numbers are not the posted ones.
+
+**The check that should have caught it, and why it did not.** `test_officials`
+had "every favour is read somewhere in the game", and for the quiet price it
+wrote the favour straight into the dated `favours` dict by hand. That state is
+unreachable — `ask` could never produce it — so the check proved the price
+code worked given something the game cannot do, and read as coverage. It now
+grants through `ask`, and reintroducing the bug fails it.
+
+That is three cycles running where the lesson was the same: a whitelist of
+known keys, a coverage run pinned to one lucky seed, and now a fixture that
+sets up a state the game cannot reach.
+
+**Two files were over five hundred lines and are not now.**
+- `ui/port_view.py` hit 509. The contract board came out into
+  `ui/board_panel.py`. I extracted it mechanically and then ran a static
+  undefined-name scan, which found three names — `Panel`, `spacer`,
+  `FACTIONS_BY_ID` — that had travelled without their imports, and fourteen
+  left orphaned behind. Worth doing *before* the suite, not after.
+- `tests/__main__.py` hit 525, because every cycle added another five-line
+  `if "name" in wanted:` block. Seventy-eight of them, all the same block. It
+  is a table in `tests/suites.py` now and the dispatch is 50 lines. The
+  hand-kept `ALL_SUITES` beside it had already drifted from the real dispatch
+  order at index 46, which is what a second copy always does.
+
+Five checks in a new `test_counter` suite, every one proven to bite, plus the
+repaired `test_officials` check. 621 checks green, and nothing over 500 lines.
+
 ## 2026-07-28 — SEEDFALL: a board that offers work you can reach
 
 Missions, which had not had a cycle. The general question again: is every

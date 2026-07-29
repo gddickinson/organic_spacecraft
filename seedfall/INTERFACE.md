@@ -618,6 +618,7 @@ seedfall/
 │   ├── dormancy_panel.py  the long sleep, costed in years, tonnes and lives
 │   ├── tactical_plot.py   the engagement from above, arcs included
 │   ├── port_view.py    market, services, recruitment
+│   ├── board_panel.py  the contract board, split out of port_view
 │   ├── ship_view.py    layer stack, fittings, crew, hold
 │   ├── plans_panel.py  the ship drawn: materials, rim light, blight
 │   ├── yard_view.py    hull designer, build queue, fleet management
@@ -681,6 +682,8 @@ seedfall/
     ├── test_helm.py    5 checks — every number on the burn board is accounted
     ├── test_grants.py  5 checks — every colony grant is read, and explained
     ├── test_postings.py 5 checks — the board only offers work you can reach
+    ├── test_counter.py 5 checks — the board's price is the counter's price
+    ├── suites.py       the suite table `__main__` dispatches from
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
     ├── test_legacy.py  7 aftermath checks — an ending is a turn, not a stop
     ├── test_instruments.py 5 checks — a gauge agrees with the ship and itself
@@ -856,6 +859,19 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   game that adds heat, so one clamp at the source covers every hull. An
   end-of-turn clamp was tried too and measured to change nothing at all, so it
   was removed rather than left in looking useful.
+- **Establishing state by hand can make a check unreachable.**
+  `test_officials` proved the office rate worked by writing it into the dated
+  `favours` dict directly. It does not get there that way: a quiet price is
+  granted "this once", carries `lasts=0`, and `ask()` recorded favours under
+  `if favour.lasts:` — so a zero-day favour fell straight through and the
+  price code could never fire in a real game. The check exercised a state the
+  game could not produce and read as coverage. Grant through the same call the
+  player uses.
+- **One helper for the price, and nothing applied at the till.** The office
+  rate was applied inside `trade.buy`/`trade.sell`, so the board showed 36/t
+  while the counter charged 31.68. `market.quote_buy`/`quote_sell` are the
+  price — office rate, grudge bias and all — and `tests/test_counter.py`
+  sweeps the two against each other.
 - **A posting has to name somewhere the hull can get to.** `_pick_target` was
   documented as choosing a system "reachable in principle" and tested only
   `bloom < 0.4`; reachability is transitive and nothing checked it, so **65%

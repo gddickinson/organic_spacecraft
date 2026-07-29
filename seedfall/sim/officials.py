@@ -77,11 +77,12 @@ def _store(mind_obj) -> dict:
     got = getattr(mind_obj, "office", None)
     if not got:
         got = {"regard": START_REGARD, "levers": [], "favours": {},
-               "dealings": 0, "leant": 0}
+               "once": [], "dealings": 0, "leant": 0}
         mind_obj.office = got
     # A mind written before this field existed comes back with an empty dict.
     for key, default in (("regard", START_REGARD), ("levers", []),
-                         ("favours", {}), ("dealings", 0), ("leant", 0)):
+                         ("favours", {}), ("once", []),
+                         ("dealings", 0), ("leant", 0)):
         got.setdefault(key, default)
     return got
 
@@ -216,19 +217,49 @@ def favour_running(game, system, favour_id: str) -> int:
     return max(0, until - game.day)
 
 
+def pending_once(game, system, favour_id: str) -> bool:
+    """Is a one-shot favour sitting here waiting to be used?"""
+    who = mind(game, system)
+    return who is not None and favour_id in _store(who)["once"]
+
+
+def spend_once(game, system, favour_id: str) -> bool:
+    """Use up a one-shot favour. True if there was one to use."""
+    who = mind(game, system)
+    if who is None:
+        return False
+    store = _store(who)
+    if favour_id not in store["once"]:
+        return False
+    store["once"].remove(favour_id)
+    return True
+
+
 def active_favours(game, system) -> list:
     who = mind(game, system)
     if who is None:
         return []
-    return [(FAVOURS_BY_ID[fid], until - game.day)
-            for fid, until in _store(who)["favours"].items()
-            if fid in FAVOURS_BY_ID and until > game.day]
+    store = _store(who)
+    out = [(FAVOURS_BY_ID[fid], until - game.day)
+           for fid, until in store["favours"].items()
+           if fid in FAVOURS_BY_ID and until > game.day]
+    # A one-shot is held rather than dated. Reported as 0 days left, which the
+    # screen reads as "good once" — otherwise a favour you are holding, and
+    # have paid regard for, appears nowhere at all.
+    out += [(FAVOURS_BY_ID[fid], 0)
+            for fid in store["once"] if fid in FAVOURS_BY_ID]
+    return out
 
 
 def anywhere(game, favour_id: str) -> bool:
-    """Is this favour running at the quay you are standing at?"""
+    """Is this favour running at the quay you are standing at?
+
+    True for a dated favour inside its window and for a one-shot that has been
+    granted and not yet used.
+    """
     system = game.system
-    return favour_running(game, system, favour_id) > 0
+    return (favour_running(game, system, favour_id) > 0
+            or pending_once(game, system, favour_id))
 
 
 def preview(game, system, favour_id: str, lean: bool) -> dict:
@@ -297,6 +328,13 @@ def ask(game, system, favour_id: str, lean: bool = False) -> dict:
     store["regard"] = max(-100.0, min(100.0, store["regard"] + plan["cost"]))
     if favour.lasts:
         store["favours"][favour.id] = game.day + favour.lasts
+    elif favour.id not in store["once"]:
+        # A favour that lasts no days is a favour good *once*. There was no
+        # such thing: `if favour.lasts:` simply dropped it, so "a quiet price"
+        # cost 12.7 regard, recorded nothing, and the code in `trade` that
+        # reads it could never once fire. Measured before this: quoted 36/t,
+        # paid 36/t, regard 60.0 → 47.3, and nothing else changed at all.
+        store["once"].append(favour.id)
     return {"ok": True, "favour": favour, "leant": plan["spends_lever"],
             "regard": store["regard"]}
 

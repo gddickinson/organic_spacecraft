@@ -33,29 +33,26 @@ def run(suite: Suite) -> None:
         suite, so shelling out to run one recursed until it timed out.
         """
         import importlib
-        import re
 
-        from .__main__ import ALL_SUITES
+        from .suites import ALL_SUITES, SUITES, SUITES_BY_KEY
 
-        root = pathlib.Path(__file__).resolve().parent.parent.parent
-        source = (root / "seedfall" / "tests" / "__main__.py").read_text()
+        # The dispatch used to be seventy-eight hand-written blocks and this
+        # check read the source for them. It is a table now, so the question
+        # is asked of the table directly — which is stronger: a row that names
+        # a module that cannot be imported, or has no `run`, fails here rather
+        # than the moment somebody asks for that suite.
+        assert ALL_SUITES == [s.key for s in SUITES], (
+            "ALL_SUITES has drifted from the table it is derived from")
+        assert len(SUITES_BY_KEY) == len(SUITES), (
+            "two suites share a key, so one of them can never be asked for")
 
-        missing = [name for name in ALL_SUITES
-                   if f'if "{name}" in wanted' not in source]
-        assert not missing, (
-            "listed in ALL_SUITES and dispatched by nothing — running them "
-            f"prints nothing and exits zero: {missing}")
-
-        # And whatever each block imports has to be importable and have a
-        # `run`, or the dispatch raises the moment somebody asks for it.
         checked = 0
-        for name in ALL_SUITES:
-            block = source.split(f'if "{name}" in wanted:', 1)[1][:400]
-            found = re.search(r"from \. import (\w+)", block)
-            assert found, f"{name} is dispatched but imports nothing"
-            module = importlib.import_module(f"seedfall.tests.{found.group(1)}")
+        for spec in SUITES:
+            module = importlib.import_module(f"seedfall.tests.{spec.module}")
             assert hasattr(module, "run"), (
-                f"{name} dispatches to {found.group(1)}, which has no `run`")
+                f"{spec.key} dispatches to {spec.module}, which has no `run`")
+            assert spec.label, spec.key
             checked += 1
-        return f"{checked} suites, every one dispatched to a real module"
+        assert checked > 60, checked
+        return f"{checked} suites, every one dispatching to a real module"
 

@@ -57,7 +57,9 @@ def whos_here(view, g, system):
     if who["favours"]:
         panel.add(label("Running:", "", "dim"))
         for favour, days in who["favours"]:
-            panel.add(label(f"{favour.name} — {days} days left", "",
+            held = ("good once, next time you deal here" if days == 0
+                    else f"{days} days left")
+            panel.add(label(f"{favour.name} — {held}", "",
                             "chloro", wrap=True))
     return panel
 
@@ -74,10 +76,15 @@ def what_to_ask(view, g, system):
 
     for favour in FAVOURS:
         running = officials_sim.favour_running(g, system, favour.id)
+        held = officials_sim.pending_once(g, system, favour.id)
         card = Card(selectable=False)
-        card.add(label(favour.name, "h3", "chloro" if running else ""))
+        card.add(label(favour.name, "h3",
+                       "chloro" if (running or held) else ""))
         card.add(note(favour.blurb))
-        if running:
+        if held:
+            card.add(label("Already owed — good once, on your next deal "
+                           "over this counter.", "", "chloro"))
+        elif running:
             card.add(label(f"Already running — {running} days left.", "",
                            "chloro"))
             panel.add(card)

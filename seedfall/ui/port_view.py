@@ -6,34 +6,28 @@ from PyQt6.QtWidgets import QGridLayout, QSpinBox, QWidget
 
 from ..core.util import credits as cr
 from ..core.util import pct
-from ..data.commodities import BY_ID, COMMODITIES, bulk_of
+from ..data.commodities import BY_ID, COMMODITIES
 from ..data.factions import FACTIONS_BY_ID, standing
-from ..sim import allegiance
 from ..sim import chains as chain_sim
 from ..sim import services as services_sim
 from ..sim import officials as officials_sim
 from ..sim import trade as trade_sim
-from ..sim import loyalty as loyalty_sim
 from ..sim import customs as customs_sim
 from . import blackmarket_panel
-from . import commissions_panel
+from . import board_panel
 from . import freight_panel
 from . import register_panel
-from . import rumours_panel
 from ..sim import intel as intel_sim
 from ..sim import market as market_sim
-from ..sim import rumours as rumour_sim
 from .berths_panel import BerthsMixin
 from ..sim.fieldwork import buy_field_notes, xeno_notes_price
 from ..sim import xeno as xeno_sim
 from ..sim import contracts as contract_sim
-from ..sim import diplomacy as dip_sim
-from ..sim.ship import add_cargo, cargo_free, cargo_used, hull_pct
-from ..world.economy import (apply_sale, apply_trade, buy_price, demands,
+from ..sim.ship import cargo_used, hull_pct
+from ..world.economy import (buy_price, demands,
                              price_note, sell_price)
-from . import theme
-from .widgets import (Card, Panel, Pill, TabBar, View, button, label,
-                      mono_label, note, spacer)
+from .widgets import (Panel, Pill, TabBar, View, button, label,
+                      mono_label, note)
 
 
 class PortView(BerthsMixin, View):
@@ -121,6 +115,20 @@ class PortView(BerthsMixin, View):
         self.col.addWidget(note(
             f"This port is short of: {wants}.   Hold: {round(cargo_used(g.ship))}/"
             f"{round(g.ship_stats.cargo)} t."))
+
+        # Why the numbers are not the posted ones. The office rate used to be
+        # applied at the till, so the board showed one price and the counter
+        # charged another; now it is in the quote, and the board says so.
+        if officials_sim.pending_once(g, sys, "quiet_price"):
+            self.col.addWidget(label(
+                "Every price here is the office rate, not the posted one — "
+                "somebody at this desk owes you a quiet price. It goes on your "
+                "next deal over this counter and no further.", "", "chloro",
+                wrap=True))
+        elif officials_sim.favour_running(g, sys, "quiet_price"):
+            self.col.addWidget(label(
+                "These are office rates rather than posted prices.", "",
+                "chloro", wrap=True))
 
         news = register_panel.local_news(g, sys)
         if news is not None:
@@ -226,106 +234,7 @@ class PortView(BerthsMixin, View):
     # ── contracts ──────────────────────────────────────────────────────────
 
     def _contracts(self, sysm) -> None:
-        g = self.game
-        # A board is generated once per port and keeps until it is worked out.
-        key = str(sysm.id)
-        if key not in g.boards:
-            g.boards[key] = contract_sim.generate(g.rng("board"), g, sysm)
-        board = [c for c in g.boards[key]
-                 if not c.accepted and c.deadline > g.day]
-        g.boards[key] = board
-
-        rumours = rumours_panel.board(self, g, sysm)
-        if rumours is not None:
-            self.col.addWidget(rumours)
-        office = rumours_panel.surveys(self, g, sysm)
-        if office is not None:
-            self.col.addWidget(office)
-
-        commissions = commissions_panel.held_panel(self, g)
-        if commissions is not None:
-            self.col.addWidget(commissions)
-        offers = commissions_panel.offers_panel(self, g, sysm)
-        if offers is not None:
-            self.col.addWidget(offers)
-
-        mine = contract_sim.active(g)
-        self.col.addWidget(note(
-            f"{len(mine)} of {contract_sim.MAX_ACTIVE} contracts in hand. Nothing "
-            "here is required — the endings are open whether you take work or "
-            "not — but standing is worth more than the fee."))
-
-        if mine:
-            held = Panel("In hand")
-            for c in mine:
-                d = c.definition
-                left = c.days_left(g.day)
-                held.add(spacer(3))
-                held.add(label(c.title, "h3", d.tint))
-                bits = [f"{d.name} · {FACTIONS_BY_ID[c.issuer].short}",
-                        f"{cr(c.reward)}", f"{left} day(s) left"]
-                if c.amount > 1 and c.kind in ("survey", "bounty"):
-                    bits.append(f"{int(c.progress)}/{int(c.amount)} done")
-                held.add(note(" · ".join(bits)))
-                if left < 30:
-                    held.add(label("Running out of time.", "", "warn"))
-                held.add_buttons(button("Abandon it",
-                                        lambda _=False, x=c: self._abandon(x),
-                                        kind="danger"))
-            self.col.addWidget(held)
-
-        if not board:
-            self.col.addWidget(Panel("The board is empty").add(
-                note("Nothing posted here at the moment. Boards refresh as the "
-                     "postings expire.")))
-            return
-
-        cards = []
-        for c in board:
-            d = c.definition
-            card = Card(selectable=False)
-            card.add(label(c.title, "h3", d.tint))
-            card.add(Pill(d.name, d.tint))
-            card.add(label(c.posting, "", wrap=True))
-            card.add(note(f"{cr(c.reward)} · {c.days_left(g.day)} days · "
-                          f"standing +{c.rep}"))
-            # What the cargo costs, and what is left. A fee on its own hid a
-            # board that was half traps.
-            money = contract_sim.quote(g, c)
-            if money is not None:
-                card.add(label(
-                    f"Cargo costs about {cr(money['cost'])} here"
-                    + (f" ({money['held']:g} t already aboard)"
-                       if money["held"] else "")
-                    + f" — clears {cr(money['net'])}",
-                    "", "chloro" if money["net"] > 0 else "warn", wrap=True))
-            # Where the work actually is. The board named a reward and a
-            # deadline and never the destination, while two postings in three
-            # pointed outside the reachable component altogether.
-            leg = contract_sim.trip(g, c)
-            if leg is not None:
-                if leg["hops"] is None:
-                    card.add(label(f"{leg['name']} — you cannot get there "
-                                   "from here at this drive.", "", "warn",
-                                   wrap=True))
-                elif leg["hops"] == 0:
-                    card.add(label(f"{leg['name']} — you are already here.",
-                                   "", "chloro", wrap=True))
-                else:
-                    card.add(label(
-                        f"{leg['name']} — {leg['hops']} jump(s), about "
-                        f"{leg['days']} days each way"
-                        + ("" if leg["in_time"] else
-                           ", which the deadline will not cover"),
-                        "", "chloro" if leg["in_time"] else "warn", wrap=True))
-            # Whose enemies mind, before you commit rather than after.
-            said, tint = allegiance.note(g, c.issuer, c.rep)
-            card.add(label(said, "", tint))
-            card.add(button("Take it", lambda _=False, x=c: self._accept(x),
-                            kind="primary"))
-            cards.append(card)
-        self.col.addWidget(label("Posted", "h3"))
-        self.grid(cards, cols=2)
+        board_panel.build(self, sysm)
 
     def _accept(self, contract) -> None:
         ok, why = contract_sim.accept(self.game, contract)

@@ -132,6 +132,10 @@ FAVOURS = [
            "work, and less competition for it.",
            regard=18.0, needs_regard=30.0, lasts=120),
 
+    #: What the office rate is worth, as a share of the posted price. Lives
+    #: here rather than in `sim/trade.py` because both the quote and the till
+    #: have to read the same number — they did not, and the screen showed the
+    #: posted price while the counter charged twelve per cent less.
     Favour("quiet_price", "A quiet price",
            "Goods move at the office rate rather than the posted one, this "
            "once.",
@@ -174,3 +178,8 @@ CAP_PER_LEAN = 12.0
 #: devoted — the last stretch has to be earned some other way.
 PER_DEALING = 2.2
 DEALING_CAP = 48.0
+
+
+#: The office rate, as a share of the posted price. Read by `market.quote_buy`
+#: and `market.quote_sell` so the screen and the counter cannot disagree.
+QUIET_SHARE = 0.88
