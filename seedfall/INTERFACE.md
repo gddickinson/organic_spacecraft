@@ -878,6 +878,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   game that adds heat, so one clamp at the source covers every hull. An
   end-of-turn clamp was tried too and measured to change nothing at all, so it
   was removed rather than left in looking useful.
+- **`tripwire.KIN` is hand-written, and a stale entry fails silently.** The
+  tool runs a constant against its own neighbourhood first and only pays for
+  the wide sweep if that passes. An entry naming a suite that no longer
+  exists makes `python -m seedfall.tests <name>` run nothing and exit zero, so
+  the fast stage "passes" every time and every constant quietly costs the full
+  run — measured, `ship` swept in 17s with a fast path and 240s without. An
+  entry naming a `SLOW` suite is worse: the verdict then depends on whether a
+  module has an entry at all. `test_harness_guard` holds both, and requires
+  every module with constants either to have a fast path or to be named as
+  having no suite that covers it.
 - **Every action that spends a turn must run the seats.** `take_turn` takes
   two shapes: `{"type": "station", "order": ...}`, which runs the crew-station
   system, and the older `{"type": "fire", "weapon_id": ...}` family, which the

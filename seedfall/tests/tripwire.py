@@ -128,26 +128,42 @@ LIMIT = 60
 #: sweep of everything is three hours and finds the same answer.
 KIN = {
     "dormancy": ("dormancy",), "lineages": ("time",), "crossings": ("time",),
-    "officials": ("officials",), "approaches": ("approach",),
-    "approach": ("approach",), "surveys": ("surveys",), "survey": ("surveys",),
+    "officials": ("counter", "officials"),
+    "approaches": ("envoy", "approach"), "approach": ("envoy", "approach"),
+    "surveys": ("surveys",), "survey": ("charting", "surveys"),
     "traffic": ("traffic",), "anchorage": ("anchorage",),
     "doctrine": ("doctrine",), "firing": ("firing", "gunnery"),
-    "tactical": ("gunnery", "combat"), "combat": ("combat", "gunnery"),
-    "damage": ("combat", "gunnery"), "contraband": ("customs",),
+    "tactical": ("gunnery", "combat"), "combat": ("seatwork", "combat", "gunnery"),
+    "damage": ("thermal_doors", "combat"), "contraband": ("customs",),
     "customs": ("customs",), "diplomacy": ("politics",),
     "grudge": ("grudges",), "colonies": ("works", "founding"),
     "works": ("works",), "mining": ("mining",), "research": ("bench",),
-    "inquiry": ("bench",), "flight": ("flight", "burns"),
-    "contracts": ("missions", "cargo"), "chains": ("missions",),
-    "expedition": ("ground",), "weather": ("ground",),
+    "inquiry": ("evidence", "bench"), "flight": ("helm", "flight", "burns"),
+    "contracts": ("postings", "missions", "cargo"),
+    "chains": ("missions",),
+    "expedition": ("landing", "ground"), "weather": ("ground",),
     "territory": ("territory",), "allegiance": ("allegiance",),
-    "charts": ("charts",), "notes": ("notes",), "freight": ("freight",),
+    "charts": ("charting", "charts"), "notes": ("notes",),
+    "freight": ("freight",),
     "market": ("trade",), "economy": ("trade",), "commodities": ("trade",),
-    "loyalty": ("crew",), "convictions": ("crew",), "crew": ("crew",),
+    "loyalty": ("conviction", "crew"), "convictions": ("conviction", "crew"),
+    "crew": ("conviction", "crew"),
     "lifespan": ("time",), "upkeep": ("time",), "clock": ("time",),
     "stations": ("gunnery",), "consorts": ("combat",), "bloom": ("bloom",),
-    "threat": ("bloom",), "ventures": ("politics",), "memory": ("voices",),
+    "threat": ("bloom",), "ventures": ("politics",), "memory": ("grudges",),
     "intel": ("explore",), "transit": ("transit",), "shipyard": ("design",),
+
+    # Modules that had no entry at all and so paid the wide run for every
+    # constant they own — twenty-one of them, including `ship`, which holds
+    # the thermal rule the whole game reads.
+    "aftermath": ("aftermath",), "assessment": ("assessment",),
+    "colony": ("grants", "founding"), "minigames": ("approaching", "approach"),
+    "plans": ("picture",), "ship": ("thermal_doors", "thermal"),
+    "shocks": ("trade",), "tech": ("evidence", "bench"),
+    "trade": ("counter", "trade"), "orders": ("orders",),
+    "legacy": ("legacy",), "beginning": ("beginnings",),
+    "watches": ("transit",), "rumours": ("missions",),
+    "services": ("trade",),
 }
 
 

@@ -2,6 +2,53 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: the fifty-two that were not there
+
+Task #60 — "pin the remaining 52 unprotected tuning constants" — has sat on
+the list for many cycles. This cycle measured it instead of assuming it.
+
+- **59 constants across 14 modules, and 0 of them unprotected.** ship, flight,
+  expedition, colony, convictions, officials, diplomacy, plans, mining,
+  stations, minigames, aftermath, assessment, ventures — every one pinned,
+  including every constant the last ten cycles introduced: `HEAT_CEILING`,
+  `QUIET_SHARE`, `TREATY_WEIGHT`, `STRANDED_SHARE`, `MEGASTRUCTURE_GUARD`,
+  `PROMOTION_OWN`, `PER_AU`, `LONG_LEG_CAP`, `WORTH_SAYING`, `PATCH`.
+- **The "52" is stale, and the tool records why it would be.** `tripwire.py`
+  used to keep its own copy of the suite list; it went out of date the moment
+  a suite was added, and constants protected by the new suite read as
+  unprotected. `SUITES` is derived from the canonical list now. The count was
+  taken before that fix.
+
+**Two real defects in the tool itself, found by asking it the question it asks
+of the game.** `KIN` maps a module to the cheap suites to try first, and it is
+hand-written:
+
+- **`memory` pointed at `voices`, which is in `SLOW`** — a suite the sweep
+  deliberately excludes. A constant protected only by a slow suite therefore
+  read as protected when its module had an entry and unprotected when it did
+  not. The two stages have to agree on what counts.
+- **21 modules with tuning constants had no fast path at all**, including
+  `ship`, which holds the thermal rule the whole game reads. Every one of
+  their constants paid the full wide run: measured, `ship`'s four took 240
+  seconds without a fast path and 17 with. Fourteen times.
+- And the entries that existed had gone stale against this run's newer, more
+  specific suites — `charts` still pointed at `charts` rather than `charting`,
+  `expedition` at `ground` rather than `landing`, `officials` at `officials`
+  rather than `counter`.
+
+All fixed, and `test_harness_guard` now holds the map: no entry may name a
+suite that does not exist, none may point at a `SLOW` one, and every module
+with constants must either have a fast path or be named as having no suite
+that covers it. Four mutations, all biting.
+
+Task #60 is rewritten with the measured figure and instructions for finishing
+the sweep. The remaining ~92 constants are unswept; a full pass is about
+eighty minutes even with the fast paths, because the fast stage only saves
+time on constants it *catches* — anything genuinely unprotected still pays the
+wide run, which is the right way round.
+
+661 checks green, nothing over 500 lines.
+
 ## 2026-07-29 — SEEDFALL: four more doors into the same hull
 
 Priority four: richer helm and flight. Two cycles went into bounding heat, and
