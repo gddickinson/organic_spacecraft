@@ -19,8 +19,8 @@ from __future__ import annotations
 
 import math
 
-from ..core.solid import (Solid, box, ellipsoid, orient, petal, ring_of,
-                          tube)
+from ..core.solid import (Solid, box, centre_of, ellipsoid, orient, petal,
+                          ring_of, tube)
 from ..data.chassis import CHASSIS_BY_ID
 from ..data.commodities import BY_ID as COMMODITIES_BY_ID
 from ..data.hullforms import (LIVING, ROCK, SLOT_SHAPE, STRUCT, SYSTEM, WARM,
@@ -214,6 +214,50 @@ def _berths(ship, chassis, officers, form) -> list:
     return out
 
 
+#: How big a patch of hull shares one number, in hull radii. Hashing each
+#: face on its own made damage a checkerboard — every quad flipping
+#: independently reads as a broken texture, not as a wound. Neighbouring
+#: faces land in the same cell and rot together.
+PATCH = 0.19
+
+
+def speckle(point, cell: float | None = None) -> float:
+    """A stable number in [0, 1) for a point, for scattering without an RNG.
+
+    Coherent, not per-point: everything inside one `cell` cube gets the same
+    number, so what it scatters comes out in patches.
+
+    Deliberately not `game.rng()`: the model is drawn many times a second and
+    drawing must never advance the chronicle's random state.
+    """
+    cell = PATCH if cell is None else cell
+    n = 0
+    for value in point:
+        n = (n * 1000003 + math.floor(value / cell)) & 0xFFFFFFFF
+    n = ((n ^ (n >> 13)) * 2246822519) & 0xFFFFFFFF
+    return ((n ^ (n >> 16)) & 0xFFFFFFFF) / 0x100000000
+
+
+def scar(solid, health: float) -> int:
+    """Mark dead patches on a hull. Returns how many faces are hurt.
+
+    A ship at 30% looked exactly like a ship at 100% — every reading of the
+    damage was a percentage in a side panel, and the picture of the ship, the
+    one thing always on the screen, said nothing at all.
+
+    Patches rather than a uniform dimming, and in the same places each time:
+    a face is dying when its own stable number falls above the hull's health,
+    so wounds appear where they appeared before and spread as she is hurt.
+    """
+    hurt = 0
+    for face in solid.faces:
+        value = speckle(centre_of(face.points))
+        face.hurt = max(0.0, min(1.0, (value - health) * 2.2))
+        if face.hurt > 0:
+            hurt += 1
+    return hurt
+
+
 def build(game, ship=None, fitted=None, cutaway: bool = False) -> dict:
     """The whole model. `fitted` overrides the ship's own, for the designer.
 
@@ -229,7 +273,10 @@ def build(game, ship=None, fitted=None, cutaway: bool = False) -> dict:
 
     solids = []
     if not cutaway:
-        solids.append(_hull(form, chassis))
+        skin = _hull(form, chassis)
+        health = layer_health(ship)
+        scar(skin, health[0][1] if health else 1.0)
+        solids.append(skin)
     solids.extend(_furniture(form))
 
     used: dict[str, int] = {}

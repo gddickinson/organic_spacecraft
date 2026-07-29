@@ -481,7 +481,8 @@ seedfall/
 │   ├── rng.py          seeded mulberry32 + pick/weighted/gauss/shuffle helpers
 │   ├── util.py         formatting (credits, mass, stardate, duration) and clamp
 │   ├── save.py         generic dataclass ⇄ JSON codec, @register, atomic write
-│   ├── solid.py        a tiny 3D kit: primitives, projection, flat shading
+│   ├── solid.py        a tiny 3D kit: primitives, projection, key/fill/rim
+│   │                   lighting, specular and a depth term
 │   ├── llm.py          optional language model, off by default, hard timeout
 │   └── state.py        the Game object, advance_days(), new_game(), load_game()
 ├── data/               static content tables — pure data, no logic
@@ -541,7 +542,8 @@ seedfall/
 │   ├── diplomacy.py    standing, the relations matrix, treaties, brokering
 │   ├── expedition.py   the ground game: zone map, movement, attempts, hauls
 │   ├── reach.py        what you can get to at all, and what a drive would open
-│   ├── plans.py        the ship as solids: hull, fittings, hold, berths
+│   ├── plans.py        the ship as solids: hull, fittings, hold, berths;
+│   │                   `scar()` marks the blight a hurt hull shows
 │   ├── beginning.py    turning an opening choice into a chronicle
 │   ├── legacy.py       life after an ending: epochs, pressure, situations
 │   ├── telemetry.py    what the instrument windows read, band by band
@@ -614,6 +616,7 @@ seedfall/
 │   ├── tactical_plot.py   the engagement from above, arcs included
 │   ├── port_view.py    market, services, recruitment
 │   ├── ship_view.py    layer stack, fittings, crew, hold
+│   ├── plans_panel.py  the ship drawn: materials, rim light, blight
 │   ├── yard_view.py    hull designer, build queue, fleet management
 │   ├── tech_view.py    research tree
 │   ├── empire_view.py  colonies, depot, victory progress, waiting
@@ -669,6 +672,7 @@ seedfall/
     ├── test_attempts.py 6 checks — the odds shown are the odds rolled
     ├── test_reach.py   6 reach checks — the chart's wall is a real wall
     ├── test_plans.py   8 plan checks — the model is the ship, and it is solid
+    ├── test_picture.py 8 checks — the picture shows the ship's condition
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
     ├── test_legacy.py  7 aftermath checks — an ending is a turn, not a stop
     ├── test_instruments.py 5 checks — a gauge agrees with the ship and itself
@@ -1455,6 +1459,21 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   hull, and roughly half the faces cull either way so the count says nothing.
   Two checks cover it — one on the normals of every primitive, one that puts a
   box inside a sphere and insists the sphere occludes it.
+- **`test_picture.py`** holds the picture of the ship to showing the ship. A
+  hull at 25% used to render pixel-for-pixel identically to one fresh out of
+  the yard: every reading of the damage was a percentage in a side panel,
+  while the model — the one thing always on the screen — said nothing. Damage
+  is drawn now as blight spreading over the hull, following the *outermost*
+  layer, because that is the one damage lands on first and the one you could
+  actually see. The checks measure it end to end rather than by field: two
+  renders that differ by pixel count, the same ship twice that does not, and
+  neighbour agreement to hold the blight to contiguous patches — the first
+  version asked whether a marked face had a marked neighbour, which with half
+  the hull marked is true by chance, and scored per-face static at 99%.
+  `speckle()` scatters from a stable hash rather than `game.rng()`, because
+  drawing happens many times a second and must never advance the save; one
+  check exists solely to keep it that way.
+
 - **`test_reach.py`** walks the reachable component with `jump_quote` rather
   than re-deriving it, so the chart and the Set course button cannot drift, and
   fits each drive the chart offers before believing what it claims to open.

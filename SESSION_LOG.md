@@ -2,6 +2,49 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a ship that shows what has happened to her
+
+Following the standing request to keep improving the graphics, especially of
+the ships. Two things were wrong: the model was lit badly, and it was silent.
+
+- **A ship at 25% hull rendered pixel-for-pixel identically to one fresh out
+  of the yard.** Every reading of the damage was a percentage in a side panel;
+  the picture — the one thing always on the screen — said nothing at all.
+  Damage now shows as blight spreading over the hull, following the outermost
+  layer, which is the one damage lands on first and the one you could see.
+- **The blight is patches, not static.** The first version hashed each face on
+  its own and produced a checkerboard, which reads as a broken texture rather
+  than as a wound. `speckle()` is coherent now: everything inside one `PATCH`
+  cube shares a number, so neighbouring faces rot together. Measured, touching
+  faces agree 79% of the time against 50% for face-by-face scatter.
+- **It scatters without dice.** Drawing happens many times a second, so using
+  `game.rng()` would mean two captains who looked at their ship a different
+  number of times got different chronicles. A check exists solely for this.
+- **Lighting: key, fill, rim and specular** instead of one lambert term. The
+  rim is what separates the silhouette from the void; the specular is keyed to
+  material, so a grown membrane (gloss 0.10) and a fabricated plate (0.55)
+  stop looking like the same plastic in two colours. Faces also fade with
+  distance, and the flat black backdrop is a graded well of light, so the hull
+  has something to sit against.
+- **The per-face outline is gone.** It existed to hide the hairline seams
+  antialiasing leaves between polygons, but drawn darker than the face it drew
+  a lat/long grid over a hull that is supposed to be grown. Same purpose, same
+  colour as the face.
+- **The caption names the skin.** "hull 93%" beside a visibly rotten ship read
+  as a rendering fault; it now reads "hull 93% · sacrificial epidermis 45%".
+
+Eight checks in a new `test_picture` suite, every one proven to bite by
+reintroducing the bug it exists for — including the two that first did not.
+The pixel check compares two renders rather than inspecting fields, because a
+field on a dataclass proves nothing about what the captain can see.
+
+**My own error worth recording:** the first coherence check asked whether a
+marked face had a marked neighbour. With half the hull marked that is true by
+chance — per-face static scored 99% on it. The metric had to become neighbour
+*agreement* against the chance baseline before it could tell the two apart.
+
+581 checks green.
+
 ## 2026-07-28 — SEEDFALL: a seam that can actually be worked out
 
 Same method as last cycle — measure a system for a dominant strategy before

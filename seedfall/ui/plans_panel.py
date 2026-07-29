@@ -16,7 +16,8 @@ from __future__ import annotations
 import math
 
 from PyQt6.QtCore import QPointF, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QFont, QPainter, QPen, QPolygonF
+from PyQt6.QtGui import (QColor, QFont, QPainter, QPen, QPolygonF,
+                         QRadialGradient)
 from PyQt6.QtWidgets import QSizePolicy, QWidget
 
 from ..core import solid as solid_mod
@@ -35,11 +36,60 @@ MATERIAL = {
 }
 
 
-def _shaded(key: str, shade: float, dim: bool = False) -> QColor:
-    colour = QColor(MATERIAL.get(key, "#7c9689"))
-    factor = shade * (0.42 if dim else 1.0)
-    return QColor(int(colour.red() * factor), int(colour.green() * factor),
-                  int(colour.blue() * factor))
+#: How glossy each material is. The one thing that made a grown hull and a
+#: fabricated fitting look like different substances rather than the same
+#: plastic in two colours: a membrane scatters, a plate does not.
+GLOSS = {
+    LIVING: 0.10,
+    SYSTEM: 0.55,
+    STRUCT: 0.32,
+    WARM: 0.22,
+    ROCK: 0.05,
+    VOID: 0.0,
+}
+
+#: The void the ship hangs in. Faces fade toward it with distance, which is
+#: what stops a deep model reading as a flat sticker.
+BACKDROP = (10, 20, 17)
+
+#: Colour of the rim light — cold, so it reads as sky rather than as more sun.
+RIM = (128, 196, 214)
+
+#: Dead hull: a grown ship necroses rather than scorching, so wounds go sallow
+#: and then black instead of glowing.
+NECROSIS = (116, 92, 52)
+
+
+def _shaded(key: str, face, dim: bool = False) -> QColor:
+    """One face's colour: key light, rim, material gloss, then distance."""
+    base = QColor(MATERIAL.get(key, "#7c9689"))
+    if face.hurt > 0:
+        # Capped short of a full swap: dead tissue is sallow, not a hole. A
+        # complete blend to the necrotic colour read as a gap in the hull.
+        rot = face.hurt * 0.82
+        base = QColor(*(int(c + (NECROSIS[i] - c) * rot) for i, c in
+                        enumerate((base.red(), base.green(), base.blue()))))
+    factor = face.shade * (0.42 if dim else 1.0)
+    rgb = [base.red() * factor, base.green() * factor, base.blue() * factor]
+
+    # Rim: brightest where the surface turns away from the eye, which draws
+    # the silhouette without an outline pass and separates the hull from the
+    # void behind it.
+    lift = face.rim * (0.30 if dim else 0.62)
+    for i in range(3):
+        rgb[i] += (RIM[i] - rgb[i]) * lift
+
+    # Specular, on materials that have any.
+    hot = (face.spec * GLOSS.get(key, 0.2) * (1.0 - face.hurt)
+           * (0.4 if dim else 1.0))
+    for i in range(3):
+        rgb[i] += (245 - rgb[i]) * hot
+
+    # Distance, last, so it fades the finished colour rather than the base.
+    fade = face.far * 0.42
+    for i in range(3):
+        rgb[i] += (BACKDROP[i] - rgb[i]) * fade
+    return QColor(*(max(0, min(255, int(v))) for v in rgb))
 
 
 class ShipPlan(QWidget):
@@ -146,10 +196,24 @@ class ShipPlan(QWidget):
 
     # ── painting ───────────────────────────────────────────────────────────
 
+    def _backdrop(self, p: QPainter) -> None:
+        """A soft well of light behind the ship rather than flat black.
+
+        Flat black gave the model nothing to sit against: every face was
+        lighter than the ground, so the silhouette read as a cut-out.
+        """
+        rect = self.rect()
+        centre = QPointF(rect.width() / 2, rect.height() * 0.46)
+        glow = QRadialGradient(centre, max(rect.width(), rect.height()) * 0.62)
+        glow.setColorAt(0.0, QColor(22, 42, 38))
+        glow.setColorAt(0.55, QColor(13, 26, 23))
+        glow.setColorAt(1.0, QColor(*BACKDROP))
+        p.fillRect(rect, glow)
+
     def paintEvent(self, _event) -> None:
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        p.fillRect(self.rect(), QColor("#08120f"))
+        self._backdrop(p)
 
         width, height = self.width(), self.height()
         scale = min(width, height) * 0.46
@@ -159,7 +223,7 @@ class ShipPlan(QWidget):
         anything_selected = self.selected is not None
         for face in painted:
             chosen = face.tag == self.selected
-            colour = _shaded(face.tint, face.shade,
+            colour = _shaded(face.tint, face,
                              dim=anything_selected and not chosen)
             if face.tint == VOID:
                 colour.setAlpha(70 if not chosen else 150)
@@ -168,10 +232,17 @@ class ShipPlan(QWidget):
             p.setBrush(colour)
             if chosen:
                 p.setPen(QPen(QColor(theme.tint("lumen")), 1.4))
-            else:
+            elif face.tint == VOID:
+                # A cargo volume is a transparent box: it needs its edges.
                 edge = QColor(colour)
-                edge.setAlpha(90)
+                edge.setAlpha(120)
                 p.setPen(QPen(edge, 0.6))
+            else:
+                # The pen exists only to cover the hairline seams antialiasing
+                # leaves between neighbouring polygons — so it is the face's
+                # own colour. A darker edge drew every facet, which put a
+                # lat/long grid over a hull that is supposed to be grown.
+                p.setPen(QPen(colour, 0.7))
             p.drawPolygon(poly)
 
         # Fore/aft, because a spheroid gives no other clue which way is up.

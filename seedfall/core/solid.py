@@ -28,6 +28,9 @@ class Face:
     points: list          # world-space, wound counter-clockwise seen from outside
     tint: str
     tag: str = ""         # which part of the ship this belongs to
+    #: 0 sound .. 1 dead. A grown hull does not dim uniformly when it is hurt,
+    #: it necroses in patches, and the painter tints by this.
+    hurt: float = 0.0
 
 
 @dataclass
@@ -236,12 +239,25 @@ def _turn(p, view: View) -> Point:
 
 @dataclass
 class Painted:
-    """One face, ready to draw: screen points, its shade and its depth."""
+    """One face, ready to draw: screen points, its shading and its depth."""
     points: list          # (x, y) in [-1, 1], y down
-    shade: float          # 0 dark .. 1 lit
+    shade: float          # 0 dark .. 1 lit — the key light
     depth: float          # larger is further away
     tint: str
     tag: str
+    #: A rim term: how edge-on the face is to the viewer. A grown hull read as
+    #: a flat green egg under one lambert light because nothing separated its
+    #: silhouette from the void behind it.
+    rim: float = 0.0
+    #: A specular term. The painter decides how much of it to use — a
+    #: fabricated plate is glossy, a photosynthetic membrane is not — which is
+    #: the only thing that made the materials look like different substances.
+    spec: float = 0.0
+    #: 0 at the nearest face, 1 at the furthest. Used to fade distance back
+    #: toward the void so a deep model does not read as a flat sticker.
+    far: float = 0.0
+    #: Carried through from the face: how dead this patch of hull is.
+    hurt: float = 0.0
 
 
 def project(faces, view: View, cull=True) -> list:
@@ -253,6 +269,12 @@ def project(faces, view: View, cull=True) -> list:
     """
     eye = (0.0, -view.distance, 0.0)
     light = unit(view.light)
+    # A fill from the opposite quarter, weaker and colder, so the unlit side
+    # is modelled rather than merely dark.
+    fill = unit((-light[0] * 0.8, -light[1] * 0.5, -light[2] * 0.35 - 0.3))
+    towards = unit((0.0, -1.0, 0.0))
+    half = unit((light[0] + towards[0], light[1] + towards[1],
+                 light[2] + towards[2]))
     out = []
     for face in faces:
         turned = [_turn(p, view) for p in face.points]
@@ -268,9 +290,20 @@ def project(faces, view: View, cull=True) -> list:
                 behind = 0.05
             k = view.zoom * 1.6 / behind
             points.append((p[0] * k, -p[2] * k))
-        shade = max(0.0, min(1.0, 0.34 + 0.66 * max(0.0, dot(normal, light))))
-        out.append(Painted(points, shade, depth, face.tint, face.tag))
+        key = max(0.0, dot(normal, light))
+        bounce = max(0.0, dot(normal, fill))
+        shade = max(0.0, min(1.0, 0.22 + 0.62 * key + 0.20 * bounce))
+        facing = abs(dot(normal, towards))
+        rim = max(0.0, 1.0 - facing) ** 2.2
+        spec = max(0.0, dot(normal, half)) ** 24
+        out.append(Painted(points, shade, depth, face.tint, face.tag,
+                           rim=rim, spec=spec, hurt=face.hurt))
     out.sort(key=lambda f: -f.depth)
+    if out:
+        near, far = out[-1].depth, out[0].depth
+        span = max(1e-6, far - near)
+        for face in out:
+            face.far = max(0.0, min(1.0, (face.depth - near) / span))
     return out
 
 

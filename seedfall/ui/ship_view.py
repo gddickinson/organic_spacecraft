@@ -121,7 +121,15 @@ class ShipView(View):
                              self.game.ship_stats))
 
     def _legend(self, ship, ch, st) -> str:
-        return (f"{len(ship.fitted)} fittings · hull {pct(hull_pct(ship))} · "
+        # The blight drawn on the model is the *outermost* layer, because that
+        # is the one you can see and the one damage lands on first. Saying
+        # only "hull 93%" beside a visibly rotten ship read as a bug, so the
+        # skin's own state is stated next to it.
+        skin = plans_sim.layer_health(ship)
+        outer = (f" · {skin[0][0].lower()} {pct(skin[0][1])}"
+                 if skin and skin[0][1] < 0.995 else "")
+        return (f"{len(ship.fitted)} fittings · hull {pct(hull_pct(ship))}"
+                f"{outer} · "
                 f"hold {mass(cargo_used(ship))} of {mass(st.cargo)} · "
                 f"{len(self.game.officers)} of {ch.crew} berths filled")
 
