@@ -665,6 +665,7 @@ seedfall/
     ├── test_magazine.py 6 checks — the other side can actually fight
     ├── test_stranded.py 6 checks — the way out of a dead end is real
     ├── test_geography.py 5 checks — a port stays the kind of port it is
+    ├── test_grants.py  8 checks — every colony effect is read, and does something
     ├── test_customs.py 9 contraband checks — the premium, the search, heat
     ├── test_allegiance.py 8 checks — taking sides, and brokering out of it
     ├── test_territory.py 8 checks — annexation, levy, defiance, seizure
@@ -1243,6 +1244,25 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **A dead aggregate is where a dead effect hides.** `test_grants` asks the
+  general question — is every effect a colony grants read by something? — and
+  two slipped past it anyway. `colony.effects()` copied `watch` into a
+  `watch_systems` set and `fabricate` into a `has_fabricator` flag that **no
+  other line in the game ever opened**, and the check counted those copies as
+  consumers. A mention inside a function whose own output nobody reads is not
+  a consumer. The check excludes the aggregator's body now, and follows one
+  hop through it (`vault` reaches `state.py` via `has_vault`, and must still
+  pass). A second check holds the aggregate itself to publishing only keys
+  something opens — it was carrying six dead ones, including a `research`
+  that was always 0.0 while two callers added it to the bench rate.
+- **`colony.watching()` and `colony.fabricating()` are direct queries**, not
+  aggregate lookups. A picket gates whether you hear about unlicensed growth
+  in a system you are not in — the sector used to report every infestation
+  anywhere, which is exactly why the effect bought nothing. A fabricator takes
+  `FABRICATED_OFF` off the *credits* of fabricated fittings built or refitted
+  in its system; the metal is charged either way, and grown fittings are
+  untouched. `cost_of` and `refit_cost` both take the flag, and `yard_view`
+  passes it so the screen quotes what the yard charges.
 - **A port reverts to `Stock.base`, not to 1.0.** `make_market` builds real
   economic geography — an ore-rich system's port gets up to 1.75x supply, a
   faction's exports 1.55x, what it is short of 0.62x — and `tick_market` used

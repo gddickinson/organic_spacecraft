@@ -261,27 +261,51 @@ def close_harbour(game, system) -> bool:
 
 def effects(game) -> dict:
     """Aggregate colony effects the rest of the game asks about."""
-    out = {"sensor_by_system": {}, "build_systems": set(), "watch_systems": set(),
-           "has_vault": False, "has_medical": False, "has_fabricator": False,
-           "research": 0.0, "diplomacy": 0.0, "pop": 0.0, "count": 0}
+    # Only what something actually reads. `build_systems`, `watch_systems`,
+    # `has_medical`, `has_fabricator` and `pop` were all published here and
+    # opened by nothing — and two of them were the *only* mention of their
+    # effect anywhere, so `test_grants` counted this function as the consumer
+    # and called `fabricate` and `watch` live. A key nobody reads is not a
+    # consumer; it is a place for one to hide.
+    out = {"sensor_by_system": {}, "has_vault": False,
+           "diplomacy": 0.0, "count": 0}
     for col in game.colonies:
         if not col.online:
             continue
         e = works.effects_of(col)
         out["count"] += 1
-        out["pop"] += col.pop
         if e.get("sensor"):
             key = col.system_id
             out["sensor_by_system"][key] = out["sensor_by_system"].get(key, 0) + e["sensor"]
-        if e.get("build_here"):
-            out["build_systems"].add(col.system_id)
-        if e.get("watch"):
-            out["watch_systems"].add(col.system_id)
         out["has_vault"] |= bool(e.get("vault"))
-        out["has_medical"] |= bool(e.get("medical"))
-        out["has_fabricator"] |= bool(e.get("fabricate"))
         out["diplomacy"] += e.get("diplomacy", 0)
     return out
+
+
+def watching(game, system_id: int) -> bool:
+    """Is anything of yours keeping an eye on this system?
+
+    `watch` is declared by the VESPER Picket, the Monitor Station and the
+    Relay Choir, and it read "Keeps an eye on this system whether or not you
+    are in it" while buying nothing at all: the only line that touched it
+    filled a `watch_systems` set that no other line in the game ever opened.
+    """
+    return any(works.effects_of(c).get("watch")
+               for c in game.colonies
+               if c.online and c.system_id == system_id)
+
+
+def fabricating(game, system_id: int) -> bool:
+    """Can fabricated parts be made here rather than bought?
+
+    `fabricate` is declared by the Fabricator Yard and the Refinery Platform
+    and the codex promises "Fabricated parts can be made rather than bought".
+    The only line that read it set a `has_fabricator` flag nothing opened, so
+    46,000 credits of yard changed the bill by nothing at all.
+    """
+    return any(works.effects_of(c).get("fabricate")
+               for c in game.colonies
+               if c.online and c.system_id == system_id)
 
 
 def ward_at(game, system_id: int) -> float:

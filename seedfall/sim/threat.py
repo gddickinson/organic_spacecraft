@@ -11,7 +11,7 @@ from ..data.lore import VICTORIES
 from ..data.chassis import CHASSIS_BY_ID
 from ..world.galaxy import distance
 from .ship import hull_pct
-from .colony import bloom_attack, ward_at
+from .colony import bloom_attack, ward_at, watching
 from . import loyalty
 from . import bloom as bloom_sim
 from . import responses as response_sim
@@ -80,7 +80,14 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
                                     * (1 - ward_at(game, clean[0].id))):
                 clean[0].bloom = 0.10
                 loyalty.record(game, "bloom_spread")
-                events.append(("bad", f"Unlicensed growth detected at {clean[0].name}."))
+                # Only if somebody of yours is looking. The sector used to
+                # report every new infestation anywhere, which is why the
+                # `watch` a picket grants bought nothing: you already knew.
+                if (clean[0].id == game.location_id
+                        or watching(game, clean[0].id)):
+                    events.append(
+                        ("bad", f"Unlicensed growth detected at "
+                                f"{clean[0].name}."))
 
         game.bloom_total = bloom_burden(game)
         events.extend(bloom_sim.review_stage(game, game.bloom_total))

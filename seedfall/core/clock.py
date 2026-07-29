@@ -97,7 +97,7 @@ def advance_days(game, n: float, dilation: float = 1.0) -> None:
     game.ship_day += ship_n
     st = game.ship_stats
 
-    rate = st.research + 0.25 + game.colony_fx.get("research", 0)
+    rate = st.research + 0.25
     game.research.last_event = None
     # A skeleton watch does not run a research programme. This is the brake
     # that stops dormancy and a hard burn from stacking into a free lunch:

@@ -2,6 +2,71 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: two colony effects that a check said were alive
+
+Breadth cycle into empire-building. I went looking with the question that paid
+last time — does this system still work years in? — and had to discard three
+leads honestly before finding anything:
+
+- **Research** is clean. All 61 technologies have a reachable prerequisite
+  chain, and all eight bonus keys are consumed. A "domination" sweep looked
+  damning until I saw it was comparing empty dicts: most technologies gate a
+  part rather than grant a bonus. No finding.
+- **`victory=ruin` at day ~1500** in every long harness run is the Bloom
+  drowning the sector while the captain does nothing. By design, and it also
+  corrects what I said two cycles ago about it being starvation.
+
+Then the colony effect vocabulary. `data/colonies.py` states the rule itself:
+"Every key any class declares must appear here, and **must be read by the
+sim**. `tests/test_grants.py` holds both halves." That suite exists because
+`megastructure` was once declared and read by nothing.
+
+Two more were in exactly that state, and the check said otherwise:
+
+- **`watch`** — VESPER Picket, Monitor Station, Relay Choir. "Keeps an eye on
+  this system whether or not you are in it."
+- **`fabricate`** — Fabricator Yard (46,000 credits), Refinery Platform.
+  "Fabricated parts can be made rather than bought."
+
+`colony.effects()` copied them into a `watch_systems` set and a
+`has_fabricator` flag that **no other line in the game ever opened**, and the
+check counted those copies as consumers. *A mention inside a function whose
+own output nobody reads is not a consumer; it is a place for a dead effect to
+hide.* The aggregator gets no vote now — and because `vault` legitimately
+reaches `state.py` through `has_vault`, the check follows one hop through the
+aggregate rather than banning it outright.
+
+Holding the aggregate to the same standard found four more dead keys, one of
+them worse than the others: **`colony_fx["research"]` was always 0.0**, even
+with five research-yielding colonies online, while `clock.py` and `tech_view`
+both added it to the bench rate. Colony research goes through `banked`
+instead. Six keys gone; the aggregate publishes four now, and something opens
+all four.
+
+Both effects do something now:
+
+- A picket **gates the report**. The sector used to announce every new
+  infestation anywhere, which is precisely why an eye on a system bought
+  nothing — you already knew. Measured: 329 reports with pickets out against
+  6 without.
+- A yard takes 70% off the *credits* of fabricated fittings built or refitted
+  in its system — 35,980 off an 89,400 hull. The metal is charged either way,
+  grown fittings are untouched, and a yard one system over does nothing. The
+  bill on screen goes through the same call, and says why it is smaller.
+
+One test was proving the bookkeeping rather than the game: `test_empire`
+probed `colony_fx["build_systems"]`, an aggregate the game never opened. It
+asks the colony's own effect now, which is the granularity
+`shipyard.can_build_here` consults.
+
+Six mutations. Five caught outright; the sixth — removing the new guard —
+catches nothing on its own now that both effects have real consumers, so I
+reproduced the original bug (a `decoy` effect mentioned only by the
+aggregator) and showed the guarded check catches it while the unguarded one
+passes.
+
+709 → 712 green.
+
 ## 2026-07-29 — SEEDFALL: after year one there was no trade in the game
 
 Task #66, which I raised last cycle: surveying is break-even and tips on seed

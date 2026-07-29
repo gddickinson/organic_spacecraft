@@ -16,6 +16,7 @@ from ..data.chassis import (BUILD_NEED, CHASSIS_BY_ID, Chassis,
                             accepts_family)
 from ..data.colonies import COLONIES_BY_ID
 from ..data.parts import part, part_value
+from . import colony
 from .ship import Ship, build_layers, make_ship, stats
 
 _uid = itertools.count(1)
@@ -63,16 +64,32 @@ def validate(chassis: Chassis, fitted) -> tuple[bool, list[str], bool]:
     return (not errs), errs, brownout
 
 
-def cost_of(chassis: Chassis, fitted) -> dict[str, float]:
-    """Full bill of materials for a hull plus its fittings."""
+#: What a yard of your own takes off the price of a fabricated fitting. Not
+#: all of it — somebody still has to be paid, and the alloy and silicon are
+#: charged in full either way. You are making it instead of buying it.
+FABRICATED_OFF = 0.7
+
+
+def cost_of(chassis: Chassis, fitted, fabricator: bool = False) -> dict:
+    """Full bill of materials for a hull plus its fittings.
+
+    `fabricator` is whether the system it is being laid down in has a yard of
+    yours in it. The credits on fabricated fittings come off; the metal does
+    not, because the metal still has to exist.
+    """
     cost: dict[str, float] = {"credits": 0}
     for key, n in chassis.cost.items():
         cost[key] = cost.get(key, 0) + n
     for pid in fitted:
         p = part(pid)
-        if p:
-            for key, n in p.cost.items():
-                cost[key] = cost.get(key, 0) + n
+        if not p:
+            continue
+        made = fabricator and getattr(p, "family", None) == "fabricated"
+        for key, n in p.cost.items():
+            if made and key == "credits":
+                n = n * (1 - FABRICATED_OFF)
+            cost[key] = cost.get(key, 0) + n
+    cost["credits"] = round(cost["credits"])
     return cost
 
 
@@ -155,7 +172,7 @@ def start_build(game, chassis_id: str, fitted, system, name: str | None = None):
         return None, why
     if chassis.tech and chassis.tech not in game.research.unlocked:
         return None, "That hull is not yet researched."
-    cost = cost_of(chassis, fitted)
+    cost = cost_of(chassis, fitted, colony.fabricating(game, system.id))
     can, missing = affordable(game, cost)
     if not can:
         key, need, have = missing[0]
@@ -189,8 +206,14 @@ def tick_builds(game, days: float) -> list[Ship]:
     return launched
 
 
-def refit_cost(chassis: Chassis, old_fitted, new_fitted):
-    """You pay for what you add; removed parts sell back at half."""
+def refit_cost(chassis: Chassis, old_fitted, new_fitted,
+               fabricator: bool = False):
+    """You pay for what you add; removed parts sell back at half.
+
+    A yard of your own takes the same share off a fabricated fitting here as
+    it does on a new hull — it is the same question, and two answers to it is
+    how this project has produced a free treaty and a phantom haggle before.
+    """
     removed = list(old_fitted)
     added = []
     for pid in new_fitted:
@@ -201,9 +224,13 @@ def refit_cost(chassis: Chassis, old_fitted, new_fitted):
     cost: dict[str, float] = {"credits": 0}
     for pid in added:
         p = part(pid)
-        if p:
-            for key, n in p.cost.items():
-                cost[key] = cost.get(key, 0) + n
+        if not p:
+            continue
+        made = fabricator and getattr(p, "family", None) == "fabricated"
+        for key, n in p.cost.items():
+            if made and key == "credits":
+                n = n * (1 - FABRICATED_OFF)
+            cost[key] = cost.get(key, 0) + n
     refund = round(sum(part_value(part(pid)) * 0.5 for pid in removed if part(pid)))
     cost["credits"] = max(0, cost.get("credits", 0) - refund)
     return cost, added, removed, refund
@@ -245,7 +272,8 @@ def apply_refit(game, ship: Ship, new_fitted) -> tuple[bool, str]:
     ok, errs, _ = validate(chassis, new_fitted)
     if not ok:
         return False, errs[0]
-    cost, *_ = refit_cost(chassis, ship.fitted, new_fitted)
+    cost, *_ = refit_cost(chassis, ship.fitted, new_fitted,
+                          colony.fabricating(game, game.location_id))
     can, missing = affordable(game, cost)
     if not can:
         key, need, have = missing[0]

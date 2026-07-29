@@ -89,7 +89,13 @@ def run(suite: Suite) -> None:
         seen = []
         for work_id, probe in (
                 ("garrison", lambda g, c: colony_sim.ward_at(g, c.system_id)),
-                ("slipway", lambda g, c: c.system_id in g.colony_fx["build_systems"]),
+                # The colony's own effect, which is the granularity
+                # `shipyard.can_build_here` consults. This used to read
+                # `colony_fx["build_systems"]`, an aggregate the game itself
+                # never opened — so it proved the bookkeeping rather than the
+                # slipway.
+                ("slipway",
+                 lambda g, c: bool(works_sim.effects_of(c).get("build_here"))),
                 ("mast", lambda g, c: g.colony_fx["sensor_by_system"].get(c.system_id, 0)),
         ):
             g, col, _ = _settled(f"fx-{work_id}")

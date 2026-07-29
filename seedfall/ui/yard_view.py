@@ -10,6 +10,7 @@ from ..data.chassis import (CHASSIS, CHASSIS_BY_ID, FAMILY_LABEL,
                             FAMILY_NOTE, FAMILY_ORDER, FAMILY_TINT)
 from ..data.part_types import SLOT_LABEL, SLOT_ORDER
 from ..data.parts import part, parts_available
+from ..sim import colony as colony_sim
 from ..sim import loading
 from ..sim import plans as plans_sim
 from ..sim import shipyard
@@ -216,11 +217,14 @@ class YardView(View):
         ok, errs, brownout = shipyard.validate(ch, self.design_fitted)
         is_build = self.tab == "build"
 
+        # The same question the build asks. Quoting the list price while the
+        # yard charges less is the shape of bug this project keeps finding.
+        made_here = colony_sim.fabricating(g, g.location_id)
         if is_build:
-            cost = shipyard.cost_of(ch, self.design_fitted)
+            cost = shipyard.cost_of(ch, self.design_fitted, made_here)
         else:
             cost, _added, _removed, refund = shipyard.refit_cost(
-                ch, g.ship.fitted, self.design_fitted)
+                ch, g.ship.fitted, self.design_fitted, made_here)
         can_afford, missing = shipyard.affordable(g, cost)
         missing_keys = {m[0] for m in missing}
 
@@ -268,6 +272,18 @@ class YardView(View):
             p.add_row("Credits" if key == "credits" else key,
                       cr(n) if key == "credits" else f"{n:g} t",
                       "warn" if key in missing_keys else "")
+        if made_here:
+            # Otherwise the number is simply smaller than the yard list and
+            # nothing on the screen accounts for it.
+            listed = (shipyard.cost_of(ch, self.design_fitted, False) if is_build
+                      else shipyard.refit_cost(ch, g.ship.fitted,
+                                               self.design_fitted, False)[0])
+            saved = listed.get("credits", 0) - cost.get("credits", 0)
+            if saved > 0:
+                p.add(note(f"A yard of yours in this system makes the "
+                           f"fabricated fittings rather than buying them: "
+                           f"{cr(saved)} off. The metal is charged either "
+                           "way."))
 
         if is_build:
             here, why = shipyard.can_build_here(g, sysm, ch)

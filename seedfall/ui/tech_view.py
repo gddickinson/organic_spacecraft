@@ -21,7 +21,7 @@ class TechView(View):
 
     def build(self) -> None:
         g = self.game
-        rate = g.ship_stats.research + 0.25 + g.colony_fx.get("research", 0)
+        rate = g.ship_stats.research + 0.25
         known = sum(1 for t in TECH if t.id in g.research.unlocked)
         self.head("Research",
                   f"{known} of {len(TECH)} technologies · {rate:.2f} points a day "
