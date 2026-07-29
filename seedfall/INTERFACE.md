@@ -145,6 +145,24 @@ each costed in full before it is taken — and **letting the window lapse costs
 exactly what refusing costs**, because an offer with a free deadline is a
 button that waits forever rather than a decision.
 
+**A near miss on the ground is worth something.** `SPOILED` sat in
+`sim/expedition.py` with a comment reading "what a spoiled attempt is worth,
+as a share", set to `0.0`, and read by nothing — found by `tests/tripwire.py`,
+which is what it is for: a constant already at its degenerate value is either
+dead or a feature somebody switched off and forgot.
+
+So every attempt on the ground was all-or-nothing. Missing the mark by one and
+fumbling it by five were the same outcome, an officer's level was a cliff
+rather than a slope, and the screen — which states everything else before you
+commit — had nothing to say about failure but that it might spring a hazard.
+
+A miss inside `NEAR_MISS` now brings back a tapering share: measured, 645
+credits for missing by one against 351 for missing by two, and nothing at all
+beyond the window. Across every reward type a botch keeps 12–36% of a clean
+attempt. The odds line says so — *"17% of the time, about 30% of the prize
+still comes back"* — because "it fails" and "it fails and you keep a third"
+are different decisions.
+
 **The approach is drawn, and can be flown for you.** The docking mini-game
 modelled an error per axis, a drift per axis, a readout blurred by the sensors
 and a precision set by the hull and the navigator — and all of it reached the

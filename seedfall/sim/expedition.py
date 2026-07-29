@@ -232,8 +232,15 @@ def options_here(exp: Expedition):
 #: A failed attempt springs a hazard this often.
 HAZARD_ON_FAILURE = 0.4
 
-#: What a spoiled attempt is worth, as a share.
-SPOILED = 0.0
+#: What a spoiled attempt is worth, as a share of a clean one — and how near
+#: the miss has to be to be worth anything at all.
+#:
+#: The constant was written, commented, and read by nothing: a failed attempt
+#: returned literally zero, so missing by one and fumbling by five were the
+#: same outcome. That makes every option on the ground a coin-flip for all or
+#: nothing, and makes an officer's level a cliff rather than a slope.
+SPOILED = 0.30
+NEAR_MISS = 2
 
 
 def odds_for(exp: Expedition, index: int, officers) -> dict:
@@ -262,9 +269,15 @@ def odds_for(exp: Expedition, index: int, officers) -> dict:
     faces = 6 - max(1, min(7, need)) + 1
     chance = max(0.0, min(1.0, faces / 6))
     low, high = REWARD_SCALE.get(reward, (0, 0))
+    # What a near miss is worth, and how likely one is: the die faces that
+    # fall short by `NEAR_MISS` or less. Stated, because "it fails" and "it
+    # fails and you get half" are different decisions.
+    near_faces = 0 if reward in ("lore", "none") else \
+        max(0, min(NEAR_MISS, 6 - faces))
     return {"label": label, "chance": chance, "stat": stat, "level": level,
             "who": holder.name if holder else None, "reward": reward,
             "low": low, "high": high,
+            "near": near_faces / 6, "spoiled": SPOILED if high else 0.0,
             "hazard": HAZARD_ON_FAILURE * (1 - chance)}
 
 
@@ -291,7 +304,11 @@ def attempt(exp: Expedition, index: int, officers, rng) -> dict:
     margin = roll - (difficulty + 2)
 
     out = {"ok": True, "label": label, "success": success, "reward": None,
-           "amount": 0, "lore": None}
+           "amount": 0, "lore": None,
+           # How far the roll fell short. Zero or better on a success; a
+           # positive number of pips on a failure, which is what decides
+           # whether anything is salvaged and how much.
+           "short": max(0, -margin)}
     if success:
         lo, hi = REWARD_SCALE.get(reward, (0, 0))
         amount = rng.int(lo, hi) * (1 + max(0, margin) * 0.12) if hi else 0
@@ -314,8 +331,28 @@ def attempt(exp: Expedition, index: int, officers, rng) -> dict:
         else:
             say(exp, f"{label}. Done.", "dim")
     else:
-        say(exp, f"{label} — it does not go well.", "bad")
-        if rng.chance(0.4):
+        # A near miss brings something back. `margin` is negative here; within
+        # `NEAR_MISS` of the mark the party salvages a share of what a clean
+        # attempt would have paid.
+        short = -margin
+        salvage = 0.0
+        if short <= NEAR_MISS and reward not in ("lore", "none"):
+            lo, hi = REWARD_SCALE.get(reward, (0, 0))
+            if hi:
+                base = rng.int(lo, hi)
+                salvage = base * SPOILED * (1 - (short - 1) / (NEAR_MISS + 1))
+        if salvage > 0.01:
+            out["spoiled"] = True
+            out["reward"], out["amount"] = reward, salvage
+            if reward == "study":
+                exp.study["__any__"] = exp.study.get("__any__", 0) + salvage
+            else:
+                exp.haul[reward] = exp.haul.get(reward, 0) + salvage
+            say(exp, f"{label} — botched, but {round(salvage)} {reward} came "
+                     "back with them.", "warn")
+        else:
+            say(exp, f"{label} — it does not go well.", "bad")
+        if rng.chance(HAZARD_ON_FAILURE):
             haz = _spring_hazard(exp, officers, rng)
             out["hazard"] = haz
     _check_end(exp)

@@ -200,6 +200,16 @@ class ExpeditionView(View):
                     p.add_row(f"{odds['chance']:.0%} — {who} on {stat}",
                               _prize(odds),
                               "chloro" if odds["chance"] >= 0.6 else "warn")
+                    # A near miss and an outright botch used to be the same
+                    # outcome — nothing at all — so the screen only ever said
+                    # what success paid. It says what a botch is worth now,
+                    # because "it fails" and "it fails and you keep a third"
+                    # are different decisions.
+                    if odds.get("near", 0) > 0.01 and odds.get("spoiled"):
+                        p.add_row("Close but botched",
+                                  f"{odds['near']:.0%} of the time — about "
+                                  f"{odds['spoiled']:.0%} of the prize still "
+                                  "comes back", "")
                     if odds["hazard"] > 0.01:
                         p.add_row("If it goes wrong",
                                   f"{odds['hazard']:.0%} chance of springing "

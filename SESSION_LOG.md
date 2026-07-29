@@ -2,6 +2,45 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a near miss on the ground finally pays
+
+Breadth, and a lead from the tripwire: `expedition.SPOILED` was a constant
+sitting at its own degenerate value — `0.0`, commented "what a spoiled attempt
+is worth, as a share", and read by nothing at all.
+
+- **Every attempt on the ground was all-or-nothing.** Missing by one and
+  fumbling by five were the same outcome: zero, plus a 40% chance of springing
+  a hazard. An officer's level was a cliff rather than a slope, and the ground
+  screen — which states the odds, the prize and the hazard — had nothing to
+  say about failure at all.
+- **A near miss now pays a tapering share.** Measured: 645 credits for missing
+  by one against 351 for missing by two, nothing beyond the window, and
+  12–36% of a clean attempt across every reward type.
+- **The screen says so first**: "17% of the time, about 30% of the prize still
+  comes back."
+- **A guard for last cycle's lesson** — a suite that does not exist looks
+  exactly like a suite that passes. `tests/test_harness_guard.py` asserts
+  every name in `ALL_SUITES` dispatches to a real module with a `run`. Written
+  as a subprocess first, which recursed until it timed out because it lives
+  inside a suite.
+
+**Four of my own checks were too weak, and trying to break them proved it.**
+
+- The taper check compared two noisy means with a bare `>`, which passes about
+  half the time with the taper deleted. It requires a 1.25× margin now.
+- The fumble check counted empty-handed failures, but `lore` options never
+  salvage, so deleting the near-miss window entirely still left plenty of
+  empty hands. Then, corrected for that, it *still* passed — because the taper
+  goes negative at a wide miss and zeroes small prizes on its own, so the two
+  rules overlap. The precise claim is simply that nothing beyond the window
+  ever pays, and that is what it asserts.
+- The "missing by more" check originally asserted the constants existed and
+  returned. That is not a measurement.
+- And I read a "325 unit average salvage" as a bug when it was arithmetic
+  nonsense of my own: averaging credits (900–3400) with ore (8–26). Compared
+  per reward type it was 12–36% throughout.
+- 562 checks green, every file under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: the approach, drawn and flyable
 
 The last of the piloting request. The docking mini-game modelled an error and
