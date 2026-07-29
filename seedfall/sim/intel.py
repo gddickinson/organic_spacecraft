@@ -49,6 +49,28 @@ def in_sensor_range(game, system) -> bool:
     return distance(system, here) <= game.ship_stats.sensor
 
 
+def sees_bloom(game, system) -> bool:
+    """Can the captain actually tell how infested this system is?
+
+    The chart drew a red halo sized by `system.bloom` on every star in the
+    sector, and the side panel printed "Bloom mass: 77% of this system
+    converted" directly above the line reading "Knowledge: name only". So the
+    one thing the whole game is about was the one thing the fog did not
+    cover — and it undercut the picket, whose `watch` exists to tell you what
+    is happening where you are not.
+
+    A registry entry is not eyes: rank 1 can come from a catalogue as well as
+    from a sensor, and a catalogue does not know what has grown there since.
+    """
+    from . import colony as colony_sim
+
+    if system.visited or in_sensor_range(game, system):
+        return True
+    return (colony_sim.watching(game, system.id)
+            or any(c.online and c.system_id == system.id
+                   for c in game.colonies))
+
+
 def level(game, system) -> int:
     """How well this system is known, 0..3."""
     if system.bodies and all(b.surveyed for b in system.bodies):

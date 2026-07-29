@@ -118,7 +118,7 @@ class StarChart(QWidget):
         rank = intel_sim.level(g, sys)
         known = rank >= 1 or any(c.system_id == sys.id for c in g.colonies)
 
-        if sys.bloom > 0.02:
+        if sys.bloom > 0.02 and intel_sim.sees_bloom(g, sys):
             radius = 9 + sys.bloom * 24
             grad = QRadialGradient(pt, radius)
             grad.setColorAt(0.0, QColor(224, 104, 95, int(70 * sys.bloom + 30)))
@@ -304,16 +304,24 @@ class MapView(View):
 
         panel = Panel(sys.name + ("   ·   you are here" if here else ""))
         panel.add(note(f"{sys.star_name} · {len(sys.bodies)} catalogued bodies"))
-        if fac:
+        rank = intel_sim.level(g, sys)
+        if fac and rank >= 1:
             panel.add(label(f"{fac.name}. {fac.creed}", "", wrap=True))
-        else:
+        elif rank >= 1:
             panel.add(label("Unclaimed space.", "dim"))
+        else:
+            panel.add(label("Whose space this is, nobody here has said.", "dim"))
         if sys.note:
             panel.add(label(sys.note, "", "warn", wrap=True))
-        if sys.bloom > 0.02:
-            panel.add(label(f"Bloom mass: {round(sys.bloom * 100)}% of this system "
-                            "converted.", "", "warn", wrap=True))
-        rank = intel_sim.level(g, sys)
+        # What has grown there, and only where somebody of yours can see it.
+        if intel_sim.sees_bloom(g, sys):
+            if sys.bloom > 0.02:
+                panel.add(label(f"Bloom mass: {round(sys.bloom * 100)}% of this "
+                                "system converted.", "", "warn", wrap=True))
+        else:
+            panel.add(label("Nothing of yours is watching it, so what has "
+                            "grown there since anybody looked is not known.",
+                            "", "dim", wrap=True))
         name, tint = intel_sim.label(g, sys)
         panel.add_row("Knowledge", name, tint)
         panel.add(note(intel_sim.blurb(g, sys)))

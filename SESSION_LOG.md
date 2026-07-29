@@ -2,6 +2,47 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: the one thing the fog did not cover
+
+The docking bug last cycle was an instance of a third pattern worth sweeping:
+a screen reading a truth the player should not have. So I asked it of the
+sector chart.
+
+The chart has a careful knowledge system. `intel.level` ranks a system 0 to 3
+— catalogued, named, visited, charted — the marker is an outline, a disc or a
+ring accordingly, and the port ring is drawn only `if sys.port and known`.
+
+**The Bloom was exempt from all of it.** A red halo sized by `system.bloom`
+was painted on every star in the sector however unknown, and the side panel
+printed
+
+    Bloom mass: 77% of this system converted.
+    Knowledge: name only
+
+one line above the other. The one thing the whole game is about was the one
+thing the fog did not cover — and it quietly undid last cycle's picket work,
+where `watch` was made to gate the reports of new growth while the chart went
+on showing the growth itself for free.
+
+`intel.sees_bloom` is the single door: you have been there, you can see it
+from where you stand, something of yours watches it, or you hold a colony in
+it. A registry entry is not eyes.
+
+The captain is not blinded, only made to scout — Holdings still reports the
+sector total, how many systems carry growth and what share of the mass. **How
+bad is public; where is earned.** At the opening that means 2 systems of 42
+read rather than all of them, and a picket bought at 6,000 credits lights one
+up.
+
+Seven mutations, all caught — but the halo one only after a second pass. The
+panel is words and the halo is pixels, so a suite that reads labels cannot see
+it: the check grabs the chart widget, counts red pixels around the star, and
+differences against the same star with nothing growing on it, because the
+hatching the chart draws over anything beyond reach is red too and the first
+draft counted that instead.
+
+730 → 736 green.
+
 ## 2026-07-29 — SEEDFALL: an instrument that changed when you looked at it
 
 Task #72, which I raised last cycle: the docking mini-game's forecast had

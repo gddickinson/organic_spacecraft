@@ -670,6 +670,7 @@ seedfall/
     ├── test_gates.py   4 checks — every "may I?" agrees with the act it guards
     ├── test_beginnings.py 11 checks — the opening card is the chronicle you get
     ├── test_docking.py 5 checks — the approach instrument can be believed
+    ├── test_fog.py     6 checks — the chart shows only what you can see
     ├── test_customs.py 9 contraband checks — the premium, the search, heat
     ├── test_allegiance.py 8 checks — taking sides, and brokering out of it
     ├── test_territory.py 8 checks — annexation, levy, defiance, seizure
@@ -1248,6 +1249,18 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **`intel.sees_bloom` is the one door for what the chart may show about a
+  star's infestation.** The sector chart has a careful knowledge system —
+  `intel.level` ranks 0..3 and the marker and port ring both respect it — and
+  the Bloom was exempt from all of it: a red halo sized by `system.bloom` on
+  every star however unknown, and a side panel printing "Bloom mass: 77%" one
+  line above "Knowledge: name only". It also quietly undid the picket, whose
+  `watch` effect exists to report what happens where you are not. You see a
+  system's Bloom if you have been there, can see it from where you stand,
+  watch it, or hold a colony in it. **A registry entry is not eyes.**
+- **The aggregate stays public.** Holdings still reports how many systems
+  carry growth and what share of the sector by mass, so scouting is a cost
+  rather than a wall: how bad is published, where is earned.
 - **`Docking.shown` is the instrument; `d.error` is the truth, and screens
   never touch it.** The readout was rolled fresh inside `reading()` on every
   call, and the panel called it from `game.rng("readout")` — which advances

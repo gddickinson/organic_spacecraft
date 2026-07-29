@@ -54,6 +54,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("prospect", "test_prospect", "prospect"),
     SuiteSpec("gates", "test_gates", "gates"),
     SuiteSpec("docking", "test_docking", "docking"),
+    SuiteSpec("fog", "test_fog", "fog"),
     SuiteSpec("customs", "test_customs", "customs"),
     SuiteSpec("allegiance", "test_allegiance", "allegiance"),
     SuiteSpec("territory", "test_territory", "territory"),
