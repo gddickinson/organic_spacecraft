@@ -223,6 +223,13 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
             _end_of_turn(b, rng)
         return b
 
+    # The seats the captain is *not* in are held by officers whichever way
+    # the turn was ordered. Only the `station` path used to do this.
+    if kind in ("fire", "salvo", "ability", "brace"):
+        said = _run_seats(b, b.player.station)
+        if said:
+            _say(b, f"{b.player.ship.name}: {', '.join(said)}.", "dim")
+
     if kind == "fire":
         _fire(b, b.player, b.enemy, action["weapon_id"], rng)
     elif kind == "salvo":
@@ -289,18 +296,36 @@ def use_ability(b: Battle, s: Side, ability_id: str, rng) -> bool:
     return fired
 
 
+def _run_seats(b: Battle, seat: str, order=None) -> list:
+    """Fly the ship and run the engineering section. Returns what they report.
+
+    `seat` is where the captain is standing; the other two are held by
+    officers, or by the battle computer if one is fitted.
+
+    Split out because the seats were only ever run on the `station` path.
+    Firing a named mount or using an ability goes through the older path,
+    which the battle screen still uses for the firing picture and the ability
+    buttons — and on those turns nobody flew the ship and nobody stood in the
+    engineering section at all. Measured: heat 30 became 24.0 through the old
+    door against 19.44 through the new one, and `helm_order` stayed `None`.
+    """
+    helm_text = st_mod.run_helm(
+        b.player, b.enemy,
+        order.id if order and order.station == "helm" else None,
+        seat == "helm", b.officers)
+    eng_text = st_mod.run_engineering(
+        b.player, order.id if order and order.station == "engineering" else None,
+        seat == "engineering", b.officers, b.enemy)
+    return [t for t in (helm_text, eng_text) if t]
+
+
 def _run_stations(b: Battle, rng) -> None:
     """Resolve the player's chosen seat, then the two the officers hold."""
     order_id = getattr(b, "pending_order", None)
     order = st_mod.ORDERS_BY_ID.get(order_id or "")
     seat = b.player.station
 
-    helm_text = st_mod.run_helm(b.player, b.enemy,
-                                order.id if order and order.station == "helm" else None,
-                                seat == "helm", b.officers)
-    eng_text = st_mod.run_engineering(
-        b.player, order.id if order and order.station == "engineering" else None,
-        seat == "engineering", b.officers, b.enemy)
+    bits = _run_seats(b, seat, order)
 
     if order and order.station == "gunnery":
         if order.id == "salvo":
@@ -331,7 +356,6 @@ def _run_stations(b: Battle, rng) -> None:
                 _fire(b, b.player, b.enemy,
                       max(usable, key=lambda w: w.wpn.dmg).id, rng)
 
-    bits = [t for t in (helm_text, eng_text) if t]
     if bits:
         _say(b, f"{b.player.ship.name}: {', '.join(bits)}.", "dim")
     b.pending_order = None

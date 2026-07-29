@@ -527,6 +527,7 @@ seedfall/
 │   ├── ship.py         Ship model, stats(), layer stack, cargo, repair
 │   ├── shipyard.py     design validation, costing, build queue, refit
 │   ├── combat.py       turn resolution, firing, damage, endings;
+│   │                   `_run_seats` runs helm and engineering either way;
 │   │                   `cook()` holds heat under `HEAT_CEILING`
 │   ├── battle_state.py the Side and Battle shapes, shared by resolver/AI/UI
 │   ├── tactical.py     the plane: positions, headings, firing arcs, bands
@@ -689,6 +690,7 @@ seedfall/
     ├── test_conviction.py 6 checks — every event an officer cares about fires
     ├── test_bench_kinds.py 5 checks — evidence names are real, tech is reachable
     ├── test_envoy.py   7 checks — the preview is the answer, both doors alike
+    ├── test_seatwork.py 5 checks — the crew hold their seats either way
     ├── ground_ai.py    a party leader good enough to measure the ground with
     ├── suites.py       the suite table `__main__` dispatches from
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
@@ -866,6 +868,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   game that adds heat, so one clamp at the source covers every hull. An
   end-of-turn clamp was tried too and measured to change nothing at all, so it
   was removed rather than left in looking useful.
+- **Every action that spends a turn must run the seats.** `take_turn` takes
+  two shapes: `{"type": "station", "order": ...}`, which runs the crew-station
+  system, and the older `{"type": "fire", "weapon_id": ...}` family, which the
+  battle screen still uses for the firing picture's per-mount buttons and the
+  ability buttons. The older shape never called `_run_stations`, so picking a
+  mount meant nobody flew the ship and nobody stood in engineering that turn —
+  measured, heat 30 ended at 24.0 through the old door and 19.44 through the
+  new, with `helm_order` still `None`. Only `move` had ever been migrated.
+  `_run_seats` is now called from both. Note the helm runs *before* the guns
+  on both paths, so a mount that bears when you press the button may not bear
+  when the shot goes.
 - **`TREATY_WEIGHT` is read by both doors into signing one.**
   `diplomacy.perform` charges the signatory's enemies through
   `sim/allegiance.py`; `approach.answer` did not, so the same instrument with

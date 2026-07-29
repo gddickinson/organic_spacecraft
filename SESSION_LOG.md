@@ -2,6 +2,45 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: a turn where nobody flew the ship
+
+Priority three: positional combat with crew stations. Two doors again, and
+this time the older one switched the whole system off.
+
+- **`take_turn` takes two shapes of action.** `{"type": "station", "order":
+  ...}` runs the crew stations — your seat takes your order, officers hold the
+  other two. The older `{"type": "fire", "weapon_id": ...}` family never
+  called `_run_stations` at all.
+- **The battle screen still sends the older shape** for the firing picture's
+  per-mount buttons and for abilities. So a captain who picked a mount instead
+  of ordering a salvo lost their crew for that turn: nobody flew the ship,
+  nobody stood in the engineering section. Measured on a hull at 30 heat, the
+  turn ended at 24.0 through the old door against 19.44 through the new, and
+  `helm_order` was still `None` afterwards.
+- **Only `move` had ever been migrated**, which is how it stayed hidden. The
+  obvious comparison — salvo against salvo — agrees whatever you do: on a
+  light hull the seats have nothing to show, and on a heavy one the heat
+  ceiling erases the difference before it can be read. It only appears below
+  the ceiling, on a hull carrying heat.
+- **`_run_seats` is called from both paths now.** All 650 existing checks
+  stayed green, and outcomes over thirty seeds are identical either way.
+
+**Four of my six mutations missed on the first run, and two of those were my
+checks' fault.** The brace check asserted an upper bound — "sheds no more than
+three vents" — which a skipped section and an unattended one both satisfy. It
+asserts the exact three now: the brace, the section standing *attended*
+because that is where the captain is, and the end of the turn. The other two
+misses were bad mutations that left the calls in place and only discarded
+their return values, which changes nothing.
+
+Worth knowing rather than fixing: the helm runs before the guns, so a mount
+that bears when you press the button may not bear when the shot goes. That was
+already true of the station path; it is now true of the named-mount buttons
+too, which is the point of the change rather than a side effect.
+
+Five checks in a new `test_seatwork` suite, every one proven to bite.
+655 checks green, nothing over 500 lines.
+
 ## 2026-07-29 — SEEDFALL: a treaty that was free if you waited to be asked
 
 Every area of the breadth list has now had a cycle, so back to the top of the
