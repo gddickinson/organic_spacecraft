@@ -177,3 +177,23 @@ SUPPLY_LOADS = [
     ("Standard — a proper survey", 20, 40),
     ("Heavy — a season on the ground", 32, 64),
 ]
+
+
+#: A failed attempt springs a hazard this often.
+HAZARD_ON_FAILURE = 0.4
+
+#: What a spoiled attempt is worth, as a share of a clean one — and how near
+#: the miss has to be to be worth anything at all.
+#:
+#: The constant was written, commented, and read by nothing: a failed attempt
+#: returned literally zero, so missing by one and fumbling by five were the
+#: same outcome. That makes every option on the ground a coin-flip for all or
+#: nothing, and makes an officer's level a cliff rather than a slope.
+SPOILED = 0.30
+NEAR_MISS = 2
+
+#: What each pip of margin adds to a successful attempt's payout. It was a
+#: bare 0.12 inside `attempt`, so the forecast could not quote it and did not
+#: try — the card said the same prize whether you sent a green hand or a
+#: veteran.
+MARGIN_BONUS = 0.12

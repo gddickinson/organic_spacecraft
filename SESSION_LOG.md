@@ -2,6 +2,60 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: skill moved the odds on screen and the prize in secret
+
+Breadth cycle into surface expeditions, which these cycles had not touched.
+Two hypotheses died first, and I want them recorded because discarding them
+was most of the work:
+
+- **The ground options are not dominated.** `monolith` offers the same reward
+  at difficulty 4 and 5, and `wreck` offers a field note at 3 and at 4 — which
+  looks like a dead option until you notice the *stat* differs. A fresh crew
+  is always science, engineering and nav, never comms, medicine or tactical,
+  in 40 of 40 games — so half the ground's options roll at skill zero. That
+  looked damning too, until I checked the recruit pool: all six roles turn up
+  evenly, ~16% each. It is progression, not dead content.
+
+What was real is what the card says an option pays. `attempt` multiplies a
+success by `1 + margin * 0.12` — a bare literal — while `odds_for` quoted the
+`REWARD_SCALE` band the roll is drawn from *before* that multiplication.
+Measured on "Cut a sample", 800 attempts a level:
+
+    level 0   quoted 8–26 ore   paid up to 32.2
+    level 3   quoted 8–26 ore   paid up to 41.6
+    level 5   quoted 8–26 ore   paid up to 47.8   (mean up 38%)
+
+**28 of 42 option-and-level pairs paid over their quoted ceiling.** The card
+read identically for a green hand and a veteran. Skill moved the odds on the
+screen and moved the prize in secret — half of what an officer is worth, and
+the half nobody was told, which is exactly the decision "send them or keep
+them aboard" turns on.
+
+The quote is conditioned on the officer now: the smallest and largest margin
+they can roll on a *success*, carried through. A seam reads 8–32 for a green
+hand and 9–45 at level four. Swept over every priced option at three levels,
+400 attempts each — every payout now inside its quote, and 17 options quote a
+wider band for a veteran. The success chance was already accurate (worst 5%
+over 500 rolls) and still is.
+
+**An existing check was holding the card to the wrong number.**
+`test_attempts` asserted `(low, high) == REWARD_SCALE[reward]` — the table the
+roll is drawn from, not what the ground pays. It asserts the relationship now
+(the quote is the table carried through the officer, never narrower) and
+`test_prospect` plays out the exact figures.
+
+`MARGIN_BONUS` is named, and it and the other three ground constants moved to
+`data/expedition.py` — which also took `sim/expedition.py` back under five
+hundred lines, where my change had pushed it to 501.
+
+Five mutations, all caught. One needed a second pass: leaving the *floor* of
+the band at the bare scale went unnoticed, because a check that only asks
+"nothing paid below the quote" is satisfied by a quote that is too low. It
+asserts the floor rises with skill now — skipping `sample` and `xenolith`,
+which are counted in ones, where a pip of margin rounds straight back.
+
+712 → 717 green.
+
 ## 2026-07-29 — SEEDFALL: two colony effects that a check said were alive
 
 Breadth cycle into empire-building. I went looking with the question that paid

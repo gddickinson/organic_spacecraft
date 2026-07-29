@@ -102,9 +102,17 @@ def run(suite: Suite) -> None:
         return (f"{lean['chance']:.0%} green against {good['chance']:.0%} "
                 f"at level {good['level']:g}")
 
-    @check("what it says success pays is what the table pays")
+    @check("what it says success pays is the table, carried through the officer")
     def _():
-        checked = 0
+        # This asserted the quote *equalled* `REWARD_SCALE`, which is the
+        # table `attempt` draws from before multiplying by the roll's margin —
+        # so it was holding the card to a number the ground does not pay. A
+        # green hand on a seam was quoted 8–26 ore and could take 32 home.
+        #
+        # The quote is the table carried through what this officer can roll.
+        # It can only be wider, never narrower, and `test_prospect` plays out
+        # the exact figures.
+        checked, widened = 0, 0
         for fid, feature in FEATURES.items():
             game, party = _landed(f"prize-{fid}", fid)
             for index, (_t, _s, _d, reward) in enumerate(feature.options):
@@ -112,10 +120,18 @@ def run(suite: Suite) -> None:
                 low, high = REWARD_SCALE.get(reward, (0, 0))
                 assert said["reward"] == reward, (
                     f"{fid}/{index}: says {said['reward']}, pays {reward}")
-                assert (said["low"], said["high"]) == (low, high)
+                assert said["low"] >= low and said["high"] >= high, (
+                    f"{fid}/{index}: quotes {said['low']}–{said['high']} "
+                    f"against a table of {low}–{high} — the card promises "
+                    "less than the ground can pay")
+                widened += said["high"] > high
                 checked += 1
         assert checked > 15, f"only {checked} options checked"
-        return f"{checked} options across {len(FEATURES)} features, all matching"
+        assert widened, (
+            "not one option quotes above its bare table, so the officer's "
+            "margin is not reaching the card at all")
+        return (f"{checked} options across {len(FEATURES)} features, "
+                f"{widened} quoting above the bare table")
 
     @check("walking away is safe and says it is")
     def _():

@@ -15,7 +15,9 @@ from dataclasses import dataclass, field
 from ..core.save import register
 from . import weather as weather_sim
 from ..data.expedition import (BASE_SUPPLY, FEATURES, HAZARDS,
-                               PARTY_CAPACITY, REWARD_SCALE, TERRAIN)
+                               HAZARD_ON_FAILURE, MARGIN_BONUS,
+                               NEAR_MISS, PARTY_CAPACITY,
+                               REWARD_SCALE, SPOILED, TERRAIN)
 from ..data.fieldnotes import NOTES
 
 _uid = itertools.count(1)
@@ -229,19 +231,6 @@ def options_here(exp: Expedition):
     return FEATURES[t.feature].options
 
 
-#: A failed attempt springs a hazard this often.
-HAZARD_ON_FAILURE = 0.4
-
-#: What a spoiled attempt is worth, as a share of a clean one — and how near
-#: the miss has to be to be worth anything at all.
-#:
-#: The constant was written, commented, and read by nothing: a failed attempt
-#: returned literally zero, so missing by one and fumbling by five were the
-#: same outcome. That makes every option on the ground a coin-flip for all or
-#: nothing, and makes an officer's level a cliff rather than a slope.
-SPOILED = 0.30
-NEAR_MISS = 2
-
 
 def odds_for(exp: Expedition, index: int, officers) -> dict:
     """The chance, the officer, the prize and the risk, before you try it.
@@ -269,6 +258,17 @@ def odds_for(exp: Expedition, index: int, officers) -> dict:
     faces = 6 - max(1, min(7, need)) + 1
     chance = max(0.0, min(1.0, faces / 6))
     low, high = REWARD_SCALE.get(reward, (0, 0))
+    # And what it pays *for this officer*. `attempt` multiplies the roll by
+    # `1 + margin * MARGIN_BONUS`, so a clean success pays well over the bare
+    # scale — but this quoted the scale itself at every level. Measured on
+    # "Cut a sample": 8–26 ore on the card whatever you sent, against a real
+    # 47.8 at level five. Skill moved the odds on screen and moved the prize
+    # in secret, which is the half of an officer's worth nobody was told.
+    if high:
+        best = max(0, 6 + level - (difficulty + 2))
+        worst = max(0, min(best, 1 + level - (difficulty + 2)))
+        low = round(low * (1 + worst * MARGIN_BONUS))
+        high = round(high * (1 + best * MARGIN_BONUS))
     # What a near miss is worth, and how likely one is: the die faces that
     # fall short by `NEAR_MISS` or less. Stated, because "it fails" and "it
     # fails and you get half" are different decisions.
@@ -311,7 +311,7 @@ def attempt(exp: Expedition, index: int, officers, rng) -> dict:
            "short": max(0, -margin)}
     if success:
         lo, hi = REWARD_SCALE.get(reward, (0, 0))
-        amount = rng.int(lo, hi) * (1 + max(0, margin) * 0.12) if hi else 0
+        amount = rng.int(lo, hi) * (1 + max(0, margin) * MARGIN_BONUS) if hi else 0
         if reward == "lore":
             # Notes are drawn by id and filed on recovery, so what the ground
             # told you survives the flight home. It used to be a string shown

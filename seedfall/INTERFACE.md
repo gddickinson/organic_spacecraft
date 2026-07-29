@@ -666,6 +666,7 @@ seedfall/
     ├── test_stranded.py 6 checks — the way out of a dead end is real
     ├── test_geography.py 5 checks — a port stays the kind of port it is
     ├── test_grants.py  8 checks — every colony effect is read, and does something
+    ├── test_prospect.py 5 checks — a ground option's prize is the officer's prize
     ├── test_customs.py 9 contraband checks — the premium, the search, heat
     ├── test_allegiance.py 8 checks — taking sides, and brokering out of it
     ├── test_territory.py 8 checks — annexation, levy, defiance, seizure
@@ -1244,6 +1245,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **A crossing charges as it goes, not up front.** `transit.begin()` takes
   nothing; each watch spends its share. That is what makes cutting the burn a
   real decision — you keep what you have not yet spent and lose what you have.
+- **A ground option's prize depends on who you send, and the card must say
+  so.** `attempt` multiplies a success by `1 + margin * MARGIN_BONUS`, but
+  `odds_for` quoted the bare `REWARD_SCALE` band — so the card read the same
+  at every officer level while the payout did not. Measured on "Cut a sample",
+  800 attempts a level: quoted 8–26 ore throughout, paid up to 32.2 green and
+  47.8 at level five, with 28 of 42 option-and-level pairs over their ceiling.
+  Skill moved the odds on screen and the prize in secret. The quote is
+  conditioned on the officer now — the smallest and largest margin they can
+  roll on a success, carried through — so a seam reads 8–32 green and 9–45 at
+  level four. **The tuning constants live in `data/expedition.py`**; a bare
+  0.12 inside `attempt` is what made the forecast unable to quote it.
 - **A dead aggregate is where a dead effect hides.** `test_grants` asks the
   general question — is every effect a colony grants read by something? — and
   two slipped past it anyway. `colony.effects()` copied `watch` into a
