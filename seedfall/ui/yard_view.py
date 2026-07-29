@@ -279,9 +279,15 @@ class YardView(View):
         else:
             if refund:
                 p.add(note(f"Removed parts sell back for {cr(refund)}."))
-            p.add_buttons(button("Apply refit" if sysm.port else "Needs a port",
+            # The rule is the sim's, not the button's — the button used to
+            # hold a different, laxer one of its own.
+            where, why = shipyard.can_refit_here(g)
+            p.add_buttons(button("Apply refit" if where else "Not here",
                                  self._apply_refit, kind="primary",
-                                 enabled=ok and can_afford and bool(sysm.port)))
+                                 enabled=ok and can_afford and where,
+                                 tip=why))
+            if not where:
+                p.add(label(why, "", "warn", wrap=True))
         return p
 
     def _lay_down(self) -> None:

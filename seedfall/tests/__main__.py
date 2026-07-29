@@ -15,7 +15,7 @@ def main(argv: list[str] | None = None) -> int:
                                        "assessment", "balance", "bloom", "reachable",
                                        "efficacy", "transit", "customs", "allegiance", "territory", "charts", "aftermath", "notes", "layers", "cargo", "freight", "workings", "burns", "bench", "works", "overtures", "seats", "founding", "attempts", "reach", "plans", "beginnings", "legacy",
            "instruments", "voices", "bridge", "manual", "tutorial",
-           "grudges", "gunnery", "surveys", "time", "anchorage", "traffic", "doctrine", "firing", "approach", "officials", "dormancy",
+           "grudges", "gunnery", "surveys", "time", "anchorage", "traffic", "doctrine", "firing", "approach", "officials", "dormancy", "tuning",
            "chronicle", "dig",
                                        "resume", "verbs", "ui"]
     ok = True
@@ -342,6 +342,12 @@ def main(argv: list[str] | None = None) -> int:
         from . import test_dormancy
         suite = Suite("dormancy")
         test_dormancy.run(suite)
+        ok = suite.report() and ok
+
+    if "tuning" in wanted:
+        from . import test_tuning
+        suite = Suite("tuning")
+        test_tuning.run(suite)
         ok = suite.report() and ok
 
     if "manual" in wanted:

@@ -22,6 +22,23 @@ from ..world.galaxy import distance
 from .harness import Suite
 
 
+def _dock_at_a_yard(game) -> bool:
+    """Put the hull alongside something that can open it up.
+
+    `apply_refit` used to work anywhere — the rule lived in the button, not
+    the sim, so a hull could be stripped in deep space. It does not any more,
+    and a check that refits has to say where it is standing. Not every system
+    has a yard, so this moves the hull to one that does.
+    """
+    from ..sim import anchorage
+    for candidate in [game.system] + list(game.galaxy.systems):
+        for berth in anchorage.in_system(game, candidate):
+            if berth.offers("shipyard"):
+                game.location_id = candidate.id
+                game.orbit_body = berth.body_id
+                return True
+    return False
+
 def run(suite: Suite) -> None:
     check = suite.check
 
@@ -129,6 +146,7 @@ def run(suite: Suite) -> None:
                 game.credits = 10_000_000
                 for key in ("alloy", "silicon", "magnetite", "biomass", "ore"):
                     game.stores[key] = 500
+                _dock_at_a_yard(game)
                 ok, why = shipyard_sim.apply_refit(game, game.ship, fitted)
                 assert ok, why
                 game.ship_stats = ship_sim.stats(game.ship, game.bonuses)

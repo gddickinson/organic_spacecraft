@@ -209,8 +209,39 @@ def refit_cost(chassis: Chassis, old_fitted, new_fitted):
     return cost, added, removed, refund
 
 
+def can_refit_here(game) -> tuple[bool, str]:
+    """Is the hull somewhere that can actually open it up?
+
+    This rule lived only in the button. `apply_refit` validated the design and
+    the cost and nothing else, so the remote bridge — or any other caller —
+    could strip a hull in deep space. And the button's own version was wrong
+    twice over: it tested "this system contains a port", which since
+    anchorages is not the same as being alongside one, and it accepted any
+    port at all rather than one with a yard. You could re-hull at an outpost
+    that sells groceries, from four AU away.
+    """
+    from . import anchorage
+    here = anchorage.docked_at(game)
+    if here is None:
+        yards = anchorage.offering(game, "shipyard")
+        if yards:
+            return False, (f"You are not alongside anything. {yards[0].name} "
+                           "is in this system.")
+        return False, "You are not alongside a yard."
+    if not here.offers("shipyard"):
+        yards = [a for a in anchorage.offering(game, "shipyard")
+                 if a.id != here.id]
+        return False, (f"{here.name} has no yard"
+                       + (f"; {yards[0].name} does." if yards else
+                          " and nothing in this system does."))
+    return True, ""
+
+
 def apply_refit(game, ship: Ship, new_fitted) -> tuple[bool, str]:
     chassis = CHASSIS_BY_ID[ship.chassis]
+    where, why = can_refit_here(game)
+    if not where:
+        return False, why
     ok, errs, _ = validate(chassis, new_fitted)
     if not ok:
         return False, errs[0]

@@ -56,6 +56,32 @@ an empty tank from becoming a deadlock. Local work (survey, extract, dig, land)
 flies the ship alongside first, so a player who never opens the helm still gets a
 coherent transit; the helm is where you choose a better one.
 
+**A hull is only opened where there is a yard to open it.** A player asked why
+they could refit anywhere. They could: `apply_refit` validated the design and
+the cost and *nothing else*, so the rule lived in the button rather than the
+simulation and any other caller — the remote bridge included — could strip a
+hull in deep space. The button's own version was wrong twice besides: it
+tested "this system contains a port", which since anchorages is not the same
+as being alongside one, and it accepted any quay rather than one with a yard.
+`shipyard.can_refit_here` is the rule now, expressed through
+`anchorage.docked_at` and `offering(game, "shipyard")`, and the screen reads
+it instead of holding its own.
+
+**Which numbers are actually held in place.** `tests/tripwire.py` changes
+every module-level tuning constant in the game — zero, double, half — and
+reports the ones no check notices. A survivor is dead, tautologically checked,
+or genuinely unpinned, and all three are worth knowing. The clean run: **60 of
+131 unprotected**, the worst being `approaches.ODDS_PER_DAY`, which retires
+the entire envoy system in silence when zeroed. `tests/test_tuning.py` pins
+the worst of them, always against a figure written in the check and never
+against the constant under test — the mistake this whole apparatus exists to
+stop.
+
+(The tool's own first run reported sixteen and was wrong: it rewrote source
+between suite runs while Python served `.pyc` files compiled from the mutated
+text, so restores did not reliably take. It runs with bytecode disabled now.
+A tool that audits the tests has to be audited too.)
+
 **A screen cannot free the widget that is talking to it.** The rule has cost
 three segfaults — a `Card`, a `QLineEdit` mid-keystroke, and a `QComboBox`
 whose popup was still delivering the click that dismissed it. Each was fixed

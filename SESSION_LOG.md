@@ -2,6 +2,50 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: auditing the tests instead of trusting them
+
+Last cycle I said the tautological-check habit was mine and I would watch for
+it. Watching is not a method, so: a tool that changes every tuning constant in
+the game and reports the ones nothing notices.
+
+- **`tests/tripwire.py`.** Zero, double or halve each of 131 module-level
+  constants; run the suites; report the survivors. A survivor is dead code,
+  a tautologically-checked number, or a genuinely unpinned one.
+- **60 of 131 are unprotected.** The worst is `approaches.ODDS_PER_DAY` —
+  zero it and no envoy ever arrives again, retiring the whole diplomacy
+  feature I shipped two cycles ago, with 535 checks still green.
+- **The tool poisoned itself first, and I nearly believed it.** Its first run
+  said sixteen. It was rewriting source between runs while Python served
+  `.pyc` files compiled from the *mutated* text, so restores did not reliably
+  take — I found it when a check crashed with `PER_LOSS` reading 0.0 at
+  runtime and 9.0 on disk. Bytecode is disabled in the children now, and the
+  caches are cleared at the start. A tool that audits the tests has to be
+  audited too, and the honest number is nearly four times the flattering one.
+- **`tests/test_tuning.py`** pins the eight worst, every one against a figure
+  written in the check rather than against the constant it guards. 52 remain,
+  listed in the task queue.
+- **A killed sweep left mutated source in the tree.** It restores on SIGINT,
+  SIGTERM and exit now — a tool that edits source has to put it back on the
+  way out, not only on the happy path.
+
+**And two player questions, both of which found real holes.**
+
+*"Why don't hands have ages?"* Because `ship.crew` is an integer. The 34 hands
+are a headcount with nothing to hang an age on, so "your crew ages on a long
+crossing" is true for 3 of 37 people — and it is exactly why last cycle's
+dormancy bug hid so well. Queued with a design: a mean and a spread on the
+ship, not 34 records.
+
+*"Why can a ship refit when not docked at a shipyard?"* Because the rule was
+in the button and not the simulation. `apply_refit` checked the design and the
+cost and nothing else, so the remote bridge could strip a hull in deep space —
+and the button's own rule tested "this system has a port", which is neither
+being alongside nor being at a yard. `shipyard.can_refit_here` now expresses
+it through the anchorages, and two existing checks that had been quietly
+relying on the loophole had to be docked first.
+
+- 543 checks green, every file under 500 lines.
+
 ## 2026-07-28 — SEEDFALL: sleeping through it, and a sugar that finally does something
 
 The half of the player's time request I left undone. Ageing, lineages and
