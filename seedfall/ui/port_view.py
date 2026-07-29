@@ -299,6 +299,25 @@ class PortView(BerthsMixin, View):
                        if money["held"] else "")
                     + f" — clears {cr(money['net'])}",
                     "", "chloro" if money["net"] > 0 else "warn", wrap=True))
+            # Where the work actually is. The board named a reward and a
+            # deadline and never the destination, while two postings in three
+            # pointed outside the reachable component altogether.
+            leg = contract_sim.trip(g, c)
+            if leg is not None:
+                if leg["hops"] is None:
+                    card.add(label(f"{leg['name']} — you cannot get there "
+                                   "from here at this drive.", "", "warn",
+                                   wrap=True))
+                elif leg["hops"] == 0:
+                    card.add(label(f"{leg['name']} — you are already here.",
+                                   "", "chloro", wrap=True))
+                else:
+                    card.add(label(
+                        f"{leg['name']} — {leg['hops']} jump(s), about "
+                        f"{leg['days']} days each way"
+                        + ("" if leg["in_time"] else
+                           ", which the deadline will not cover"),
+                        "", "chloro" if leg["in_time"] else "warn", wrap=True))
             # Whose enemies mind, before you commit rather than after.
             said, tint = allegiance.note(g, c.issuer, c.rep)
             card.add(label(said, "", tint))

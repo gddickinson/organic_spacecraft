@@ -121,10 +121,29 @@ class Contract:
 # ── generation ─────────────────────────────────────────────────────────────
 
 def _pick_target(rng, game, sysm, far: bool):
-    """A system that is somewhere worth going, and reachable in principle."""
+    """A system worth going to that the hull can actually get to.
+
+    "Reachable in principle" was the intent and `bloom < 0.4` was the whole of
+    the test, so the board offered work wherever the sector happened to have a
+    star. Measured on a fresh chronicle: **65% of every targeted posting named
+    a system outside the reachable component entirely** — 15 of 42 systems can
+    be flown to at the opening drive, and deliver, survey and expedition
+    postings all pointed beyond it about two times in three. Failing one costs
+    standing with the issuer, and nothing on the board said where the work was.
+
+    Reachability is transitive, so this asks `reach.component`, which is the
+    same answer the chart gives and the same one `jump_quote` will confirm one
+    hop at a time. `far` still means the outer half — of what you can reach.
+    """
+    from . import reach as reach_sim
+
+    within = reach_sim.component(game, start=sysm.id)
     systems = [s for s in game.galaxy.systems
-               if s.id != sysm.id and s.bloom < 0.4]
+               if s.id != sysm.id and s.bloom < 0.4 and s.id in within]
     if not systems:
+        # A hull walled into a single system still gets a board; the work is
+        # simply local. Better a posting you can do at home than one you
+        # cannot reach at all.
         return sysm
     systems.sort(key=lambda s: distance(s, sysm))
     pool = systems[len(systems) // 2:] if far else systems[:max(3, len(systems) // 3)]
@@ -374,6 +393,31 @@ def active(game) -> list[Contract]:
 
 def all_open(game) -> list[Contract]:
     return [c for c in game.contracts if not c.done and not c.failed]
+
+
+def trip(game, c: Contract) -> dict | None:
+    """Where the work is and what the flight to it costs, for the board.
+
+    Returns None for a posting with no destination — prospect and relic work
+    is brought back *here* — and for one whose target cannot be reached, which
+    the generator no longer produces but a saved chronicle may still hold.
+    """
+    from . import reach as reach_sim
+
+    if c.target_system is None:
+        return None
+    target = game.galaxy.systems[c.target_system]
+    route = reach_sim.route_to(game, c.target_system)
+    if route is None:
+        return {"name": target.name, "hops": None, "days": None,
+                "there_and_back": None, "in_time": False}
+    # Judged one way, because that is what finishing it takes: `check()`
+    # completes a delivery, a survey and a ground contract on *arrival*. The
+    # return leg is the captain's own business and is reported, not charged.
+    both_ways = route["days"] * 2 if route["hops"] else 0
+    return {"name": target.name, "hops": route["hops"], "days": route["days"],
+            "there_and_back": both_ways,
+            "in_time": c.days_left(game.day) >= route["days"]}
 
 
 def summary(c: Contract, day: int) -> str:

@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from ..data.chassis import CHASSIS_BY_ID
 from ..data.parts import PARTS, PARTS_BY_ID
-from ..world.galaxy import distance
+from ..world.galaxy import distance, transit_days
 from .ship import stats as ship_stats
 from .shipyard import validate
 
@@ -49,6 +49,43 @@ def component(game, jump: float | None = None, start: int | None = None) -> set:
                     following.append(other)
         edge = following
     return seen
+
+
+def route_to(game, system_id: int, jump: float | None = None) -> dict | None:
+    """Fewest hops from here to there, and the sector days they cost.
+
+    The contract board named a reward and a deadline and never once said where
+    the work *was*. `component()` answers whether a place can be reached at
+    all; this answers what getting there costs, which is what a captain
+    weighing a posting against its deadline actually needs.
+
+    Fewest hops rather than fewest days, because that is how a captain reads a
+    chart, and the days are then the days that route takes at a steady
+    transit.
+    """
+    if jump is None:
+        jump = game.ship_stats.jump
+    speed = game.ship_stats.speed
+    systems = game.galaxy.systems
+    here = game.location_id
+    if system_id == here:
+        return {"hops": 0, "days": 0}
+    seen = {here: (0, 0)}
+    edge = [systems[here]]
+    while edge:
+        following = []
+        for system in edge:
+            hops, days = seen[system.id]
+            for other in systems:
+                ly = distance(system, other)
+                if other.id in seen or ly > jump:
+                    continue
+                seen[other.id] = (hops + 1,
+                                  days + max(1, round(transit_days(ly, speed))))
+                following.append(other)
+        edge = following
+    found = seen.get(system_id)
+    return None if found is None else {"hops": found[0], "days": found[1]}
 
 
 def walled(game, jump: float | None = None) -> set:

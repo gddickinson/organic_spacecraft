@@ -28,6 +28,7 @@ from ..sim import customs as customs_sim
 from ..sim import dig as dig_sim
 from ..sim import diplomacy as dip_sim
 from ..sim import expedition as exp_sim
+from ..sim import anchorage as anchorage_sim
 from ..sim import flight as flight_sim
 from ..sim import freight as freight_sim
 from ..sim import inquiry as inquiry_sim
@@ -151,6 +152,27 @@ def _fit(game, part_id: str) -> bool:
     return True
 
 
+def _put_in_at_a_yard(game) -> bool:
+    """Fly alongside a yard, because that is now what refitting requires.
+
+    This driver was written when the rule was "the system has a port" and was
+    never brought forward when `shipyard.can_refit_here` tightened it to
+    "alongside a yard". It went on calling `apply_refit` from wherever it
+    happened to be, getting `You are not alongside a yard` back, and dropping
+    it on the floor — so the seed bay was almost never fitted and the decade
+    planted nothing. Measured across 24 seeds: one of them ever planted a
+    colony, and the coverage check was pinned to exactly that seed.
+    """
+    here = anchorage_sim.docked_at(game)
+    if here is not None and here.offers("shipyard"):
+        return True
+    yards = anchorage_sim.offering(game, "shipyard")
+    if not yards:
+        return False
+    flight_sim.travel_to(game, yards[0].body_index, "standard")
+    return True
+
+
 def _refit_here(game, rng, plan) -> None:
     """Fit a seed bay, then reach — the two things that open the game up.
 
@@ -164,6 +186,8 @@ def _refit_here(game, rng, plan) -> None:
     mass costs range it *lost* a light-year of reach while spending the purse.
     """
     if not game.system.port:
+        return
+    if not _put_in_at_a_yard(game):
         return
     if not game.ship_stats.can_colonise:
         _fit(game, "seed_bay")

@@ -2,6 +2,51 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a board that offers work you can reach
+
+Missions, which had not had a cycle. The general question again: is every
+posting on the contract board actually doable?
+
+- **65% of targeted postings named a system outside the reachable component.**
+  `_pick_target`'s docstring said "reachable in principle" and its whole test
+  was `bloom < 0.4`. Reachability is transitive and nothing checked it. At the
+  opening drive 15 of 42 systems can be flown to; deliver ran 69% unreachable,
+  survey 63%, expedition 57%. Letting one lapse costs standing with the issuer.
+- **And the card never said where the work was** — reward, deadline, standing,
+  cargo cost, allegiance cost, and no destination at all.
+- **Both halves fixed.** The generator asks `reach.component`. `reach.route_to`
+  gives fewest hops and the days they cost, checked against `jump_quote` for
+  single hops. The card reads "Nine's Rise — 3 jump(s), about 20 days each
+  way", and says so in warn colour if the deadline will not cover it.
+- **Feasibility is judged one way, not round trip.** `check()` completes a
+  delivery, a survey and a ground contract on *arrival*. Judging round-trip
+  flagged three postings that are perfectly doable — a warning nobody needs
+  teaches captains to ignore warnings.
+
+**Then the full suite caught a regression, and it was not the one it looked
+like.** `test_chronicle`'s "the chronicle does everything it claims" started
+failing on `planted a colony`. My change had shifted the driver's path — but
+sweeping seeds showed colonies were planted by **1 seed in 24 under the old
+targeting too**. The check was pinned to the single seed that happened to work.
+
+The real cause was a driver bug of some age. `chronicle._refit_here` still
+tested "the system has a port", which stopped being the rule when
+`shipyard.can_refit_here` tightened to "alongside a yard" — so the driver
+called `apply_refit` from wherever it was, got "you are not alongside a yard"
+back, and dropped it. Measured: 822 of 1506 founding refusals were "no seed
+bay fitted". Teaching it to put in at a yard first took that to 100, and
+planting from 1 seed in 24 to 6 in 48. The original check seed passes again on
+its own merits, and the first chronicle check went from 0 colonies to 5.
+
+I have recorded the measured rarity in the check itself, because a capability
+only one seed in twenty-four exercises is not being covered, it is being got
+away with.
+
+Five checks in a new `test_postings` suite, every one proven to bite —
+including one that needed a deliberately impossible deadline, because with
+every real posting comfortably in time, "always says yes" and "is right" look
+identical. 616 checks green.
+
 ## 2026-07-28 — SEEDFALL: a grant that does nothing, and a card that says nothing
 
 Empire-building, which had not had a cycle. Measured the nineteen colony

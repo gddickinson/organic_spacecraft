@@ -192,6 +192,17 @@ def run(suite: Suite) -> bool:
         # because whether a *particular* pocket of the sector has a plantable
         # body outside the Bloom is luck; that the driver can still do each
         # thing is not.
+        #
+        # How lucky, measured: 6 of 48 seeds plant anything over a decade, the
+        # blocker being that the Bloom holds most systems and you cannot plant
+        # in one it holds. It was 1 of 24 until the driver was taught to put
+        # in at a yard before refitting — it had been calling `apply_refit`
+        # from wherever it happened to be ever since `can_refit_here`
+        # tightened, getting "you are not alongside a yard" back and dropping
+        # it, so the seed bay was almost never fitted. If this check fails
+        # after an unrelated change, suspect the driver's reach before the
+        # seed: a capability that only one seed in twenty-four exercises is
+        # not being covered, it is being got away with.
         game = new_game("chronicle-cover")
         summary = chronicle.play(game, years=10)
         did = {"fought something": bool(summary.get("fights")),

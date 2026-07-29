@@ -680,6 +680,7 @@ seedfall/
     ├── test_thermal.py 12 checks — guns and helm both bounded
     ├── test_helm.py    5 checks — every number on the burn board is accounted
     ├── test_grants.py  5 checks — every colony grant is read, and explained
+    ├── test_postings.py 5 checks — the board only offers work you can reach
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
     ├── test_legacy.py  7 aftermath checks — an ending is a turn, not a stop
     ├── test_instruments.py 5 checks — a gauge agrees with the ship and itself
@@ -855,6 +856,21 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   game that adds heat, so one clamp at the source covers every hull. An
   end-of-turn clamp was tried too and measured to change nothing at all, so it
   was removed rather than left in looking useful.
+- **A posting has to name somewhere the hull can get to.** `_pick_target` was
+  documented as choosing a system "reachable in principle" and tested only
+  `bloom < 0.4`; reachability is transitive and nothing checked it, so **65%
+  of targeted postings named a system outside the reachable component** (15 of
+  42 systems fly at the opening drive). Ask `reach.component`, which is the
+  same answer the chart gives. `reach.route_to` costs the flight, and the card
+  states it.
+- **A coverage check pinned to one seed is a check you are getting away with.**
+  `test_chronicle`'s "does everything it claims" ran on a fixed seed by
+  design, but only **1 seed in 24** ever planted a colony — so it was pinned
+  to the one that worked and any change anywhere would break it. The cause was
+  a driver bug, not luck: `chronicle._refit_here` still tested "the system has
+  a port" after `shipyard.can_refit_here` tightened to "alongside a yard", so
+  `apply_refit` returned "you are not alongside a yard" and the driver dropped
+  it. Putting in at a yard first took planting to 6 seeds in 48.
 - **A vocabulary whitelist is not coverage.** Two suites listed
   `megastructure` in a `KNOWN_EFFECTS` set, which asserts only that nobody
   declares an *unknown* key — never that a declared one is consumed. It read
