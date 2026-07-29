@@ -62,6 +62,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("weave", "test_weave", "weave"),
     SuiteSpec("customs", "test_customs", "customs"),
     SuiteSpec("allegiance", "test_allegiance", "allegiance"),
+    SuiteSpec("public", "test_public", "public"),
     SuiteSpec("territory", "test_territory", "territory"),
     SuiteSpec("charts", "test_charts", "charts"),
     SuiteSpec("aftermath", "test_aftermath", "aftermath"),

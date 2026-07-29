@@ -135,6 +135,24 @@ RELATION_BANDS = [
 #: asked.
 TREATY_WEIGHT = 8.0
 
+#: How large a settlement is, for the purpose of who resents it.
+#:
+#: Priced on what brokering *moves* — twenty-eight points of relation between
+#: two powers — rather than on the six standing you are thanked with. The
+#: first attempt used the thanks, and at any decent standing `courtship` had
+#: already shrunk that to under two, so the most public act on the board cost
+#: a third power six tenths of a point. `TREATY_WEIGHT` exists for exactly
+#: this reason and this is its companion: bigger, because a settlement moves
+#: two powers where a treaty moves one.
+BROKER_WEIGHT = 12.0
+
+#: How loud a denunciation is, for the purpose of who takes offence.
+#:
+#: The act moves the denounced power by -14 and thanks everyone already at
+#: odds with them. This is the weight its *friends* price their displeasure
+#: against — the mirror of that thanks, and the half nobody was charged for.
+DENOUNCE_WEIGHT = 10.0
+
 CONCORD_RELATION = 15
 CONCORD_STANDING = 70
 

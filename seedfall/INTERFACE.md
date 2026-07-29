@@ -397,6 +397,49 @@ one cause. The Fleet Hub was drawn on the helm chart, labelled, and inert:
   selected, so nothing appeared to happen. `QUAY_OFFSET` is one number now,
   read by the painter and the hit test alike, and quays are tested first.
 
+**Half the diplomatic board was still free.** `sim/allegiance.py` has charged
+you for being seen working for somebody since it was written — relief to the
+Concordat costs you with the Charter and the Freeholds — but `broker` and
+`denounce` never got the same treatment. Measured at 70 standing with everyone:
+
+    relief   (concordat)             charter -0.2, concordat +3.3, freeholds -1.3
+    broker   (concordat, freeholds)  concordat +1.8, freeholds +1.8  <- nobody else
+    denounce (concordat, freeholds)  charter +6, concordat +6, freeholds -14
+
+Brokering is the most public thing a captain can do: it seats two powers at a
+table, thanks you with **both**, moves their relation twenty-eight points and
+decides the Concord ending — and the Charter, at -20 and -35 with the pair of
+them, did not notice.
+
+`allegiance.defenders_of` is the mirror of `offended_by`: who minds you
+*attacking* a power rather than serving one. Deliberately symmetric — offence
+starts below Cold, devotion above Correct — which means it costs **nothing at
+dawn**, because the Verge opens with no friendships in it. Denouncing gets
+dearer exactly as you pacify the sector, which is a better property than any
+number I could have tuned: measured, nothing owed in a hostile sector and
+-6.1 once the Freeholds have a friend.
+
+And brokering is priced on what it **moves**, not on the thanks. `courtship`
+has already shrunk the thanks to under two points at any standing where
+brokering is permitted at all, so pricing the offence against the thanks made
+the loudest act on the board cost a third power six tenths of a point.
+`BROKER_WEIGHT` is to a settlement what `TREATY_WEIGHT` is to a treaty; the
+Charter now pays -4.1 for a peace between the two powers it likes least.
+
+*And a bug it surfaced in the board.* Brokering charges a third party twice
+over — once as an enemy of each principal — and `preview` quoted that as two
+separate lines, so the screen promised the Freeholds -3.30 and then again
+-4.90 while the act moved them -8.20. Both halves were true and neither was
+the number. `preview` merges to one line per power now, because the board is
+read by a person.
+
+*What it does to the game.* Over twenty determined chronicles, a captain who
+only brokers reaches the Concord **6 times in 20**; one who brokers and keeps
+everyone sweet, **19 in 20**. The ending is not harder — it asks to be paid
+for. `test_politics`'s determined-broker bot was updated to court as well as
+broker, because brokering alone was a complete strategy only while it was
+free, and it clears the same bar far better than before.
+
 **The Weave.** A hull's jump range is ten light years. The sector is
 sixty-eight across with a median pair distance of twenty-nine, so a fresh
 captain reaches **three systems of forty-one** and the rest of the Verge is
@@ -2290,6 +2333,15 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   the branch that kills velocity *across* the approach passed everything else,
   because `start` always puts the ship dead ahead — so there is now a check
   that arrives off-axis on purpose, and it failed on the first run.
+- **`test_public.py`** holds the rule that every public act pays for being
+  public. Its general check derives who *ought* to mind from the relations
+  matrix rather than from `offended_by` — sharing the code's own list would
+  prove nothing. Its first sweep missed three, all holes in the checks: the
+  preview-versus-act agreement had been measured at 3,456 comparisons while
+  the fix was built and never written down, nothing held the two principals
+  exempt from each other, and the Bloom-partisan check was asked of a Bloom
+  with no relation to anybody, so it scored zero devotion and dropped out on
+  its own. Sweep: 8/8.
 - **`test_weave.py`** holds the gate network. Its first sweep missed three
   mutations and all three were the same defect in the *checks*: the standing
   block sat behind `if far.faction:` and silently ran nothing where the far

@@ -332,7 +332,7 @@ LEVERS: list[Lever] = [
 
     Lever("allegiance-cost",
           "the powers notice whose work you take",
-          patch=(allegiance, "price", lambda _g, _p, _w: []),
+          patch=(allegiance, "price", lambda _g, _p, _w, _x=None: []),
           probe=_spread_standing, direction="higher"),
 
     Lever("customs-search",

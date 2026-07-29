@@ -23,6 +23,13 @@ from . import diplomacy as dip
 INDIFFERENT = -15.0
 #: At or below this they mind as much as they are ever going to.
 IMPLACABLE = -70.0
+
+#: The mirror, for when you go after somebody rather than work for them.
+#: Below this nobody is close enough to take it personally; at or above
+#: `DEVOTED` they take it as personally as they ever will.
+FRIENDLY = 15.0
+DEVOTED = 70.0
+
 #: A share of what you gained with the issuer.
 BITE = 0.75
 
@@ -43,6 +50,32 @@ def severity(game, power: str, other: str) -> float:
     return min(1.0, (INDIFFERENT - value) / span)
 
 
+def devotion(game, power: str, other: str) -> float:
+    """How much `other` minds you going after this one, 0..1.
+
+    The mirror of `severity`, and it exists because half the diplomatic
+    board had no cost at all. Serving a power charged you with its enemies
+    from the day this module was written; *attacking* one charged you with
+    nobody, though a power's friends are exactly the people who notice.
+    """
+    if power == other:
+        return 0.0
+    value = dip.relation(game, power, other)
+    if value <= FRIENDLY:
+        return 0.0
+    span = DEVOTED - FRIENDLY
+    return min(1.0, (value - FRIENDLY) / span)
+
+
+def defenders_of(game, power: str) -> list[tuple[str, float]]:
+    """Powers that would take it badly if you moved against this one."""
+    out = [(other, devotion(game, power, other))
+           for other in FACTIONS_BY_ID
+           if other != power and not FACTIONS_BY_ID[other].hidden
+           and not FACTIONS_BY_ID[other].hostile]
+    return sorted([(o, d) for o, d in out if d > 0], key=lambda t: -t[1])
+
+
 def offended_by(game, power: str) -> list[tuple[str, float]]:
     """Powers that mind you working for this one, worst first."""
     out = [(other, severity(game, power, other))
@@ -52,7 +85,28 @@ def offended_by(game, power: str) -> list[tuple[str, float]]:
     return sorted([(o, s) for o, s in out if s > 0], key=lambda t: -t[1])
 
 
-def price(game, power: str, weight: float) -> list[tuple[str, float]]:
+def price_attack(game, power: str, weight: float,
+                 except_: set | None = None) -> list[tuple[str, float]]:
+    """What moving against `power` would cost you with its friends."""
+    if weight <= 0:
+        return []
+    skip = except_ or set()
+    out = [(other, round(weight * dev * BITE, 1))
+           for other, dev in defenders_of(game, power) if other not in skip]
+    return [(other, cost) for other, cost in out if cost > 0]
+
+
+def charge_attack(game, power: str, weight: float,
+                  except_: set | None = None) -> list[tuple[str, float]]:
+    """Apply it. Returns what actually moved."""
+    moved = price_attack(game, power, weight, except_)
+    for other, cost in moved:
+        game.adjust_rep(other, -cost)
+    return moved
+
+
+def price(game, power: str, weight: float,
+          except_: set | None = None) -> list[tuple[str, float]]:
     """What serving `power` for `weight` standing would cost, unapplied.
 
     Strictly a share of what you gained, as `BITE` says. There used to be a
@@ -65,14 +119,16 @@ def price(game, power: str, weight: float) -> list[tuple[str, float]]:
     """
     if weight <= 0:
         return []
+    skip = except_ or set()
     out = [(other, round(weight * sev * BITE, 1))
-           for other, sev in offended_by(game, power)]
+           for other, sev in offended_by(game, power) if other not in skip]
     return [(other, cost) for other, cost in out if cost > 0]
 
 
-def charge(game, power: str, weight: float) -> list[tuple[str, float]]:
+def charge(game, power: str, weight: float,
+           except_: set | None = None) -> list[tuple[str, float]]:
     """Apply it. Returns what actually moved, for the log and the screen."""
-    moved = price(game, power, weight)
+    moved = price(game, power, weight, except_)
     for other, cost in moved:
         game.adjust_rep(other, -cost)
     return moved

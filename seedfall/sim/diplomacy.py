@@ -10,7 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..core.save import register
-from ..data.diplomacy import (TREATY_WEIGHT, ACTIONS_BY_ID, AGENDAS,
+from ..data.diplomacy import (BROKER_WEIGHT, DENOUNCE_WEIGHT, TREATY_WEIGHT,
+                              ACTIONS_BY_ID, AGENDAS,
                               CONCORD_RELATION, CONCORD_STANDING,
                               COURTSHIP_FALLOFF, COURTSHIP_FLOOR,
                               COURTSHIP_KNEE,
@@ -173,6 +174,21 @@ def preview(game, action_id: str, faction: str,
     out = {"standing": [], "relations": None, "gain": gain,
            "courtship": courtship(game.rep.get(faction, 0.0))}
 
+    def _merged(rows: list) -> list:
+        """One line per power. The screen is read by a person.
+
+        Brokering charges a third party twice over — once as an enemy of each
+        principal — and quoting that as two separate lines meant the board
+        promised the Freeholds -3.30 and then again -4.90 while the act moved
+        them -8.20. Both halves were true and neither was the number.
+        """
+        order, total = [], {}
+        for who, amount in rows:
+            if who not in total:
+                order.append(who)
+            total[who] = total.get(who, 0.0) + amount
+        return [(who, round(total[who], 2)) for who in order]
+
     if action_id == "denounce":
         if other is None:
             return out
@@ -180,20 +196,34 @@ def preview(game, action_id: str, faction: str,
         for power in POWERS:
             if power != other and relation(game, power, other) < -15:
                 out["standing"].append((power, 6.0))
+        out["standing"] += [
+            (power, -cost) for power, cost
+            in allegiance.price_attack(game, other, DENOUNCE_WEIGHT,
+                                       except_={faction, other})]
         out["relations"] = (faction, other, -8.0)
+        out["standing"] = _merged(out["standing"])
     elif action_id == "broker":
         if other is None:
             return out
         # Each side is thanked according to what it already thinks of you.
-        out["standing"] = [(faction, gain),
-                           (other, offer_gain(game, action, other))]
+        other_gain = offer_gain(game, action, other)
+        out["standing"] = [(faction, gain), (other, other_gain)]
+        pair = {faction, other}
+        out["standing"] += [(power, -cost) for power, cost
+                            in allegiance.price(game, faction, BROKER_WEIGHT,
+                                                pair)]
+        out["standing"] += [(power, -cost) for power, cost
+                            in allegiance.price(game, other, BROKER_WEIGHT,
+                                                pair)]
         out["relations"] = (faction, other, 28.0)
+        out["standing"] = _merged(out["standing"])
     elif action_id == "treaty":
         out["standing"] = [(faction, gain)]
         # The half nobody was told about.
         out["standing"] += [(power, -cost)
                             for power, cost in allegiance.price(game, faction,
                                                TREATY_WEIGHT)]
+        out["standing"] = _merged(out["standing"])
     else:
         # A gift is a public act. Courting one power in front of the power it
         # is losing a war to used to cost exactly nothing — which is why a
@@ -202,6 +232,7 @@ def preview(game, action_id: str, faction: str,
         out["standing"] = [(faction, gain)]
         out["standing"] += [(power, -cost) for power, cost
                             in allegiance.price(game, faction, gain)]
+        out["standing"] = _merged(out["standing"])
     return out
 
 
@@ -238,6 +269,21 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
     lines: list[str] = []
     gain = offer_gain(game, action, faction)
 
+    def _merged(rows: list) -> list:
+        """One line per power. The screen is read by a person.
+
+        Brokering charges a third party twice over — once as an enemy of each
+        principal — and quoting that as two separate lines meant the board
+        promised the Freeholds -3.30 and then again -4.90 while the act moved
+        them -8.20. Both halves were true and neither was the number.
+        """
+        order, total = [], {}
+        for who, amount in rows:
+            if who not in total:
+                order.append(who)
+            total[who] = total.get(who, 0.0) + amount
+        return [(who, round(total[who], 2)) for who in order]
+
     if action_id == "denounce":
         if other is None:
             return {"ok": False, "why": "Denounce whom?"}
@@ -250,6 +296,14 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
                 game.adjust_rep(power, 6)
                 lines.append(f"{FACTIONS_BY_ID[power].short} appreciated it.")
         shift_relation(game, faction, other, -8)
+        # And whoever is close to them takes it personally. Denouncing a
+        # power thanked everyone already at odds with them and charged
+        # nobody at all — so in a sector you had spent years pacifying, the
+        # loudest act on the board was still free.
+        seen = allegiance.charge_attack(game, other, DENOUNCE_WEIGHT,
+                                        except_={faction, other})
+        if seen:
+            lines.append(f"Their friends noticed: {allegiance.phrase(seen)}.")
         if other == "charter":
             loyalty.record(game, "denounce_charter")
         lines.append(f"{FACTIONS_BY_ID[other].short} will remember this.")
@@ -261,10 +315,21 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
                                         "sit down at your invitation."}
         before = relation(game, faction, other)
         after = shift_relation(game, faction, other, 28)
+        other_gain = offer_gain(game, action, other)
         game.adjust_rep(faction, gain)
-        game.adjust_rep(other, offer_gain(game, action, other))
+        game.adjust_rep(other, other_gain)
+        # Seating two powers at a table is the most public thing on the
+        # board, and it was the only act that cost nothing with anybody
+        # else — though a third power at odds with both has just watched you
+        # end the quarrel it was profiting from. Both principals are exempt:
+        # you are not offending either of them by serving the other.
+        pair = {faction, other}
+        seen = allegiance.charge(game, faction, BROKER_WEIGHT, except_=pair)
+        seen += allegiance.charge(game, other, BROKER_WEIGHT, except_=pair)
         lines.append(f"{FACTIONS_BY_ID[faction].short} and "
                      f"{FACTIONS_BY_ID[other].short}: {before:+.0f} → {after:+.0f}.")
+        if seen:
+            lines.append(f"Noted elsewhere: {allegiance.phrase(seen)}.")
     elif action_id == "treaty":
         state.treaties.append(faction)
         loyalty.record(game, "treaty")
@@ -314,6 +379,21 @@ def _remember(game, action_id: str, action, faction: str,
     kind, text, weight = entry
     named = FACTIONS_BY_ID.get(other or "")
     body = text.format(other=named.short if named else "them")
+    def _merged(rows: list) -> list:
+        """One line per power. The screen is read by a person.
+
+        Brokering charges a third party twice over — once as an enemy of each
+        principal — and quoting that as two separate lines meant the board
+        promised the Freeholds -3.30 and then again -4.90 while the act moved
+        them -8.20. Both halves were true and neither was the number.
+        """
+        order, total = [], {}
+        for who, amount in rows:
+            if who not in total:
+                order.append(who)
+            total[who] = total.get(who, 0.0) + amount
+        return [(who, round(total[who], 2)) for who in order]
+
     if action_id == "denounce":
         # The one that lands on somebody else.
         if other:

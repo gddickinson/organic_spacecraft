@@ -2,6 +2,72 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: half the diplomatic board was free
+
+The fault I parked two cycles ago, finally taken. Every ordinary overture has
+charged you for being seen since `allegiance.py` was written; `broker` and
+`denounce` never did. Measured at 70 with everyone:
+
+    relief   (concordat)             charter -0.2, concordat +3.3, freeholds -1.3
+    broker   (concordat, freeholds)  concordat +1.8, freeholds +1.8  <- nobody else
+    denounce (concordat, freeholds)  charter +6, concordat +6, freeholds -14
+
+Brokering seats two powers at a table, thanks you with **both**, moves their
+relation twenty-eight points and decides the Concord ending. The Charter sits
+at -20 and -35 with the pair of them and did not notice.
+
+`defenders_of` is the mirror of `offended_by` — who minds you *attacking* a
+power rather than serving one. I kept it symmetric with the original (offence
+below Cold, devotion above Correct) rather than tuning it to bite at dawn, and
+the emergent property is better than anything I would have chosen: the Verge
+opens with no friendships in it, so denouncing costs nothing at first and gets
+steadily dearer **as you pacify the sector**. The more peace you make, the
+more expensive it becomes to play powers off against each other.
+
+**Where I was wrong first time.** I priced brokering's offence on what you are
+*thanked* with. `courtship` has already shrunk that to under two points at any
+standing where brokering is even permitted, so the loudest act on the board
+cost a third power six tenths of a point — real, consumed, and beneath
+noticing. It is priced on what it **moves** now. `TREATY_WEIGHT` existed for
+exactly this reason and I had not joined the dots.
+
+**Then the balance bit back, and an old check caught me.** At the new weight,
+`test_politics`'s determined-broker bot reached the Concord 4 times in 20
+against a floor of 7. My first instinct was to lower the weight — and the
+measurements said the honest range was 0 to 3, which is back to a rounding
+error. Splitting the difference would have been fitting to tests.
+
+So I asked what the bot was actually modelling: a captain who brokers and
+never rebuilds standing. That was a complete strategy while brokering was
+free. Measured at the new weight — **brokering alone reaches the Concord 6
+times in 20; brokering and courting, 19 times in 20.** The design is sound and
+the bot was out of date. I updated its premise and said so in the check, and
+it now clears the same bar far better than it used to.
+
+**The sweep, again, found holes in my checks rather than my code.** 5/8 first
+pass. The preview-versus-act agreement I had measured at 3,456 comparisons
+while building the fix and never written down — so a mutation hiding the
+denunciation cost from the board survived. Nothing held the two principals of
+a settlement exempt from being charged for each other. And the
+Bloom-takes-no-offence check was asked of a Bloom with no relation to anybody,
+which scores zero devotion and drops out of the list on its own, proving
+nothing. 8/8 after — and a ninth lesson: I split the checks into a new suite
+and the sweep silently lost them, because its own suite list was stale.
+
+**And one honest bug of my own.** Brokering charges a third party twice — once
+as an enemy of each principal — and my `preview` quoted that as two separate
+lines. `test_courtship` reads the board entry by entry and caught it: promised
+the Freeholds -3.30, then -4.90, while the act moved them -8.20. Both halves
+were true and neither was the number a captain needs. The board merges to one
+line per power now. A stale three-argument stub in `tests/levers.py` fell over
+on the new signature at the same time, which is the sort of thing that suite
+exists to notice.
+
+Shipped: `allegiance.defenders_of` / `price_attack` / `charge_attack` and an
+`except_` on the existing pair, `BROKER_WEIGHT` and `DENOUNCE_WEIGHT`, the
+costs wired into both `perform` and `preview`, and `tests/test_public.py`
+(5 checks). Full suite green.
+
 ## 2026-07-29 — SEEDFALL: the Weave, and the road the Bloom walks
 
 The captain asked for faster-than-light travel: gates, a network of them, more

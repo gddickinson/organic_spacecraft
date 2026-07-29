@@ -10,6 +10,28 @@ other's throats, and every one of them thought better of you for it.
 The point of the fix is not the penalty. It is that brokering the peace now
 pays for itself in daily play, instead of being something you did once at the
 end for an ending.
+
+**Half the board was still free.** Every ordinary overture paid for being
+seen from the day this module was written — relief to the Concordat costs you
+with the Charter and the Freeholds — but `broker` and `denounce` never got the
+same treatment. Measured, at 70 with everyone:
+
+    relief   (concordat)             charter -0.2, concordat +3.3, freeholds -1.3
+    broker   (concordat, freeholds)  concordat +1.8, freeholds +1.8  <- nobody else
+    denounce (concordat, freeholds)  charter +6, concordat +6, freeholds -14
+
+Brokering is the most public act on the board. It seats two powers at a table,
+thanks you with *both*, moves their relation twenty-eight points, and decides
+the Concord ending — and the Charter, sitting at -20 and -35 with the two of
+them, did not notice. Denouncing thanked everyone already at odds with the
+target and charged nobody who was close to them.
+
+Two things were needed. `defenders_of` is the mirror of `offended_by`: who
+minds you *attacking* a power rather than serving one. And brokering is priced
+on what it **moves** rather than on what you are thanked with — `courtship`
+has already shrunk the thanks to under two points at any decent standing, so
+pricing the offence against it made the loudest act on the board cost a third
+power six tenths of a point. `BROKER_WEIGHT` is its `TREATY_WEIGHT`.
 """
 
 from __future__ import annotations
@@ -221,6 +243,30 @@ def run(suite: Suite) -> None:
 
     @check("nobody takes offence on behalf of the Bloom")
     def _():
+        # Asked of `defenders_of` too, not only `offended_by`. The mirror was
+        # written by copying the original and the exclusion came with it —
+        # but nothing checked it, so removing the exclusion went unnoticed.
+        #
+        # It has to be asked of a Bloom that *has* something to be a partisan
+        # about: with no relation to anybody it scores zero devotion and drops
+        # out of the list on its own, so the first draft of this proved
+        # nothing at all.
+        hidden = new_game("hidden-partisans")
+        _peace(hidden, 60.0)
+        for power in POWERS:
+            dip.shift_relation(hidden, "bloom", power, 85.0)
+            dip.shift_relation(hidden, "abyssals", power, 85.0)
+        assert dip.relation(hidden, "bloom", "charter") > allegiance.FRIENDLY
+        for power in POWERS:
+            partisans = [who for who, _w in allegiance.defenders_of(hidden, power)]
+            assert "bloom" not in partisans, (
+                "the Bloom is taking offence on behalf of "
+                f"{power}, which it is on excellent terms with")
+            assert "abyssals" not in partisans, partisans
+            for who in partisans:
+                assert not FACTIONS_BY_ID[who].hidden, who
+                assert not FACTIONS_BY_ID[who].hostile, who
+
         game = new_game("bloom-offence")
         _war(game)
         for power in POWERS:

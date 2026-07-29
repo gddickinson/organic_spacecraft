@@ -187,12 +187,25 @@ def run(suite: Suite) -> None:
         #
         # Twenty games and a floor well under the measured rate. The whole
         # run costs about a second.
+        #
+        # **The bot courts as well as brokers, and that is the point.** It
+        # used to broker and nothing else, which was a complete strategy
+        # while a settlement cost nothing with anybody. It no longer is:
+        # seating two powers at a table is the most public act on the board
+        # and a third power at odds with both now pays attention. Measured
+        # at the current weight — brokering alone reaches the Concord 6 times
+        # in 20, brokering *and* keeping everyone sweet 19 times in 20. The
+        # premise changed, so the captain being modelled changed with it;
+        # the bar below is the same one, and it clears it far better.
         trials, wins = 20, 0
         for seed in range(trials):
             game = new_game(f"broker-{seed}")
             game.credits = 10 ** 9
+            for cid in ("biomass", "survey"):
+                game.ship.cargo[cid] = 999_999
             for power in dip.POWERS:
                 game.rep[power] = 90
+            game.recompute()
             done = False
             for _ in range(15):
                 for _ in range(12):
@@ -205,6 +218,12 @@ def run(suite: Suite) -> None:
                             continue
                         if dip.perform(game, "broker", a, b).get("ok"):
                             break
+                    # Mend what the settlements cost, worst standing first.
+                    for power in sorted(dip.POWERS,
+                                        key=lambda q: game.rep.get(q, 0)):
+                        for aid in ("relief", "intelligence", "tribute"):
+                            if dip.perform(game, aid, power).get("ok"):
+                                break
                 if dip.concord_progress(game)["done"]:
                     done = True
                     break
