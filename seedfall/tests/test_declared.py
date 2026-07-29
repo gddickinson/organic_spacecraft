@@ -53,11 +53,6 @@ ALLOWED: dict[str, str] = {
         "hull flying lopsided because one engine of a pair is out — which is "
         "what this field is for. Task #85 holds the work; the field stays "
         "because deleting it would delete the geometry the work needs.",
-    "consorts.ConsortOrder.shield":
-        "How hard a consort holds station between you and the enemy, as "
-        "against `draw`, which decides who gets shot at. Wired in this cycle "
-        "for the flag's own damage; the *consort's* own risk from interposing "
-        "is task #86.",
     "lessons.Lesson.skip_if":
         "A watcher naming a thing already true, so a tutorial step can skip "
         "itself. Task #87: the tutorial's step machinery advances on watchers "

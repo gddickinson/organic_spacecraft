@@ -126,9 +126,34 @@ def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng,
         dmg *= 0.45
         to.interpose -= 1
         _say(b, f"{_who(b, to)} interposes its carapace.", "dim")
+    # A hull interposed between you and the gun wears part of the blow. See
+    # `consorts.interception`: the order's `shield` had never been read, so
+    # "hold between the enemy and your flag" cost the escort and saved you
+    # nothing. Taken before your own armour soaks, because the part the screen
+    # wears never reaches your plating at all.
+    arriving = 1.0
+    if to is b.player and b.consorts:
+        whole = dmg
+        dmg, worn = consort_sim.interception(b, dmg)
+        arriving = dmg / whole if whole > 0 else 1.0
+        for screen, share in worn:
+            took = damage._apply_to_layers(b, screen, share, w.wpn.traits, rng)
+            screen.taken += took
+            if took >= 1:
+                _say(b, f"{screen.name} takes {round(took)} of it, holding "
+                        f"station.", "warn")
+
     # Armour soaks, but never entirely: something always gets through, or two
     # well-armoured hulls would shoot at each other until the sun went out.
-    dmg = max(w.wpn.dmg * 0.15, dmg - to.st.armour)
+    #
+    # The floor is scaled by how much of the blow actually arrived. Flat — a
+    # share of the weapon's *nominal* output — it quietly erases interception
+    # against an armoured hull, because the part a screen wore never reaches
+    # the comparison. Measured over six identical shots at a flag with 34
+    # armour: with the floor scaled, a screen cuts what the flag takes from
+    # 26.5 to 15.1; with it flat, only to 21.6. A rule that stops armour
+    # negating a weapon must not also negate the hull standing in front.
+    dmg = max(w.wpn.dmg * 0.15 * arriving, dmg - to.st.armour)
 
     # Bloom tissue remembers what killed the last lineage. Keep using one kind
     # of weapon and it stops working; vary the loadout and the memory fades.

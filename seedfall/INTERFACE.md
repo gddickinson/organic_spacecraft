@@ -447,6 +447,37 @@ berth it answered that the planet was at zero range and therefore 180° wide,
 which is a picture of being inside it. Co-located sights are placed where they
 physically are: the world below a berth reads 98° across.
 
+**Screening that actually screens.** `ConsortOrder.shield` was one of the eight
+dead fields below, and the allowlist entry I wrote for it claimed it had already
+been wired. It had not — a false reason inside the field meant to prevent false
+claims, and nothing checks the reasons.
+
+The order promised "draws fire that would otherwise land on you, and takes it on
+a smaller hull" and delivered only the first half: measured, the flag took 228.5
+with two escorts screening against 223.6 flanking, while the screens lost 36 more
+hull. A pure cost.
+
+`consorts.interception` is the fix: a hull genuinely between wears
+`shield × SHIELD_SHARE` of each blow *before* the flag's armour, landing it on
+its own layers, saturating at `SHIELD_FLOOR` so six screens still leave the flag
+wearing 45 of every 100. At forty seeds screening saves the flag 26% (95 against
+flanking's 128) for 19 more hull off the escorts.
+
+Two things were tried and taken back, both worth recording. The screen's station
+was moved off the **midpoint** on the reasoning that a midpoint cannot be held —
+measured under one method the midpoint is better (95% of alive turns against
+85%), because it is *on* the line by construction, so the change was reverted and
+a claimed 21%→82% improvement withdrawn as a comparison of two different
+measurements. And the armour floor turned out to erase interception: flooring
+against the weapon's *nominal* output means the part a screen absorbed never
+reaches the comparison (at 34 armour, 26.5→21.6 flat against 26.5→15.1 scaled).
+
+The first mutation sweep ran 7/12 and every miss was the same fault — testing a
+mechanism with an aggregate something else dominates. Discarding interception's
+answer entirely passed a forty-seed engagement comparison. The checks are single
+blows with constructed geometry now, where 72 unscreened − 50 screened = 22 worn
+balances to the tonne.
+
 **Eight things declared and read by nobody.** `test_reachable.py` asks this of
 functions; asking it of **data** is the richer seam. Every field on every
 dataclass in `data/` against whether anything reads it: **eight that nothing
@@ -2706,6 +2737,11 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berth" flies the last kilometres rather than running four hundred ticks
   inside the click, and that a conn notices the hull being flown from the helm
   instead of showing an approach on somewhere it has left.
+- **`test_screening.py`** holds the screening trade: that a blow meant for the
+  flag is worn by whatever is standing in front, that a screen keeps a station
+  it can actually hold, that screening protects the flag *and* costs the
+  escorts, that it saturates rather than stacking to invulnerability, and that
+  every point diverted is a point some hull took.
 - **`test_declared.py`** is the standing guard that nothing in `data/` is
   declared and read by nobody, plus the four revivals it forced. Its allowlist
   carries a reason per entry and fails on stale excuses in both directions.

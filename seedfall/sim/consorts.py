@@ -89,6 +89,16 @@ def _manoeuvre(battle, consort) -> None:
 
     if order.id == "screen":
         # Make for the point between the enemy and the flag, and sit on it.
+        #
+        # A station hugging the flag on the threat side was tried instead, on
+        # the reasoning that the midpoint moves whenever either ship does and
+        # so cannot be held. Measured, that reasoning was wrong: over ten
+        # engagements the midpoint had the escort interposed on 95% of the
+        # turns it was alive against 85% for the flag-hugging station, because
+        # the midpoint is *on* the line between the two by construction. The
+        # change was reverted rather than kept — and a claim that it had
+        # improved matters from 21% to 82% was withdrawn, having compared two
+        # different measurements as though they were one.
         goal = ((enemy.body.x + flag.body.x) / 2, (enemy.body.y + flag.body.y) / 2)
         speed = top * 0.75
     elif order.id == "flank":
@@ -150,6 +160,57 @@ def choose_target(battle, rng):
             weight *= 1.5
         pairs.append((max(0.05, weight), consort))
     return rng.weighted(pairs)
+
+
+#: The share of a blow meant for the flag that a fully committed screen takes
+#: instead of it — `shield` 1.0, and only while actually interposed.
+#:
+#: `draw` already sends whole shots at a screen. This is the residual: what
+#: happens to the shots that come at you anyway. Measured before it existed,
+#: screening was a pure cost — over six engagements the flag took 228.5 with
+#: two escorts screening against 223.6 with them flanking, while the screens
+#: lost 36 more hull for the privilege. The order's own blurb promises it
+#: "draws fire that would otherwise land on you, and takes it on a smaller
+#: hull", and only the first half was true.
+SHIELD_SHARE = 0.30
+
+#: However many hulls are interposed, the flag takes at least this much of
+#: every blow. Three screens must not add up to invulnerability — "does more
+#: of a good thing ever make it worse" is a question this project asks, and
+#: the answer here has to be that it saturates.
+SHIELD_FLOOR = 0.45
+
+
+def interception(battle, dmg: float) -> tuple[float, list]:
+    """How much of a blow at the flag a screen takes, and which hulls take it.
+
+    Returns the damage still bound for the flag, and a list of
+    `(consort, share)` for the parts somebody else is wearing. Reads
+    `ConsortOrder.shield`, which was declared when the orders were written and
+    then read by nobody at all — so "hold between the enemy and your flag"
+    was a line of prose with no arithmetic behind it.
+
+    Only a consort that is *actually* between the two counts. That is the
+    physical justification for the whole mechanism, and it makes station-keeping
+    matter: an escort under orders to screen that has not got there yet shields
+    nothing.
+    """
+    if dmg <= 0:
+        return dmg, []
+    shares = []
+    for consort in active(battle):
+        order = ORDERS_BY_ID.get(consort.order, ORDERS_BY_ID[DEFAULT_ORDER])
+        if order.shield <= 0 or not _is_between(battle, consort):
+            continue
+        shares.append((consort, order.shield * SHIELD_SHARE))
+    if not shares:
+        return dmg, []
+    asked = sum(share for _c, share in shares)
+    keeps = max(SHIELD_FLOOR, 1.0 - asked)
+    # Scaled so the parts add up to exactly what the flag is not taking, which
+    # is what makes the floor a saturation rather than a leak.
+    scale = (1.0 - keeps) / asked
+    return dmg * keeps, [(c, dmg * share * scale) for c, share in shares]
 
 
 def _is_between(battle, consort) -> bool:

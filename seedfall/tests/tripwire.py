@@ -182,6 +182,7 @@ KIN = {
     "starclasses": ("worlds", "orbits"),
     "programmes": ("programmes",),
     "declared": ("declared",),
+    "consorts": ("combat", "screening"),
     "battle3d": ("gunfire",),
     "mounts": ("thrusters",), "burnplan": ("thrusters", "helm"),
 }

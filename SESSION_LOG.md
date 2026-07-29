@@ -2,6 +2,87 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: screening that actually screens
+
+`ConsortOrder.shield` — 1.0 for "screen me", 0.25 for concentrating, 0.0 for
+flanking — was one of the eight dead fields the guard found yesterday, and the
+allowlist entry I wrote for it said it had already been wired for the flag's
+damage. **It had not.** A false reason inside the very field meant to prevent
+false claims, and nothing checks the reasons: they are only as honest as whoever
+writes them. Worth leaving on the record rather than quietly correcting.
+
+So the order's own promise — "draws fire that would otherwise land on you, and
+takes it on a smaller hull" — was half true. `draw` sent shots at the escort;
+nothing at all came off the blows that still arrived. Measured before: over six
+engagements the flag took **228.5 with two escorts screening against 223.6 with
+the same two flanking**, while the screens lost 36 more hull for the privilege.
+Screening was a pure cost. You paid and got nothing.
+
+**I also changed the screen's station, and had to take it back.** The order aims
+an escort at the *midpoint* between the enemy and the flag, and the argument
+against that seemed strong: the midpoint moves whenever either ship moves, so no
+hull can hold it. I moved the station to hug the flag on the threat side and
+reported it as an improvement from 21% interposed to 82%.
+
+**That comparison was worthless.** The two figures were different measurements —
+21% counted blows across *whole engagements*, including every turn after the
+escorts were dead; 82% counted turns while alive over a short window. Measured
+properly, under one method, the midpoint is *better*: 95% of alive turns against
+85%, because the midpoint is **on** the line between the two hulls by
+construction. Reverted, and the engagement figures improved with it, flag 111 →
+95. The mutation sweep is what caught it: "a screen goes back to chasing the
+midpoint" would not fail, and the reason it would not fail is that there was
+nothing wrong with the midpoint.
+
+`consorts.interception` is the arithmetic, and it is the part that was real. A hull that is genuinely between wears
+`shield × SHIELD_SHARE` of each blow, before the flag's own armour, and the part
+it wears lands on its layers. It saturates: `SHIELD_FLOOR` means six screens
+still leave the flag wearing 45 of every 100, because "does more of a good thing
+make it worse" is a question worth answering with "it stops helping".
+
+**And the whole thing nearly went in tuned against noise.** At eight and ten
+seeds the engagement totals moved *non-monotonically* with the shield share —
++7.8, −5.2, +3.8, −20.8, −19.6 — which is what noise looks like when mistaken for
+signal, and a constant fitted to that would have been fitted to nothing. Forty
+seeds, and the ordering is stable:
+
+    screen        flag  95.0   escorts lost 76.0   diverted onto screens
+    flank         flag 128.0   escorts lost 57.0   diverted           nothing
+
+Screening saves the flag 26% and costs the escorts 19 more hull. Concentrating
+protects the flag best of all by ending the fight soonest, which is exactly what
+*its* blurb claims, so the check asserts the trade against **flanking** — the
+order that explicitly screens nobody — rather than asserting an ordering across
+all three that the game does not have.
+
+**And the first sweep ran 7/12, with all five misses the same mistake: testing a
+specific mechanism with an aggregate something else dominates.** Discarding
+interception's answer *entirely* — so the flag took the whole blow and the screens
+wore their share as well — passed a forty-seed "screening protects the flag"
+comparison untouched, because that difference comes mostly from `draw`. The fix
+was single blows with constructed geometry, where the books balance exactly: 72
+on an unscreened flag, 50 screened, 22 worn by the hull in front.
+
+Two real bugs surfaced only that way:
+
+- **The flag's own hull saturated the measurement.** Thirty shots destroy it
+  either way and `taken` caps at 336.0 in both runs, which reads exactly like a
+  mechanism that does nothing.
+- **The armour floor erased interception.** `max(nominal · 0.15, dmg − armour)`
+  floors against the weapon's *nominal* output, so the part a screen absorbed
+  never reached the comparison. At 34 armour a flat floor lets a screen cut
+  26.5 → 21.6; scaled by what actually arrived, 26.5 → 15.1. A rule that stops
+  armour negating a weapon must not also negate the hull in front of it. I first
+  attributed the 336 figure to this floor, which was wrong — right conclusion,
+  wrong evidence, corrected in the comment.
+
+The station that was kept is load-bearing, and that had to be shown rather than
+assumed: send the screen at the enemy, or astern of the flag away from the guns,
+and the checks fail. A mutation that does not fail is usually a weak check; this
+cycle it meant a wrong fix, and the difference is only visible if you go and look.
+
+`tests/test_screening.py`, 8 checks.
+
 ## 2026-07-29 — SEEDFALL: eight things declared and read by nobody
 
 `test_reachable.py` has asked "is every function reachable?" for a long time and
