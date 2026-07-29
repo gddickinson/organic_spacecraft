@@ -32,6 +32,11 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
+from .orbits import (ORBIT_BAND, ORBIT_BAND_SHARE, ORBIT_FLOOR_KM, in_orbit,
+                     orbit_band, orbit_note, orbital_speed)
+from .targets import (G0, Target, approach_range, target_from_body,
+                      target_from_contact)
+
 #: Delta-v from one thruster pulse and one main-drive burn, in m/s.
 RCS_DV = 0.4
 MAIN_DV = 12.0
@@ -49,35 +54,19 @@ ALONGSIDE_RATE = 1.5
 #: Faster than this into something solid and it is a collision, not a berth.
 SAFE_CLOSING = 4.0
 
+#: What an impact at exactly `SAFE_CLOSING` takes off the hull.
+#:
+#: Impact damage goes as the *square* of the speed, because that is where the
+#: energy is. Both curves here used to be linear and capped — `min(60, 6 +
+#: speed * 1.5)` — so putting the hull down on a world at five kilometres a
+#: second cost sixty points of three hundred and thirty-six, and a captain
+#: could aim at a planet as a shortcut. Now four metres a second is a scrape,
+#: twenty is serious, and thirty ends a starting hull.
+IMPACT_BASE = 6.0
+
 #: One tick of the conn, in seconds. A minute is long enough that a pulse
 #: visibly moves the ship and short enough to correct inside a hundred metres.
 TICK = 60.0
-
-#: Standard gravity, for turning a body's surface gravity into a mu.
-G0 = 9.80665
-
-#: How near a body you may hold station before the drag of its exosphere and
-#: the traffic-control of anyone living there make it somebody's business.
-ORBIT_FLOOR_KM = 80.0
-
-#: How near circular speed counts as circular, in m/s — at a world big
-#: enough for it to be the binding limit.
-#:
-#: Not a percentage, which was the first draft and was wrong: circular speed
-#: at a middling world is about 5 km/s, so a tenth of it is 500 m/s — forty
-#: main-drive burns, which no captain is going to sit through, and a ship
-#: arriving 50 m/s out would have read as already in orbit. The transfer does
-#: the kilometres a second; the conn trims what it leaves you with.
-#:
-#: But it cannot be flat either. Circular speed round a rock is four metres a
-#: second, so a flat band of fifteen is wider than the orbit — every approach
-#: began already in one, and the start condition came out retrograde. See
-#: `orbit_band`, which takes whichever of the two is tighter.
-ORBIT_BAND = 15.0
-
-#: The share of circular speed that counts as circular at a small body, where
-#: `ORBIT_BAND` would be the whole orbit.
-ORBIT_BAND_SHARE = 0.2
 
 #: How far past where you started counts as having lost the approach. Scaled
 #: to the approach, because 400 km is a long way off a quay and inside the
@@ -108,20 +97,6 @@ AXES_BY_ID = {a[0]: a for a in AXES}
 
 
 @dataclass
-class Target:
-    """What the conn is flying relative to."""
-
-    id: str
-    name: str
-    kind: str                    # body | anchorage | hull | point
-    #: How big it is, in km. A hull is a hundred metres; a world is thousands.
-    radius_km: float = 0.05
-    #: Standard gravitational parameter, km³/s². Zero for anything but a body.
-    mu: float = 0.0
-    detail: str = ""
-
-
-@dataclass
 class Conn:
     """A close-quarters approach in progress."""
 
@@ -139,6 +114,11 @@ class Conn:
     #: The range the approach opened at, which is what "adrift" is measured
     #: against — a fixed distance cannot serve both a quay and a gas giant.
     start_km: float = 12.0
+    #: What the tank held when the approach opened. `sim/berthing.py` charges
+    #: the difference to the ship; nothing here spends anything real.
+    opening_rcs: float = 40.0
+    #: Set once the chronicle has been charged for this approach.
+    landed: bool = False
     log: list = field(default_factory=list)
     #: Set once, when the approach is resolved one way or the other.
     outcome: str = ""
@@ -175,51 +155,6 @@ class Conn:
         return -sum(p * v for p, v in zip(self.pos, self.vel)) / r
 
 
-def target_from_body(body, name: str | None = None) -> Target:
-    """A world or a moon, with the gravity it actually has.
-
-    `mu = g · R²` in the units the rest of this module uses. A body's
-    `gravity` is in gees and its `radius_km` in km, so this is the body's own
-    numbers carried through and not a difficulty setting.
-    """
-    r_km = max(1.0, float(getattr(body, "radius_km", 1000)))
-    g = max(0.0, float(getattr(body, "gravity", 0.0))) * G0     # m/s²
-    return Target(id=body.id, name=name or body.name, kind="body",
-                  radius_km=r_km, mu=g * r_km * r_km / 1000.0,
-                  detail=getattr(body, "kind_name", "") or body.kind)
-
-
-def target_from_contact(game, contact) -> Target:
-    """Build a conn target from anything `track` can put a cursor on."""
-    system = game.system
-    if contact.kind in ("body", "anchorage") and contact.body_index is not None:
-        body = system.bodies[contact.body_index]
-        if contact.kind == "body":
-            return target_from_body(body, contact.name)
-        # A quay orbits its body but is a structure in its own right: you come
-        # alongside the station, not the planet underneath it.
-        return Target(id=contact.id, name=contact.name, kind="anchorage",
-                      radius_km=0.4, detail=contact.detail)
-    if contact.kind == "hull":
-        return Target(id=contact.id, name=contact.name, kind="hull",
-                      radius_km=0.08, detail=contact.detail)
-    return Target(id=contact.id, name=contact.name, kind="point",
-                  radius_km=0.0, detail=contact.detail)
-
-
-def approach_range(target: Target) -> float:
-    """How far off an approach opens, in km from the target's centre.
-
-    A quay is met at twelve kilometres. A world cannot be: twelve kilometres
-    from the centre of one is several thousand kilometres underground, which
-    is where the first draft of this put the ship — and `mu / r²` at that
-    range threw it out of the system at eleven thousand kilometres a second.
-    """
-    if target.kind == "body":
-        return target.radius_km + max(ORBIT_FLOOR_KM * 4, target.radius_km * 0.1)
-    return 12.0
-
-
 def start(game, contact, range_km: float | None = None,
           drift: float = 2.0) -> Conn:
     """Begin an approach, arriving off the target with way on.
@@ -233,11 +168,13 @@ def start(game, contact, range_km: float | None = None,
     building five thousand from rest is not something a thruster does.
     """
     target = target_from_contact(game, contact)
-    stats = game.ship_stats
     r = approach_range(target) if range_km is None else abs(range_km)
+    # The tank is the ship's own. The first draft invented one from the hull's
+    # speed rating — a captain with 20 t of volatiles aboard took the conn
+    # with 36.8, and spent it without the ship noticing.
+    aboard = float(game.ship.cargo.get("volatiles", 0))
     conn = Conn(target=target, pos=[0.0, -r, 0.0], vel=[0.0, abs(drift), 0.0],
-                start_km=r,
-                rcs=round(20.0 + getattr(stats, "speed", 1.0) * 12.0, 1))
+                start_km=r, rcs=aboard, opening_rcs=aboard)
     if target.mu > 0:
         # Across the line of sight at circular speed, less the error the
         # transfer left. Radially inward a little, so it is falling: an
@@ -290,8 +227,17 @@ def forecast(conn: Conn, axis_id: str, main: bool = False,
 
 
 def _copy(conn: Conn) -> Conn:
+    """A throwaway twin for a forecast to fly.
+
+    It has to carry `start_km`, which is what "adrift" is measured against.
+    The first draft left it at the 12 km default, so a forecast for a body
+    approach — which opens thousands of kilometres out — decided it had
+    drifted off before it had moved, and quoted a range nine kilometres away
+    from what the burn actually left.
+    """
     return Conn(target=conn.target, pos=list(conn.pos), vel=list(conn.vel),
-                heading=conn.heading, rcs=conn.rcs, elapsed=conn.elapsed)
+                heading=conn.heading, rcs=conn.rcs, elapsed=conn.elapsed,
+                start_km=conn.start_km, opening_rcs=conn.opening_rcs)
 
 
 def apply(conn: Conn, axis_id: str | None, main: bool = False,
@@ -343,6 +289,28 @@ def _substeps(conn: Conn, dt: float) -> int:
     return int(min(120, max(1, math.ceil(travel / (r * 0.01)))))
 
 
+def _sweep_min(a, b) -> float:
+    """The nearest the straight path from `a` to `b` comes to the origin.
+
+    Without this, contact is only ever tested at the *endpoints* of a tick,
+    and a ship fast enough to cross the target inside one minute goes clean
+    through it. Measured: an approach at 45 m/s covers 2.7 km a tick, passed
+    through a station 400 m across, and was reported **adrift** — no impact,
+    no damage, the hull untouched. Since impact damage is quadratic, the
+    fastest and most dangerous approaches were precisely the ones escaping.
+    """
+    ax, ay, az = a
+    dx, dy, dz = b[0] - ax, b[1] - ay, b[2] - az
+    span = dx * dx + dy * dy + dz * dz
+    if span < 1e-18:
+        return math.dist(a, (0.0, 0.0, 0.0))
+    # Where along the segment the closest point falls, clamped to it.
+    t = -(ax * dx + ay * dy + az * dz) / span
+    t = max(0.0, min(1.0, t))
+    return math.dist((ax + dx * t, ay + dy * t, az + dz * t),
+                     (0.0, 0.0, 0.0))
+
+
 def _step(conn: Conn, dt: float) -> None:
     """Integrate one tick: gravity, then motion, then see what we hit.
 
@@ -352,6 +320,7 @@ def _step(conn: Conn, dt: float) -> None:
     subs = _substeps(conn, dt)
     h = dt / subs
     for _ in range(subs):
+        was = list(conn.pos)
         r = conn.range_km
         if conn.target.mu > 0 and r > 1e-6:
             # Newton, in km and seconds, converted to the m/s velocity is in.
@@ -360,7 +329,30 @@ def _step(conn: Conn, dt: float) -> None:
                 conn.vel[i] -= (conn.pos[i] / r) * pull * h * 1000.0
         for i in range(3):
             conn.pos[i] += conn.vel[i] * h / 1000.0    # m/s · s → km
-    conn.elapsed += dt
+        conn.elapsed += h
+        # Contact anywhere along the path, not merely at the end of it.
+        if _sweep_min(was, conn.pos) <= conn.target.radius_km:
+            _touch(conn)
+            if conn.over:
+                return
+        _resolve(conn)
+        if conn.over:
+            return
+
+
+def _touch(conn: Conn) -> None:
+    """Put the ship on the target's skin, so contact is resolved there.
+
+    The tick has already carried it past; this walks it back to where it
+    actually met the hull, which is the position every reading and every log
+    line should be quoting.
+    """
+    r = conn.range_km
+    skin = max(conn.target.radius_km, 1e-6)
+    if r > 1e-9:
+        conn.pos = [p * (skin / r) for p in conn.pos]
+    else:
+        conn.pos = [0.0, -skin, 0.0]
     _resolve(conn)
 
 
@@ -371,10 +363,10 @@ def _resolve(conn: Conn) -> None:
     if conn.target.kind == "body":
         if r <= hull:
             conn.outcome = "aground"
-            conn.damage = round(min(60.0, 6.0 + conn.speed * 1.5), 1)
+            conn.damage = impact_damage(conn.speed)
             conn.log.append(
                 f"The hull is down on {conn.target.name} at "
-                f"{conn.speed:.0f} m/s. That was not a landing.")
+                f"{conn.speed:,.0f} m/s. That was not a landing.")
             return
         if in_orbit(conn):
             conn.outcome = "orbit"
@@ -389,9 +381,9 @@ def _resolve(conn: Conn) -> None:
             conn.log.append(f"Alongside {conn.target.name}.")
         else:
             conn.outcome = "collision"
-            conn.damage = round(min(80.0, speed * 2.5), 1)
+            conn.damage = impact_damage(speed)
             conn.log.append(
-                f"{conn.target.name} at {speed:.0f} m/s — the frames took it.")
+                f"{conn.target.name} at {speed:,.0f} m/s — the frames took it.")
         return
     if alongside(conn):
         conn.outcome = "alongside"
@@ -406,72 +398,23 @@ def _resolve(conn: Conn) -> None:
             "The approach is off.")
 
 
+def impact_damage(speed: float) -> float:
+    """What hitting something at this speed takes off the hull.
+
+    Quadratic and uncapped. A cap is what let a five-kilometre-a-second
+    lithobraking manoeuvre cost less than a bad week in the Bloom.
+    """
+    if speed <= 0:
+        return 0.0
+    return round((speed / SAFE_CLOSING) ** 2 * IMPACT_BASE, 1)
+
+
 def alongside(conn: Conn) -> bool:
     """Near enough and slow enough to call it a berth."""
     if conn.target.kind == "body":
         return False          # a world is orbited, not moored to
     return (conn.range_km <= ALONGSIDE_KM + conn.target.radius_km
             and conn.speed <= ALONGSIDE_RATE)
-
-
-def orbital_speed(conn: Conn, r_km: float | None = None) -> float:
-    """The circular speed at a radius, m/s. Zero where there is no gravity."""
-    r = conn.range_km if r_km is None else r_km
-    if conn.target.mu <= 0 or r <= 1e-6:
-        return 0.0
-    return math.sqrt(conn.target.mu / r) * 1000.0
-
-
-def in_orbit(conn: Conn) -> bool:
-    """Is this an orbit, or merely a fall that has not finished yet?
-
-    Circular enough that it will not come down and will not leave: the speed
-    within a tenth of circular, and the motion across the line of sight rather
-    than along it.
-    """
-    if conn.target.mu <= 0:
-        return False
-    r = conn.range_km
-    if r < conn.target.radius_km + ORBIT_FLOOR_KM:
-        return False
-    want = orbital_speed(conn)
-    band = orbit_band(conn)
-    if want <= 0 or abs(conn.speed - want) > band:
-        return False
-    return abs(conn.closing) <= band
-
-
-def orbit_band(conn: Conn) -> float:
-    """How near circular counts as circular here, in m/s.
-
-    Whichever is tighter: what a pilot can hold, or a fifth of the orbit. A
-    world demands the main drive and a rock demands the thrusters, and both
-    are a real manoeuvre rather than a formality.
-    """
-    return min(ORBIT_BAND, orbital_speed(conn) * ORBIT_BAND_SHARE)
-
-
-def orbit_note(conn: Conn) -> str:
-    """What the flight computer says about the orbit you are not yet in."""
-    if conn.target.mu <= 0:
-        return ""
-    want = orbital_speed(conn)
-    r = conn.range_km
-    floor = conn.target.radius_km + ORBIT_FLOOR_KM
-    if r < floor:
-        return (f"Too low: {r - conn.target.radius_km:.0f} km up, and nothing "
-                f"holds below {ORBIT_FLOOR_KM:.0f}.")
-    band = orbit_band(conn)
-    if conn.speed < want - band:
-        return (f"{want - conn.speed:,.0f} m/s short of circular "
-                f"({want:,.0f} m/s at this height). You are falling.")
-    if conn.speed > want + band:
-        return (f"{conn.speed - want:,.0f} m/s over circular. This is a "
-                "departure, not an orbit.")
-    if abs(conn.closing) > orbit_band(conn):
-        return (f"Speed is right; {conn.closing:+,.0f} m/s of it is along the "
-                "line of sight. Turn it across.")
-    return f"Circular at {r - conn.target.radius_km:.0f} km."
 
 
 def readout(conn: Conn) -> list[tuple[str, str, str]]:

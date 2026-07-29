@@ -18,6 +18,20 @@ silently in cases the screen had no words for:
 The claim that matters is the general one, and it is the one that would have
 caught both at once: **nothing on the board costs more than its profile says
 without the screen saying why.**
+
+Two more arrived from a player, and both were about the same thing: the Fleet
+Hub was drawn on the chart and could not be used.
+
+* **"Set course" did nothing.** The button reads "Set course — 4 d, 2 t" and
+  its tooltip says "Fly to Fleet Hub"; it called `course_to`, which only
+  *aims* the helm. A quay's body is very often the body already targeted, so
+  it set what was already set. Clicked, measured: `target` 0 → 0,
+  `orbit_body` None → None, day 0 → 0, fuel 20 → 20. Nothing at all.
+* **The Hub could not be clicked.** The painter drew its mark 11 px off the
+  planet; the hit test only ever walked `system.bodies`, with an 18 px
+  radius. So a click on the station landed on the planet — which was
+  usually already selected. `QUAY_OFFSET` is one number now, used by the
+  painter and the hit test alike.
 """
 
 from __future__ import annotations
@@ -53,6 +67,176 @@ def _parked_deep(seed: str):
 
 def run(suite: Suite) -> None:
     check = suite.check
+
+    @check("a quay's Set course actually takes the ship there")
+    def _():
+        # Reported by a player: clicking "Set course" on the Fleet Hub did
+        # nothing whatever. Driven through the real button, and asked of the
+        # outcome — is the ship *there* — rather than of any intermediate.
+        from .test_ui import _use_offscreen
+        _use_offscreen()
+        from PyQt6.QtWidgets import QApplication, QPushButton
+        from ..core.rng import RNG
+        from ..sim import anchorage as anchorage_sim
+        from ..sim import transit as transit_sim
+        from ..ui.window import MainWindow
+
+        app = QApplication.instance() or QApplication([])
+        assert app is not None
+        flown = 0
+        for seed in range(6):
+            game = new_game(f"setcourse-{seed}")
+            places = [a for a in anchorage_sim.in_system(game) if not a.here]
+            if not places:
+                continue
+            win = MainWindow(game)
+            win.toast = lambda *a, **k: None
+            win.go("helm")
+            for _ in range(2):
+                app.processEvents()
+            view = win.views["helm"]
+            buttons = [b for b in view.findChildren(QPushButton)
+                       if b.text().startswith("Set course") and b.isEnabled()]
+            if not buttons:
+                win.close()
+                continue
+            was = game.orbit_body
+            buttons[0].click()
+            for _ in range(2):
+                app.processEvents()
+            assert win.transit is not None, (
+                f"seed {seed}: Set course was clicked and no crossing began — "
+                "the button does nothing, which is what was reported")
+            crossing = win.transit
+            rng = RNG(f"cross{seed}")
+            guard = 0
+            while not crossing.over and guard < 80:
+                transit_sim.stand(game, crossing, rng)
+                guard += 1
+            transit_sim.finish(game, crossing)
+            win.close()
+            target = game.system.bodies[crossing.body_index]
+            assert game.orbit_body == target.id, (
+                f"seed {seed}: the crossing finished and the ship is at "
+                f"{game.orbit_body}, not {target.id}")
+            assert game.orbit_body != was or was == target.id
+            flown += 1
+        assert flown >= 3, f"only {flown} boards offered a course to fly"
+        return f"{flown} quays: clicked, crossed, and the hull is alongside"
+
+    @check("a quay can be picked off the chart")
+    def _():
+        # The other half of the same report. The mark is drawn offset from
+        # its planet and the hit test only knew about planets, so clicking a
+        # station selected the world underneath it — usually already the
+        # target, so nothing appeared to happen.
+        from .test_ui import _use_offscreen
+        _use_offscreen()
+        from PyQt6.QtCore import Qt
+        from PyQt6.QtGui import QMouseEvent
+        from PyQt6.QtWidgets import QApplication
+        from ..sim import anchorage as anchorage_sim
+        from ..ui.helm_view import OrbitChart
+        from ..ui.window import MainWindow
+
+        app = QApplication.instance() or QApplication([])
+        assert app is not None
+        picked = 0
+        for seed in range(5):
+            game = new_game(f"quaypick-{seed}")
+            places = anchorage_sim.in_system(game)
+            if not places:
+                continue
+            win = MainWindow(game)
+            win.toast = lambda *a, **k: None
+            win.resize(1300, 950)
+            win.show()
+            win.go("helm")
+            for _ in range(2):
+                app.processEvents()
+            chart = win.views["helm"].findChild(OrbitChart)
+            assert chart is not None
+            for place in places:
+                if place.body_index >= len(game.system.bodies):
+                    continue
+                chart.place = None
+                mark = chart.place_mark(game, place)
+                event = QMouseEvent(
+                    QMouseEvent.Type.MouseButtonPress, mark, mark,
+                    Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton,
+                    Qt.KeyboardModifier.NoModifier)
+                chart.mousePressEvent(event)
+                assert chart.place == place.id, (
+                    f"clicking {place.name} where it is drawn selected "
+                    f"{chart.place!r} instead")
+                assert win.views["helm"].place == place.id, (
+                    "the chart knows which quay was picked and the view "
+                    "does not")
+                picked += 1
+            win.close()
+        assert picked >= 4, picked
+        return f"{picked} quays clicked where they are drawn, every one picked"
+
+    @check("a planet and its quay are each clickable in their own right")
+    def _():
+        # The rule underneath `QUAY_OFFSET`. Its exact value is a matter of
+        # taste and no check should pin it — the painter and the hit test
+        # both read it, so moving it moves both answers together and they
+        # agree all the way down, which is the point of having one number.
+        #
+        # What must hold is that the two marks are separable: quays are
+        # tested first, so an offset of zero would put the station exactly on
+        # its world and make the world unclickable for ever.
+        from .test_ui import _use_offscreen
+        _use_offscreen()
+        from PyQt6.QtCore import Qt
+        from PyQt6.QtGui import QMouseEvent
+        from PyQt6.QtWidgets import QApplication
+        from ..sim import anchorage as anchorage_sim
+        from ..sim import flight
+        from ..ui.helm_view import OrbitChart
+        from ..ui.window import MainWindow
+
+        app = QApplication.instance() or QApplication([])
+        assert app is not None
+        game = new_game("bothclick")
+        places = anchorage_sim.in_system(game)
+        assert places, "no quay in this system to test with"
+        win = MainWindow(game)
+        win.toast = lambda *a, **k: None
+        win.resize(1300, 950)
+        win.show()
+        win.go("helm")
+        for _ in range(2):
+            app.processEvents()
+        chart = win.views["helm"].findChild(OrbitChart)
+
+        def click(at):
+            chart.mousePressEvent(QMouseEvent(
+                QMouseEvent.Type.MouseButtonPress, at, at,
+                Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton,
+                Qt.KeyboardModifier.NoModifier))
+            return chart.place
+
+        checked = 0
+        for place in places:
+            if place.body_index >= len(game.system.bodies):
+                continue
+            body = game.system.bodies[place.body_index]
+            chart.place = None
+            assert click(chart.place_mark(game, place)) == place.id, (
+                f"{place.name} is not clickable where it is drawn")
+            chart.place = None
+            on_world = chart._to_screen(*flight.position(body, game.day))
+            assert click(on_world) is None, (
+                f"clicking {body.name} itself selected the quay in orbit of "
+                "it — the two marks are on top of each other")
+            assert win.views["helm"].target == place.body_index
+            checked += 1
+        win.close()
+        assert checked >= 1, checked
+        return (f"{checked} quay/world pairs, each mark selecting itself and "
+                "not the other")
 
     @check("no burn costs more than its profile without the screen saying why")
     def _():

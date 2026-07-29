@@ -33,11 +33,10 @@ The claims:
 - **A prediction comes true**, checked by playing the chronicle forward.
 - **An intercept costs what flying it charges** — the plot and the helm
   cannot disagree, because they are the same arithmetic.
-- **A gate with no mass behind it refuses**, and a hard arrival is paid
-  for.
+- **A gate with no mass behind it refuses.**
 
-The screens themselves — the camera row, the plotting board, the
-starfield — are held in `test_cameras.py`.
+The screens are held in `test_cameras.py`, and what a finished approach
+costs the chronicle in `test_berthing.py`.
 """
 
 from __future__ import annotations
@@ -46,6 +45,7 @@ import math
 
 from ..core.state import new_game
 from ..sim import autopilot as pilot_sim
+from ..sim import berthing as berth_sim
 from ..sim import conn as conn_sim
 from ..sim import flight
 from ..sim import track as track_sim
@@ -340,50 +340,6 @@ def run(suite: Suite) -> None:
         assert not conn_sim.can_burn(conn, main=True)[0], (
             "the main drive fires on a thruster's worth of mass")
         return "dry refuses and still coasts; a pulse's worth is not a burn"
-
-    @check("arriving fast is a collision, arriving slow is a berth")
-    def _():
-        # The rule that makes the whole mini-game a decision. Measured by
-        # flying in at a spread of speeds rather than read off the constant.
-        game = new_game("impact")
-        contact = next(c for c in _contacts(game, ("anchorage",)))
-        table = []
-        for speed in (0.5, 1.0, 2.0, 6.0, 20.0):
-            conn = conn_sim.start(game, contact, range_km=1.0, drift=0.0)
-            conn.vel = [0.0, speed, 0.0]
-            for _ in range(400):
-                if conn.over:
-                    break
-                conn_sim.apply(conn, None)
-            table.append((speed, conn.outcome, conn.damage))
-        # A berth means alongside. The tripwire found nothing pinning how
-        # near "near enough" is, so it could be set to five kilometres and
-        # every check still passed — measured against the hull, not the
-        # constant, because reading the constant here proves nothing.
-        gentle = conn_sim.start(game, contact, range_km=1.0, drift=0.0)
-        gentle.vel = [0.0, 1.0, 0.0]
-        for _ in range(400):
-            if gentle.over:
-                break
-            conn_sim.apply(gentle, None)
-        assert gentle.outcome == "alongside", gentle.outcome
-        gap = gentle.range_km - gentle.target.radius_km
-        assert gap < 0.4, (
-            f"the ship is called alongside with {gap * 1000:,.0f} m between "
-            "it and the station's hull, which is not a berth")
-
-        slow = [row for row in table if row[0] <= conn_sim.ALONGSIDE_RATE]
-        fast = [row for row in table if row[0] > conn_sim.SAFE_CLOSING]
-        assert slow and fast, table
-        assert all(row[1] == "alongside" for row in slow), (
-            f"a gentle arrival is not a berth: {slow}")
-        assert all(row[1] == "collision" for row in fast), (
-            f"arriving hard is not being punished: {fast}")
-        assert all(row[2] > 0 for row in fast), (
-            "a collision costs nothing, so there is no reason to slow down")
-        assert fast[-1][2] > fast[0][2], (
-            "hitting harder does no more damage than hitting softly")
-        return " · ".join(f"{s:g} m/s → {o}" for s, o, _d in table)
 
     @check("the panel does not cry wolf at a good approach")
     def _():

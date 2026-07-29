@@ -21,9 +21,9 @@ from __future__ import annotations
 
 import math
 
-from .conn import (AXES, MAIN_DV, ORBIT_FLOOR_KM, RCS_DV, TICK, ALONGSIDE_KM,
-                   ALONGSIDE_RATE, Conn, apply, can_burn, orbit_band,
-                   orbital_speed)
+from .conn import (AXES, ALONGSIDE_KM, ALONGSIDE_RATE, MAIN_DV, RCS_DV, TICK,
+                   Conn, apply, can_burn)
+from .orbits import ORBIT_FLOOR_KM, orbit_band, orbital_speed
 from .conn import _rotate
 
 

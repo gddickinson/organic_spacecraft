@@ -2,6 +2,80 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: a conn that changed nothing, and a station you could not click
+
+Asked of last cycle's work: *is everything it declares consumed?* — the
+question that has found more in this project than any other. For the conn the
+answer was **nothing**. Measured, not guessed:
+
+    flew into Fleet Hub at 20 m/s  ->  collision, damage 50.0
+    berthed alongside              ->  0.54 t reaction mass, 0.8 h elapsed
+    day 0 -> 0 · fuel 20 -> 20 · hull 336 -> 336 · where None -> None
+
+So I had shipped a well-tested sandbox that did not pilot the ship. You could
+wreck the hull against a station and walk off, berth alongside a quay and not
+be docked, and spend reaction mass from a tank the ship never had — the conn
+invented 36.8 t for a hull carrying 20.
+
+`sim/berthing.py` lands it: the tank is the ship's volatiles, `commit`
+charges what was spent, advances the clock, applies the damage and writes
+`orbit_body`. Idempotent, and called on resolve, on break-off and on close, so
+closing the window is not a way to un-burn the fuel. The gate is derived
+rather than tuned — measured, contact distances are bimodal (0.000 AU at your
+body, ≥2.2 AU otherwise), so the threshold sits in an empty gap.
+
+**Two more faults, both from playing the consequences.**
+
+Impact damage was linear and capped at 80, so putting the hull down on a world
+at five kilometres a second cost sixty points of three hundred and thirty-six
+— a captain could aim at a planet as a shortcut. Energy goes as v²; so does
+the damage now, uncapped.
+
+And making it quadratic exposed a worse one: **at 45 m/s the ship passed
+straight through the station**. It covered 2.7 km in a 60 s tick and crossed a
+400 m target between two contact tests, reported *adrift*, undamaged. The
+fastest and most dangerous approaches were exactly the ones getting away with
+it. Contact is swept along the whole path now.
+
+**Two player reports, one cause.** The Fleet Hub was drawn on the helm chart
+and was inert. "Set course — 4 d, 2 t", tooltip "Fly to Fleet Hub", called
+`course_to`, which only *aims* — and a quay's body is usually the body already
+targeted, so it set what was already set: target 0 → 0, orbit_body None →
+None, day 0 → 0, fuel 20 → 20. Nothing. And clicking the Hub selected the
+planet, because the painter drew its mark 11 px offset while the hit test only
+knew about bodies, with an 18 px radius that swallowed it. `QUAY_OFFSET` is
+one number now, read by both, and quays are hit-tested first.
+
+**What the mutation sweep taught me this time.** 13/13 — but one of them only
+after I stopped trying to catch the wrong thing. Changing `QUAY_OFFSET` is
+*not* caught, and should not be: the painter and the hit test both read it, so
+they move together and agree all the way down. That is the shared-gate lesson
+again. The rule worth holding is that a world and its quay each select
+themselves — which an offset of zero breaks, and which is now checked.
+
+**Three more reports, and they were all one bug: a window that captured the
+game instead of reading it.** Moored to the Fleet Hub, the conn opened on the
+*planet* — bodies are listed before anchorages and it took the first row in
+reach, though you are already in orbit of the body and approaching it is not a
+manoeuvre. `ConnWindow.contacts` and `PlotCanvas.system` were both built in
+`__init__`, so after a jump the board drew the system you had left while its
+own contact list showed the one you had arrived in.
+
+The same report asked whether positions are linked across the game. They are —
+and I checked it rather than saying so: the helm chart and the plotting board,
+two different projections, place the same body within **9e-16 AU** of each
+other. What the report was seeing is physics. The periods are properly
+Keplerian (0.40 AU → 92 days, 9 AU → 27 years), so over a four-day crossing
+the outer worlds move half a pixel and the inner one two, on a chart where an
+AU is twenty pixels. The traffic moves 11–18 px in the same time. Planets look
+frozen because in four days they very nearly are.
+
+Shipped: `sim/berthing.py`, swept contact detection and a quadratic impact
+curve in `sim/conn.py`, the conn window wired to charge the ship, a clickable
+quay and a working "Set course" on the helm, and live system/contact tracking
+in both pop-out windows. `tests/test_berthing.py` (6) and
+two new checks in `tests/test_helm.py`. Full suite 759 green, 0 failures.
+
 ## 2026-07-29 — SEEDFALL: the last ten kilometres
 
 The captain asked for something the game did not have at any grain: a window

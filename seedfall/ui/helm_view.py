@@ -24,6 +24,17 @@ from .widgets import (Panel, Pill, TabBar, View, button, label, mono_label,
                       note, spacer)
 
 
+#: How far a quay's mark sits from the body it orbits, in pixels.
+#:
+#: It has to be offset or it would be hidden under the planet — and it has to
+#: be *one* number, because the painter drew at +11/-11 while the hit test
+#: only ever checked bodies. The Fleet Hub was therefore drawn, labelled, and
+#: unclickable: a click on it landed inside the planet's 18 px radius and
+#: selected the planet instead, which was usually already the target, so
+#: nothing whatever appeared to happen.
+QUAY_OFFSET = 11.0
+
+
 class OrbitChart(QWidget):
     """The system from above: orbits, bodies where they are today, the ship."""
 
@@ -33,6 +44,10 @@ class OrbitChart(QWidget):
         super().__init__()
         self.win = win
         self.target = 0
+        #: Which quay is selected, if the captain picked one rather than a
+        #: bare body. Only affects what the chart rings and what the panel
+        #: calls the destination — a quay's position *is* its body's.
+        self.place = None
         self.burn = "standard"
         self.setMinimumSize(460, 460)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -51,8 +66,33 @@ class OrbitChart(QWidget):
         s, cx, cy = self._scale()
         return QPointF(cx + x * s, cy + y * s)
 
+    def place_mark(self, g, place) -> QPointF:
+        """Where a quay's mark is drawn. The painter and the hit test agree
+        because they both come here."""
+        body = g.system.bodies[place.body_index]
+        at = self._to_screen(*flight.position(body, g.day))
+        return QPointF(at.x() + QUAY_OFFSET, at.y() - QUAY_OFFSET)
+
     def mousePressEvent(self, ev):  # noqa: N802
         g = self.win.game
+        where = ev.position()
+
+        # Quays first. They are the smaller mark and they sit inside the
+        # planet's hit radius, so testing bodies first meant a click on a
+        # station could only ever select the station's planet.
+        near, pd = None, 13.0
+        for place in anchorage_sim.in_system(g):
+            if place.body_index >= len(g.system.bodies):
+                continue
+            mark = self.place_mark(g, place)
+            d = math.hypot(mark.x() - where.x(), mark.y() - where.y())
+            if d < pd:
+                near, pd = place, d
+        if near is not None:
+            self.place = near.id
+            self.picked.emit(near.body_index)
+            return
+
         best, bd = None, 18.0
         for i, b in enumerate(g.system.bodies):
             p = self._to_screen(*flight.position(b, g.day))
@@ -60,6 +100,7 @@ class OrbitChart(QWidget):
             if d < bd:
                 best, bd = i, d
         if best is not None:
+            self.place = None
             self.picked.emit(best)
 
     def _draw_course(self, p, g, s, cx, cy) -> None:
@@ -151,9 +192,7 @@ class OrbitChart(QWidget):
         for place in anchorage_sim.in_system(g):
             if place.body_index >= len(g.system.bodies):
                 continue
-            body = g.system.bodies[place.body_index]
-            at = self._to_screen(*flight.position(body, g.day))
-            mark = QPointF(at.x() + 11, at.y() - 11)
+            mark = self.place_mark(g, place)
             tint = QColor(theme.tint("lumen" if place.kind == "holding"
                                      else "chloro"))
             p.setPen(QPen(tint, 1.3))
@@ -169,6 +208,10 @@ class OrbitChart(QWidget):
             if place.here:
                 p.setPen(QPen(tint, 1.0, Qt.PenStyle.DashLine))
                 p.drawEllipse(mark, 8, 8)
+            if place.id == getattr(self, "place", None):
+                p.setPen(QPen(QColor(theme.INK), 1.4))
+                p.setBrush(Qt.BrushStyle.NoBrush)
+                p.drawEllipse(mark, 10, 10)
             p.setFont(QFont(theme.mono_family(), 7))
             p.setPen(tint)
             p.drawText(QRectF(mark.x() + 7, mark.y() - 7, 120, 13),
@@ -220,6 +263,9 @@ class HelmView(View):
     def __init__(self, win):
         super().__init__(win)
         self.target = 0
+        #: The quay the captain picked, if any. Held on the view rather than
+        #: the chart because the chart is rebuilt on every refresh.
+        self.place = None
         self.burn = "standard"
 
     def build(self) -> None:
@@ -235,8 +281,10 @@ class HelmView(View):
 
         chart = OrbitChart(self.win)
         chart.target = self.target
+        chart.place = self.place
         chart.burn = self.burn
         chart.picked.connect(self._pick)
+        self.chart = chart
         # Chart and the places you can put in share the left column: three
         # columns fits a wide desktop and silently drops the third one at any
         # ordinary window size, which is how it was first written.
@@ -265,17 +313,41 @@ class HelmView(View):
         open_conn(self.win)
 
     def _pick(self, index: int) -> None:
+        # The chart decides whether a quay or a bare body was hit; the view
+        # only has to remember which.
+        self.place = getattr(self.chart, "place", None)
         self.target = index
         self.refresh()
 
     def course_to(self, body_index: int) -> None:
-        """Aim at a body by index. What a quay's `Set course` calls.
+        """Aim at a body by index.
 
         A quay's position *is* its body's position, so setting course for one
         is setting course for the other — no special case anywhere in flight.
         """
+        self.place = None
         self.target = body_index
         self.refresh()
+
+    def fly_to_place(self, place) -> None:
+        """Take the ship to a quay. What its `Set course` button does.
+
+        It used to call `course_to`, which only *aimed* the helm — and a
+        quay's body is very often the body already targeted, so the button
+        set what was already set and a captain clicking "Set course — 4 d,
+        2 t" on the Fleet Hub saw nothing happen at all. The label quotes
+        days and tonnes and the tooltip says "Fly to"; so it flies.
+        """
+        self.place = place.id
+        self.target = place.body_index
+        res = transit_sim.begin(self.game, self.target, self.burn)
+        if not res.get("ok"):
+            self.win.toast(res.get("why", "That course cannot be flown."),
+                           "warn")
+            self.refresh()
+            return
+        self.win.transit = res["transit"]
+        self.win.go("transit")
 
     def _who(self, g):
         from .traffic_panel import who_else
@@ -288,7 +360,13 @@ class HelmView(View):
     def _plot(self, g) -> Panel:
         body = g.system.bodies[self.target]
         at = body.id == g.orbit_body
-        p = Panel(f"Transfer to {body.name}")
+        picked = next((a for a in anchorage_sim.in_system(g)
+                       if a.id == self.place), None)
+        p = Panel(f"Transfer to {picked.name}" if picked is not None
+                  else f"Transfer to {body.name}")
+        if picked is not None:
+            p.add(note(f"In orbit of {body.name}. Flying to the one is "
+                       "flying to the other."))
         p.add(note(BODY_KINDS[body.kind][0] + " · "
                    + f"{flight.orbit_radius(body):.1f} AU orbit · "
                    + f"period {duration(flight.period_days(body))}"))

@@ -55,7 +55,8 @@ class PlotWindow(QDialog):
         column.setSpacing(8)
 
         head = QHBoxLayout()
-        head.addWidget(label(f"Plotting board — {self.game.system.name}", "h2"), 1)
+        self.title = label(f"Plotting board — {self.game.system.name}", "h2")
+        head.addWidget(self.title, 1)
         head.addWidget(button("Close", self.close, kind="flat"))
         column.addLayout(head)
 
@@ -253,6 +254,7 @@ class PlotWindow(QDialog):
     # ── painting ───────────────────────────────────────────────────────────
 
     def refresh(self) -> None:
+        self.title.setText(f"Plotting board — {self.game.system.name}")
         self._fill_list()
         while self.detail.count():
             item = self.detail.takeAt(0)
@@ -263,6 +265,11 @@ class PlotWindow(QDialog):
                 item.widget().setParent(None)
 
         contact = self.canvas.contact_for(self.canvas.selected)
+        if contact is None and self.canvas.selected:
+            # Whatever was picked is not in this system any more.
+            self.canvas.selected = None
+            self.canvas.tracked.clear()
+            self.canvas.plotted = None
         if contact is None:
             self.detail.addWidget(note(
                 "Click anything in the plot — a body, a quay, a hull, or a "

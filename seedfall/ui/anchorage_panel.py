@@ -47,7 +47,7 @@ def where_to_put_in(view, g):
             afford = g.ship.cargo.get("volatiles", 0) >= q["fuel"]
             card.add(button(
                 f"Set course — {q['days']} d, {q['fuel']} t",
-                lambda i=place.body_index: view.course_to(i),
+                lambda pl=place: view.fly_to_place(pl),
                 kind="primary" if afford else "", enabled=afford,
                 tip=f"Fly to {place.name}, in orbit of "
                     f"{g.system.bodies[place.body_index].name}."))

@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (QDialog, QGridLayout, QHBoxLayout, QLabel,
                              QVBoxLayout, QWidget)
 
 from ..sim import autopilot as pilot_sim
+from ..sim import berthing as berth_sim
 from ..sim import conn as conn_sim
 from ..sim import track as track_sim
 from . import theme
@@ -39,11 +40,12 @@ class ConnWindow(QDialog):
         self.setStyleSheet(theme.stylesheet())
         self.resize(1080, 760)
 
-        self.contacts = [c for c in track_sim.contacts(self.game)
-                         if c.kind != "star"]
-        self.contact = contact or (self.contacts[0] if self.contacts else None)
-        self.conn = (conn_sim.start(self.game, self.contact)
-                     if self.contact is not None else None)
+        if contact is None:
+            contact = default_target(self.game)
+        self.contact = contact
+        self.conn, self.refused = (berth_sim.begin(self.game, contact)
+                                   if contact is not None
+                                   else (None, "Nothing in range to conn."))
         self.main_view = "fore"
         self.running = False
 
@@ -51,6 +53,15 @@ class ConnWindow(QDialog):
         self.timer.timeout.connect(self._tick)
         self._build()
         self.refresh()
+
+    @property
+    def contacts(self) -> list:
+        """Everything in the system the ship is *now* in.
+
+        Captured in `__init__` at first, so the window went on offering the
+        traffic of a system the ship had left.
+        """
+        return [c for c in track_sim.contacts(self.game) if c.kind != "star"]
 
     # ── layout ─────────────────────────────────────────────────────────────
 
@@ -155,11 +166,30 @@ class ConnWindow(QDialog):
         self.use_main = not self.use_main
         self.refresh()
 
+    def _settle(self) -> None:
+        """Charge the chronicle for the approach, once it is finished with.
+
+        Reaction mass, the hours, the damage and where the hull ends up all
+        land here. `berthing.commit` is idempotent, so calling it whenever
+        the approach might be over is safe and means nothing is ever flown
+        for free.
+        """
+        if self.conn is None or not self.conn.over or self.conn.landed:
+            return
+        out = berth_sim.commit(self.game, self.conn)
+        if out.get("lost"):
+            self.win.toast("The hull is gone.", "bad")
+        elif out.get("moved"):
+            self.win.toast(f"{self.conn.outcome.title()} at {out['moved']}. "
+                           f"{out['fuel']:.2f} t spent.", "good")
+        self.win.refresh()
+
     def _burn(self, axis_id) -> None:
         if self.conn is None or self.conn.over:
             return
         self.conn.apply_result = conn_sim.apply(self.conn, axis_id,
                                                 main=self.use_main)
+        self._settle()
         self.refresh()
 
     def _auto(self, mode: str) -> None:
@@ -176,6 +206,7 @@ class ConnWindow(QDialog):
             conn_sim.apply(self.conn, axis, main=main)
         if not self.conn.over and (self.conn.range_km, self.conn.speed) == before:
             self.win.toast("The computer has nothing to add.", "warn")
+        self._settle()
         self.refresh()
 
     def _toggle_clock(self) -> None:
@@ -192,32 +223,46 @@ class ConnWindow(QDialog):
             self.timer.stop()
         else:
             conn_sim.apply(self.conn, None)
+        self._settle()
         self.refresh()
 
     def _pick_target(self) -> None:
-        rows = [f"{index + 1}. {c.name} — {c.detail}"
-                for index, c in enumerate(self.contacts[:12])]
+        """Only what the ship is actually alongside. Everything else is a burn.
+
+        The list used to offer every contact in the system, so a captain could
+        open the conn on a hull eight AU away and fly the last ten kilometres
+        of a journey they had not made.
+        """
+        self._settle()
+        near = [c for c in self.contacts if berth_sim.can_conn(self.game, c)[0]]
+        if not near:
+            self.win.toast("Nothing within reach of the thrusters. Plot a "
+                           "transfer first.", "warn")
+            return
+        rows = [f"{c.name} — {c.detail}" for c in near[:12]]
         picked = self.win.dialog(
             "Approach which?",
-            ["Pick a contact and the conn opens on it twelve kilometres out."]
-            + rows,
-            [(c.name, index) for index, c in enumerate(self.contacts[:6])]
+            ["The conn is the last few kilometres. These are what the ship "
+             "is already alongside."] + rows,
+            [(c.name, index) for index, c in enumerate(near[:6])]
             + [("Cancel", None)])
         if picked is None:
             return
-        self.contact = self.contacts[picked]
-        self.conn = conn_sim.start(self.game, self.contact)
+        self.contact = near[picked]
+        self.conn, self.refused = berth_sim.begin(self.game, self.contact)
         for feed in self.feeds.values():
             feed.conn = self.conn
         self.screen.conn = self.conn
         self.refresh()
 
     def _break_off(self) -> None:
+        """Give it up. The mass already burned is not coming back."""
         if self.conn is not None and not self.conn.over:
             self.conn.outcome = "broken off"
             self.conn.log.append("Approach broken off.")
         self.running = False
         self.timer.stop()
+        self._settle()
         self.refresh()
 
     # ── painting ───────────────────────────────────────────────────────────
@@ -282,9 +327,35 @@ class ConnWindow(QDialog):
 
     def closeEvent(self, event) -> None:
         self.timer.stop()
+        # Closing the window is not a way to un-burn the fuel.
+        if self.conn is not None and not self.conn.over:
+            self.conn.outcome = "broken off"
+        self._settle()
         if getattr(self.win, "conn_window", None) is self:
             self.win.conn_window = None
         super().closeEvent(event)
+
+
+#: What to conn when the captain has not said. Ordered by what a pilot at
+#: close quarters would actually be looking at.
+#:
+#: A station is what you dock with, and it is the thing worth watching come
+#: up in the windows. Standing alongside the Fleet Hub, the first draft of
+#: this opened the conn on **the planet** — because `track.contacts` lists
+#: bodies before anchorages and the window took the first row in reach. You
+#: are already in orbit of the body; approaching it is not a manoeuvre.
+DEFAULT_ORDER = ("anchorage", "hull", "body")
+
+
+def default_target(game):
+    """The most useful thing in reach to open an approach on."""
+    reachable = [c for c in track_sim.contacts(game)
+                 if c.kind != "star" and berth_sim.can_conn(game, c)[0]]
+    for kind in DEFAULT_ORDER:
+        here = [c for c in reachable if c.kind == kind]
+        if here:
+            return here[0]
+    return None
 
 
 def open_conn(win, contact=None) -> ConnWindow:

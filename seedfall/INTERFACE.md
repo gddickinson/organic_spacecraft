@@ -348,6 +348,78 @@ docking instrument was bitten by exactly that. `ui/conn_window.py` is the conn
 itself; `ui/plot_canvas.py` and `ui/plot3d_window.py` are the plotting board,
 with zoom, pan, tilt, selection, tracking, and an arrival-date slider.
 
+**And then it had to actually happen.** The conn shipped as a sandbox. Asked
+this project's most productive question — *is everything it declares
+consumed?* — the answer was nothing at all. Measured on a fresh chronicle:
+
+    flew into Fleet Hub at 20 m/s  ->  collision, damage 50.0
+    berthed alongside              ->  0.54 t of reaction mass, 0.8 h elapsed
+    day 0 -> 0 · fuel 20 -> 20 · hull 336 -> 336 · where None -> None
+
+You could wreck the ship against a station and walk away, berth alongside a
+quay and not be docked, and burn a tank the hull never had — the conn invented
+36.8 t of reaction mass for a ship carrying 20.
+
+`sim/berthing.py` is where it lands. The tank is the ship's `volatiles`;
+`commit` charges what was spent, advances the clock, applies the damage, and
+writes `orbit_body` — which is what every other screen reads to know where the
+hull is standing. It is idempotent and is called when the approach resolves,
+when the captain breaks off, and when the window closes, so nothing is ever
+flown for free. `can_conn` is the gate: measured, the distance from the ship
+to a contact is bimodal — **0.000 AU at your body, 2.2 AU or more otherwise** —
+so the threshold sits in empty space and the check holds the rule rather than
+the number.
+
+Wiring it up surfaced two more, both from playing:
+
+- **Impact damage was linear and capped at 80**, so lithobraking into a world
+  at five kilometres a second cost sixty points of three hundred and
+  thirty-six. Energy goes as the square of the speed and so does the damage
+  now, uncapped — 8 m/s is a scrape, 20 m/s takes half the hull, 45 m/s ends
+  the chronicle.
+- **A fast approach passed straight through its target.** At 45 m/s the ship
+  crossed 2.7 km in one 60 s tick and went clean through a station 400 m wide
+  between two contact tests — reported *adrift*, no damage. Since the curve is
+  quadratic, the most dangerous approaches were precisely the ones escaping.
+  `_sweep_min` tests the whole path now, not its endpoints.
+
+**A station you could see and could not use.** Two reports from a player, and
+one cause. The Fleet Hub was drawn on the helm chart, labelled, and inert:
+
+- **"Set course" did nothing.** The button reads "Set course — 4 d, 2 t" and
+  its tooltip says "Fly to Fleet Hub"; it called `course_to`, which only
+  *aims* the helm — and a quay's body is very often the body already
+  targeted, so it set what was already set. Clicked and measured: target 0 →
+  0, orbit_body None → None, day 0 → 0, fuel 20 → 20. It flies now.
+- **The Hub could not be clicked.** The painter drew its mark 11 px off the
+  planet; the hit test only walked `system.bodies` with an 18 px radius, so a
+  click on the station landed on the world underneath — usually already
+  selected, so nothing appeared to happen. `QUAY_OFFSET` is one number now,
+  read by the painter and the hit test alike, and quays are tested first.
+
+**A window that captured the game instead of reading it.** Three more player
+reports, one cause:
+
+- **Moored to the Fleet Hub, the conn opened on the planet.** `track.contacts`
+  lists bodies before anchorages and the window took the first row in reach —
+  but you are already in orbit of the body, so approaching it is not a
+  manoeuvre. `default_target` prefers anchorage, then hull, then body.
+- **`ConnWindow.contacts` was built in `__init__`**, so after a jump it went
+  on offering the traffic of a system the ship had left.
+- **`PlotCanvas.system` was too.** After a jump the canvas drew the old system
+  while the contact list beside it — which asks the game every refresh —
+  listed the new one. One window, two systems, neither of them labelled.
+
+The same report asked whether positions are linked across the game. They are,
+and it is now checked rather than asserted: every screen bottoms out in
+`flight.position(body, day)`, and the helm chart and the plotting board — two
+different projections — place the same body within **9e-16 AU** of each other
+on the same day. What the report was actually seeing is physics: the orbital
+periods are properly Keplerian (0.40 AU → 92 days, 9 AU → 27 years), so over a
+four-day crossing the outer worlds move 0.5 px and the inner one 2.2 px on a
+chart where an AU is about twenty pixels. The traffic, on a 46-day leg, moves
+11–18 px in the same time.
+
 **A berth is a place.** A player asked why the helm shows only the star and
 the planets, and how they would ever navigate back to a shipyard. They could
 not: a `Port` hung off a `System` with **no position at all** — no body, no
@@ -2099,6 +2171,14 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   the branch that kills velocity *across* the approach passed everything else,
   because `start` always puts the ship dead ahead — so there is now a check
   that arrives off-axis on purpose, and it failed on the first run.
+- **`test_berthing.py`** holds what an approach costs: that the tank is the
+  ship's, that committing spends it, that the clock hears about it, that a
+  berth writes `orbit_body` and a lost approach does not, and that an impact
+  is paid for in proportion to the speed. Its mutation sweep is 13/13 — with
+  one deliberate exception recorded in `test_helm.py`: changing `QUAY_OFFSET`
+  is *not* caught, because the painter and the hit test both read it and move
+  together, which is the whole point of having one number. The rule that is
+  held is that a world and its quay each select themselves.
 - **`test_cameras.py`** holds the screens rather than the flying, and measures
   them in pixels: the nose camera must be full of a target the tail cannot see
   at all, and five repaints of a still ship must give one picture. Asking

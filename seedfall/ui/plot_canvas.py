@@ -47,7 +47,6 @@ class PlotCanvas(QWidget):
     def __init__(self, game):
         super().__init__()
         self.game = game
-        self.system = game.system
         self.scale = 46.0
         self.centre = [0.0, 0.0]
         self.tilt = math.radians(34.0)
@@ -61,6 +60,17 @@ class PlotCanvas(QWidget):
         self._hits: list = []
         self.setMinimumSize(420, 360)
         self.setMouseTracking(True)
+
+    @property
+    def system(self):
+        """Always the system the ship is in.
+
+        It used to be captured in `__init__`. Jump, and the canvas went on
+        drawing the system you had left while the contact list beside it —
+        which asks the game every refresh — listed the one you had arrived
+        in. One window, two systems, and neither of them labelled.
+        """
+        return self.game.system
 
     # ── the projection ─────────────────────────────────────────────────────
 

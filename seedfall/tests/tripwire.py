@@ -171,7 +171,8 @@ KIN = {
     # impulses, the orbit band, the horizon — and all of it is answered by
     # the one suite, so neither should ever pay for the wide run.
     "conn": ("conn",), "autopilot": ("conn",), "track": ("conn",),
-    "viewport": ("cameras",),
+    "viewport": ("cameras",), "berthing": ("berthing", "conn"),
+    "orbits": ("conn",), "targets": ("conn", "berthing"),
 }
 
 
