@@ -16,6 +16,7 @@ from ..data.surveys import CATEGORIES, DEFAULT, METHODS, METHODS_BY_ID
 from ..world.galaxy import distance
 from ..world.planets import survey_body
 from . import flight
+from . import charts as chart_sim
 from . import inquiry
 from . import research as research_sim
 from .crew import grant_xp
@@ -192,6 +193,18 @@ def perform(game, body_index: int, method_id: str = DEFAULT) -> dict:
     data = min(found["data"], int(free / 0.1))
     if data > 0:
         add_cargo(game.ship, "survey", data)
+
+    # Dating the chart the day it was finished, which is what lets it go
+    # stale. This lived only in `actions.survey`, the single-method call the
+    # four survey methods replaced — and the screen calls *this* one. So no
+    # chart was ever stamped, `freshness` returned 1.0 for ever, and
+    # `FRESH_DAYS` and `STALE_FLOOR` decided nothing at all: a chart made in
+    # year one sold in year ten for the same money.
+    system = game.system
+    system.scanned = bool(system.bodies) and all(b.surveyed
+                                                 for b in system.bodies)
+    if system.scanned:
+        chart_sim.stamp(game, system)
     return found
 
 

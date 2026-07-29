@@ -684,6 +684,7 @@ seedfall/
     ├── test_postings.py 5 checks — the board only offers work you can reach
     ├── test_counter.py 5 checks — the board's price is the counter's price
     ├── test_landing.py 6 checks — walking home beats stranding
+    ├── test_charting.py 5 checks — a chart is dated, and goes off
     ├── ground_ai.py    a party leader good enough to measure the ground with
     ├── suites.py       the suite table `__main__` dispatches from
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
@@ -861,6 +862,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   game that adds heat, so one clamp at the source covers every hull. An
   end-of-turn clamp was tried too and measured to change nothing at all, so it
   was removed rather than left in looking useful.
+- **Two doors into the same event will drift, and the drivers use the working
+  one.** Surveying a body can be reached through `actions.survey` — which the
+  remote bridge and every test driver call — and through `survey.perform`,
+  which the screen calls. Only the first dated the finished chart, so
+  `charts.freshness` returned 1.0 for every chart a player ever made:
+  `FRESH_DAYS` and `STALE_FLOOR` decided nothing, and the survey office's
+  "Age of the survey" row sat behind `if fresh < 0.95` and could not fire.
+  Nothing caught it because every driver in the suite went through the door
+  that worked. `tests/test_charting.py` asserts both doors leave the same
+  state.
 - **Order the penalties after the limits, not instead of them.**
   `haul_kept` applied the carrying limit on the way home and skipped it
   entirely when the party stranded, so stranding returned 40% of an *uncapped*

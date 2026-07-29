@@ -2,6 +2,43 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: a chart that never went off
+
+Exploration and mapping, which had not had a cycle. Surveys measured clean —
+the forecast matches the days actually spent, including on a dry tank; all
+four find categories are consumed; all four methods are reachable, `sweep`
+included once you are parked in-system rather than out at the arrival radius.
+Charts were where it was.
+
+- **`charts.freshness` says "a chart made long ago is worth less. The sector
+  moves." It was never once true.** Dating a finished chart lived in
+  `actions.survey`, the single-method call the four survey methods replaced.
+  The screen calls `survey.perform`, which did not date it. So no chart a
+  player ever made was stamped, freshness returned 1.0 for ever, and
+  `FRESH_DAYS` and `STALE_FLOOR` decided nothing at all.
+- **The survey office had been written for this the whole time**, carrying an
+  "Age of the survey" row behind `if fresh < 0.95` that could not fire. It now
+  reads "62% of fresh" in amber beside a price that has fallen with it.
+- **Measured after:** ₡14,794 fresh, ₡10,726 at a year, ₡6,657 at the floor.
+  Selling a chart while it is current is a decision again.
+
+**Why nothing caught it, which is the part worth keeping.** Surveying a body
+has two doors: `actions.survey`, used by the remote bridge and by every test
+driver in the suite, and `survey.perform`, used by the screen. They did
+different things — and every driver went through the door that worked, so the
+suite saw a system behaving correctly while no player ever could. The first
+check in the new suite asks the general question directly: do both doors leave
+the same state behind.
+
+**And I wrote a tautology, and mutation caught it.** The ageing check measured
+freshness at `FRESH_DAYS // 2`, `FRESH_DAYS` and `FRESH_DAYS * 3` — so
+widening the window to ten thousand years passed cleanly, because the check
+simply waited ten thousand years. It moves the ruler with the thing it
+measures. The ages are plain numbers now: 360 days, 730, 2200.
+
+Five checks in a new `test_charting` suite, every one proven to bite.
+632 checks green, nothing over 500 lines.
+
 ## 2026-07-29 — SEEDFALL: a penalty that paid better than the reward
 
 Surface expeditions, which had not had a cycle.
