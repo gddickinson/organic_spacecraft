@@ -29,8 +29,9 @@ from PyQt6.QtGui import QColor, QFont, QPainter, QPen, QRadialGradient
 from PyQt6.QtWidgets import QWidget
 
 from ..core.rng import RNG
+from ..data import models3d
 from ..sim import conn as conn_sim
-from . import theme
+from . import render3d, theme
 
 #: Half the field of view, in radians. A wide-ish lens: enough to keep a
 #: target in frame while manoeuvring, tight enough that motion reads.
@@ -74,18 +75,51 @@ def _field_at(seed) -> list:
 STARS = _starfield()
 
 
-def basis(view_vec, heading: float) -> tuple:
+def hull_frame(conn) -> tuple:
+    """The ship's own axes in the target's frame: nose, starboard, dorsal.
+
+    The cameras used to be built from `conn.heading`, a bare yaw angle that
+    **nothing ever wrote to** — while the drive was steered by `conn.nose`, a
+    3D vector. So the nose camera did not look where the ship was pointing,
+    and swinging the hull round with the thrusters changed nothing out of the
+    windows. They are one thing now.
+
+    The hull's roll is chosen rather than tracked: it keeps its belly toward
+    whatever it is approaching, which is what a pilot would do and what makes
+    the ventral camera worth having in orbit.
+    """
+    # A window can be opened with no approach running at all — the conn
+    # offers nothing when the ship is not alongside anything — so this has to
+    # answer for `None`. The control sweep caught it doing otherwise.
+    if conn is None:
+        return (0.0, 1.0, 0.0), (1.0, 0.0, 0.0), (0.0, 0.0, 1.0)
+    nose = _unit(getattr(conn, "nose", None) or (0.0, 1.0, 0.0))
+    # Belly-down toward the target, unless we are pointing straight at it.
+    down = _unit([-c for c in conn.pos]) if conn.range_km > 1e-9 else (0, 0, -1)
+    side = _cross(nose, down)
+    if sum(c * c for c in side) < 1e-9:
+        side = _cross(nose, (0.0, 0.0, 1.0))
+        if sum(c * c for c in side) < 1e-9:
+            side = _cross(nose, (0.0, 1.0, 0.0))
+    right = _unit(side)
+    # `cross(nose, right)`, not `cross(right, nose)`: the other way round put
+    # the planet you are orbiting in the *dorsal* camera, which is the one
+    # pointing at the sky.
+    dorsal = _unit(_cross(nose, right))
+    return nose, right, dorsal
+
+
+def basis(view_vec, conn) -> tuple:
     """Camera axes in the target's frame: forward, right, up."""
-    fwd = _unit(_rotate(view_vec, heading))
-    # Any vector not parallel to forward will do for the up reference; the
-    # world's z only fails for the dorsal and ventral cameras, which then
-    # take the ship's nose instead.
-    ref = (0.0, 0.0, 1.0)
-    if abs(fwd[2]) > 0.95:
-        ref = _rotate((0.0, 1.0, 0.0), heading)
-    right = _unit(_cross(fwd, ref))
-    up = _unit(_cross(right, fwd))
-    return fwd, right, up
+    nose, right, dorsal = hull_frame(conn)
+    vx, vy, vz = view_vec
+    fwd = _unit((right[0] * vx + nose[0] * vy + dorsal[0] * vz,
+                 right[1] * vx + nose[1] * vy + dorsal[1] * vz,
+                 right[2] * vx + nose[2] * vy + dorsal[2] * vz))
+    ref = dorsal if abs(sum(a * b for a, b in zip(fwd, dorsal))) < 0.95 else nose
+    cam_right = _unit(_cross(fwd, ref))
+    up = _unit(_cross(cam_right, fwd))
+    return fwd, cam_right, up
 
 
 def _rotate(vec, heading: float) -> tuple:
@@ -147,7 +181,7 @@ class Viewport(QWidget):
 
         conn = self.conn
         _vid, label_text, vec = self.view
-        cam = basis(vec, getattr(conn, "heading", 0.0))
+        cam = basis(vec, conn)
 
         self._stars(p, cam, w, h)
         if conn is not None:
@@ -170,40 +204,65 @@ class Viewport(QWidget):
                           1.4 if bright > 0.8 else 1.0))
             p.drawPoint(QPointF(sx, sy))
 
+    def _model_for(self, conn):
+        """Which mesh, and how it is oriented, for what is out there."""
+        kind = conn.target.kind
+        if kind == "body":
+            # Its own colour: an ice moon and a gas giant should not be the
+            # same grey sphere with a different label over it.
+            look = getattr(conn.target, "detail", "").split("\u00b7")[0].strip().lower()
+            return (models3d.WORLDS.get(look, models3d.WORLD),
+                    conn.elapsed / 5400.0)
+        if kind == "anchorage":
+            return models3d.SHIPYARD, conn.elapsed / 900.0
+        if kind == "hull":
+            return models3d.HULL, 0.0
+        return models3d.GATE, conn.elapsed / 1400.0
+
     def _target(self, p: QPainter, conn, cam, w: int, h: int) -> None:
-        """The thing being approached, at the angular size it really has."""
+        """The thing being approached, as a lit solid at its real size.
+
+        It used to be a flat disc with a gradient behind it, which reads as a
+        distant object at twelve kilometres and as a flat disc at six hundred
+        metres — a poor thing to watch while berthing a hull against a yard.
+        """
         r_km = conn.range_km
         if r_km <= 1e-9:
             return
-        # From the ship to the target is the negative of the ship's position.
-        toward = _unit([-c for c in conn.pos])
-        at = project(toward, cam, w, h)
-        if at is None:
-            return
-        sx, sy, _ahead = at
-        focal = (min(w, h) * 0.5) / math.tan(HALF_FOV)
-        # Angular radius, and the same lens the stars went through.
-        ratio = min(0.999, conn.target.radius_km / max(r_km, 1e-9))
-        radius = max(1.2, math.tan(math.asin(ratio)) * focal)
+        fwd, right, up = cam
+        # The renderer works in the target's own frame, where the ship is at
+        # `conn.pos` and the thing being approached is at the origin.
+        camera = render3d.Camera(at=conn.pos, forward=fwd, up=up,
+                                 width=w, height=h, half_fov=HALF_FOV)
+        radius = render3d.screen_radius(camera, r_km, conn.target.radius_km)
+        mesh, spin = self._model_for(conn)
 
-        tint = QColor(theme.tint("chloro") if conn.target.kind == "body"
-                      else theme.tint("lumen"))
-        if radius > 3:
-            glow = QRadialGradient(QPointF(sx, sy), radius * 1.7)
-            glow.setColorAt(0.0, QColor(tint.red(), tint.green(), tint.blue(), 200))
-            glow.setColorAt(0.55, QColor(tint.red(), tint.green(), tint.blue(), 90))
+        # Far enough off to be a point of light rather than a shape.
+        if radius < 2.2:
+            at = project(_unit([-c for c in conn.pos]), cam, w, h)
+            if at is None:
+                return
+            tint = QColor(theme.tint("chloro") if conn.target.kind == "body"
+                          else theme.tint("lumen"))
+            glow = QRadialGradient(QPointF(at[0], at[1]), 6.0)
+            glow.setColorAt(0.0, QColor(tint.red(), tint.green(), tint.blue(), 220))
             glow.setColorAt(1.0, QColor(0, 0, 0, 0))
             p.setBrush(glow)
             p.setPen(Qt.PenStyle.NoPen)
-            p.drawEllipse(QPointF(sx, sy), radius * 1.7, radius * 1.7)
-        p.setBrush(tint)
-        p.setPen(QPen(QColor(theme.INK), 1))
-        p.drawEllipse(QPointF(sx, sy), radius, radius)
+            p.drawEllipse(QPointF(at[0], at[1]), 6.0, 6.0)
+        else:
+            render3d.draw(p, camera, mesh, (0.0, 0.0, 0.0),
+                          conn.target.radius_km, self.light(conn), spin=spin,
+                          tilt=0.35)
 
         if self.compact:
             return
+        sx, sy = w * 0.5, h * 0.5
+        toward = project(_unit([-c for c in conn.pos]), cam, w, h)
+        if toward is not None:
+            sx, sy = toward[0], toward[1]
         # A bracket and the range, so the main screen is readable on its own.
-        box = max(radius + 12, 18)
+        box = max(radius + 14, 18)
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.setPen(QPen(QColor(theme.tint("warn")), 1.2, Qt.PenStyle.DashLine))
         p.drawRect(QRectF(sx - box, sy - box, box * 2, box * 2))
@@ -212,6 +271,18 @@ class Viewport(QWidget):
         span = (f"{r_km * 1000:,.0f} m" if r_km < 2 else f"{r_km:,.1f} km")
         p.drawText(QPointF(sx - box, sy - box - 6),
                    f"{conn.target.name} · {span}")
+
+    def light(self, conn) -> tuple:
+        """Which way the starlight travels, in the target's frame.
+
+        The star is at the system's centre and the target is somewhere out
+        from it, so light falls along the target's own position vector. That
+        one line is what gives a world a terminator on the correct side.
+        """
+        aim = getattr(conn, "star_dir", None)
+        if aim:
+            return render3d.unit(aim)
+        return render3d.unit((-0.45, -0.8, -0.35))
 
     def _frame(self, p: QPainter, name: str, w: int, h: int) -> None:
         """The camera's own furniture: a border, its name, and a reticle."""

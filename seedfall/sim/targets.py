@@ -8,6 +8,7 @@ becomes a structure with a size you can hit.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 from .orbits import ORBIT_FLOOR_KM
@@ -79,3 +80,24 @@ def approach_range(target: Target) -> float:
     if target.kind == "body":
         return target.radius_km + max(ORBIT_FLOOR_KM * 4, target.radius_km * 0.1)
     return 12.0
+
+
+def starlight(game, contact) -> tuple:
+    """Which way the star's light travels, in the target's own frame.
+
+    The star sits at the system's centre and the target somewhere out from
+    it, so light falls along the target's own position vector. That one line
+    is what gives a world a terminator on the correct side, and a station a
+    lit face and a dark one.
+    """
+    from . import track as track_sim
+    try:
+        x, y = track_sim.at(game, contact, game.day)
+    except Exception:
+        return (0.0, 1.0, 0.0)
+    span = math.hypot(x, y)
+    if span < 1e-9:
+        return (0.0, 1.0, 0.0)
+    # A little out of the orbital plane as well, so a sphere is never lit
+    # dead-on and the terminator always has somewhere to fall.
+    return (x / span, y / span, -0.25)

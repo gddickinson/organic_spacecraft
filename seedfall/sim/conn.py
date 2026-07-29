@@ -38,8 +38,8 @@ from dataclasses import dataclass, field
 from ..data.mounts import AXES, AXES_BY_ID, VIEWS  # noqa: F401
 from .orbits import (ORBIT_BAND, ORBIT_BAND_SHARE, ORBIT_FLOOR_KM, in_orbit,
                      orbit_band, orbit_note, orbital_speed)
-from .targets import (G0, Target, approach_range, target_from_body,
-                      target_from_contact)
+from .targets import (G0, Target, approach_range, starlight,
+                      target_from_body, target_from_contact)
 
 #: Delta-v from one thruster pulse and one main-drive burn, in m/s.
 RCS_DV = 0.4
@@ -107,6 +107,11 @@ class Conn:
     #: What the tank held when the approach opened. `sim/berthing.py` charges
     #: the difference to the ship; nothing here spends anything real.
     opening_rcs: float = 40.0
+    #: Which way the starlight travels, in this frame. The star sits at the
+    #: system's centre and the target somewhere out from it, so light falls
+    #: along the target's own position vector — which is what gives a world
+    #: a terminator on the correct side.
+    star_dir: list = field(default_factory=lambda: [0.0, 1.0, 0.0])
     #: Set once the chronicle has been charged for this approach.
     landed: bool = False
     log: list = field(default_factory=list)
@@ -176,6 +181,7 @@ def start(game, contact, range_km: float | None = None,
                 slew_rate=kit["slew_rate"],
                 turn_rate_cost=attitude_sim.turn_cost(game.ship, 6.283185))
     conn.nose = list(attitude_sim.unit([-p for p in conn.pos]))
+    conn.star_dir = list(starlight(game, contact))
     if target.mu > 0:
         # Across the line of sight at circular speed, less the error the
         # transfer left. Radially inward a little, so it is falling: an
@@ -264,7 +270,8 @@ def _copy(conn: Conn) -> Conn:
     return Conn(target=conn.target, pos=list(conn.pos), vel=list(conn.vel),
                 heading=conn.heading, rcs=conn.rcs, elapsed=conn.elapsed,
                 start_km=conn.start_km, opening_rcs=conn.opening_rcs,
-                nose=list(conn.nose), main_dv=conn.main_dv,
+                nose=list(conn.nose), star_dir=list(conn.star_dir),
+                main_dv=conn.main_dv,
                 rcs_dv=conn.rcs_dv, slew_rate=conn.slew_rate,
                 turn_rate_cost=conn.turn_rate_cost)
 
@@ -466,39 +473,7 @@ def alongside(conn: Conn) -> bool:
 
 
 def readout(conn: Conn) -> list[tuple[str, str, str]]:
-    """The instrument panel: label, value, and how it reads (ok/warn/bad).
-
-    Each row is judged against what the *approach* is trying to do. The first
-    draft judged them all against berthing, so a ship correctly established in
-    a 360 km orbit at 5,728 m/s had its range and its speed both marked in
-    red — the two numbers it had just got right. A panel that cries wolf at a
-    good orbit teaches the pilot to ignore it.
-    """
-    orbiting = conn.target.mu > 0
-    r = conn.range_km
-    if orbiting:
-        want = orbital_speed(conn)
-        band = orbit_band(conn)
-        altitude = r - conn.target.radius_km
-        rows = [
-            ("Altitude", f"{altitude:,.0f} km",
-             "ok" if altitude >= ORBIT_FLOOR_KM else "bad"),
-            ("Closing", f"{conn.closing:+,.1f} m/s",
-             "ok" if abs(conn.closing) <= band else "warn"),
-            ("Relative", f"{conn.speed:,.1f} m/s",
-             "ok" if abs(conn.speed - want) <= band else "warn"),
-            ("Circular here", f"{want:,.0f} m/s", "ok"),
-        ]
-    else:
-        rows = [
-            ("Range", f"{r * 1000:,.0f} m" if r < 2 else f"{r:,.1f} km",
-             "ok" if r < 40 else "warn"),
-            ("Closing", f"{conn.closing:+,.1f} m/s",
-             "bad" if conn.closing > SAFE_CLOSING else "ok"),
-            ("Relative", f"{conn.speed:,.1f} m/s",
-             "ok" if conn.speed <= ALONGSIDE_RATE else "warn"),
-        ]
-    rows.append(("Thruster mass", f"{conn.rcs:,.1f}",
-                 "bad" if conn.rcs < MAIN_COST else "ok"))
-    rows.append(("Elapsed", f"{conn.elapsed / 60:,.0f} min", "ok"))
-    return rows
+    """The instrument panel. Lives in `sim/instruments.py`; re-exported here
+    because every caller reaches for the conn first."""
+    from .instruments import readout as _readout
+    return _readout(conn)

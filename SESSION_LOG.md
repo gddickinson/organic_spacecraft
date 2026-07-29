@@ -2,6 +2,65 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: something worth looking at
+
+The captain asked for the piloting to be worth watching — docking at a
+well-rendered shipyard, other craft, weapons fire, crashes, planets and
+satellites on orbital insertion, asteroid belts. That is several cycles of
+work. This one builds the substrate everything else needs, and gets one thing
+right end to end: a shipyard you can watch yourself come alongside.
+
+`ui/render3d.py` — a camera, perspective, back-face culling, painter's
+algorithm and flat shading from a light. A few hundred `QPainter` polygons a
+frame. No textures, no shaders, no dependency and no build step for a game
+that is otherwise pure PyQt. `data/models3d.py` — a shipyard with a spine,
+two habitation rings and four docking arms with lit berths; a hull with a nose
+you can tell from its tail; a Weave anchor; a lumpy asteroid; and a UV sphere
+for worlds. Authored at radius 1 and scaled by what the thing really is.
+
+**Three things it taught me.**
+
+The light needs a source. `conn.start` records `star_dir` now: the star is at
+the system's centre and the target somewhere out from it, so light falls along
+the target's own position vector. One line, and a world has its terminator on
+the correct side.
+
+A sphere has to be one colour. Every other mesh alternates shade face by face
+so a flat-lit structure still reads as having parts — do that to a sphere and
+you get a chessboard, and the chessboard eats the terminator, which is the one
+thing that makes a planet look like a planet.
+
+And the first pass was almost entirely black: a handsome yard, correctly lit,
+unreadable. Ambient 0.22 to 0.40.
+
+**And a fault the models exposed.** `conn.nose` is the 3D vector the main
+drive is aimed along. The camera basis was built from `conn.heading` — a bare
+yaw angle **nothing in the game has ever written to**. So swinging the hull
+round with the thrusters changed the flying and not the view; the nose camera
+did not look where the ship pointed. They are one frame now, and the hull
+keeps its belly toward whatever it is approaching, which is what makes the
+ventral camera worth having in orbit. One inverted cross product had that
+backwards and put the planet you are orbiting in the camera pointing at the
+sky.
+
+**Two checks were measuring the paint rather than the camera.** The
+"what is in front of it" check counted *green-cast* pixels, which was true of
+the flat tinted disc the window used to draw and false of a plate-grey
+shipyard the moment it had a real model. My first fix counted any bright pixel
+and duly counted the **starfield** — four hundred samples of empty space in
+every camera. A star is a point and a hull is a surface, so a sample only
+counts now when its neighbours are lit too: model-agnostic and
+starfield-proof.
+
+And the control sweep earned its place again, catching a crash I had just
+written: the conn can be opened with no approach running at all, and
+`hull_frame` did not answer for `None`.
+
+Still to do, and recorded as such: asteroid belts to fly through, weapons fire
+and impacts, crashes, moons in orbit with their worlds, and the Weave anchors
+still have no position *inside* their system — they show on the sector chart
+and are invisible on the helm.
+
 ## 2026-07-29 — SEEDFALL: half the diplomatic board was free
 
 The fault I parked two cycles ago, finally taken. Every ordinary overture has

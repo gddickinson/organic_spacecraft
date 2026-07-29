@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (QDialog, QGridLayout, QHBoxLayout, QLabel,
 from ..sim import autopilot as pilot_sim
 from ..sim import berthing as berth_sim
 from ..sim import conn as conn_sim
+from ..sim import instruments as panel_sim
 from ..sim import track as track_sim
 from . import theme
 from .viewport import Viewport
@@ -296,7 +297,7 @@ class ConnWindow(QDialog):
                 # Now, not when the event loop next idles: a deferred delete
                 # leaves the old readout painted under the new one.
                 item.widget().setParent(None)
-        for name, value, kind in conn_sim.readout(conn):
+        for name, value, kind in panel_sim.readout(conn):
             row = QWidget()
             line = QHBoxLayout(row)
             line.setContentsMargins(0, 0, 0, 0)

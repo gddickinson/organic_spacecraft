@@ -305,26 +305,89 @@ def run(suite: Suite) -> None:
             feed = Viewport(conn, view_id)
             feed.resize(240, 200)
             image = feed.grab().toImage()
-            # The target is drawn in a strong tint; the starfield is grey.
-            return sum(1 for x in range(240) for y in range(0, 200, 2)
-                       if image.pixelColor(x, y).green()
-                       > image.pixelColor(x, y).red() + 40)
+            # Solid, lit *area* — not merely lit pixels.
+            #
+            # Two drafts got this wrong before it was right. The first looked
+            # for a green cast, true of the flat tinted disc the window used
+            # to draw and false of a plate-grey shipyard the moment
+            # `ui/render3d.py` gave it a real model. The second counted any
+            # bright pixel and duly counted the **starfield**: every camera
+            # came back with four hundred samples of empty space.
+            #
+            # A star is a point and a hull is a surface, so a sample only
+            # counts when its neighbours are lit too. That is model-agnostic
+            # and starfield-proof, which is what the check was always about.
+            def solid(x: int, y: int) -> bool:
+                for dx, dy in ((0, 0), (3, 0), (0, 3), (3, 3)):
+                    px = image.pixelColor(min(239, x + dx), min(198, y + dy))
+                    if px.red() + px.green() + px.blue() < 120:
+                        return False
+                return True
+
+            return sum(1 for x in range(0, 236, 2) for y in range(0, 196, 2)
+                       if solid(x, y))
 
         conn = conn_sim.start(game, contact)
-        pilot_sim.fly(conn, "close", 30)      # get close so it is a big disc
+        pilot_sim.fly(conn, "close", 30)      # close enough to fill the frame
         assert not conn.over, conn.outcome
         seen = {vid: brightness(vid, conn) for vid, _l, _v in conn_sim.VIEWS}
-        assert seen["fore"] > 200, (
-            f"the target is dead ahead and the nose camera shows "
-            f"{seen['fore']} lit pixels of it")
-        assert seen["aft"] == 0, (
-            f"the aft camera is showing {seen['aft']} pixels of something "
-            "that is in front of the ship")
-        for side in ("port", "starboard", "dorsal", "ventral"):
-            assert seen[side] < seen["fore"] / 4, (
+        # The starfield puts a handful of bright points in every frame, so
+        # "nothing" is a small number rather than zero.
+        empty = max(seen[v] for v in ("aft", "port", "starboard",
+                                      "dorsal", "ventral"))
+        assert seen["fore"] > 400, (
+            f"the target is dead ahead and the nose camera shows only "
+            f"{seen['fore']} solid samples of it")
+        assert seen["fore"] > empty * 6, (
+            f"the nose shows {seen['fore']} lit samples and the brightest "
+            f"other camera {empty} — they are all looking at the same thing")
+        for side in ("aft", "port", "starboard", "dorsal", "ventral"):
+            assert seen[side] < seen["fore"] / 8, (
                 f"the {side} camera shows nearly what the nose does")
         return (f"nose {seen['fore']} lit pixels, tail {seen['aft']}, "
                 f"beams {seen['port']}/{seen['starboard']}")
+
+    @check("the cameras look where the ship is pointing")
+    def _():
+        # They did not. `conn.nose` is the 3D vector the main drive is aimed
+        # along, and the camera basis was built from `conn.heading` — a bare
+        # yaw angle **nothing in the game ever wrote to**. So swinging the
+        # hull round with the thrusters changed the flying and not the view.
+        from .test_ui import _use_offscreen
+        _use_offscreen()
+        from PyQt6.QtWidgets import QApplication
+        from ..ui import viewport as viewport_mod
+
+        app = QApplication.instance() or QApplication([])
+        assert app is not None
+        game = new_game("aimed")
+        game.orbit_body = game.system.bodies[0].id
+        contact = next(c for c in _contacts(game, ("anchorage", "hull")))
+        conn = conn_sim.start(game, contact)
+
+        nose, right, dorsal = viewport_mod.hull_frame(conn)
+        for a, b in ((nose, right), (right, dorsal), (dorsal, nose)):
+            assert abs(sum(x * y for x, y in zip(a, b))) < 1e-6, (
+                "the hull's axes are not at right angles to each other")
+        fore, _r, _u = viewport_mod.basis((0.0, 1.0, 0.0), conn)
+        assert math.dist(fore, nose) < 1e-6, (
+            f"the nose camera looks {fore} while the ship points {nose}")
+
+        # Turn the hull and the view turns with it.
+        conn.nose = [1.0, 0.0, 0.0]
+        turned, _r, _u = viewport_mod.basis((0.0, 1.0, 0.0), conn)
+        assert math.dist(turned, (1.0, 0.0, 0.0)) < 1e-6, turned
+
+        # And the belly looks at what is being approached, which is what
+        # makes the ventral camera worth having in orbit. The sign of one
+        # cross product had this backwards and put the planet in the sky.
+        conn.pos = [0.0, 0.0, -40.0]
+        conn.nose = [0.0, 1.0, 0.0]
+        ventral, _r, _u = viewport_mod.basis((0.0, 0.0, -1.0), conn)
+        toward = viewport_mod._unit([-c for c in conn.pos])
+        assert sum(x * y for x, y in zip(ventral, toward)) > 0.9, (
+            f"the belly camera looks {ventral} and the target is {toward}")
+        return "the nose camera follows the nose, and the belly the target"
 
     @check("the starfield does not shimmer, and does not touch the save")
     def _():

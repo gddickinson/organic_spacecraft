@@ -397,6 +397,41 @@ one cause. The Fleet Hub was drawn on the helm chart, labelled, and inert:
   selected, so nothing appeared to happen. `QUAY_OFFSET` is one number now,
   read by the painter and the hit test alike, and quays are tested first.
 
+**Something worth looking at.** The conn's windows drew a flat coloured circle
+with a radial gradient behind it. At twelve kilometres that reads as a distant
+object; at six hundred metres it reads as a flat coloured circle, which is a
+poor thing to be watching while berthing a hull against a shipyard.
+
+`ui/render3d.py` is the substrate: a camera, perspective, back-face culling,
+painter's-algorithm depth sorting and flat shading from a light. A few hundred
+`QPainter` polygons a frame — no textures, no shaders, no dependency and no
+build step for a game that is otherwise pure PyQt. `data/models3d.py` holds
+the meshes, authored at radius 1 and scaled by whatever the object really is,
+so one yard mesh serves a four-hundred-metre quay and a two-kilometre hub.
+
+Three things it taught me while being built:
+
+- **The light needs a source.** `sim/conn.py` records `star_dir` when an
+  approach opens: the star sits at the system's centre and the target
+  somewhere out from it, so light falls along the target's own position
+  vector. One line, and a world gets its terminator on the correct side.
+- **A sphere must be one colour.** Every other mesh alternates shade
+  face-by-face so a flat-lit structure still reads as having parts. Do that
+  to a sphere and you get a chessboard, and the chessboard eats the
+  terminator — the one thing that makes a planet look like a planet.
+- **The first pass was almost entirely black.** A handsome yard, correctly
+  lit, and unreadable. Ambient went from 0.22 to 0.40.
+
+**And the cameras were not looking where the ship points.** `conn.nose` is the
+3D vector the main drive is aimed along; the camera basis was built from
+`conn.heading`, a bare yaw angle **nothing in the game has ever written to**.
+So swinging the hull round with the thrusters changed the flying and not the
+view. `viewport.hull_frame` builds one set of axes from the nose, and the hull
+keeps its belly toward whatever it is approaching — which is what makes the
+ventral camera worth having in orbit, and which one inverted cross product had
+backwards, putting the planet you are orbiting in the camera pointing at the
+sky.
+
 **Half the diplomatic board was still free.** `sim/allegiance.py` has charged
 you for being seen working for somebody since it was written — relief to the
 Concordat costs you with the Charter and the Freeholds — but `broker` and
