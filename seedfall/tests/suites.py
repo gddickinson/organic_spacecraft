@@ -60,6 +60,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("connwindow", "test_connwindow", "conn window"),
     SuiteSpec("worlds", "test_worlds", "worlds"),
     SuiteSpec("orbits", "test_orbits", "orbits"),
+    SuiteSpec("programmes", "test_programmes", "programmes"),
     SuiteSpec("berthing", "test_berthing", "berthing"),
     SuiteSpec("thrusters", "test_thrusters", "thrusters"),
     SuiteSpec("weave", "test_weave", "weave"),

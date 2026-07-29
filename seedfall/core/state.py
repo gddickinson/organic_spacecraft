@@ -127,6 +127,13 @@ class Game:
     charts_sold: list = field(default_factory=list)
     boards: dict = field(default_factory=dict)
     diplomacy: object | None = None
+    #: The bench's standing work once the tech tree is finished — which
+    #: programme it is on, the rounds it has completed and the findings in
+    #: hand. A declared field rather than an attribute `programmes.state`
+    #: attaches on demand, because the save codec encodes declared fields and
+    #: nothing else: set on the side, a chronicle's findings and rounds came
+    #: back from a reload as an empty bench.
+    programmes: object | None = None
     #: The Weave: which dark anchors have been woken and which laid. Where
     #: the gates *are* is derived from the galaxy's seed, like anchorages.
     weave: object | None = None

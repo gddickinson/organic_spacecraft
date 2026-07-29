@@ -27,6 +27,7 @@ from ..sim import ventures as venture_sim
 from ..sim import legacy as legacy_sim
 from ..sim import memory as memory_sim
 from ..sim import loyalty as loyalty_sim
+from ..sim import programmes as programmes_sim
 from ..sim import research as research_sim
 from ..sim import shipyard as shipyard_sim
 from ..sim import threat as threat_sim
@@ -106,6 +107,26 @@ def advance_days(game, n: float, dilation: float = 1.0) -> None:
     for kind, text in dormancy_sim.tick(game, ship_n, r):
         game.add_log(text, kind)
     done = research_sim.tick(game.research, ship_n, rate * manned, r)
+
+    # Whatever the tree could not use goes to the bench's standing work.
+    #
+    # This is the fix for a real dead end: the tree is sixty-two nodes and the
+    # game carries on after every one of its ten endings, so once
+    # `researchable` comes back empty the day's points went into
+    # `research.banked` — a number `ui/tech_view.py` displays and nothing could
+    # ever spend. Measured, 146,040 points over the ten years after the tree
+    # closed. See `sim/programmes.py`.
+    # Only taken when there is somewhere to put it: `take_spare` zeroes what
+    # it hands over, so taking it with the bench stood down would destroy it.
+    if programmes_sim.can_take(game):
+        found = programmes_sim.tick(game,
+                                    research_sim.take_spare(game.research))
+        if found is not None:
+            from ..data.programmes import PROGRAMMES_BY_ID
+            spec = PROGRAMMES_BY_ID[found.programme]
+            game.add_log(
+                f"Round {found.round} of {spec.name.lower()} is written up. "
+                "The findings are yours to place.", "good")
     # Checking unreplicated work is bench time like any other.
     firmed = research_sim.confirm_tick(game.research, ship_n * manned)
     if firmed:

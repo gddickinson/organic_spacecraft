@@ -2,6 +2,60 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: the bench after the tree
+
+The tech tree is sixty-two nodes and 28,790 points end to end, and the game is
+explicitly built to carry on past every one of its ten endings. So there is a
+day when the last node lights and the bench has nothing to do. Measured on a
+generous rate that day was **2,014**, after which the ship accrued **146,040
+research points over ten years that bought nothing at all** — every laboratory,
+every CHORUS node, the `research` bonus on eight technologies and the whole
+survey economy behind them feeding a number `ui/tech_view.py` *displayed* and no
+code could ever spend. Found by asking the plainest question there is: is every
+declared thing consumed?
+
+`data/programmes.py` and `sim/programmes.py` give it somewhere to go. A
+programme opens when its **branch** is exhausted — so a captain who drives one
+branch hard is running one long before the tree is done, and this is the same
+machinery arriving late rather than a mode bolted onto the end. It never
+finishes; it completes rounds, each `ROUND_GROWTH = 1.4` dearer than the last,
+so a finished tree cannot become a fountain: measured, eight rounds run from
+1,100 points to 11,595.
+
+Each round yields a **finding**, and a finding buys standing or credits and
+never a better hull. That is deliberate — an endgame bench that improved the
+ship would only inflate it; one that pays in standing feeds the political game,
+which is where the decisions are. Three doors, each consuming the finding:
+
+    file with the Choir     sanhedrin +24.2                    (deep with one)
+    publish openly          +25.1 spread over all four        (broad, shallow)
+    sell                    5,566 credits                    (nothing political)
+
+`PUBLISH_SHARE = 0.45` is what makes that a real choice rather than a dominated
+one: filing wins with the power you file with (24.2 against publishing's 10.9)
+and publishing wins on the sector total (25.1 against 22.2). Below a quarter,
+publishing is dominated everywhere; above it, filing never makes sense.
+
+Two bugs found by playing, both mine, and both the *same fault the feature
+exists to fix* in fresh costume:
+
+- **The clock took the spare points and threw them away.**
+  `research.take_spare` zeroes what it hands over — deliberately, so a day's
+  work cannot be spent twice — and `clock` called it unconditionally, so a bench
+  standing down destroyed every point the tree could not use. There is now a
+  `can_take` gate asked *before* the taking; measured, 1,833 points correctly
+  held for a stood-down bench where the first draft held none.
+- **The findings did not survive a save.** `programmes.state` attached the
+  bench to the game as an attribute, and the save codec encodes *declared
+  fields and nothing else*, so a reload came back with an empty bench. It is a
+  declared field on `Game` now.
+
+And the research screen was telling a captain to "pick something below" with
+every technology in the sector already known and nothing below to pick. It says
+where the points go instead.
+
+`tests/test_programmes.py`, 7 checks.
+
 ## 2026-07-29 — SEEDFALL: gravity that knows which star, and an orbit you choose
 
 Two player reports, one system: *"the player should be able to orbit planets at

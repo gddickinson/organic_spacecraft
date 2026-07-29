@@ -8,7 +8,7 @@ from ..core.util import duration, num
 from ..data.tech import BRANCHES, TECH, TECH_BY_ID
 from ..sim import inquiry
 from ..sim import research as research_sim
-from . import inquiry_panel
+from . import inquiry_panel, programmes_panel
 from .widgets import (Card, Panel, Pill, TabBar, View, button, label,
                       mono_label, note)
 from .xeno_view import build_xeno
@@ -35,6 +35,15 @@ class TechView(View):
             shaky = inquiry_panel.unconfirmed(self, g)
             if shaky is not None:
                 self.col.addWidget(shaky)
+            # What the bench does once a branch is finished, and what becomes
+            # of what it finds. Both are None until a branch is complete, so a
+            # captain is not shown a board of things they cannot do yet.
+            standing = programmes_panel.running(self, g)
+            if standing is not None:
+                self.col.addWidget(standing)
+            in_hand = programmes_panel.findings(self, g)
+            if in_hand is not None:
+                self.col.addWidget(in_hand)
 
         tabs = TabBar([("all", "All")] + [(k, v[0]) for k, v in BRANCHES.items()]
                       + [("xeno", "Xenotech ✦")], self.branch)
@@ -56,6 +65,18 @@ class TechView(View):
     def _current(self, rate: float) -> Panel:
         res = self.game.research
         if not res.current:
+            # Two different situations, and the panel said the same thing about
+            # both. With the tree finished there is nothing "below" to pick and
+            # the points are not accumulating unassigned — they are going to
+            # the standing programmes. A screen that tells a captain to choose
+            # from an empty list is worse than one that says nothing.
+            if not research_sim.researchable(res.unlocked):
+                p = Panel("The tree is finished")
+                p.add(note("Every technology in the sector is known. The day's "
+                           "points go to whichever standing programme the "
+                           "bench is on — and if it is on none, they wait for "
+                           "you to put it on one."))
+                return p
             p = Panel("No project running")
             p.add(note("Points are accumulating unassigned. Pick something below and "
                        "they will be spent on it the moment you do."))

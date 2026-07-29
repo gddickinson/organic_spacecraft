@@ -32,6 +32,10 @@ class Research:
     #: The tech currently being confirmed, and how far along.
     confirming: str | None = None
     confirm_days: float = 0.0
+    #: Points the *tree* cannot use, waiting for the standing programmes to
+    #: take them. Distinct from `banked`, which is a day's work waiting for a
+    #: project the captain has not chosen yet — see `tick`.
+    spare: float = 0.0
     #: Which inputs the bench ran short of last tick, for the readout only.
     starved: list = field(default_factory=list, metadata={"transient": True})
     last_event: str | None = field(default=None, metadata={"transient": True})
@@ -55,7 +59,18 @@ def tick(res: Research, days: float, rate: float, rng=None) -> str | None:
     gained = rate * days
     res.points += gained
     if not res.current:
-        res.banked += gained
+        # Two different reasons for having no project, and they are not the
+        # same thing. With nodes still open the captain simply has not chosen
+        # yet, and the day banks against whatever they pick. With the tree
+        # exhausted there is nothing to pick, and banking is a slow leak into
+        # a number the screen displays and nothing can spend — 146,040 points
+        # over the ten years after the tree closed. Those go to the bench's
+        # standing work instead. See `sim/programmes.py`.
+        if researchable(res.unlocked):
+            res.banked += gained
+        else:
+            res.spare += gained + res.banked
+            res.banked = 0.0
         return None
 
     served, missing = inquiry.draw(res, res.current, days, rate)
@@ -97,6 +112,18 @@ def confirm_tick(res: Research, days: float) -> str | None:
     res.provisional.remove(done)
     res.confirming = None
     return done
+
+
+def take_spare(res: Research) -> float:
+    """Hand over the points the tree could not use, and forget them.
+
+    Taken rather than read, so there is exactly one consumer and no chance of
+    the same day's work being spent twice — the shape of fault that produced a
+    free treaty and a phantom haggle payment elsewhere in this project.
+    """
+    got = max(0.0, res.spare)
+    res.spare = 0.0
+    return got
 
 
 def grant(res: Research, amount: float) -> None:

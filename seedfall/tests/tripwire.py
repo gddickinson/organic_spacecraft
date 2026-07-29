@@ -180,6 +180,7 @@ KIN = {
     "render3d": ("cameras",), "gunfire": ("gunfire",),
     "sky": ("cameras", "worlds"), "worlds3d": ("worlds",),
     "starclasses": ("worlds", "orbits"),
+    "programmes": ("programmes",),
     "battle3d": ("gunfire",),
     "mounts": ("thrusters",), "burnplan": ("thrusters", "helm"),
 }

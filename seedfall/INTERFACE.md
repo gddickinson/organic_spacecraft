@@ -447,6 +447,33 @@ berth it answered that the planet was at zero range and therefore 180° wide,
 which is a picture of being inside it. Co-located sights are placed where they
 physically are: the world below a berth reads 98° across.
 
+**The bench after the tree.** The tech tree is sixty-two nodes and 28,790
+points end to end, and the game carries on past every one of its ten endings. So
+`research.banked` grew for ever once `researchable` came back empty — **146,040
+points over the ten years after the tree closed**, on a screen that displayed
+the figure and no code that could spend it. Found by asking whether every
+declared thing is consumed.
+
+`sim/programmes.py` gives it somewhere to go. A programme opens when its
+*branch* is exhausted, never finishes, and completes rounds each
+`ROUND_GROWTH` = 1.4 dearer than the last, so a finished tree cannot become a
+fountain (eight rounds: 1,100 points to 11,595). Each round yields a **finding**
+that buys standing or credits and never a better hull — an endgame bench that
+improved the ship would only inflate it. Three doors, each consuming it: file
+with one power, publish to all four, or sell. `PUBLISH_SHARE` = 0.45 keeps the
+choice real: filing wins with the power you file with (+24.2 against
+publishing's +10.9) and publishing wins on the sector total (+25.1 against
++22.2).
+
+Two bugs, both the same fault the feature exists to fix wearing a new coat.
+`research.take_spare` zeroes what it hands over — so a day's work cannot be
+spent twice — and `clock` called it unconditionally, meaning a bench standing
+down **destroyed** every point the tree could not use; there is a `can_take`
+gate before the taking now, and 1,833 points are correctly held where the first
+draft held none. And `programmes.state` attached the bench to the game as a
+plain attribute, so a reload came back empty: the save codec encodes *declared
+fields and nothing else*. It is a declared field on `Game` now.
+
 **Gravity that knows which star it is, and an orbit you choose the height of.**
 Two player reports, one system, and the second was the bigger fault.
 
@@ -1113,6 +1140,8 @@ seedfall/
 │   ├── orders.py       which standing orders apply — the discoverability index
 │   ├── parley.py       breaking off and talking your way out
 │   ├── transit.py      standing the watches of a crossing
+│   ├── programmes.py   what the bench runs once a branch is exhausted, and
+│   │                   what a finding buys: standing, money, or nothing
 │   ├── conn.py         the last ten kilometres: a local frame, thrusters and
 │   │                   the main drive, and what a contact costs
 │   ├── outcome.py      whether an approach is over — alongside, in orbit,
@@ -2646,6 +2675,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berth" flies the last kilometres rather than running four hundred ticks
   inside the click, and that a conn notices the hull being flown from the helm
   instead of showing an approach on somewhere it has left.
+- **`test_programmes.py`** holds the endgame bench: that nothing accrues on a
+  finished tree that cannot be spent, that every round costs more than the last,
+  that all three doors are live and none dominated, that every point of standing
+  and every credit traces to a *consumed* finding, that a programme opens only
+  when its branch is done, that the screen says which situation it is in, and
+  that findings survive a save.
 - **`test_orbits.py`** (9 checks, mutation sweep 17/17) holds the gravity model
   and the orbit ladder: that a
   world's year is its *star's* (645 days at one AU round an M dwarf against 272
