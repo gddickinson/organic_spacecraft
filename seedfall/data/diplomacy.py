@@ -25,10 +25,16 @@ class Action:
 
 
 ACTIONS: list[Action] = [
+    # The only door at rock bottom, on purpose. At -60 every overture was
+    # refused and the sole remaining move was `denounce`, which makes it
+    # worse — measured, a captain at -100 with unlimited credits courted a
+    # power for 120 sessions and moved them not one point. Tribute is the
+    # crude one that works on people who cannot stand you, which is exactly
+    # what its own blurb says it is.
     Action("tribute", "Send a tribute",
            "Credits, delivered without conditions. Crude, effective, and "
            "everyone involved knows exactly what it is.",
-           min_rep=-60, cooldown=60, cost_credits=12000, gain=9),
+           min_rep=-100, cooldown=60, cost_credits=12000, gain=9),
     Action("intelligence", "Share intelligence",
            "Charts, ore grades, Bloom sightings. Costs you nothing you have not "
            "already learned, and they know that too.",

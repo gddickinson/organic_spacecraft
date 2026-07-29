@@ -539,7 +539,8 @@ seedfall/
 │   ├── xeno.py         study points, incorporation, alien passive bonuses
 │   ├── bloom.py        stages, roaming instars, resistance, the First Instar
 │   ├── contracts.py    generation, acceptance, progress, expiry
-│   ├── diplomacy.py    standing, the relations matrix, treaties, brokering
+│   ├── diplomacy.py    standing, the relations matrix, treaties, brokering;
+│   │                   every gift priced through `allegiance`
 │   ├── expedition.py   the ground game: zone map, movement, attempts, hauls
 │   ├── reach.py        what you can get to at all, and what a drive would open
 │   ├── plans.py        the ship as solids: hull, fittings, hold, berths;
@@ -673,6 +674,7 @@ seedfall/
     ├── test_reach.py   6 reach checks — the chart's wall is a real wall
     ├── test_plans.py   8 plan checks — the model is the ship, and it is solid
     ├── test_picture.py 8 checks — the picture shows the ship's condition
+    ├── test_courting.py 8 checks — a gift is seen by the recipient's enemies
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
     ├── test_legacy.py  7 aftermath checks — an ending is a turn, not a stop
     ├── test_instruments.py 5 checks — a gauge agrees with the ship and itself
@@ -1459,6 +1461,25 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   hull, and roughly half the faces cull either way so the count says nothing.
   Two checks cover it — one on the normals of every primitive, one that puts a
   box inside a sphere and insists the sphere occludes it.
+- **`test_courting.py`** holds diplomacy to being a choice. Measured before
+  anything was touched, a captain with money sat at 92/100/100/100 with all
+  four powers *while two of them were at −67 with each other*: the three gift
+  overtures added standing with their target and cost nothing anywhere else,
+  so the relations matrix was scenery and `broker` — the one action that moves
+  it — bought nothing you could not get by ignoring it. Gifts run through
+  `sim/allegiance.py` now, which contracts, treaties and territory already
+  used. Measured after: courting one side of an implacable feud reaches 100
+  and −100; courting both reaches 69 and 63, neither at Kin. Brokering the
+  rift first drops what courting costs elsewhere from 7.8 to 1.0, which is the
+  purpose `broker` never had.
+
+  Playing it then found the trap it created. Below −60 standing every overture
+  was refused and the only move left was `denounce`, which makes it worse — a
+  captain at −100 with unlimited credits courted a power for 120 sessions and
+  moved them **not one point**. `tribute` reaches to −100 now, so there is
+  always a door and it is the expensive, undignified one: 555 days of steady
+  tribute to climb back from the floor.
+
 - **`test_picture.py`** holds the picture of the ship to showing the ship. A
   hull at 25% used to render pixel-for-pixel identically to one fresh out of
   the yard: every reading of the damage was a percentage in a side panel,

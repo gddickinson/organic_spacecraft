@@ -2,6 +2,49 @@
 
 Running progress log. Newest first.
 
+## 2026-07-28 — SEEDFALL: a gift is a public act
+
+Diplomacy, the standing priority. Same method as the last three cycles —
+measure the system for a dominant strategy before touching it.
+
+- **The measurement.** A captain with money ended a chronicle at 92, 100, 100
+  and 100 with all four powers, while the Concordat and the Freeholds sat at
+  −67 with each other. The three gift overtures — tribute, intelligence,
+  relief — added standing with their target and cost **nothing** anywhere
+  else. So the relations matrix was scenery, there was never a side to take,
+  and `broker`, the only action that moves that matrix, bought nothing you
+  could not get by ignoring it entirely.
+- **The fix used machinery that was already there.** `sim/allegiance.py` knows
+  how much a rift is worth and was already wired to contracts, treaties and
+  territory — including a `note()` for showing the price before you commit.
+  Gifts go through it now. Nothing new was invented.
+- **Measured after:** courting one side of an implacable feud reaches 100 with
+  them and −100 with the other; courting both reaches 69 and 63, neither at
+  Kin. Brokering the rift first drops the toll from 7.8 standing to 1.0. That
+  is the purpose brokering never had, and the diplomacy screen has been
+  telling players to broker for as long as it has existed.
+- **The screen shows all of it.** The overture card now reads `Concordat +9
+  standing · Freeholds −4 standing · Charter −1 standing` before you press
+  anything, because `preview()` and `perform()` share the arithmetic.
+
+**A real bug, found by playing.** With gifts now costing standing elsewhere I
+went looking for whether a captain could recover from a wrecked relationship.
+They could not: at −100, courting a power with unlimited credits for 120
+sessions moved them *not one point*. Below −60 every overture is refused and
+the only move left is `denounce`, which makes it worse. A one-way door, true
+before this cycle and made far easier to fall through by it. `tribute` reaches
+to −100 now — the crude one that works on people who cannot stand you, which
+is exactly what its own blurb always said. Climbing back from the floor takes
+555 days of steady tribute.
+
+Eight checks in a new `test_courting` suite, each proven to bite. One mutation
+did *not* bite and the reason is worth keeping: the "peaceful powers take no
+offence" claim is held up by two independent guards, so removing either one
+alone leaves the other standing. Defence in depth, not a hole — recorded in
+the check so nobody chases it.
+
+589 checks green.
+
 ## 2026-07-28 — SEEDFALL: a ship that shows what has happened to her
 
 Following the standing request to keep improving the graphics, especially of

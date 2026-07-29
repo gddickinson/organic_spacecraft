@@ -161,7 +161,13 @@ def preview(game, action_id: str, faction: str,
         out["standing"] += [(power, -cost)
                             for power, cost in allegiance.price(game, faction, 8)]
     else:
+        # A gift is a public act. Courting one power in front of the power it
+        # is losing a war to used to cost exactly nothing — which is why a
+        # captain could sit at 100 with all four while two of them were at
+        # −67 with each other.
         out["standing"] = [(faction, gain)]
+        out["standing"] += [(power, -cost) for power, cost
+                            in allegiance.price(game, faction, gain)]
     return out
 
 
@@ -182,6 +188,8 @@ def _spend(game, action) -> None:
 
 def perform(game, action_id: str, faction: str, other: str | None = None) -> dict:
     """Carry out a diplomatic move. Returns what happened."""
+    from . import allegiance
+
     state = ensure(game)
     action = ACTIONS_BY_ID.get(action_id)
     if action is None:
@@ -230,12 +238,15 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
         # Signing with one power cools you with its enemies — by how much the
         # rift is actually worth, rather than the flat -4 this used to be,
         # which made brokering a war down to a grudge worth nothing.
-        from . import allegiance
         allegiance.charge(game, faction, 8)
         lines.append("Signed. Berthing, charts, and a clause about the Bloom.")
     else:
         game.adjust_rep(faction, gain)
         lines.append(f"{FACTIONS_BY_ID[faction].short} standing +{gain:.0f}.")
+        # And whoever they are at odds with saw you do it.
+        seen = allegiance.charge(game, faction, gain)
+        if seen:
+            lines.append(f"Noted elsewhere: {allegiance.phrase(seen)}.")
 
     _remember(game, action_id, action, faction, other)
     game.add_log(f"{action.name} — {FACTIONS_BY_ID[faction].short}.", "good")
