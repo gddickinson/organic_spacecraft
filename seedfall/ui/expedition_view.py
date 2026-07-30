@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import QHBoxLayout, QSizePolicy, QWidget
 from ..core.util import num, pct
 from ..data.expedition import FEATURES, PARTY_CAPACITY, TERRAIN
 from ..sim import expedition as exp_sim
+from ..sim import wayhome as wayhome_sim
 from ..sim import weather as weather_sim
 from ..sim.fieldwork import conclude_expedition
 from . import theme
@@ -154,6 +155,24 @@ class ExpeditionView(View):
         p.add_row("Supply", f"{exp.supply} days",
                   "warn" if exp.supply <= 3 else "")
         p.add_bar(max(0, exp.supply) / 20, "warn" if exp.supply <= 3 else "chloro")
+        # **How far the lander is, which nothing said.** The ground's one piece
+        # of arithmetic: reach the pad and the haul comes up capped at what four
+        # people can lift; run out of supply first and 60% of it stays where it
+        # fell. `sim/wayhome.py` costs the cheapest known route with the same
+        # function `move` charges, so the figure here is what walking it spends.
+        way = wayhome_sim.standing(exp)
+        if way["home"]:
+            p.add_row("The lander", "you are standing on it", "chloro")
+        elif way["stranding"]:
+            p.add_row("The walk home", f"{way['days']} days — {way['why']}",
+                      "warn")
+        else:
+            p.add_row("The walk home",
+                      f"{way['days']} days over {way['steps']} step(s) of known "
+                      f"ground · {way['spare']} day(s) to spare",
+                      "warn" if way["spare"] <= 2 else "")
+            if way["pinned"]:
+                p.add(note(way["why"]))
         p.add_row("Rover", f"{exp.rover}/10", "warn" if exp.rover <= 3 else "")
         p.add_bar(exp.rover / 10, "osteo")
         p.add_row("Carrying", f"{round(exp.carried)} / {round(PARTY_CAPACITY)}",

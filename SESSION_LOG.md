@@ -2,6 +2,66 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: the walk back to the lander had never been costed
+
+Two zeros left in the tally of what a played decade reaches, and this pair told a
+story: `expedition.attempt` fired **271** times and `expedition.lift_off` **zero**.
+Chased down, a decade of chronicles ended **50 landings stranded, 32 aborted, and
+not one returned.** The whole intended ending of an expedition — walk back to the
+pad, lift, bank the haul — had never been driven by a played game.
+
+Because the ground poses exactly one piece of arithmetic and **the screen never
+showed it.** A party carries `supply` in days. A step spends one day on ground
+already crossed and up to three on fresh, times whatever the weather is doing.
+Reach the lander and the haul comes up, capped at what four people can lift. Run
+out first and 40% comes home and the rest stays where it fell. The panel said
+"Supply · 7 days" and **never said how far away the lander was** — 60% of a hold
+riding on a subtraction nobody was shown.
+
+`tests/ground_ai.py` had already written the consequence down, for the *driver*:
+"the one decision the ground actually poses — how much supply to keep in hand for
+the walk home — was invisible to a driver that never walked home." The captain was
+in precisely the same position, and nobody had noticed the sentence applied to
+both.
+
+So `sim/wayhome.py`: Dijkstra over the tiles the party has *seen*, adding up
+`expedition.step_cost` — which is now extracted as the one door and is the same
+function `move` charges. The panel reads **"The walk home — 4 days over 4 steps of
+known ground · 13 days to spare"**, and the route it draws follows the party's own
+footprints, because ties go to visited ground. Without that tie-break the quote was
+right and the line on the map wandered off through terrain nobody had set foot on.
+
+**Two defects found by the checks, one of them a real trap.** The check that walks
+the quoted route was refused at its first step: *"Katabatic gale: nothing moves in
+this."* Some fronts pin a party where it stands, and the quote ignored them — so a
+party held fast was told "4 days home, 3 to spare" while the days went by anyway.
+A party with exactly enough supply would have stranded reading a clean forecast.
+Pinned days are counted now, named on the panel, and measured: a gale for three
+days took a 4-day walk to **19** — sixteen for the walk at gale rates and three
+sitting still. The other was mine: I compared the weather at the two ends of the
+walk to decide whether it had held, which is the same "at either end" mistake this
+project made in the industry check two cycles ago. Every step now.
+
+**And knowing the price is worth something**, which is the payoff. At the same
+two-day margin, a party leader reading the costed walk brought **15 of 24 parties
+home and stranded 5**; one counting tiles managed **9 home and 11 stranded** —
+because four tiles of fresh scarp in a dust storm is twelve days and reads as
+four. The chronicle uses it now and ends a decade **31 returned, 14 stranded**
+where it was 0 and 50.
+
+Two mutations survived the first draft of the suite and both taught me something
+about writing them. Ignoring what ground costs, and planning over tiles nobody
+has seen, both left the chosen route unchanged in a natural landing zone — the
+reveal has usually seen everything nearby, and the cheapest way is usually also
+the shortest. Catching them needed a zone built on purpose: a walked corridor
+that is longer in steps, and an unseen shortcut that is **tempting** — cheap
+ground, fewer steps. Making the shortcut dear as well proved nothing, since
+avoiding it cost the router nothing either way.
+
+Eight deliberate breakages, eight caught.
+
+Eight new checks, 973 across the suite, all green.
+
 ## 2026-07-30 — SEEDFALL: the only two buttons in the game that named no number
 
 Picked from last cycle's tally of what a played decade never reaches. Two of the

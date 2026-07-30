@@ -150,7 +150,7 @@ KIN = {
     "inquiry": ("evidence", "bench"), "flight": ("helm", "flight", "burns"),
     "contracts": ("postings", "missions", "cargo"),
     "chains": ("missions",),
-    "expedition": ("landing", "ground"), "weather": ("ground",),
+    "expedition": ("landing", "ground", "wayhome"), "weather": ("ground",),
     "territory": ("territory",), "allegiance": ("allegiance",),
     "charts": ("charting", "charts"), "notes": ("notes",),
     "freight": ("freight",),

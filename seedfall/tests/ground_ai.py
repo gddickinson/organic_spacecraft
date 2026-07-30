@@ -15,6 +15,7 @@ much spends the trip walking.
 from __future__ import annotations
 
 from ..sim import expedition as ex
+from ..sim import wayhome
 
 
 def _towards(exp, tx: int, ty: int) -> tuple[int, int]:
@@ -37,11 +38,17 @@ def play(game, exp, rng, margin: int | None = 4, cap: int = 300) -> object:
     steps = 0
     while not exp.over and steps < cap:
         steps += 1
-        if margin is not None and exp.supply <= steps_home(exp) + margin:
+        # Against the *costed* walk, not the tile count. `steps_home` ignores
+        # terrain and weather, so a party four tiles from the pad across fresh
+        # scarp in a dust storm read "4" and needed twelve — which is how a
+        # leader with a margin of four still stranded. `wayhome.standing` prices
+        # it with the same function `move` charges.
+        way = wayhome.standing(exp)
+        if margin is not None and way["spare"] <= margin:
             if exp.at_lander:
                 ex.lift_off(exp)
                 break
-            ex.move(exp, *_towards(exp, *ex.LANDER), game.officers, rng)
+            ex.move(exp, *wayhome.step_towards_home(exp), game.officers, rng)
             continue
         if ex.options_here(exp):
             ex.attempt(exp, 0, game.officers, rng)

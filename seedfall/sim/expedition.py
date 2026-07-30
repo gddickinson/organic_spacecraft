@@ -177,10 +177,7 @@ def move(exp: Expedition, dx: int, dy: int, officers, rng) -> dict:
                        "this. Sit it out or lose people."}
 
     terrain = TERRAIN[dest.terrain]
-    # Ground you have already crossed is cheap: the route is known and the
-    # rover has a track to follow. Otherwise coming home is a death sentence.
-    base = 1 if dest.visited else max(1, terrain.cost - (1 if exp.rover >= 8 else 0))
-    cost = weather_sim.move_cost(exp, base)
+    cost = step_cost(exp, dest)
     exp.x, exp.y = dest.x, dest.y
     exp.days += cost
     exp.supply = max(0, exp.supply - cost)
@@ -199,6 +196,25 @@ def move(exp: Expedition, dx: int, dy: int, officers, rng) -> dict:
         out["hazard"] = _spring_hazard(exp, officers, rng)
     _check_end(exp)
     return out
+
+
+def step_cost(exp: Expedition, dest: Tile) -> int:
+    """Days of supply one step onto `dest` spends, at the weather it is now.
+
+    **The one door**, so a route home can be costed with the same arithmetic
+    that will charge for walking it. `sim/wayhome.py` adds up this function over
+    a path; `move` spends it. Before the split it lived inside `move` alone and
+    nothing could quote a walk in advance — which is the ground's one real
+    decision, since a party that runs out of supply before it reaches the lander
+    keeps `STRANDED_SHARE` of what it is carrying and leaves the rest.
+
+    Ground already crossed is cheap: the route is known and the rover has a
+    track to follow. Otherwise coming home is a death sentence.
+    """
+    terrain = TERRAIN[dest.terrain]
+    base = (1 if dest.visited
+            else max(1, terrain.cost - (1 if exp.rover >= 8 else 0)))
+    return weather_sim.move_cost(exp, base)
 
 
 def _spring_hazard(exp: Expedition, officers, rng) -> dict:

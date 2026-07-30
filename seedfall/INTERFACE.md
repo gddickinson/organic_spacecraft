@@ -1703,6 +1703,7 @@ seedfall/
 │   ├── diplomacy.py    standing, the relations matrix, treaties, brokering;
 │   │                   every gift priced through `allegiance`
 │   ├── expedition.py   the ground game: zone map, movement, attempts, hauls
+│   │                   — `step_cost` is the one door for what a step spends
 │   ├── reach.py        what you can get to at all, and what a drive would open
 │   ├── plans.py        the ship as solids: hull, fittings, hold, berths;
 │   │                   `scar()` marks the blight a hurt hull shows
@@ -1722,6 +1723,8 @@ seedfall/
 │   ├── intel.py        how well a system is known, and what a chart is worth
 │   ├── loading.py      fitted mass against what the hull is rated to shift
 │   ├── orders.py       which standing orders apply — the discoverability index
+│   ├── wayhome.py      the cheapest known walk back to the lander, in days of
+│   │                   supply, and whether the party can afford it
 │   ├── parley.py       breaking off and talking your way out: the odds, what
 │   │                   each part of them is worth, the turn a refusal costs
 │   ├── transit.py      standing the watches of a crossing
@@ -1919,6 +1922,8 @@ seedfall/
     │                   and what feeding them costs
     ├── test_parley.py  6 checks — the odds on talking your way out, stated
     │                   and then measured by hailing four hundred times
+    ├── test_wayhome.py 8 checks — the walk back to the lander, priced against
+    │                   what walking it spends
     ├── test_wharfage.py 10 checks — the due on your own trade: conserved,
     │                   named on the board, waived at a free port, priced by
     │                   standing and by the size of the berth
@@ -2466,6 +2471,27 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   steers straight at the enemy, so a test that only ever says "salvo" reports
   zero damage and looks like a balance problem. Use `tests/captain_ai.py`,
   which picks the helm order that suits the arcs the ship actually carries.
+- **The ground's one piece of arithmetic is `sim/wayhome.py`.** A step spends a
+  day on ground already crossed and up to three on fresh, times the weather;
+  reach the pad and the haul comes up capped at what four people can lift; run
+  out first and 40% of it comes home. The screen showed "Supply · 7 days" and
+  **never said how far away the lander was**, so 60% of a hold rode on a
+  subtraction nobody was shown. `expedition.step_cost` is the one door for what a
+  step costs and `wayhome` adds it up over the cheapest *known* route, so the
+  quote and the walk cannot drift.
+  Two things it must keep doing: count the days a party is **pinned** (a
+  katabatic gale stops all movement, and the first version quoted "4 days home, 3
+  to spare" to a party that could not take a step — a trap, found by the check
+  that walks the quoted route and was refused at the first one); and refuse to
+  plan over tiles nobody has seen, which needs a *tempting* unseen shortcut to
+  test, since avoiding dear unseen ground costs nothing either way.
+- **The long chronicle never brought a party home.** Measured over ten years: 50
+  landings stranded, 32 aborted, **0 returned** — so `lift_off`, `can_lift` and
+  the whole banked-haul path were never driven by a played game. It walks back on
+  a costed two days' spare now: 31 returned, 14 stranded. And knowing the price
+  is worth something — at the same margin, a leader reading the costed walk
+  returned 15 parties of 24 and stranded 5, where one counting tiles returned 9
+  and stranded 11.
 - **A consort is a `Side`.** `sim/consorts.py` subclasses it, so `_fire`,
   `_apply_to_layers` and the arc checks work on one without changes. What that
   buys is also the constraint: anything that assumes a battle has exactly two
