@@ -69,6 +69,43 @@ def run(suite: Suite) -> None:
             f"{sorted(within ^ proven)[:6]}")
         return f"{len(within)} of {len(game.galaxy.systems)} confirmed by jump_quote"
 
+    @check("one route and a whole list of them cannot disagree")
+    def _():
+        # `route_to` answered one question with its own breadth-first walk, which
+        # is fine for the contract a captain is reading and wrong for a list: the
+        # price register asks about four ports for each of thirteen commodities
+        # on every repaint, and that was fifty-two walks of the galaxy. It
+        # delegates to `routes_from` now, so this pins the two together — and
+        # pins the contract a sweep found nothing else holding: **None** for
+        # somewhere unreachable, not a cheerful nought hops.
+        looked = beyond = 0
+        for seed in range(3):
+            game = new_game(f"one-door-{seed}")
+            routes = reach_sim.routes_from(game)
+            for system in game.galaxy.systems:
+                one = reach_sim.route_to(game, system.id)
+                if system.id in routes:
+                    assert one == routes[system.id], (
+                        f"{system.name}: route_to says {one} and the walk says "
+                        f"{routes[system.id]}")
+                    assert one["days"] >= 0 and one["hops"] >= 0, one
+                else:
+                    beyond += 1
+                    assert one is None, (
+                        f"{system.name} cannot be reached and `route_to` "
+                        f"answered {one} — a caller weighing a deadline against "
+                        "that will believe it is next door")
+                looked += 1
+        assert looked > 90, looked
+        assert beyond > 0, (
+            "every system was reachable in three sectors, so the None case "
+            "was never exercised")
+        # And the home system is nought of both, not absent.
+        game = new_game("one-door-here")
+        assert reach_sim.route_to(game, game.location_id) == {"hops": 0, "days": 0}
+        return (f"{looked} systems over 3 sectors, {beyond} unreachable and "
+                "every one answered None")
+
     @check("a walled-off system really cannot be got to")
     def _():
         # The stronger half: everything the chart strikes through must be

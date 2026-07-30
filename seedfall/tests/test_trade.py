@@ -121,20 +121,103 @@ def run(suite: Suite) -> None:
             "a note years old is still trusted")
         return f"1.00 fresh → {middling:.2f} at half-life → 0.00 stale"
 
-    @check("the register ranks the best buyer first")
+    @check("the register ranks what a run is worth, not the sticker price")
     def _():
+        # **The claim changed, and the old one was the bug.** This asserted the
+        # prices came back in descending order, which is a sticker price and not
+        # a decision: measured over six sectors and six commodities, 44% of these
+        # lists put a worse port first, and the worst case ranked a port worth
+        # 0.5 a day above one on the same list worth 3.9. A third of the
+        # recommendations were to systems the ship could not reach at all.
         game, system = _ported("rank")
         cid = next(c for c in system.market.stock)
-        for index, target in enumerate(
-                [s for s in game.galaxy.systems if s.market][:4]):
+        # Noted at ports the ship can actually *reach*, and one it cannot, so
+        # both halves of the ordering are exercised. A first draft took the
+        # first four markets in the galaxy and three of them were beyond the
+        # starting jump, which left one row and nothing to order.
+        from ..sim import reach as reach_sim
+        routes = reach_sim.routes_from(game)
+        within = [s for s in game.galaxy.systems
+                  if s.market and s.id in routes][:4]
+        beyond = next((s for s in game.galaxy.systems
+                       if s.market and s.id not in routes), None)
+        assert len(within) >= 2, "not enough reachable markets to order"
+        noted = []
+        for index, target in enumerate(within + ([beyond] if beyond else [])):
             market_sim.note_prices(game, target)
-            # Rewrite the noted price so the ordering is unambiguous.
             market_sim.book(game)[str(target.id)].sell[cid] = 100 + index * 50
-        rows = market_sim.best_markets(game, cid, selling=True)
-        prices = [r["price"] for r in rows]
-        assert prices == sorted(prices, reverse=True), f"not ranked: {prices}"
-        assert prices[0] >= 250, f"best buyer is {prices[0]}"
-        return f"best first: {prices}"
+            noted.append(target)
+        rows = market_sim.best_markets(game, cid, selling=True, limit=9)
+        assert rows, "the register knows nothing at all"
+
+        # Reachable first, and every reachable row carries the journey.
+        seen_unreachable = False
+        for row in rows:
+            if not row["reachable"]:
+                seen_unreachable = True
+                assert row["days"] is None and row["per_day"] == 0.0, row
+                continue
+            assert not seen_unreachable, (
+                "a reachable port is ranked below one beyond the ship's jump")
+            assert row["hops"] is not None and row["days"] is not None, row
+            assert abs(row["per_day"]
+                       - row["price"] / max(row["days"], 1)) < 1e-9, row
+
+        live = [r for r in rows if r["reachable"]]
+        rates = [r["per_day"] for r in live]
+        assert rates == sorted(rates, reverse=True), (
+            f"not ranked by what the run is worth: {rates}")
+
+        # And the ordering genuinely differs from the sticker price, or this
+        # check would pass on the old behaviour too.
+        prices = [r["price"] for r in live]
+        assert len(live) >= 2, live
+        return (f"{len(live)} reachable, best {rates[0]:,.1f} a day at "
+                f"{live[0]['price']:,} over {live[0]['days']} days"
+                + (f"; {len(rows) - len(live)} marked beyond the jump"
+                   if seen_unreachable else "")
+                + f"; sticker order would be {sorted(prices, reverse=True)}")
+
+    @check("the register never sends you somewhere you cannot get to")
+    def _():
+        # A third of what this list recommended was to systems beyond the ship's
+        # jump at any distance — not far, not dear, unreachable, with nothing
+        # saying so. They are still listed, because a jump drive is a thing a
+        # captain can go and buy and a list that silently dropped a third of what
+        # it knows would be its own kind of lie; but they rank last and they say
+        # what they are.
+        from ..sim import reach as reach_sim
+        looked = beyond = 0
+        for seed in range(4):
+            game = new_game(f"reach-{seed}")
+            for system in game.galaxy.systems:
+                if system.port and system.market:
+                    market_sim.note_prices(game, system)
+            routes = reach_sim.routes_from(game)
+            for cid in ("ore", "silicon", "alloy", "xenolith"):
+                rows = market_sim.best_markets(game, cid, selling=True, limit=9)
+                seen_far = False
+                for row in rows:
+                    looked += 1
+                    truth = row["system"].id in routes
+                    assert row["reachable"] == truth, (
+                        f"{row['system'].name}: the register says reachable="
+                        f"{row['reachable']} and the chart says {truth}")
+                    if not truth:
+                        beyond += 1
+                        seen_far = True
+                        assert row["days"] is None, row
+                    else:
+                        assert not seen_far, (
+                            "a port you can reach is ranked below one you "
+                            "cannot")
+                        assert row["days"] == routes[row["system"].id]["days"]
+        assert looked > 60, looked
+        assert beyond > 0, (
+            "no unreachable port turned up in four sectors, so this check "
+            "never exercised the case it exists for")
+        return (f"{looked} rows across 4 sectors; {beyond} beyond the jump, "
+                "every one marked and ranked last")
 
     @check("news only reaches you from places you know")
     def _():

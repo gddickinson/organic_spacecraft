@@ -224,7 +224,35 @@ def best_markets(game, cid: str, selling: bool = True, limit: int = 4) -> list[d
 
     Everything here is remembered rather than observed: the age is part of the
     answer, because a price you wrote down two years ago is a rumour.
+
+    **"Best" used to mean the biggest number, which is a sticker price and not a
+    decision.** The rows carried no distance at all and the panel drew a
+    straight-line light-year count beside them, so a port eight hops and
+    sixty-five days away outranked one a single hop and eight days off for
+    paying three credits more. Measured over six sectors and six commodities:
+
+    - **32% of the recommendations were to systems the ship cannot reach at
+      all** — not far, not dear, unreachable, and nothing said so.
+    - **44% of the lists put a worse port first.** The worst case had the
+      register's first choice for ore worth 0.5 a day against another entry on
+      the same list worth 3.9 — **seven times better, ranked below it.**
+
+    `reach.routes_from` has existed since the contract board needed it, for
+    exactly this reason: its docstring says the board "named a reward and a
+    deadline and never once said where the work *was*". So the rows carry `hops`
+    and `days` now, and selling ranks on **revenue a day** — which is what a
+    captain choosing between two ports is actually choosing between.
+
+    Buying ranks on the price, cheapest first, with the days breaking ties: what
+    you want is the low number, and how far you will go for it is yours to
+    weigh rather than mine to fold into one figure.
+
+    The unreachable are kept and marked rather than dropped. A list that
+    silently omitted a third of what it knows would be a different kind of lie,
+    and a jump drive is a thing a captain can go and buy.
     """
+    from . import reach as reach_sim
+    routes = reach_sim.routes_from(game)
     out = []
     for key, quote in book(game).items():
         prices = quote.sell if selling else quote.buy
@@ -232,11 +260,27 @@ def best_markets(game, cid: str, selling: bool = True, limit: int = 4) -> list[d
             continue
         system = game.galaxy.systems[quote.system_id]
         age = game.day - quote.day
-        out.append({"system": system, "price": prices[cid], "age": age,
+        route = routes.get(quote.system_id)
+        days = route["days"] if route else None
+        price = prices[cid]
+        out.append({"system": system, "price": price, "age": age,
                     "confidence": confidence(age),
+                    "hops": route["hops"] if route else None,
+                    "days": days,
+                    "reachable": route is not None,
+                    # Revenue a day of standing here and taking it there. Zero
+                    # for somewhere unreachable, which sorts it to the bottom
+                    # without hiding it.
+                    "per_day": (price / max(days, 1)) if route else 0.0,
                     "shocked": bool([s for s in at(game, system.id)
                                      if s.commodity == cid])})
-    out.sort(key=lambda row: row["price"], reverse=selling)
+    if selling:
+        out.sort(key=lambda row: (row["reachable"], row["per_day"]),
+                 reverse=True)
+    else:
+        out.sort(key=lambda row: (not row["reachable"], row["price"],
+                                  row["days"] if row["days"] is not None
+                                  else 10 ** 6))
     return out[:limit]
 
 

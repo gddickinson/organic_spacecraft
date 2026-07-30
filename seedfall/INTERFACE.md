@@ -872,6 +872,51 @@ end for end against the SPORE's 50.
 a burn in a new direction is a *turn* first — three ticks to swing a NAVIS 90°
 — and the turn spends reaction mass out of the same tank.
 
+**The price register sorted on the sticker price and never said what the flight
+cost.** Trading picked for breadth. The market itself turned out sound — measured
+across all thirteen goods there is a 20% spread and no same-counter money pump,
+and the depth is real: buying 280 t of ore drove the price 36 → 43 and drained the
+stock to nothing, which then relaxed back over a year. The fault was in the
+*information*.
+
+`best_markets` returned a price, an age and a confidence, and the panel drew a
+straight-line light-year count beside it. No hops, no days, no notion of whether
+the ship could get there. Measured over six sectors and six commodities:
+
+- **32% of the recommendations were to systems the ship cannot reach at all** —
+  not far, not dear, unreachable, and nothing said so.
+- **44% of the lists put a worse port first.** The worst case ranked a port worth
+  0.5 a day above one on the same list worth 3.9 — seven times better, listed
+  below it.
+
+`reach.route_to` has existed since the contract board needed it, and its docstring
+names this very lesson: the board "named a reward and a deadline and never once
+said where the work *was*". The rows carry `hops` and `days` now and selling ranks
+on **revenue a day**; buying ranks on price with the days breaking ties, because
+there what you want is the low number. The unreachable are kept and marked rather
+than dropped — a jump drive is a thing a captain can go and buy — but they rank
+last. On one board that means Lumen Mouth, paying the *highest* price for ore at
+₡31, sits at the bottom reading "beyond your jump · nothing you can reach", while
+the port that can actually be flown to shows "1 hop, 7 days · 4 a day".
+
+`reach.routes_from` is the walk, once, for the whole list: `route_to` used to run
+its own breadth-first search per call, and the register asks about four ports for
+each of thirteen commodities on every repaint.
+
+**Two more faults fell out of the reordering, both latent:**
+
+- **`freight.runs` said "a price you wrote down beats a price somebody described
+  to you" and did not do it.** It kept whichever run had the higher `worth`, and
+  the register happened to win often enough that the check on it passed. Measured,
+  **18 of 44 runs known both ways have the desk quoting the better number**, so a
+  rumour was replacing your own notes four times in ten. It implements the rule
+  now.
+- **`from_register` inherited a display limit.** It generates candidate runs and
+  called `best_markets` with its default `limit=4`, so what work existed at a desk
+  depended on how many rows a panel draws. 549 register-known runs are offered
+  where the top four used to be, and 54 commodity-and-port sets are larger than
+  four.
+
 **One asteroid gave up 8,427 tonnes instead of 140.** Mining picked for breadth,
 and found the largest arithmetic hole in the game so far.
 

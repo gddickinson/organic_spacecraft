@@ -116,7 +116,12 @@ def from_register(game, here) -> list[Run]:
     """Runs your own notes support. Real prices, and possibly out of date."""
     runs = []
     for cid, cost in _buyable(game, here).items():
-        for row in market_sim.best_markets(game, cid, selling=True):
+        # Every port the register knows, not the top four. `best_markets`
+        # defaults to a *display* limit, and inheriting it here meant the runs
+        # this desk could offer depended on how many rows a panel draws — which
+        # only showed up when the ordering changed and a different four
+        # survived.
+        for row in market_sim.best_markets(game, cid, selling=True, limit=99):
             target = row["system"]
             if target.id == here.id or row["price"] <= cost:
                 continue
@@ -172,8 +177,17 @@ def runs(game, here, limit: int = 6) -> list[Run]:
             continue
         key = (run.commodity, run.target_id)
         held = best.get(key)
-        # A price you wrote down beats a price somebody described to you.
-        if held is None or run.worth > held.worth:
+        # A price you wrote down beats a price somebody described to you —
+        # **which this said and did not do.** It took whichever run had the
+        # higher `worth`, and the register happened to win often enough that the
+        # check on it passed: a desk rumour quoting a better number than your own
+        # notes replaced them silently. Reordering the register by what a run is
+        # worth per day was enough to flip it, which is how it surfaced.
+        if held is None:
+            best[key] = run
+        elif held.source != "register" and run.source == "register":
+            best[key] = run
+        elif held.source == run.source and run.worth > held.worth:
             best[key] = run
     ordered = sorted(best.values(), key=lambda r: -r.worth)
     return ordered[:limit]

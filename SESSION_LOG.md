@@ -2,6 +2,50 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: the register never said what the flight cost
+
+Trading picked for breadth. The market itself came out sound: across all thirteen
+goods there is a 20% spread and no same-counter money pump, and the depth is real —
+buying 280 t of ore drove the price 36 → 43 and drained the stock to nothing, which
+relaxed back over a year. The fault was in the *information*.
+
+`best_markets` returned a price, an age and a confidence, and the panel drew a
+straight-line light-year count beside it. No hops, no days, no notion of whether
+the ship could get there at all. Over six sectors and six commodities:
+
+- **32% of the recommendations were to systems the ship cannot reach** — not far,
+  not dear, unreachable, and nothing said so.
+- **44% of the lists put a worse port first**, the worst ranking a port worth 0.5
+  a day above one on the same list worth 3.9.
+
+`reach.route_to` has existed since the contract board needed it, and its docstring
+names this exact lesson — the board "named a reward and a deadline and never once
+said where the work *was*". The rows carry hops and days now; selling ranks on
+revenue a day, buying on price with days breaking ties. The unreachable stay,
+marked and last, because a jump drive is a thing a captain can buy. On one board
+that puts Lumen Mouth — paying the *highest* price for ore at ₡31 — at the bottom
+reading "beyond your jump", while the reachable port shows "1 hop, 7 days · 4 a
+day". `reach.routes_from` does the walk once for the whole list.
+
+**Two latent faults fell out of the reordering:**
+
+- `freight.runs` said "a price you wrote down beats a price somebody described to
+  you" and did not do it — it kept whichever run had the higher `worth`, and the
+  register won often enough that the check on it passed. Measured, **18 of 44 runs
+  known both ways have the desk quoting the better number.**
+- `from_register` inherited a *display* limit of four, so what work existed at a
+  desk depended on how many rows a panel draws. 549 register-known runs are
+  offered where four used to be.
+
+**Three of my own mutants were wrong before they were right.** `elif False` on the
+preference branch left no cross-source path at all, so the register still won by
+insertion order and the mutant proved nothing; the limit mutant was masked because
+the check derived its overlap from the same shrunken function; and `route_to`'s
+None-for-unreachable was pinned by nothing, because my new checks read
+`routes_from` directly. Rewritten, all three bite — ten of ten now.
+
+Full suite green.
+
 ## 2026-07-29 — SEEDFALL: one asteroid gave up 8,427 tonnes instead of 140
 
 Mining picked for breadth — nothing had touched it, trading or expeditions for

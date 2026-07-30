@@ -6,7 +6,6 @@ from ..core.util import credits as cr
 from ..core.util import duration
 from ..data.commodities import BY_ID
 from ..sim import market as market_sim
-from ..world.galaxy import distance
 from .widgets import Panel, Pill, label, mono_label, note, spacer
 
 
@@ -65,13 +64,25 @@ def register(game, system) -> Panel:
             continue
         for row in rows:
             target = row["system"]
-            ly = distance(target, system)
             marks = []
             if row["shocked"]:
                 marks.append("something is happening there")
-            p.add_row(f"{target.name} · {ly:.1f} ly",
-                      f"{cr(row['price'])} · noted {duration(row['age'])} ago",
-                      _age_tint(row["confidence"]))
+            # Hops and days rather than a straight line. A light-year count is
+            # not a journey: a third of what this list used to recommend was
+            # unreachable at any distance, and the sort put an eight-hop port
+            # above a one-hop one for three credits more.
+            if not row["reachable"]:
+                where = f"{target.name} · beyond your jump"
+                worth = f"{cr(row['price'])} · nothing you can reach"
+            else:
+                hops = row["hops"]
+                where = (f"{target.name} · {hops} hop"
+                         f"{'' if hops == 1 else 's'}, {row['days']} days")
+                worth = (f"{cr(row['price'])} · {row['per_day']:,.0f} a day "
+                         f"· noted {duration(row['age'])} ago")
+            p.add_row(where, worth,
+                      _age_tint(row["confidence"]) if row["reachable"]
+                      else "dim")
             if marks:
                 p.add(note(" · ".join(marks)))
     return p

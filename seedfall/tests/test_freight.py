@@ -129,6 +129,49 @@ def run(suite: Suite) -> None:
         return (f"{trip['tonnes']:g} t: {trip['outlay']:,} out, "
                 f"{trip['fuel']:,} of mass, clears {trip['net']:,}")
 
+    @check("the register offers every port it knows, not the top few")
+    def _():
+        # `from_register` walks `best_markets`, which defaults to a *display*
+        # limit of four. Inheriting it meant the runs this desk could offer
+        # depended on how many rows a panel happens to draw — and it only
+        # surfaced when the register's ordering changed and a different four
+        # survived. Measured against the register itself rather than against a
+        # number, so the claim is coverage and not a magic four.
+        from ..sim import market as market_sim
+        game = _travelled("coverage")
+        checked = thin = 0
+        for system in game.galaxy.systems:
+            if not (system.port and system.market):
+                continue
+            game.location_id = system.id
+            offered = {(r.commodity, r.target_id)
+                       for r in freight.from_register(game, system)}
+            # Every port the register knows that pays over the local price is a
+            # run this desk should be able to name — of the goods it will
+            # actually sell you. `_buyable` is that gate: legal, stocked, and
+            # priced. Asking it rather than walking the stock keeps the claim
+            # about the limit rather than about contraband.
+            for cid, cost in freight._buyable(game, system).items():
+                rows = market_sim.best_markets(game, cid, selling=True,
+                                               limit=99)
+                want = {(cid, r["system"].id) for r in rows
+                        if r["system"].id != system.id and r["price"] > cost}
+                missing = want - offered
+                assert not missing, (
+                    f"at {system.name} the register knows {len(want)} port(s) "
+                    f"paying over the local price for {cid} and the desk offers "
+                    f"{len(want) - len(missing)} — a display limit is bounding "
+                    "what work exists")
+                checked += len(want)
+                if len(want) > 4:
+                    thin += 1
+        assert checked > 40, checked
+        assert thin > 0, (
+            "no commodity anywhere had more than four buyers, so this check "
+            "never exercised the limit it exists for")
+        return (f"{checked} register-known runs, every one offered; {thin} "
+                "commodity-and-port sets larger than the old limit of four")
+
     @check("a price you wrote down beats a price you were told")
     def _():
         game = _travelled("prefer")
