@@ -119,14 +119,28 @@ def run(suite: Suite) -> None:
         assert any("winning" in n for n, _v in losing["terms"]), losing
 
         # Their nerve. `WAVERING_AT` is a cliff on purpose — a hull whose resolve
-        # has gone will listen — so it is checked on both sides of it.
+        # has gone will listen — so it is checked on both sides of it, **at 40
+        # and 50 written here** rather than at the constant plus or minus five.
+        # The first draft did the latter, so the two probes moved with the number
+        # they were testing and the check passed with it set anywhere at all —
+        # which `tests/tripwire.py` duly reported as "protected only by a suite
+        # that does not name its subject".
         steady = _battle(new_game("terms"), RNG("t"), rep=0.0)
-        steady.enemy.resolve = parley_sim.WAVERING_AT + 5
+        steady.enemy.resolve = 50.0
         shaken = _battle(new_game("terms"), RNG("t"), rep=0.0)
-        shaken.enemy.resolve = parley_sim.WAVERING_AT - 5
+        shaken.enemy.resolve = 40.0
         assert parley_sim.odds(shaken)["chance"] > \
-            parley_sim.odds(steady)["chance"], "a broken nerve buys nothing"
+            parley_sim.odds(steady)["chance"], (
+                "a hull at 40 resolve is no easier to talk to than one at 50 — "
+                "the line is not between them")
         assert any("nerve" in n for n, _v in parley_sim.odds(shaken)["terms"])
+        assert not any("nerve" in n for n, _v in parley_sim.odds(steady)["terms"]), (
+            "a hull at 50 resolve is being counted as one whose nerve has gone")
+        gap = (parley_sim.odds(shaken)["chance"]
+               - parley_sim.odds(steady)["chance"])
+        assert 0.2 <= gap <= 0.3, (
+            f"crossing the line is worth {gap:.0%}, and a broken nerve is "
+            "supposed to be worth about a quarter of the chance")
 
         # And somebody aboard who can talk. `st.diplomacy` is a comms officer at
         # 0.05 a level, and the opening crew has none — so the term reads zero on

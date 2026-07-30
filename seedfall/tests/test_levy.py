@@ -43,24 +43,33 @@ from .harness import Suite
 
 
 def _holding(seed: str = "levy", claimed_by: str | None = "charter"):
-    """A captain with a working colony, optionally under somebody's levy."""
-    game = new_game(seed)
-    game.credits = 400_000
-    game.ship.fitted.append("seed_bay")
-    game.research.unlocked.append("bioleach")
-    game.recompute()
-    for key in ("alloy", "ore", "biomass", "volatiles", "phosphate", "silicon"):
-        game.stores[key] = 9000
-    body = next(b for b in game.system.bodies
-                if b.kind in ("asteroid", "moon", "rocky"))
-    colony_sim.found(game, game.system, body, "radix_mine")
-    game.advance_days(200)
-    assert game.colonies, "nothing was planted"
-    colony = game.colonies[0]
-    assert works_sim.yields_of(colony), "the holding turns out nothing"
-    if claimed_by:
-        colony.tithe_to = claimed_by
-    return game, colony
+    """A captain with a working colony, optionally under somebody's levy.
+
+    Tries a few seeds: not every opening system has ground a RADIX Mine will
+    take, and a fixture that assumes one fails on about a seed in ten.
+    """
+    for attempt in range(8):
+        game = new_game(seed if attempt == 0 else f"{seed}-{attempt}")
+        game.credits = 400_000
+        game.ship.fitted.append("seed_bay")
+        game.research.unlocked.append("bioleach")
+        game.recompute()
+        for key in ("alloy", "ore", "biomass", "volatiles", "phosphate",
+                    "silicon"):
+            game.stores[key] = 9000
+        body = next((b for b in game.system.bodies
+                     if b.kind in ("asteroid", "moon", "rocky")), None)
+        if body is None:
+            continue
+        colony_sim.found(game, game.system, body, "radix_mine")
+        game.advance_days(200)
+        if not game.colonies or not works_sim.yields_of(game.colonies[0]):
+            continue
+        colony = game.colonies[0]
+        if claimed_by:
+            colony.tithe_to = claimed_by
+        return game, colony
+    raise AssertionError(f"eight seeds from {seed!r} and nothing would plant")
 
 
 def run(suite: Suite) -> None:
@@ -177,6 +186,45 @@ def run(suite: Suite) -> None:
         assert purse2.credits == was, "a ceded holding went on paying a levy"
         return ("sixty days defiant: nothing taken and nothing said; a ceded "
                 "holding pays nothing because it is not yours")
+
+    @check("a defiant holding is taken about a fifth of the way through a year")
+    def _():
+        # `SEIZURE_PER_YEAR` is the price of refusing, and `tests/tripwire.py`
+        # reported it as protected only by a suite that does not name it — so
+        # nothing said what defying actually risks. Measured by playing it out
+        # rather than by reading the constant: sixty defiant holdings, a year
+        # each, counted.
+        from ..core.rng import RNG
+
+        taken = 0
+        trials = 60
+        for index in range(trials):
+            game, colony = _holding(f"seize-{index}", claimed_by=None)
+            colony.defiant = True
+            game.galaxy.systems[colony.system_id].faction = "charter"
+            # The claim has to be live for the risk to be: `seizures` clears
+            # `defiant` when a claim lapses, which is the rule and not a let-off.
+            lost = terr_sim.seizures(game, 365.0, RNG(f"s{index}"))
+            if lost:
+                taken += 1
+                assert not game.colonies, "seized and still on the books"
+        rate = taken / trials
+        assert 0.12 <= rate <= 0.34, (
+            f"{taken} of {trials} defiant holdings were taken inside a year "
+            f"({rate:.0%}) — refusing is supposed to cost about a fifth a year")
+
+        # And over a decade it is not a coin toss you keep winning.
+        game, colony = _holding("seize-long", claimed_by=None)
+        colony.defiant = True
+        game.galaxy.systems[colony.system_id].faction = "charter"
+        rng = RNG("long")
+        years = 0
+        while game.colonies and years < 40:
+            years += 1
+            terr_sim.seizures(game, 365.0, rng)
+        assert not game.colonies, "forty years defiant and never touched"
+        return (f"{taken} of {trials} taken inside a year ({rate:.0%}); one "
+                f"holding defied for {years} year(s) before they came")
 
     @check("the purse panel shows the levy as its own line")
     def _():

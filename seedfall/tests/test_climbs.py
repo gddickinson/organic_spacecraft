@@ -277,6 +277,31 @@ def run(suite: Suite) -> None:
         return (f"{name} {want['id']}: refused on 20 t, flown on {tank:,.0f} for "
                 f"{spent:,.0f} — the quote said {want['mass']:,.0f}")
 
+    @check("a rung inside two per cent is where the ship already is")
+    def _():
+        # `HEIGHT_TOLERANCE` decides both where the flying stops and where the
+        # pricing stops, and `tests/tripwire.py` reported it as protected only by
+        # a suite that does not name it — so nothing said how near "there" is.
+        # Checked against **one per cent and five per cent written here**, not
+        # against the constant, which is the whole point of the sweep.
+        game = new_game(SEEDS[0])
+        _index, _body, contact = next(iter(_bodies(game)))
+        mu = conn_sim.start(game, contact).target.mu
+        rung = 10_000.0
+        assert orbits.climb_dv(mu, rung * 1.01, rung) == 0.0, (
+            "a rung one per cent below the axis is priced as a climb")
+        assert orbits.climb_dv(mu, rung * 0.99, rung) == 0.0, (
+            "a rung one per cent above the axis is priced as a climb")
+        far = orbits.climb_dv(mu, rung * 1.05, rung)
+        assert far > 0.0, (
+            "five per cent off the rung reads as already being there")
+        want = abs(math.sqrt(mu / (rung * 1.05)) - math.sqrt(mu / rung)) * 1000.0
+        assert abs(far - want) < 1e-6, (
+            f"{far:.3f} quoted and the difference of the circular speeds is "
+            f"{want:.3f} — the price is not the physics")
+        return (f"1% off costs nothing; 5% off costs {far:.1f} m/s, exactly the "
+                "difference of the two circular speeds")
+
     @check("the climb figures are pinned to arithmetic written here")
     def _():
         # Against numbers computed in the check, never against the constants

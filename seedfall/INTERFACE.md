@@ -77,6 +77,21 @@ the worst of them, always against a figure written in the check and never
 against the constant under test — the mistake this whole apparatus exists to
 stop.
 
+**Swept again after seven cycles of new work**, module by module: wharfage,
+parley, abilities, territory, orbits, consorts, autopilot, wayhome. Nothing came
+back *unprotected* — but five constants came back "protected only by a suite that
+does not name their subject", which is the sweep's other verdict and the more
+interesting one. Two of the five were **tautologies I had written myself**:
+`parley.WAVERING_AT` was probed at `WAVERING_AT ± 5`, and `abilities.SHED_SHARE`
+was compared against a figure computed from `SHED_SHARE`. Three had no check at
+all: the seizure rate on a defiant holding, the height tolerance the whole climb
+quote stops at, and `autopilot.ACROSS_FLOOR`.
+All five are pinned against figures written in the checks now. **And the probes
+have to bracket the mutation, not merely straddle the truth**: my first pin on
+`ACROSS_FLOOR` used 0.4 and 6 m/s and the sweep still called it unpinned, because
+the floor is the larger of that constant and a thruster pulse (0.45), so zeroing
+or halving it left both probes on the same sides of the line. 0.7 and 1.5 catch it.
+
 (The tool's own first run reported sixteen and was wrong: it rewrote source
 between suite runs while Python served `.pyc` files compiled from the mutated
 text, so restores did not reliably take. It runs with bytecode disabled now.

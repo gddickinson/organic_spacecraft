@@ -147,6 +147,35 @@ def run(suite: Suite) -> None:
         return ("the seal, the vent and the blastema each did exactly what the "
                 "panel said, to the figure")
 
+    @check("shedding puts back half a skin, and the figures are written here")
+    def _():
+        # `tests/tripwire.py` reported `SHED_SHARE` as protected only by a suite
+        # that does not name it: the check above asserts the hull moved, which
+        # catches the share set to nothing and not the share doubled. So: half,
+        # against numbers written down, and capped at what a skin can hold.
+        game, battle, rng = _engaged("shed", ["ablative_shed"])
+        side = battle.player
+        skin = side.ship.layers[0]
+        skin.hp = 0.0
+        assert skin.max >= 20, skin.max
+        told = ab_sim.preview(battle, side, "shed")
+        assert told["can"], told
+        ok, _msg, _k = ab_sim.use_ability(battle, side, "shed", rng)
+        assert ok
+        assert abs(skin.hp - skin.max / 2) < 1.0, (
+            f"a shed skin came back at {skin.hp:.0f} of {skin.max:.0f} — half "
+            "is what shedding one and growing the next is worth")
+        assert side.braced, "shedding does not brace the hull"
+
+        # And it cannot overfill: a skin at three quarters goes to full, not past.
+        side.cd["shed"] = 0
+        skin.hp = skin.max * 0.75
+        ab_sim.use_ability(battle, side, "shed", rng)
+        assert skin.hp == skin.max, (
+            f"{skin.hp:.0f} on a maximum of {skin.max:.0f}")
+        return (f"0 → {skin.max / 2:.0f} of {skin.max:.0f} on the first shed, "
+                f"and {skin.max:.0f} on the second rather than past it")
+
     @check("the seal is bounded by the compartments there are to give up")
     def _():
         # **The defect.** Measured before the fix: 2 armour to 34 over eight

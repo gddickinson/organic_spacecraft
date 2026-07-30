@@ -63,6 +63,54 @@ def _contacts(game, kinds=("body", "anchorage", "hull")):
 def run(suite: Suite) -> None:
     check = suite.check
 
+    @check("a barely turning orbit is committed to one sense, not flipped")
+    def _():
+        # `ACROSS_FLOOR` is why: the sense of the tangent used to come from the
+        # sign of a dot product, and near a small body the tangential velocity is
+        # a couple of metres a second, so the sign flipped between ticks. The
+        # computer demanded prograde, then retrograde, then prograde, and pumped
+        # energy into the orbit instead of shaping it — measured, a comet's 6.8
+        # m/s orbit driven from 335 km out to 1,340 and adrift.
+        #
+        # `tests/tripwire.py` reported the constant as protected only by a suite
+        # that does not name it, so nothing said where the line is. Against
+        # **0.7 m/s and 1.5 m/s written here**, chosen to *bracket* it: a first
+        # draft probed at 0.4 and 6, and the sweep still reported it unpinned,
+        # because the floor is the larger of the constant and a thruster pulse
+        # (0.45 on this hull) — so zeroing or halving it left 0.4 below the line
+        # and 6 above it, and the check could not tell. A probe has to fall
+        # between the values a mutation would put the line at.
+        game = new_game("across")
+        contact = next(iter(_contacts(game, ("body",))))
+        conn = conn_sim.start(game, contact)
+        conn.pos = [100.0, 0.0, 0.0]
+
+        # Below the floor: whichever way it is creeping, the answer is the same.
+        senses = set()
+        for creep in (0.7, -0.7, 0.05, -0.05):
+            conn.vel = [0.0, creep, 0.0]
+            side = pilot_sim._across(conn)
+            senses.add((side[0] > 0) - (side[0] < 0))
+            senses.add((side[1] > 0) - (side[1] < 0))
+        assert len(senses) <= 2, (
+            f"the tangent's sense flips with a drift of 0.7 m/s: {senses}")
+        one_way = pilot_sim._across(conn)
+
+        # Above it: the answer follows the way the ship is actually going, and
+        # the two directions of travel give opposite tangents.
+        conn.vel = [0.0, 1.5, 0.0]
+        going = pilot_sim._across(conn)
+        conn.vel = [0.0, -1.5, 0.0]
+        coming = pilot_sim._across(conn)
+        assert going != coming, (
+            "at a metre and a half a second the sense is still committed rather "
+            "than read off the motion, so a ship in a real orbit can be told to "
+            "reverse it")
+        assert going == one_way or coming == one_way, (
+            "the committed sense is neither of the two real ones")
+        return ("at 0.7 m/s the tangent is committed to one sense; at 1.5 it "
+                "follows the way the hull is travelling, both ways")
+
     @check("every approach can be flown to a berth or an orbit")
     def _():
         # The general one, and the one that found the closing-rate fault:

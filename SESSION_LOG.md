@@ -2,6 +2,63 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: five numbers whose own suite could not speak for them
+
+I went looking for a defect in research and did not find one — `inquiry.draw` is
+live (the zero in my tally was an artifact of how I wrapped it), evidence really is
+spent, and starvation is properly graduated: fully supplied 1.00, missing one kind
+of three 0.78, missing two 0.57, nothing at all 0.35. Recorded and moved on.
+
+So I used the project's own sharpest tool instead. `tests/tripwire.py` changes
+every tuning constant — zero, double, half — and reports the ones no check
+notices. It was swept clean at task #60; **seven cycles have added constants since
+and nobody had swept them.** Module by module: wharfage, parley, abilities,
+territory, orbits, consorts, autopilot, wayhome.
+
+Nothing came back *unprotected*. But five came back with the sweep's other and
+more interesting verdict — **"protected only by a suite that does not name their
+subject"**, which means the wide run catches them incidentally and the module's own
+suite has nothing to say. And two of those five were **tautologies I wrote myself,
+in the last three cycles, having quoted the docstring about this exact mistake
+while doing it**:
+
+- `parley.WAVERING_AT` — my check set the enemy's resolve to `WAVERING_AT ± 5`, so
+  both probes moved with the number under test and the check passed with it set
+  anywhere at all. It is 40 and 50 now, written down, and the step across the line
+  is asserted to be worth about a quarter of the chance.
+- `abilities.SHED_SHARE` — the only assertion was "the hull moved", which catches
+  the share zeroed and not the share doubled. Shedding puts back half a skin: 0 →
+  20 of 40, and a skin at three quarters goes to full rather than past it.
+
+Three had no check anywhere:
+
+- `territory.SEIZURE_PER_YEAR` — the price of refusing a claim, and nothing said
+  what refusing risks. Played out instead of read: **9 of 60 defiant holdings taken
+  inside a year**, and one defied for a single year before they came for it.
+- `orbits.HEIGHT_TOLERANCE` — where the flying stops *and* where the pricing stops,
+  and it moved into `orbits` two cycles ago precisely so one number would do both.
+  1% off the rung costs nothing; 5% off costs 32.2 m/s, exactly the difference of
+  the two circular speeds.
+- `autopilot.ACROSS_FLOOR` — the floor under the tangent's *sense*, with a
+  documented history: below it the sign of a dot product flipped between ticks and
+  drove a comet's 6.8 m/s orbit from 335 km out to 1,340 and adrift.
+
+**And the last one taught me something about writing these pins.** My first
+attempt probed at 0.4 and 6 m/s — comfortably either side of 1.0 — and the sweep
+*still* reported the constant unpinned. The floor is `max(ACROSS_FLOOR, one
+thruster pulse)`, and a pulse is 0.45 on that hull: zeroing or halving the constant
+leaves the line at 0.45 or 0.5, and 0.4 is still below both while 6 is still above.
+A probe has to fall **between the values a mutation would put the line at**, not
+merely on the right sides of the true one. 0.7 and 1.5 catch it, and the sweep now
+names `conn` for it.
+
+Five constants, five suites that can speak for them, and the sweep re-run on each
+to prove it: parley → `parley, combat` · abilities → `abilities, combat` ·
+territory → `territory, levy` · orbits → `orbits, conn, berthing, climbs` ·
+autopilot → `conn`. None reads the constant it tests.
+
+Five new checks, 988 across the suite, all green.
+
 ## 2026-07-30 — SEEDFALL: a third of a colony's output, going nowhere (#politics)
 
 Two more zeros from the tally — `territory.answer` and `territory.collect_tithe`
