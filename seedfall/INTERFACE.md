@@ -872,6 +872,61 @@ end for end against the SPORE's 50.
 a burn in a new direction is a *turn* first — three ticks to swing a NAVIS 90°
 — and the turn spends reaction mass out of the same tank.
 
+**Worlds are painted now, not built** — `ui/spheres.py`, and it is the fix the
+previous cycle filed rather than started.
+
+A sphere does not need geometry. It projects to a circle, and a Lambertian
+sphere's brightness across that circle *is* a radial gradient whose centre is the
+sub-stellar point: so the light is one gradient, exact rather than interpolated,
+with no faces to show at any size. The latitude structure goes on as nested
+ellipse caps, because a circle of latitude projects to an ellipse — which is what
+makes the bands curve round the limb and read as a ball instead of a striped coin
+— and a thin bright limb carries the atmosphere seen edge-on. The mesh path stays
+for hulls, stations and gates, which are not spheres, and for ring systems, which
+want geometry because they interpenetrate the world they circle.
+
+Measured: **11 ms against 88.8 ms** for the same world close up, the worst
+brightness step across the surface down to 10 levels — which is quantisation, not
+a facet — and the phase ordering right all the way round, from the star behind the
+camera through half-lit to eclipsed.
+
+The level-of-detail from the previous cycle went with the meshes it served: there
+is one mesh resolution again, kept only for the catalogue checks that compare one
+kind of world against another under a fixed light.
+
+**Four things had to be got wrong first, and each one is a lesson about where the
+bugs live in a renderer.**
+
+- **Ninety degrees out.** A first draft built each latitude cap by rotating a box
+  with `QTransform`, and put the pole on the local *x* axis while the ellipse and
+  the skirt both ran along *y*. Every world came out as a vertical split with the
+  polar colour flooding the rest. Rebuilt from explicit vectors, which cannot be
+  ninety degrees out because there is no frame to confuse.
+- **Sign-guessing the light.** The first lighting worked the star's screen
+  direction out from the light vector and came out evenly lit, because two
+  conventions — "the direction light travels *from*" and "which way is up on the
+  picture" — both had to be right at once. Now the *sub-stellar point itself* is
+  projected: `render3d.draw` lights a face by `dot(normal, -light)`, so the
+  brightest point on the sphere is the one whose normal is `-light`, and asking
+  the camera where that lands asks exactly the question the mesh asks.
+- **An eclipsed world lit like noon.** Using the projected distance to place the
+  gradient failed when the sub-stellar point was on the *far* hemisphere, where it
+  still projects inside the disc. The offset comes from the phase now — the disc
+  centre's own brightness — which puts the bright pole at the centre at full day,
+  on the limb at half, and clear of the disc when the star is behind the world.
+  And when the star is exactly behind either the camera or the world there is no
+  direction at all and the disc is *uniform*, which needed saying separately: a
+  gradient centred on the disc drew an eclipse with a bright middle.
+- **Two lighting laws.** The first version invented its own brightness constants
+  and drew every world darker than the mesh it replaced. It reads
+  `render3d.AMBIENT` and `DIFFUSE` now and samples the same law at known angles —
+  `AMBIENT + DIFFUSE·cos θ` at `sin θ` of the radius — so there is one lighting
+  law with two ways of evaluating it rather than two laws.
+
+And one about the check: measuring "no facets" by walking a scanline reported 121
+levels, which was the *silhouette* — the atmosphere ring against empty space,
+which is meant to be an edge. It samples inside the limb now.
+
 **Worlds were faceted, and four attempts to smooth the shading failed.** Graphics
 picked because it was asked for. At 22 rings by 30 segments — 660 faces, already a
 fine mesh — a world filling the window read as the polyhedron it is: flat shading

@@ -2,6 +2,72 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: a world is a disc with a gradient on it
+
+Took #97, the fix the last cycle filed rather than started, and it worked.
+
+A sphere does not need geometry. It projects to a circle, and a Lambertian
+sphere's brightness across that circle *is* a radial gradient centred on the
+sub-stellar point — exact, not interpolated, and with no faces to show at any
+size. The latitude structure goes on as nested ellipse caps, because a circle of
+latitude projects to an ellipse, and that is what makes the bands curve round the
+limb instead of reading as a striped coin. A thin bright limb carries the
+atmosphere seen edge-on. `ui/spheres.py`.
+
+Measured: **11 ms against 88.8** for the same world close up; the worst brightness
+step across the surface down to **10 levels**, which is quantisation rather than a
+facet; and the phase right all the way round, from the star behind the camera
+through half-lit to eclipsed. The level-of-detail machinery from last cycle went
+with the meshes it served.
+
+**Four things had to be got wrong first, and every one was in a convention rather
+than in the idea:**
+
+- **Ninety degrees out.** The caps were built by rotating a box with
+  `QTransform`, which put the pole on the local *x* axis while the ellipse and the
+  skirt ran along *y*. Every world drew as a vertical split with the polar colour
+  flooding the rest. Rebuilt from explicit vectors — no frame, nothing to confuse.
+- **Sign-guessing the light**, which came out evenly lit: "the direction light
+  travels from" and "which way is up on the picture" both had to be right at once.
+  Now the sub-stellar point is *projected*, which asks the camera the same
+  question the mesh asks.
+- **An eclipsed world lit like noon**, because the sub-stellar point can be on the
+  far hemisphere and still project inside the disc. The offset comes from the
+  phase now. And the two degenerate cases — star exactly behind the camera, or
+  exactly behind the world — have no direction at all and needed handling as
+  *uniform*, since a gradient centred on the disc gave an eclipse a bright middle.
+- **Two lighting laws.** I invented brightness constants and drew every world
+  darker than the mesh it replaced. It reads `render3d.AMBIENT` and `DIFFUSE` now
+  and samples the same law at known angles, so there is one law evaluated two
+  ways rather than two laws.
+
+**And three about the checks, which is where this cycle's real weakness was.**
+A sweep of the painted renderer caught **1 mutation of 7** at first, for a reason
+worth writing down: every catalogue check in `test_worlds.py` still rendered
+through `mesh_for`, so they were all testing a path the game had stopped taking.
+Pointed at `spheres.draw` they bite, and the seam count fell to 0.
+
+Then two of my own assertions about the *middle* of the disc were simply wrong,
+and both times the renderer was right: with the star square to one side the
+terminator **is** the middle and the far half is correctly flat at ambient; with it
+swung two-thirds behind the camera the terminator is two-thirds across and the
+middle is still full day. Monotone-into-shadow is the claim that holds in every
+phase, so that is the claim.
+
+Ending at **4 of 7**. Three mutations still survive — a flattened falloff, latitude
+circles that stop being squashed, and the surface painted in six bands instead of
+ninety-six — and I have spent well past a cycle on this already, so they are
+recorded as unpinned rather than papered over. The first is the one that puzzles
+me: with every gradient stop set to the same level the profile inside the limb
+ought to be flat and the terminator check ought to fail. It does not, and I have
+not established why.
+
+And one about my own check: measuring "no facets" along a scanline reported 121
+levels, which was the silhouette — the limb ring against space, which is supposed
+to be an edge. It samples inside the limb now.
+
+Full suite green.
+
 ## 2026-07-29 — SEEDFALL: four ways not to smooth a sphere
 
 Graphics, as asked. At 22 rings by 30 segments a world filling the window read as

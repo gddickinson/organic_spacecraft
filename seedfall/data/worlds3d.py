@@ -163,35 +163,15 @@ WORLD_PAINTS = {
     "gas": band_paint("#d8b478", "#f6e6b8", "#7a5c30"),
 }
 
-#: How finely a world is cut, coarse and fine. **This is what makes a world look
-#: round, and nothing else did.**
-#:
-#: Flat shading gives each face one colour, so a sphere reads as the polyhedron it
-#: is — at 22 by 30 you can count the quads across the terminator. Four attempts
-#: at smoothing the *shading* went in the bin: a `QLinearGradient` per face is
-#: constant perpendicular to its own axis where real Gouraud varies, and that
-#: error alternates with a quad's orientation, so every one of them put a
-#: checkerboard on the sphere instead of a smooth curve. It was not the rim term
-#: either — forcing that to zero left the pattern exactly as it was.
-#:
-#: Geometry is what worked. Rendered side by side, 22x30 is plainly faceted and
-#: 44x58 is smooth. The cost is real and it is in *faces*, not pixels: 6.7 ms
-#: against 25 ms for the same world at any size on screen. Hence two levels, and
-#: `ui/viewport.py` spending the fine one only on something big enough to show it.
-#: Where the faces go matters as much as how many. Rendered at equal cost —
-#: about 2,550 faces and 20 ms — 44x58 still bands horizontally, because the
-#: colour runs with latitude and rings are what sample it; 70x36 and 96x26 kill
-#: that banding and put vertical stripes on instead, because segments are what
-#: round the silhouette. 60x44 is the pair that reads smooth in both.
+#: How finely a world is cut. One level now: worlds are *painted* rather than
+#: built — see `ui/spheres.py` — so the mesh is only what the catalogue checks
+#: render to compare one kind against another. The fine table and the
+#: level-of-detail that chose between them went with the meshes they served.
 COARSE = (22, 30)
-FINE = (60, 44)
 
 WORLD_MESHES = {kind: by_latitude(paint, *COARSE)
                 for kind, paint in WORLD_PAINTS.items()}
 
-#: The same worlds cut fine, for when one fills the window.
-WORLD_MESHES_FINE = {kind: by_latitude(paint, *FINE)
-                     for kind, paint in WORLD_PAINTS.items()}
 
 #: Rings, for the giants that carry them. Which do is decided per body by
 #: `sim/sky.py`, deterministically, so a ringed world is always ringed.
@@ -208,13 +188,21 @@ RINGS_FRONT = ring_disc(tuple((a, b, _lerp(c, "#ffffff", 0.12))
 RINGED_SHARE = 0.45
 
 
-def mesh_for(kind: str, fine: bool = False) -> tuple:
+def paint_for(kind: str):
+    """The latitude-to-colour hook for a kind of world.
+
+    What `ui/spheres.py` draws a world from. The same hook the meshes are built
+    from, so a world looks like itself whichever way it is painted — and the one
+    place a new kind of world has to be described.
+    """
+    return WORLD_PAINTS.get(kind) or cap_paint("#8ba39a", "#c8d8d2", 0.8)
+
+
+def mesh_for(kind: str) -> tuple:
     """The mesh for a kind of body, falling back to a plain grey ball.
 
-    `fine` asks for the finely cut version, which is what stops a world that
-    fills the window looking like a polyhedron. It costs about four times the
-    faces, so `ui/viewport.py` asks for it only when the thing is big enough on
-    screen to show the difference.
+    Kept for the catalogue checks, which compare one kind of world against
+    another and want a rendering that does not depend on where the light is. The
+    game paints worlds instead.
     """
-    table = WORLD_MESHES_FINE if fine else WORLD_MESHES
-    return table.get(kind) or _plain_sphere(14, 20, "#8ba39a")
+    return WORLD_MESHES.get(kind) or _plain_sphere(14, 20, "#8ba39a")

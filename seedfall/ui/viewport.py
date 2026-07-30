@@ -31,7 +31,7 @@ from PyQt6.QtWidgets import QWidget
 from ..core.rng import RNG
 from ..data import models3d, worlds3d
 from ..sim import conn as conn_sim
-from . import render3d, theme
+from . import render3d, spheres, theme
 
 #: Half the field of view, in radians. A wide-ish lens: enough to keep a
 #: target in frame while manoeuvring, tight enough that motion reads.
@@ -43,15 +43,6 @@ from . import render3d, theme
 GLARE_FLOOR, GLARE_CEILING, GLARE_ROOT = 0.55, 1.45, 0.25
 
 HALF_FOV = math.radians(31.0)
-
-
-#: Screen radius, in pixels, above which a world is drawn from the finely cut
-#: mesh. Measured: a sphere at 22 rings by 30 segments is plainly faceted and one
-#: at 44 by 58 is smooth, and the difference is 6.7 ms against 25 ms — in faces
-#: rather than pixels, so it is the same cost whatever size the view is. Ninety
-#: pixels is about where the facets start to read, and it keeps the sky's small
-#: bodies on the cheap mesh where they are indistinguishable.
-FINE_ABOVE = 90.0
 
 
 def _starfield(count: int = 260) -> list:
@@ -270,27 +261,27 @@ class Viewport(QWidget):
             if sight.kind == "star":
                 continue
             if sight.kind == "body":
-                # The finely cut world only when it is big enough to show it.
-                # Four times the faces is four times the cost, and a world nine
-                # pixels across looks identical either way.
-                across = render3d.screen_radius(camera, sight.range_km,
-                                                sight.radius_km)
-                mesh = worlds3d.mesh_for(sight.look, fine=across >= FINE_ABOVE)
-            else:
-                mesh = models3d.SHIPYARD
-            # Rings first when they are behind, so the world occludes them,
-            # then again in front. Two passes is cheaper than sorting a flat
-            # annulus against a sphere it interpenetrates.
-            if sight.ringed:
-                render3d.draw(p, camera, worlds3d.RINGS_MESH, sight.at,
-                              sight.radius_km, self.light(conn), tilt=0.42,
-                              glare=hard)
-            render3d.draw(p, camera, mesh, sight.at, sight.radius_km,
-                          self.light(conn), tilt=0.42, glare=hard)
-            if sight.ringed:
-                render3d.draw(p, camera, worlds3d.RINGS_FRONT, sight.at,
-                              sight.radius_km, self.light(conn), tilt=0.42,
-                              glare=hard)
+                # A world is drawn as a lit disc rather than as a mesh — see
+                # `ui/spheres.py`. No faces, so no facets at any size, and about
+                # a quarter of the cost of the fine mesh it replaces.
+                if sight.ringed:
+                    render3d.draw(p, camera, worlds3d.RINGS_MESH, sight.at,
+                                  sight.radius_km, self.light(conn), tilt=0.42,
+                                  glare=hard)
+                spheres.draw(p, camera, worlds3d.paint_for(sight.look),
+                             sight.at, sight.radius_km, self.light(conn),
+                             tilt=0.42, glare=hard)
+                if sight.ringed:
+                    render3d.draw(p, camera, worlds3d.RINGS_FRONT, sight.at,
+                                  sight.radius_km, self.light(conn), tilt=0.42,
+                                  glare=hard)
+                continue
+            # Anything that is not a world is a station, and a station is a
+            # mesh: it is not a sphere, and the disc trick says nothing useful
+            # about a box with a spine through it.
+            render3d.draw(p, camera, models3d.SHIPYARD, sight.at,
+                          sight.radius_km, self.light(conn), tilt=0.42,
+                          glare=hard)
 
     def _star(self, p: QPainter, camera, sight) -> None:
         """The star: a disc that is its own light, and a corona."""
@@ -325,17 +316,16 @@ class Viewport(QWidget):
     def _model_for(self, conn, across: float = 0.0):
         """Which mesh, and how it is oriented, for what is out there.
 
-        `across` is how many pixels of radius it will take up, which decides how
-        finely a world is cut — see `FINE_ABOVE`. Nought means "do not bother",
-        which is what every caller that is not painting the main subject wants.
+        `None` for a world, which is painted rather than built: see
+        `ui/spheres.py`. `across` is kept because callers pass it and a future
+        model may want to know how big it will be.
         """
         kind = conn.target.kind
         if kind == "body":
-            # Its own kind: an ice moon, an ocean and a gas giant should not
-            # be the same grey ball with different labels over them.
-            look = getattr(conn.target, "look", "") or "rocky"
-            return (worlds3d.mesh_for(look, fine=across >= FINE_ABOVE),
-                    conn.elapsed / 5400.0)
+            # A world is not drawn from a mesh any more — `_target` sends it to
+            # `ui/spheres.py`. The spin is still wanted, because the surface has
+            # to turn.
+            return None, conn.elapsed / 5400.0
         if kind == "anchorage":
             if getattr(conn.target, "berth", "") == "gate":
                 return models3d.GATE, conn.elapsed / 2600.0
@@ -387,9 +377,15 @@ class Viewport(QWidget):
                 render3d.draw(p, camera, worlds3d.RINGS_MESH, (0.0, 0.0, 0.0),
                               conn.target.radius_km, self.light(conn),
                               spin=spin, tilt=0.35, glare=hard)
-            render3d.draw(p, camera, mesh, (0.0, 0.0, 0.0),
-                          conn.target.radius_km, self.light(conn), spin=spin,
-                          tilt=0.35, glare=hard)
+            if conn.target.kind == "body":
+                spheres.draw(p, camera, worlds3d.paint_for(
+                    getattr(conn.target, "look", "") or "rocky"),
+                    (0.0, 0.0, 0.0), conn.target.radius_km, self.light(conn),
+                    spin=spin, tilt=0.35, glare=hard)
+            else:
+                render3d.draw(p, camera, mesh, (0.0, 0.0, 0.0),
+                              conn.target.radius_km, self.light(conn),
+                              spin=spin, tilt=0.35, glare=hard)
             if ringed:
                 render3d.draw(p, camera, worlds3d.RINGS_FRONT, (0.0, 0.0, 0.0),
                               conn.target.radius_km, self.light(conn),
