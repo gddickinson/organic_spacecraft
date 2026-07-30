@@ -647,8 +647,9 @@ that. Which giants carry rings is derived from the body's **name** in
 `sky.has_rings`, so a ringed world is ringed in every chronicle from that seed
 and there is nothing to save.
 
-`tests/test_worlds.py` (6 checks) measures all of it in pixels rather than
-asserting it from the table that made it. Three lessons:
+`tests/test_worlds.py`, `test_sky_kit.py` and `test_lighting.py` (10 checks
+between them) measure all of it in pixels rather than asserting it from the
+table that made it. Three lessons:
 
 - **The first "do these look alike?" measure was measuring the background.**
   A 6×6 grid of mean colours over the whole plate, three quarters identical
@@ -923,9 +924,26 @@ bugs live in a renderer.**
   `AMBIENT + DIFFUSE·cos θ` at `sin θ` of the radius — so there is one lighting
   law with two ways of evaluating it rather than two laws.
 
-And one about the check: measuring "no facets" by walking a scanline reported 121
+- **A multiply of white is a no-op, so half the lighting law was missing.** The
+  light went on as one `CompositionMode_Multiply` gradient — and a multiply can
+  only darken. `AMBIENT + DIFFUSE` is **1.45** at the sub-stellar point, every
+  level above 1.0 clipped to the same white, and so a grey-154 world that should
+  have run **223 → 62** across its face ran **154 → 62**: the entire lit half
+  flat, and the terminator a cliff **6% of the face** wide. It survived a cycle
+  because the check compared the two *ends* of the profile, which were right. The
+  multiply carries everything at or below unity now and a `Plus` pass carries the
+  excess above it (`OVER_BRIGHT`), which brightens toward white rather than toward
+  the surface's own colour — an approximation, said out loud in the code, because
+  `Plus` cannot know what is underneath it. Measured after: **223 → 62 over 18%
+  of the face**.
+
+And two about the checks. Measuring "no facets" by walking a scanline reported 121
 levels, which was the *silhouette* — the atmosphere ring against empty space,
-which is meant to be an edge. It samples inside the limb now.
+which is meant to be an edge. It samples inside the limb now. And **the defect
+above was found by a mutation that survived**: flattening the falloff to no
+terminator at all changed nothing on the picture, because every stop was already
+clipped to the same white. A surviving mutant is not always a missing check — this
+one was pointing at the code.
 
 **Worlds were faceted, and four attempts to smooth the shading failed.** Graphics
 picked because it was asked for. At 22 rings by 30 segments — 660 faces, already a
@@ -3263,12 +3281,20 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   the transfer spends, and that the panel and the sim never disagree about
   whether this is an orbit. One limitation is recorded rather than hidden — see
   the check's own message and task #83.
-- **`test_worlds.py`** holds the astronomical catalogue, and measures it in
-  pixels rather than asserting it from the tables that made it: no two kinds
-  of world render alike, a star's size is its class's, a gas giant is banded
-  and nothing else is, rings are concentric *in the mesh* and belong to the
-  world rather than to its number in the system, faces meet with no seams
-  between them, and a ringed giant keeps its rings when you fly at it.
+- **`test_worlds.py`**, **`test_sky_kit.py`** and **`test_lighting.py`** hold the
+  astronomical catalogue, and measure it in pixels rather than asserting it from
+  the tables that made it. `test_worlds.py`: no two kinds of world render alike, a
+  gas giant is banded and nothing else is, and faces meet with no seams between
+  them. `test_sky_kit.py`: a star's size is its class's, rings are concentric *in
+  the mesh* and belong to the world rather than to its number in the system, a
+  ringed giant keeps them when you fly at it, and every kind the galaxy makes has
+  a mesh. `test_lighting.py`: a painted world is smooth and its phase follows the
+  star, the terminator is where the star puts it — moving with it, monotone into
+  the shadow, **brighter than the surface's own colour at full day**, and a
+  falloff with width rather than a cliff — and the paint covers the disc at every
+  tilt. The three were one file until it passed 500 lines; each of the three
+  claims in `test_lighting.py` exists because a mutation of `ui/spheres.py`
+  survived without it.
 - **`test_ui.py`** builds the real `MainWindow` on Qt's `offscreen` platform and
   paints every screen and every tab, including a live engagement. It stubs
   `win.dialog` because `QDialog.exec()` would block. One check builds its own

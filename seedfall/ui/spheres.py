@@ -62,6 +62,12 @@ LIT_OFFSET = 0.62
 #: because the angle from the sub-stellar point is what sets the brightness and
 #: that angle maps to a screen distance.
 
+#: How much of the light above unity actually reaches the picture. A multiply
+#: cannot brighten, so the excess goes on as an additive grey — and added light is
+#: flatter than multiplied light, so the whole of it would blow the subsolar point
+#: out to white. Two thirds keeps the surface's own colour visible under it.
+OVER_BRIGHT = 0.66
+
 #: How much of the limb is lifted by a thin bright edge, and how wide it is as a
 #: share of the radius. This is the atmosphere seen edge-on, which is the one
 #: cue that most makes a drawn ball look like a world.
@@ -274,16 +280,45 @@ def draw(painter: QPainter, camera: render3d.Camera, paint, at,
     # surface `theta` away from that point is lit by `cos(theta)`, and it lands
     # `sin(theta)` of the radius away on the picture — so a stop at `sin(theta)`
     # carrying `AMBIENT + DIFFUSE * cos(theta)` is the real law, sampled.
-    shine = QRadialGradient(hot, reach)
-    for degrees in (0, 30, 50, 70, 90):
+    #
+    # **Two passes, because a multiply can only darken.** `AMBIENT + DIFFUSE` is
+    # 1.45 at the sub-stellar point, and a multiply by white at 1.45 is a multiply
+    # by white at 1.0 — a no-op. So the first version lost the whole range above
+    # unity: a grey surface that should have run 223 down to 62 ran *154* down to
+    # 62, flat across the entire lit half, with the terminator a cliff 6% of the
+    # face wide instead of a falloff.
+    #
+    # It also hid a mutation. Flattening every stop to full brightness changed
+    # nothing on the picture, because every one of those stops was already clipped
+    # to white — so the check on the terminator could not tell the difference, and
+    # the surviving mutation was pointing straight at the defect. Which is what a
+    # sweep is for.
+    #
+    # So: the multiply carries the part at or below unity, and a `Plus` pass
+    # carries the excess above it. That excess goes on as grey rather than scaled
+    # by the surface, because `Plus` has no way to know what is under it — which
+    # lifts a bright subsolar point toward white. An overexposed one does look
+    # like that, and this is an approximation said out loud rather than a law
+    # claimed.
+    shade = QRadialGradient(hot, reach)
+    hotter = QRadialGradient(hot, reach)
+    for degrees in (0, 20, 40, 55, 70, 82, 90):
         theta = math.radians(degrees)
         level = (render3d.AMBIENT
                  + render3d.DIFFUSE * math.cos(theta) * glare)
-        shine.setColorAt(min(1.0, math.sin(theta)),
-                         _tint(QColor("#ffffff"), min(1.7, level)))
+        where = min(1.0, math.sin(theta))
+        shade.setColorAt(where, _tint(QColor("#ffffff"), min(1.0, level)))
+        over = max(0.0, min(1.0, (level - 1.0) * OVER_BRIGHT))
+        grey = int(255 * over)
+        hotter.setColorAt(where, QColor(grey, grey, grey))
     # Past the terminator there is only what the sky lends it.
-    shine.setColorAt(1.0, _tint(QColor("#ffffff"), render3d.AMBIENT))
-    painter.setBrush(QBrush(shine))
+    shade.setColorAt(1.0, _tint(QColor("#ffffff"), render3d.AMBIENT))
+    hotter.setColorAt(1.0, QColor(0, 0, 0))
+
+    painter.setBrush(QBrush(shade))
+    painter.drawPath(disc)
+    painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Plus)
+    painter.setBrush(QBrush(hotter))
     painter.drawPath(disc)
 
     _limb(painter, disc, centre, radius, glare)

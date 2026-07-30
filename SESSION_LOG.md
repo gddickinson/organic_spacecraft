@@ -2,6 +2,59 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: a multiply of white is a no-op, and it cost half the light
+
+#98 was three mutations of the painted-world renderer that the last cycle's sweep
+could not kill. Its own task note said: *establish why before writing the check,
+because it may mean the terminator check is measuring something other than what it
+claims.* It did. One of the three was pointing at a defect in the code.
+
+**The falloff could be flattened to no terminator at all and the picture did not
+change.** The reason: the light went on as a single `CompositionMode_Multiply`
+gradient, and **a multiply can only darken**. `AMBIENT + DIFFUSE` is 1.45 at the
+sub-stellar point, so every level above 1.0 clipped to the same pure white. A
+grey-154 world that should have run **223 → 62** across its face ran **154 → 62** —
+the whole lit half flat, at exactly the surface's own colour, with day meeting
+night in a cliff **6% of the face** wide. Flattening the falloff moved stops that
+were all already clipped to the same value, so of course nothing moved.
+
+It survived a whole cycle because the check compared the two *ends* of the profile,
+and the ends were right: 154 against 62 is still a ratio, still mirrors when the
+star swings round, still monotone into the shadow. Endpoints cannot tell a gradient
+from a step.
+
+The fix is two passes. The multiply carries everything at or below unity; a `Plus`
+pass carries the excess above it (`OVER_BRIGHT = 0.66`). The additive part
+brightens toward white rather than toward the surface's own colour, because `Plus`
+cannot know what is underneath it — an approximation, and one the code says out
+loud rather than dressing up as a law. Measured after: **223 → 62 over 18% of the
+face**, against the 223 the lighting law predicts.
+
+Then two assertions the renderer had been getting away without:
+
+- **Full day is brighter than the surface's own colour** — the missing claim,
+  checked against `AMBIENT + DIFFUSE` so it cannot drift from the law it tests.
+- **The falloff has width**, measured as the span of the face at middling
+  brightness. 6% before, 18% now.
+
+**The third mutant was a lesson in what a mutation actually does.** Cutting the
+latitude bands from 96 to 6 did not make worlds coarser, it made them *smaller*:
+each band paints an ellipse plus a skirt covering everything south of it, so with
+only a few bands the southernmost swallows the disc and the northern cap is never
+reached — **7.5% of the face left as bare sky at the pole**. Every existing check
+looks *across* the disc through its middle, where the hole is not, and by their
+measure a coarse world is if anything smoother. So the new check asks the one thing
+they cannot: is any of the sky still showing through the world? Five tilts,
+pole-on to edge-on. The shipped renderer is solid at all of them.
+
+The three checks were one file until it passed 500 lines; the lighting ones now
+live in `tests/test_lighting.py`, on a shared plate helper, and produce the same
+numbers they did before the split. `test_worlds.py` keeps the catalogue and
+`test_sky_kit.py` the stars and rings.
+
+All three mutants die now, and a second sweep confirmed the new `OVER_BRIGHT` is
+not an unchecked constant. Full suite green.
+
 ## 2026-07-29 — SEEDFALL: a world is a disc with a gradient on it
 
 Took #97, the fix the last cycle filed rather than started, and it worked.
