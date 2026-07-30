@@ -30,17 +30,38 @@ from PyQt6.QtCore import QPointF
 from PyQt6.QtGui import QColor, QPen, QPolygonF
 from PyQt6.QtCore import Qt
 
-#: How much light a face gets with the star behind it. Not zero: a hull in a
-#: system is lit by the star, by the planet it is over, and by its own running
-#: lights, and a pure black silhouette reads as a hole in the picture.
-AMBIENT = 0.40
+#: How much light a face gets with the star behind it.
+#:
+#: **Near nothing, because in vacuum there is near nothing.** This was 0.40,
+#: which is a studio fill light and not a star: it lifted every shadowed face
+#: to the same grey and left a Fleet Hub at 943 m reading as a flat cutout —
+#: measured, the whole structure sat between 20 and 215 with a median of 47,
+#: the bottom fifth of the range, and nothing in the frame said where the sun
+#: was.
+#:
+#: Not zero either. A hull is lit by the world it is over and by its own
+#: running lights, and a face at pure black is a hole in the picture rather
+#: than a shadow. Six per cent is the least that still reads as a surface.
+AMBIENT = 0.06
 
 #: How far a face's brightness can be lifted by facing the star squarely.
-DIFFUSE = 1.05
+#:
+#: **The sum with `AMBIENT` is what full day comes to, and it has a ceiling.**
+#: `ui/spheres.py` paints a world by this same law, and a surface of 154 at
+#: `AMBIENT + DIFFUSE` must land under 255 or the sub-stellar point clips and
+#: the whole lit half goes flat — the exact defect `test_lighting` was written
+#: for after it hid for a cycle. That caps the sum at about 1.65; it was 1.45
+#: and stays there.
+#:
+#: So the change is not more light, it is **light in one place**. Full day is
+#: what it always was and the shadow is a sixth of what it was, which is the
+#: whole of the difference between a lit object and a studio model.
+DIFFUSE = 1.40
 
 #: A rim of light along the edge facing away from the camera, which is what
-#: separates a dark hull from dark space at a glance.
-RIM = 0.34
+#: separates a dark hull from dark space at a glance — and the only thing that
+#: does, now the shadow side is genuinely dark.
+RIM = 0.42
 
 
 def unit(v) -> tuple:

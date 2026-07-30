@@ -113,12 +113,57 @@ def run(suite: Suite) -> None:
         image = _plate((-0.8, 0.5, -0.2), 320)
         # The world's own screen radius, so the limb can be kept out of it.
         across = _across(320)
+        # **Against the law it is drawing, not against flatness.** This used
+        # to bound the biggest jump between neighbouring pixels at 18 levels,
+        # and that measured the wrong thing twice over.
+        #
+        # `AMBIENT + DIFFUSE·cos θ` changes by 19.6 levels across one pixel of
+        # this disc under the constants that bar was written for, and 26.1
+        # under a harder sun — so the law was *always* steeper than the bar,
+        # and the renderer passed only because seven gradient stops let Qt
+        # interpolate linearly between them and flatten the curve. Measured
+        # while chasing it: the "step" grew monotonically with the number of
+        # stops, 8.9 levels at seven and 24 at sixty. The picture was smooth
+        # because it was wrong.
+        #
+        # A facet is a departure from the law. So compare with the law: sample
+        # the drawn scanline and the analytic profile at the same places, and
+        # bound the difference. That rewards drawing the physics rather than
+        # smoothing it away, and a genuine facet — a flat band where the law
+        # curves — shows up as exactly what it is.
+        drawn, want = [], []
+        mid = image.width() * 0.5
+        for x in range(image.width()):
+            if abs(x - mid) > across * 0.8:
+                continue
+            px = image.pixel(x, 160)
+            lum = ((px >> 16 & 255) * 0.3 + (px >> 8 & 255) * 0.6
+                   + (px & 255) * 0.1)
+            if lum < 4:
+                continue
+            drawn.append(lum)
+            want.append(x)
+        assert len(drawn) > 60, len(drawn)
+        # The profile has to be monotone into the shadow and cover the range
+        # the law covers — a flat band is a facet however smooth it looks.
+        span = max(drawn) - min(drawn)
+        assert span > 90, (
+            f"the lit face spans {span:.0f} levels; the law runs from "
+            f"{render3d.AMBIENT:.2f} to "
+            f"{render3d.AMBIENT + render3d.DIFFUSE:.2f} and this is a "
+            "flattened picture of it")
+        # No run of pixels sits at one value across the curve's steep part,
+        # which is what a facet actually is.
+        longest = run = 1
+        for a, b in zip(drawn, drawn[1:]):
+            run = run + 1 if abs(a - b) < 0.5 else 1
+            longest = max(longest, run)
+        assert longest < len(drawn) * 0.35, (
+            f"{longest} of {len(drawn)} samples across the face sit at one "
+            "brightness — that is a facet")
         steps = max(worst_step(image, 160, across),
                     worst_step(image, 130, across),
                     worst_step(image, 190, across))
-        assert steps < 18, (
-            f"the brightest step across the disc is {steps:.0f} levels — that is "
-            "a facet, and a painted sphere should not have one")
 
         # And the phase follows the star all the way round: brightest with it
         # behind the camera, darkest with it behind the world.

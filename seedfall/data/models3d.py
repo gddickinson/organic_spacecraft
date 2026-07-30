@@ -17,9 +17,22 @@ from __future__ import annotations
 
 import math
 
-#: The palette, matching `ui/theme.py`.
-PLATE = "#8ba39a"
-PLATE_DARK = "#5d726b"
+#: The palette of a **built** thing: bone white, and near enough to it that
+#: the shading has somewhere to go.
+#:
+#: `_shade` multiplies a base colour, so a dark base can never reach white
+#: however hard the sun is: at #8ba39a a fully lit face came out middle grey
+#: and the whole structure sat in the bottom fifth of the range with no sign
+#: of where the star was. Dropping the fill light did nothing on its own —
+#: measured, a median tone of 47 went to 42 — because the paint was the limit,
+#: not the light.
+#:
+#: White also draws the line the game's fiction has always claimed and never
+#: shown: a quay is *built* and a hull is *grown*. Stations are pale geometry;
+#: the grown hulls in `data/hulls3d.py` keep their organic skins, and the two
+#: no longer look like the same material.
+PLATE = "#d9d6cd"
+PLATE_DARK = "#8f8c84"
 LUMEN = "#7fe3d2"
 WARN = "#e0685f"
 CHLORO = "#54cf7c"

@@ -101,6 +101,27 @@ LIMB_LIFT = 0.30
 LIMB_WIDTH = 0.06
 
 
+#: How many stops the day-to-night gradient is built from, sampled uniformly
+#: in **screen radius** — which is what a `QRadialGradient` is parameterised
+#: by, and what the projection `sin θ` makes of an angle.
+#:
+#: Seven, spaced by angle, was what this had. Chasing a "step" the check
+#: complained about turned up something worth writing down: **more stops made
+#: the measured step larger**, monotonically, 8.9 levels at seven and 24 at
+#: sixty. Not a bug — with few stops Qt interpolates linearly between them and
+#: *flattens the curve*, so the picture is smooth because it is wrong. The
+#: seven-stop gradient was passing a smoothness check by drawing less physics
+#: than the law asks for.
+#:
+#: Measured against the law directly: `AMBIENT + DIFFUSE·cos θ` changes by
+#: 19.6 levels across one pixel of a 320 px disc under the old constants and
+#: 26.1 under the new. A hard-lit sphere *has* a steep terminator; that is
+#: what a terminator is. So the stops are set for accuracy, and
+#: `test_lighting` now asks the picture to track the law rather than to be
+#: flat.
+STOPS = 48
+
+
 def _tint(base: QColor, level: float) -> QColor:
     """A colour at a brightness, clamped to the byte range."""
     return QColor(max(0, min(255, int(base.red() * level))),
@@ -416,11 +437,11 @@ def draw(painter: QPainter, camera: render3d.Camera, paint, at,
     # claimed.
     shade = QRadialGradient(hot, reach)
     hotter = QRadialGradient(hot, reach)
-    for degrees in (0, 20, 40, 55, 70, 82, 90):
-        theta = math.radians(degrees)
+    for step in range(STOPS + 1):
+        where = step / STOPS
+        theta = math.asin(min(1.0, where))
         level = (render3d.AMBIENT
                  + render3d.DIFFUSE * math.cos(theta) * glare)
-        where = min(1.0, math.sin(theta))
         shade.setColorAt(where, _tint(QColor("#ffffff"), min(1.0, level)))
         over = max(0.0, min(1.0, (level - 1.0) * OVER_BRIGHT))
         grey = int(255 * over)

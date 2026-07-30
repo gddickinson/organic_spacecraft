@@ -2,6 +2,59 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: one hard sun (#107, first slice)
+
+Going for a 2001 look, and 2001 is above all one hard sun and no fill: a
+sunward face near white, a shadowed face near black, and a terminator you can
+see.
+
+The renderer lit everything with `AMBIENT = 0.40`, which is a studio fill and
+not a star. Measured on a Fleet Hub at 943 m: the whole structure between 20
+and 215 with a median of 47, and nothing in the frame saying where the light
+was. Three changes, and none works alone:
+
+- ambient to 0.06 — not zero, because a face at pure black is a hole rather
+  than a shadow;
+- diffuse to 1.40, so the *sum* stays where it was. `spheres.py` paints worlds
+  by the same law and a surface of 154 at `AMBIENT + DIFFUSE` has to land
+  under 255, or the sub-stellar point clips and the lit half goes flat. So
+  this is not more light, it is light in one place;
+- built things painted bone white. Dropping the fill alone moved the median
+  from 47 to 42 and nothing else, because `_shade` multiplies a base colour
+  and a dark base can never reach white however hard the sun is. The paint was
+  the limit. It also draws the line the fiction has always claimed and never
+  shown: a quay is built, a hull is grown, and they stop looking like the same
+  material.
+
+**The smoothness check was measuring the wrong thing, and had been for as long
+as it existed.** It bounded the biggest jump between neighbouring pixels at 18
+levels — and `AMBIENT + DIFFUSE·cos θ` changes by 19.6 levels across one pixel
+of that disc under the constants the bar was written for. The law was always
+steeper than the bar. The renderer passed because seven gradient stops let Qt
+interpolate linearly between them and flatten the curve.
+
+The tell, found while chasing it: **more stops made the measured step bigger**,
+monotonically — 8.9 levels at seven, 24 at sixty. That is the opposite of a
+resolution artefact and it says plainly what is happening. The picture was
+smooth because it was wrong.
+
+A facet is a departure from the law, so the check compares with the law now —
+the span it covers, and no flat run across the curve — and the gradient is
+sampled 48 times, uniformly in *screen radius*, which is what a radial
+gradient is parameterised by. Four mutations, four caught, including putting
+the fill light back.
+
+`test_cameras` had the same disease in a milder form: it counted pixels above
+a brightness threshold, which was a fine proxy for "the target is in frame"
+only while the fill lifted everything, and reported 24 on a frame that used to
+give 628. It renders each feed twice now, with the target and without, and
+counts what changes: the nose loses 1,246 samples and every other camera loses
+zero. A stronger claim than the ratio it replaced, and one that does not care
+how the scene is lit.
+
+Still to come on this task: turning stations, which are both the other half of
+the look and a real docking problem.
+
 ## 2026-07-30 — SEEDFALL: showing the autopilot fly (#106)
 
 The computer has flown the ship since it was written and nothing on any screen

@@ -398,6 +398,49 @@ Wiring it up surfaced two more, both from playing:
   quadratic, the most dangerous approaches were precisely the ones escaping.
   `_sweep_min` tests the whole path now, not its endpoints.
 
+**One hard sun.** The renderer lit everything with `AMBIENT = 0.40` — a
+studio fill, not a star. Every shadowed face came up to the same grey, and a
+Fleet Hub at 943 m read as a flat cutout: measured, the whole structure sat
+between 20 and 215 with a median of 47, and nothing in the frame said where
+the light was coming from.
+
+Three things, and only together do any of them work:
+
+- **`AMBIENT` 0.40 → 0.06.** Not zero: a hull is lit by the world under it and
+  by its own running lights, and a face at pure black is a hole rather than a
+  shadow.
+- **`DIFFUSE` 1.05 → 1.40, so the sum stays where it was.** `ui/spheres.py`
+  paints a world by this same law and a surface of 154 at `AMBIENT + DIFFUSE`
+  must land under 255 — above about 1.65 the sub-stellar point clips and the
+  whole lit half goes flat, which is the exact defect `test_lighting` exists
+  for. So the change is not *more* light, it is light in **one place**.
+- **Built things are painted bone white.** Dropping the fill alone did
+  nothing — median 47 → 42 — because `_shade` multiplies a base colour and a
+  dark base can never reach white however hard the sun is. The paint was the
+  limit, not the light. It also draws a line the fiction has always claimed
+  and never shown: a quay is *built* and a hull is *grown*, and they no longer
+  look like the same material.
+
+**And the smoothness check was measuring the wrong thing.** It bounded the
+biggest jump between neighbouring pixels at 18 levels — but `AMBIENT +
+DIFFUSE·cos θ` changes by **19.6 levels across one pixel under the constants
+that bar was written for**, and 26.1 under a harder sun. The law was always
+steeper than the bar; the renderer passed because seven gradient stops let Qt
+interpolate linearly between them and flatten the curve. Chasing it turned up
+the tell: the measured "step" grew monotonically with the number of stops,
+8.9 at seven and 24 at sixty. The picture was smooth because it was wrong.
+A facet is a *departure from the law*, so the check compares with the law —
+span, and no flat run across the curve — and the gradient is sampled 48 times,
+uniformly in screen radius, which is what a radial gradient is parameterised
+by.
+
+`test_cameras` had the same disease in a milder form: it counted pixels above
+a brightness threshold, which was a fine proxy for "the target is in frame"
+only while the fill light lifted everything. It renders each feed twice now,
+with the target and without, and counts what changes — the nose loses 1,246
+samples and every other camera loses **zero**, which is a far stronger claim
+than the brightness ratio it replaced and does not care how the scene is lit.
+
 **Showing the autopilot fly.** The computer has flown the ship since it was
 written and nothing on any screen said so: a captain watching the conn saw six
 identical buttons, no sign of which thruster was firing, and no indication the

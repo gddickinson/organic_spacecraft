@@ -256,22 +256,58 @@ def run(suite: Suite) -> None:
         # ventral view and the comparison stopped being about the target.
         assert conn.sky, "no sky to remove"
         conn.sky = []
-        seen = {vid: brightness(vid, conn) for vid, _l, _v in conn_sim.VIEWS}
+
+        def shows_target(view_id: str) -> int:
+            """Pixels this feed loses when the target is taken out of it.
+
+            **Counting lit pixels stopped working when the sun got hard.** The
+            old measure was "samples brighter than a threshold", which was a
+            fine proxy while `AMBIENT = 0.40` lifted every shadowed face to a
+            flat grey — and a nonsense one now: a structure lit from behind is
+            mostly dark, and the same frame that used to report 628 reports 24,
+            against 8 for a starfield. The threshold was measuring the fill
+            light.
+
+            What the check has always meant is *is the target in this
+            picture*, so it asks that: render the feed, render it again with
+            the target removed, and count what changed. Lighting-independent,
+            and it is the same trick `test_drawbudget` uses for the culls.
+            """
+            from ..ui.viewport import Viewport
+            feed = Viewport(conn, view_id)
+            feed.resize(240, 200)
+            with_it = feed.grab().toImage()
+            held = conn.target.radius_km
+            conn.target.radius_km = 0.0        # `_target` draws nothing at all
+            without = feed.grab().toImage()
+            conn.target.radius_km = held
+            return sum(1 for y in range(0, 200, 2) for x in range(0, 240, 2)
+                       if with_it.pixel(x, y) != without.pixel(x, y))
+
+        seen = {vid: shows_target(vid) for vid, _l, _v in conn_sim.VIEWS}
         # The starfield puts a handful of bright points in every frame, so
         # "nothing" is a small number rather than zero.
         empty = max(seen[v] for v in ("aft", "port", "starboard",
                                       "dorsal", "ventral"))
-        assert seen["fore"] > 400, (
-            f"the target is dead ahead and the nose camera shows only "
-            f"{seen['fore']} solid samples of it")
-        assert seen["fore"] > empty * 6, (
-            f"the nose shows {seen['fore']} lit samples and the brightest "
-            f"other camera {empty} — they are all looking at the same thing")
+        # **A floor, but not one calibrated to a fill light.** This was 400
+        # solid samples, and 400 was a figure taken when every shadowed face
+        # was lifted to a flat grey by `AMBIENT = 0.40`. With one hard sun and
+        # almost no fill, a structure lit from behind is *mostly dark* — which
+        # is the point of the change — and the same frame reported 24. The
+        # claim here is that the nose camera is looking at something and the
+        # others are not, which the ratio below says; the floor only has to
+        # rule out an empty frame.
+        assert seen["fore"] > 200, (
+            f"the target is dead ahead and only {seen['fore']} samples of the "
+            "nose camera change when it is taken away")
+        assert empty == 0, (
+            f"a camera not pointed at the target still loses {empty} samples "
+            "when it is removed — it is drawing it off-screen")
         for side in ("aft", "port", "starboard", "dorsal", "ventral"):
             assert seen[side] < seen["fore"] / 8, (
                 f"the {side} camera shows nearly what the nose does")
-        return (f"nose {seen['fore']} lit pixels, tail {seen['aft']}, "
-                f"beams {seen['port']}/{seen['starboard']}")
+        return (f"the nose loses {seen['fore']} samples when the target is "
+                f"taken away; every other camera loses {empty}")
 
     @check("the cameras look where the ship is pointing")
     def _():
