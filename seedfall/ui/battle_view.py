@@ -18,6 +18,7 @@ from ..data.part_types import BANDS
 from ..sim import abilities as abilities_sim
 from ..sim import aftermath as aftermath_sim
 from ..sim import stations as st_mod
+from ..sim import turnplan
 from ..sim import tactical as tac
 from ..sim import combat as combat_sim
 from ..sim import consorts as consort_sim
@@ -345,7 +346,7 @@ class BattleView(View):
             # sentence of prose, so a captain at 30 of a 50 cap could fire
             # everything, make 74 more, and find out afterwards.
             for order in st_mod.orders_for(sid):
-                plan = st_mod.order_preview(b.player, b.enemy, order.id,
+                plan = turnplan.order_preview(b.player, b.enemy, order.id,
                                             b.officers, b.band)
                 if not plan["lines"]:
                     continue

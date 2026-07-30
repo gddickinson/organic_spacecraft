@@ -135,6 +135,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("thermal_doors", "test_thermal_doors", "thermal doors"),
     SuiteSpec("ventures", "test_ventures", "ventures"),
     SuiteSpec("orderplan", "test_orderplan", "order plan"),
+    SuiteSpec("turnplan", "test_turnplan", "turn plan"),
     SuiteSpec("postings", "test_postings", "postings"),
     SuiteSpec("grants", "test_grants", "grants"),
     SuiteSpec("helm", "test_helm", "helm"),

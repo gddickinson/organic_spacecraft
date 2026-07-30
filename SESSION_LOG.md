@@ -2,6 +2,79 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: the orders panel forecast the order, not the turn (#combat)
+
+Combat this cycle, on the crew-stations axis. I started by playing engagements
+headlessly and accounting for where the damage goes, which turned up the usual
+sort of thing and then something better.
+
+`stations.order_preview` costs each order before it is given — and it costed the
+order *in isolation*. The captain does not give an order in isolation. They give
+it inside a turn, and the two seats they have just walked away from run
+themselves. Measured on a Bastion at 45 of a 50 heat cap, sitting down at
+engineering and ordering **vent**:
+
+    the panel said    heat 45 → 20 of 50
+    the turn ended at 74
+
+The gunner left at the guns fires everything that bears, always, whatever the
+heat. That behaviour is deliberate — `combat._run_stations` says so in as many
+words, and it is what a battle computer is bought to fix. Quoting it at nobody
+was not. **The one order in the game whose entire purpose is cooling was
+advertised with the wrong sign**, and *hold fire* — which really does cool this
+hull, by 10 — read as the order that does nothing.
+
+`test_orderplan` had checked this since it was written, and passed throughout,
+because it compared the forecast with `run_engineering` called directly. Both
+agreed. Both were answering a question nobody asks.
+
+The forecast now steps the turn the way `combat.take_turn` steps it —
+engineering, then the helm, then the guns, then the radiators — and every part
+of it goes through the door the act uses: `bearing_set` is the list `_salvo`
+fires and the log counts, `will_burn` drops the dry mounts (announced aloud and
+then charged no heat, because `_fire` returns before `add_heat`), and
+`idle_gunnery` is asked by the panel *and* by the turn, so the two cannot drift.
+
+**Two things I got wrong on the way, both caught by measuring rather than
+reasoning.**
+
+*The geometry moves under a forecast.* Folding in the other seats left a
+residual: eight turns in a thousand still promised cooling and delivered
+heating, every one of them at *present the broadside* — the order whose own
+blurb says everything on the flanks bears. Our guns fire after our own helm has
+moved us and before the enemy moves at all, so flying the order on a copy of the
+body is not an approximation, it is the answer. Two dataclass copies, and the
+whole error class went.
+
+*The ceiling belongs to `add_heat`.* Shedding heat is a plain `max(0, heat - x)`
+that never consults the ceiling. I clamped on every step and on a step of zero,
+which cooled a hull sitting above a ceiling lowered by radiator damage by five
+points a turn that it never lost. `delta >= 0` and `delta > 0` are different
+programs when the hull is already over.
+
+Result: **2,095 played turns, two hulls, twelve orders, hot and cold, full and
+empty magazines — every one ending exactly where the panel said, to the
+hundredth.** The stated exception is the turn that ends the engagement, when
+`_finish` returns before `_end_of_turn` and there is no end of turn to have; the
+suite counts those rather than hiding them.
+
+Twelve mutations swept, all caught. One of them — swapping the salvo's
+arc-and-band test for arc alone — caught nothing, and the honest reading is that
+it is a *no-op*: the two sets never differ at any range these hulls fight at,
+0 turns in 89. The real gap was next door, in my own check, which ran only with
+full magazines where "what trains" and "what burns" are the same list. With an
+empty one, both mutations bit.
+
+Looking at the rendered panel also changed it twice: the first wording invited
+the captain to halve a figure that was already halved, and the first gunner
+clause repeated a forty-character warning under all five helm orders — one the
+panel above already carries in red — which pushed the only figure that varies
+off the end of the row.
+
+`test_turnplan.py` — 8 checks. `test_orderplan`'s "helm orders are silent on
+purpose" is retired: they speak now, because a turn spent flying still leaves a
+gunner firing. Full suite green: **1,012 checks**.
+
 ## 2026-07-30 — SEEDFALL: a treaty that promised berthing and charts, and gave neither (#diplomacy)
 
 The cycle opened on diplomacy, testing INTERFACE.md's claim that the Concord

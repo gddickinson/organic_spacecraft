@@ -30,15 +30,19 @@ from ..core.state import new_game
 from ..data.parts import PARTS
 from ..sim import combat, encounters
 from ..sim import stations as st_mod
+from ..sim import turnplan
 from ..sim.ship import build_layers, make_ship, stats
 from .harness import Suite
 
 HEAVY = [w.id for w in sorted([p for p in PARTS if p.slot == "weapon"],
                               key=lambda w: -w.wpn.heat)[:5]]
 
-#: Helm orders say nothing here on purpose: the firing picture already reports
-#: what coming about would bring on, in degrees.
-SILENT = {o.id for o in st_mod.ORDERS if o.station == "helm"}
+#: Nothing is silent any more. Helm orders used to say nothing here on the
+#: grounds that the firing picture already reports what coming about would
+#: bring on, in degrees — which was about *what bears*, and left the captain
+#: with no idea what the turn would do to the hull. It does plenty: the gunner
+#: keeps firing while you fly, so a helm order has a heat figure like any other.
+SILENT: set = set()
 
 
 def _engaged(seed: str, heat: float = 30.0, hurt: bool = False):
@@ -59,7 +63,7 @@ def _engaged(seed: str, heat: float = 30.0, hurt: bool = False):
 
 
 def _plan(battle, order_id: str):
-    return st_mod.order_preview(battle.player, battle.enemy, order_id,
+    return turnplan.order_preview(battle.player, battle.enemy, order_id,
                                 battle.officers, battle.band)
 
 
@@ -132,13 +136,25 @@ def run(suite: Suite) -> None:
             f"a salvo from cold takes this hull past its cap and the forecast "
             f"does not say so: {said_cold['lines']}")
 
+        # And the two warnings are not the same warning. From 30 this hull ends
+        # the turn at 94 of a 50 cap — over, and not pinned: the engineering
+        # section sheds four and a half before the guns speak, so it peaks at
+        # 99.6 of a 100 ceiling. That distinction only exists now the forecast
+        # covers the whole turn; quoting the salvo alone made it 104, clamped
+        # it, and called every hot salvo pinned.
         _g, hot, _r = _engaged("over-hot", heat=30.0)
         said_hot = _plan(hot, "salvo")
-        assert said_hot["over"], said_hot
+        assert said_hot["over"] and not said_hot["pinned"], said_hot
+        assert any("over the cap" in line for line in said_hot["lines"]), said_hot
+
+        # Pinned is what happens when it really does touch the ceiling.
+        _g3, pinned, _r3 = _engaged("pinned", heat=60.0)
+        said_pinned = _plan(pinned, "salvo")
+        assert said_pinned["pinned"], said_pinned
         assert any("pinned at the ceiling" in line
-                   for line in said_hot["lines"]), (
-            f"a salvo from 30 pins this hull at the ceiling and the forecast "
-            f"calls it merely over: {said_hot['lines']}")
+                   for line in said_pinned["lines"]), (
+            f"a salvo from 60 takes this hull to its ceiling and the forecast "
+            f"calls it merely over: {said_pinned['lines']}")
 
         # And a hull with room to spare is not warned for nothing.
         _g2, cool, _r2 = _engaged("under", heat=0.0)
@@ -159,12 +175,15 @@ def run(suite: Suite) -> None:
         assert not stray, (
             f"orders offered as bare buttons with nothing said about them: "
             f"{stray}")
-        # And nothing in the silent set has quietly started speaking, which
-        # would mean the helm is being described twice.
-        loud = sorted(o for o in spoke if o in SILENT)
-        assert not loud, f"{loud} is described here and by the firing picture"
-        assert len(spoke) >= 6, spoke
-        return f"{len(spoke)} orders costed, {len(silent)} left to the plot"
+        # Every one of them, helm included: an order that moves the ship still
+        # leaves the gunner firing, and the captain is entitled to know what
+        # the hull will be sitting at when the turn ends.
+        assert len(spoke) == len(st_mod.ORDERS), sorted(silent)
+        for order in st_mod.ORDERS:
+            plan = _plan(battle, order.id)
+            assert any("by the end of the turn" in line
+                       for line in plan["lines"]), (order.id, plan["lines"])
+        return f"all {len(spoke)} orders costed, none left as a bare button"
 
     @check("the orders panel prints what each one will do")
     def _():

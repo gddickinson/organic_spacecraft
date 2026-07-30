@@ -100,6 +100,24 @@ def run(suite: Suite) -> None:
             "one, or name them as having no suite")
         stale = sorted(m for m in no_suite if m in tripwire.KIN)
         assert not stale, f"{stale} now has a fast path and is still excused"
-        return (f"{len(tripwire.KIN)} fast paths, all live; "
+        # And each module appears once. A dict literal keeps the *last* value
+        # for a repeated key and says nothing, so a second entry silently
+        # replaces the first: six modules had two, and `stations` — three seats
+        # and every constant they own — was being swept against `("gunnery",)`
+        # alone because a narrower entry sat ninety lines below the real one.
+        import ast
+        import collections
+        tree = ast.parse(pathlib.Path(tripwire.__file__).read_text())
+        keys = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign) and \
+                    getattr(node.targets[0], "id", "") == "KIN":
+                keys = [k.value for k in node.value.keys]
+        assert keys, "could not read the KIN table"
+        twice = sorted(k for k, n in collections.Counter(keys).items() if n > 1)
+        assert not twice, (
+            f"{twice} appears more than once in the fast-path table; the later "
+            "entry wins and the earlier one is dead")
+        return (f"{len(tripwire.KIN)} fast paths, all live and each named once; "
                 f"{len(no_suite)} modules named as having no suite")
 

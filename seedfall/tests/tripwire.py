@@ -132,18 +132,26 @@ LIMIT = 60
 #: seconds and most constants are caught by their own suite in two: run the
 #: cheap one, and only pay for the wide one on the survivors. A single-stage
 #: sweep of everything is three hours and finds the same answer.
+#: One entry per module, and **exactly** one: six modules had two, and in a
+#: dict literal the later wins silently. `stations` was the costly one — its
+#: broad entry (routing, orderplan, seatwork) sat above a second entry reading
+#: just `("gunnery",)`, so every constant the three seats own had been swept
+#: against one suite that does not name them. `mounts` lost `lopsided` and
+#: `rumours` lost `missions` the same way. `tests/test_harness_guard.py` now
+#: refuses a duplicate, because this is not the sort of thing anyone sees by
+#: reading a hundred-line table.
 KIN = {
     "dormancy": ("dormancy",), "lineages": ("time",), "crossings": ("time",),
     "officials": ("counter", "officials"),
     "approaches": ("envoy", "approach"), "approach": ("envoy", "approach"),
     "surveys": ("surveys",), "survey": ("charting", "surveys"),
-    "traffic": ("traffic",), "anchorage": ("anchorage",),
+    "anchorage": ("anchorage",),
     "doctrine": ("doctrine",), "firing": ("firing", "gunnery"),
     "tactical": ("gunnery", "combat"), "combat": ("seatwork", "combat", "gunnery"),
     "abilities": ("abilities", "combat"),
     "encounters": ("magazine",),
     "parley": ("parley", "combat"),
-    "stations": ("routing", "orderplan", "seatwork"),
+    "stations": ("routing", "orderplan", "seatwork", "turnplan", "gunnery"),
     "damage": ("thermal_doors", "combat"), "contraband": ("customs",),
     "customs": ("customs",), "diplomacy": ("politics",),
     "grudge": ("grudges",), "colonies": ("works", "founding"),
@@ -159,8 +167,8 @@ KIN = {
     "loyalty": ("conviction", "crew"), "convictions": ("conviction", "crew"),
     "crew": ("conviction", "crew"),
     "lifespan": ("time",), "upkeep": ("time",), "clock": ("time",),
-    "stations": ("gunnery",), "consorts": ("combat",), "bloom": ("bloom",),
-    "threat": ("bloom",), "ventures": ("politics",), "memory": ("grudges",),
+    "bloom": ("bloom",),
+    "threat": ("bloom",), "ventures": ("politics",),
     "intel": ("explore",), "transit": ("transit",), "shipyard": ("design",),
 
     # Modules that had no entry at all and so paid the wide run for every
@@ -172,7 +180,7 @@ KIN = {
     "shocks": ("trade",), "tech": ("evidence", "bench"),
     "trade": ("counter", "trade"), "orders": ("orders",),
     "legacy": ("legacy",), "beginning": ("beginnings",),
-    "watches": ("transit",), "rumours": ("missions",),
+    "watches": ("transit",),
     "services": ("trade",),
 
     # The conn and the plotting board. Both own a lot of tuning — thruster
@@ -195,10 +203,10 @@ KIN = {
     "pilot": ("pilot", "conn", "climbs"),
     "gunnery": ("volley", "gunboard", "gunnery"),
     "battle3d": ("gunfire",),
-    "mounts": ("thrusters",), "burnplan": ("thrusters", "helm"),
+    "burnplan": ("thrusters", "helm"),
     "exchequer": ("exchequer", "politics"),
     "industry": ("industry", "exchequer"),
-    "rumours": ("provenance", "explore"),
+    "rumours": ("provenance", "explore", "missions"),
     "memory": ("provenance", "grudges"),
     "options": ("options",),
     "traffic": ("traffic", "mesh"),
@@ -209,6 +217,7 @@ KIN = {
     "tutorial": ("tutorial",),
     "wharfage": ("wharfage", "counter", "accord"),
     "accord": ("accord", "wharfage"),
+    "turnplan": ("turnplan", "orderplan"),
 }
 
 

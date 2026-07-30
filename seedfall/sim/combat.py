@@ -19,6 +19,7 @@ from . import damage
 from .damage import _disable, _say, _who
 from . import firing
 from . import stations as st_mod
+from . import turnplan
 from . import tactical as tac
 from .abilities import use_ability as _fire_ability
 from .enemy_ai import enemy_turn as _enemy_turn
@@ -194,10 +195,10 @@ def _salvo(b: Battle, frm: Side, to: Side, rng) -> None:
     matter if they all speak at once. The cost is heat and ammunition, which is
     why a single aimed shot stays a real option.
     """
-    band = tac.band_for(tac.separation(frm.body, to.body))
-    bearing = [w for w in frm.st.weapons
-               if w.wpn.bears_at(band) <= firing.WORTH_FIRING
-               and st_mod.bears_on(frm, to, w)[0]]
+    # `turnplan.bearing_set` is the one definition of what bears, so the count
+    # in this log line, the count under the button and the heat in the hull are
+    # the same count.
+    bearing = turnplan.bearing_set(frm, to)
     if not bearing:
         _say(b, f"{_who(b, frm)} has nothing that will bear at this range.", "dim")
         return
@@ -396,17 +397,16 @@ def _run_stations(b: Battle, rng) -> None:
         # battle computer they at least stop firing into an empty arc or
         # cooking the mounts past the cap; without one it is salvo, always,
         # whatever the heat and whatever bears.
-        chosen = doctrine.order_for(b.player, b.enemy, "gunnery")
-        pick = chosen[0] if chosen else "salvo"
-        if pick == "salvo":
+        #
+        # `turnplan.idle_gunnery` is asked what they do, because the orders
+        # panel asks the same function to cost it. Quoted separately, the panel
+        # forecast *vent* at 45 → 20 on a 50 cap and the turn ended at 74: the
+        # gunner the captain had just walked away from had fired everything.
+        idle = turnplan.idle_gunnery(b.player, b.enemy, b.officers)
+        if idle["order"] == "salvo":
             _salvo(b, b.player, b.enemy, rng)
-        elif pick == "aimed":
-            usable = [w for w in b.player.st.weapons
-                      if w.wpn.bears_at(b.band) <= firing.WORTH_FIRING
-                      and st_mod.bears_on(b.player, b.enemy, w)[0]]
-            if usable:
-                _fire(b, b.player, b.enemy,
-                      max(usable, key=lambda w: w.wpn.dmg).id, rng)
+        elif idle["mounts"]:
+            _fire(b, b.player, b.enemy, idle["mounts"][0].id, rng)
 
     if bits:
         _say(b, f"{b.player.ship.name}: {', '.join(bits)}.", "dim")

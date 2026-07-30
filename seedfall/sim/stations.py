@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 from . import doctrine
 from . import tactical as tac
+from .ship import HEAT_CEILING
 
 STATIONS = [
     ("helm", "Helm", "nav", "Heading and throttle. Where you will be next turn "
@@ -209,84 +210,6 @@ VENT_PER_LEVEL = 0.08
 ROUTE_ACCURACY = 0.12
 ROUTE_SPEED = 1.25
 ROUTE_ACCEL = 1.6
-
-
-def order_preview(side, other, order_id: str, officers, band: int = 0) -> dict:
-    """What one order will actually do this turn, before it is given.
-
-    The seats say what taking them is worth; the orders inside them were bare
-    buttons with a sentence of prose. Since heat became a real constraint that
-    matters most at gunnery: a Bastion at 30 of a 50 cap that fires everything
-    makes 74 more and ends the turn pinned at the ceiling, and nothing on the
-    screen said so before the button was pressed.
-
-    Returns `{"lines": [...], "heat": delta, "over": bool}`. Helm orders are
-    left to the firing picture, which already says what coming about would
-    bring on.
-    """
-    out = {"lines": [], "heat": 0.0, "over": False}
-    order = ORDERS_BY_ID.get(order_id)
-    if order is None:
-        return out
-    cap = getattr(side.st, "heat_cap", 0.0) or 1.0
-    now = getattr(side.ship, "heat", 0.0)
-
-    if order.id == "salvo":
-        bearing = [w for w in side.st.weapons
-                   if bears_on(side, other, w)[0]]
-        heat = sum(w.wpn.heat for w in bearing)
-        out["heat"] = heat
-        out["lines"].append(
-            f"{len(bearing)} of {len(side.st.weapons)} mounts bear"
-            if bearing else "nothing bears — the turn is spent for nothing")
-    elif order.id == "aimed":
-        bearing = [w for w in side.st.weapons if bears_on(side, other, w)[0]]
-        if bearing:
-            best = max(bearing, key=lambda w: w.wpn.dmg)
-            out["heat"] = best.wpn.heat
-            out["lines"].append(f"{best.name}, {best.wpn.dmg} damage")
-        else:
-            out["lines"].append("nothing bears for an aimed shot")
-    elif order.id == "hold_fire":
-        out["lines"].append("nothing fired; the mounts stay loaded")
-    elif order.id == "vent":
-        shed = side.st.vent * 2.2 + 12
-        out["heat"] = -min(now, shed)
-        out["lines"].append(f"sheds up to {shed:.0f}")
-    elif order.id == "damage_control":
-        skill = officer_level(officers, "engineering")
-        hurt = next((l for l in reversed(side.ship.layers)
-                     if 0 < l.hp < l.max), None)
-        if hurt is None:
-            out["lines"].append("nothing is breached")
-        else:
-            gain = hurt.max * (0.06 + 0.02 * skill) * (
-                1.6 if side.st.regen > 0 else 1.0)
-            out["lines"].append(
-                f"patches about {min(gain, hurt.max - hurt.hp):.0f} of "
-                f"{hurt.name}")
-    elif order.id == "route_guns":
-        out["lines"].append(f"{ROUTE_ACCURACY:+.0%} to hit, this turn")
-    elif order.id == "route_engines":
-        out["lines"].append(
-            f"{ROUTE_SPEED - 1:+.0%} top speed and {ROUTE_ACCEL - 1:+.0%} "
-            "acceleration, this turn")
-
-    # Clamped, because the hull is: a salvo that would make 104 on a 50 cap
-    # actually stops at the ceiling, and a forecast that quotes the raw sum is
-    # the same defect this function exists to fix, one layer up.
-    from .ship import HEAT_CEILING
-    ceiling = cap * HEAT_CEILING
-    after = max(0.0, min(now + out["heat"], ceiling))
-    out["heat"] = after - now
-    if abs(out["heat"]) >= 0.5:
-        out["over"] = after > cap
-        pinned = after >= ceiling - 1e-9 and out["heat"] > 0
-        out["lines"].append(
-            f"heat {now:.0f} → {after:.0f} of {cap:.0f}"
-            + (" — pinned at the ceiling" if pinned
-               else " — over the cap" if out["over"] else ""))
-    return out
 
 
 def seat_value(side, officers) -> dict:

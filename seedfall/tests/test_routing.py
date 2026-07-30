@@ -39,6 +39,7 @@ from ..core.rng import RNG
 from ..core.state import new_game
 from ..sim import combat, encounters
 from ..sim import stations as st_mod
+from ..sim import turnplan
 from ..sim.ship import build_layers, make_ship, stats
 from .harness import Suite
 
@@ -138,7 +139,7 @@ def run(suite: Suite) -> None:
         _g, battle, rng = _engaged("forecast")
         for _ in range(3):
             _turn(battle, rng, "hold")
-        plan = st_mod.order_preview(battle.player, battle.enemy,
+        plan = turnplan.order_preview(battle.player, battle.enemy,
                                     "route_engines", battle.officers,
                                     battle.band)
         assert plan["lines"], "routing to the drive is offered with nothing said"
@@ -175,7 +176,7 @@ def run(suite: Suite) -> None:
             "routing is a choice rather than the answer to everything")
         assert 1.2 <= st_mod.ROUTE_ACCEL <= 2.0, st_mod.ROUTE_ACCEL
         assert 0.05 <= st_mod.ROUTE_ACCURACY <= 0.25, st_mod.ROUTE_ACCURACY
-        mounts = st_mod.order_preview(battle.player, battle.enemy,
+        mounts = turnplan.order_preview(battle.player, battle.enemy,
                                       "route_guns", battle.officers,
                                       battle.band)
         assert f"{st_mod.ROUTE_ACCURACY:+.0%}" in " ".join(mounts["lines"]), (
@@ -210,7 +211,7 @@ def run(suite: Suite) -> None:
                         win.views["battle"].findChildren(QLabel) if lab.text())
         win.close()
         for order_id in ("route_guns", "route_engines"):
-            plan = st_mod.order_preview(battle.player, battle.enemy, order_id,
+            plan = turnplan.order_preview(battle.player, battle.enemy, order_id,
                                         battle.officers, battle.band)
             for line in plan["lines"]:
                 assert line in rows, (

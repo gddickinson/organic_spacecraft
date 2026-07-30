@@ -1704,7 +1704,10 @@ seedfall/
 │   │                   `cook()` holds heat under `HEAT_CEILING`
 │   ├── battle_state.py the Side and Battle shapes, shared by resolver/AI/UI
 │   ├── tactical.py     the plane: positions, headings, firing arcs, bands
-│   ├── stations.py     helm / gunnery / engineering orders
+│   ├── stations.py     helm / gunnery / engineering: the seats and their acts
+│   ├── turnplan.py     and the forecast of a turn that contains one — the
+│   │                   seats you are not in included, since they run
+│   │                   themselves, and the helm flown on a copy of the hull
 │   ├── enemy_ai.py     how the other side fights — same geometry, no cheating
 │   ├── abilities.py    defensive abilities, returning their own log lines
 │   ├── colony.py       founding, daily yields, aggregate colony effects
@@ -1960,6 +1963,9 @@ seedfall/
     │                   and accepting one deliver the same instrument
     ├── test_industry.py 10 checks — a licensed process changes a market
     ├── test_orderplan.py 6 checks — every order says what it will do
+    ├── test_turnplan.py 8 checks — and says it about the *turn*: the figure
+    │                   on the button is where the hull ends up, played over
+    │                   2,000 turns, with the gunner you left behind named
     ├── ground_ai.py    a party leader good enough to measure the ground with
     ├── suites.py       the suite table `__main__` dispatches from
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
@@ -2461,6 +2467,39 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   freight desk's forecast of a run. So `res["paid"]` is the goods and
   `res["due"]` is the quay, and anything measuring what a trade cost has to add
   them.
+- **A forecast of an act is not a forecast of the turn that contains it.**
+  `stations.order_preview` costed each order against its own act, and
+  `test_orderplan` checked it that way — by calling `run_engineering` directly.
+  Both agreed, and both were answering a question the captain never asks. On a
+  Bastion at 45 of a 50 cap, sitting down at engineering and ordering *vent*,
+  the panel said `heat 45 → 20` and the turn ended at **74**: the gunner left at
+  the guns fires everything that bears, always, whatever the heat. That is
+  deliberate — it is what a battle computer is bought to fix — but quoting it
+  at nobody was not, and it left the one order whose purpose is cooling
+  advertised with the wrong sign while *hold fire*, which cools by 10, read as
+  the order that does nothing. The forecast now steps the turn the way
+  `combat.take_turn` steps it and is exact to the hundredth over 2,095 played
+  turns. **The general form: ask what the player is actually choosing between,
+  and forecast that.**
+- **A dry run beats a better formula.** The residual error after folding in the
+  other seats was the geometry moving under the forecast — worst at *present
+  the broadside*, whose own blurb says everything on the flanks bears, and which
+  was therefore quoted as *cooling* on eight turns in a thousand. Our guns fire
+  after our own helm has moved us and before the enemy moves at all, so flying
+  the order on a copy of the body is not an approximation of the answer, it is
+  the answer. Copying two dataclasses retired the whole error class.
+- **The ceiling belongs to the one function that adds heat.** `ship.add_heat`
+  clamps; shedding is a plain `max(0, heat - x)` and never consults the ceiling.
+  Reproducing that in a forecast, I clamped on every step *and on a step of
+  zero* — which cooled a hull sitting above a ceiling lowered by radiator damage
+  by five points a turn it never lost. `delta >= 0` and `delta > 0` are
+  different programs when the hull is already over.
+- **A mutation that changes nothing is not a coverage gap.** Replacing the
+  salvo's arc-and-band test with arc alone failed to break any check, and the
+  reason was that the two never differ at any range these hulls fight at:
+  0 turns in 89. The real gap was next door — the count check ran only with full
+  magazines, where "what trains" and "what burns" are the same list. Both
+  mutations bit once it ran with an empty one.
 - **A promise in the sales text is a claim the game has to meet.** A treaty was
   sold as "mutual berthing, shared charts, and a clause about the Bloom that
   nobody expects to be honoured" for 30,000 credits. The third is a joke; the
