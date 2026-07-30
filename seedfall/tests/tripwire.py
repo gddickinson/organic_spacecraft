@@ -42,8 +42,14 @@ import sys
 #: went stale the moment a suite was added, and the constants that suite
 #: protected looked unprotected because nothing here was running it. My own
 #: `SIGNING_FEE` check was reported unprotected for exactly that reason.
+#:
+#: `tutorial` was in here for building a window, and that cost it its fast path:
+#: `SETTLED_IN_DAYS` looked unprotected because the only suite that could speak
+#: for it was excluded. It sets the offscreen platform itself and the whole
+#: suite is two seconds, so needing a window was never the reason to skip it —
+#: being expensive is. Zero, half and double are all caught.
 SLOW = {"chronicle", "verbs", "ui", "resume", "efficacy", "balance",
-        "instruments", "bridge", "manual", "tutorial", "voices", "play",
+        "instruments", "bridge", "manual", "voices", "play",
         "layers", "plans", "xeno", "dig", "reachable", "tuning"}
 
 
@@ -198,6 +204,7 @@ KIN = {
     "biology": ("biology",),
     "settlements": ("settlement", "exchequer"),
     "settlement": ("settlement",),
+    "tutorial": ("tutorial",),
 }
 
 

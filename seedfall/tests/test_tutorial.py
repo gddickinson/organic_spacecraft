@@ -146,6 +146,158 @@ def run(suite: Suite) -> None:
         assert tutorial_sim.check(game)
         return "two bodies surveyed beforehand, and the lesson still had to be done"
 
+    @check("a veteran restarting it is not made to do it all again")
+    def _():
+        # **The other half of the check above, and the reason `skip_if` existed.**
+        # The tutorial can be started from the Help screen at any time, so a
+        # captain two years in was being told to "survey one of the bodies here"
+        # with thirty surveys behind them, and had to go and do another. Every
+        # step demanded a fresh action for something long since learned.
+        #
+        # `Lesson.skip_if` was declared for exactly this from the day lessons were
+        # written, set on **no lesson at all**, and read by nothing.
+        from ..sim import market as market_sim
+
+        game = _at_a_port("tut-veteran")
+        survey(game, 0)
+        market_sim.note_prices(game, game.system)
+        game.discovered["systems"].append(
+            next(s.id for s in game.galaxy.systems if s.id != game.location_id))
+        game.day = 700
+
+        tutorial_sim.begin(game)
+        told = tutorial_sim.state(game)
+        assert told["running"], told
+        assert told["known"] == 2, (
+            f"{told['known']} steps stepped over; surveying and a noted market "
+            "are both demonstrably done")
+        assert told["lesson"].id == "sell", told["lesson"].id
+        assert told["step"] == 3, told["step"]
+
+        # And the rest is still taught, including the ones the chronicle cannot
+        # vouch for. `helm` goes when its turn comes, because `_past_known` runs
+        # after every step and not only at the start.
+        taught = []
+        for _ in range(len(LESSONS) + 2):
+            state = tutorial_sim.state(game)
+            if not state.get("running"):
+                break
+            taught.append(state["lesson"].id)
+            _do(game, state["lesson"].watch)
+            assert tutorial_sim.check(game), state["lesson"].id
+            tutorial_sim.acknowledge(game)
+        assert "helm" not in taught, (
+            f"the helm lesson was taught to a captain who has been to another "
+            f"system: {taught}")
+        assert {"sell", "fuel", "ship", "powers"} <= set(taught), taught
+        assert tutorial_sim.held(game).known == 3, tutorial_sim.held(game).known
+        return (f"opened at step 3 of {len(LESSONS)} with 2 already done, "
+                f"taught {', '.join(taught)}, stepped over 3 in all")
+
+    @check("the settling-in month is a month, not a moratorium")
+    def _():
+        # The check above stands at day 700 and the one above that inside the
+        # first weeks, so between them they say the gate exists — but not
+        # *where*. Set `SETTLED_IN_DAYS` to two months and both still pass, and
+        # a captain a season in would be sent to survey a body again.
+        #
+        # So this one brackets it from both sides with the same captain: a week
+        # in, everything is taught; six weeks in, what the chronicle can show is
+        # stepped over. Whatever the number is, it lies between them.
+        made = []
+        for day in (7, 45):
+            game = _at_a_port(f"tut-month-{day}")
+            survey(game, 0)
+            game.day = day
+            tutorial_sim.begin(game)
+            made.append(tutorial_sim.state(game)["known"])
+        early, settled = made
+        assert early == 0, (
+            f"a captain {7} days in was stepped over {early} lessons — inside "
+            "the settling-in month nothing is assumed")
+        assert settled == 1, (
+            f"a captain 45 days in was stepped over {settled} lessons; the "
+            "survey behind them should have counted by then")
+        return "a week in nothing is assumed, six weeks in the survey counts"
+
+    @check("only the lessons the chronicle can vouch for carry a skip")
+    def _():
+        # Four of eight, and the four that do not are not an oversight: the
+        # chronicle keeps *state*, and "was cargo ever sold", "were volatiles
+        # bought rather than mined" and "was this screen ever opened" are
+        # *history* it does not keep. Inventing a counter to feed a tutorial
+        # would be the tail wagging the dog.
+        named = {lesson.id: lesson.skip_if for lesson in LESSONS
+                 if lesson.skip_if}
+        assert len(named) == 4, named
+        for lesson in LESSONS:
+            if lesson.skip_if:
+                assert lesson.skip_if in tutorial_sim.SKIPS, (
+                    f"{lesson.id} names a skip watcher that does not exist: "
+                    f"{lesson.skip_if}")
+        stray = set(tutorial_sim.SKIPS) - set(named.values())
+        assert not stray, f"skip watchers no lesson names: {stray}"
+
+        # Each one is false on a fresh chronicle and true once the thing is done,
+        # which is the whole of what it claims.
+        game = _at_a_port("tut-skips")
+        game.day = 700
+        for name, fn in tutorial_sim.SKIPS.items():
+            assert not fn(game), (
+                f"{name} is already true of a chronicle where nothing has "
+                "happened")
+        from ..sim import market as market_sim
+        survey(game, 0)
+        market_sim.note_prices(game, game.system)
+        game.discovered["systems"].append(
+            next(s.id for s in game.galaxy.systems if s.id != game.location_id))
+        fired = [name for name, fn in tutorial_sim.SKIPS.items() if fn(game)]
+        assert set(fired) == {"have_surveyed", "have_prices", "have_travelled"}, \
+            fired
+        return (f"{len(named)} of {len(LESSONS)} lessons carry a skip; "
+                f"{len(fired)} fired once the things were done")
+
+    @check("a chronicle can be opened with a lesson already running")
+    def _():
+        # **Which is the reload case, and it crashed.** `MainWindow.__init__`
+        # builds the tutorial bar, the bar refreshes on construction, and it asks
+        # `win.current` to decide whether to offer "Take me there" — while
+        # `self.current` was assigned forty lines further down. So opening a
+        # chronicle that already had a tutorial running died with
+        # `'MainWindow' object has no attribute 'current'`.
+        #
+        # Every check here built the window first and started the tutorial after,
+        # so not one of them ever went through this door.
+        try:
+            from .test_ui import _use_offscreen
+            _use_offscreen()
+            from PyQt6.QtWidgets import QApplication
+        except ImportError as err:              # pragma: no cover
+            return f"skipped: {err}"
+        from ..ui import theme
+        from ..ui.window import MainWindow
+
+        app = QApplication.instance() or QApplication([])
+        app.setStyleSheet(theme.stylesheet())
+        game = _at_a_port("tut-reload")
+        tutorial_sim.begin(game)                # running *before* the window
+        assert tutorial_sim.running(game)
+        win = MainWindow(game)                  # this used to raise
+        win.resize(1100, 700)
+        win.dialog = lambda *a, **k: None
+        win.go("port")
+        win.refresh()
+        win.grab()
+        # `isHidden`, not `isVisible`: the window is never shown here, and a
+        # widget in an unshown window is not "visible" however it was set. The
+        # bar's own `setVisible(False)` is what this is asking about.
+        assert not win.tutorial_bar.isHidden(), "the bar did not come up"
+        from PyQt6.QtWidgets import QLabel
+        said = " ".join(lb.text() for lb in
+                        win.tutorial_bar.findChildren(QLabel))
+        assert "of" in said and said.strip(), said
+        return "a window built around a running tutorial opens and draws"
+
     @check("it never blocks a screen")
     def _():
         # A tutorial that stops you doing the thing it describes is worse than

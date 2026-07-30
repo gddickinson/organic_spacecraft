@@ -72,10 +72,6 @@ ALLOWED: dict[str, str] = {
         "Kept because the categories are the right ones and a grouped board is "
         "wanted; it is display metadata rather than a rule, and nothing in the "
         "sim should ever read it.",
-    "lessons.Lesson.skip_if":
-        "A watcher naming a thing already true, so a tutorial step can skip "
-        "itself. Task #87: the tutorial's step machinery advances on watchers "
-        "firing, and skipping needs it to evaluate one at entry instead.",
 }
 
 

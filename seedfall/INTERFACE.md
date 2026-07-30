@@ -1914,7 +1914,7 @@ seedfall/
     ├── interact.py     plays by pressing what is on the screen, not by calling sim
     ├── test_bridge.py  6 checks — the protocol answers, always, and stays local
     ├── test_manual.py  13 checks — the manual cannot go stale, options cannot lie
-    ├── test_tutorial.py 8 checks — it will not take your word for it
+    ├── test_tutorial.py 12 checks — it will not take your word for it
     ├── chronicle.py    one captain, one save, a decade of doing everything
     ├── test_chronicle.py 3 checks — that decade, through every screen
     ├── capture.py      renders every screen offscreen, for the README
@@ -1957,6 +1957,22 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 
 ## The parts that will bite you
 
+- **`MainWindow.__init__` refreshes before it is fully built.** The tutorial bar
+  is constructed forty lines into `__init__` and refreshes itself on
+  construction, and it asks `win.current` — which was assigned *after* it. So
+  opening a chronicle that already had a tutorial running raised
+  `'MainWindow' object has no attribute 'current'`, which is the reload case: a
+  save made mid-lesson. Every check built the window first and started the
+  tutorial after, so none of them went through that door. `current` and `views`
+  are initialised at the top now; anything a child widget asks about during
+  construction has to exist before the child does.
+- **Two true-sounding claims can contradict each other, and the answer is
+  usually scale.** "A tutorial step that is already true should skip itself" and
+  "a captain who did it already is not advanced for free" are irreconcilable
+  from state alone — one incidental survey and two years of them are the same
+  fact at different sizes. `tutorial.SETTLED_IN_DAYS` is the distinction: inside
+  the first month everything is taught, after it what the chronicle can show you
+  have done is stepped over. Both checks pass unchanged.
 - **Price is not value, and the exchequer chose by price.** `_invest` took the
   cheapest work it could afford — and the equilibrium the upkeep curve is built on
   means the cheap works are the ones that never pay: promoting an outpost to a
@@ -2280,7 +2296,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   entry naming a `SLOW` suite is worse: the verdict then depends on whether a
   module has an entry at all. `test_harness_guard` holds both, and requires
   every module with constants either to have a fast path or to be named as
-  having no suite that covers it.
+  having no suite that covers it. It caught its first live case in
+  `SETTLED_IN_DAYS`: `tutorial` was on the `SLOW` list **for building a
+  window**, which cost the constant its only witness. That list means "too
+  expensive to run once per constant" — and the tutorial suite sets the
+  offscreen platform itself and runs in two seconds. Needing a window is not a
+  reason to exclude a suite; costing thirty is.
 - **Every action that spends a turn must run the seats.** `take_turn` takes
   two shapes: `{"type": "station", "order": ...}`, which runs the crew-station
   system, and the older `{"type": "fire", "weapon_id": ...}` family, which the
@@ -3475,6 +3496,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   rather than hidden: the height precision at a small body (task #102) and the
   plane change that is most of what a climb costs (task #101), both with the
   measurements that found them.
+- **`test_tutorial.py`** gained three: a veteran restarting it from the Help
+  screen opens at **step 3 of 8 with 2 already done** and is still taught the
+  five the chronicle cannot vouch for, only those four lessons carry a
+  `skip_if` (the chronicle keeps *state*, and "was cargo ever sold" is
+  *history*), and a window can be built around a tutorial that is already
+  running — which used to raise
+  A fourth brackets the settling-in month from both sides — a captain a week in
+  is assumed nothing, one six weeks in has their survey counted — because zeroing
+  and halving `SETTLED_IN_DAYS` were caught and **doubling was caught by
+  nothing**: the veteran check stands at day 700, so a two-month gate passed
+  while a captain a season in was still sent to survey another body.
 - **`test_settlement.py`** runs a sector for five years and watches it fill:
   **4 → 13 → 23 → 40 → 59 settlements** across 21 systems and all four workable
   goods, the ground deciding what each one works, the worked good cheaper where it

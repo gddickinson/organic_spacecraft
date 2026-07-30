@@ -28,6 +28,15 @@ class MainWindow(QMainWindow):
         self.game = game
         self.battle = None
         self._return_to = "system"
+        # **Before anything that can refresh.** `TutorialBar` is built forty lines
+        # below and refreshes itself on construction, and it asks `win.current` to
+        # decide whether to offer "Take me there" — so opening a chronicle that
+        # already has a tutorial running died with `'MainWindow' object has no
+        # attribute 'current'`. Which is the reload case: a saved game mid-lesson.
+        # Every check had built the window first and started the tutorial after,
+        # so none of them ever hit it.
+        self.current = None
+        self.views: dict[str, object] = {}
         self.setWindowTitle(f"{TITLE} — a GESTALT Programme Chronicle")
         self.resize(1360, 880)
         self.setMinimumSize(1040, 680)
@@ -62,8 +71,6 @@ class MainWindow(QMainWindow):
         row.addWidget(self._build_log())
         outer.addWidget(middle, 1)
 
-        self.views: dict[str, object] = {}
-        self.current = None
         self._make_views()
         self.statusBar().setStyleSheet(
             f"color: {theme.INK3}; font-family: '{theme.mono_family()}'; font-size: 10px;")

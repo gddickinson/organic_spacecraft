@@ -55,10 +55,17 @@ class TutorialBar(QWidget):
         row = QHBoxLayout(head)
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(10)
+        # `known` is steps stepped over because the captain had already done
+        # them — the tutorial is startable from the Help screen at any time, so a
+        # veteran restarting it opens at step three of eight. Saying so is the
+        # difference between that and looking broken.
+        done = standing.get("known") or 0
         row.addWidget(label(
             f"{standing['step']} of {standing['of']} · "
             + ("What just happened" if explaining
-               else standing["lesson"].title), "label", tint))
+               else standing["lesson"].title)
+            + (f" · {done} you had already done" if done else ""),
+            "label", tint))
         row.addStretch(1)
         if explaining:
             row.addWidget(button("Got it", self._next, kind="primary"))

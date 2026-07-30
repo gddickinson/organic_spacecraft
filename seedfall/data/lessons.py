@@ -37,7 +37,8 @@ LESSONS = [
            "is on a body — ore, ice, biomes, lifeforms, anomalies, sometimes a "
            "buried alien site — and it puts evidence on the research bench at "
            "the same time. Surveying every body in a system completes a chart, "
-           "which is a thing you can sell."),
+           "which is a thing you can sell.",
+           skip_if="have_surveyed"),
 
     Lesson("port", "Find out what things are worth",
            "Open the Port screen. You do not have to buy anything yet.",
@@ -46,7 +47,8 @@ LESSONS = [
            "profitable run stays profitable for a while and then quietly stops "
            "being. Every price you look at is written into your register, and "
            "the freight desk on that screen ranks runs using it — by what the "
-           "voyage clears, not by the spread."),
+           "voyage clears, not by the spread.",
+           skip_if="have_prices"),
 
     Lesson("sell", "Sell what you have learned",
            "Sell your survey data at the port. It is the first money most "
@@ -71,7 +73,8 @@ LESSONS = [
            "A jump drops you at the system edge, not alongside anything, and "
            "bodies keep moving on their orbits while you fly. Four burn "
            "profiles trade reaction mass against days, and coasting is always "
-           "free. A hard burn arrives hot, and over the cap the hull cooks."),
+           "free. A hard burn arrives hot, and over the cap the hull cooks.",
+           skip_if="have_travelled"),
 
     Lesson("work", "Take on some work",
            "Accept a contract from the board on the Port screen.",
@@ -79,7 +82,8 @@ LESSONS = [
            "Contracts complete the moment their terms are met rather than when "
            "you remember to hand them in. Taking a power's work is a position, "
            "not an errand: finishing it costs you standing with everyone that "
-           "power is at odds with, in proportion to how bad the rift is."),
+           "power is at odds with, in proportion to how bad the rift is.",
+           skip_if="have_worked"),
 
     Lesson("ship", "Look at what you are flying",
            "Open the Ship screen and switch to the Plans tab.",

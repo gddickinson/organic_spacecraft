@@ -2,6 +2,74 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: two true claims that contradicted each other (#87)
+
+`Lesson.skip_if` — "a watcher that means this is already true" — has been declared
+since lessons were written. It was read by nothing, and it was also **set on no
+lesson at all**: eight lessons, eight empty strings. Doubly dead.
+
+Why it matters is the option page's own sentence: the tutorial *"can also be
+started from the Help screen at any time."* Every watcher compares against a
+`mark` taken when its step opens, so a captain two years in who starts the
+tutorial is told to "survey one of the bodies here" with thirty surveys behind
+them — and has to go and survey another. Every step demanded a fresh action for
+something long since learned.
+
+**And then the fix ran straight into a check that says the opposite.** *"A captain
+who did it already is not advanced for free"* has been in the suite since the
+tutorial shipped: it surveys two bodies, starts the tutorial, and asserts step one
+is still to be done. Both claims are right, and from state alone they are the same
+fact at two sizes — one incidental survey five minutes ago against two years of
+them. So the distinction is the size: `SETTLED_IN_DAYS`. Inside the first month
+everything is taught; after it, what the chronicle can show you have done is
+stepped over. Both checks pass unchanged, which is how I know the reconciliation is
+real rather than a preference.
+
+**Four of the eight lessons carry a skip, and the other four cannot.** The
+chronicle keeps *state* — this body is surveyed, this port's prices are in the
+register, these systems have been visited, this contract is accepted — and the
+remaining questions are *history*: was cargo ever sold, were volatiles bought
+rather than mined, was the Ship screen ever opened. It keeps no record of those,
+and inventing a counter to feed a tutorial would be the tail wagging the dog. Those
+four ask again, which for a step that takes one click is a fair price.
+
+Played: a fresh captain opens at step 1 of 8 with nothing skipped. A captain at day
+700 who has surveyed, noted a market and been to another system opens at **step 3
+of 8, "2 you had already done"** on the bar, is taught sell, fuel, work, ship and
+powers, and has 3 stepped over in all — `helm` goes when its turn comes, because
+the skip is re-evaluated after every step and not only at the start.
+
+**A crash found by taking the screenshot.** `MainWindow.__init__` builds the
+tutorial bar forty lines in; the bar refreshes on construction and asks
+`win.current`, which was assigned *after* it. So opening a chronicle with a
+tutorial already running died with `'MainWindow' object has no attribute
+'current'` — which is the reload case, a save made mid-lesson. Every check in the
+tutorial suite built the window first and started the tutorial after, so not one of
+them ever went through that door. `current` and `views` are set at the top of
+`__init__` now, and there is a check that builds a window around a running
+tutorial.
+
+**And the reconciliation's own number was unguarded, which the harness caught.**
+A month is a tuning constant, and `SETTLED_IN_DAYS` went in without a fast path,
+so the tripwire's guard failed the run: the only suite that could speak for it —
+`tutorial` — was on the excluded list *for building a window*. That exclusion is
+supposed to mean "too expensive to run per constant", and this suite sets the
+offscreen platform itself and takes **two seconds**. Off the list, and its
+verdict measured rather than assumed: zeroed and halved are both caught by the
+check above, and **doubled was caught by nothing** — the veteran stands at day
+700, so two months would have passed while a captain a season in was still being
+sent to survey another body. So the month is bracketed from both sides now, by
+one captain at two days apart: a week in, nothing is assumed; six weeks in, the
+survey counts. Whatever the number is, it lies between them, and all three
+degenerate values fail.
+
+That leaves **one entry on the dead-field allowlist**: `commodities.Commodity.cat`,
+which is display metadata for a grouped market board and is deliberately not read
+by the sim. Every other field in `data/`, `sim/`, `world/` and `core/` — 1,192 of
+them — is consumed by something.
+
+Four new checks, 936 across the suite, all green.
+
 ## 2026-07-30 — SEEDFALL: somebody on the ground at last (#99)
 
 Measured at turn zero, and it has been true since the sector was written: **161
