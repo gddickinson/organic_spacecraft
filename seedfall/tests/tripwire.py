@@ -218,6 +218,7 @@ KIN = {
     "wharfage": ("wharfage", "counter", "accord"),
     "accord": ("accord", "wharfage"),
     "turnplan": ("turnplan", "orderplan"),
+    "surfaces": ("surfaces", "worlds", "lighting"),
 }
 
 

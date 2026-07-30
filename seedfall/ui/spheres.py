@@ -35,7 +35,7 @@ from PyQt6.QtCore import QPointF, QRectF
 from PyQt6.QtGui import (QBrush, QColor, QPainter, QPainterPath,
                          QRadialGradient)
 
-from . import render3d
+from . import render3d, surface
 
 #: How many latitude caps a world is painted in. Cheap — each is one clipped
 #: fill against 2,640 polygons for the fine mesh — so this is set by what the eye
@@ -67,6 +67,18 @@ LIT_OFFSET = 0.62
 #: flatter than multiplied light, so the whole of it would blow the subsolar point
 #: out to white. Two thirds keeps the surface's own colour visible under it.
 OVER_BRIGHT = 0.66
+
+#: How large a world has to be on screen, as a share of the smaller side of the
+#: frame, before ground texture is drawn under it. Below this the disc is small
+#: enough that the named features are the whole story and a detail cell would be
+#: sub-pixel — paying for a lattice to draw nothing.
+#:
+#: Set by looking rather than guessed. At 0.30 a world seen whole — the ordinary
+#: view from a few diameters out, which is most of the time anybody looks at one
+#: — got no texture at all and stayed the smooth ball this cycle set out to fix;
+#: only the low-orbit case improved. 0.12 is a disc about a quarter of the frame
+#: across, where a detail cell is still several pixels.
+DETAIL_FROM = 0.12
 
 #: How much of the limb is lifted by a thin bright edge, and how wide it is as a
 #: share of the radius. This is the atmosphere seen edge-on, which is the one
@@ -181,7 +193,8 @@ def _limb(painter: QPainter, disc: QPainterPath, centre: QPointF,
 
 def draw(painter: QPainter, camera: render3d.Camera, paint, at,
          radius_km: float, light, spin: float = 0.0, tilt: float = 0.0,
-         glare: float = 1.0) -> float:
+         glare: float = 1.0, features=(), stretch: float = 1.0,
+         detail=None) -> float:
     """Paint one world. Returns its screen radius, or 0 if nothing was drawn.
 
     `paint(lat)` is the same latitude-to-colour hook the meshes are built from —
@@ -212,6 +225,24 @@ def draw(painter: QPainter, camera: render3d.Camera, paint, at,
         colour = QColor(paint(lat))
         painter.setBrush(colour)
         painter.drawPath(_cap_path(centre, radius, pole, depth, lat))
+
+    # And what is on it at a longitude as well as a latitude. Painted here,
+    # between the ground and the light, so a feature on the night side is dark
+    # for the same reason the ground under it is — and clipped by the disc
+    # already set, so one overrunning the limb is cut by the world's own edge.
+    surface.draw(painter, camera, at, radius_km, features, spin, tilt, stretch)
+
+    # Then the ground texture, at whatever scale the frame is holding. The
+    # named features above are continents: right for looking at a globe, and
+    # bigger than the picture from low orbit, where berthing happens and where
+    # the whole frame was one flat colour before this. `surfaces.detail_near`
+    # is a lattice fixed to the ground rather than a list, so it costs the
+    # cells in view and the same patch looks the same every time.
+    if detail and radius > DETAIL_FROM * min(camera.w, camera.h):
+        span = surface.visible_span(camera, at, radius_km, radius)
+        lat0, lon0 = surface.ground_under(camera, at, spin, tilt)
+        surface.draw(painter, camera, at, radius_km,
+                     detail(lat0, lon0, span), spin, tilt, stretch)
 
     # The light, multiplied over it. **The gradient's centre is the sub-stellar
     # point itself, projected** — not a screen direction worked out from the

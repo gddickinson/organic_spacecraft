@@ -29,7 +29,7 @@ from PyQt6.QtGui import QColor, QFont, QPainter, QPen, QRadialGradient
 from PyQt6.QtWidgets import QWidget
 
 from ..core.rng import RNG
-from ..data import models3d, worlds3d
+from ..data import models3d, surfaces, worlds3d
 from ..sim import conn as conn_sim
 from . import render3d, spheres, theme
 
@@ -162,6 +162,19 @@ def project(vec, cam, width: int, height: int):
     return (width * 0.5 + x, height * 0.5 - y, ahead)
 
 
+def _detail(look: str, name: str):
+    """The ground-texture hook for one body, or None where there is no kind.
+
+    A closure rather than a list, because the lattice `surfaces.detail_near`
+    walks depends on where the camera is looking and how much ground the frame
+    holds — neither of which this module knows until the world is projected.
+    """
+    if not look:
+        return None
+    return lambda lat, lon, span: surfaces.detail_near(look, name, lat, lon,
+                                                       span)
+
+
 class Viewport(QWidget):
     """One camera's picture, live off a `Conn`."""
 
@@ -270,7 +283,11 @@ class Viewport(QWidget):
                                   glare=hard)
                 spheres.draw(p, camera, worlds3d.paint_for(sight.look),
                              sight.at, sight.radius_km, self.light(conn),
-                             tilt=0.42, glare=hard)
+                             tilt=0.42, glare=hard,
+                             features=surfaces.features_for(sight.look,
+                                                            sight.name),
+                             stretch=surfaces.stretch_for(sight.look),
+                             detail=_detail(sight.look, sight.name))
                 if sight.ringed:
                     render3d.draw(p, camera, worlds3d.RINGS_FRONT, sight.at,
                                   sight.radius_km, self.light(conn), tilt=0.42,
@@ -378,10 +395,14 @@ class Viewport(QWidget):
                               conn.target.radius_km, self.light(conn),
                               spin=spin, tilt=0.35, glare=hard)
             if conn.target.kind == "body":
-                spheres.draw(p, camera, worlds3d.paint_for(
-                    getattr(conn.target, "look", "") or "rocky"),
+                look = getattr(conn.target, "look", "") or "rocky"
+                spheres.draw(p, camera, worlds3d.paint_for(look),
                     (0.0, 0.0, 0.0), conn.target.radius_km, self.light(conn),
-                    spin=spin, tilt=0.35, glare=hard)
+                    spin=spin, tilt=0.35, glare=hard,
+                    features=surfaces.features_for(
+                        look, getattr(conn.target, "name", "")),
+                    stretch=surfaces.stretch_for(look),
+                    detail=_detail(look, getattr(conn.target, "name", "")))
             else:
                 render3d.draw(p, camera, mesh, (0.0, 0.0, 0.0),
                               conn.target.radius_km, self.light(conn),

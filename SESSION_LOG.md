@@ -2,6 +2,70 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: a world you dock over should look like a place (#3D)
+
+First cycle on the 3D axis. I began by rendering the conn's own viewport and
+looking at it, which is the whole method here: at 200 km over a 3,000 km world —
+the altitude berthing happens at, so the backdrop to the entire docking
+activity — the frame was **one flat colour with three banding arcs across it**.
+
+`data/worlds3d.py` paints a world by latitude, and says so: caps for nothing,
+belts for a giant. It buys a great deal cheaply and has one consequence nobody
+had looked at — a world painted by latitude alone is *the same picture from
+every side*, and from low orbit it is no picture at all.
+
+`data/surfaces.py` and `ui/surface.py` add the other axis, in two sizes:
+
+- **Named features** at a latitude *and* a longitude — maria, continents,
+  storms — stable per body, so a world looks like itself every time.
+- **A lattice of ground texture** fixed to the ground and sized to the frame.
+  A list fine enough for low orbit would be tens of thousands of features; a
+  lattice costs the cells in view, and the same patch of ground answers the
+  same way every time it is looked at.
+
+A cap on a sphere projects to an ellipse, and the honest way to get it is to
+ask the camera: project the centre and one rim point per tangent, and the two
+screen vectors that come back are conjugate radii of exactly that ellipse. Right
+at any range, foreshortening included, no special cases. The first draft sized
+it orthographically and was visibly wrong from 200 km up.
+
+**Four things the pictures taught me, in order.**
+
+*Soap bubbles.* Six detail cells across the frame is a handful of circles each a
+sixth of the picture. Twelve is ground.
+
+*Bokeh.* Every mark was a perfect circle and the overlaps were perfect lenses.
+Two harmonics of the polar angle turn a disc into a blotch and cost nothing —
+the outline was already a polygon. Fixed weights then gave every blotch the same
+three-lobed notch, so the weights vary per feature too.
+
+*A splash.* A gas giant's storms were sheared along an *arbitrary* tangent, so
+the giant read as a fingerprint. Weather on a banded world runs along the band,
+and east is a thing with a definition. Even so, blotch texture fought the belts:
+a giant now gets a few great storms and no ground lattice, because a giant has
+no ground.
+
+*A smooth marble.* Detail only ran when a world nearly filled the frame, so the
+ordinary view — a world seen whole — was untouched by the whole cycle. Lowering
+the threshold to a quarter of the frame is what turned the globe from a marble
+into a place.
+
+**And the checks found a real defect in my own lattice.** It hashed each cell by
+its global index and *positioned* it relative to the camera, so the ground slid
+as the hull moved and each blotch changed identity at a cell boundary — the
+boiling the lattice exists to prevent, shipped under a comment claiming it could
+not happen. Snapping the cell to the globe fixed it; the check that caught it
+moves the camera and asks the cells the two views share to agree.
+
+Measured after: local contrast from low orbit 0.36 → 1.17, over 37% of the
+world; half a turn changes 42% of it; two rocky worlds differ over 36%.
+
+Twelve mutations swept, all caught. One caught nothing and is a near-no-op — the
+axis a *round* blotch is stretched along cannot show — so the claim it guards is
+pinned geometrically instead: east is square to the pole, exactly.
+
+`test_surfaces.py` — 8 checks. Full suite green: **1,020 checks**.
+
 ## 2026-07-30 — SEEDFALL: the orders panel forecast the order, not the turn (#combat)
 
 Combat this cycle, on the crew-stations axis. I started by playing engagements

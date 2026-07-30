@@ -1642,6 +1642,8 @@ seedfall/
 │   ├── save.py         generic dataclass ⇄ JSON codec, @register, atomic write
 │   ├── solid.py        a tiny 3D kit: primitives, projection, key/fill/rim
 │   │                   lighting, specular and a depth term
+│   ├── surface.py     a cap on a sphere projected as an ellipse, from its
+│   │                   own axes rather than from an orthographic guess
 │   ├── llm.py          optional language model, off by default, hard timeout
 │   └── state.py        the Game object, advance_days(), new_game(), load_game()
 ├── data/               static content tables — pure data, no logic
@@ -1689,6 +1691,8 @@ seedfall/
 │   ├── starclasses.py  8 spectral classes with real radii and luminosities —
 │   │                   a 12 km neutron star to an A-type at 1.8 solar
 │   ├── worlds3d.py     worlds by latitude: caps, bands, and concentric rings
+│   ├── surfaces.py     and by longitude: named features, and a lattice of
+│   │                   ground texture sized to whatever the frame holds
 │   │                   (starclasses also carries each class's mass, which is
 │   │                   what decides how fast its worlds go round)
 │   └── lore.py         intro, victories, endings, name pools, glossary
