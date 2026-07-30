@@ -163,20 +163,30 @@ def _mine(power: str, cid: str, game) -> list:
 
 
 def industrialise(game, system) -> list[str]:
-    """Bring every industry its owner holds up at this berth.
+    """Bring up everything that is made in this system.
 
     The only writer of `Stock.works`, and it *recomputes* rather than
     multiplies: called twice it does the same thing once. `exchequer.found`
     calls it too, so a berth built after the licence was sold comes up with the
     industry already running instead of being the one port that never got it.
+
+    **Two sources now, one number.** A licensed process is what the *holder of
+    the berth* was taught to make; a settlement is people on the ground making
+    what the ground gives (`sim/settlement.py`). `Stock.works` began as the
+    first and means both — "how much of this is made here" should have one
+    answer however it came to be made, and two functions writing one field is
+    how they come to disagree.
     """
-    port, market = system.port, system.market
-    if port is None or market is None:
+    market = system.market
+    if market is None:
         return []
+    from . import settlement as settlement_sim
+    ground = settlement_sim.supply_at(game, system)
+    port = system.port
     told = []
     for cid, stock in market.stock.items():
-        works = 1.0
-        for process in _mine(port.faction, cid, game):
+        works = ground.get(cid, 1.0)
+        for process in (_mine(port.faction, cid, game) if port else ()):
             works *= process.supply
             if process.opens and stock.base <= 0:
                 # A trade that was not there at all. Nothing multiplies zero
@@ -186,6 +196,8 @@ def industrialise(game, system) -> list[str]:
                 stock.supply = max(stock.supply, 0.05)
             told.append(process.name)
         stock.works = works
+    told.extend(f"{s.good} worked on the ground"
+                for s in settlement_sim.in_system(game, system.id))
     return sorted(set(told))
 
 

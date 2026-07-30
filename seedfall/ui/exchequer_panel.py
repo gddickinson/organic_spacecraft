@@ -37,6 +37,10 @@ def build(game) -> Panel:
                   f"{cr(row['took'])} in · {cr(row['paid'])} out · "
                   f"{cr(row['margin'])} clear",
                   "chloro" if row["margin"] > 0 else "warn")
+        if row["settlements"]:
+            p.add_row("On the ground",
+                      f"{row['settlements']} settlement(s) · "
+                      f"{cr(row['ground'])} a day", "lumen")
         p.add_row("Holds", f"{row['ports']} berths · {row['levels']} levels"
                            + (f" · {row['pinched']} pinched by a shortage"
                               if row["pinched"] else ""),

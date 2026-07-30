@@ -37,6 +37,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..core.save import register
+from ..data.settlements import FOUND_COST as SETTLE_COST
 from ..data.exchequer import (CAPITAL_BONUS, FOUND_COST, HARBOUR_DUE,
                               INDUSTRY_YIELD, OPENING_PURSE, RESERVE,
                               RICH_APPETITE, SETTLE_DAYS, SHORTAGE_YIELD,
@@ -140,7 +141,9 @@ def upkeep_of(port) -> float:
 
 
 def income(game, power: str) -> float:
-    return sum(yield_of(game, s) for s in holdings(game, power))
+    from . import settlement as settlement_sim
+    return (sum(yield_of(game, s) for s in holdings(game, power))
+            + settlement_sim.income(game, power))
 
 
 def outlay(game, power: str) -> float:
@@ -184,6 +187,25 @@ def found(game, system, power: str) -> str | None:
     return f"a new {kind[1]} is open at {system.name}"
 
 
+def plant(game, system, body_id: str, power: str) -> str | None:
+    """Put people on a body. The one door onto founding a settlement here.
+
+    **Not `settle`** — that name was taken, by the function that does the books.
+    The first draft used it and Python quietly kept whichever came last in the
+    file, so the monthly settlement ran with a body id where its day count
+    should have been.
+    """
+    from . import settlement as settlement_sim
+    body = next((b for b in system.bodies if b.id == body_id), None)
+    if body is None:
+        return None
+    made = settlement_sim.found(game, system, body, power)
+    if made is None:
+        return None
+    return (f"people are on the ground at {body.name}, working "
+            f"{made.good}")
+
+
 def demote(game, system) -> str | None:
     """One step down, and off the map altogether from the bottom step."""
     port = system.port
@@ -205,22 +227,72 @@ def demote(game, system) -> str | None:
 
 # ── what a power does with the money ───────────────────────────────────────
 
-def works_open(game, power: str) -> list[tuple[int, object, str]]:
-    """Everything this power could spend on, cheapest first.
+def payback(game, power: str, cost: int, what: str) -> float:
+    """Days for one work to pay for itself, or `inf` if it never does.
 
-    Each entry is `(cost, system, what)`. The list is the whole of the power's
-    ambition: promote a port it holds, or found one on ground it holds and has
-    never built on.
+    **The exchequer chose by price, and price is not value.** `_invest` took the
+    cheapest work it could afford, and the equilibrium the upkeep curve is built
+    on means the cheap works are the ones that never pay: promoting an outpost to
+    a station adds 90 a day of yield and 90 a day of upkeep — *net nothing* — and
+    promoting a station to a hub is 60 a day worse than not bothering. Founding a
+    berth clears 60 a day for 40,000, and settling ground clears 32 for 32,000.
+    So the rule "take the cheapest" bought the two works with no return before
+    either of the two with one, and a sector's powers planted **six settlements
+    in year one and none in the seven years after**.
+
+    Sorting by payback fixes it without inventing a preference: a power does the
+    thing that pays for itself soonest, and the works that never pay are what it
+    does with money it has nothing better to do with — which is exactly what a
+    Fleet Hub is.
+    """
+    if what.startswith("settle:"):
+        # Asked of the settlement module, which counts the years a new one
+        # *loses* money — see `settlement.payback_days`. Dividing the cost by the
+        # mature rate reads 1,000 days where the truth is 1,485.
+        from . import settlement as settlement_sim
+        return settlement_sim.payback_days()
+    if False:
+        gain = 0.0
+    elif what == "found":
+        gain = YIELD_PER_LEVEL * PORT_KINDS[0][2] - upkeep_at(PORT_KINDS[0][2])
+    else:
+        level = int(what.split(":", 1)[1]) if ":" in what else 0
+        gain = ((YIELD_PER_LEVEL * level - upkeep_at(level))
+                - (YIELD_PER_LEVEL * (level - 1) - upkeep_at(level - 1)))
+    if gain <= 0:
+        return float("inf")
+    return cost / gain
+
+
+def upkeep_at(level: int) -> float:
+    """What a berth of this level costs a day. The curve, without a port."""
+    return UPKEEP_COEFF * max(0, level) ** 2
+
+
+def works_open(game, power: str) -> list[tuple[int, object, str]]:
+    """Everything this power could spend on, soonest-paying first.
+
+    Each entry is `(cost, system, what)`, where `what` is `"promote:<level>"`,
+    `"found"`, or `"settle:<body id>"`. The list is the whole of the power's
+    ambition: build up a berth it holds, found one on ground it holds and has
+    never built on, or put people on a body worth working.
     """
     out: list[tuple[int, object, str]] = []
     for system in holdings(game, power):
         want = system.port.level + 1
         if want in STEP_COST:
-            out.append((STEP_COST[want], system, "promote"))
+            out.append((STEP_COST[want], system, f"promote:{want}"))
     for system in game.galaxy.systems:
         if system.faction == power and system.port is None:
             out.append((FOUND_COST, system, "found"))
-    out.sort(key=lambda row: (row[0], row[1].id))
+    # And people on the ground. A berth is a place to tie up; a settlement is a
+    # place things come from, which is the half of an economy the sector did not
+    # have — 161 bodies and not one of them worked. See `sim/settlement.py`.
+    from . import settlement as settlement_sim
+    for system, body, _good in settlement_sim.sites_for(game, power)[:3]:
+        out.append((SETTLE_COST, system, f"settle:{body.id}"))
+    out.sort(key=lambda row: (payback(game, power, row[0], row[2]),
+                              row[0], row[1].id))
     return out
 
 
@@ -229,8 +301,12 @@ def _invest(game, power: str, p: Purse) -> str | None:
     for cost, system, what in works_open(game, power):
         if p.credits - cost < RESERVE:
             continue
-        told = (promote(game, system) if what == "promote"
-                else found(game, system, power))
+        if what.startswith("settle:"):
+            told = plant(game, system, what.split(":", 1)[1], power)
+        elif what.startswith("promote"):
+            told = promote(game, system)
+        else:
+            told = found(game, system, power)
         if told is None:
             continue
         p.credits -= cost
@@ -320,6 +396,16 @@ def settle(game, days: float) -> list[tuple[str, str]]:
 
 # ── what the screens read ──────────────────────────────────────────────────
 
+def settlement_of(game, power: str) -> list:
+    from . import settlement as settlement_sim
+    return settlement_sim.of_power(game, power)
+
+
+def settlement_income(game, power: str) -> float:
+    from . import settlement as settlement_sim
+    return settlement_sim.income(game, power)
+
+
 def ledger(game) -> list[dict]:
     """One row per power, from the same functions `settle` spends from."""
     out = []
@@ -339,6 +425,8 @@ def ledger(game) -> list[dict]:
             "ports": len(held),
             "levels": sum(s.port.level for s in held),
             "pinched": sum(1 for s in held if scarce(game, s)),
+            "settlements": len(settlement_of(game, p.power)),
+            "ground": settlement_income(game, p.power),
             "last": p.last,
             "works": p.works,
             "losses": p.losses,
@@ -357,7 +445,8 @@ def _next_work(game, power: str, p: Purse) -> str:
     if not open_now:
         return "nothing left to build"
     cost, system, what = open_now[0]
-    short = ("found a berth at" if what == "found" else "build up")
+    short = ("found a berth at" if what == "found"
+             else "settle" if what.startswith("settle:") else "build up")
     want = cost + RESERVE - p.credits
     if want <= 0:
         return f"about to {short} {system.name}"

@@ -2,6 +2,78 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: somebody on the ground at last (#99)
+
+Measured at turn zero, and it has been true since the sector was written: **161
+bodies across 42 systems and 0 settlements.** The player could plant a colony and
+no power ever had, so every trade in the Verge happened at an orbital berth and a
+world rich in phosphate was a number on a survey screen. The economy had one half.
+
+The powers settle now, out of the treasuries the exchequer cycle gave them, on
+bodies in systems they hold whose grades are worth working. A settlement is
+deliberately **not** a player colony — `data/colonies.py` is player-shaped, with
+build costs in the captain's materials and works to commission, and reusing it
+would have an NPC power paying biomass out of a hold it does not have. A
+settlement is four facts: whose it is, which body, what the ground gives, and how
+long it has been growing.
+
+Played, five years: **4 → 13 → 23 → 40 → 59 settlements** across 21 systems, all
+four workable goods, purses still bounded, berths still going up. And the market
+knows, which was the point:
+
+    ore        32 where it is worked   against  43 where it is not
+    volatiles  32                               38
+    biomass    57                               64
+    phosphate  310                              362
+
+Both directions, too: a settled system is **hungrier** for everything its people
+do not make, so it is somewhere to carry cargo *to* as well as from. The effect
+goes through `industry.industrialise`, the single writer of `Stock.works` — that
+field began as "what the holder of this berth was licensed to make" and means
+"what is made here" now, whoever is making it, so a licence and a settlement in
+one system compose instead of overwriting each other.
+
+**Three defects, and the first two are in work I wrote in earlier cycles.**
+
+- **Price is not value, and the exchequer chose by price.** `_invest` took the
+  cheapest affordable work — and the equilibrium the upkeep curve is built on
+  means the cheap works never pay: promoting an outpost to a station adds 90 a
+  day of yield and 90 of upkeep, *net nothing*, and a hub is 60 a day worse than
+  not bothering. Founding a berth clears 60; settling clears 32. So the rule
+  bought both no-return works before either paying one, and the powers planted
+  **six settlements in year one and none in the seven years after**. It sorts by
+  payback now, never-pays last by cost — which is what a Fleet Hub actually is:
+  the thing you buy with money you have nothing better to do with.
+- **`Body.id` is the body's index within its system.** 155 bodies share **six**
+  distinct ids. My first `on_body` keyed on `body_id` alone, so six settlements
+  masked the entire sector and `sites_for` went from twenty-odd candidates per
+  power to zero. `Colony` has keyed on the pair since it was written — the
+  precedent was there to read.
+- **A quoted payback has to count the years the thing loses money.** A settlement
+  manages 25% of its output on day one: 11.5 a day against 14 of upkeep, so
+  **−2.5**. Two fresh ones moved a power's income *down*, 724 to 720 — which is
+  the opposite of what my check asserted, and the check was wrong rather than the
+  code. Cost over the mature rate reads 1,000 days; integrating the ramp gives
+  **1,485**, and that difference decides whether settling beats founding a berth.
+  `settlement.payback_days` is the one door and the exchequer asks it.
+
+The system view says who lives on a body — *"Charter · works ore · established, 2
+years in"* — the powers' ledger carries settlements and what they pay, and the
+ship's log fills up with *"Dry Choir: people are on the ground at Thule Crossing
+II, working phosphate."*
+
+**And one more, in a check rather than the code.** Settling moved a berth's
+supply mid-flight and the industry forecast check went 26% out, so I excluded
+systems that gained a settlement during the measurement — and it was still 27%
+out at one berth. The cause was not settlements at all: a `dumping` shock (×1.9
+supply) had been live when the forecast was taken and had lifted by the time the
+price was read. The comment I wrote on that check last cycle says the measurement
+is taken "over the berths where alloy is not under a shock **at either end**", and
+the code only ever checked one end. Both ends now, and the worst forecast is back
+to 5% across 13 berths.
+
+Eight new checks, 932 across the suite, all green.
+
 ## 2026-07-30 — SEEDFALL: what you can make sense of on the ground (#94, finished)
 
 `Lifeform.metabolism` was the identity key behind the two strings the survey

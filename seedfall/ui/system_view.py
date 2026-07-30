@@ -9,6 +9,7 @@ from ..core.util import cost_line, credits as cr, duration, num, pct
 from ..data.colonies import effect_text
 from ..data.factions import FACTIONS_BY_ID
 from ..data.territory import TRESPASS_NOTE
+from ..sim import settlement as settlement_sim
 from ..sim import colony as colony_sim
 from ..sim import territory as territory_sim
 from ..sim import dig as dig_sim
@@ -172,6 +173,11 @@ class SystemView(View):
 
         panel = Panel(b.name)
         panel.add(note(b.summary))
+        # Whose people are on it. The sector had 161 bodies and nobody living on
+        # any of them until `sim/settlement.py`.
+        living = settlement_sim.on_body(g, sys.id, b.id)
+        if living is not None:
+            panel.add_row("Settled", settlement_sim.note(g, living), "lumen")
         panel.add_row("Radius", f"{num(b.radius_km)} km")
         panel.add_row("Gravity", f"{b.gravity:.2f} g")
         panel.add_row("Temperature", f"{b.temp_k} K")

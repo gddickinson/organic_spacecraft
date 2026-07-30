@@ -133,6 +133,9 @@ class Game:
     #: Which powers have been licensed which of the captain's processes, and
     #: what was paid for each. See `sim/industry.py`.
     industries: object | None = None
+    #: People the powers have put on the ground, what each works, and when it
+    #: was founded. See `sim/settlement.py`.
+    settlements: list = field(default_factory=list)
     #: The bench's standing work once the tech tree is finished — which
     #: programme it is on, the rounds it has completed and the findings in
     #: hand. A declared field rather than an attribute `programmes.state`

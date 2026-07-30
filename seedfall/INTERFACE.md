@@ -1640,6 +1640,7 @@ seedfall/
 │   │                   what each grant means, in words
 │   ├── factions.py     6 powers + reputation bands
 │   ├── exchequer.py    what a port yields, what it costs, what building costs
+│   ├── settlements.py  what the ground gives, and what settling it costs
 │   ├── industry.py     processes: which technology makes which good, and
 │   │                   what a licence to run it is worth
 │   ├── lifeforms.py    xenobiology generation tables + anomalies
@@ -1750,6 +1751,8 @@ seedfall/
 │   ├── ventures.py     what the powers do on their own account
 │   ├── exchequer.py    the public purse: income, upkeep, building,
 │   │                   retrenchment, and the stake a venture costs
+│   ├── settlement.py   the powers put people on the ground, and the local
+│   │                   market starts hearing about it
 │   ├── industry.py     licensing a process to a power: their treasury pays,
 │   │                   their berths start making the thing, its price falls
 │   ├── weather.py      the front overhead during a landing
@@ -1825,6 +1828,8 @@ seedfall/
     ├── test_empire.py  6 colony checks — works, effects, costs, persistence
     ├── test_crew.py    7 crew checks — convictions, loyalty, consequences
     ├── test_missions.py 7 commission checks — escalation, blocking, lapsing
+    ├── test_settlement.py 8 checks — people on the ground, and the local
+    │                   price of what they dig
     ├── test_biology.py 7 checks — what you can make sense of on the ground
     ├── test_mesh.py    5 checks — what a CHORUS Node lets you see
     ├── test_options.py 8 checks — every setting does something
@@ -1952,6 +1957,29 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 
 ## The parts that will bite you
 
+- **Price is not value, and the exchequer chose by price.** `_invest` took the
+  cheapest work it could afford — and the equilibrium the upkeep curve is built on
+  means the cheap works are the ones that never pay: promoting an outpost to a
+  station adds 90 a day of yield and 90 a day of upkeep, *net nothing*, and
+  promoting a station to a hub is 60 a day worse than not bothering. Founding a
+  berth clears 60 a day; settling ground clears 32. So "take the cheapest" bought
+  the two works with no return before either with one, and the powers planted
+  **six settlements in year one and none in the seven years after**. It sorts by
+  payback now, with never-pays last by cost — which is exactly what a Fleet Hub
+  should be: what you buy with money you have nothing better to do with.
+- **`Body.id` is the body's index within its system.** 155 bodies in a sector
+  share **six** distinct ids, so anything keyed on `body_id` alone matches a body
+  in every system at once. `Colony` has keyed on the `(system_id, body_id)` pair
+  since it was written; `sim/settlement.py`'s first draft did not, and six
+  settlements masked the whole sector — `sites_for` went from twenty-odd
+  candidates per power to zero inside a year and nothing was settled again.
+- **A quoted payback has to count the years the thing loses money.** A settlement
+  manages 25% of its output on day one, which is 11.5 a day against 14 of upkeep:
+  **−2.5**. Two fresh ones moved a power's income *down*, 724 a day to 720.
+  Dividing cost by the mature rate reads 1,000 days where integrating the ramp
+  gives **1,485**, and the difference decides whether settling looks better or
+  worse than founding a berth. `settlement.payback_days` is the one door and
+  `exchequer.payback` asks it.
 - **A layer that cannot ask who is looking should not price what it finds.**
   `world/planets.survey_body` used to add `lf.value * 0.25` of research for every
   organism it catalogued — inside `world/`, which by the layer rule cannot see the
@@ -3447,6 +3475,13 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   rather than hidden: the height precision at a small body (task #102) and the
   plane change that is most of what a climb costs (task #101), both with the
   measurements that found them.
+- **`test_settlement.py`** runs a sector for five years and watches it fill:
+  **4 → 13 → 23 → 40 → 59 settlements** across 21 systems and all four workable
+  goods, the ground deciding what each one works, the worked good cheaper where it
+  is worked than where it is not (ore 32 against 43, phosphate 310 against 362), a
+  settled system hungrier for everything it does not make, `Stock.works` composing
+  a licence on top of a settlement rather than overwriting it, and a settlement
+  costing its founder before it pays.
 - **`test_biology.py`** measures the metabolism pairing by surveying rather than
   by reading the table: every biochemistry has its own explaining node and no node
   explains two, a specimen is worth 18 points unread and 30 read, two of eight

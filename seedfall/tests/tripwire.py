@@ -196,6 +196,8 @@ KIN = {
     "traffic": ("traffic", "mesh"),
     "lifeforms": ("biology", "surveys"),
     "biology": ("biology",),
+    "settlements": ("settlement", "exchequer"),
+    "settlement": ("settlement",),
 }
 
 

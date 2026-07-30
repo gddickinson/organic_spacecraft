@@ -184,7 +184,7 @@ def run(suite: Suite) -> None:
         # thing and go back and look.
         game = _ready("lic-forecast")
         worst = 0.0
-        rows = 0
+        rows = skipped = 0
         for tech in ("separation", "magnetite", "organics"):
             process = ind.process_of(tech)
             buyer = ind.best_buyer(game, process)
@@ -201,14 +201,44 @@ def run(suite: Suite) -> None:
             rep, haggle = float(game.rep.get(power, 0)), game.ship_stats.trade
             said = {r["system"].id: r["buy_then"]
                     for r in ind.forecast(game, process, power)["rows"]}
+            # **And who was living there when the forecast was made.** The powers
+            # plant settlements over a chronicle now (`sim/settlement.py`), and a
+            # settlement is a permanent new producer of the thing it works — so
+            # one founded during the year the licence is settling moves the price
+            # the forecast quoted, by something the forecast could not have
+            # known. Same treatment as a live shock: not a bad forecast, a
+            # changed world, and it is excluded rather than averaged in.
+            from ..sim import settlement as settle_sim
+            was_settled = {sid: len(settle_sim.in_system(game, sid))
+                           for sid in said}
+            # **A shock at *either* end disqualifies the pair.** `_steady` is
+            # asked after the settling and so only sees the shocks alive then; a
+            # glut that was running when the forecast was taken and had lifted by
+            # the time the price was read moves the answer just as far. Measured:
+            # one berth read 27% out because a `dumping` shock (×1.9 supply) was
+            # live for the forecast and expired before the measurement, and the
+            # comment written for this check last cycle said "at either end"
+            # while the code only did one.
+            shocked_then = {sid for sid in said
+                            if [k for k in market_sim.at(game, sid)
+                                if k.commodity == process.good]}
             assert ind.licence(game, process, power)["ok"]
-            _settle(game, 400)
+            # 150 days rather than 400: the drift reaches the new baseline in
+            # about ninety (3% a day toward it), and every extra day is another
+            # chance for a power to plant a settlement in one of these systems
+            # and move the price by something the forecast could not know.
+            _settle(game, 150)
             # A forecast quotes the *baseline* the market settles onto. A live
             # shock is a deliberate temporary departure from it — the first
             # draft counted one and read 56% out.
             for system in _steady(game, ex.holdings(game, power), process.good):
                 want = said.get(system.id)
                 if want is None:
+                    continue
+                if (system.id in shocked_then
+                        or len(settle_sim.in_system(game, system.id))
+                        != was_settled.get(system.id)):
+                    skipped += 1
                     continue
                 got = buy_price(system.market, process.good, rep, haggle)
                 if not got:
@@ -220,7 +250,8 @@ def run(suite: Suite) -> None:
             f"the worst forecast was {100 * worst:.0f}% out from where the "
             "price settled a year later")
         return (f"{rows} berths, worst forecast {100 * worst:.0f}% from the "
-                "settled price")
+                f"settled price; {skipped} skipped for gaining a settlement "
+                "mid-flight")
 
     @check("it costs you at that counter, by about what it said it would")
     def _():
