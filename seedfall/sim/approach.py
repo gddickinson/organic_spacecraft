@@ -369,11 +369,16 @@ def answer(game, envoy, choice: str) -> dict:
             game.adjust_rep(envoy.rival, -18.0)
             dip.shift_relation(game, envoy.faction, envoy.rival, -6.0)
     elif envoy.kind == "treaty_offer":
+        from . import accord
         dip.ensure(game).treaties.append(envoy.faction)
         # The same instrument, so the same price. Signing one you proposed
         # charged the signatory's enemies and signing one they offered charged
         # nobody, which made waiting to be asked the way to sign for free.
         allegiance.charge(game, envoy.faction, TREATY_WEIGHT)
+        # And the same goods: berthing follows the list, but the charts have to
+        # be handed over, and doing that at only one of the two doors would be
+        # the identical bug the comment above records.
+        accord.hand_over(game, envoy.faction)
     elif envoy.kind == "warning" and envoy.rival:
         game.flags[f"warned_off:{envoy.rival}"] = game.day + 180
 

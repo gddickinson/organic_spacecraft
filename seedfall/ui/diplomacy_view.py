@@ -168,6 +168,22 @@ class DiplomacyView(View):
                 p.add_row(FACTIONS_BY_ID[power].short,
                           f"{standing_figure(delta)} standing",
                           "chloro" if delta > 0 else "warn")
+            # What a treaty is, beyond the standing. The blurb has promised
+            # berthing and charts since treaties were written and the screen
+            # quoted neither, so the instrument read as tribute at three times
+            # the price.
+            told = moved.get("accord")
+            if told:
+                p.add_row("Berthing",
+                          (f"{told['relief']:.0%} off wharfage at their "
+                           f"{told['quays']} quays" if told["quays"]
+                           else "they hold no quay that charges"),
+                          "chloro" if ok and told["quays"] else "dim")
+                p.add_row("Their charts",
+                          (f"{told['charts']} system(s) of theirs you cannot "
+                           f"see — about {cr(told['worth'])} of broker's paper"
+                           if told["charts"] else "nothing you do not have"),
+                          "chloro" if ok and told["charts"] else "dim")
             rel = moved.get("relations")
             if rel:
                 a, b, delta = rel

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from ..data.factions import FACTIONS_BY_ID, standing
 from ..data.wharfage import LEVEL_STEP, RELIEF, RELIEF_AT, WHARFAGE
+from . import accord
 from . import diplomacy as dip
 from . import exchequer as exchequer_sim
 
@@ -34,13 +35,21 @@ def holder(game, system) -> str | None:
 
 
 def rate(game, system) -> float:
-    """The share of a transaction this quay takes, standing included."""
+    """The share of a transaction this quay takes, standing and treaty included.
+
+    Berthing rights are multiplied through rather than added, so the two levers
+    stay legible apart: `RELIEF` is the standing spread and `TREATY_RELIEF` the
+    instrument. Because this is the only place the charge is worked out, signing
+    reaches the market board, the freight forecast, a contract's sourcing figure
+    and the holder's purse without any of them being told separately.
+    """
     if holder(game, system) is None:
         return 0.0
     port = system.port
     base = WHARFAGE * (1.0 + LEVEL_STEP * (port.level - 1))
     lean = max(-1.0, min(1.0, game.rep.get(port.faction, 0) / RELIEF_AT))
-    return max(0.0, base * (1.0 - RELIEF * lean))
+    share = base * (1.0 - RELIEF * lean)
+    return max(0.0, share * (1.0 - accord.berth_relief(game, port.faction)))
 
 
 def due_on(game, system, value: float) -> int:
@@ -93,6 +102,11 @@ def quote(game, system) -> dict:
                 else "an independent freehold" if port is not None
                 and port.independent else ""),
         "standing": standing(game.rep.get(port.faction, 0))[0] if port else "",
+        # A relief the board does not name is a discount the captain cannot
+        # spend: a treaty halves this figure, and without this the only sign of
+        # it was that the number had moved since last time.
+        "treaty": accord.signed(game, who),
+        "relief": accord.berth_relief(game, who),
     }
 
 
@@ -103,5 +117,12 @@ def line(game, system) -> str:
         if told["why"]:
             return f"No wharfage here — {told['why']}."
         return ""
-    return (f"{told['name']} takes {told['pct']:.1f}% of everything over this "
-            f"counter, in and out, at your standing of {told['standing']}.")
+    said = (f"{told['name']} takes {told['pct']:.1f}% of everything over this "
+            f"counter, in and out, at your standing of {told['standing']}")
+    if told["treaty"]:
+        # "and 50% off that" was the first wording, and reading the rendered
+        # board settled it: the figure quoted is `rate`, which has the relief in
+        # it already, so the sentence invited the captain to halve it twice.
+        return said + (f" — with {told['relief']:.0%} already taken off it "
+                       "under your treaty's berthing clause.")
+    return said + "."

@@ -207,7 +207,8 @@ KIN = {
     "settlements": ("settlement", "exchequer"),
     "settlement": ("settlement",),
     "tutorial": ("tutorial",),
-    "wharfage": ("wharfage", "counter"),
+    "wharfage": ("wharfage", "counter", "accord"),
+    "accord": ("accord", "wharfage"),
 }
 
 

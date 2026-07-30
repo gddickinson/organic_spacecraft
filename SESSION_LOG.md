@@ -2,6 +2,79 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: a treaty that promised berthing and charts, and gave neither (#diplomacy)
+
+The cycle opened on diplomacy, testing INTERFACE.md's claim that the Concord
+ending is "a diplomatic achievement rather than four grinds". It is: driving
+every available overture at all four powers with unlimited stores reaches 4/4 Kin
+and 6/6 pairs at peace in **year 2**, and `diplomacy.drift` — which pulls every
+pair back toward its hostile baseline by about 13% of the remaining gap a year —
+is live and measurable (+25 → +17.3 → +10.7 → +4.8 → −0.3 over five years). The
+eleven-year freeze in the first run was my harness hitting `game.victory`, which
+stops the clock. So the ending is sound, and I went looking on the same axis.
+
+**A treaty has been sold since treaties were written as "a signed instrument:
+mutual berthing, shared charts, and a clause about the Bloom that nobody expects
+to be honoured", at 30,000 credits and a 180-day cooldown.** The third clause is
+a joke on purpose. The other two were as well.
+
+Signing appended a faction id to `DiplomaticState.treaties`. Two things read that
+list: `treaty_bonus` (+3% on the trade stat, named on no screen) and the matrix's
+"treaty" pill. Measured at Vesper Bight: wharfage **1.714% before signing and
+1.552% after** — and the whole of that fall was the *standing* the treaty granted,
+which a tribute at a third of the price buys as well. Charts known: **0 before,
+0 after**. Both named benefits were fiction, and the one real benefit was
+invisible.
+
+`sim/accord.py` is the two clauses, and it is the only place either is worked out:
+
+- **Berthing.** `wharfage.rate` — already the single door for the charge — asks
+  `berth_relief` and takes 50% off at the signatory's quays, multiplied through
+  rather than added, so standing keeps the widest spread on the page (a factor of
+  four Kin-to-Hunted) and the instrument is a second factor of two on top. Because
+  it lives in `rate`, it reaches the market board, the freight forecast, a cargo
+  contract's sourcing figure and the holder's purse in one move.
+- **Charts.** They hand over what they hold of their own space that you cannot
+  see, priced at what a broker would want for the same paper. This turns out to
+  be **geography**: at the opening the Charter — whose space you are sitting in —
+  can give 3 systems worth 4,060, and the Freeholds 11 worth 50,597. So *which*
+  treaty first is a decision about where you intend to fly, and only one of the
+  four is worth its price on the charts alone.
+
+The desk now quotes both before you sign — "Berthing · 50% off wharfage at their
+3 quays" and "Their charts · 9 system(s) of theirs you cannot see — about ₡25,851
+of broker's paper" — and both figures are a *dry run* of the act rather than a
+formula resembling it: `preview` and `perform` ask the same `accord.worth`. The
+market board says why its number fell.
+
+**Three things worth keeping from how this was checked.**
+
+*Isolate the lever.* The first version of the berthing check let `perform` grant
+its standing — and standing is also an input to `wharfage.rate`. It would have
+passed on a treaty that did nothing but flatter you. Both checks now restore
+`game.rep` after signing, on the envoy path too, where `accept_rep` lands instead.
+
+*Both doors.* There are two ways to sign — propose one, or accept the one an
+envoy brings — and `data/diplomacy.py` already records what happened when they
+disagreed about `TREATY_WEIGHT`: waiting to be asked was the way to sign for
+free. I had wired the charts to the proposing door alone, which is that bug in
+reverse. `accord.hand_over` is the one delivery both call, with a check that
+signs through each and compares.
+
+*Read the screen you built.* The board's first wording was "takes 0.6% … — and
+50% off that", and the 0.6% already has the relief in it. Looking at the rendered
+page settled it: the sentence invited the captain to halve the figure twice.
+
+Twelve deliberate mutations, all caught by the check that names their subject —
+including one that only bites at the Freeholds, whose independent outposts fly
+the faction's flag and take no due, so a quay count read off the flag rather than
+off `wharfage.holder` over-promises at exactly one power in four. My first
+version of that check tested only the Charter, which has no such ports. The
+project's own reachability guard then caught a dead public function in the new
+module and it was deleted.
+
+`test_accord.py` — 10 checks. Full suite green: **1,004 checks**.
+
 ## 2026-07-30 — SEEDFALL: a commission promising a technology nobody had written (#missions)
 
 Missions was the last breadth area untouched this session. The commissions read

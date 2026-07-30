@@ -68,3 +68,22 @@ RELIEF = 0.6
 #: threshold in `data/factions.STANDINGS`, so the best band and the best rate
 #: begin together rather than at two numbers nobody can hold in their head.
 RELIEF_AT = 70.0
+
+#: How much of the charge a signed treaty takes off, at the signatory's quays.
+#:
+#: This is the first half of a promise the treaty has been making since it was
+#: written. `data/diplomacy.ACTIONS` sells it as "mutual berthing, shared charts,
+#: and a clause about the Bloom that nobody expects to be honoured" — the third
+#: is a joke, and the other two were as well: signing appended a name to a list
+#: read by `treaty_bonus` (a flat +3% on the trade stat, named on no screen) and
+#: by the diplomacy matrix's "treaty" pill. Measured at Vesper Bight: wharfage
+#: 1.71% before signing, 1.55% after — and the fall was the *standing* the treaty
+#: granted, which tribute at a third of the price would have bought as well.
+#: Berthing rights changed the rate by nothing.
+#:
+#: Half, and multiplied through rather than added, so `RELIEF` keeps the widest
+#: spread on the page: standing is a factor of four across the Kin-to-Hunted
+#: range, a treaty a factor of two on top of it. The two levers stay legible
+#: apart, and 30,000 credits buys a berth cheaper than the best standing alone
+#: can make it — which is what an instrument is *for*.
+TREATY_RELIEF = 0.5

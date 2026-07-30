@@ -1666,7 +1666,8 @@ seedfall/
 │   │                   what each grant means, in words
 │   ├── factions.py     6 powers + reputation bands
 │   ├── exchequer.py    what a port yields, what it costs, what building costs
-│   ├── wharfage.py     what a quay takes off the cargo crossing it
+│   ├── wharfage.py     what a quay takes off the cargo crossing it, and
+│   │                   what a treaty's berthing clause takes off that
 │   ├── settlements.py  what the ground gives, and what settling it costs
 │   ├── industry.py     processes: which technology makes which good, and
 │   │                   what a licence to run it is worth
@@ -1784,6 +1785,10 @@ seedfall/
 │   │                   retrenchment, and the stake a venture costs
 │   ├── wharfage.py     the due on the captain's own trade, and whose purse
 │   │                   it lands in — one door for the rate and for the act
+│   ├── accord.py       what a signed treaty is worth: mutual berthing off
+│   │                   the wharfage at their quays, and their charts of
+│   │                   their own space — quoted before you sign, and the
+│   │                   same instrument through either door into signing
 │   ├── settlement.py   the powers put people on the ground, and the local
 │   │                   market starts hearing about it
 │   ├── industry.py     licensing a process to a power: their treasury pays,
@@ -1948,6 +1953,11 @@ seedfall/
     ├── test_wharfage.py 10 checks — the due on your own trade: conserved,
     │                   named on the board, waived at a free port, priced by
     │                   standing and by the size of the berth
+    ├── test_accord.py  10 checks — a treaty's two clauses are real: the
+    │                   relief lands at their quays and nobody else's, the
+    │                   charts are priced at what a broker would take, the
+    │                   desk quotes both before signing, and proposing one
+    │                   and accepting one deliver the same instrument
     ├── test_industry.py 10 checks — a licensed process changes a market
     ├── test_orderplan.py 6 checks — every order says what it will do
     ├── ground_ai.py    a party leader good enough to measure the ground with
@@ -2451,6 +2461,31 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   freight desk's forecast of a run. So `res["paid"]` is the goods and
   `res["due"]` is the quay, and anything measuring what a trade cost has to add
   them.
+- **A promise in the sales text is a claim the game has to meet.** A treaty was
+  sold as "mutual berthing, shared charts, and a clause about the Bloom that
+  nobody expects to be honoured" for 30,000 credits. The third is a joke; the
+  other two were as well. Signing appended a faction id to a list read by
+  `treaty_bonus` (+3% on the trade stat, on no screen) and by the matrix's
+  "treaty" pill. Measured at Vesper Bight: wharfage 1.714% before and 1.552%
+  after — and *all* of that fall was the standing the treaty granted, which
+  tribute at a third of the price buys as well. Charts known: 0 before, 0
+  after. `sim/accord.py` is the two clauses, and the lesson generalises past
+  this one instrument: **read what a thing tells the player it does, then go and
+  measure each promise separately.** A benefit that is real but invisible
+  (`treaty_bonus`) and a benefit that is named but absent (berthing, charts)
+  fail the same way at the desk.
+- **Isolate the lever you claim to be measuring.** The first pass at checking
+  the berthing clause let `perform` grant its standing, and standing is *also*
+  an input to `wharfage.rate` — so the check would have passed on a treaty that
+  did nothing but flatter you. `tests/test_accord.py::_sign` restores `game.rep`
+  after signing for exactly this reason, and the two-doors check restores it on
+  the envoy path too, where `accept_rep` lands instead.
+- **Count both doors into the same act.** `treaty` can be proposed at the
+  diplomacy desk or accepted from an envoy, and `data/diplomacy.py` already
+  records what happened when they disagreed about `TREATY_WEIGHT` — waiting to
+  be asked was the way to sign for free. Adding the charts clause to the
+  proposing door alone would have been that bug in reverse; `accord.hand_over`
+  is the one delivery both call.
 - **A posting has to name somewhere the hull can get to.** `_pick_target` was
   documented as choosing a system "reachable in principle" and tested only
   `bloom < 0.4`; reachability is transitive and nothing checked it, so **65%

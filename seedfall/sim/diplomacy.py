@@ -221,12 +221,17 @@ def preview(game, action_id: str, faction: str,
         out["relations"] = (faction, other, 28.0)
         out["standing"] = _merged(out["standing"])
     elif action_id == "treaty":
+        from . import accord
         out["standing"] = [(faction, gain)]
         # The half nobody was told about.
         out["standing"] += [(power, -cost)
                             for power, cost in allegiance.price(game, faction,
                                                TREATY_WEIGHT)]
         out["standing"] = _merged(out["standing"])
+        # And the instrument itself. `perform` reads the same `worth`, so the
+        # rows the desk prints and the lines the dialogue prints after signing
+        # are the same dry run — the figure cannot be quoted and then not paid.
+        out["accord"] = accord.worth(game, faction)
     else:
         # A gift is a public act. Courting one power in front of the power it
         # is losing a war to used to cost exactly nothing — which is why a
@@ -334,6 +339,12 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
         if seen:
             lines.append(f"Noted elsewhere: {allegiance.phrase(seen)}.")
     elif action_id == "treaty":
+        from . import accord
+        # Quote the instrument before signing it: `shared` is what they hold and
+        # you cannot see, and appending the name to `treaties` is what makes the
+        # berthing clause bite, so both figures have to be taken from the state
+        # this side of the act.
+        told = accord.worth(game, faction)
         state.treaties.append(faction)
         loyalty.record(game, "treaty")
         game.adjust_rep(faction, gain)
@@ -341,7 +352,13 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
         # rift is actually worth, rather than the flat -4 this used to be,
         # which made brokering a war down to a grudge worth nothing.
         allegiance.charge(game, faction, TREATY_WEIGHT)
+        # And the two clauses that are not a joke. They were a joke as well
+        # until this cycle: the act appended a name to a list and the sentence
+        # below promised berthing and charts on the strength of it.
+        accord.hand_over(game, faction)
         lines.append("Signed. Berthing, charts, and a clause about the Bloom.")
+        lines.append(accord.berth_line(told))
+        lines.append(accord.charts_line(told))
     else:
         game.adjust_rep(faction, gain)
         lines.append(f"{FACTIONS_BY_ID[faction].short} standing +{gain:.0f}.")
