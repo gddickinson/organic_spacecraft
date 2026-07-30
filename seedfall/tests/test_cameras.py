@@ -321,6 +321,12 @@ def run(suite: Suite) -> None:
         app = QApplication.instance() or QApplication([])
         assert app is not None
         game = new_game("nothing-in-reach")
+        # Station keeping with nothing alongside — which is what this check is
+        # about, and is no longer what a new game is. A captain starts moored
+        # at their home quay now, so the conn opened *on the quay* and the
+        # outcome was a berthing rather than the "watching" this wants.
+        from ..sim import flight as flight_sim
+        flight_sim.stand_off(game)
         win = MainWindow(game)
         win.toast = lambda *a, **k: None
         window = ConnWindow(win)

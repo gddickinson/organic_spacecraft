@@ -63,9 +63,17 @@ def run(suite: Suite) -> None:
 
     @check("a burn puts heat in the hull, in proportion")
     def _():
+        # **One seed, so the leg is the only thing held constant.** This used
+        # to draw a fresh galaxy per profile — `heat-coast`, `heat-hard` and so
+        # on — which was harmless only while every chronicle began at the same
+        # fixed point on the system's edge. A captain now starts moored at
+        # their home quay, so the crossing to the outermost body is a different
+        # length in every seed, and four different legs cannot say anything
+        # about four burn profiles: measured that way, economy came out hotter
+        # than standard.
         got = {}
         for burn in flight.BURNS:
-            game = _fuelled(f"heat-{burn.id}")
+            game = _fuelled("heat")
             index = len(game.system.bodies) - 1
             result = flight.travel_to(game, index, burn.id)
             assert result["ok"], result.get("why")
@@ -73,7 +81,7 @@ def run(suite: Suite) -> None:
         assert got["coast"] == 0, "coasting heats the hull"
         assert got["hard"] > got["standard"] > got["economy"] > 0, (
             f"not monotone with the profile: {got}")
-        cap = new_game("heat-coast").ship_stats.heat_cap
+        cap = new_game("heat").ship_stats.heat_cap
         assert got["hard"] > cap * 0.4, (
             f"a hard burn arrives at {got['hard']:.0f} of a {cap:.0f} cap, "
             "which nobody would notice")

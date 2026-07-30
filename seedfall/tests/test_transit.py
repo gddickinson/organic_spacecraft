@@ -20,10 +20,21 @@ from .harness import Suite
 
 
 def _setup(seed: str, fuel: float = 120.0):
+    """A game and the longest crossing available from where the ship is.
+
+    **Not simply the outermost body.** A captain now starts moored at the quay
+    their opening log says they are leaving, and in 5 of these 90 seeds that
+    quay is in orbit of the outermost body — so `transit.begin` answered "You
+    are already there", correctly, and this file read `started["transit"]` off
+    a refusal. The crossing wanted here is the longest one that is a crossing.
+    """
     game = new_game(seed)
     game.ship.cargo = {"volatiles": fuel}
-    index = max(range(len(game.system.bodies)),
-                key=lambda i: game.system.bodies[i].orbit)
+    here = game.orbit_body
+    away = [i for i, b in enumerate(game.system.bodies) if b.id != here]
+    if not away:
+        return game, None          # a one-body system, and the ship is at it
+    index = max(away, key=lambda i: game.system.bodies[i].orbit)
     return game, index
 
 
@@ -136,9 +147,14 @@ def run(suite: Suite) -> None:
     @check("every watch can actually come up")
     def _():
         seen = set()
+        flown = 0
         for index in range(90):
             game, index_body = _setup(f"reach-{index}")
+            if index_body is None:
+                continue
             started = transit_sim.begin(game, index_body, "coast")
+            assert started["ok"], started.get("why")
+            flown += 1
             crossing = started["transit"]
             rng = RNG(f"reach-{index}")
             guard = 0
@@ -153,8 +169,11 @@ def run(suite: Suite) -> None:
         # The star-flare watch only fires on a leg that runs in close.
         expected = {w.id for w in WATCHES if not w.hot_only}
         missing = expected - seen
-        assert not missing, f"watches that never came up in 90 crossings: {missing}"
-        return f"{len(seen)} of {len(WATCHES)} watches seen across 90 crossings"
+        assert flown >= 80, f"only {flown} of 90 seeds had a crossing to fly"
+        assert not missing, (
+            f"watches that never came up in {flown} crossings: {missing}")
+        return (f"{len(seen)} of {len(WATCHES)} watches seen across {flown} "
+                "crossings")
 
     @check("a crossing survives a save and reload")
     def _():

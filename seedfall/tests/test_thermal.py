@@ -294,6 +294,10 @@ def run(suite: Suite) -> None:
     def _():
         def fly(burn: str, legs: int = 14):
             game = new_game("cost")
+            # From open space, so leg 0 is a crossing rather than a transfer to
+            # the body the ship is already moored at — which cost no days, no
+            # mass and no heat, and took a leg off the hard-burn tally only.
+            flight.stand_off(game)
             for leg in range(legs):
                 game.ship.cargo["volatiles"] = 9999
                 flight.travel_to(game, leg % len(game.system.bodies), burn)

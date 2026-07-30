@@ -2,6 +2,60 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: one position for the ship (#103)
+
+The report was that the conn is disconnected from the game and its controls do
+nothing. Measured at the opening of six seeds, that is exactly true, and the
+cause is one line:
+
+    the opening log         "The Ladon is under way from Fleet Hub."
+    Fleet Hub               in orbit of body 0
+    game.orbit_body         None
+    distance to Fleet Hub   645,000,000 km
+    berthing.can_conn       "Fleet Hub is 4.31 AU off. The conn is for the
+                             last few kilometres — plot a transfer first."
+
+The sector has always been positioned — `track.at` gives every contact a place
+that moves with the calendar — and the ship never was. It had a body id or
+nothing, and "nothing" was a fixed point at 4.05 AU. So a captain who had not
+moved was hours of light from the quay they were tied to, and the conn opened
+on empty space. **The controls were not broken.** The clock and the autopilot
+are timer-driven and work: 12.00 → 11.88 km on the clock, closing at 8.3 m/s
+under the computer. They were correctly refusing to fly an approach to nothing.
+
+`sim/flight.ship_position` is the one door now, with two states behind it and
+only one of them stored: alongside a body the position *is* the body's, worked
+out from the calendar on every read; otherwise it is `Game.ship_xy`, written by
+`flight.stand_off`. Deriving rather than storing is the whole point — a copy
+goes stale the first time the clock moves, and a hull in orbit is not parked in
+space. Two writers, `hold_at` and `stand_off`, and nothing anywhere else in
+`sim/`, `ui/` or `world/` assigns `orbit_body` any more.
+
+A new captain is moored where their log says they are. The conn opens on Fleet
+Hub at 12 km, station drawn, world above it, six live feeds and live controls.
+
+**The yield was in the checks.** Seven encoded the old model; four of them
+turned out to be measuring something other than what they claimed:
+
+- `test_play`'s landing check rolled its own party leader that turned for home
+  at `supply <= manhattan + 3` — one day a step, when `expedition.step_cost`
+  charges up to four on fresh scarp in weather. Thirty parties: **17 stranded**
+  with that walker and **none** with `tests/ground_ai.py`, which costs the walk
+  through `sim/wayhome` the way `move` charges for it. It was measuring the
+  terrain roll. It sat at 3-5 strandings against a bar of 4, and moving where a
+  captain starts — which changes nothing about the ground — pushed it over.
+- `test_burns` drew a fresh galaxy per burn profile. Four different legs cannot
+  say anything about four profiles: economy came out hotter than standard.
+- `test_watches` opened the transit panel on whatever chronicle it found, and
+  `MainWindow.go` will not leave a waiting envoy. The panel was never built and
+  an empty string read as a missing risk line. It asks the window now.
+- `test_transit` read `started["transit"]` off a refusal — 5 of its 90 seeds
+  are one-body systems, and the ship starts at that body.
+
+Full suite green. `tests/test_position.py` is new: five checks holding the door
+shut, including a save written before `ship_xy` existed opening where it always
+thought it was.
+
 ## 2026-07-30 — SEEDFALL: a 170x92 feed cost more than a 782x455 view (#3D)
 
 Measured the conn window during an approach — the live 3D view the whole

@@ -65,6 +65,14 @@ class Game:
     stores: dict[str, float] = field(default_factory=dict)
     location_id: int = 0
     orbit_body: str | None = None
+    #: Where the hull is when it is alongside *nothing*, in AU. Written by
+    #: `sim/flight.stand_off` and read through `sim/flight.ship_position`,
+    #: which is the one door. Alongside a body the position is the body's,
+    #: worked out from the calendar rather than copied here — a copy would go
+    #: stale the first time the clock moved, and a hull in orbit is not parked
+    #: in space. None both for that case and for a save written before there
+    #: was a position at all.
+    ship_xy: tuple | None = None
     #: The radius from that body's centre, in km, that the ship is holding.
     #: Zero means an orbit whose height nobody chose — which is every orbit
     #: made before the conn could be asked for one, and is read as standard.
@@ -313,6 +321,13 @@ def new_game(seed: str | None = None, systems: int = 42, choices=None) -> Game:
     )
     start.visited = True
     start.scanned = True
+    # Moored where the log says you are. The opening line reads "under way
+    # from <port>" and the game placed the hull at a fixed point four AU out
+    # on the system's edge with `orbit_body` unset — so every contact in the
+    # system, the home quay included, measured light-minutes away,
+    # `berthing.can_conn` refused all of them, and the conn opened on nothing
+    # with controls that correctly did nothing. From turn one.
+    _moor_at_home(game, start)
     # The hull did not launch yesterday: there is a shakedown cruise's worth of
     # its own data already on the bench.
     inquiry_sim.add(game.research, "survey", 55)
@@ -360,3 +375,19 @@ def has_save() -> bool:
 
 def clear_save() -> None:
     save_mod.clear()
+
+
+def _moor_at_home(game, start) -> None:
+    """Put a new captain alongside the body their home port orbits.
+
+    Nothing to do in a system with no port: `flight.stand_off` leaves them
+    holding at the arrival radius, which is what a jump into an empty system
+    means and is now written down rather than assumed.
+    """
+    from ..sim import anchorage as anchorage_sim
+    from ..sim import flight as flight_sim
+    body, _index = anchorage_sim.anchor_body(start)
+    if body is not None:
+        flight_sim.hold_at(game, body)
+    else:
+        flight_sim.stand_off(game)

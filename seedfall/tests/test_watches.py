@@ -123,6 +123,40 @@ def _in_transit(seed: str, want: str):
     return None, None, None
 
 
+
+def _panel(app, MainWindow, QLabel, want: str, tries: int = 5) -> str:
+    """The transit panel's text, on a chronicle that will actually show it.
+
+    `MainWindow.go` refuses to leave a demand, an envoy, a dig or a situation
+    for anything but a battle — a rule this file has no business restating, so
+    it is *asked* rather than copied: land on the view, and if the window went
+    somewhere else, fly a different chronicle. Found when a captain moored at
+    their home quay from turn one flew a different leg, and the debris watch
+    came up on a game that happened to have an envoy waiting; the panel was
+    never built and the check read an empty string as a missing risk line.
+    """
+    for attempt in range(tries):
+        game, crossing, _rng = _in_transit(f"ui-{want}-{attempt}", want)
+        if crossing is None:
+            continue
+        win = MainWindow(game)
+        win.toast = lambda *a, **k: None
+        win.transit = crossing
+        win.go("transit")
+        for _ in range(3):
+            app.processEvents()
+        shown = win.centralWidget() is win.views["transit"] or bool(
+            [lab for lab in win.views["transit"].findChildren(QLabel)
+             if lab.text()])
+        rows = " ".join(lab.text() for lab in
+                        win.views["transit"].findChildren(QLabel)
+                        if lab.text())
+        win.close()
+        if shown and rows:
+            return rows
+    return ""
+
+
 def run(suite: Suite) -> None:
     check = suite.check
 
@@ -272,19 +306,10 @@ def run(suite: Suite) -> None:
         assert app is not None
         seen = 0
         for want in ("contact", "debris"):
-            game, crossing, _rng = _in_transit(f"ui-{want}", want)
-            if crossing is None:
-                continue
-            win = MainWindow(game)
-            win.toast = lambda *a, **k: None
-            win.transit = crossing
-            win.go("transit")
-            for _ in range(3):
-                app.processEvents()
-            rows = " ".join(lab.text() for lab in
-                            win.views["transit"].findChildren(QLabel)
-                            if lab.text())
-            win.close()
+            rows = _panel(app, MainWindow, QLabel, want)
+            assert rows, (
+                f"no chronicle reached a {want} watch with the transit panel "
+                "showing — every candidate was holding something else")
             for option in WATCHES_BY_ID[want].options:
                 if not option.risk:
                     continue

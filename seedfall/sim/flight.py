@@ -118,11 +118,57 @@ HOT_RADIUS = 1.2
 
 
 def ship_position(game) -> tuple[float, float]:
-    """Where the ship is: at a body, or holding where the jump left you."""
+    """Where the ship is in this system, in AU. **The one door for reading it.**
+
+    The sector has always been positioned — `track.at` gives every contact a
+    place that moves with the calendar — and the ship was not. It had a body id
+    or nothing, and "nothing" was a fixed point on the system's edge. So a
+    captain sitting at the quay they started at measured four AU from it,
+    `berthing.can_conn` refused every contact in the system, and the conn
+    opened on nothing with controls that correctly did nothing.
+
+    Two states, and only one of them is stored:
+
+    - **Alongside a body** — the position *is* the body's, worked out fresh
+      from the calendar. A hull in orbit is not parked in space: the world
+      takes it with it, so a captain who moors and waits a month is still at
+      the quay when they look up. Storing a copy here would be a second door
+      that goes stale the moment the clock moves.
+    - **Free space** — `game.ship_xy`, written by `stand_off`. A jump's
+      arrival is the common case, and it used to be the *only* case, which is
+      why "not alongside anything" meant "at one particular point on the edge".
+
+    A save from before there was a position has neither, and falls through to
+    that arrival point — which is exactly where it always thought it was.
+    """
     body = current_body(game)
     if body is not None:
         return position(body, game.day, mu_of(game.system))
+    where = getattr(game, "ship_xy", None)
+    if where is not None:
+        return float(where[0]), float(where[1])
     return 0.0, -ARRIVAL_RADIUS
+
+
+def hold_at(game, body) -> None:
+    """Put the hull alongside a body: one of the two writers of where it is.
+
+    Clears the free-space position, because keeping it would leave a stale
+    second answer lying around for the next `stand_off` to pick up.
+    """
+    game.orbit_body = getattr(body, "id", body)
+    game.ship_xy = None
+
+
+def stand_off(game, at=None) -> None:
+    """Hold station away from everything — a jump's arrival, or a departure.
+
+    Takes the position it is to hold, so "not alongside anything" stops
+    meaning "nowhere in particular". Defaults to the arrival radius, which is
+    what a jump into a system means.
+    """
+    game.orbit_body = None
+    game.ship_xy = (float(at[0]), float(at[1])) if at is not None else None
 
 
 def current_body(game):
@@ -386,7 +432,7 @@ def travel_to(game, body_index: int, burn_id: str = "standard") -> dict:
     game.advance_days(q["days"])
     if game.dead:
         return {"ok": True, "dead": True}
-    game.orbit_body = body.id
+    hold_at(game, body)
     # The heat goes in on arrival, not departure: it is the braking burn that
     # leaves you hot. Adding it at the start let the radiators shed the lot
     # during the crossing, which is the opposite of the point.
@@ -463,4 +509,4 @@ def ensure_at(game, body_index: int) -> dict:
 
 def arrive_in_system(game) -> None:
     """A jump drops you at the edge, not alongside anything."""
-    game.orbit_body = None
+    stand_off(game)

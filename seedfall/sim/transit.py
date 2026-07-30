@@ -205,7 +205,7 @@ def finish(game, transit: Transit) -> dict:
     transit.over = True
     transit.outcome = "arrived"
     body = game.system.bodies[transit.body_index]
-    game.orbit_body = body.id
+    flight.hold_at(game, body)
     say(transit, f"Alongside {body.name}.", "good")
     game.add_log(f"Arrived at {body.name}: {transit.days_spent} days, "
                  f"{round(transit.fuel_spent)} t of reaction mass.", "good")

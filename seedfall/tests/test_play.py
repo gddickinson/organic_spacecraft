@@ -8,6 +8,8 @@ convert one into the other.
 
 from __future__ import annotations
 
+import math
+
 from ..core.rng import RNG
 from ..core.state import new_game
 from ..data.lore import VICTORIES
@@ -186,8 +188,19 @@ def run(suite: Suite) -> None:
 
     @check("a landing party can get down, work a site and come home")
     def _():
-        from ..sim import expedition as exp_sim
+        # Driven by `tests/ground_ai.py` — the game's own party leader — and
+        # not by a walker of this check's own. The one it used to roll here
+        # turned for home when `supply <= manhattan_distance + 3`, which prices
+        # every step at one day; `sim/expedition.step_cost` charges up to four
+        # on fresh scarp in bad weather, and `sim/wayhome` exists precisely to
+        # add that up over a route. So the walker stranded on rough maps and
+        # came home on kind ones, and what this check measured was the terrain
+        # roll, not the supply budget. Ten parties gave 3-5 strandings against
+        # a bar of 4, and moving where a new captain starts — which changes
+        # nothing about the ground — moved it to 5. Thirty parties: 17
+        # stranded with the hand-rolled walker, none at all with the leader.
         from ..sim import fieldwork
+        from . import ground_ai
         outcomes: dict[str, int] = {}
         value = 0.0
         for i in range(10):
@@ -201,45 +214,17 @@ def run(suite: Suite) -> None:
             g.ship.cargo["biomass"] = 60
             r = fieldwork.launch_expedition(g, body, [o.id for o in g.officers], 1)
             assert r["ok"], r.get("why")
-            exp = g.expedition
-            rng = RNG(f"party-{i}")
-            guard = 0
-            while not exp.over and guard < 150:
-                guard += 1
-                if exp_sim.weather_sim.pinned(exp):
-                    exp_sim.shelter(exp, rng)     # nothing moves in a gale
-                    continue
-                if exp_sim.options_here(exp):
-                    exp_sim.attempt(exp, 0, g.officers, rng)
-                    continue
-                home = abs(exp.x - exp_sim.LANDER[0]) + abs(exp.y - exp_sim.LANDER[1])
-                if exp.supply <= home + 3 and not exp.at_lander:
-                    dx = (exp_sim.LANDER[0] > exp.x) - (exp_sim.LANDER[0] < exp.x)
-                    dy = 0 if dx else (exp_sim.LANDER[1] > exp.y) - (exp_sim.LANDER[1] < exp.y)
-                    exp_sim.move(exp, dx, dy, g.officers, rng)
-                    continue
-                if exp.at_lander and exp.supply <= 4:
-                    exp_sim.lift_off(exp)
-                    break
-                for dx, dy in ((0, -1), (1, 0), (-1, 0), (0, 1)):
-                    t = exp.tile(exp.x + dx, exp.y + dy)
-                    if t and not t.visited:
-                        exp_sim.move(exp, dx, dy, g.officers, rng)
-                        break
-                else:
-                    exp_sim.move(exp, *rng.pick([(0, -1), (1, 0), (-1, 0), (0, 1)]),
-                                 g.officers, rng)
-            assert guard < 150, "expedition never terminated"
-            if not exp.over:
-                exp_sim.finish(exp, "aborted")
+            ground_ai.play(g, g.expedition, RNG(f"party-{i}"))
             res = fieldwork.conclude_expedition(g)
             assert res["ok"], res.get("why")
             assert g.expedition is None, "expedition not cleared after recovery"
             outcomes[res["outcome"]] = outcomes.get(res["outcome"], 0) + 1
             value += sum(res["stowed"].values())
         stranded = outcomes.get("stranded", 0)
-        assert stranded <= 4, (
-            f"most expeditions strand — the supply budget is punishing: {outcomes}")
+        assert stranded == 0, (
+            f"a party led by the game's own leader stranded {stranded} times "
+            f"in ten — the supply budget will not pay for the walk it quotes: "
+            f"{outcomes}")
         assert value > 0, "ten expeditions brought back nothing at all"
         return (f"{outcomes}, mean value {value / 10:.0f}")
 
@@ -407,7 +392,17 @@ def run(suite: Suite) -> None:
         from ..data.starclasses import mu_of
         from ..sim import flight
         g = new_game("helm-test")
-        assert g.orbit_body is None, "a jump should arrive at the system edge"
+        # A jump arrives at the edge, and a *new captain* does not: they are
+        # moored at the quay their opening log says they are leaving. Asked of
+        # the act rather than of the opening, which is what it always meant —
+        # asking it of `new_game` only worked while the game had no way to
+        # start anywhere in particular.
+        flight.arrive_in_system(g)
+        assert g.orbit_body is None, "a jump should arrive alongside nothing"
+        edge = flight.ship_position(g)
+        assert abs(math.hypot(*edge) - flight.ARRIVAL_RADIUS) < 1e-9, (
+            f"a jump arrived {math.hypot(*edge):.2f} AU out, not at the "
+            f"{flight.ARRIVAL_RADIUS:.2f} AU arrival radius")
         body = g.system.bodies[0]
         opts = flight.options(g, body)
         assert len(opts) == len(flight.BURNS), "burn profiles missing"

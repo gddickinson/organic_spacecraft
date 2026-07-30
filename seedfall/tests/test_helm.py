@@ -87,6 +87,10 @@ def run(suite: Suite) -> None:
         flown = 0
         for seed in range(6):
             game = new_game(f"setcourse-{seed}")
+            # Flown from open space. A captain starts moored at a quay now, and
+            # a board is right to offer no course to the quay you are tied to —
+            # which left this check with nothing to click on any seed.
+            flight.stand_off(game)
             places = [a for a in anchorage_sim.in_system(game) if not a.here]
             if not places:
                 continue
@@ -322,6 +326,11 @@ def run(suite: Suite) -> None:
         # A warning on every screen forever is furniture. This is the check
         # that stops the fix for silence becoming noise instead.
         game = new_game("quiet")
+        # Well clear of the star, said in the state rather than assumed: this
+        # chronicle's home quay is 0.40 AU out, inside `HOT_RADIUS`, so a new
+        # captain there is *correctly* warned and the silence this check is
+        # about belongs to a ship holding off at the edge.
+        flight.stand_off(game)
         here = math.hypot(*flight.ship_position(game))
         assert here > flight.HOT_RADIUS, here
         assert game.ship.heat < game.ship_stats.heat_cap * flight.WORTH_SAYING

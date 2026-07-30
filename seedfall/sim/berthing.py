@@ -156,7 +156,7 @@ def commit(game, conn) -> dict:
         body = game.system.bodies[index]
         if game.orbit_body != body.id:
             moved = body
-        game.orbit_body = body.id
+        flight.hold_at(game, body)
         # And *where* in the orbit, which is what the departure cost and the
         # survey resolution both read. An approach that ended alongside a
         # quay rather than in orbit carries no height, and neither does one

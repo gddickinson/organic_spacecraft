@@ -92,7 +92,12 @@ def run(suite: Suite) -> None:
         # walks where a front arrives partway are counted separately rather than
         # quietly widening the tolerance.
         exact = weathered = 0
-        for index in range(24):
+        # Thirty-six chronicles rather than twenty-four. How many of them walk
+        # in settled weather is a roll of the front generator, and at 24 the
+        # count sat at 5-8 against a bar of 6 — so a change with nothing to do
+        # with weather (where a captain starts, which shifts every seed's rng
+        # stream) could push it under.
+        for index in range(36):
             game, exp = _landed(f"quote-{index}")
             if exp is None:
                 continue

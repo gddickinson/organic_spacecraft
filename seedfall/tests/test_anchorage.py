@@ -225,6 +225,11 @@ def run(suite: Suite) -> None:
         # intercept, burn profile and transfer quote work on it unchanged.
         game = new_game("fly")
         game.ship.cargo["volatiles"] = 120
+        # Flown from open space, because a captain now *starts* moored at a
+        # quay: the first anchorage here is the one they are tied to, and
+        # "said 1 day, took 0" was the helm quoting a crossing to where the
+        # ship already was.
+        flight.stand_off(game)
         place = next(a for a in anchorage.in_system(game))
         said = anchorage.quote(game, place)
         body = game.system.bodies[place.body_index]
@@ -250,15 +255,20 @@ def run(suite: Suite) -> None:
         # "I think the game starts at a shipyard but it is hard to tell, other
         # than from the shipyard window."
         game = new_game("where")
+        # The opening now answers this question itself — a new captain is at
+        # the quay their log says they are leaving, so the line reads "in orbit
+        # of Wick Deep I, alongside Station" from turn one, which is the thing
+        # this check was written to want. The edge is still what a jump gives
+        # you, and that is what is asked here.
+        moored = anchorage.where_am_i(game)
+        place = next(a for a in anchorage.in_system(game))
+        assert place.name in moored, moored
+
+        flight.stand_off(game)
         adrift = anchorage.where_am_i(game)
         assert "edge" in adrift.lower(), adrift
-
-        place = next(a for a in anchorage.in_system(game))
-        game.orbit_body = place.body_id
-        alongside = anchorage.where_am_i(game)
-        assert place.name in alongside, alongside
-        assert alongside != adrift
-        return f"“{adrift}” → “{alongside}”"
+        assert adrift != moored
+        return f"“{adrift}” → “{moored}”"
 
     @check("you can ask where the nearest shipyard is")
     def _():

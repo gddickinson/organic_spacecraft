@@ -210,9 +210,13 @@ def run(suite: Suite) -> None:
         # in deep space for any caller — the remote bridge included. And the
         # button's own rule tested "this system has a port", which is neither
         # being alongside nor being at a yard.
-        from ..sim import anchorage, shipyard
+        from ..sim import anchorage, flight, shipyard
         game = new_game("refit")
         game.credits = 400000
+        # Out in open space, which is no longer where a new captain starts:
+        # they are moored at their home quay, and if that quay has a yard the
+        # answer to "can you refit here" is quite properly yes.
+        flight.stand_off(game)
 
         adrift, why = shipyard.can_refit_here(game)
         assert not adrift, "a hull can be re-fitted at the system edge"

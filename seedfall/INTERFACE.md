@@ -398,6 +398,54 @@ Wiring it up surfaced two more, both from playing:
   quadratic, the most dangerous approaches were precisely the ones escaping.
   `_sweep_min` tests the whole path now, not its endpoints.
 
+**Where the ship is: one door, and a captain who starts somewhere.**
+`sim/flight.ship_position` is the only place anything asks. Behind it are two
+states and only one of them is stored:
+
+- **alongside a body** — the position *is* the body's, worked out from the
+  calendar on every read. A hull in orbit is not parked in space: the world
+  takes it round the star, so a captain who moors and waits four months is
+  still at the quay when they look up. A copy in a field would be a second
+  answer that goes stale the first time the clock moves.
+- **free space** — `Game.ship_xy`, written by `flight.stand_off`, which is
+  what a jump's arrival is. That used to be *the only* meaning of "not
+  alongside anything", and it was a single fixed point at 4.05 AU.
+
+Two writers, `flight.hold_at` and `flight.stand_off`, and nothing else in
+`sim/`, `ui/` or `world/` assigns `orbit_body` any more — `transit.begin`,
+`flight.travel_to`, `flight.transit_to` and `berthing.commit` all go through
+the door.
+
+What that fixed, measured at the opening of six seeds: every one puts a Fleet
+Hub in orbit of body 0, and every one left `orbit_body` unset. So the log said
+"under way from Fleet Hub" and the game placed the hull 645,000,000 km from
+it. `berthing.can_conn` refused every contact in the system — *"Fleet Hub is
+4.31 AU off. The conn is for the last few kilometres"* — which is why the conn
+opened on empty space and its controls appeared dead. They were not dead: the
+clock and the autopilot are timer-driven and work, and were correctly refusing
+to fly an approach to nothing. `core/state._moor_at_home` puts a new captain
+alongside the body their home port orbits, and the conn now opens on the quay
+at 12 km with the station drawn and the world above it.
+
+Seven checks elsewhere had encoded the old model and had to be told what the
+game does now — and four of them turned out to be measuring something else
+entirely, which is the real yield of the change:
+
+- `test_play`'s landing check rolled its own party leader that turned for home
+  when `supply <= manhattan + 3`, pricing every step at a day when
+  `expedition.step_cost` charges up to four. Thirty parties: **17 stranded**
+  with that walker, **none at all** with `tests/ground_ai.py`, which costs the
+  walk through `sim/wayhome` the way `move` charges for it. It measured the
+  terrain roll, not the supply budget.
+- `test_burns` drew a fresh galaxy per burn profile — harmless only while every
+  chronicle began at the same point on the edge. Four different legs cannot
+  say anything about four profiles: economy came out hotter than standard.
+- `test_watches` opened the transit panel on whatever chronicle it found, and
+  `MainWindow.go` refuses to leave a waiting envoy. The panel was never built
+  and the empty string read as a missing risk line. It asks the window now.
+- `test_transit` read `started["transit"]` off a refusal: 5 of its 90 seeds are
+  one-body systems, and the ship now starts at that body.
+
 **A station you could see and could not use.** Two reports from a player, and
 one cause. The Fleet Hub was drawn on the helm chart, labelled, and inert:
 
@@ -1823,7 +1871,9 @@ seedfall/
 │   │                   orders, screening, who draws fire, what they eat
 │   ├── loyalty.py      what the bridge thinks of how you run the ship
 │   ├── works.py        colony development: what a settlement becomes
-│   ├── flight.py       the helm: orbits, intercepts, routing, transfer burns
+│   ├── flight.py       the helm: orbits, intercepts, routing, transfer burns;
+│   │                   `ship_position` is the one door for where the hull is,
+│   │                   `hold_at` and `stand_off` the only two writers
 │   ├── survey.py       what a way of looking costs, finds, and is blind to
 │   ├── approach.py     a power's envoy: caused, costed, and answerable;
 │   │                   a treaty signed here costs what one you propose costs
@@ -3819,6 +3869,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that
   no course is plotted through a star.
+- **`test_position.py`** is the one door for where the ship is, held to five
+  claims: a new captain is moored at the quay their opening log names and the
+  conn opens on it (six chronicles); every consumer reads the *same function*,
+  proved by moving the hull from the innermost orbit to the outermost — 8.13 AU
+  — and watching `berthing.reach_to` follow from 359 to 1,405 million km; a
+  moored ship rides its orbit, 0.59 AU over 120 days and still alongside; a
+  jump stands off at exactly `ARRIVAL_RADIUS` and a *placed* stand-off holds
+  the place it was given; and a save written before `ship_xy` existed opens
+  where it always thought it was.
+
 - **`test_conn.py`** flies every contact in five chronicles to a berth or an
   orbit, and is the check that found the closing-rate fault: before it, none
   of them arrived. It compares the conn's forecast against the burn over 2,272
