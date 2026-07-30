@@ -1764,7 +1764,8 @@ seedfall/
 │   │                   a treaty signed here costs what one you propose costs
 │   ├── officials.py    who runs the quay, what they think, what you know
 │   ├── anchorage.py    quays, hubs and holdings — places you can put in
-│   ├── traffic.py      other hulls: where they are and what they are doing
+│   ├── traffic.py      other hulls: where they are, what they are doing,
+│   │                   and which systems the picket mesh reports from
 │   ├── doctrine.py     the battle computer: what unattended seats decide
 │   ├── firing.py       which mounts bear, and what would fix the rest
 │   ├── damage.py       a hit: which layer takes it, what breaches, the words
@@ -1785,6 +1786,8 @@ seedfall/
 │   ├── crossing_panel.py  the four ways to fly it, costed on both clocks
 │   ├── anchorage_panel.py where you can put in, and how to get back to it
 │   ├── traffic_panel.py   who else is out here, and which of them runs dark
+│   ├── mesh_panel.py      what the picket mesh hears in systems you are
+│   │                   not in, and what the chart marks because of it
 │   ├── doctrine_panel.py  what the seats you are not in intend this turn
 │   ├── firing_panel.py    mount by mount: ready, or exactly what is stopping it
 │   ├── approach_plot.py   the docking approach, drawn instead of counted
@@ -1820,6 +1823,7 @@ seedfall/
     ├── test_empire.py  6 colony checks — works, effects, costs, persistence
     ├── test_crew.py    7 crew checks — convictions, loyalty, consequences
     ├── test_missions.py 7 commission checks — escalation, blocking, lapsing
+    ├── test_mesh.py    5 checks — what a CHORUS Node lets you see
     ├── test_options.py 8 checks — every setting does something
     ├── test_provenance.py 9 checks — a rumour's source, and whether
     │                   the buyer of a chart knows yours
@@ -1945,6 +1949,25 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 
 ## The parts that will bite you
 
+- **Two guards can excuse each other, and one pair did for a whole feature.**
+  `test_grants` asks whether every colony effect is read *by name* somewhere;
+  `test_declared` asks whether every declared field is read. The `drift` effect
+  passed the first because `sim/ship.py` mentioned `"drift"` — to set
+  `Stats.has_drift` — and `has_drift` passed the second because it was on the
+  allowed list as a flag waiting for a mechanic. So the colony effect was
+  "consumed" by a dead ship stat and the stat was excused by a promise, and
+  between them **a 21,000-credit module and an 18,000-credit colony did nothing
+  at all**, with both descriptions promising it plainly. When you excuse a field,
+  check that nothing else is leaning on the mention.
+- **Traffic was always derivable anywhere and only ever asked about here.**
+  `traffic.in_system` is a pure function of the sector and the day, so the hulls
+  working *any* system have always been computable — and every caller passed the
+  system the ship was in. `traffic.plotted` and `mesh_reaches` are the gate now:
+  you see where you are, where a CHORUS Node aboard plus a visit lets the mesh
+  report, and any system holding a Node colony of yours (`colony.drifting`,
+  written beside `colony.watching` rather than as another published key nothing
+  opens). The chart marks systems reporting hulls nobody claims, and
+  `ui/mesh_panel` says which and what.
 - **"Inline hints" turned off under four per cent of the hints.** `sim/options.py`
   opens with the rule that *an option that changes nothing is a lie*, and the
   setting was gated in exactly one place — `View.hint`, called **10** times
@@ -3407,6 +3430,13 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   rather than hidden: the height precision at a small body (task #102) and the
   plane change that is most of what a climb costs (task #101), both with the
   measurements that found them.
+- **`test_mesh.py`** holds the picket mesh to what its descriptions promise:
+  without a node only the system you are in is plotted *while the traffic
+  elsewhere really is there*, a node aboard plots the systems you have stood in
+  and no others, a Node planted somewhere plots that system and stops when it
+  goes offline, what the mesh shows is what standing there shows (same hulls, same
+  names, one derivation), and the chart's warning is true — every hostile count it
+  reported was what was actually waiting on arrival.
 - **`test_options.py`** is the guard `sim/options.py` had been claiming since it
   was written — its docstring said "`test_options` fails if one stops being
   [read]" and there was no such suite, which is the module's own rule broken one

@@ -242,6 +242,82 @@ def note(game, hull, system=None) -> str:
     return f"{flag} · {hull.doing}, {where} · {span:.2f} AU off"
 
 
+#: **The dead effect this revived.** Two guards were
+#: excusing each other over it: `test_grants` asks whether every colony effect is
+#: read *by name* somewhere, and found `"drift"` in `sim/ship.py` — where the only
+#: thing it did was set `Stats.has_drift`, which `test_declared` had on its
+#: allowed list as a flag that gated nothing. So the colony effect was counted as
+#: consumed because a dead ship stat mentioned it, and the ship stat was excused
+#: because somebody would get round to it. Between them, **the entire `drift`
+#: effect did nothing at all** — on a 21,000-credit module and an 18,000-credit
+#: colony, both of whose descriptions promise it plainly.
+
+
+def mesh_reaches(game, system) -> bool:
+    """Does the picket mesh report from this system?
+
+    Three ways to have eyes somewhere, and the module and colony descriptions
+    are the specification:
+
+    * you are standing in it;
+    * a CHORUS Node is aboard (`Stats.has_drift`) and you have been there, so
+      the mesh has something of yours to reconcile against;
+    * or one of your colonies in that system holds the `drift` effect, which
+      keeps its own system plotted whether or not the node is aboard.
+    """
+    if system is None:
+        return False
+    if system.id == game.location_id:
+        return True
+    from . import colony as colony_sim
+    if colony_sim.drifting(game, system.id):
+        return True
+    return bool(getattr(game.ship_stats, "has_drift", False)
+                and getattr(system, "visited", False))
+
+
+def plotted(game, system=None) -> list:
+    """The hulls you can actually see in a system, which is not always all of
+    them.
+
+    `in_system` derives the traffic of *any* system from the sector and the day
+    — it always could, and nothing ever asked it about anywhere but here. So the
+    chart could not tell a captain that two raiders were working the system they
+    were about to jump into, which is the exact complaint this module opens with:
+    "a Concordat patrol jumped me at Loam Span" arrived with no warning it could
+    possibly have given.
+
+    Being able to see it is what a CHORUS Node buys. Where the mesh does not
+    reach, this is empty and the screens say so rather than showing nothing and
+    letting the captain assume it is quiet.
+    """
+    system = system or game.system
+    if not mesh_reaches(game, system):
+        return []
+    return in_system(game, system)
+
+
+def watched(game) -> list:
+    """Every system the mesh is reporting from, with what is in it.
+
+    What the sector chart draws. Sorted by how much trouble is in each, because
+    that is the order a captain wants to read it in.
+    """
+    out = []
+    for system in game.galaxy.systems:
+        if not mesh_reaches(game, system):
+            continue
+        hulls = in_system(game, system)
+        if not hulls:
+            continue
+        out.append({"system": system, "hulls": hulls,
+                    "hostile": sum(1 for h in hulls if h.hostile),
+                    "here": system.id == game.location_id})
+    out.sort(key=lambda row: (-row["hostile"], -len(row["hulls"]),
+                              row["system"].name))
+    return out
+
+
 def hostiles(game, system=None) -> list:
     """Hulls here that are nobody's friend, nearest first."""
     system = system or game.system

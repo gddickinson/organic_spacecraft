@@ -76,12 +76,6 @@ ALLOWED: dict[str, str] = {
         "A watcher naming a thing already true, so a tutorial step can skip "
         "itself. Task #87: the tutorial's step machinery advances on watchers "
         "firing, and skipping needs it to evaluate one at entry instead.",
-    "ship.Stats.has_drift":
-        "Computed from `fx['drift']`, which exactly one part grants — the Chorus "
-        "Node — and gating nothing, so that part's effect is inert. Task #94: "
-        "this needs somebody to decide what drift *is* before it can gate "
-        "anything, and inventing a mechanic to feed a flag is the wrong way "
-        "round.",
     "planets.Lifeform.metabolism":
         "The identity key behind `metabolism_name` and `metabolism_note`, which "
         "are what the screens show, and whose value multiplier is spent when the "

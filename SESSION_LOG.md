@@ -2,6 +2,72 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: two guards excusing each other, and the mesh that was waiting
+
+**A 21,000-credit module and an 18,000-credit colony did nothing at all**, and the
+reason is the most interesting thing this cycle found.
+
+`test_grants` asks whether every colony effect is read *by name* somewhere.
+`test_declared` asks whether every declared field is read. The CHORUS Node's
+`drift` effect passed the first because `sim/ship.py` contained the string
+`"drift"` — where the only thing it did was set `Stats.has_drift` — and
+`has_drift` passed the second because it was on the allowed list as a flag waiting
+for somebody to decide what drift *was*. So the colony effect counted as consumed
+*because* a dead ship stat mentioned it, and the stat was excused *because* a task
+promised to get round to it. **Each guard was satisfied by the other's hole.**
+
+Both descriptions promise the thing plainly:
+
+    module:  "reconciling against every other node in the mesh"
+    colony:  "Reads the traffic: other hulls in this system stay plotted."
+
+And the implementation was already there, unasked. `sim/traffic.in_system` is a
+pure function of the sector and the day — it has always been able to derive the
+hulls working *any* system — and every caller in the game passed the system the
+ship was sitting in. So the module's own docstring complaint stood unanswered: *"a
+Concordat patrol jumped me at Loam Span" arrived with no warning it could possibly
+have given.*
+
+`traffic.plotted` and `mesh_reaches` are the gate now. You see the system you are
+in; a CHORUS Node aboard reports from systems you have actually stood in, because
+the mesh needs something of yours to reconcile against; and a Node planted in a
+system holds that system whether or not one is aboard. `colony.drifting` is written
+beside the existing `colony.watching` rather than as another key published into
+`effects()` — that function's own docstring warns that a published key nothing
+opens is where a dead effect hides, which is exactly the trap I had half-written
+before rereading it.
+
+The payoff is on the chart. `ui/mesh_panel` lists what the mesh is hearing —
+measured on one chronicle with a Node fitted and fourteen systems visited: **13
+systems reporting, one hull running dark at Thule Watch**, sorted so trouble reads
+first. And the sector chart marks that system in red before you commit to the jump,
+with the legend entry to say what the mark means. Five checks hold it, including
+the one that matters: **every hostile count the chart warned about was what was
+actually waiting on arrival.**
+
+Also this cycle: **#101 closed as a wrong diagnosis of my own.** Last cycle I filed
+a task claiming the orbit law was spending thousands of metres a second flattening
+inclined arrivals into the xy plane. Measured across two sectors and seven bodies:
+`h = r × v` has `hz/|h| = 1.000` and the plane-change delta-v is **0.0 m/s**
+everywhere. The galaxy is generated flat. Two further hypotheses went the same way
+before I stopped — the hull is not stuck slewing (3–138 slew ticks against
+thousands of burns), and the arrival at a small body is at 38% of circular speed,
+a plunge rather than an orbit. I had reached for an explanation that fitted the
+shape of a trace without measuring the quantity it named, and the honest end of
+that is a closed task saying so rather than a fix for something that is not
+happening.
+
+The other half of #94 — a lifeform's `metabolism`, which groups nothing — is left
+open with the work I did on it recorded: the eight metabolisms pair honestly with
+techs the tree already has (Sabatier Loop ↔ methanogen, Trehalose Cryptobiosis ↔
+cryptobiont, Piezolyte Physiology ↔ piezophile, Deinococcus Repair ↔ radiotroph,
+Photosynthetic Intima ↔ photoautotroph, Mineral Gut ↔ chemolithotroph), so what
+you have researched decides what you can make sense of on the ground. That is a
+table, a sim door and a codex grouping, and it is a cycle rather than an
+afterthought.
+
+Five new checks, 917 across the suite, all green.
+
 ## 2026-07-30 — SEEDFALL: the guard that did not exist, and the option that was a lie
 
 Two things this cycle. The first is a correction.

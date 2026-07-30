@@ -13,7 +13,7 @@ from ..core.util import credits as cr
 from ..core.util import duration, num
 from ..data.factions import FACTIONS_BY_ID
 from ..sim import intel as intel_sim
-from . import orders_panel, weave_panel
+from . import mesh_panel, orders_panel, weave_panel
 from ..sim import rumours as rumour_sim
 from ..sim import reach as reach_sim
 from ..sim import anchorage as anchorage_sim
@@ -213,6 +213,9 @@ class StarChart(QWidget):
             p.drawLine(QPointF(pt.x() - r - 4, pt.y() - r - 4),
                        QPointF(pt.x() + r + 4, pt.y() + r + 4))
 
+        if mesh_panel.chart_mark(g, sys):        # see `ui/mesh_panel`
+            self._draw_marker(p, pt, QColor(224, 104, 95), r + 4.5)
+
         if known:
             f = QFont(theme.mono_family(), 8)
             p.setFont(f)
@@ -269,6 +272,7 @@ class MapView(View):
             "◎ port", "∧ something said about it",
             "dashed ring = jump range", "╲ beyond reach",
             "◉ Weave anchor (gold = lit)", "gold line = a ring you can use",
+            "red corners = hulls nobody claims, heard by the mesh",
         ])
         self.col.addWidget(note(legend))
         # What the ring never said: how much of the sector this drive can
@@ -277,6 +281,9 @@ class MapView(View):
         wall = self._way_out()
         if wall is not None:
             self.col.addWidget(wall)
+        heard = mesh_panel.build(g)
+        if heard is not None:
+            self.col.addWidget(heard)
         self.col.addWidget(weave_panel.build(self, g))
         self.col.addWidget(self._info())
 

@@ -295,6 +295,20 @@ def watching(game, system_id: int) -> bool:
                if c.online and c.system_id == system_id)
 
 
+def drifting(game, system_id: int) -> bool:
+    """Is a CHORUS Node of yours holding this system on the plot?
+
+    Beside `watching` and for the same reason: a predicate the game asks, rather
+    than a key published into `effects()` that nothing opens. `drift` is declared
+    by the CHORUS Node colony and reads "Reads the traffic: other hulls in this
+    system stay plotted" — which was true of nothing at all until
+    `traffic.mesh_reaches` began asking this.
+    """
+    return any(works.effects_of(c).get("drift")
+               for c in game.colonies
+               if c.online and c.system_id == system_id)
+
+
 def fabricating(game, system_id: int) -> bool:
     """Can fabricated parts be made here rather than bought?
 

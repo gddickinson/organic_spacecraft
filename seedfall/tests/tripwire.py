@@ -193,6 +193,7 @@ KIN = {
     "rumours": ("provenance", "explore"),
     "memory": ("provenance", "grudges"),
     "options": ("options",),
+    "traffic": ("traffic", "mesh"),
 }
 
 
