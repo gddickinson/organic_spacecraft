@@ -127,6 +127,9 @@ class Game:
     charts_sold: list = field(default_factory=list)
     boards: dict = field(default_factory=dict)
     diplomacy: object | None = None
+    #: The powers' treasuries: what each earns from its ports, what holding
+    #: them costs, and what it has built or given up. See `sim/exchequer.py`.
+    exchequer: object | None = None
     #: The bench's standing work once the tech tree is finished — which
     #: programme it is on, the rounds it has completed and the findings in
     #: hand. A declared field rather than an attribute `programmes.state`

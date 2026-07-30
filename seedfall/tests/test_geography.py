@@ -78,11 +78,22 @@ def run(suite: Suite) -> None:
             game = new_game(f"geo{seed}")
             ports = _ports(game)
             assert len(ports) >= 8, len(ports)
-            opening = statistics.pstdev(
-                s.market.stock["ore"].supply for s in ports)
+            # **A berth can close now**, and this check crashed on the None the
+            # first time one did: the powers pay their own upkeep, and one in
+            # deficit gives up its cheapest port (`sim/exchequer.py`). So the
+            # spread is measured over the ports that are still open at the end,
+            # on both sides of the comparison — a spread taken over one set of
+            # ports and compared with a spread over another is not a comparison.
+            was = {s.id: s.market.stock["ore"].supply for s in ports}
             _fed(game, 8)
+            live = [s for s in ports if s.market is not None]
+            assert len(live) >= 8, (
+                f"seed {seed}: only {len(live)} of {len(ports)} berths are "
+                "still open after eight years; the powers are dismantling the "
+                "sector faster than they build it")
+            opening = statistics.pstdev(was[s.id] for s in live)
             later = statistics.pstdev(
-                s.market.stock["ore"].supply for s in ports)
+                s.market.stock["ore"].supply for s in live)
             rows.append((opening, later))
             assert later > opening * 0.6, (
                 f"seed {seed}: the spread in ore supply across ports fell "

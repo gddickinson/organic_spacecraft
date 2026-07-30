@@ -17,6 +17,8 @@ These checks hold three claims:
 
 from __future__ import annotations
 
+import copy
+
 from ..core.state import new_game
 from ..data.crossings import CROSSINGS, CROSSINGS_BY_ID
 from ..data.lineages import LINEAGES, LINEAGES_BY_ID
@@ -121,20 +123,64 @@ def run(suite: Suite) -> None:
 
     @check("a long enough chronicle ends a career, and opens the berth")
     def _():
+        from ..sim import legacy as legacy_sim
+        span = LINEAGES_BY_ID["wet"].span
         game = _of("wet", "span")
         who = game.officers[0]
-        who.age = LINEAGES_BY_ID["wet"].span - 2
+        who.age = span - 2
         start_level = who.level
+        epochs = 0
         for _ in range(40):
             game.advance_days(365)
             if getattr(who, "retired", False):
                 break
+            # **The sector's story can end before a career does**, and the
+            # clock stops dead when it does: `advance_days` returns on
+            # `game.victory`. This check used to run its forty years on the
+            # assumption that it would not happen, and got away with it only
+            # because the officer usually retired first — the odds of standing
+            # a watch eight years past ninety-six are about one in four. So it
+            # goes on through the ending the way a player does, which is what
+            # `legacy.begin` is for.
+            if game.victory and not legacy_sim.in_epoch(game):
+                legacy_sim.begin(game, game.victory)
+                epochs += 1
         assert getattr(who, "retired", False), (
             f"{who.name} reached {lifespan.age_of(who, game):.0f} and is still "
             "standing a watch")
         assert who not in lifespan.active(game.officers)
-        return (f"{who.name} retired at {lifespan.age_of(who, game):.0f}, "
-                f"level {start_level}→{who.level}")
+
+        # And the *rate* is the thing worth pinning, not one officer's luck:
+        # `END_SLOPE` is named in `sim/lifespan.py` and nowhere else, so if this
+        # check only asked "does anybody ever retire" the slope could be any
+        # number at all. Measured over a mess deck of sixty, through the same
+        # `tick` the clock calls.
+        cohort = _of("wet", "cohort")
+        crew = []
+        for i in range(60):
+            hand = copy.deepcopy(cohort.officers[0])
+            hand.name = f"Hand {i}"
+            hand.age = span + 2
+            hand.retired = False
+            crew.append(hand)
+        cohort.officers = crew
+        standing = []
+        for year in range(12):
+            cohort.ship_day += 365
+            lifespan.tick(cohort, 365, cohort.rng(f"cohort-{year}"))
+            standing.append(sum(1 for o in crew
+                                if not getattr(o, "retired", False)))
+        half = next((y for y, n in enumerate(standing, 1) if n <= 30), None)
+        assert half is not None, (
+            f"sixty hands two years past their span and {standing[-1]} still "
+            "aboard twelve years later — past the span is not a slope, it is "
+            "a plateau")
+        assert 2 <= half <= 8, (
+            f"half the cohort was gone after {half} years past their span; "
+            f"the slope is wrong. Yearly count: {standing}")
+        return (f"{who.name} retired at {lifespan.age_of(who, game):.0f} "
+                f"(level {start_level}→{who.level}, {epochs} epoch(s) run "
+                f"through); half a cohort gone {half} years past span")
 
     @check("time is relative: the two clocks part company on a hard burn")
     def _():

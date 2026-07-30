@@ -24,6 +24,7 @@ from ..sim import diplomacy as dip_sim
 from ..sim import dormancy as dormancy_sim
 from ..sim import responses as response_sim
 from ..sim import ventures as venture_sim
+from ..sim import exchequer as exchequer_sim
 from ..sim import legacy as legacy_sim
 from ..sim import memory as memory_sim
 from ..sim import loyalty as loyalty_sim
@@ -185,11 +186,18 @@ def advance_days(game, n: float, dilation: float = 1.0) -> None:
 
     for sys in game.galaxy.systems:
         if sys.market:
-            tick_market(sys.market, n, r)
+            tick_market(sys.market, n, r,
+                        sys.port.level if sys.port else 1)
     for kind, text in market_sim.tick(game, n, r):
         game.add_log(text, kind)
     market_sim.apply_to_markets(game)
     for kind, text in venture_sim.tick(game, n, r):
+        game.add_log(text, kind)
+    # And somebody pays for all of it. The powers' purses take the day's
+    # income, and once a month they build with the surplus or give something
+    # up for the deficit — which is the only thing that has ever changed the
+    # sector's infrastructure other than the player. See `sim/exchequer.py`.
+    for kind, text in exchequer_sim.settle(game, n):
         game.add_log(text, kind)
     dip_sim.drift(game, n)
     # And the powers act on their own account, rather than only drifting back

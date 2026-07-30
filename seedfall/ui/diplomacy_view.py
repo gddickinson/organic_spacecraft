@@ -10,6 +10,7 @@ from ..data.diplomacy import AGENDAS, CONCORD_RELATION, CONCORD_STANDING
 from ..data.factions import FACTIONS_BY_ID, standing
 from ..sim import diplomacy as dip
 from ..sim import ventures as venture_sim
+from . import exchequer_panel
 from . import ventures_panel
 from .widgets import (defer, Panel, Pill, TabBar, View, button, label, mono_label,
                       note, spacer)
@@ -40,6 +41,7 @@ class DiplomacyView(View):
                   f"{len(prog['peace'])}/{prog['peace_need']} pairs at peace")
 
         self.col.addWidget(ventures_panel.build(self, g))
+        self.col.addWidget(exchequer_panel.build(g))
         self.col.addWidget(self._matrix(g, prog))
 
         tabs = TabBar([(p, FACTIONS_BY_ID[p].short) for p in dip.POWERS], self.focus)

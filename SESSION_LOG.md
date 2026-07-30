@@ -2,6 +2,93 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: somebody pays for it now (#95, the public purse)
+
+The four powers of the Verge were penniless in the literal sense. They held
+ports, annexed systems, blockaded each other and censured each other, and no
+credit ever changed hands over any of it. A `Port` carried a level and a list of
+services fixed at galaxy generation, and **nothing in the game could raise it,
+lower it, build a new one or close an old one** — the only berth that could come
+into existence was the player's own Free Port, and the only one that could vanish
+was that same one. The map you flew in year one was the map you flew in year
+twelve.
+
+Now every power keeps a treasury. `data/exchequer.py` holds the numbers,
+`sim/exchequer.py` the purse, and the shape is chosen so the sector has an
+**equilibrium rather than a direction**:
+
+- A berth pays its holder `level × 90` a day and costs `30 × level²`. So an
+  outpost clears 60, a station clears 60, and a **Fleet Hub clears nothing at
+  all**. Prestige is expensive.
+- A surplus founds an outpost on ground the power holds, or promotes one up
+  `world.galaxy.PORT_KINDS` — the same ladder that made every port in the sector,
+  rather than a second copy of it in `data/`.
+- A deficit takes the cheapest berth down a step, and an outpost that goes down a
+  step **closes, taking its market with it**.
+- A venture costs its sponsor a 9,000 stake, and a power that cannot find it
+  starts nothing. One with a war chest and nothing left to build gets restless
+  instead — which is the sink that stops a treasury growing for ever with nothing
+  to spend it on. (The bench's banked research points were exactly that bug.)
+
+Played, eight years, one sector: **17 berths and 32 levels became 30 and 75**, 49
+works paid for, 6 steps given up, and the four purses holding steady between
+118k and 215k rather than running away. The ship's log fills up with it — *Dry
+Choir: Station at Pale Crossing is now a Fleet Hub*, *Charter: a new Outpost is
+open at Thule's Mouth*, *Outpost at Iron Rise is now a Station*.
+
+**A blockade now costs the blockaded something.** A venture puts a shortage on a
+rival's market, a pinched berth yields 35%, and the purse feels it: measured end
+to end, a landed blockade took the Sanhedrin's income from 814 to 578 a day and
+its margin from +334 to +98. In an ordinary chronicle a power is pinched about
+**28% of the time**, so this is a standing pressure rather than a curiosity.
+
+The player is on the ledger for one thing: a Free Port of their own pays a
+harbour due. `player_built` was read by exactly one function before this — the
+one that tears the harbour down again.
+
+**Three things playing found that reading would not have.**
+
+- **`tick_market` was throwing the port's size away.** `make_market` scales the
+  opening stock by the berth's level, and the daily drift then pulled every
+  commodity at every port toward the same `supply × 60` regardless — so within
+  about a month a Fleet Hub held exactly as much cargo as an outpost. The level
+  was decorating the opening inventory and nothing else. It takes the level now:
+  a year in, outpost 1,300 t, station 1,779 t, hub 2,832 t, and holding.
+- **The register offered a berth that no longer existed.** With ports able to
+  close, a two-year-old note about a good price drew exactly like a live one —
+  hops, days, revenue a day and all. Rows carry `open` now, closed berths are
+  marked and ranked below open ones, and the note is kept because it is still a
+  true record of a price that was paid there.
+- **`test_geography` crashed on the None** — it listed the ports, ran eight
+  years, and read `system.market.stock` on one that had since been given up. Its
+  spread is measured over the berths still open at the end now, on both sides of
+  the comparison.
+
+**And two checks that were passing on luck.**
+
+- *"A long enough chronicle ends a career"* put an officer two years short of
+  their span and ran forty years. It never ran forty years: `advance_days`
+  returns on `game.victory`, the chronicle reached its Ruin ending at day 3,650,
+  and the clock stopped. It got away with that only because the officer usually
+  retired first — the odds of still standing a watch eight years past ninety-six
+  are about **one in four**, and this time the dice went the other way. It plays
+  on through the ending the way a player does now (`legacy.begin`), and since
+  `END_SLOPE` is named in `sim/lifespan.py` and nowhere else, it also measures
+  the *rate* over a cohort of sixty: half of them gone five years past span.
+- *"Being provoked genuinely makes it grow faster"* wanted the provoked Bloom
+  ahead in at least six of eight sectors and got five. The mechanism is fine —
+  over twenty sectors it is **+8.5% aggregate and ahead in 15** — but three years
+  of growth runs close to saturation, which compresses the gap, so per-sector it
+  loses about a quarter of the time. Twenty sectors and a *share* rather than a
+  count, so widening the sample now makes it more stable instead of inviting the
+  same edit next time. That is the third widening of this one check, and the two
+  earlier ones were also for changes that never touched the Bloom.
+
+Ten new checks, 883 across the suite, all green. The other half of #95 — NPC
+settlements on habitable worlds, of which there are still exactly none — is filed
+as #99, and a harbour due on the player's own trade as #100, deliberately left
+until it can be done with the balance suites in view.
+
 ## 2026-07-29 — SEEDFALL: a multiply of white is a no-op, and it cost half the light
 
 #98 was three mutations of the painted-world renderer that the last cycle's sweep

@@ -272,13 +272,22 @@ def best_markets(game, cid: str, selling: bool = True, limit: int = 4) -> list[d
                     # for somewhere unreachable, which sorts it to the bottom
                     # without hiding it.
                     "per_day": (price / max(days, 1)) if route else 0.0,
+                    # **A berth can close now.** The powers pay for their own
+                    # ports, and one that falls off the bottom of the ladder
+                    # takes its market with it (`sim/exchequer.py`). The note
+                    # in the register is still a true record of a price that
+                    # was paid there — but there is nothing there to pay it
+                    # any more, and a list that did not say so would be
+                    # sending a captain to an empty orbit.
+                    "open": system.market is not None,
                     "shocked": bool([s for s in at(game, system.id)
                                      if s.commodity == cid])})
     if selling:
-        out.sort(key=lambda row: (row["reachable"], row["per_day"]),
-                 reverse=True)
+        out.sort(key=lambda row: (row["open"], row["reachable"],
+                                  row["per_day"]), reverse=True)
     else:
-        out.sort(key=lambda row: (not row["reachable"], row["price"],
+        out.sort(key=lambda row: (not row["open"], not row["reachable"],
+                                  row["price"],
                                   row["days"] if row["days"] is not None
                                   else 10 ** 6))
     return out[:limit]

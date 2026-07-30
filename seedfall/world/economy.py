@@ -109,8 +109,21 @@ def apply_sale(market: Market, cid: str, units: float) -> None:
     s.supply += units * 0.0013
 
 
-def tick_market(market: Market, days: float, rng) -> None:
-    """Daily drift back toward equilibrium, plus a small random walk."""
+def tick_market(market: Market, days: float, rng, level: int = 1) -> None:
+    """Daily drift back toward equilibrium, plus a small random walk.
+
+    **`level` is how big the port is, and it has to be passed in.** A berth's
+    size is scaled into its opening stock by `make_market` — and then this
+    function pulled every commodity at every port toward the same `supply × 60`
+    regardless of it, so within about a month a Fleet Hub held exactly as much
+    cargo as an outpost. The level was doing nothing but decorate the opening
+    inventory.
+
+    It matters more now than it did: the powers pay for their own ports and
+    promote them up the ladder (`sim/exchequer.py`), so a berth's size is a
+    thing that changes over a chronicle rather than a fact of generation. A hub
+    is a deep market and an outpost is a thin one, permanently.
+    """
     for cid, s in market.stock.items():
         c = BY_ID.get(cid)
         if s.base <= 0:
@@ -123,7 +136,8 @@ def tick_market(market: Market, days: float, rng) -> None:
         eq = s.base * (1 + (c.volatility if c else 0.3) * s.trend * 12)
         s.supply += (eq - s.supply) * min(0.6, 0.018 * days)
         s.supply = max(0.02, s.supply + rng.float(-0.012, 0.012) * days)
-        s.units = max(0, round(s.units + (s.supply * 60 - s.units) * 0.03 * days))
+        deep = s.supply * 60 * max(1, level)
+        s.units = max(0, round(s.units + (deep - s.units) * 0.03 * days))
         if rng.chance(0.02 * days):
             s.trend = rng.float(-0.03, 0.03)
     market.day += days

@@ -67,11 +67,17 @@ def register(game, system) -> Panel:
             marks = []
             if row["shocked"]:
                 marks.append("something is happening there")
+            if not row["open"]:
+                marks.append("the berth there has closed — nothing left to "
+                             "sell to")
             # Hops and days rather than a straight line. A light-year count is
             # not a journey: a third of what this list used to recommend was
             # unreachable at any distance, and the sort put an eight-hop port
             # above a one-hop one for three credits more.
-            if not row["reachable"]:
+            if not row["open"]:
+                where = f"{target.name} · closed"
+                worth = f"{cr(row['price'])} · when there was a berth"
+            elif not row["reachable"]:
                 where = f"{target.name} · beyond your jump"
                 worth = f"{cr(row['price'])} · nothing you can reach"
             else:
@@ -81,8 +87,8 @@ def register(game, system) -> Panel:
                 worth = (f"{cr(row['price'])} · {row['per_day']:,.0f} a day "
                          f"· noted {duration(row['age'])} ago")
             p.add_row(where, worth,
-                      _age_tint(row["confidence"]) if row["reachable"]
-                      else "dim")
+                      _age_tint(row["confidence"])
+                      if row["reachable"] and row["open"] else "dim")
             if marks:
                 p.add(note(" · ".join(marks)))
     return p

@@ -1639,6 +1639,7 @@ seedfall/
 │   ├── colonies.py     19 colony and station classes, and `EFFECT_TEXT`:
 │   │                   what each grant means, in words
 │   ├── factions.py     6 powers + reputation bands
+│   ├── exchequer.py    what a port yields, what it costs, what building costs
 │   ├── lifeforms.py    xenobiology generation tables + anomalies
 │   ├── strata.py       the four layers of a dig, 3 methods, finds and spoils
 │   ├── contraband.py   who outlaws what, how hard they look, what they say
@@ -1744,6 +1745,8 @@ seedfall/
 │   ├── responses.py    provocation, the Bloom's answers, and studying a mass
 │   ├── market.py       supply shocks, and the prices you wrote down
 │   ├── ventures.py     what the powers do on their own account
+│   ├── exchequer.py    the public purse: income, upkeep, building,
+│   │                   retrenchment, and the stake a venture costs
 │   ├── weather.py      the front overhead during a landing
 │   ├── mining.py       seams, depth, and how hard you work a body
 │   ├── rumours.py      leads that point somewhere before you have been
@@ -1870,6 +1873,8 @@ seedfall/
     ├── test_seatwork.py 5 checks — the crew hold their seats either way
     ├── test_thermal_doors.py 5 checks — every heat door goes through one gate
     ├── test_ventures.py 6 checks — both sides of a venture are costed
+    ├── test_exchequer.py 10 checks — the powers' purses: income,
+    │                   upkeep, building, retrenchment, the venture stake
     ├── test_orderplan.py 6 checks — every order says what it will do
     ├── ground_ai.py    a party leader good enough to measure the ground with
     ├── suites.py       the suite table `__main__` dispatches from
@@ -1930,6 +1935,28 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   full screen is a few hundred widgets.
 
 ## The parts that will bite you
+
+- **A port is not scenery any more, and things that cached one will break.**
+  The powers keep treasuries (`sim/exchequer.py`): each berth pays its holder
+  `level × 90` a day and costs `30 × level²`, so an outpost and a station both
+  clear about sixty and a Fleet Hub very nearly pays for itself and no more. A
+  surplus founds or promotes one up `world.galaxy.PORT_KINDS`; a deficit takes
+  the cheapest one down a step, and an outpost that goes down a step **closes,
+  taking its market with it**. Two things fell over the first time one did:
+  `test_geography` crashed on `system.market.stock` for a berth it had listed
+  eight years earlier, and the register cheerfully offered a two-year-old price
+  at a port that no longer existed. Anything that holds a system, a port or a
+  market across a passage of time must re-check that it is still there.
+  `promote`, `found` and `demote` are the only writers of a port's level, and
+  `demote` will not close the berth the player's own hull is sitting in.
+- **`tick_market` needs to be told how big the port is.** `make_market` scales
+  the opening stock by the berth's level and the daily drift then pulled every
+  commodity at every port toward the same `supply × 60` regardless — so within
+  about a month a Fleet Hub held exactly as much cargo as an outpost, and the
+  level was decorating the opening inventory and nothing else. It takes a
+  `level` argument now and `core/clock.py` passes the port's own. Measured a
+  year in: outpost 1,300 t, station 1,779 t, hub 2,832 t, holding steady
+  instead of converging.
 
 - **`HULL_SCALE` in `sim/ship.py`** converts the descriptive `hull` figures in
   `data/chassis.py` into combat hit points. Chassis numbers are written to read
@@ -3281,6 +3308,18 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   the transfer spends, and that the panel and the sim never disagree about
   whether this is an orbit. One limitation is recorded rather than hidden — see
   the check's own message and task #83.
+- **`test_exchequer.py`** measures the public purse by running a sector for
+  eight years rather than by calling `promote` and observing that it promotes: a
+  day moves each purse by exactly what the ledger says, a surplus builds, a
+  deficit gives a step up and *recovers the upkeep*, a power that cannot find
+  the stake starts no ventures, a blockade costs its target income through the
+  same `yield_of` the screen reads, a founded berth quotes prices the player can
+  trade at, a closed berth is marked in the register, nobody pulls a berth down
+  with the player's hull alongside, and a Free Port of the player's pays them a
+  harbour due. The last check is the tripwire set: every constant in
+  `data/exchequer.py` is pinned by a consequence — an outpost and a station
+  clearing about the same, a promotion being a season of surplus away — rather
+  than by repeating its own value.
 - **`test_worlds.py`**, **`test_sky_kit.py`** and **`test_lighting.py`** hold the
   astronomical catalogue, and measure it in pixels rather than asserting it from
   the tables that made it. `test_worlds.py`: no two kinds of world render alike, a

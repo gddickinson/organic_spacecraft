@@ -17,6 +17,7 @@ from ..data.ventures import (BASE_ODDS, MAX_PER_POWER, ONSET_PER_MONTH,
 from ..data.diplomacy import AGENDAS
 from ..data.factions import FACTIONS_BY_ID
 from . import diplomacy as dip
+from . import exchequer
 from . import territory
 from . import loyalty
 from . import market as market_sim
@@ -113,6 +114,13 @@ def start(game, rng, power: str):
             return None
         place = rng.pick(options).id
 
+    # **Somebody has to pay for it.** A venture used to cost its sponsor
+    # nothing at all, so a power stripped of every port ran the same number of
+    # initiatives as one holding half the sector. The stake comes out of the
+    # purse last, once the venture is known to be well formed, so a power is
+    # never charged for an initiative it then declines to start.
+    if not exchequer.stake(game, power):
+        return None
     venture = Venture(id=next(_uid), kind=kind.id, power=power, other=other,
                       place=place, until=game.day + rng.int(*kind.days))
     ensure(game).append(venture)
@@ -131,7 +139,10 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
     for power in dip.POWERS:
         if len(by_power(game, power)) >= MAX_PER_POWER:
             continue
-        if not rng.chance(chance):
+        # A power with money to burn is a busier power, and one that cannot
+        # find the stake is not restless at all. This is the sink that stops a
+        # treasury growing forever with nothing to spend it on.
+        if not rng.chance(chance * exchequer.appetite(game, power)):
             continue
         venture = start(game, rng, power)
         if venture is not None:

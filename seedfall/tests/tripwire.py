@@ -188,6 +188,7 @@ KIN = {
     "gunnery": ("volley", "gunboard", "gunnery"),
     "battle3d": ("gunfire",),
     "mounts": ("thrusters",), "burnplan": ("thrusters", "helm"),
+    "exchequer": ("exchequer", "politics"),
 }
 
 
