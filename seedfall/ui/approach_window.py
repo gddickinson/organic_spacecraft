@@ -60,24 +60,31 @@ class ApproachView(QWidget):
 
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        w, h = self.width(), self.height()
-        painter.fillRect(0, 0, w, h, QColor(VOID))
-        conn = self.window.conn
-        if conn is None:
-            painter.setPen(QColor(theme.INK2))
-            painter.drawText(14, 24, "Nothing in reach to plot.")
+        try:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+            w, h = self.width(), self.height()
+            painter.fillRect(0, 0, w, h, QColor(VOID))
+            conn = self.window.conn
+            if conn is None:
+                painter.setPen(QColor(theme.INK2))
+                painter.drawText(14, 24, "Nothing in reach to plot.")
+                return
+            span = self.window.span_km()
+            camera = self.window.camera(w, h, span)
+            self._target(painter, camera, conn)
+            self._berths(painter, camera, conn)
+            self._track(painter, camera, conn)
+            self._ship(painter, camera, conn)
+            self._scale(painter, w, h, span)
+        finally:
+            # **Always.** A `paintEvent` that leaves without ending its
+            # painter leaves the QPainter attached to the widget, and Qt then
+            # takes the whole process down when the widget is destroyed:
+            # "Cannot destroy paint device that is being painted", and a
+            # segfault. Measured — the full suite died at exit code 139 after
+            # this window's own checks, every check passing, nothing failing,
+            # and no traceback to read.
             painter.end()
-            return
-
-        span = self.window.span_km()
-        camera = self.window.camera(w, h, span)
-        self._target(painter, camera, conn)
-        self._berths(painter, camera, conn)
-        self._track(painter, camera, conn)
-        self._ship(painter, camera, conn)
-        self._scale(painter, w, h, span)
-        painter.end()
 
     # ── the pieces ─────────────────────────────────────────────────────────
 

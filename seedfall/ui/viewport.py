@@ -329,9 +329,14 @@ class Viewport(QWidget):
         # Through the same door the sky uses, so the shape you picked out at
         # range is the shape — and the attitude — you come alongside.
         if kind == "anchorage":
+            # The angle the *docking* is using, so the fitting a pilot is
+            # flying at is under the fitting they can see.
+            from ..sim import moorings
             shown = models3d.present("anchorage",
                                      getattr(conn.target, "berth", ""),
-                                     conn.elapsed)
+                                     conn.elapsed,
+                                     spin=moorings.spin_at(conn.target,
+                                                           conn.elapsed))
         elif kind == "hull":
             shown = models3d.present("hull",
                                      getattr(conn.target, "errand", ""),

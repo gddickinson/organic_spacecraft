@@ -226,10 +226,21 @@ def run(suite: Suite) -> None:
             conn = conn_sim.start(game, contact, range_km=1.0, drift=0.0)
             berth = moorings.nearest(conn)
             if berth is not None:
+                # **Aimed at where the berth will be, because it turns.** The
+                # structure comes round once in about forty-seven minutes, and
+                # this arrival coasts — nothing is steering it — so at half a
+                # metre a second the fitting had gone 268° round by the time
+                # the hull got there and a gentle arrival read as a collision.
+                # `moorings.where_at` is the door the flight computer uses to
+                # lead its own aim.
                 out = math.dist(berth["at"], (0.0, 0.0, 0.0)) or 1.0
                 conn.pos = [c * (out + 1.0) / out for c in berth["at"]]
-                here = math.dist(conn.pos, (0.0, 0.0, 0.0)) or 1.0
-                conn.vel = [-c / here * speed for c in conn.pos]
+                run = math.dist(conn.pos, (0.0, 0.0, 0.0)) - out
+                will = moorings.where_at(conn, run * 1000.0 / max(speed, 1e-6),
+                                         berth["name"])
+                toward = [w - p for w, p in zip(will, conn.pos)]
+                length = math.dist(toward, (0.0, 0.0, 0.0)) or 1.0
+                conn.vel = [c / length * speed for c in toward]
             else:
                 conn.vel = [0.0, speed, 0.0]
             for _ in range(400):

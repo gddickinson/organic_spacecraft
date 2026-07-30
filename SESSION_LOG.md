@@ -2,6 +2,61 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: the stations turn (#107, second slice)
+
+2001's stations rotate, and a rotating berth is not decoration — it is a
+docking problem. Two things had to become true at once: the fitting has to
+move, and everything that aims at it has to know.
+
+**The rate is derived, not chosen.** A station coming round once a minute is
+2001's, and on a 400 m hub that is eleven metres a second at the rim — eight
+times what a berthing allows, so nobody could ever dock. Fixing a period per
+class is no better: a big station becomes undockable and a small one static.
+So every structure turns at whatever period gives its berths the *same* pace,
+and that pace is a quarter of `ALONGSIDE_RATE` — derived from the gate it has
+to fit inside. A Fleet Hub comes round in a little over two hours, 2.9 degrees
+a minute: plainly moving over a three-quarter-hour approach, and leadable.
+
+Measured at a whole metre a second — two thirds of the budget — a hand-flown
+approach lost the fitting on one chronicle in three.
+
+**`models3d.ATTITUDE` had been spinning berths at `1/900` all along** — a
+decorative rate the docking model knew nothing about. The mesh came round
+every fifteen minutes while the berths on it never moved at all. A picture
+arguing with the game. The rate comes from `moorings.spin_at` now, which is
+the same angle the berths are turned by and the computer aims at.
+
+**Then three real consequences, each found by flying it.**
+
+A ballistic arrival has to *lead* the berth: at half a metre a second the
+fitting had gone 268° round by the time the hull got there, and a gentle
+arrival read as a collision. `moorings.lead` and `where_at` are the door.
+
+A pilot handed the controls at four times the berth reach on a *quay* is
+already touching the hull — the fitting is 0.91 radii out — so the first
+button press ended the approach. Hand over with room.
+
+And the one worth keeping: **"kill the lateral drift" is the wrong instruction
+at a turning station.** `conn.closing` and `autopilot.lateral` are measured
+against the structure's *centre*, so a hull perfectly matched to a moving
+berth still reads a metre a second of drift, and a pilot told to null it
+fights the rotation instead of joining it — measured, spending the whole
+budget and arriving 482 m from the fitting. `moorings.rates` gives closing and
+cross **relative to the berth**, and the panel shows them whenever the berth
+is moving. That is the manoeuvre 2001 is actually about.
+
+**And a segfault.** The full suite began dying at exit 139 with every check
+passing and nothing to read — "QPaintDevice: Cannot destroy paint device that
+is being painted". Two causes, both mine: a `paintEvent` that returns early
+without `painter.end()` leaves the painter attached to the widget, and Qt
+takes the process down when it is destroyed; and checks that closed a parent
+window while its pop-outs still had repaints queued. Painters end in `finally`
+now and the checks close what they opened, innermost first.
+
+Buffered output cost an hour of that: the last flushed line said the crash was
+in `knock`, a suite with no Qt in it at all. Unbuffered, it was `showflying`,
+which is exactly where the new windows are.
+
 ## 2026-07-30 — SEEDFALL: one hard sun (#107, first slice)
 
 Going for a 2001 look, and 2001 is above all one hard sun and no fill: a

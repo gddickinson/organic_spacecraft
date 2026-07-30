@@ -327,6 +327,21 @@ class FlightWindow(QDialog):
         if berth is not None:
             rows.append(("Berth", f"{berth['name']} · "
                                   f"{berth['km'] * 1000:,.0f} m"))
+            # **Relative to the berth, because the berth is moving.** The two
+            # readings above are measured against the structure's *centre*,
+            # which is the right frame for something that sits still and the
+            # wrong one for a fitting going round: a hull perfectly matched to
+            # a turning berth still reads lateral drift against the centre,
+            # and a pilot nulling that fights the rotation instead of joining
+            # it. Measured: a hand-flown approach did exactly that and
+            # arrived 482 m from the fitting with its tanks spent.
+            on_berth = moorings.rates(conn)
+            if on_berth["berth_speed"] > 0.01:
+                rows.append(("On the berth",
+                             f"{on_berth['closing']:+.2f} closing · "
+                             f"{on_berth['cross']:.2f} across"))
+                rows.append(("Berth travels",
+                             f"{on_berth['berth_speed']:.2f} m/s"))
         for name, value in rows:
             self.dial_box.addWidget(mono_label(f"{name:<15}{value}"))
         if berth is not None:

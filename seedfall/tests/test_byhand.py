@@ -86,10 +86,18 @@ def _to_corridor(conn) -> None:
     closes on the berth along its own line rather than through the hold point.
     """
     reach = moorings.reach_km(conn.target)
+    hull = float(getattr(conn.target, "radius_km", 0.0) or 0.0)
     for _ in range(3000):
         if conn.over:
             return
         found = moorings.nearest(conn)
+        # Near the berth **and still clear of the structure**. On a quay the
+        # fitting is 0.91 radii out, so four times the reach of it is inside
+        # the skin: the computer handed the ship over already touching the
+        # hull, and the pilot's first press ended the approach in a collision
+        # after one button. A pilot takes the controls with room.
+        if conn.range_km <= hull * 1.3:
+            return
         if found is not None and found["km"] <= reach * 4.0:
             return
         axis, main, throttle = pilot_sim.autopilot(conn, "close")
@@ -157,10 +165,16 @@ def run(suite: Suite) -> None:
                 if conn.over:
                     break
                 presses += 1
-                across = math.dist(pilot_sim.lateral(conn), (0.0, 0.0, 0.0))
+                # **Flown on the berth-relative instruments**, because the
+                # structure turns. Nulling the drift against the *centre* —
+                # which is what `autopilot.lateral` measures — means fighting
+                # the rotation rather than joining it, and a pilot doing that
+                # spends the whole budget and arrives 482 m from the fitting.
+                # `moorings.rates` is the panel's own reading.
+                on = moorings.rates(conn)
                 gap = math.dist(conn.pos, moorings.aim(conn))
-                if (conn.closing > pilot_sim.safe_rate(conn)
-                        or across > 0.4 or conn.closing < -0.2):
+                if (on["closing"] > pilot_sim.safe_rate(conn)
+                        or on["cross"] > 0.25 or on["closing"] < -0.2):
                     panel._null()
                 elif gap > 0.02:
                     steer = moorings.steer(conn)

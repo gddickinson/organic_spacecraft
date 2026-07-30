@@ -46,6 +46,23 @@ def _app():
     return _HELD
 
 
+def _shut(win, *windows) -> None:
+    """Close the pop-outs, then the window that parented them.
+
+    Closing only the parent leaves Qt to destroy the children, and a child
+    with a repaint still queued is destroyed *while it is being painted* —
+    which is a segfault, not an exception, and takes the suite with it before
+    it can say anything.
+    """
+    keep = _app()
+    for window in windows:
+        if window is not None:
+            window.close()
+    keep.processEvents()
+    win.close()
+    keep.processEvents()
+
+
 def _bridge(seed: str = "showing"):
     """A chronicle with the conn, the flight panel and the approach view up."""
     from ..ui.approach_window import open_approach
@@ -91,7 +108,7 @@ def run(suite: Suite) -> None:
         # asked for: the computer opens a drive to 62% and then to 25%.
         shares = {row[3] for row in seen if row[1] and row[2]}
         assert shares and shares != {1.0}, shares
-        win.close()
+        _shut(win, panel, view, conn_win)
         return (f"{len(seen)} ticks recorded, {matched} of them a burn; "
                 f"drive shares seen: {sorted(shares)}")
 
@@ -122,7 +139,7 @@ def run(suite: Suite) -> None:
         if conn.fired_main:
             assert f"{conn.fired_share:.0%}" in panel.main_btn.text(), (
                 panel.main_btn.text(), conn.fired_share)
-        win.close()
+        _shut(win, panel, view, conn_win)
         return (f"{fired} lit on the pad and on the console; the drive "
                 f"{'lit' if conn.fired_main else 'dark'}")
 
@@ -143,7 +160,7 @@ def run(suite: Suite) -> None:
         panel._auto(None)
         assert conn_win.mode is None
         assert bool(panel.off_btn.styleSheet()), "the off switch is not lit"
-        win.close()
+        _shut(win, panel, view, conn_win)
         return "armed from the panel, shared with the conn, and off two ways"
 
     @check("a thruster fires opposite to the way the ship goes")
@@ -250,7 +267,7 @@ def run(suite: Suite) -> None:
         preview_sim.track(conn, None, ticks=30, every=5)
         assert (conn.range_km, conn.elapsed, conn.rcs) == after, (
             "predicting a course flew the ship along it")
-        win.close()
+        _shut(win, panel, view, conn_win)
         return (f"{len(rows)} marks: predicted {said[2] * 1000:,.0f} m at "
                 f"{said[0] / 60:.0f} min, flown {conn.range_km * 1000:,.0f} m")
 
@@ -307,6 +324,6 @@ def run(suite: Suite) -> None:
         before = view.camera(600, 460, view.span_km()).at
         view._set("tilt", 0.95)
         assert view.camera(600, 460, view.span_km()).at != before
-        win.close()
+        _shut(win, panel, view, conn_win)
         return (f"framed at {wide:,.1f} km with both in it; zoom, pan and tilt "
                 "all move the camera")

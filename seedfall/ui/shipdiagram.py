@@ -78,24 +78,28 @@ class ShipDiagram(QWidget):
 
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        w, h = self.width(), self.height()
-        painter.fillRect(0, 0, w, h, QColor(VOID))
-        ship = getattr(self.game, "ship", None)
-        if ship is None:
+        try:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+            w, h = self.width(), self.height()
+            painter.fillRect(0, 0, w, h, QColor(VOID))
+            ship = getattr(self.game, "ship", None)
+            if ship is None:
+                return
+            camera = render3d.Camera(at=(0.0, 0.0, 0.0),
+                                     forward=(0.0, 0.0, 1.0),
+                                     up=(0.0, 1.0, 0.0), width=w, height=h,
+                                     half_fov=HALF_FOV)
+            chassis = CHASSIS_BY_ID.get(getattr(ship, "chassis", ""))
+            if chassis is not None:
+                render3d.draw(painter, camera,
+                              hulls3d.mesh_for_chassis(chassis),
+                              (0.0, 0.0, SUBJECT_AT), 1.0, LIGHT,
+                              spin=SPIN, tilt=TILT)
+            self._mounts_on(painter, camera)
+        finally:
+            # See `ui/approach_window.py`: a painter left open takes the
+            # process down when the widget is destroyed.
             painter.end()
-            return
-        camera = render3d.Camera(at=(0.0, 0.0, 0.0), forward=(0.0, 0.0, 1.0),
-                                 up=(0.0, 1.0, 0.0), width=w, height=h,
-                                 half_fov=HALF_FOV)
-        chassis = CHASSIS_BY_ID.get(getattr(ship, "chassis", ""))
-        if chassis is not None:
-            render3d.draw(painter, camera,
-                          hulls3d.mesh_for_chassis(chassis),
-                          (0.0, 0.0, SUBJECT_AT), 1.0, LIGHT,
-                          spin=SPIN, tilt=TILT)
-        self._mounts_on(painter, camera)
-        painter.end()
 
     def _mounts_on(self, painter: QPainter, camera) -> None:
         """Every mount as a mark, and the lit ones with a plume.

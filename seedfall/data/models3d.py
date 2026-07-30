@@ -254,19 +254,36 @@ WORLDS = {kind: recoloured(WORLD, tint) for kind, tint in BODY_TINT.items()}
 #: same foreshortened blob: the silhouettes were real and none of them was
 #: visible. A hull is shown broadside because a ship is a profile; a berth
 #: keeps the shallow tilt that lets its rings and arms read as rings and arms.
+#: How each sort of thing is held up, as (turns per second, tilt).
+#:
+#: **A berth's rate is not here any more.** It was `1/900` — a decorative
+#: number, and a station drawn turning at a rate the docking model knew
+#: nothing about is a picture arguing with the game: the mesh came round every
+#: fifteen minutes while the berths on it never moved at all. A structure's
+#: real rate is `sim/moorings.turn_seconds`, derived from the pace its berths
+#: are meant to travel at, and callers who have the sim to hand pass it in.
+#: This module is `data/` and may not reach into `sim/`, so the fallback here
+#: is *still*: a berth nobody has told about the clock does not turn, which is
+#: wrong in a small and visible way rather than in a large and invisible one.
 ATTITUDE = {
     "hull": (0.0, 1.28),
     "gate": (1.0 / 2600.0, 0.52),
-    "berth": (1.0 / 900.0, 0.42),
+    "berth": (0.0, 0.42),
 }
 
 
-def present(kind: str, look: str, elapsed: float = 0.0) -> dict:
+def present(kind: str, look: str, elapsed: float = 0.0,
+            spin: float | None = None) -> dict:
     """The mesh for one thing in the sky, and how to hold it up.
 
     One call, so the shape and the angle it is shown at cannot disagree — and
     so the thing you pick out at forty kilometres is the same shape, at the
     same attitude, that you come alongside.
+
+    `spin` overrides the table when the caller knows better, which for a berth
+    it does: `sim/moorings.spin_at` is the one door for which way round a
+    structure is, and the berths it hands the flight computer are turned by
+    exactly that angle.
     """
     mesh = for_sight(kind, look)
     if kind == "hull":
@@ -275,7 +292,8 @@ def present(kind: str, look: str, elapsed: float = 0.0) -> dict:
         rate, tilt = ATTITUDE["gate"]
     else:
         rate, tilt = ATTITUDE["berth"]
-    return {"mesh": mesh, "spin": elapsed * rate, "tilt": tilt}
+    turned = elapsed * rate if spin is None else float(spin)
+    return {"mesh": mesh, "spin": turned, "tilt": tilt}
 
 
 def for_sight(kind: str, look: str) -> tuple:
