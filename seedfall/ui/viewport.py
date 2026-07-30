@@ -293,12 +293,15 @@ class Viewport(QWidget):
                                   sight.radius_km, self.light(conn), tilt=0.42,
                                   glare=hard)
                 continue
-            # Anything that is not a world is a station, and a station is a
-            # mesh: it is not a sphere, and the disc trick says nothing useful
-            # about a box with a spine through it.
-            render3d.draw(p, camera, models3d.SHIPYARD, sight.at,
-                          sight.radius_km, self.light(conn), tilt=0.42,
-                          glare=hard)
+            # Anything that is not a world is a mesh: it is not a sphere, and
+            # the disc trick says nothing useful about a box with a spine
+            # through it. *Which* mesh comes from what the thing is — a quay,
+            # a Fleet Hub, a gate, a courier, a hull with no transponder —
+            # rather than from one shipyard standing in for all of them.
+            shown = models3d.present(sight.kind, sight.look)
+            render3d.draw(p, camera, shown["mesh"], sight.at,
+                          sight.radius_km, self.light(conn),
+                          spin=shown["spin"], tilt=shown["tilt"], glare=hard)
 
     def _star(self, p: QPainter, camera, sight) -> None:
         """The star: a disc that is its own light, and a corona."""
@@ -341,15 +344,21 @@ class Viewport(QWidget):
         if kind == "body":
             # A world is not drawn from a mesh any more — `_target` sends it to
             # `ui/spheres.py`. The spin is still wanted, because the surface has
-            # to turn.
-            return None, conn.elapsed / 5400.0
+            # to turn, and a world keeps the shallow tilt it always had.
+            return None, conn.elapsed / 5400.0, 0.35
+        # Through the same door the sky uses, so the shape you picked out at
+        # range is the shape — and the attitude — you come alongside.
         if kind == "anchorage":
-            if getattr(conn.target, "berth", "") == "gate":
-                return models3d.GATE, conn.elapsed / 2600.0
-            return models3d.SHIPYARD, conn.elapsed / 900.0
-        if kind == "hull":
-            return models3d.HULL, 0.0
-        return models3d.GATE, conn.elapsed / 1400.0
+            shown = models3d.present("anchorage",
+                                     getattr(conn.target, "berth", ""),
+                                     conn.elapsed)
+        elif kind == "hull":
+            shown = models3d.present("hull",
+                                     getattr(conn.target, "errand", ""),
+                                     conn.elapsed)
+        else:
+            shown = models3d.present("anchorage", "gate", conn.elapsed)
+        return shown["mesh"], shown["spin"], shown["tilt"]
 
     def _target(self, p: QPainter, conn, cam, w: int, h: int) -> None:
         """The thing being approached, as a lit solid at its real size.
@@ -367,7 +376,7 @@ class Viewport(QWidget):
         camera = render3d.Camera(at=conn.pos, forward=fwd, up=up,
                                  width=w, height=h, half_fov=HALF_FOV)
         radius = render3d.screen_radius(camera, r_km, conn.target.radius_km)
-        mesh, spin = self._model_for(conn, radius)
+        mesh, spin, tilt = self._model_for(conn, radius)
 
         # Far enough off to be a point of light rather than a shape.
         if radius < 2.2:
@@ -393,12 +402,12 @@ class Viewport(QWidget):
             if ringed:
                 render3d.draw(p, camera, worlds3d.RINGS_MESH, (0.0, 0.0, 0.0),
                               conn.target.radius_km, self.light(conn),
-                              spin=spin, tilt=0.35, glare=hard)
+                              spin=spin, tilt=tilt, glare=hard)
             if conn.target.kind == "body":
                 look = getattr(conn.target, "look", "") or "rocky"
                 spheres.draw(p, camera, worlds3d.paint_for(look),
                     (0.0, 0.0, 0.0), conn.target.radius_km, self.light(conn),
-                    spin=spin, tilt=0.35, glare=hard,
+                    spin=spin, tilt=tilt, glare=hard,
                     features=surfaces.features_for(
                         look, getattr(conn.target, "name", "")),
                     stretch=surfaces.stretch_for(look),
@@ -406,11 +415,11 @@ class Viewport(QWidget):
             else:
                 render3d.draw(p, camera, mesh, (0.0, 0.0, 0.0),
                               conn.target.radius_km, self.light(conn),
-                              spin=spin, tilt=0.35, glare=hard)
+                              spin=spin, tilt=tilt, glare=hard)
             if ringed:
                 render3d.draw(p, camera, worlds3d.RINGS_FRONT, (0.0, 0.0, 0.0),
                               conn.target.radius_km, self.light(conn),
-                              spin=spin, tilt=0.35, glare=hard)
+                              spin=spin, tilt=tilt, glare=hard)
 
         if self.compact:
             return

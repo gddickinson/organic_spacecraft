@@ -1687,7 +1687,12 @@ seedfall/
 │   ├── fieldnotes.py   the eight things the ground can tell you
 │   ├── mounts.py       where an engine sits on a hull, and which way it pushes
 │   ├── gates.py        the Weave's ancient anchors: tolls, rings and chords
-│   ├── models3d.py     meshes at radius 1: shipyard, hull, anchor, asteroid
+│   ├── models3d.py     meshes at radius 1, and `present`: which mesh a thing
+│   │                   in the sky gets, and the attitude it is held at
+│   ├── berths3d.py     a quay, a Fleet Hub, a holding and a Weave gate —
+│   │                   one silhouette each, where there was one shipyard
+│   ├── ships3d.py      and other people's ships by what they are doing:
+│   │                   courier, trader, prospector, patrol, no transponder
 │   ├── starclasses.py  8 spectral classes with real radii and luminosities —
 │   │                   a 12 km neutron star to an A-type at 1.8 solar
 │   ├── worlds3d.py     worlds by latitude: caps, bands, and concentric rings
@@ -2504,6 +2509,28 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   0 turns in 89. The real gap was next door — the count check ran only with full
   magazines, where "what trains" and "what burns" are the same list. Both
   mutations bit once it ran with an empty one.
+- **A field carried and thrown away is a catalogue that never arrives.**
+  `track.Contact.berth` has said quay / hub / holding / gate since it was
+  written, with a docstring insisting "a screen should not have to read an id to
+  know whether it is looking at a shipyard or at something older than the
+  Charter" — and `sky.build` set `look=""` for every anchorage and every hull it
+  produced, so `ui/viewport._sky` had a kind and nothing else and drew **all of
+  it with `models3d.SHIPYARD`**. Across four sectors: 67 quays, 36 gates, 16
+  Fleet Hubs and five errands of traffic, every one of them the same shipyard.
+  Not the same shape recoloured — the same shape.
+- **A silhouette nobody can see is not a silhouette.** Having given nine sorts
+  nine shapes, rendering them showed all five ships as the same foreshortened
+  lump: hulls are authored nose along +z and the sky drew them at a tilt of
+  0.42, twenty-four degrees off dead ahead. `models3d.ATTITUDE` holds a ship
+  broadside, because a ship is a profile. The shapes had been real and invisible
+  — which is worth remembering the next time a cycle ships content without
+  looking at it.
+- **Compare pictures, not tuples.** Two meshes can differ in every vertex and
+  render as the same blob. `tests/test_silhouettes.py` rasterises each sort and
+  compares the *silhouettes*: as shipped the closest pair shares 66% of its
+  outline, and before the cycle every pair shared 100%. That check is also what
+  found the prospector, which at 73% against the trader was a chunky can with a
+  bell like the trader's — the fix was the mesh, not the threshold.
 - **A promise in the sales text is a claim the game has to meet.** A treaty was
   sold as "mutual berthing, shared charts, and a clause about the Bloom that
   nobody expects to be honoured" for 30,000 credits. The third is a joke; the

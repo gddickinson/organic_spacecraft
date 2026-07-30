@@ -70,6 +70,11 @@ class Contact:
     #: should not have to read an id to know whether it is looking at a
     #: shipyard or at something older than the Charter.
     berth: str = ""
+    #: And for a hull, what it is out here doing — the same idea, and the same
+    #: reason. `sim/traffic.ERRANDS` names them. Without it the sky knew a
+    #: contact was "a hull" and nothing else, so a patrol boat, a courier and
+    #: an ore prospector were drawn with one mesh — and it was the shipyard's.
+    errand: str = ""
 
     @property
     def predictable(self) -> bool:
@@ -106,7 +111,7 @@ def contacts(game, system=None) -> list[Contact]:
             id=f"hull:{hull.id}", name=hull.name, kind="hull",
             tint="warn" if hull.hostile else "steel",
             detail=f"{hull.kind_name} — {hull.doing}",
-            hull_id=hull.id, hostile=hull.hostile))
+            hull_id=hull.id, hostile=hull.hostile, errand=hull.errand))
     return out
 
 

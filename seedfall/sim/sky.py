@@ -148,9 +148,13 @@ def build(game, contact=None) -> list:
             look = getattr(body, "kind", "rocky")
             ringed = has_rings(body)
         elif other.kind == "anchorage":
-            radius, kind, look, ringed = 0.6, "anchorage", "", False
+            # `look` used to be "" here and on the line below, so every berth
+            # and every hull in the sky reached the window as an anonymous
+            # "not a world" and was drawn with the one shipyard mesh. Both
+            # contacts have carried what they are all along.
+            radius, kind, look, ringed = 0.6, "anchorage", other.berth, False
         else:
-            radius, kind, look, ringed = 0.08, "hull", "", False
+            radius, kind, look, ringed = 0.08, "hull", other.errand, False
         out.append(Sight(name=other.name, kind=kind,
                          at=offset(x, y, radius, index),
                          radius_km=radius, tint=other.tint,

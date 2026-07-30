@@ -2,6 +2,59 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: one shipyard stood in for the whole catalogue (#catalogue)
+
+Task #80 asks whether the catalogue is real variety or the same shape
+recoloured. It was neither. `ui/viewport._sky` drew **everything that is not a
+world** with a single mesh:
+
+    render3d.draw(p, camera, models3d.SHIPYARD, sight.at, ...)
+
+Across four sectors that is 67 quays, 36 Weave gates, 16 Fleet Hubs and five
+errands of traffic — a courier, an ore prospector and something with no
+transponder all rendered as a station with docking arms.
+
+The information to do better was already on the objects and thrown away.
+`track.Contact.berth` has carried quay / hub / holding / gate since it was
+written, with a docstring saying in as many words that a screen should not have
+to read an id to know a shipyard from something older than the Charter — and
+`sky.build` set `look=""` for every anchorage and every hull.
+
+So: `data/berths3d.py` (quay, hub, holding, gate) and `data/ships3d.py`
+(courier, trader, prospector, patrol, and the unmarked hull a raider is drawn
+as, because "no transponder" is the picture). `Contact.errand` and
+`Target.errand` carry what a hull is doing, the sky keeps both, and
+`models3d.present` is the one door — asked by the sky *and* by the approach
+target, so what you pick out at forty kilometres is what you come alongside.
+
+**Three things came from looking at the pictures rather than the checks.**
+
+*Every ship was the same blob.* Hulls are authored nose along +z and the sky
+drew them at a tilt of 0.42 — twenty-four degrees off dead ahead. Nine
+silhouettes existed and five of them were invisible. `models3d.ATTITUDE` holds a
+hull broadside; a berth keeps the shallow tilt that lets its rings read as rings.
+Shipping the meshes without this would have delivered almost nothing.
+
+*The prospector was the trader.* The silhouette check put them at 73% overlap,
+and the render agreed: both a chunky can with a bell. A prospector is not a hull
+with cargo in it, it is a frame with equipment hung on it, and the open space
+between the parts is most of what tells it apart. Reworked spindly and lopsided
+— spine, slung ore cradle, long boom, counterweight — it drops to 62%.
+
+*Keys guessed rather than read.* The first `SHIPS` table carried invented
+aliases ("trade", "prospect") beside the real ids and had no entry at all for
+`raider` — the one errand that most matters to recognise. `sim/traffic.ERRANDS`
+is two modules away and names them exactly; the suite now refuses an errand with
+no silhouette.
+
+Nine mutations swept, eight caught. The ninth — fattening the prospector's spine
+— moves the worst pair from 66% to 67% and is recorded as a *mild* mutation
+rather than a gap: the boom and cradle still carry the shape, and the bar at 72%
+sits above anything blunting one hull can reach and far below the 100% that
+one-mesh-for-all scores.
+
+`test_silhouettes.py` — 5 checks. Full suite green: **1,025 checks**.
+
 ## 2026-07-30 — SEEDFALL: a world you dock over should look like a place (#3D)
 
 First cycle on the 3D axis. I began by rendering the conn's own viewport and

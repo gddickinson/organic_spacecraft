@@ -34,6 +34,10 @@ class Target:
     body_index: int | None = None
     #: For an anchorage, what sort of berth: quay, hub, holding or gate.
     berth: str = ""
+    #: For a hull, what it is out here doing. Same reason as `berth`: the
+    #: window should not have to parse a detail string to know whether it is
+    #: closing on a courier or on something with no transponder.
+    errand: str = ""
     #: For a body, what sort of world — so the window picks a mesh with the
     #: right caps and bands rather than a grey ball with a label on it.
     look: str = ""
@@ -80,7 +84,8 @@ def target_from_contact(game, contact) -> Target:
                       body_index=contact.body_index)
     if contact.kind == "hull":
         return Target(id=contact.id, name=contact.name, kind="hull",
-                      radius_km=0.08, detail=contact.detail)
+                      radius_km=0.08, detail=contact.detail,
+                      errand=getattr(contact, "errand", ""))
     return Target(id=contact.id, name=contact.name, kind="point",
                   radius_km=0.0, detail=contact.detail)
 

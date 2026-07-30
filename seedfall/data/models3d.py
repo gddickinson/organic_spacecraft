@@ -230,3 +230,54 @@ BODY_TINT = {
 
 #: One world mesh per kind, built once at import.
 WORLDS = {kind: recoloured(WORLD, tint) for kind, tint in BODY_TINT.items()}
+
+
+#: How each sort of thing is presented, as (spin per second, tilt). A tilt
+#: near zero puts the model's +z axis down the camera's line of sight.
+#:
+#: **Which is why this table exists.** Every ship in this package is authored
+#: nose along +z, and the sky drew hulls at a tilt of 0.42 — twenty-four
+#: degrees off dead ahead. Rendered and looked at, all five errands were the
+#: same foreshortened blob: the silhouettes were real and none of them was
+#: visible. A hull is shown broadside because a ship is a profile; a berth
+#: keeps the shallow tilt that lets its rings and arms read as rings and arms.
+ATTITUDE = {
+    "hull": (0.0, 1.28),
+    "gate": (1.0 / 2600.0, 0.52),
+    "berth": (1.0 / 900.0, 0.42),
+}
+
+
+def present(kind: str, look: str, elapsed: float = 0.0) -> dict:
+    """The mesh for one thing in the sky, and how to hold it up.
+
+    One call, so the shape and the angle it is shown at cannot disagree — and
+    so the thing you pick out at forty kilometres is the same shape, at the
+    same attitude, that you come alongside.
+    """
+    mesh = for_sight(kind, look)
+    if kind == "hull":
+        rate, tilt = ATTITUDE["hull"]
+    elif look == "gate":
+        rate, tilt = ATTITUDE["gate"]
+    else:
+        rate, tilt = ATTITUDE["berth"]
+    return {"mesh": mesh, "spin": elapsed * rate, "tilt": tilt}
+
+
+def for_sight(kind: str, look: str) -> tuple:
+    """The mesh for one thing in the sky, by what it actually is.
+
+    The one door. `ui/viewport` asks it for the things in the sky and for the
+    thing being approached, so what you pick out at forty kilometres is the
+    same shape you come alongside — which it was not before: the sky drew every
+    berth and every hull with `SHIPYARD`, and only the approach target got so
+    much as a gate.
+    """
+    from .berths3d import berth_mesh
+    from .ships3d import ship_mesh
+    if kind == "anchorage":
+        return berth_mesh(look)
+    if kind == "hull":
+        return ship_mesh(look)
+    return berth_mesh("quay")
