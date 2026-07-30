@@ -31,6 +31,7 @@ import math
 from dataclasses import dataclass
 
 from . import anchorage as anchorage_sim
+from . import knock as knock_sim
 from ..data.starclasses import mu_of
 from . import flight
 from . import traffic as traffic_sim
@@ -116,17 +117,31 @@ def contacts(game, system=None) -> list[Contact]:
 
 
 def at(game, contact: Contact, day: float, system=None) -> tuple[float, float]:
-    """Where a contact is, in AU, on a given absolute day."""
+    """Where a contact is, in AU, on a given absolute day.
+
+    Nominal place plus whatever it has been shoved by. `sim/knock.py` holds
+    the shoves; adding them *here* is what makes a struck quay actually off
+    station — on the plot, in an approach, in the readiness board's ranges and
+    in every forecast — rather than only in the log line about hitting it.
+    A body and a star are not shoved by anything a captain can fly into them,
+    which is what `impulse.WORLD_MASS_T` already says, so neither is asked.
+    """
     system = _system(game, system)
     if contact.kind == "star":
         return 0.0, 0.0
     if contact.at_xy is not None:
         return contact.at_xy
     if contact.kind in ("body", "anchorage") and contact.body_index is not None:
-        return flight.position(system.bodies[contact.body_index], day,
+        x, y = flight.position(system.bodies[contact.body_index], day,
                                mu_of(system))
+        if contact.kind == "anchorage":
+            dx, dy = knock_sim.offset(game, contact.id, day)
+            return x + dx, y + dy
+        return x, y
     if contact.kind == "hull":
-        return _hull_at(game, contact, day, system)
+        x, y = _hull_at(game, contact, day, system)
+        dx, dy = knock_sim.offset(game, contact.id, day)
+        return x + dx, y + dy
     return 0.0, 0.0
 
 

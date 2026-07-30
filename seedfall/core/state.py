@@ -73,6 +73,11 @@ class Game:
     #: in space. None both for that case and for a save written before there
     #: was a position at all.
     ship_xy: tuple | None = None
+    #: Things that have been shoved off station and have not got back yet,
+    #: by contact id. See `sim/knock.py`: `track.at` adds what each has come
+    #: to, so a struck quay is off station everywhere the game reads a
+    #: position rather than only in the log line about hitting it.
+    knocks: dict = field(default_factory=dict)
     #: The radius from that body's centre, in km, that the ship is holding.
     #: Zero means an orbit whose height nobody chose — which is every orbit
     #: made before the conn could be asked for one, and is read as standard.

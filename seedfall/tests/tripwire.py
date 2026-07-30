@@ -151,6 +151,7 @@ KIN = {
     "abilities": ("abilities", "combat"),
     "encounters": ("magazine", "readiness"),
     "impulse": ("impulse", "conn"),
+    "knock": ("knock",),
     "readiness": ("readiness",),
     "parley": ("parley", "combat"),
     "stations": ("routing", "orderplan", "seatwork", "turnplan", "gunnery"),

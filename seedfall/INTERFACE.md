@@ -398,6 +398,34 @@ Wiring it up surfaced two more, both from playing:
   quadratic, the most dangerous approaches were precisely the ones escaping.
   `_sweep_min` tests the whole path now, not its endpoints.
 
+**And the thing you hit is off station afterwards.** Stage one could only
+*say* what a collision did to the other body: the sector had nowhere to put
+it. An anchorage's position is its body's, worked out from the calendar every
+time it is asked, and a traffic hull's is interpolated between two bodies —
+neither has a place to hold "and then somebody hit it".
+
+`sim/knock.py` is that place, and `track.at` — the one door for where anything
+is — adds it, so a shoved station is off station on the plot, in an approach,
+in the readiness board's ranges and in every forecast, because all of them
+read the same function. A knock is a velocity offset with a date on it, and
+there are two ways of carrying one, the difference being whether anybody is
+aboard:
+
+- **a manned berth or a hull under way** arrests it and works back:
+  `x(t) = v·t·e^(−t/τ)`, leaving at exactly the speed it was shoved, peaking
+  at `v·τ/e` and home again after a few time constants. `KEEPING_DAYS = 12`
+  puts a hard ram's 1.7 m/s **649 km off station** a fortnight later — far
+  enough that a conn notices, near enough that a chart in AU does not;
+- **a derelict holding or a Weave gate** has nobody aboard, so `x(t) = v·t`
+  and it simply goes.
+
+The bearing is *drawn* from the seed, the contact and the day rather than
+derived from the approach, and the module says why: the conn's frame carries
+no system orientation, because an anchorage and its body share a position in
+the flight model, so at the moment of contact there is no bearing in the
+sector to take. Computing something that looked derived and was not would be
+worse than admitting it.
+
 **A collision is two bodies.** `outcome.impact_damage(speed)` took a number
 off the player's hull and that was the entire event: the quay a captain hit at
 forty metres a second was neither moved nor marked, and could be used as a
@@ -1971,6 +1999,8 @@ seedfall/
 │   │                   orders, screening, who draws fire, what they eat
 │   ├── loyalty.py      what the bridge thinks of how you run the ship
 │   ├── works.py        colony development: what a settlement becomes
+│   ├── knock.py        what being shoved off station comes to, and how
+│   │                   long it takes to get back on it
 │   ├── impulse.py      momentum: masses, inelastic contact, and what two
 │   │                   things do to each other — both of them
 │   ├── readiness.py    what the ship brings to a fight nobody has started:
@@ -3973,6 +4003,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that
   no course is plotted through a star.
+- **`test_knock.py`** holds the consequences: a struck quay off station where
+  the whole game reads it, measured against the *same day* unstruck because a
+  body sweeps tens of millions of km in a fortnight and the first version of
+  that measurement reported a 648 km shove as 42 million; a manned berth
+  recovering and a derelict not; the drift being the shove and nothing else;
+  a hub rammed at 30 m/s, flown; and a knock surviving a reload. Its own
+  sweep found two faults in itself — an **unbounded loop that hung the suite**
+  when the recovery was mutated away, and `KEEPING_DAYS` unpinned because
+  ordering assertions survive a rescale. Both fixed; eight of eight caught.
+
 - **`test_impulse.py`** holds the momentum: conservation measured across four
   decades of mass rather than asserted from the formula that produced it; the
   player charged exactly what the one-sided formula charged at all four

@@ -157,9 +157,16 @@ def commit(game, conn) -> dict:
     # says so — a captain who uses a hub as a backstop should find it in the
     # log, and so should anyone reading back.
     if conn.struck_damage or conn.struck_dv:
+        from . import knock as knock_sim
+        hit = knock_sim.record(game, conn.target, conn.struck_dv,
+                               damage=conn.struck_damage)
+        peak = (knock_sim.km_after(hit, game.day + knock_sim.KEEPING_DAYS)
+                if hit is not None else 0.0)
         game.add_log(
             f"{conn.target.name} took {conn.struck_damage:,.0f} and was "
-            f"shoved {conn.struck_dv:.2f} m/s off station.", "bad")
+            f"shoved {conn.struck_dv:.2f} m/s off station"
+            + (f" — {peak:,.0f} km adrift at worst." if peak >= 1.0 else "."),
+            "bad")
 
     moved = None
     index = _berth_index(conn)

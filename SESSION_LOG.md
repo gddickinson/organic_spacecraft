@@ -2,6 +2,61 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: the thing you hit is off station afterwards (#105, stage 2)
+
+Stage one could only *say* what a collision did to the other body. The sector
+had nowhere to put it: an anchorage's position is its body's, worked out from
+the calendar every time it is asked, and a traffic hull's is interpolated
+between two bodies. Neither has a place to hold "and then somebody hit it".
+
+`sim/knock.py` is that place and `track.at` adds it, so a shoved station is
+off station everywhere — the plot, an approach, the readiness board's ranges,
+every forecast — because they all read the same function. Two carriers: a
+manned berth or a crewed hull arrests the drift and works back
+(`x(t) = v·t·e^(−t/τ)`), a derelict or a gate simply goes. Flown: 30 m/s into
+a Fleet Hub leaves it 648 km off station a fortnight later and home inside
+three months.
+
+The bearing is drawn from the seed rather than derived from the approach, and
+the module says why: the conn's frame carries no system orientation, because
+an anchorage and its body share a position in the flight model. There is no
+bearing at the moment of contact to take. Writing one that looked derived
+would have been worse than admitting it.
+
+**The mutation sweep found two faults, both in my own checks.**
+
+The first is the worst kind: an **unbounded loop**. My settle check advanced
+the calendar while the drift was still measurable — and the mutation that
+removes the recovery leaves it growing for ever, so the check ran until the
+harness was killed. It hung two runs before I understood what I was looking
+at. A check that hangs is worse than one that fails, because a failure says
+what is wrong. Bounded now, and the bound is the claim: a manned berth is
+home inside a year.
+
+The second: `KEEPING_DAYS` was **unpinned**. Every assertion in that check
+asked about the *shape* of the curve — peaks, then comes home, derelict
+overtakes it — and every one of those survives a rescale of the time
+constant. `x(t) = v·t·e^(−t/τ)` peaks at `t = τ`, so the peak is where the
+constant lives: found by walking the curve and checked against written
+figures, a 2 m/s shove peaks on day 12 at 763 km. A 1.5× change is caught now.
+
+Two process lessons, both about mutation sweeps.
+
+**Killing a sweep mid-run loses the file.** It edits source in place, and it
+lost a `knock.py` that was not yet committed and therefore not recoverable
+from git. Snapshot first.
+
+**A same-length edit can outlive its own restore.** `KEEPING_DAYS = 12.0` and
+`KEEPING_DAYS = 48.0` are the same number of bytes, and Python validates a
+`.pyc` on (mtime, size) — so the cached bytecode of the mutant survived the
+restore and was imported by the *next* run. That is what the phantom "MISSED"
+was, and then a full suite failing on intact source. `tests/tripwire.py` has
+run with `-B` and `PYTHONDONTWRITEBYTECODE=1` since it was written, and says
+why in a comment I had read and not applied to my own scripts. Every ad-hoc
+sweep gets the same treatment now.
+
+Eight of eight caught.
+
 ## 2026-07-30 — SEEDFALL: a collision is two bodies (#105, stage 1)
 
 Asked for real docking physics. Measured first, and the model turned out to
