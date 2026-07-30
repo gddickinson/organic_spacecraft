@@ -70,8 +70,8 @@ def by_latitude(paint, rings: int = RINGS, segments: int = SEGMENTS) -> tuple:
     return tuple(verts), tuple(faces)
 
 
-def capped(ground: str, cap: str, cap_from: float = 0.62,
-           mottle: str | None = None) -> tuple:
+def cap_paint(ground: str, cap: str, cap_from: float = 0.62,
+              mottle: str | None = None):
     """A world with polar caps, and optionally a blotched surface.
 
     `mottle` is what the low latitudes are streaked with — maria on a moon,
@@ -92,10 +92,10 @@ def capped(ground: str, cap: str, cap_from: float = 0.62,
         # regions rather than being one flat coat.
         blend = (math.sin(lat * 7.3) + math.sin(lat * 3.1)) / 2
         return _lerp(ground, mottle, max(0.0, blend))
-    return by_latitude(paint)
+    return paint
 
 
-def banded(base: str, light: str, dark: str, bands: int = 6) -> tuple:
+def band_paint(base: str, light: str, dark: str, bands: int = 6):
     """A gas giant: belts and zones, and a brighter equator.
 
     The contrast is deliberately high. Flat shading already darkens a sphere
@@ -107,7 +107,7 @@ def banded(base: str, light: str, dark: str, bands: int = 6) -> tuple:
         tint = _lerp(dark, light, (wave + 1) / 2)
         # A brighter equatorial zone, and poles that fall away.
         return _lerp(tint, base, min(1.0, abs(lat) * 1.1))
-    return by_latitude(paint, rings=26, segments=34)
+    return paint
 
 
 #: The radial structure of a ring system: (from, to, colour), in body radii.
@@ -153,15 +153,45 @@ def ring_disc(bands=RING_BANDS, segments: int = 56) -> tuple:
 #: out seventeen points apart, which is not a catalogue. A rocky world is
 #: warm and dusty with ice at the poles; a moon is cold grey with dark maria
 #: and barely any cap at all.
-WORLD_MESHES = {
-    "rocky": capped("#b07a4e", "#eef4f8", 0.66, mottle="#7d4f2e"),
-    "ocean": capped("#2f6fae", "#eaf4ff", 0.72),
-    "ice": capped("#c2e2f0", "#ffffff", 0.24),
-    "moon": capped("#9a9aa2", "#b4b8be", 0.86, mottle="#4a4a52"),
-    "asteroid": capped("#6b5942", "#7d6c55", 0.88, mottle="#3f3428"),
-    "comet": capped("#8fd3d8", "#eaffff", 0.34),
-    "gas": banded("#d8b478", "#f6e6b8", "#7a5c30"),
+WORLD_PAINTS = {
+    "rocky": cap_paint("#b07a4e", "#eef4f8", 0.66, mottle="#7d4f2e"),
+    "ocean": cap_paint("#2f6fae", "#eaf4ff", 0.72),
+    "ice": cap_paint("#c2e2f0", "#ffffff", 0.24),
+    "moon": cap_paint("#9a9aa2", "#b4b8be", 0.86, mottle="#4a4a52"),
+    "asteroid": cap_paint("#6b5942", "#7d6c55", 0.88, mottle="#3f3428"),
+    "comet": cap_paint("#8fd3d8", "#eaffff", 0.34),
+    "gas": band_paint("#d8b478", "#f6e6b8", "#7a5c30"),
 }
+
+#: How finely a world is cut, coarse and fine. **This is what makes a world look
+#: round, and nothing else did.**
+#:
+#: Flat shading gives each face one colour, so a sphere reads as the polyhedron it
+#: is — at 22 by 30 you can count the quads across the terminator. Four attempts
+#: at smoothing the *shading* went in the bin: a `QLinearGradient` per face is
+#: constant perpendicular to its own axis where real Gouraud varies, and that
+#: error alternates with a quad's orientation, so every one of them put a
+#: checkerboard on the sphere instead of a smooth curve. It was not the rim term
+#: either — forcing that to zero left the pattern exactly as it was.
+#:
+#: Geometry is what worked. Rendered side by side, 22x30 is plainly faceted and
+#: 44x58 is smooth. The cost is real and it is in *faces*, not pixels: 6.7 ms
+#: against 25 ms for the same world at any size on screen. Hence two levels, and
+#: `ui/viewport.py` spending the fine one only on something big enough to show it.
+#: Where the faces go matters as much as how many. Rendered at equal cost —
+#: about 2,550 faces and 20 ms — 44x58 still bands horizontally, because the
+#: colour runs with latitude and rings are what sample it; 70x36 and 96x26 kill
+#: that banding and put vertical stripes on instead, because segments are what
+#: round the silhouette. 60x44 is the pair that reads smooth in both.
+COARSE = (22, 30)
+FINE = (60, 44)
+
+WORLD_MESHES = {kind: by_latitude(paint, *COARSE)
+                for kind, paint in WORLD_PAINTS.items()}
+
+#: The same worlds cut fine, for when one fills the window.
+WORLD_MESHES_FINE = {kind: by_latitude(paint, *FINE)
+                     for kind, paint in WORLD_PAINTS.items()}
 
 #: Rings, for the giants that carry them. Which do is decided per body by
 #: `sim/sky.py`, deterministically, so a ringed world is always ringed.
@@ -178,6 +208,13 @@ RINGS_FRONT = ring_disc(tuple((a, b, _lerp(c, "#ffffff", 0.12))
 RINGED_SHARE = 0.45
 
 
-def mesh_for(kind: str) -> tuple:
-    """The mesh for a kind of body, falling back to a plain grey ball."""
-    return WORLD_MESHES.get(kind) or _plain_sphere(14, 20, "#8ba39a")
+def mesh_for(kind: str, fine: bool = False) -> tuple:
+    """The mesh for a kind of body, falling back to a plain grey ball.
+
+    `fine` asks for the finely cut version, which is what stops a world that
+    fills the window looking like a polyhedron. It costs about four times the
+    faces, so `ui/viewport.py` asks for it only when the thing is big enough on
+    screen to show the difference.
+    """
+    table = WORLD_MESHES_FINE if fine else WORLD_MESHES
+    return table.get(kind) or _plain_sphere(14, 20, "#8ba39a")

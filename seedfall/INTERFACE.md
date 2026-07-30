@@ -872,6 +872,53 @@ end for end against the SPORE's 50.
 a burn in a new direction is a *turn* first — three ticks to swing a NAVIS 90°
 — and the turn spends reaction mass out of the same tank.
 
+**Worlds were faceted, and four attempts to smooth the shading failed.** Graphics
+picked because it was asked for. At 22 rings by 30 segments — 660 faces, already a
+fine mesh — a world filling the window read as the polyhedron it is: flat shading
+gives each face one colour, so you could count the quads across the terminator.
+
+The obvious answer is Gouraud, and `QPainter` has no per-vertex colour, so I tried
+to reach it with a `QLinearGradient` per face. **It cannot be done, and it took
+four goes to see why.** A linear gradient is constant perpendicular to its own
+axis, where real Gouraud varies — and that error alternates with a quad's
+orientation, so every version put a *checkerboard* on the sphere:
+
+1. Corner to corner, from the darkest-lit vertex to the brightest. Two vertices of
+   a quad often sit at nearly the same brightness, so which counted as darkest
+   flipped face to face.
+2. The same, with the gradient's *axis* taken from the projected light instead.
+   No change: the colour ends were still chosen by brightness.
+3. Ends chosen geometrically along that axis. A quad whose per-vertex colours run
+   (low, high, high, low) still had them swapped whenever the extreme pair changed
+   edge.
+4. Ends ordered by *latitude*, so the colour can never reverse. Still checkered,
+   for the structural reason above.
+
+It was not the rim term either — forcing that to zero left the pattern exactly as
+it was, which is how the colour pairing was identified as the cause. All of it was
+reverted.
+
+**Geometry is what worked.** Rendered side by side, 22x30 is plainly faceted and a
+mesh four times finer is smooth, and the cost is in *faces* rather than pixels —
+6.7 ms against 20 ms for the same world at any size on screen. So worlds are built
+at two resolutions and `ui/viewport.py` spends the fine one only above
+`FINE_ABOVE` pixels of radius: a body nine pixels across in a camera thumbnail
+looks identical either way and must not cost four times as much. Measured, the
+whole conn window repaints in 102 ms against a 700 ms timer — 15% of a frame — and
+a distant world still costs 8 ms.
+
+**Where the faces go matters as much as how many.** At about 2,550 faces either
+way, 44x58 still bands horizontally, because the colour runs with latitude and
+rings are what sample it; 70x36 and 96x26 kill that banding and stripe the limb
+instead, because segments are what round the silhouette. 60x44 is the pair that
+reads smooth in both, and that is what `FINE` is.
+
+**It is better rather than beautiful, and worth saying so.** The residual banding
+is inherent to flat-shaded polygons with one colour a face, and the real fix is to
+stop treating a sphere as geometry at all: project it to a disc and shade it
+analytically with an offset radial gradient, which is exact for a Lambertian
+sphere and cheaper than either mesh. That is its own piece of work — task #97.
+
 **The price register sorted on the sticker price and never said what the flight
 cost.** Trading picked for breadth. The market itself turned out sound — measured
 across all thirteen goods there is a 20% spread and no same-counter money pump,

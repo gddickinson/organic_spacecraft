@@ -45,6 +45,15 @@ GLARE_FLOOR, GLARE_CEILING, GLARE_ROOT = 0.55, 1.45, 0.25
 HALF_FOV = math.radians(31.0)
 
 
+#: Screen radius, in pixels, above which a world is drawn from the finely cut
+#: mesh. Measured: a sphere at 22 rings by 30 segments is plainly faceted and one
+#: at 44 by 58 is smooth, and the difference is 6.7 ms against 25 ms — in faces
+#: rather than pixels, so it is the same cost whatever size the view is. Ninety
+#: pixels is about where the facets start to read, and it keeps the sky's small
+#: bodies on the cheap mesh where they are indistinguishable.
+FINE_ABOVE = 90.0
+
+
 def _starfield(count: int = 260) -> list:
     """Fixed directions on the unit sphere, drawn once and never again.
 
@@ -261,7 +270,12 @@ class Viewport(QWidget):
             if sight.kind == "star":
                 continue
             if sight.kind == "body":
-                mesh = worlds3d.mesh_for(sight.look)
+                # The finely cut world only when it is big enough to show it.
+                # Four times the faces is four times the cost, and a world nine
+                # pixels across looks identical either way.
+                across = render3d.screen_radius(camera, sight.range_km,
+                                                sight.radius_km)
+                mesh = worlds3d.mesh_for(sight.look, fine=across >= FINE_ABOVE)
             else:
                 mesh = models3d.SHIPYARD
             # Rings first when they are behind, so the world occludes them,
@@ -308,14 +322,20 @@ class Viewport(QWidget):
         p.setBrush(QColor(255, 253, 244))
         p.drawEllipse(point, radius, radius)
 
-    def _model_for(self, conn):
-        """Which mesh, and how it is oriented, for what is out there."""
+    def _model_for(self, conn, across: float = 0.0):
+        """Which mesh, and how it is oriented, for what is out there.
+
+        `across` is how many pixels of radius it will take up, which decides how
+        finely a world is cut — see `FINE_ABOVE`. Nought means "do not bother",
+        which is what every caller that is not painting the main subject wants.
+        """
         kind = conn.target.kind
         if kind == "body":
             # Its own kind: an ice moon, an ocean and a gas giant should not
             # be the same grey ball with different labels over them.
             look = getattr(conn.target, "look", "") or "rocky"
-            return worlds3d.mesh_for(look), conn.elapsed / 5400.0
+            return (worlds3d.mesh_for(look, fine=across >= FINE_ABOVE),
+                    conn.elapsed / 5400.0)
         if kind == "anchorage":
             if getattr(conn.target, "berth", "") == "gate":
                 return models3d.GATE, conn.elapsed / 2600.0
@@ -340,7 +360,7 @@ class Viewport(QWidget):
         camera = render3d.Camera(at=conn.pos, forward=fwd, up=up,
                                  width=w, height=h, half_fov=HALF_FOV)
         radius = render3d.screen_radius(camera, r_km, conn.target.radius_km)
-        mesh, spin = self._model_for(conn)
+        mesh, spin = self._model_for(conn, radius)
 
         # Far enough off to be a point of light rather than a shape.
         if radius < 2.2:

@@ -2,6 +2,52 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: four ways not to smooth a sphere
+
+Graphics, as asked. At 22 rings by 30 segments a world filling the window read as
+the polyhedron it is — flat shading gives each face one colour, so the quads were
+countable across the terminator.
+
+The obvious answer is Gouraud, and `QPainter` has no per-vertex colour, so I tried
+to reach it with a `QLinearGradient` per face. **It cannot be done and it took me
+four attempts to understand why.** A linear gradient is constant perpendicular to
+its own axis where real Gouraud varies, and that error alternates with a quad's
+orientation — so every version put a checkerboard on the sphere. Corner to corner;
+then with the axis taken from the projected light; then with the ends chosen
+geometrically along that axis; then ordered by latitude so the colour could never
+reverse. Checkered every time. It was not the rim term — forcing that to zero left
+the pattern untouched, which is what finally identified the cause. I also
+reintroduced, in passing, the exact wireframe the original code documents removing,
+by stroking each face with its palest colour. All of it reverted.
+
+**Geometry is what worked.** 22x30 is plainly faceted; four times finer is smooth;
+and the cost is in faces rather than pixels — 6.7 ms against 20 ms for the same
+world whatever size it is on screen. So worlds are built at two resolutions and the
+viewport spends the fine one only above 90 px of radius. The whole conn window
+repaints in 102 ms against a 700 ms timer, and a distant world still costs 8 ms.
+
+Where the faces go matters as much as how many: at equal cost 44x58 bands
+horizontally (colour runs with latitude, rings sample it) while 70x36 and 96x26
+stripe the limb (segments round the silhouette). 60x44 reads smooth in both.
+
+**It is better rather than beautiful.** The residual banding is inherent to
+flat-shaded polygons with one colour a face. The real fix is to stop treating a
+sphere as geometry — project it to a disc and shade it analytically with an offset
+radial gradient, exact for a Lambertian sphere and cheaper than either mesh. Filed
+as #97 rather than started at the end of a cycle.
+
+`test_worlds.py` went past five hundred with the new check, so the stars, rings
+and catalogue moved to `test_sky_kit.py`. And the reachable guard caught me on the
+way out: I had left two "kept for callers that want one mesh" wrappers behind the
+paint-function split, and there are no such callers. Deleted.
+
+One more honest note: 5 of 6 mutants bite. The sixth drops the sky path's request
+for detail, and I could not establish whether a peripheral body ever gets large
+enough for it to show — my probe found no sky shapes at all, so it measured
+nothing. Left unpinned and said so rather than dressed up.
+
+Full suite green.
+
 ## 2026-07-29 — SEEDFALL: the register never said what the flight cost
 
 Trading picked for breadth. The market itself came out sound: across all thirteen
