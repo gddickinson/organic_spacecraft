@@ -2,6 +2,67 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: the only two buttons in the game that named no number
+
+Picked from last cycle's tally of what a played decade never reaches. Two of the
+zeros were `parley.hail` and `parley.flee` — across **seventy engagements**,
+nobody ever tried to talk their way out or run. Partly the driver's taste. But
+opening the module explained the rest: **neither button said anything at all.**
+
+Press "Hail them" and one of two things happens. The engagement ends, or the
+enemy takes a free turn and shoots you for nothing. The probability was
+`clamp(0.18 + diplomacy + rep/260 + strength*0.3 + ...)` and it was written down
+**nowhere a captain could read it** — on the same panel where
+`stations.order_preview` prints a line for every helm order, beside a gunnery
+button that quotes the fall-off for the range. A ground option names its odds and
+its prize. An overture says what it buys. This was a coin toss with the coin in
+somebody's pocket.
+
+**And it never asked what the power actually remembers.** `b.rep` is the standing
+on the books; `grudge.feeling` is the memory behind it — the thing the game
+already spends on prices, on whether a harbourmaster will do you a favour, on
+whether a board carries work at all. Measured: a Charter that remembers a
+destroyed hull sits at **-88**, and a hail's chance was completely unmoved by it.
+You could burn their frigate on Tuesday and hail them on Wednesday at exactly the
+same odds.
+
+So `parley.odds` and `parley.escape_odds` are the one door, `hail` and `flee` read
+them, and both return the chance **with its terms named**. The panel now reads:
+
+    Hailing them: 42% they stand down — your standing with them +17 ·
+    you have the upper hand +13 · what they remember of you -7.
+    Refused, they fire anyway.
+
+    Disengaging: 63% you shake them — the room you have +39 ·
+    how hard you are to hold +10 · they are faster -8.
+    Short, and they get the turn.
+
+Memory is worth `0.002` a point, deliberately less than the standing term across
+its range: the ledger is what a power will admit to and the memory is what it
+feels, and a hail is conducted in the first. Measured end to end — **22% clean,
+4% remembering a kill, 28% remembering a rescue.**
+
+**A probabilistic forecast is checked by running it**, which is the shape the
+docking mini-game's check has: state the number the panel shows, then hail four
+hundred times and count. 22% said / 19% run · 45/45 · 60/64, each inside three
+sigma. If the act ever rolls against a different number from the one on the
+button, that check fails — and it does: halving the roll behind the panel is one
+of the eight mutations this suite catches.
+
+Two smaller things fell out of writing it. `st.diplomacy` — the "somebody aboard
+who can talk" term — is a comms officer at 0.05 a level, and the opening crew has
+none, so it reads **exactly zero on every starting hull**; that is now stated in
+the check rather than left looking like a bug. And hailing the Bloom is not a
+gamble but a category error: it returns mute with a reason, costs no turn, and the
+screen says so *before* the button is pressed.
+
+Eight deliberate breakages, eight caught: the act rolling a different number from
+the panel, the memory term dropped, standing left out, the upper hand ignored, a
+shaken nerve worth nothing, the panel's lines removed, the reasons hidden behind
+the number, and the Bloom rolled against instead of refused.
+
+Six new checks, 965 across the suite, all green.
+
 ## 2026-07-30 — SEEDFALL: seventy battles, no consort, and a fleet that ate nothing
 
 No task for this one. I picked it by **counting which mechanics a played decade

@@ -1722,7 +1722,8 @@ seedfall/
 │   ├── intel.py        how well a system is known, and what a chart is worth
 │   ├── loading.py      fitted mass against what the hull is rated to shift
 │   ├── orders.py       which standing orders apply — the discoverability index
-│   ├── parley.py       breaking off and talking your way out
+│   ├── parley.py       breaking off and talking your way out: the odds, what
+│   │                   each part of them is worth, the turn a refusal costs
 │   ├── transit.py      standing the watches of a crossing
 │   ├── programmes.py   what the bench runs once a branch is exhausted, and
 │   │                   what a finding buys: standing, money, or nothing
@@ -1916,6 +1917,8 @@ seedfall/
     │                   make, and prices the ones it refuses
     ├── test_company.py 6 checks — who may be ordered to sail in company,
     │                   and what feeding them costs
+    ├── test_parley.py  6 checks — the odds on talking your way out, stated
+    │                   and then measured by hailing four hundred times
     ├── test_wharfage.py 10 checks — the due on your own trade: conserved,
     │                   named on the board, waived at a free port, priced by
     │                   standing and by the size of the berth
@@ -3233,6 +3236,20 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   that waiting is not a way to beat a battleship, and that fleeing and hailing
   both actually run — the last because splitting them into `parley.py` left
   them calling names that no longer existed and nothing drove either path.
+- **`test_parley.py`** checks a *probabilistic* forecast the only honest way:
+  state the chance the panel shows, then hail four hundred times and count. 22%
+  said / 19% run, 45/45, 60/64 — inside three sigma at each standing. The odds
+  were nowhere before this: "Hail them" was a hidden one-shot whose losing side
+  is the enemy taking a free turn, on the same panel where
+  `stations.order_preview` prints a line per helm order. **And the hail never
+  asked what the power remembered** — `b.rep` is the standing on the books,
+  `grudge.feeling` is the memory behind it, which the game already spends on
+  prices, favours and whether work is posted. A Charter that remembers a
+  destroyed hull sits at -88, which takes a hail from 22% to 4%; one that
+  remembers a rescue lifts it to 28%. `parley.odds`/`escape_odds` are the one
+  door and return the named terms, so the panel reads "42% they stand down —
+  your standing with them +17 · you have the upper hand +13 · what they remember
+  of you -7. Refused, they fire anyway."
 - **`test_verbs.py`** clicks every enabled control in the game — 210 of them
   across the standing screens, an engagement, an expedition, all four port
   tabs and both mini-games — each on a fresh game, and again with a wrecked

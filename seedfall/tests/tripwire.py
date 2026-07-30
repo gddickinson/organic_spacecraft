@@ -141,6 +141,7 @@ KIN = {
     "doctrine": ("doctrine",), "firing": ("firing", "gunnery"),
     "tactical": ("gunnery", "combat"), "combat": ("seatwork", "combat", "gunnery"),
     "encounters": ("magazine",),
+    "parley": ("parley", "combat"),
     "stations": ("routing", "orderplan", "seatwork"),
     "damage": ("thermal_doors", "combat"), "contraband": ("customs",),
     "customs": ("customs",), "diplomacy": ("politics",),

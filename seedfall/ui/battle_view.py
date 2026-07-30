@@ -20,6 +20,7 @@ from ..sim import stations as st_mod
 from ..sim import tactical as tac
 from ..sim import combat as combat_sim
 from ..sim import consorts as consort_sim
+from ..sim import parley as parley_sim
 from ..sim import firing
 from . import assessment_panel
 from ..data.consorts import ORDERS as CONSORT_ORDERS
@@ -28,6 +29,41 @@ from ..sim.ship import hull_pct, is_destroyed
 from . import theme
 from .widgets import (Bar, Panel, Pill, TabBar, View, button, label,
                       mono_label, note, spacer)
+
+
+def _parley_lines(b) -> list:
+    """What the two ways out are worth, for the panel. From `sim/parley`."""
+    out = []
+    talk = parley_sim.odds(b)
+    if talk["mute"]:
+        out.append((f"Hailing them: {talk['why']}", "warn"))
+    else:
+        out.append((f"Hailing them: {talk['chance']:.0%} they stand down"
+                    + (" — " + _terms(talk["terms"]) if talk["terms"] else "")
+                    + ". Refused, they fire anyway.", "dim"))
+    if b.fleeable:
+        run = parley_sim.escape_odds(b)
+        if run["held"]:
+            out.append((f"Disengaging: {run['why']}", "warn"))
+        else:
+            out.append((f"Disengaging: {run['chance']:.0%} you shake them"
+                        + (" — " + _terms(run["terms"]) if run["terms"] else "")
+                        + ". Short, and they get the turn.", "dim"))
+    return out
+
+
+def _terms(terms) -> str:
+    """Each named part of a chance, in points, worst or best first."""
+    ranked = sorted(terms, key=lambda pair: -abs(pair[1]))
+    return " · ".join(f"{name} {value * 100:+.0f}" for name, value in ranked)
+
+
+def _parley_tip(b, which: str) -> str:
+    told = (parley_sim.odds(b) if which == "hail" else parley_sim.escape_odds(b))
+    if told.get("mute") or told.get("held"):
+        return told["why"]
+    return (f"{told['chance']:.0%}. " + _terms(told["terms"])
+            + ". If it fails they take their turn regardless.")
 
 
 class BattleView(View):
@@ -305,9 +341,17 @@ class BattleView(View):
             button("Gunnery…", self._open_gunnery, kind="flat",
                    tip="The gunner's station: every mount's arc, and which of "
                        "them fire this turn."),
-            button("Hail them", lambda: self._act({"type": "hail"})),
-            button("Disengage", lambda: self._act({"type": "flee"}), kind="flat")
+            button("Hail them", lambda: self._act({"type": "hail"}),
+                   tip=_parley_tip(b, "hail")),
+            button("Disengage", lambda: self._act({"type": "flee"}), kind="flat",
+                   tip=_parley_tip(b, "flee"))
             if b.fleeable else None)
+        # And on the panel, not only under a hover: these two are the only acts
+        # on this screen whose failing side is "they shoot you for free", and the
+        # only ones that used to name no number at all.
+        for line, tint in _parley_lines(b):
+            p.add(note(line) if tint == "dim" else label(line, "", tint,
+                                                         wrap=True))
         return p
 
     def _outcome(self, b) -> Panel:
