@@ -219,6 +219,9 @@ KIN = {
     "accord": ("accord", "wharfage"),
     "turnplan": ("turnplan", "orderplan"),
     "surfaces": ("surfaces", "worlds", "lighting"),
+    "hulls3d": ("hullshapes", "combat"),
+    "stars3d": ("starlight", "cameras"),
+    "berths3d": ("silhouettes",), "ships3d": ("silhouettes",),
 }
 
 

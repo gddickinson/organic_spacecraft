@@ -99,22 +99,35 @@ def _shade(base: QColor, lit: float, rim: float, glare: float = 1.0) -> QColor:
 
 def draw(painter, camera: Camera, mesh, at, scale: float, light,
          spin: float = 0.0, tilt: float = 0.0, outline: bool = False,
-         glare: float = 1.0) -> int:
+         glare: float = 1.0, yaw: float = 0.0) -> int:
     """Paint one model. Returns how many faces actually landed on screen.
 
     `mesh` is `(verts, faces)` where a face is `(indices, colour)`. `at` is
     where the model's centre sits in the camera's frame, `scale` is its
     radius in the same units, and `light` is the direction the starlight
     travels *from*.
+
+    Three rotations, in this order: `spin` about the model's own pole, `tilt`
+    over onto its side, then `yaw` about the world's vertical.
+
+    **`yaw` is why there are three.** Every model in this package is authored
+    nose along +z, and spin-then-tilt can lay that nose down but not then point
+    it anywhere: the tilt fixes which way it falls. On a tactical plot, where
+    hulls sit in a plane and each one is heading somewhere, that left every
+    ship standing on its tail — which is what `ui/battle3d.py` drew until this
+    was added, and why a heading could not be read off the picture at all.
     """
     verts, faces = mesh
     cs, sn = math.cos(spin), math.sin(spin)
     ct, st = math.cos(tilt), math.sin(tilt)
+    yc, ys = math.cos(yaw), math.sin(yaw)
     placed = []
     for vx, vy, vz in verts:
-        # spin about the model's own pole, then tilt it over
+        # spin about the model's own pole, tilt it over, then swing it round
         x, y = vx * cs - vy * sn, vx * sn + vy * cs
         y, z = y * ct - vz * st, y * st + vz * ct
+        if yaw:
+            x, y = x * yc - y * ys, x * ys + y * yc
         placed.append((at[0] + x * scale, at[1] + y * scale,
                        at[2] + z * scale))
 

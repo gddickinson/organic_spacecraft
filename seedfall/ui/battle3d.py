@@ -24,7 +24,7 @@ from PyQt6.QtCore import QPointF, Qt
 from PyQt6.QtGui import (QColor, QFont, QPainter, QPen, QRadialGradient)
 from PyQt6.QtWidgets import QSizePolicy, QWidget
 
-from ..data import models3d
+from ..data import hulls3d, models3d
 from ..sim import gunfire
 from ..sim import tactical as tac
 from . import render3d, theme
@@ -38,6 +38,50 @@ HALF_FOV = math.radians(26.0)
 #: units across and a hull is a hundred metres, so a literal scale would be a
 #: pixel. This is the same lie every naval plot has ever told.
 HULL_SIZE = 34.0
+
+#: How the hull models are laid down. Every mesh in this package is authored
+#: nose along +z, and a tactical plot wants them lying in the plane pointing
+#: where they are going — so they are tilted onto their side and then swung
+#: round by `render3d.draw`'s `yaw`. `LIE_YAW` is the quarter turn that puts
+#: the nose back on the heading after the tilt has dropped it onto -y.
+LIE_FLAT = math.pi / 2
+LIE_YAW = math.pi / 2
+
+#: How much bigger the largest hull is drawn than the smallest. The chassis
+#: masses run from a SPORE to a LEVIATHAN, which is a factor of far more than
+#: this in tonnes — drawn true to mass, the small hulls would be a pixel. The
+#: cube root of the mass ratio is the honest compromise: a shape's *size* on a
+#: plot goes as its linear dimension, and mass goes as the cube of that.
+SIZE_SPREAD = 2.6
+
+#: The mass a hull of exactly `HULL_SIZE` has, in tonnes: the median of the
+#: thirty-five chassis. Measured rather than chosen — the masses run 60 t for a
+#: SPORE to **twelve billion** for a LEVIATHAN, and 99% of them sit under
+#: 160,000. Anchoring on one hull and taking a cube root put every chassis
+#: above a NAVIS hard against the ceiling; anchoring on the median and using a
+#: gentler root spends the scale where the ships actually are.
+SIZE_AT_T = 15_000.0
+
+#: Which root of the mass ratio the drawn size follows. A sixth: mass goes as
+#: the cube of a linear dimension, and half again on top of that keeps a
+#: three-order-of-magnitude spread inside a plot a person can read.
+SIZE_ROOT = 6.0
+
+
+def _family(side) -> str:
+    """Which of the five families this combatant was built in."""
+    from ..data.chassis import CHASSIS_BY_ID
+    chassis = CHASSIS_BY_ID.get(getattr(side.ship, "chassis", "") or "")
+    return getattr(chassis, "family", "") or "fabricated"
+
+
+def _hull_scale(side) -> float:
+    """How big to draw it, from what it actually masses."""
+    from ..data.chassis import CHASSIS_BY_ID
+    chassis = CHASSIS_BY_ID.get(getattr(side.ship, "chassis", "") or "")
+    mass = float(getattr(chassis, "mass_t", 0) or SIZE_AT_T)
+    ratio = max(1e-6, mass / SIZE_AT_T) ** (1.0 / SIZE_ROOT)
+    return max(1.0 / SIZE_SPREAD, min(SIZE_SPREAD, ratio))
 
 #: Where the eye sits relative to your own hull, as a share of the gap to the
 #: enemy: behind and above. Proportional rather than fixed, so the pair stay
@@ -103,14 +147,19 @@ class Battle3D(QWidget):
 
         # The enemy first, then yours: whichever is further away is drawn
         # first, which is all the depth sorting two hulls need.
-        pairs = [(b.enemy, models3d.HULL, "warn"),
-                 (b.player, models3d.HULL, "lumen")]
+        # Each combatant as the hull it actually is. Both were `models3d.HULL`
+        # at one size, so a SPORE and a LEVIATHAN were the same object and so
+        # were you and whatever was shooting at you — thirty-five chassis in
+        # five families, and the plot showed one ship.
+        pairs = [(b.enemy, "warn"), (b.player, "lumen")]
         pairs.sort(key=lambda row: -math.dist(
             (row[0].body.x, row[0].body.y, 0.0), camera.at))
-        for side, mesh, _tint in pairs:
-            render3d.draw(p, camera, mesh,
-                          (side.body.x, side.body.y, 0.0), HULL_SIZE, light,
-                          spin=math.radians(-side.body.heading), tilt=0.0)
+        for side, _tint in pairs:
+            render3d.draw(p, camera, hulls3d.mesh_for(_family(side)),
+                          (side.body.x, side.body.y, 0.0),
+                          HULL_SIZE * _hull_scale(side), light,
+                          spin=0.0, tilt=LIE_FLAT,
+                          yaw=math.radians(-side.body.heading) + LIE_YAW)
 
         self._shots(p, camera)
         self._labels(p, camera, w, h)

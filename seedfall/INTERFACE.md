@@ -1698,6 +1698,9 @@ seedfall/
 │   │                   one silhouette each, where there was one shipyard
 │   ├── ships3d.py      and other people's ships by what they are doing:
 │   │                   courier, trader, prospector, patrol, no transponder
+│   ├── hulls3d.py      the five hull families as silhouettes, built from
+│   │                   `hullforms`' own lengths, beams, tapers and facet
+│   │                   counts — what the tactical plot draws
 │   ├── starclasses.py  8 spectral classes with real radii and luminosities —
 │   │                   a 12 km neutron star to an A-type at 1.8 solar
 │   ├── worlds3d.py     worlds by latitude: caps, bands, and concentric rings
@@ -2514,6 +2517,21 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   0 turns in 89. The real gap was next door — the count check ran only with full
   magazines, where "what trains" and "what burns" are the same list. Both
   mutations bit once it ran with an empty one.
+- **A check that asks the helper cannot see the call.** Nine mutations went
+  into `ui/battle3d`'s hull drawing and **four passed at once**, because every
+  check in the new suite asked `hulls3d.mesh_for`, `battle3d._family` or
+  `_hull_scale` directly. Pinning the *call* in `paintEvent` to a fixed family,
+  a fixed size, a flat tilt or a fixed yaw changed nothing any of them looked
+  at. The fix was a check that renders the widget and reads the picture — and
+  then two more rounds of it, because comparing a NAVIS with an ANTIPHON also
+  varies their *mass*, so a mutation that fixed only the family still moved the
+  frame. A CORAL and a CARAVEL are both exactly 9,000 t in different families,
+  and that pair leaves the shape as the only variable.
+- **Hold the QApplication.** `_app()` returns it; calling `_app()` and throwing
+  the result away lets Python collect it, and the next QWidget aborts the whole
+  process with "Must construct a QApplication before a QWidget" — which reads
+  like a setup error and is really a reference count. The suite output vanished
+  with it, so there was nothing on screen to diagnose from either.
 - **The same defect twice, in the same file, and only half of it noticed.**
   `ui/viewport._star` worked out a star's `tint` from its class and drew the
   disc as a hard-coded `QColor(255, 253, 244)` — the same off-white for all nine

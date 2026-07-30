@@ -2,6 +2,56 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: the tactical plot showed one ship twice (#3D)
+
+`data/hullforms.py` opens with "Five families, five silhouettes" and gives each
+a length, a beam, a taper, a facet count and its own furniture — a grown hull's
+docking ridge and radiator bloom, a Yards hull's welded spine and slab bow, a
+hybrid's cradle, a Dry Choir lattice, a xeno hull's shards. `sim/plans.py` built
+the captain's own ship from those numbers for the cutaway panel. Nothing else
+read them. `ui/battle3d.py` drew:
+
+    pairs = [(b.enemy, models3d.HULL, "warn"),
+             (b.player, models3d.HULL, "lumen")]
+
+One mesh, one size, both combatants. Thirty-five chassis across five families,
+masses from 60 t to twelve billion, and the plot showed one ship twice.
+
+It also drew them **standing on their tails**. Every model in this package is
+authored nose along +z; the plot's hulls sit in the z=0 plane with the camera
+looking across it; and `render3d.draw` could spin a model about its own pole and
+tilt it over but not then point it anywhere — the tilt decides which way it
+falls. A heading could not be read off the picture at all. `draw` takes a `yaw`
+now, applied after the tilt about the world's vertical, and `data/hulls3d.py`
+builds the five silhouettes from `hullforms`' own numbers. Size follows mass,
+off the median of the thirty-five and a sixth root, because anchoring on one
+hull and taking a cube root put everything above a NAVIS against the ceiling.
+
+**Two shapes were too alike, and both times the fix was the mesh.** A xeno hull
+"is not symmetrical and does not explain itself" — and was a body of revolution
+like the other four, sharing 83% of its outline with a grown hull; shards on a
+symmetric spindle are still a symmetric spindle, so its spine bends now. Then a
+hybrid, which *is* a grown body in a cradle, sat at 79%: standing the cradle off
+from 1.14 beams to 1.62 took it to 63%, and made the cradle the silhouette
+rather than a stripe on one.
+
+**The mutation sweep put four holes in the new suite at once**, and they were
+all the same hole: every check asked `hulls3d.mesh_for`, `_family` or
+`_hull_scale` directly, so rewriting the *call* in `paintEvent` changed nothing
+any of them looked at. The answer was a check that renders the widget and reads
+the picture — which then took two more rounds, because comparing a NAVIS with an
+ANTIPHON varies their mass too, and a mutation fixing only the family still
+moved the frame. A CORAL and a CARAVEL are both exactly 9,000 t in different
+families; that pair leaves the shape as the only variable.
+
+And one hour lost to a hard abort with no output: `_app()` hands back the
+QApplication, the check discarded it, Python collected it, and the next QWidget
+killed the process with "Must construct a QApplication before a QWidget". A
+reference count, wearing a setup error's clothes.
+
+`test_hullshapes.py` — 7 checks. Nine mutations swept, all caught. Full suite
+green: **1,042 checks**.
+
 ## 2026-07-30 — SEEDFALL: nine star classes, one white dot (#catalogue)
 
 `data/starclasses.py` has carried a `core` colour per class since it was
