@@ -180,11 +180,33 @@ def run(suite: Suite) -> None:
         assert any("grievance" in line.lower() for line in said["lines"]), (
             f"refusing a levy is recorded as a grievance and the screen does "
             f"not say so: {said['lines']}")
-        before = getattr(dip.ensure(game), "grievances", 0)
+        # **This check used to read a counter that did not exist.** It asked
+        # `getattr(dip.ensure(game), "grievances", 0)`, which is how an
+        # undeclared attribute passes for a field: `_apply_refusal` set
+        # `state.grievances`, `DiplomaticState` never declared it, nothing read
+        # it, and the next save dropped it on the floor. The counter went up and
+        # the check was satisfied — the feature was still missing, and a `getattr`
+        # with a default is what let the two look the same.
+        #
+        # A grievance is a memory now, which is the machinery that already turns
+        # dated things into a price and into whether a power will deal with you,
+        # and which persists.
+        from ..sim import grudge as grudge_sim
+        before = (grudge_sim.feeling(game, envoy.faction),
+                  len(grudge_sim.because(game, envoy.faction)))
         approach.answer(game, envoy, "refuse")
-        after = getattr(dip.ensure(game), "grievances", 0)
-        assert after > before, "the grievance was promised and not filed"
-        return f"grievances {before} → {after}, and the screen warned of it"
+        after = (grudge_sim.feeling(game, envoy.faction),
+                 len(grudge_sim.because(game, envoy.faction)))
+        assert after[1] > before[1], (
+            "the grievance was promised and the power remembers nothing")
+        assert after[0] < before[0], (
+            f"the Charter feels {after[0]:.1f} against {before[0]:.1f} — a "
+            "grievance nobody minds is not a grievance")
+        assert not hasattr(dip.ensure(game), "grievances"), (
+            "something is still writing an undeclared `grievances` attribute; "
+            "it will not survive a save")
+        return (f"filed as a memory, feeling {before[0]:+.1f} → {after[0]:+.1f}, "
+                "and the screen warned of it")
 
     @check("haggling moves the offer and pays nothing yet")
     def _():

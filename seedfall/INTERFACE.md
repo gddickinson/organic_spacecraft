@@ -872,6 +872,65 @@ end for end against the SPORE's 50.
 a burn in a new direction is a *turn* first — three ticks to swing a NAVIS 90°
 — and the turn spends reaction mass out of the same tank.
 
+**"Grievances are counted" was true in three places and false in the code.**
+`approach.preview` tells a captain refusing a levy that "they will file it as a
+grievance, and grievances are counted"; the levy's own `costs` line in
+`data/approaches.py` says "they collect grievances". What actually happened was
+
+    dip.ensure(game).grievances = getattr(dip.ensure(game), "grievances", 0) + 1
+
+— a counter on a field `DiplomaticState` **does not declare.** Nothing read it,
+and because it was undeclared the save's decoder dropped it: set it to seven,
+save, reload, and it comes back as nothing at all.
+
+**An existing check covered it and passed anyway.** `test_envoy` asserted the
+counter went up, reading it through `getattr(state, "grievances", 0)` — which is
+how an undeclared attribute passes for a field — and never saved. The number
+moved, the check was satisfied, the feature was missing.
+
+The deeper fault was an asymmetry. An overture is remembered
+(`diplomacy._remember`), and so is an answer to a demand for ground —
+`territory.answer` notes all three of pay, cede and refuse, and
+`grudge.because` puts them on the diplomacy screen. **An envoy's answer was the
+one dealing with a power that left no trace**, so a captain who had refused four
+levies faced a power that priced him badly and a screen that could not say why.
+
+`data/approaches.AS_ANSWERED` is the table and `approach._remember` is the door,
+mirroring the one diplomacy already had. A grievance is a *memory* now, which is
+the machinery that already turns dated things into a price bias and into whether
+a power will deal with you — and which persists. Measured: refusing levies takes
+the Charter from **0.0 to −28.6** feeling and its prices from x1.000 to
+**x1.051**, and the screen reads "Their feeling −34 · Their prices to you +6% on
+what you buy · Y1 D001 · you left our levy unpaid (−14)". Accepting a
+requisition is deliberately *not* remembered: a power that recorded every barrel
+of ore would have a ledger nobody could read.
+
+Three fields went with it, all read by nobody: `Envoy.choice`,
+`territory.Demand.choice` — both redundant now the memory carries the answer —
+and `DiplomaticState.favours`, whose story is the guard's.
+
+**The guard's accessor hatch was cut too wide.** It credited any dict subscript
+or `.get("literal")` as reading a field, and that hid
+`DiplomaticState.favours` for a whole cycle: the field is read nowhere, and
+`sim/officials.py` keeps a *different* per-official favours dict which it reaches
+as `store["favours"]`. A field excused by an unrelated dict that happens to share
+its name is a guard doing nothing. What counts now is a **named accessor reaching
+a field by string** — `getattr`/`hasattr`/`setattr`, and a two-argument
+`get`/`set_to` with the subject first and the key second, which is the shape of
+`options.get(game, "hints")` whose body is a `getattr`. The credited-name set
+fell from **538 to 153**, and the swept total from 8 unread to 6.
+
+**And a mirage worth recording.** I came to this by measuring whether the four
+powers ever move among themselves, saw the relations matrix freeze after year six
+and the venture count stop dead at 36, and spent a good while building the case
+that the powers stall. They do not. `advance_days` returns early on
+`game.victory`, the unattended chronicle had reached the **"ruin" ending**, and
+the clock was correctly waiting for the player to take it or carry on into the
+epoch. There is no venture bug. The lesson is about the measurement: a headless
+probe that advances years without driving the ending is measuring a stopped
+clock, and `tests/chronicle.py` already knew that — it guards its loop on
+`game.dead and not game.victory` and asserts it got twenty rounds in.
+
 **The declared-field guard went past `data/`, and found seven traits that did
 nothing.** Task #88 pointed `test_declared.py` at `sim/`, `world/` and `core/` as
 well — 1,167 fields — and the richest find was in the crew.

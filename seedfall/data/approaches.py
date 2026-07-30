@@ -117,3 +117,44 @@ QUIET_DAYS = 120
 #: Deliberately low: an approach should feel like something happening to you,
 #: not a weekly appointment.
 ODDS_PER_DAY = 0.014
+
+
+#: What a power remembers about how you answered its envoy, as
+#: `(kind, text, weight)` keyed by `"<envoy kind>|<answer>"`.
+#:
+#: **The screen has been promising this and it was not true.** `approach.preview`
+#: tells a captain refusing a levy that "they will file it as a grievance, and
+#: grievances are counted", and the levy's own `costs` line says "they collect
+#: grievances". What actually happened was
+#: `dip.ensure(game).grievances = getattr(..., 0) + 1` — a counter on a field
+#: `DiplomaticState` does not declare, so it was read by nobody and **wiped by
+#: the next save**. Three ways of saying a thing that did not happen.
+#:
+#: A power's memory is the mechanism that already exists for exactly this:
+#: `sim/grudge.py` turns dated memories into a price bias and into whether they
+#: will put work your way, `grudge.because` names them on the diplomacy screen,
+#: and they persist. So a grievance is a memory, which is what "counted" should
+#: have meant all along.
+#:
+#: Only the answers worth remembering are here. Accepting a requisition is
+#: ordinary commerce and a power that remembered every barrel of ore would have
+#: a ledger nobody could read; refusing one is a decision.
+#:
+#: An `Envoy` carries no system — a levy is against your holdings on a power's
+#: whole register rather than one place — so no template names one. A first draft
+#: interpolated `{where}` off `envoy.place`, which does not exist.
+AS_ANSWERED = {
+    "levy|refuse": ("trespass", "you left our levy unpaid", 1.3),
+    "levy|accept": ("trade", "you settled our levy without argument", 0.7),
+    "requisition|refuse": ("trespass",
+                           "you kept the {goods} we asked for", 0.9),
+    "denounce_rival|accept": ("kindness",
+                              "you denounced {rival} when we asked", 1.2),
+    "denounce_rival|refuse": ("trespass",
+                              "you would not speak against {rival} for us",
+                              0.8),
+    "treaty_offer|accept": ("kindness", "you signed with us", 1.5),
+    "treaty_offer|refuse": ("trespass", "you turned down our treaty", 1.0),
+    "warning|refuse": ("trespass",
+                       "you were warned off {rival} and said no", 1.1),
+}

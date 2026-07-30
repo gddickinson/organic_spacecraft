@@ -2,6 +2,69 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: "grievances are counted", and they were not
+
+Picked diplomacy for breadth — the last three cycles were piloting, combat and a
+cross-cutting guard.
+
+**The screen promises this in three places and the code did none of it.**
+`approach.preview` tells a captain refusing a levy that "they will file it as a
+grievance, and grievances are counted"; the levy's `costs` line says "they collect
+grievances". What happened was
+`dip.ensure(game).grievances = getattr(..., "grievances", 0) + 1` — a counter on
+a field `DiplomaticState` **does not declare.** Nothing read it, and being
+undeclared the save's decoder dropped it: set it to seven, save, reload, and it
+is gone.
+
+**An existing check covered it and passed.** `test_envoy` asserted the counter
+went up, read through `getattr(state, "grievances", 0)` — which is exactly how an
+undeclared attribute passes for a field — and never saved. The number moved, the
+check was satisfied, the feature was absent. A `getattr` with a default is what
+let the two look the same.
+
+The real fault underneath was an asymmetry. An overture is remembered, and so is
+an answer to a demand for ground — `territory.answer` notes pay, cede and refuse,
+and `grudge.because` puts them on the diplomacy screen. **An envoy's answer was
+the one dealing with a power that left no trace at all**, so a captain who had
+refused four levies met a power that priced him badly and a screen that could not
+say why.
+
+So a grievance is a *memory* now — the machinery that already turns dated things
+into a price bias and into whether a power will deal with you, and which
+persists. Refusing levies takes the Charter from **0.0 to −28.6** feeling and its
+prices from x1.000 to **x1.051**; the screen reads "Their feeling −34 · Their
+prices to you +6% on what you buy · Y1 D001 · you left our levy unpaid (−14)".
+Accepting a requisition is deliberately not remembered: a power recording every
+barrel of ore would have a ledger nobody could read.
+
+Three dead fields went with it — `Envoy.choice` and `territory.Demand.choice`,
+both redundant now the memory carries the answer, and `DiplomaticState.favours`.
+
+**The guard I extended last cycle had a hole, and `favours` was in it.** The
+accessor hatch credited any dict subscript as reading a field, so `favours` — read
+nowhere — was excused because `sim/officials.py` keeps an unrelated per-official
+favours dict and reaches it as `store["favours"]`. A field excused by a dict that
+happens to share its name is a guard doing nothing. What counts now is a named
+accessor reaching a field by string: `getattr`/`hasattr`/`setattr`, and a
+two-argument `get`/`set_to` with the subject first — the shape of
+`options.get(game, "hints")`, whose body is a `getattr`. The credited-name set
+fell from **538 to 153**.
+
+**And I chased a mirage for a good while, which is worth the record.** I came at
+diplomacy by asking whether the four powers ever move among themselves, watched
+the relations matrix freeze after year six and the venture count stop dead at 36,
+and built a detailed case that the powers stall. **They do not.** `advance_days`
+returns early on `game.victory`; the unattended chronicle had reached the "ruin"
+ending and the clock was correctly waiting for the player to take it or carry on
+into the epoch. Two wrong turns on the way there, too: I first read the venture
+total as the live count, and I reported four ventures as "stuck" when their
+`until` days were plainly in the future. The lesson is about measurement — a
+headless probe that advances years without driving the ending measures a stopped
+clock — and `tests/chronicle.py` already knew it, guarding on
+`not game.victory` and asserting it got twenty rounds in.
+
+8 mutations, **8 caught**. Full suite green.
+
 ## 2026-07-29 — SEEDFALL: seven officer traits that did nothing
 
 Task #88 pointed the declared-field guard past `data/` into `sim/`, `world/` and

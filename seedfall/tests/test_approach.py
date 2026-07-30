@@ -12,14 +12,22 @@ The claims worth pinning, in rising order of what matters:
   taken, and taking it does exactly that.
 - **Refusing quietly costs what refusing costs.** An offer whose deadline is
   free to ignore is not a decision.
+- **And a power remembers how you answered**, which was the one dealing with a
+  power that left no trace at all. `preview` told a captain refusing a levy that
+  "they will file it as a grievance, and grievances are counted", and the levy's
+  own `costs` line says "they collect grievances". What actually happened was
+  `dip.ensure(game).grievances = getattr(..., 0) + 1` — a counter on a field
+  `DiplomaticState` does not declare, read by nobody and **wiped by the next
+  save.** Three ways of promising a thing that did not happen.
 """
 
 from __future__ import annotations
 
 from ..core.rng import RNG
 from ..core.state import new_game
-from ..data.approaches import APPROACHES, APPROACHES_BY_ID, QUIET_DAYS
+from ..data.approaches import APPROACHES, AS_ANSWERED, QUIET_DAYS
 from ..sim import approach, colony as colony_sim, diplomacy as dip
+from ..sim import grudge as grudge_sim
 from ..data.colonies import COLONIES
 from .harness import Suite
 
@@ -139,7 +147,14 @@ def run(suite: Suite) -> None:
                 assert abs((now - before_goods) - delta) < 0.01, (
                     f"{kind}: said {delta:g} t of {cid}, moved "
                     f"{now - before_goods:g}")
-            assert envoy.over and envoy.choice == "accept"
+            # `envoy.choice` used to be checked here. It was written on every
+            # answer and read by nothing in the game, and the *memory* is the
+            # record now — so this asks the power what it remembers rather than
+            # asking the envoy what it was told.
+            assert envoy.over
+            if f"{kind}|accept" in AS_ANSWERED:
+                assert grudge_sim.because(game, envoy.faction), (
+                    f"{kind}: accepted, and the power remembers nothing")
             checked.append(kind)
         assert len(checked) >= 3, checked
         return f"{len(checked)} kinds taken, every figure as previewed"
@@ -226,6 +241,111 @@ def run(suite: Suite) -> None:
         assert not again.get("ok"), "you can push forever"
         return (f"{opening:,} → {envoy.credits:,} credits, and no second "
                 "bite")
+
+    @check("every way of dealing with a power leaves a dated memory")
+    def _():
+        # The general question, and the one that found the gap. An overture is
+        # remembered (`diplomacy._remember`), and so is an answer to a demand for
+        # ground — `territory.answer` notes all three of pay, cede and refuse.
+        # An envoy's answer was remembered nowhere, so a captain who had refused
+        # four levies saw a power that priced him badly and a diplomacy screen
+        # that could not say why.
+        from ..sim import approach as ap_sim
+        from ..sim import diplomacy as dip_sim
+        from ..sim import grudge as grudge_sim
+
+        ways = {}
+
+        # An overture.
+        game = new_game("mem-overture")
+        game.credits = 500_000
+        for key in ("biomass", "ore", "alloy", "volatiles"):
+            game.stores[key] = 9000
+        offered = dip_sim.available(game, "charter")
+        assert offered, "no overture is on offer at all"
+        did = dip_sim.perform(game, offered[0][0].id, "charter")
+        assert did.get("ok"), did
+        ways["overture"] = [x["text"] for x in grudge_sim.because(game, "charter")]
+
+        # An answer to a demand for ground.
+        # `_planted` borrowed from `test_territory` rather than copied: it
+        # matures a holding over real days and a second version of that would
+        # drift from the first.
+        from ..sim import territory as territory_sim
+        from .test_territory import _planted
+        game, _col, system = _planted("mem-demand", "charter")
+        out = territory_sim.answer(game, system, "charter", "defy")
+        assert out["ok"], out
+        ways["demand"] = [x["text"] for x in grudge_sim.because(game, "charter")]
+
+        # An envoy's answer, both ways.
+        for answered in ("accept", "refuse"):
+            game = new_game(f"mem-envoy-{answered}")
+            game.credits = 500_000
+            envoy = ap_sim.Envoy(kind="levy", faction="charter", credits=1000,
+                                 expires=game.day + 30)
+            game.envoy = envoy
+            out = ap_sim.answer(game, envoy, answered)
+            assert out.get("ok"), out
+            ways[f"envoy {answered}"] = [
+                x["text"] for x in grudge_sim.because(game, "charter")]
+
+        for way, said in ways.items():
+            assert said, (
+                f"{way}: the Charter remembers nothing about it. Every dealing "
+                "with a power has to leave something the diplomacy screen can "
+                "name, or its coldness is unexplainable")
+        return " · ".join(f"{k}: {v[0][:34]}" for k, v in ways.items())
+
+    @check("a grievance is counted, and survives a save")
+    def _():
+        # The promise, checked as a promise: `preview` says grievances are
+        # counted, so refusing has to move something that lasts. The counter it
+        # used to increment was undeclared, so it came back from a reload as
+        # nothing at all — which is the half of this that a check on the number
+        # alone would have missed.
+        import os
+        import tempfile
+
+        from ..core import save as save_mod
+        from ..core.state import load_game
+        from ..sim import approach as ap_sim
+        from ..sim import grudge as grudge_sim
+
+        game = new_game("counted")
+        game.credits = 5_000_000
+        before = (grudge_sim.feeling(game, "charter"),
+                  grudge_sim.price_bias(game, "charter"))
+
+        # What the screen says will happen.
+        envoy = ap_sim.Envoy(kind="levy", faction="charter", credits=1000,
+                            expires=game.day + 30)
+        game.envoy = envoy
+        said = ap_sim.preview(game, envoy, "refuse")
+        promised = " ".join(said.get("lines", []))
+        assert "grievance" in promised.lower(), (
+            f"the refusal no longer promises a grievance: {promised!r}")
+
+        ap_sim.answer(game, envoy, "refuse")
+        after = (grudge_sim.feeling(game, "charter"),
+                 grudge_sim.price_bias(game, "charter"))
+        assert after[0] < before[0], (
+            f"refusing the levy left the Charter feeling {after[0]:.1f} against "
+            f"{before[0]:.1f} — a grievance that moves nothing is not counted")
+        assert after[1] > before[1], (
+            f"the price bias went {before[1]:.3f} → {after[1]:.3f}; a grievance "
+            "they collect should cost the captain something")
+
+        os.environ["HOME"] = tempfile.mkdtemp()
+        assert save_mod.write({"game": game})
+        back = load_game()
+        assert grudge_sim.because(back, "charter"), (
+            "the grievance did not survive the save — which is exactly what the "
+            "undeclared counter did")
+        assert abs(grudge_sim.feeling(back, "charter") - after[0]) < 1e-6
+        return (f"feeling {before[0]:+.1f} → {after[0]:+.1f}, price "
+                f"x{before[1]:.3f} → x{after[1]:.3f}, and both came back "
+                "from a reload")
 
     @check("an envoy blocks the door and survives a reload")
     def _():

@@ -28,7 +28,10 @@ class DiplomaticState:
     relations: dict[str, float] = field(default_factory=dict)
     treaties: list[str] = field(default_factory=list)
     cooldowns: dict[str, int] = field(default_factory=dict)   # "action|faction" -> day
-    favours: dict[str, int] = field(default_factory=dict)
+    #: `favours` used to sit here, read by nobody: the favours the game
+    #: actually keeps are per-official, in `officials._store(...)["favours"]`,
+    #: and it was that unrelated dict which made the declared-field guard
+    #: excuse this one for a whole cycle.
 
 
 def _key(a: str, b: str) -> str:

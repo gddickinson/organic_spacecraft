@@ -40,7 +40,6 @@ class Demand:
     power: str
     worth: float = 0.0
     over: bool = False
-    choice: str = ""
 
 
 def claimant(game, system) -> str | None:
@@ -128,7 +127,6 @@ def answer(game, system, power: str, choice: str) -> dict:
         # Nothing left to argue about — the Bloom or a seizure got there first.
         if game.demand is not None:
             game.demand.over = True
-            game.demand.choice = choice
         return {"ok": False, "why": "You hold nothing there."}
 
     from . import grudge as grudge_sim
@@ -165,7 +163,6 @@ def answer(game, system, power: str, choice: str) -> dict:
 
     if game.demand is not None:
         game.demand.over = True
-        game.demand.choice = choice
     return {"ok": True, "choice": choice, "power": power,
             "colonies": list(held), "system": system}
 

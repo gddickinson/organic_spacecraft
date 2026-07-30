@@ -76,16 +76,6 @@ ALLOWED: dict[str, str] = {
         "A watcher naming a thing already true, so a tutorial step can skip "
         "itself. Task #87: the tutorial's step machinery advances on watchers "
         "firing, and skipping needs it to evaluate one at entry instead.",
-    "approach.Envoy.choice":
-        "What you answered an envoy, written when the offer is settled and read "
-        "by nobody. Task #92, with `territory.Demand.choice`: the grudge system "
-        "remembers the act, so what is missing is a history a screen can show "
-        "rather than a rule. Either surface both or delete both.",
-    "territory.Demand.choice":
-        "What you answered a power demanding ground, written when the demand is "
-        "settled and read by nobody. Task #92, with `approach.Envoy.choice` — "
-        "the same shape and the same decision, which is why they are one task "
-        "rather than two.",
     "memory.Mind.met":
         "How many times you have dealt with this mind. Incremented and never "
         "read, while `first_met` beside it is. Task #93: familiarity ought to "
@@ -146,11 +136,21 @@ def _reads() -> tuple[set, set]:
     write is not a read: a field that is only ever assigned is exactly as dead
     as one nobody mentions, and three of the findings were of that shape.
 
-    Accessor keys are the narrow escape hatch — `options.get(game, "hints")`
-    reaches a field by string, and so does `d["kind"]`. Prose strings do *not*
-    count: allowing any string literal would let the word "defiant" in a log
-    line excuse `Colony.defiant`, which is the kind of generosity that turns a
-    guard into decoration.
+    Accessor keys are the narrow escape hatch, and **it was cut too wide the
+    first time.** Prose strings never counted — allowing any literal would let
+    the word "defiant" in a log line excuse `Colony.defiant` — but crediting any
+    dict subscript or `.get("literal")` was nearly as bad, and it hid a real
+    dead field for a whole cycle: `diplomacy.DiplomaticState.favours` is read
+    nowhere at all, and was excused because `sim/officials.py` keeps a *different*
+    per-official favours dict and reaches it as `store["favours"]`. A field
+    excused by an unrelated dict that happens to share its name is a guard doing
+    nothing.
+
+    So what counts now is a **named accessor reaching a field by string**:
+    `getattr`, `hasattr` and `setattr`, and a two-argument `get`/`set_to` whose
+    subject comes first and key second — which is exactly the shape of
+    `options.get(game, "hints")`, whose body is `getattr(held(game), name)`. A
+    bare subscript reaches a dict, not a field, and no longer counts.
     """
     loaded: set = set()
     keyed: set = set()
@@ -169,19 +169,10 @@ def _reads() -> tuple[set, set]:
                   and isinstance(node.args[1], ast.Constant)
                   and isinstance(node.args[1].value, str)):
                 keyed.add(node.args[1].value)
-            elif (isinstance(node, ast.Subscript)
-                  and isinstance(node.slice, ast.Constant)
-                  and isinstance(node.slice.value, str)):
-                keyed.add(node.slice.value)
             elif (isinstance(node, ast.Call)
                   and isinstance(node.func, ast.Attribute)
-                  and node.func.attr in ("get", "pop", "setdefault")
-                  and node.args and isinstance(node.args[-1], ast.Constant)
-                  and isinstance(node.args[-1].value, str)):
-                keyed.add(node.args[-1].value)
-            elif (isinstance(node, ast.Call)
-                  and isinstance(node.func, ast.Attribute)
-                  and node.func.attr == "get" and len(node.args) == 2
+                  and node.func.attr in ("get", "set_to")
+                  and len(node.args) == 2
                   and isinstance(node.args[1], ast.Constant)
                   and isinstance(node.args[1].value, str)):
                 keyed.add(node.args[1].value)
@@ -250,12 +241,30 @@ def run(suite: Suite) -> None:
             assert known in loaded, known
 
         # A write is not a read, which is the distinction the AST pass exists
-        # for. `heat` is stored all over the sim and also consulted; `shots` is
-        # assigned by `gunfire.clear` — so a guard that counted stores would
-        # call anything write-only alive.
+        # for. `heat` is stored all over the sim and also consulted, so a guard
+        # counting stores would call anything write-only alive.
         assert "heat" in loaded
-        stored_only = [n for n in ("quinquireme_of_nineveh",) if n in loaded]
-        assert not stored_only, stored_only
+
+        # **And the accessor hatch has to stay narrow.** It was cut wide enough
+        # to credit any dict subscript, which excused
+        # `diplomacy.DiplomaticState.favours` for a whole cycle: that field was
+        # read nowhere, and `sim/officials.py` keeps an unrelated per-official
+        # favours dict it reaches as `store["favours"]`. A field excused by a
+        # dict that happens to share its name is a guard doing nothing.
+        #
+        # `hold` and `cargo` are subscripted all over the sim and are also
+        # genuine attributes, so they cannot show the difference; a name that is
+        # *only* ever a dict key can. `stores` is keyed by commodity id, so
+        # "phosphate" is a key and nothing's field.
+        assert "phosphate" not in keyed, (
+            "a bare dict key is being credited as reading a field; that is how "
+            "`DiplomaticState.favours` stayed hidden")
+        # What the hatch is *for*: `options.get(game, "hints")` reaches a field
+        # by string through a named accessor whose body is a `getattr`.
+        for setting in ("hints", "autosave_days", "instrument_ms"):
+            assert setting in keyed, (
+                f"{setting} is reached only through `options.get` and is no "
+                "longer credited — the hatch has been cut too narrow")
         return (f"{len(by_name)} distinct field names; an invented one reads "
                 f"as unread, three known ones as read, {len(keyed)} names "
                 "reached by accessor key")

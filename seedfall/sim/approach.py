@@ -26,7 +26,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..core.save import register
-from ..data.approaches import (APPROACHES_BY_ID, ODDS_PER_DAY, QUIET_DAYS)
+from ..data.approaches import (APPROACHES_BY_ID, AS_ANSWERED,
+                               ODDS_PER_DAY, QUIET_DAYS)
 from ..data.commodities import TRADE_IDS
 from ..data.diplomacy import TREATY_WEIGHT
 from ..data.factions import FACTIONS_BY_ID
@@ -61,7 +62,6 @@ class Envoy:
     #: The day the offer lapses.
     expires: int = 0
     over: bool = False
-    choice: str | None = None
     #: Set once, when the offer is haggled, so it cannot be milked.
     pushed: bool = False
     log: list = field(default_factory=list)
@@ -199,7 +199,6 @@ def tick(game, days: float, rng) -> list:
     if live is not None and not live.over:
         if game.day >= live.expires:
             live.over = True
-            live.choice = "lapsed"
             _apply_refusal(game, live)
             return [("warn", f"{_short(live.faction)}'s envoy has gone. You "
                              "did not answer, which is an answer.")]
@@ -298,9 +297,31 @@ def _apply_refusal(game, envoy) -> None:
     game.adjust_rep(envoy.faction, action.refuse_rep)
     if envoy.kind == "denounce_rival" and envoy.rival:
         game.adjust_rep(envoy.rival, 3.0)
-    if envoy.kind == "levy":
-        dip.ensure(game).grievances = getattr(
-            dip.ensure(game), "grievances", 0) + 1
+
+
+def _remember(game, envoy, answered: str) -> None:
+    """A power remembers how you answered its envoy.
+
+    Overtures have been remembered since `diplomacy._remember` was written, and
+    so has an answer to a demand for ground — `territory.answer` calls
+    `grudge.note` on all three of pay, cede and refuse. **An envoy's answer was
+    the one dealing with a power that left no memory at all**, so a captain who
+    had refused four levies saw a power that priced him badly and a diplomacy
+    screen that could not say why.
+
+    Where the levy's grievance counter went, see `data/approaches.AS_ANSWERED`:
+    it was an undeclared field, wiped by every save.
+    """
+    from . import grudge as grudge_sim
+    entry = AS_ANSWERED.get(f"{envoy.kind}|{answered}")
+    if entry is None:
+        return
+    kind, template, weight = entry
+    text = template.format(
+        goods=envoy.goods or "cargo",
+        rival=_short(envoy.rival) if envoy.rival else "them")
+    grudge_sim.note(game, envoy.faction, kind, text, weight,
+                    tags=["politics", "envoy"])
 
 
 def answer(game, envoy, choice: str) -> dict:
@@ -322,8 +343,8 @@ def answer(game, envoy, choice: str) -> dict:
 
     if choice == "refuse":
         envoy.over = True
-        envoy.choice = "refuse"
         _apply_refusal(game, envoy)
+        _remember(game, envoy, "refuse")
         return {"ok": True, "refused": True}
 
     if choice != "accept":
@@ -358,7 +379,7 @@ def answer(game, envoy, choice: str) -> dict:
 
     game.adjust_rep(envoy.faction, action.accept_rep)
     envoy.over = True
-    envoy.choice = "accept"
+    _remember(game, envoy, "accept")
     game.recompute()
     return {"ok": True, "accepted": True}
 
