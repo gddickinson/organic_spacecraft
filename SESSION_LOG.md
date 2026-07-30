@@ -2,6 +2,80 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: the gunner had no middle
+
+`combat` offered two ways to shoot. One named mount, or `_salvo` — "everything
+that can bear, fired together" — whose docstring says the cost is heat and
+ammunition, "which is why a single aimed shot stays a real option". That reads
+like a trade until it is measured.
+
+**A HAMMERFALL with five mounts puts 69 points of heat into itself in one salvo,
+against a fault line of 40 and a vent of 6 a turn.** It faults on turn one and
+never comes back: across ten turns resolve bled from 92.9 to −34 on its own
+radiators, in a fight it was winning on damage. The alternative was one mount out
+of five. So **buying armament made the salvo button worse** — the question this
+project asks of every good thing, and here the answer was yes.
+
+`sim/gunnery.py` is the missing control: fire *some* of them. `quote` says what a
+set will do to the hull before the trigger, modelled on the turn as it actually
+resolves — heat in, clamp, vent, then the fault test — because a volley that
+lands a point over and vents six is not a fault. `advise` takes the most damage
+of any set that will not fault, found exhaustively, since no chassis carries more
+than five mounts and 32 subsets is nothing.
+
+On the hot hull the advised volley won **6/12 and 4/12 against 1/12 and 2/12** for
+firing everything, and faulted on none of its turns against 53% and 57%. On a
+cooler LONGSHOT the three options are level inside a twelve-seed sample, and
+firing everything still cooks the ship half the time.
+
+**Almost all of this cycle went on being wrong carefully, so it is worth the
+record.**
+
+- **My harness measured nothing, twice.** Five of the eighteen weapons draw
+  `alloy` and a new captain carries none, so every one of them reported dry: I
+  produced two full tables of win rates from fights in which *zero mounts fired*.
+  Worse, my "one best mount" branch fell through to `brace` when nothing could
+  fire, and bracing *raises* resolve — so the mode I was holding up as the
+  benchmark was winning by not shooting. Both tables were discarded.
+- **`advise` was wrong twice.** First it ordered by damage *per point of heat* —
+  heat is the constraint, so economise heat — which favours the small guns and
+  left the main armament cold: 3 wins in 12 against 6 for firing one Fusion Lance
+  every turn. Economising heat is not the job. Then it could advise firing
+  *nothing*, and played out it said fire, hold, fire, hold, shooting half as often
+  as the enemy. `ship.py` records the same lesson beside `HEAT_CEILING` from the
+  last time: they "lost to their own radiators, in a fight they never shot in."
+- **I read the fault line the wrong way round.** It is `heat_cap`, not
+  `heat_cap * HEAT_CEILING` — the ceiling is the physical clamp, half again as
+  far away. A board built on the clamp would have called every faulting volley
+  safe. `gunnery.fault_line` is one function now and `_end_of_turn` asks it too.
+- **`Shot.mount_id` is a part id and is not unique.** Three Fusion Lances all
+  answer to `fusion_lance`, so five mounts came back under three names. They are
+  genuinely interchangeable, so a selection is a **multiset** — and my
+  `firing_set` would happily have fired six lances off a hull with three and
+  charged the heat for all six.
+- **My boresight drew half an arc.** `firing.arc_span` returns *half-angles* —
+  its docstring says so — and I drew a single wedge from `low` clockwise, putting
+  a fore arc entirely to starboard. `ui/tactical_plot.py` had been fixed for the
+  same thing already and left the reason: "drawing only one of them is a lie
+  about the ship." Looking at the screen did not catch it, because the target
+  happened to be near dead ahead.
+- **The sweep found three holes in my checks**, each for a specific reason: with
+  a 2-heat PDC aboard the advice never reaches its floor, so the hold-fire
+  mutation survived; both orderings happened to include a lance, so "beats one
+  mount" could not tell them apart; and on the mixed-arc hull the advice takes
+  every bearing mount, so a trigger replaced by a full salvo fired the same
+  shots. Fixed with a heavy-guns-only loadout, an exhaustive brute-force optimum
+  as the yardstick, and the hot hull for the trigger. 12 mutations, **12 caught**.
+
+`ui/gunner_window.py` is the seat: a boresight per mount, the tactical plot, a
+board of every mount with what stops it and what it costs, and the trigger with
+the heat quoted first. `MainWindow.battle_act` is now the one door for resolving
+a turn, since there are two seats on one engagement and the second copy is where
+the `b.player.st = ship_stats` line gets left out.
+
+`test_volley.py`, 9 checks, two of them driven through the window and one reading
+pixels off a rendered sight. Full suite green.
+
 ## 2026-07-29 — SEEDFALL: the pilot could not throttle
 
 `sim/conn.apply` has taken a `throttle` since the drive learned to throttle and a

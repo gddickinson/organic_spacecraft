@@ -302,6 +302,9 @@ class BattleView(View):
 
         p.add(spacer(4), mono_label("Other"))
         p.add_buttons(
+            button("Gunnery…", self._open_gunnery, kind="flat",
+                   tip="The gunner's station: every mount's arc, and which of "
+                       "them fire this turn."),
             button("Hail them", lambda: self._act({"type": "hail"})),
             button("Disengage", lambda: self._act({"type": "flee"}), kind="flat")
             if b.fleeable else None)
@@ -334,12 +337,15 @@ class BattleView(View):
 
     # ── driving ────────────────────────────────────────────────────────────
 
+    def _open_gunnery(self) -> None:
+        from .gunner_window import open_gunnery
+        open_gunnery(self.win)
+
     def _act(self, action: dict) -> None:
-        b = self.win.battle
-        combat_sim.take_turn(b, action, self.game.rng("combat"))
-        self.game.recompute()
-        b.player.st = self.game.ship_stats
-        self.win.refresh()
+        # Through the window, which is the one door: the gunner's station is a
+        # second seat on the same engagement and both have to resolve a turn the
+        # same way.
+        self.win.battle_act(action)
 
     def _finish(self) -> None:
         """Read out what the engagement left behind. The rules are in `sim`."""

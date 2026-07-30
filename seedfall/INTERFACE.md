@@ -872,6 +872,74 @@ end for end against the SPORE's 50.
 a burn in a new direction is a *turn* first — three ticks to swing a NAVIS 90°
 — and the turn spends reaction mass out of the same tank.
 
+**The gunner had no middle.** `combat` offered one named mount or `_salvo` —
+"everything that can bear, fired together" — and `_salvo`'s own docstring says
+the cost is heat and ammunition, "which is why a single aimed shot stays a real
+option". That reads like a trade until it is measured.
+
+**A HAMMERFALL with five mounts puts 69 points of heat into itself in one salvo,
+against a fault line of 40 and a vent of 6 a turn.** It faults on turn one and
+never comes back: across ten turns its resolve bled from 92.9 to −34 on its own
+radiators, in a fight it was winning on damage. The alternative on offer was one
+mount out of five. So **buying armament made the salvo button worse**, which is
+the question this project asks of every good thing, and here the answer was yes.
+
+`sim/gunnery.py` is the missing control: fire *some* of them. `quote` says what a
+chosen set does to the hull before the trigger — heat in, clamp, vent, then the
+fault test, in that order, because a volley that lands a point over and vents six
+is not a fault and quoting it as one would be crying wolf. `advise` picks the
+most damage of any set that will not fault, found exhaustively, since no chassis
+carries more than five mounts and 32 subsets is nothing.
+
+Played over twelve engagements at two difficulties with the guns supplied, on the
+hot hull the advised volley won **6/12 and 4/12 against 1/12 and 2/12** for firing
+everything, and never faulted once against 53% and 57% of turns. On a cooler
+LONGSHOT the three options are level inside a twelve-seed sample, and firing
+everything still overheats on nearly half its turns.
+
+**`advise` was wrong twice and playing it is what showed both.** It first ordered
+by damage *per point of heat* — heat is the constraint, so economise heat — which
+favours the small guns: a PDC is four damage a point, a Fusion Lance barely two.
+It picked the pea-shooters, left the main armament cold and won 3 of 12, while
+firing one Fusion Lance every turn won 6 despite faulting a fifth of the time.
+Economising heat is not the job. Then it could advise firing *nothing*: on a warm
+hull no mount fitted under the line, so the answer was to sit still, and played
+out it said fire, hold, fire, hold — shooting half as often as the enemy.
+`ship.py` records the same lesson beside `HEAT_CEILING` from the last time it
+happened, that they "lost to their own radiators, in a fight they never shot in".
+The floor is now the heaviest gun that bears: faulting is a cost, being harmless
+is a loss.
+
+Three more things the work turned up:
+
+- **The fault line is `heat_cap`, not `heat_cap * HEAT_CEILING`.** The ceiling is
+  the physical clamp on how much heat a hull can hold; the line `_end_of_turn`
+  tests is half that. I read them the wrong way round and built a board on it,
+  which would have called every faulting volley safe. `gunnery.fault_line` is one
+  function and `_end_of_turn` now asks it too.
+- **`Shot.mount_id` is a part id, so it is not unique.** Five mounts came back
+  under three names, because three Fusion Lances are all `fusion_lance`. They are
+  genuinely interchangeable — one hold rather than per-mount magazines, identical
+  parts in identical arcs — so a selection is a **multiset** and the count has to
+  be capped at what the hull carries. The window keys its holds by slot for the
+  same reason.
+- **Five of the eighteen weapons draw `alloy` and a new captain carries none.**
+  Not a bug — you supply your own guns — but it wrecked two rounds of my own
+  measurements, which compared gunnery modes on a ship where nothing could fire.
+
+`ui/gunner_window.py` is the seat: a boresight per mount, the tactical plot, a
+board of every mount with what stops it and what it costs, and the trigger with
+the heat quoted before it is pulled. `ui/mount_sight.py` draws the sights — and
+**`firing.arc_span` returns half-angles**, which its docstring says and my first
+draft ignored, putting a fore arc entirely to starboard. `ui/tactical_plot.py`
+had already been fixed for exactly that and left the reason behind it: "drawing
+only one of them is a lie about the ship." It looked plausible on screen because
+the target happened to be near dead ahead when I looked.
+
+`MainWindow.battle_act` is now the one door for resolving a turn, because there
+are two seats on the same engagement and the second copy is where the
+`b.player.st = ship_stats` line gets left out.
+
 **The pilot could not throttle.** `sim/conn.apply` has taken a `throttle` since
 the drive learned to throttle and a `ticks` since it was written, and the conn
 could reach neither: it fired `apply(conn, axis, main=use_main)` and nothing
@@ -1337,6 +1405,8 @@ seedfall/
 │   │                   twin of the ship, flown and reported on
 │   ├── pilot.py        what the console is set to — the throttle ladder, the
 │   │                   coast, and the one door a burn's cost comes through
+│   ├── gunnery.py      which mounts speak this turn: the volley, what it costs
+│   │                   the hull in heat, and the best set that will not fault
 │   ├── targets.py      a body or a quay as something with a mu and a radius
 │   ├── weave.py        the ancient anchors, their rings, and lighting a chain
 │   ├── gates.py        transit through the Weave, and what the toll is
@@ -1487,6 +1557,7 @@ seedfall/
     ├── test_instruments.py 5 checks — a gauge agrees with the ship and itself
     ├── test_lopsided.py 9 checks — what one missing engine of a pair costs
     ├── test_pilot.py   9 checks — a throttle and a coast the pilot can reach
+    ├── test_volley.py  9 checks — the gunner's middle: fire some of them
     ├── test_voices.py  8 checks — the game speaks with no model reachable
     ├── test_grudges.py 9 checks — memory reaches the price and the board
     ├── test_gunnery.py 5 checks — what a weapon delivers is what the bridge said

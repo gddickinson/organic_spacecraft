@@ -303,6 +303,11 @@ class MainWindow(QMainWindow):
         self._refresh_log()
         if self.current:
             self.views[self.current].refresh()
+        # The gunner's board is a second seat on the same engagement, so it is
+        # redrawn with everything else rather than on a timer of its own.
+        gunner = getattr(self, "gunner_window", None)
+        if gunner is not None:
+            gunner.refresh()
         from ..sim import tutorial as tutorial_sim
         if tutorial_sim.check(self.game):
             self.tutorial_bar.refresh()
@@ -318,6 +323,24 @@ class MainWindow(QMainWindow):
         if since >= every:
             self._saved_day = self.game.day
             self.game.save()
+
+    def battle_act(self, action: dict) -> None:
+        """Run one turn of the engagement.
+
+        **The one door**, because there are two seats now. `battle_view._act`
+        used to hold this and the gunner's window would have needed its own
+        copy — including the `b.player.st = self.game.ship_stats` line, which is
+        the sort of thing that gets left out of the second copy and then takes a
+        cycle to find.
+        """
+        from ..sim import combat as combat_sim
+        b = self.battle
+        if b is None or b.over:
+            return
+        combat_sim.take_turn(b, action, self.game.rng("combat"))
+        self.game.recompute()
+        b.player.st = self.game.ship_stats
+        self.refresh()
 
     def _refresh_hud(self) -> None:
         from .hud import refresh

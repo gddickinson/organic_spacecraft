@@ -228,7 +228,7 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
         b.player.station = "helm"
         b.player.helm_order = "close" if action.get("dir", 1) < 0 else "open"
         kind = "station"
-    elif kind in ("fire", "salvo"):
+    elif kind in ("fire", "salvo", "volley"):
         b.player.station = "gunnery"
     elif kind == "brace":
         b.player.station = "engineering"
@@ -258,7 +258,7 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
 
     # The seats the captain is *not* in are held by officers whichever way
     # the turn was ordered. Only the `station` path used to do this.
-    if kind in ("fire", "salvo", "ability", "brace"):
+    if kind in ("fire", "salvo", "volley", "ability", "brace"):
         said = _run_seats(b, b.player.station)
         if said:
             _say(b, f"{b.player.ship.name}: {', '.join(said)}.", "dim")
@@ -267,6 +267,18 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
         _fire(b, b.player, b.enemy, action["weapon_id"], rng)
     elif kind == "salvo":
         _salvo(b, b.player, b.enemy, rng)
+    elif kind == "volley":
+        # The gunner's own choice of mounts. `_salvo` fires everything that
+        # bears, which on a five-mount hull is 69 points of heat against a
+        # fault line of 40; this is the middle that did not exist.
+        from . import gunnery
+        out = gunnery.volley(b, action.get("mounts") or [], rng)
+        if not out["fired"]:
+            _say(b, out["why"], "dim")
+        else:
+            _say(b, f"{_who(b, b.player)} fires {len(out['fired'])} of "
+                    f"{len([w for w in b.player.st.weapons if w.wpn])} "
+                    "mounts.", "dim")
     elif kind == "ability":
         use_ability(b, b.player, action["id"], rng)
     elif kind == "move":
@@ -402,10 +414,13 @@ def _run_stations(b: Battle, rng) -> None:
 
 
 def _end_of_turn(b: Battle, rng) -> None:
+    from . import gunnery
     for s in (b.player, b.enemy):
         s.ship.heat = max(0.0, s.ship.heat - s.st.vent)
-        if s.ship.heat > s.st.heat_cap:
-            over = s.ship.heat - s.st.heat_cap
+        # `gunnery.fault_line` is the same number, and the gunner's board
+        # quotes it before the trigger. Asked here rather than written twice.
+        if s.ship.heat > gunnery.fault_line(s):
+            over = s.ship.heat - gunnery.fault_line(s)
             _say(b, f"{_who(b, s)} is overheating — systems faulting.", "warn")
             s.resolve -= over * 0.3
             if rng.chance(0.25):
