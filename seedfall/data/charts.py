@@ -80,3 +80,11 @@ FRESH_DAYS = 720
 
 #: What a stale chart still fetches, as a share of a fresh one.
 STALE_FLOOR = 0.45
+
+#: What being known is worth on a survey. A buyer that has dealt with you for
+#: years takes your figures on trust; a stranger has no way to tell a complete
+#: chart from a plausible one and discounts accordingly. `sim/memory.py` holds
+#: the acquaintance itself — this is only what it is worth in credits, and it is
+#: deliberately smaller than the freshness penalty: who you are matters, and it
+#: matters less than whether the survey is still any good.
+KNOWN_WORTH = 0.30

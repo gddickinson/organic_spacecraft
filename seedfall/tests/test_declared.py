@@ -76,15 +76,6 @@ ALLOWED: dict[str, str] = {
         "A watcher naming a thing already true, so a tutorial step can skip "
         "itself. Task #87: the tutorial's step machinery advances on watchers "
         "firing, and skipping needs it to evaluate one at entry instead.",
-    "memory.Mind.met":
-        "How many times you have dealt with this mind. Incremented and never "
-        "read, while `first_met` beside it is. Task #93: familiarity ought to "
-        "colour how a mind speaks to you, and a tally nobody consults is a "
-        "lever lying on the floor.",
-    "rumours.Rumour.heard_at":
-        "The system you were standing in when you were told. Task #93: a rumour "
-        "heard forty light years from where it happened should not be worth as "
-        "much as one heard next door, and nothing currently tells them apart.",
     "ship.Stats.has_drift":
         "Computed from `fx['drift']`, which exactly one part grants — the Chorus "
         "Node — and gating nothing, so that part's effect is inert. Task #94: "

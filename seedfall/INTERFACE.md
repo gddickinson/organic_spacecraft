@@ -1753,7 +1753,8 @@ seedfall/
 │   │                   their berths start making the thing, its price falls
 │   ├── weather.py      the front overhead during a landing
 │   ├── mining.py       seams, depth, and how hard you work a body
-│   ├── rumours.py      leads that point somewhere before you have been
+│   ├── rumours.py      leads that point somewhere before you have been,
+│   │                   and what the place you heard one is worth
 │   ├── consorts.py     escorts: standing orders, screening, who draws fire
 │   ├── loyalty.py      what the bridge thinks of how you run the ship
 │   ├── works.py        colony development: what a settlement becomes
@@ -1819,6 +1820,8 @@ seedfall/
     ├── test_empire.py  6 colony checks — works, effects, costs, persistence
     ├── test_crew.py    7 crew checks — convictions, loyalty, consequences
     ├── test_missions.py 7 commission checks — escalation, blocking, lapsing
+    ├── test_provenance.py 9 checks — a rumour's source, and whether
+    │                   the buyer of a chart knows yours
     ├── test_explore.py 8 exploration checks — the intel ladder, rumours
     ├── test_mining.py  7 mining checks — seams, methods, wear, exhaustion
     ├── test_research.py 8 research checks — evidence, approaches, setbacks
@@ -1941,6 +1944,26 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 
 ## The parts that will bite you
 
+- **Two fields were being written and read by nobody for as long as their
+  features have existed.** `Rumour.heard_at` recorded the port you were told
+  something at, and truth was a per-kind coin flip — so a story about the far
+  side of the sector told at a lonely outpost was exactly as good as one about
+  the next star over told at a Fleet Hub. `Mind.met` and `Mind.first_met` counted
+  how often somebody had dealt with you and since when, while every decision in
+  the game came from standing — what you have *done* — and nothing from
+  acquaintance — who you *are* to them. Both are read now
+  (`rumours.provenance`, `memory.acquaintance`), and the lesson for anything
+  similar is that the field being present in the save is not evidence anybody
+  consults it. `test_declared` catches a field nothing reads by *name*, which is
+  why these two survived: `.met` and `.true` are read all over the codebase on
+  other objects.
+- **A distance constant has to be measured against the sector, not chosen.**
+  Provenance grades a story by how far it has travelled, and the first draft used
+  11 and 55 light-years for "local" and "far". Measured over 4,264
+  port-to-system distances: median 27, 80th percentile 40, longest 69 — so 55 was
+  the 96th percentile and **three per cent of stories ever reached the far end of
+  the scale**. At 11 and 42 the bands come out 30/27/44%, and stories run from
+  77% true down to 45%.
 - **A stock can be genuinely untraded, and the drift must leave it that way.**
   `tick_market` adopted a baseline of 1.0 for any stock that had none, and the
   supply floor lifted a zero supply to 0.02 so that the shim then adopted *that*.
@@ -3335,6 +3358,15 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   the transfer spends, and that the panel and the sim never disagree about
   whether this is an orbit. One limitation is recorded rather than hidden — see
   the check's own message and task #83.
+- **`test_provenance.py`** measures both revived fields over samples big enough
+  to see a rate in: 2,214 stories from six sectors come true 77% of the time from
+  a local source and 45% from the far side, the trust figure the desk prints
+  tracks the rate it observes to within 2%, moving `heard_at` alone changes the
+  answer, a hub's word beats an outpost's by exactly `QUAY_TRUST` a level, the
+  price the panel quotes is the price the counter takes, and a buyer who knows
+  the captain pays 30% more for a survey — with both halves of knowing counted,
+  so twenty-four dealings inside a month is worth less than the same business
+  spread over years.
 - **`test_industry.py`** licenses processes and then goes and looks at the
   prices: the buyer's treasury pays to the credit, the gate agrees with the act
   across all 48 process/power pairs, the industry comes up and alloy falls from

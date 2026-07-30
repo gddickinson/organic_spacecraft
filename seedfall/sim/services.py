@@ -38,15 +38,17 @@ def clear_faults(game) -> dict:
 
 def buy_rumour(game, rumour, paid: bool, rng) -> dict:
     """Pay for a lead, or lean on the bar and hope."""
-    kind = rumour.definition
+    # The price follows the source (`rumours.price_of`), so the counter charges
+    # for a story worth having rather than for a story told loudly.
+    price = rumour_sim.price_of(game, rumour)
     if paid:
-        if game.credits < kind.price:
+        if game.credits < price:
             return {"ok": False, "why": "Not enough on hand for that."}
-        game.credits -= kind.price
+        game.credits -= price
     elif not rng.chance(0.45):
         return {"ok": False, "why": "They stopped talking when you got close."}
     rumour_sim.take(game, rumour, paid)
-    return {"ok": True, "paid": paid, "price": kind.price if paid else 0}
+    return {"ok": True, "paid": paid, "price": price if paid else 0}
 
 
 def commission_study(game) -> dict:

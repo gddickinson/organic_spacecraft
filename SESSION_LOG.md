@@ -2,6 +2,68 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: whose word it is (#93, two fields nobody read)
+
+Two fields had been written since the day their features shipped and read by
+nobody at all.
+
+**`Rumour.heard_at`** — the port you were told something at. Truth was
+`not rng.chance(kind.unreliable)`, a per-kind coin flip, so a story about the far
+side of the sector told at a lonely outpost by people who have never been within
+forty light-years of it was exactly as good as one about the next star over told
+at a Fleet Hub where a dozen hulls a week put in.
+
+**`Mind.met` and `Mind.first_met`** — how many times somebody has dealt with you,
+and since when. Every decision in the game came from *standing*, which is what you
+have done, and nothing from *acquaintance*, which is who you are to them. A
+captain who had traded at the same quay for six years and one who arrived last
+week were the same stranger.
+
+**Word travels by ship**, so `rumours.provenance` grades a story by how far it has
+come and how busy the quay telling it is. It is one figure with three readings:
+the truth roll at creation, the trust the desk prints, and the price. Measured
+over 2,214 stories from six sectors:
+
+    local source     30% of stories   true 77%   desk says 75%
+    a few jumps out  27%              true 62%   desk says 62%
+    the far side     44%              true 45%   desk says 47%
+
+The desk's number *is* the rate, within two per cent, because it is the same
+number the roll used. And the price follows it — within a kind: a salvage lead is
+dearer than a nobody-goes-there whatever its source, because it is worth more if
+it holds up, and the panel says so rather than leaving the comparison to be
+misread.
+
+**Acquaintance is not regard.** `memory.acquaintance` reads both halves — the
+business done and how long since the first of it — and `charts.value_to` pays for
+it: a survey is a claim about places the buyer cannot check without flying there
+themselves, so who the surveyor is to them is part of the price. **38,845 from a
+stranger, 50,499 once they know you.** Twenty-four dealings crammed into a month
+is worth less than the same business spread over four years, which is the point of
+keeping `first_met`.
+
+**A constant I chose instead of measured.** The provenance scale ran from 12 to 55
+light-years, which sounded right and was not: across 4,264 port-to-system
+distances in five sectors the median is 27, the 80th percentile 40 and the longest
+69 — so 55 sat at the 96th percentile and **three per cent of stories ever reached
+the far end of the scale**. The whole top of the range was decoration. At 11 and
+42 the bands come out 30/27/44% with 17% saturating. The check that caught it was
+one I had written to assert the geography was big enough for the term to bite,
+which is the only reason I looked.
+
+Also cleaned up two things in my own checks: a "best source against worst source"
+price comparison that read backwards, because the dearest lead in the sector is a
+dear *kind* rather than a good source; and a shadowed name in the panel where the
+acquaintance readout reused `known` from the sector-charted count above it.
+
+Nine new checks, 902 across the suite, all green.
+
+Both fields were on `test_declared`'s `ALLOWED` list — the guard had found them
+and they were excused with an entry naming this task and what it would take. The
+guard then failed the moment they *started* being read: "ALLOWED still excuses
+fields that are now read — delete the entry". A stale excuse is a lie of the same
+kind as an unread field, and the check that catches one catches the other.
+
 ## 2026-07-30 — SEEDFALL: technology that changes somebody else's market (#96)
 
 The tech tree had **sixty-two nodes and one economic effect**. Thirty-three carry

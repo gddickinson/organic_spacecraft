@@ -4,6 +4,17 @@ A rumour is generated against a system that could plausibly bear it out, and
 carries a truth value decided when it is created rather than when you arrive —
 so the sector does not rearrange itself around whatever you happened to be
 told. Arriving resolves it either way.
+
+**Where you heard it decides how much it is worth.** `Rumour.heard_at` was
+recorded from the day rumours were written and read by nothing: truth was
+`not rng.chance(kind.unreliable)`, a per-kind coin flip. A story about the far
+side of the sector, told at a lonely outpost by people who have never been
+within forty light-years of it, was exactly as good as one about the next star
+over told at a Fleet Hub where a dozen hulls a week put in.
+
+Word travels by ship, so `provenance` is about distance and traffic — and it is
+**one door**: the truth roll, the trust the desk shows, and the price all read
+it. A price that did not follow the provenance would be charging for volume.
 """
 
 from __future__ import annotations
@@ -12,7 +23,10 @@ import itertools
 from dataclasses import dataclass
 
 from ..core.save import register
-from ..data.rumours import KINDS, KINDS_BY_ID, PER_PORT
+from ..data.rumours import (BEST_ODDS, FAR_LY, FAR_UNRELIABLE, KINDS,
+                            KINDS_BY_ID, LOCAL_LY, PER_PORT, PRICE_FLOOR,
+                            PRICE_RANGE, QUAY_TRUST, WORST_ODDS)
+from ..world.galaxy import distance
 
 _uid = itertools.count(1)
 
@@ -58,14 +72,70 @@ def _plausible(game, kind, system) -> bool:
     return True
 
 
-def _truth(game, kind, system, rng) -> bool:
+def provenance(game, rumour) -> dict:
+    """Where this story came from, and what that is worth.
+
+    The one door onto it. `_truth` rolls against `unreliable`, the desk shows
+    `trust`, and `price_of` charges for it — three readings of one figure
+    rather than three opinions about it.
+    """
+    kind = rumour.definition
+    quay = game.galaxy.systems[rumour.heard_at]
+    target = game.galaxy.systems[rumour.system_id]
+    span = distance(quay, target)
+    # How far it has come, as a share of the way from "local business" to
+    # "somebody's cousin heard it somewhere".
+    far = max(0.0, min(1.0, (span - LOCAL_LY) / (FAR_LY - LOCAL_LY)))
+    level = quay.port.level if quay.port else 0
+    unreliable = kind.unreliable * (1.0 + (FAR_UNRELIABLE - 1.0) * far)
+    unreliable = max(1.0 - BEST_ODDS,
+                     min(1.0 - WORST_ODDS, unreliable - QUAY_TRUST * level))
+    return {
+        "quay": quay,
+        "target": target,
+        "light_years": span,
+        "far": far,
+        "level": level,
+        "unreliable": unreliable,
+        "trust": 1.0 - unreliable,
+        "words": _sourced(far, level),
+    }
+
+
+def _sourced(far: float, level: int) -> str:
+    """How the desk describes where a story came from."""
+    if far < 0.25:
+        place = "local business — somebody here has been"
+    elif far < 0.6:
+        place = "a few jumps out, secondhand"
+    else:
+        place = "the far side of the sector, through too many hands"
+    if level >= 3:
+        quay = "and this is a hub, so the traffic is worth something"
+    elif level >= 2:
+        quay = "and enough hulls call here to have heard it twice"
+    elif level >= 1:
+        quay = "and this quay hears from whoever last docked"
+    else:
+        quay = "and there is no quay here to hear anything"
+    return f"{place}, {quay}"
+
+
+def price_of(game, rumour) -> int:
+    """What being told it properly costs. Follows the source, not the volume."""
+    trust = provenance(game, rumour)["trust"]
+    return max(1, round(rumour.definition.price
+                        * (PRICE_FLOOR + PRICE_RANGE * trust)))
+
+
+def _truth(game, rumour, rng) -> bool:
     """Whether this story is true. Decided when it is told, and pure.
 
     No side effects here: `circulating()` runs every time the desk is drawn,
     and a truth test that changed the galaxy would seed bloom and bury relics
     across the sector merely because somebody looked at a noticeboard.
     """
-    return not rng.chance(kind.unreliable)
+    return not rng.chance(provenance(game, rumour)["unreliable"])
 
 
 def plant(game, rumour, rng) -> bool:
@@ -138,9 +208,12 @@ def circulating(game, system, rng) -> list:
         if any(r.kind == pick.id and r.system_id == target.id
                for r in ensure(game)):
             continue
-        out.append(Rumour(id=next(_uid), kind=pick.id, system_id=target.id,
-                          heard_at=system.id,
-                          true=_truth(game, pick, target, rng)))
+        # Built before the roll, because whether it is true now depends on
+        # where it is being told — which is a property of the rumour.
+        story = Rumour(id=next(_uid), kind=pick.id, system_id=target.id,
+                       heard_at=system.id)
+        story.true = _truth(game, story, rng)
+        out.append(story)
     return out
 
 
@@ -173,4 +246,6 @@ def summary(game) -> dict:
     all_of = ensure(game)
     done = [r for r in all_of if r.resolved]
     return {"held": len(held(game)), "resolved": len(done),
-            "true": len([r for r in done if r.true])}
+            "true": len([r for r in done if r.true]),
+            "paid": len([r for r in done if r.paid]),
+            "paid_true": len([r for r in done if r.paid and r.true])}

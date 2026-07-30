@@ -77,3 +77,48 @@ KINDS_BY_ID = {k.id: k for k in KINDS}
 
 #: How many rumours a port will have going round at once.
 PER_PORT = 3
+
+
+# ── provenance ─────────────────────────────────────────────────────────────
+#
+# **`Rumour.heard_at` was written and read by nobody.** Truth was
+# `not rng.chance(kind.unreliable)` — a per-kind coin flip. A story about the
+# far side of the sector, told at a lonely outpost by somebody who has never
+# been within forty light-years of it, was exactly as good as one about the next
+# star over told at a Fleet Hub where a dozen hulls a week put in.
+#
+# Word travels by ship, so the numbers below are about distance and traffic.
+
+#: Within this many light-years of where you are told it, a story is somebody's
+#: own business — they have been, or they know who has.
+#:
+#: **Both marks are taken off the sector's actual geography** rather than picked
+#: for how they read. Measured over 4,264 port-to-system distances in five
+#: sectors: median 27 ly, 80th percentile 40, longest 69. The first draft used 12
+#: and 55, which put the near mark at the 12th percentile and the far one at the
+#: 96th — so the far end of the scale was reached by 3% of stories and the whole
+#: top of the range was decoration. 11 is the 10th percentile, which is what
+#: "next door" should be; 42 is about the 85th, which is what "the far side of
+#: the sector" should be.
+LOCAL_LY = 11.0
+
+#: Beyond this, it has come through too many hands to be worth much.
+FAR_LY = 42.0
+
+#: What a story's unreliability multiplies by at the far end of that.
+FAR_UNRELIABLE = 2.3
+
+#: What each level of the quay is worth against it. A Fleet Hub hears from
+#: everybody; an outpost hears from whoever last docked.
+QUAY_TRUST = 0.055
+
+#: A rumour never gets better than this or worse than that, whatever the
+#: geography says. Certainty is not on sale in a bar.
+BEST_ODDS = 0.94
+WORST_ODDS = 0.30
+
+#: What a well-sourced story costs against a badly-sourced one. The price
+#: follows the provenance, so paying more is paying for a better source rather
+#: than for a louder one.
+PRICE_FLOOR = 0.55
+PRICE_RANGE = 0.90

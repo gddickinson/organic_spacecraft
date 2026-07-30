@@ -190,6 +190,8 @@ KIN = {
     "mounts": ("thrusters",), "burnplan": ("thrusters", "helm"),
     "exchequer": ("exchequer", "politics"),
     "industry": ("industry", "exchequer"),
+    "rumours": ("provenance", "explore"),
+    "memory": ("provenance", "grudges"),
 }
 
 

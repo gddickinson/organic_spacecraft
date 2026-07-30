@@ -51,6 +51,24 @@ AGAIN = 0.45
 #: However often you repeat something, one event tops out here.
 MOST = 2.6
 
+#: **Acquaintance is not the same thing as regard.** `Mind.met` and
+#: `Mind.first_met` were written from the day minds were and read by nothing:
+#: every count of "how many times have we dealt with each other" and "how long
+#: have we known each other" went into the save and out again untouched, while
+#: the game decided everything from standing — what you have *done* — and nothing
+#: from acquaintance — who you *are* to them. A captain who has traded at the
+#: same quay for six years and one who arrived last week were the same stranger.
+#:
+#: Dealings at which somebody knows you as well as they need to.
+MET_FULL = 12
+
+#: How long a long acquaintance is, in years.
+YEARS_FULL = 4.0
+
+#: How the two halves divide. Business first, but not by much: twenty dealings
+#: crammed into one month is a busy quarter, not a friendship.
+BUSINESS_SHARE = 0.6
+
 #: What each kind of memory does to an impression, per unit of salience.
 WEIGHT = {
     "kindness": 14.0, "trade": 5.0, "rescue": 22.0, "contract": 8.0,
@@ -168,6 +186,40 @@ def minds(game) -> dict:
     if getattr(game, "minds", None) is None:
         game.minds = {}
     return game.minds
+
+
+def acquaintance(game, key: str) -> dict:
+    """How well this mind knows the captain, and for how long.
+
+    A separate axis from standing. Standing is the sum of what you have done to
+    somebody; this is whether they know your face. `charts.value_to` reads it —
+    a power that has dealt with you for years takes your figures on trust and
+    pays for them accordingly, where a stranger discounts a survey it cannot
+    check.
+    """
+    mind = minds(game).get(key)
+    if mind is None:
+        return {"met": 0, "years": 0.0, "trust": 0.0, "known": False,
+                "words": "a stranger to them"}
+    years = (max(0, game.day - mind.first_met) / 365.0
+             if mind.first_met >= 0 else 0.0)
+    business = min(1.0, mind.met / MET_FULL)
+    standing = min(1.0, years / YEARS_FULL)
+    trust = BUSINESS_SHARE * business + (1.0 - BUSINESS_SHARE) * standing
+    return {"met": mind.met, "years": years, "trust": trust, "known": True,
+            "words": _acquainted(mind.met, years)}
+
+
+def _acquainted(met: int, years: float) -> str:
+    if met <= 0:
+        return "a stranger to them"
+    spell = (f"{met} dealings"
+             + (f" over {years:.0f} years" if years >= 1.0 else " this year"))
+    if met >= MET_FULL and years >= YEARS_FULL:
+        return f"{spell} — they know exactly who you are"
+    if met >= MET_FULL // 2:
+        return f"{spell} — a known face"
+    return f"{spell} — barely known"
 
 
 def mind_for(game, key: str, name: str = "", kind: str = "captain",

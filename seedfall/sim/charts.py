@@ -7,15 +7,18 @@ fetched the same as five bare rocks — and both fetched about a fiftieth of wha
 any other hour of the game pays.
 
 A chart is information. It is worth what it says, and it is worth that to
-somebody in particular.
+somebody in particular — and, since it is a claim about places the buyer cannot
+check without flying there themselves, it is worth more coming from somebody
+they know. See `acquaintance` and `sim/memory.acquaintance`.
 """
 
 from __future__ import annotations
 
 from ..data.charts import (APPETITES, APPETITES_BY_FACTION, FRESH_DAYS,
-                           PRIZED, STALE_FLOOR, WORTH)
+                           KNOWN_WORTH, PRIZED, STALE_FLOOR, WORTH)
 from ..data.factions import FACTIONS_BY_ID
 from ..world.galaxy import distance
+from . import memory as memory_sim
 
 #: Resources a buyer is actually paying to hear about.
 USEFUL = ("ore", "phosphate", "volatiles", "biomass")
@@ -98,7 +101,20 @@ def value_to(game, system, faction: str | None) -> int:
     total *= appetite.keen if appetite else 1.0
     total *= freshness(game, system)
     total *= 1 + game.ship_stats.trade
+    # **And who you are to them.** A survey is a claim about places the buyer
+    # cannot check without flying there themselves, so how well they know the
+    # surveyor is part of what it is worth. `Mind.met` and `Mind.first_met` have
+    # been counted since minds were written and read by nothing until now.
+    total *= 1.0 + KNOWN_WORTH * acquaintance(game, faction)["trust"]
     return max(1, round(total))
+
+
+def acquaintance(game, faction: str | None) -> dict:
+    """How well this buyer knows the captain. The one door onto it here."""
+    if not faction:
+        return {"met": 0, "years": 0.0, "trust": 0.0, "known": False,
+                "words": "an office that has never met you"}
+    return memory_sim.acquaintance(game, f"faction:{faction}")
 
 
 def best_buyer(game, system) -> tuple[str | None, int]:
