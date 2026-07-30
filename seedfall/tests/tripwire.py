@@ -178,7 +178,7 @@ KIN = {
     # the one suite, so neither should ever pay for the wide run.
     "conn": ("conn",), "autopilot": ("conn",), "track": ("conn",),
     "viewport": ("cameras",), "berthing": ("berthing", "conn"),
-    "orbits": ("orbits", "conn", "berthing"),
+    "orbits": ("orbits", "conn", "berthing", "climbs"),
     "outcome": ("orbits", "conn", "berthing"), "targets": ("conn", "berthing"),
     "thrusters": ("thrusters",), "attitude": ("thrusters", "conn"),
     "weave": ("weave",), "gates": ("weave",),
@@ -190,7 +190,7 @@ KIN = {
     "declared": ("declared",),
     "consorts": ("combat", "screening"),
     "mounts": ("thrusters", "lopsided"),
-    "pilot": ("pilot", "conn"),
+    "pilot": ("pilot", "conn", "climbs"),
     "gunnery": ("volley", "gunboard", "gunnery"),
     "battle3d": ("gunfire",),
     "mounts": ("thrusters",), "burnplan": ("thrusters", "helm"),

@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import (QDialog, QHBoxLayout, QLabel, QVBoxLayout,
 from ..sim import autopilot as pilot_sim
 from ..sim import berthing as berth_sim
 from ..sim import orbits
+from ..sim import pilot as console_sim
 from ..sim import conn as conn_sim
 from ..sim import instruments as panel_sim
 from ..sim import track as track_sim
@@ -136,11 +137,23 @@ class ConnWindow(QDialog):
         self.screen.view_id = view_id
         self.refresh()
 
-    def _heights(self) -> list:
-        """The orbit heights on offer here, for this hull at this body."""
+    def _climbs(self) -> list:
+        """Every rung here, priced, and whether the tank can buy it.
+
+        `pilot.climb_options` is the one door: it asks `orbits.heights_for` what
+        the thrusters can hold and `orbits.climb_dv` what each rung costs, and
+        the picker draws what comes back. The window works nothing out itself —
+        a screen doing its own arithmetic about a number the sim already knows is
+        how a forecast comes to disagree with the act.
+        """
         if self.conn is None or self.conn.target.kind != "body":
             return []
-        return orbits.heights_for(self.conn.target, self.conn.rcs_dv)
+        return console_sim.climb_options(self.conn)
+
+    def _heights(self) -> list:
+        """The rungs this hull can actually reach, as (id, label, radius)."""
+        return [(row["id"], row["label"], row["radius"])
+                for row in self._climbs() if row["afford"]]
 
     def _set_height(self, height_id: str) -> None:
         """Ask for an orbit at a named height, and fly to it."""

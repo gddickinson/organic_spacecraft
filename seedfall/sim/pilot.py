@@ -31,6 +31,8 @@ dropped a field three times and the forecast lied by a little each time.
 
 from __future__ import annotations
 
+import math
+
 from .conn import MAIN_COST, RCS_COST, Conn
 from .thrusters import TRIM_COST_SHARE
 
@@ -87,6 +89,85 @@ def dv_of(conn: Conn, main: bool, throttle: float | None = None) -> float:
     want = conn.throttle if throttle is None else throttle
     part = usable_throttle(conn, main, want)
     return (conn.main_dv if main else conn.rcs_dv) * part
+
+
+def mass_for(conn: Conn, dv: float) -> float:
+    """The reaction mass, in tonnes, that buying `dv` of it would take.
+
+    Priced on the attitude clusters, because that is what the computer actually
+    spends: measured over every rung of four bodies, 94% of the burns on a climb
+    were thruster pulses and the effective rate came out at 0.0402–0.0417 t per
+    m/s against 0.0444 for pulses alone. So this is 6–10% pessimistic, which is
+    the right direction for a figure a captain commits a tank to.
+
+    Whole pulses, not a fraction of one: the clusters are pulsed, not throttled,
+    and half a press does not exist.
+    """
+    each = dv_of(conn, False, 1.0)
+    if each <= 0 or dv <= 0:
+        return 0.0
+    return math.ceil(dv / each) * burn_cost(conn, False)
+
+
+def dv_left(conn: Conn) -> float:
+    """The metres a second still in the tank, on the clusters.
+
+    The other half of `mass_for`, and the number the conn needs before it offers
+    a climb: `orbits.heights_for` compares it against `orbits.climb_dv`.
+    """
+    each = dv_of(conn, False, 1.0)
+    per = burn_cost(conn, False)
+    if per <= 0:
+        return 0.0
+    return max(0.0, conn.rcs) / per * each
+
+
+def climb_options(conn: Conn) -> list[dict]:
+    """Every rung of the ladder at this body, priced, and whether it is bought.
+
+    The one door for the height picker. Before this the conn offered a rung on
+    `orbits.holdable` alone — whether the thrusters were *fine* enough — and
+    never asked whether the tank was *big* enough, so it sold a captain a climb
+    costing 43 t out of a 20 t tank and the answer arrived as an empty tank at
+    71% of the height.
+
+    A refused rung is returned rather than dropped, with the price on it, because
+    the tank is reaction mass in the hold: **a high orbit is a fuel decision**,
+    and a screen that silently hides the rung hides the decision with it.
+    """
+    from . import orbits
+
+    target = conn.target
+    budget = dv_left(conn)
+    # From the *axis* of the orbit the ship is on, not from where it happens to
+    # be this second. `semi_major_km`'s own docstring records why: on anything
+    # but a circle the two differ, and an arrival is eccentric — quoting from the
+    # range priced a climb at 11.36 t that the hull then made on 3.93, because
+    # its axis was already most of the way to the rung.
+    here = orbits.semi_major_km(conn)
+    if here == float("inf") or here <= 0:
+        here = conn.range_km
+    # **Through `heights_for`, not by working the test out again here.** The
+    # first draft compared the quote against the tank itself and so missed the
+    # other half of the rule — the rungs where the quote cannot be believed at
+    # all — which put a 0.80 t price on a climb that then ate a 20 t tank. The
+    # offer and the gate have to be the same function or they will differ, which
+    # is the defect this project has found more times than any other.
+    sold = {row[0] for row in orbits.heights_for(
+        target, conn.rcs_dv, budget, here)}
+    out = []
+    for hid, label, radius in orbits.heights_for(target, conn.rcs_dv):
+        # `climb_dv` prices nothing for a rung inside `HEIGHT_TOLERANCE`, which
+        # is the same line the flying stops at — see `orbits.HEIGHT_TOLERANCE`.
+        dv = orbits.climb_dv(getattr(target, "mu", 0.0), here, radius)
+        out.append({
+            "id": hid, "label": label, "radius": radius,
+            "up": radius - getattr(target, "radius_km", 0.0),
+            "dv": dv, "mass": mass_for(conn, dv * orbits.CLIMB_MARGIN),
+            "afford": hid in sold, "budget": budget,
+            "tank": max(0.0, conn.rcs),
+        })
+    return out
 
 
 def finest(conn: Conn) -> float:

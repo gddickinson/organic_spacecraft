@@ -23,13 +23,17 @@ import math
 
 from .conn import (AXES, AXES_BY_ID, ALONGSIDE_KM, ALONGSIDE_RATE, TICK,
                    Conn, apply, can_burn)
+from .orbits import HEIGHT_TOLERANCE as orbits_HEIGHT_TOLERANCE
 from .orbits import (ORBIT_ECCENTRICITY, ORBIT_FLOOR_KM, eccentricity,
                      orbit_band, orbital_speed, semi_major_km)
 from .conn import rotate
 
-#: How near the height you asked for counts as being at it, as a share of
-#: that height. Wide enough that the ship settles instead of hunting.
-HEIGHT_TOLERANCE = 0.02
+#: How near the height you asked for counts as being at it. Lives in
+#: `sim/orbits.py`, which owns the ladder, and is re-exported here because this
+#: is where it is spent. One copy: `orbits.climb_dv` prices nothing for a rung
+#: inside it and this law stops inside it, so the quote and the act agree about
+#: where "there" is.
+HEIGHT_TOLERANCE = orbits_HEIGHT_TOLERANCE
 
 #: The tangential speed, in m/s, below which the direction the ship is going
 #: round is not a reliable answer. See `_across`.
@@ -133,9 +137,36 @@ def target_velocity(conn: Conn, mode: str) -> list | None:
         # hull went aground. The full transfer demand is big enough to climb
         # *while* being dragged into the plane; a one-pulse demand is not.
         #
-        # The plane change is a real defect and is filed as its own task rather
-        # than tuned around here — the fix is a demand that keeps the orbit's own
-        # plane, not a bigger number in this expression.
+        # **That plane-change diagnosis was wrong, and the retraction is worth
+        # more than the claim was.** Measured across every arrival: `hz/|h|` is
+        # 1.000 and the plane-change Δv is 0.0 m/s everywhere. Every orbit in this
+        # game is already in the xy plane, so demanding the xy tangent costs
+        # nothing. Task #101 is closed as a wrong diagnosis.
+        #
+        # What the spiral was really doing, measured by tracing it at a 2,159 km
+        # world: **the demand is purely tangential, so it asks for zero radial
+        # velocity** — and at e=0.005 with v≈4,840 the orbit's own radial
+        # breathing is ±25 m/s, or fifty-five pulses. The whole of the thrust went
+        # into braking an oscillation it could never win, and braking removes
+        # energy: the axis fell 2,427 → 2,165 km over 3,266 ticks and the hull
+        # went aground. Keeping the radial component and demanding only a
+        # tangential magnitude fixes that, and then a second mechanism appears:
+        # demanding *circular speed at the radius you are at* pumps energy into an
+        # eccentric orbit, because the ship lingers near apoapsis where that
+        # demand says "go faster". An apsidal law — prograde at apoapsis to raise,
+        # retrograde at periapsis to lower, each of which also reduces
+        # eccentricity — is right on both counts and flew the asteroid for 3.1 t
+        # against this law's 1,205.
+        #
+        # **And it was still not shipped, because on the tank the game actually
+        # flies it is no better.** With 20 t aboard, this law reaches 71–81% of a
+        # high rung and the apsidal one 69–79%, and the apsidal one puts the hull
+        # *aground* at an asteroid whose arrival periapsis is already 148 km
+        # inside the rock, where this one accidentally survives — its energy
+        # pumping lifts the periapsis out. The 1,205 t figure in task #102 was
+        # measured with an unlimited tank, which is not a ship. The waste is real
+        # and bounded by the tank; what was actually broken was the *offer*, and
+        # that is fixed in `orbits.heights_for` and `pilot.climb_options`.
         transfer = (r + aim) * 0.5
         speed = math.sqrt(max(0.0, conn.target.mu * (2.0 / r - 1.0 / transfer)))
         return [side[i] / length * speed * 1000.0 for i in range(3)]

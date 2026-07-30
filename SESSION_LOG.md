@@ -2,6 +2,84 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: the conn was selling climbs no hull could make (#102)
+
+Task #102 said the orbit law fights itself and wastes **1,046 tonnes against an
+ideal of 4** at an asteroid. That is true, and it is measured with an unlimited
+tank, and **a hull carries twenty tonnes.** Everything in this cycle followed
+from taking that seriously.
+
+**What the tank changes.** Flown on the 20 t a captain opens with, across three
+sectors and every rung of every body: **every high rung at every body was
+offered and not one of them was reachable** — from a 77 km moonlet to a 38,723 km
+giant. The ideal cost is 25 to 264 tonnes. So the captain spent the whole tank,
+arrived at 63–76% of the height they asked for, and had nothing left to leave on.
+The waste is real but the tank bounds it; what was actually broken was the
+**offer**. `orbits.heights_for` has asked `holdable` since the ladder was
+written — are the thrusters *fine* enough — and has never once asked whether the
+tank is *big* enough.
+
+So there is a price now. `climb_dv` is `|v_circ(from) − v_circ(to)|`, the cost of
+a thrust-limited spiral, taken **from the axis of the orbit the ship is on rather
+than from where it happens to be** — `semi_major_km`'s own docstring records why
+and I got it wrong anyway, pricing a climb at 11.36 t that the hull then made on
+3.93 because its axis was already most of the way there. `pilot.climb_options` is
+the one door the console reads: every rung, its price, and whether the tank can
+buy it. A refused rung is shown **greyed with the price on it** rather than
+hidden, because the tank is volatiles in the hold — **a high orbit is a fuel
+decision**, and a captain who wants one can go and buy the mass. Measured: the
+same rung refused on 20 t and flown on 36.
+
+**Both new constants came out of the data, and both first drafts were wrong.**
+`QUOTABLE` is how much authority a rung needs before its price can be believed —
+the worst rung whose spend ran away had 25.7 pulses inside the eccentricity
+budget and cost **nine times its quote**; the best that behaved had 100.7 and cost
+1.4×. Nothing in the sample falls between, so 60 sits with a factor of two in
+hand either side. I first set 25 and `test_climbs` caught it inside a minute: a
+rung quoted at 2.88 t went on to eat 18.83 of a 20 t tank. `CLIMB_MARGIN` is what
+a price has to allow over the ideal; one climb in twelve came out above the ideal
+and it came out at **2.03×**, so 1.4 was a promise that could not be kept and 2.5
+is one that can.
+
+**Three of my own faults, all of the same kind.** `climb_options` worked the
+affordability out itself instead of asking `heights_for`, so the offer and the
+gate disagreed — I built a two-doors bug an hour after writing about two-doors
+bugs. `holdable` briefly had the fuel folded into it, and `test_orbits` refused
+that immediately: *"4 of 6 withheld heights turned out to be perfectly
+flyable"* — quite right, they are flyable given mass, and a predicate about
+thruster fineness must not deny them. And `HEIGHT_TOLERANCE` lived in the
+autopilot while the *price* needed the same line, so `quotable` refused the
+standard rung at sixteen bodies of thirty-nine — the rung a transfer arrives at,
+which costs nothing. It lives in `orbits` now and one constant answers both.
+
+**And the law itself: two mechanisms found, and nothing shipped.** Task #101's
+plane change **does not exist** — `hz/|h|` is 1.000 and the plane-change Δv is
+0.0 m/s at every arrival — so the previous cycle's explanation for why a spiral
+fails was wrong. Tracing it instead: the demand is purely tangential, so it asks
+for *zero radial velocity*, and at e=0.005 with v≈4,840 the orbit's own radial
+breathing is ±25 m/s — fifty-five pulses. The entire thrust went into braking an
+oscillation it could not win, and braking removes energy: the axis fell 2,427 →
+2,165 km and the hull went aground. Keep the radial component and a second
+mechanism appears — demanding *circular speed at the radius you are at* pumps
+energy into an eccentric orbit, because the ship lingers near apoapsis where that
+demand says go faster. An apsidal law (prograde at apoapsis to raise, retrograde
+at periapsis to lower, each of which also rounds the orbit off) is right on both
+counts and flew the asteroid for **3.1 t against the shipped law's 1,205**.
+
+**It is not shipped.** On 20 t it reaches 69–79% of a high rung against the
+shipped law's 71–81%, and at an asteroid whose arrival periapsis is already 148 km
+inside the rock it goes **aground** where the shipped law survives — its energy
+pumping accidentally lifts the periapsis out. Four laws written, measured, and
+withdrawn, with the mechanisms recorded in `sim/autopilot.py` so the next cycle
+starts from the measurement rather than the intuition.
+
+Six deliberate breakages, six caught: the tank gate removed, the quotable gate
+removed, the price taken from the range instead of the axis, the margin flattened
+to one, the ladder priced but never refused, and a refused rung hidden instead of
+shown.
+
+Five new checks, 953 across the suite, all green.
+
 ## 2026-07-30 — SEEDFALL: the quay takes its cut, and a third door onto a price (#100)
 
 The purse cycle wired the powers to the sector's own trade and deliberately left

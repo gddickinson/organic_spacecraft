@@ -559,6 +559,17 @@ than high, and `look_factor` gives it correspondingly better resolution on a
 survey. `heights_for` withholds rungs the hull cannot hold — a four-kilometre
 comet has a 2 m/s orbit and a thruster pulse is half a metre.
 
+**And it asks a second question now: can the tank pay for the climb.** It could
+not, and nothing else did either. `climb_dv` prices a rung at
+`|v_circ(from) − v_circ(to)|`, the cost of a thrust-limited spiral, and the conn
+compares it against the metres a second in the tank. Flown before the gate
+existed: **every high rung at every body was offered and not one was reachable**
+— 25 to 264 tonnes of reaction mass against the 20 t a captain opens with — so a
+captain found out by spending the whole tank to arrive at 63–76% of the height
+with nothing left to leave on. The tank is volatiles in the hold, so the refused
+rung is shown with its price rather than hidden: **a high orbit is a fuel
+decision**, and a captain who wants one goes and buys the mass.
+
 The control law took four attempts, and three of the failures looked perfectly
 reasonable written down: a radial rate (you do not raise an orbit by thrusting
 outward — 877 m/s of climb, ballistic, then aground); excess tangential speed
@@ -1900,6 +1911,8 @@ seedfall/
     ├── test_ventures.py 6 checks — both sides of a venture are costed
     ├── test_exchequer.py 10 checks — the powers' purses: income,
     │                   upkeep, building, retrenchment, the venture stake
+    ├── test_climbs.py  5 checks — the conn sells no climb the tank cannot
+    │                   make, and prices the ones it refuses
     ├── test_wharfage.py 10 checks — the due on your own trade: conserved,
     │                   named on the board, waived at a free port, priced by
     │                   standing and by the size of the berth
@@ -2069,9 +2082,11 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   bite on. If you add a call to `apply`, the signature will not let you make
   this mistake.
 - **An approach with nothing left to burn is over.** Every orbit check flew with
-  `conn.rcs = 99999`, and `orbits.heights_for` offers a rung on `holdable` alone
-  — whether the thrusters are *fine* enough — and has never asked whether the
-  tank is *big* enough. Flown with the twenty tonnes a hull carries, the high
+  `conn.rcs = 99999`, and `orbits.heights_for` offered a rung on `holdable` alone
+  — whether the thrusters are *fine* enough — and never asked whether the
+  tank was *big* enough (it does now: `test_climbs` flies the offer on the tank
+  `conn.start` found, and the unlimited tank is what hid this for as long as the
+  ladder has existed). Flown with the twenty tonnes a hull carries, the high
   rung of a 153 km asteroid spent the lot in about two thousand ticks and then
   ordered a burn every tick for another eighteen thousand, refused each time by
   `can_burn`: nothing moved, nothing was said, the approach never ended.
@@ -3531,10 +3546,29 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   fixed: **every offered height resolves on the tank a hull actually carries**
   (32 approaches, all inside 6,000 ticks, 31 in orbit and one run dry — where one
   used to run 60,000 ticks and never resolve), and **a dry hull is told what it
-  has** rather than left ordering refused burns. Two limitations are recorded
-  rather than hidden: the height precision at a small body (task #102) and the
-  plane change that is most of what a climb costs (task #101), both with the
-  measurements that found them.
+  has** rather than left ordering refused burns.
+- **`test_climbs.py`** flies the *offer* rather than the ladder, on the tank
+  `conn.start` finds rather than the unlimited one, and fails unless every rung
+  the conn sells can be reached and no climb costs more than its price. It also
+  reads the console: a refused rung has to be **visible, priced and dead**, and
+  hiding one is a mutation the check catches. Its two constants are measured
+  rather than chosen — `QUOTABLE` from the gap between the worst rung whose spend
+  ran away (25.7 pulses of authority, nine times its quote) and the best one that
+  did not (100.7, 1.4×), and `CLIMB_MARGIN` from the worst real climb in seven
+  sectors (2.03× the ideal, at Quill Rise II). Both first drafts were caught by
+  this suite: 25 let through a rung that ate a tank, and 1.4 promised a price it
+  could not keep.
+- **The orbit law's two dead ends are recorded in `sim/autopilot.py`** rather
+  than in a task, because both were measured and both are counter-intuitive: a
+  purely tangential demand asks for zero radial velocity and so spends its whole
+  authority *braking* an orbit's natural breathing, which removes energy and
+  drove a hull aground; and demanding circular speed at the current radius pumps
+  energy into an eccentric orbit, because the ship lingers near apoapsis where
+  that demand says go faster. An apsidal law fixes both and flew an asteroid for
+  3.1 t against the shipped law's 1,205 — **and is still not shipped, because on
+  a 20 t tank it is no better and it goes aground where the shipped law
+  survives.** Task #101's plane change does not exist: `hz/|h|` is 1.000 and the
+  plane-change Δv is 0.0 m/s at every arrival.
 - **`test_tutorial.py`** gained three: a veteran restarting it from the Help
   screen opens at **step 3 of 8 with 2 already done** and is still taught the
   five the chronicle cannot vouch for, only those four lessons carry a

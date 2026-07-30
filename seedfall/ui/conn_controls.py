@@ -146,22 +146,33 @@ class ConnControls(QWidget):
         # when the window was built. That is the same
         # window-holding-a-copy-of-the-world fault this file has been fixed for
         # twice.
-        offered = {hid: (label, radius)
-                   for hid, label, radius in self.window._heights()}
-        for hid, (btn, _text) in self.height_buttons.items():
-            here = offered.get(hid)
-            btn.setVisible(here is not None)
-            if here is None:
+        # Priced, and the ones the tank cannot buy are shown *refused* rather
+        # than hidden. The tank is volatiles in the hold, so a high orbit is a
+        # fuel decision — measured, the high rung at a 4,179 km world wants 64 t
+        # and a captain opens with 20 — and hiding the rung would hide the
+        # decision along with it. The figures all come from
+        # `pilot.climb_options`; nothing here works anything out.
+        rungs = {row["id"]: row for row in self.window._climbs()}
+        for hid, (btn, text) in self.height_buttons.items():
+            row = rungs.get(hid)
+            btn.setVisible(row is not None)
+            if row is None:
                 continue
-            up = here[1] - conn.target.radius_km
-            chosen = abs(conn.orbit_want_km - here[1]) < 1.0
-            btn.setText(f"▶ {here[0]}" if chosen else here[0])
-            btn.setEnabled(live)
+            chosen = abs(conn.orbit_want_km - row["radius"]) < 1.0
+            label = row["label"] if row["afford"] else f"{row['label']} ✕"
+            btn.setText(f"▶ {label}" if chosen else label)
+            btn.setEnabled(live and row["afford"])
+            price = (f"{row['dv']:,.0f} m/s — allow about {row['mass']:,.0f} t "
+                     f"of mass, and you have {row['tank']:,.0f}."
+                     if row["dv"] > 0 else "You are already at this height.")
             btn.setToolTip(
-                f"{here[0]} orbit — {up:,.0f} km up. Leaving costs "
-                f"x{orbits.departure_factor(conn.target.radius_km, here[1]):.2f}; "
+                f"{row['label']} orbit — {row['up']:,.0f} km up. {price} "
+                f"Leaving costs "
+                f"x{orbits.departure_factor(conn.target.radius_km, row['radius']):.2f}; "
                 f"a survey resolves "
-                f"x{orbits.look_factor(conn.target.radius_km, here[1]):.2f}.")
+                f"x{orbits.look_factor(conn.target.radius_km, row['radius']):.2f}."
+                + ("" if row["afford"] else
+                   " Not on this tank: take on more volatiles."))
 
     def _sync_throttle(self, conn, live: bool) -> None:
         """Mark what is set, and say what each rung is worth on this hull."""
