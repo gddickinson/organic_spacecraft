@@ -2,6 +2,77 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: the guard that did not exist, and the option that was a lie
+
+Two things this cycle. The first is a correction.
+
+**#101 was filed on a wrong diagnosis, and is closed as one.** Last cycle I
+claimed the orbit law was spending thousands of metres a second flattening
+inclined arrivals into the xy plane, because `_across` returns `[-py, px, 0]`.
+Measured: **every arrival in the game is already in that plane.** Across two
+sectors and seven bodies, `h = r × v` has `hz/|h| = 1.000` and the plane-change
+delta-v is **0.0 m/s** everywhere — the galaxy is generated flat. The fix I
+proposed would have been a no-op with extra arithmetic.
+
+How the error was made is the part worth keeping: I saw the spiral experiment
+descend into the ground, saw `main=True, throttle=1.00` with the burn axis
+changing every sample, and reached for the explanation that fitted the *shape* of
+the trace without measuring the quantity it claimed. Two more hypotheses went the
+same way before I stopped — the hull is not stuck slewing either (3 to 138 slew
+ticks against thousands of burns), and the arrival at a small body is at **38% of
+circular speed**, a plunge rather than an orbit, which is why circularising is
+what costs. The shipped law works; I stopped rather than keep re-deriving a
+control law by trace-reading, and #102 keeps the measurements.
+
+**Then #90, which turned out to have a real defect under it.**
+`sim/options.py` opens with the project's rule pointed at a screen that usually
+escapes it — *an option that changes nothing is a lie* — and then says: *"Every
+field below is read somewhere, and `test_options` fails if one stops being."*
+**There was no `test_options`.** The module named a guard that did not exist,
+which is the same untruth one level up: a claim about the code rather than about
+the game.
+
+So this is that guard, and it asks the strong form. "Is the name mentioned
+somewhere" is nearly worthless — a setting can be read into a variable nothing
+consumes, which is the defect this project has found more often than any other.
+Each of the eight settings is turned on and off and something a player would
+notice has to differ: the window stops asking, the explanations disappear, an
+open instrument moves from 400 ms to 1,500, the chronicle is written at once at
+zero days and not until day 21 at twenty, the three speech settings each push to
+`core/llm` and the other five do not, the tutorial is offered only with its switch
+on.
+
+**Writing it found that one option very nearly was a lie.** "Inline hints" was
+gated in exactly one place, `View.hint`, called **10** times against
+`widgets.note`'s **270** — and the options page describes the setting as "the
+short explanations under panel headings", which is precisely what `note` draws.
+Measured on the port screen: **89 labels with hints on, 89 with them off.** The
+switch turned off 3.6% of the hints.
+
+`note` reads `widgets.HINTS` now, pushed in by `MainWindow.apply_options` — whose
+docstring already said it exists to push settings into the parts of the window
+that hold their own, the same arrangement `core/llm.py` uses. Port screen after:
+**89 → 82**, and the market table untouched.
+
+Two details that cost a draft each. A withheld note returns a **hidden label, not
+`None`**: `Panel.add` skips `None` happily, and the fifteen places that add a note
+straight to a layout answer it with *"cannot add a null widget"* — where a hidden
+widget is excluded from its layout and takes no space, so all 280 call sites work
+unchanged. And `widgets.HINTS` is module state for the life of the process, so the
+check that turns hints off **restores them in a `finally`**; without that, every
+suite running after it would render without explanations and some unrelated check
+would fail a long way from the cause.
+
+Three of my own errors in the checks, all found by running them: I stubbed
+`win.confirm` in the fixture and then tested the stub; I asserted the voices
+switch through `llm.enabled()`, which asks whether a provider is *answering* and
+is False on a machine with no model however the switch is set — so the check now
+watches the *push* instead; and I called `offer_tutorial(game)` when it takes the
+window. Also a `QApplication` I did not hold a reference to, which took its
+`MainWindow`'s C++ object with it and aborted the process on the next Qt call.
+
+Eight new checks, 912 across the suite, all green.
+
 ## 2026-07-30 — SEEDFALL: the checks were flying a ship the game does not fly
 
 Went after #83 — "the last few per cent of a high orbit at a small body", a

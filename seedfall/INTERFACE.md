@@ -1820,6 +1820,7 @@ seedfall/
     ├── test_empire.py  6 colony checks — works, effects, costs, persistence
     ├── test_crew.py    7 crew checks — convictions, loyalty, consequences
     ├── test_missions.py 7 commission checks — escalation, blocking, lapsing
+    ├── test_options.py 8 checks — every setting does something
     ├── test_provenance.py 9 checks — a rumour's source, and whether
     │                   the buyer of a chart knows yours
     ├── test_explore.py 8 exploration checks — the intel ladder, rumours
@@ -1944,6 +1945,22 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 
 ## The parts that will bite you
 
+- **"Inline hints" turned off under four per cent of the hints.** `sim/options.py`
+  opens with the rule that *an option that changes nothing is a lie*, and the
+  setting was gated in exactly one place — `View.hint`, called **10** times
+  against `widgets.note`'s **270**. The options page describes it as "the short
+  explanations under panel headings", which is what `note` draws. Measured on the
+  port screen: **89 labels with hints on, 89 with them off.** `note` reads
+  `widgets.HINTS` now, pushed in by `MainWindow.apply_options` — the function
+  whose docstring already said it exists to push settings into the parts of the
+  window that hold their own, and the same arrangement `core/llm.py` uses for the
+  speech settings. Two things to know if you touch it: a withheld note is a
+  **hidden label, not `None`**, because fifteen places add one straight to a
+  layout with `addWidget` and Qt answers `None` with "cannot add a null widget"
+  (a hidden widget is excluded from its layout and takes no space); and
+  `widgets.HINTS` is module state for the life of the process, so a check that
+  turns hints off **must restore them in a `finally`** or every suite after it
+  renders without explanations.
 - **`conn.apply` takes `ticks` and `throttle` by keyword only, and that is a bug
   fix.** They used to be positional, and four checks called
   `apply(conn, axis, main, throttle)` — putting the throttle into `ticks`, where
@@ -3390,6 +3407,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   rather than hidden: the height precision at a small body (task #102) and the
   plane change that is most of what a climb costs (task #101), both with the
   measurements that found them.
+- **`test_options.py`** is the guard `sim/options.py` had been claiming since it
+  was written — its docstring said "`test_options` fails if one stops being
+  [read]" and there was no such suite, which is the module's own rule broken one
+  level up. Each of the eight settings is **turned on and off and something a
+  player would notice has to differ**: the window stops asking, the explanations
+  disappear, an open instrument's timer moves from 400 ms to 1,500, the chronicle
+  is written at once at zero days and not until day 21 at twenty, the three
+  speech settings each push to `core/llm` and the other five do not, and the
+  tutorial is offered only with its switch on. Plus the structural pair — every
+  field is on the screen and every screen row is a field — and the bounds, which
+  are enforced in `set_to` so a second UI cannot disagree with them.
 - **`test_provenance.py`** measures both revived fields over samples big enough
   to see a rate in: 2,214 stories from six sectors come true 77% of the time from
   a local source and 45% from the far side, the trust figure the desk prints

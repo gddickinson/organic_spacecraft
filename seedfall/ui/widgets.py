@@ -31,8 +31,39 @@ def title(text: str, tint: str = "") -> QLabel:
     return label(text, "h3", tint)
 
 
+#: Whether inline explanations are drawn at all.
+#:
+#: **Module state, pushed in by `MainWindow.apply_options`**, which is the
+#: function whose docstring says it exists to "push settings into the parts of
+#: the window that hold their own" — the same arrangement `core/llm.py` uses for
+#: the speech settings, and for the same reason: `note` is a free function called
+#: from two hundred and seventy places, most of them inside panel builders that
+#: have no view and no `Game` to ask.
+#:
+#: It had to become real. `View.hint` was the only gate on the setting and is
+#: called **ten** times against `note`'s **270**, so "Inline hints" — described
+#: on the options page as "the short explanations under panel headings", which is
+#: exactly what `note` draws — was turning off under four per cent of them.
+#: Measured on the port screen: 89 labels with hints on, 89 with them off. An
+#: option that changes almost nothing is the same lie as one that changes
+#: nothing, and `sim/options.py` opens by forbidding it.
+HINTS = True
+
+
 def note(text: str) -> QLabel:
-    return label(text, "note", wrap=True)
+    """An inline explanation, hidden when the player has turned them off.
+
+    **Hidden rather than `None`.** Returning `None` works for the panels —
+    `Panel.add` skips it — and breaks the fifteen places that put a note straight
+    into a layout with `addWidget`, which Qt answers with "cannot add a null
+    widget". A widget that is explicitly hidden is excluded from its layout and
+    takes no space at all, so all two hundred and eighty call sites get the
+    setting without one of them changing.
+    """
+    made = label("" if not HINTS else text, "note", wrap=True)
+    if not HINTS:
+        made.setHidden(True)
+    return made
 
 
 def body(text: str) -> QLabel:

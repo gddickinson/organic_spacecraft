@@ -192,6 +192,7 @@ KIN = {
     "industry": ("industry", "exchequer"),
     "rumours": ("provenance", "explore"),
     "memory": ("provenance", "grudges"),
+    "options": ("options",),
 }
 
 

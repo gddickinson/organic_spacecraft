@@ -33,6 +33,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("missions", "test_missions", "missions"),
     SuiteSpec("explore", "test_explore", "exploration"),
     SuiteSpec("provenance", "test_provenance", "provenance"),
+    SuiteSpec("options", "test_options", "options"),
     SuiteSpec("mining", "test_mining", "mining"),
     SuiteSpec("research", "test_research", "research"),
     SuiteSpec("trade", "test_trade", "trade"),

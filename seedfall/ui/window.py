@@ -413,9 +413,14 @@ class MainWindow(QMainWindow):
     def apply_options(self) -> None:
         """Push settings into the parts of the window that hold their own."""
         from ..sim import options as options_sim
+        from . import widgets
         pace = options_sim.get(self.game, "instrument_ms") or 900
         for monitor in getattr(self, "monitors", {}).values():
             monitor.timer.setInterval(int(pace))
+        # `note` is called from 270 places, most of them in panel builders with
+        # no view to ask, so the setting is pushed to the widget module rather
+        # than threaded through all of them. See `widgets.HINTS`.
+        widgets.HINTS = bool(options_sim.get(self.game, "hints"))
 
     # ── combat ─────────────────────────────────────────────────────────────
 
