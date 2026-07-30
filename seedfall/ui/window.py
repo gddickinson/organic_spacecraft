@@ -322,6 +322,12 @@ class MainWindow(QMainWindow):
         tactical = getattr(self, "tactical_window", None)
         if tactical is not None:
             tactical.refresh()
+        # The flight controls are a second pair of hands on the *same*
+        # approach, so they redraw whenever anything else does — a pilot
+        # flying from there and glancing at the conn must see one ship.
+        flying = getattr(self, "flight_window", None)
+        if flying is not None:
+            flying.refresh()
         from ..sim import tutorial as tutorial_sim
         if tutorial_sim.check(self.game):
             self.tutorial_bar.refresh()

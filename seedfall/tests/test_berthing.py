@@ -32,6 +32,8 @@ Two faults surfaced while wiring it up, both from playing:
 
 from __future__ import annotations
 
+import math
+
 from ..core.state import new_game
 from ..sim import autopilot as pilot_sim
 from ..sim import berthing as berth_sim
@@ -209,25 +211,42 @@ def run(suite: Suite) -> None:
         # flying in at a spread of speeds rather than read off the constant.
         game = new_game("impact")
         contact = next(c for c in _contacts(game, ("anchorage",)))
-        table = []
-        for speed in (0.5, 1.0, 2.0, 6.0, 20.0):
+
+        def flown(speed: float):
+            """One arrival at `speed`, **down the berth's own line**.
+
+            A ship arrives at a berth. This used to fly straight at the middle
+            of the structure from wherever `start` put it, which since berths
+            became places on the structure lands on the skin somewhere between
+            the fittings — a scrape, correctly, and not the berthing this
+            check is about. `sim/moorings.py` says where the fitting is; the
+            approach opens a kilometre out along that line.
+            """
+            from ..sim import moorings
             conn = conn_sim.start(game, contact, range_km=1.0, drift=0.0)
-            conn.vel = [0.0, speed, 0.0]
+            berth = moorings.nearest(conn)
+            if berth is not None:
+                out = math.dist(berth["at"], (0.0, 0.0, 0.0)) or 1.0
+                conn.pos = [c * (out + 1.0) / out for c in berth["at"]]
+                here = math.dist(conn.pos, (0.0, 0.0, 0.0)) or 1.0
+                conn.vel = [-c / here * speed for c in conn.pos]
+            else:
+                conn.vel = [0.0, speed, 0.0]
             for _ in range(400):
                 if conn.over:
                     break
                 conn_sim.apply(conn, None)
+            return conn
+
+        table = []
+        for speed in (0.5, 1.0, 2.0, 6.0, 20.0):
+            conn = flown(speed)
             table.append((speed, conn.outcome, conn.damage))
         # A berth means alongside. The tripwire found nothing pinning how
         # near "near enough" is, so it could be set to five kilometres and
         # every check still passed — measured against the hull, not the
         # constant, because reading the constant here proves nothing.
-        gentle = conn_sim.start(game, contact, range_km=1.0, drift=0.0)
-        gentle.vel = [0.0, 1.0, 0.0]
-        for _ in range(400):
-            if gentle.over:
-                break
-            conn_sim.apply(gentle, None)
+        gentle = flown(1.0)
         assert gentle.outcome == "alongside", gentle.outcome
         gap = gentle.range_km - gentle.target.radius_km
         assert gap < 0.4, (

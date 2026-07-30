@@ -2,6 +2,80 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: berths you can see, and a panel you can fly (#105, stages 3 and 4)
+
+**Stage 3.** Coming alongside was a distance from a point — `range_km <=
+ALONGSIDE_KM + radius_km`, where `radius_km` is a bounding sphere. A hull that
+crept up on the *far side* of a Fleet Hub, nowhere near a mast, and stopped,
+was moored. The structure the window spends the whole approach drawing had
+nothing to do with it.
+
+Berth positions now live beside the mesh builders and are the same numbers:
+the warn-lit box on a quay's arm is its berth; a hub's four lit masts are four
+berths. So a berth is a thing you can see. The reach is a share of the
+structure's own size rather than a distance in km — measured, that separates
+"at the fitting" from "the far side" by 5× to 13× on a quay, a hub, a holding
+and a gate alike.
+
+Three things the measurements forced, each after watching it fail:
+
+- aiming straight at a fitting means flying through whatever is in the way —
+  two of eight off-axis approaches ran dry shuffling round a hub — so there is
+  an approach corridor: a hold point on the berth's line, clear of the hull;
+- handing over on *crossing the corridor radius* left a ship on the wrong side
+  trying to crab round the hull, where `safe_rate` allows almost nothing. The
+  corridor is a *place* now, and the run in starts from it;
+- the berth is chosen freely far out and held once inside. Re-picking every
+  tick chases a moving aim; committing at twelve kilometres picks a mast
+  before the drift has played out.
+
+**Stage 4.** `ui/flight_window.py`: range, closing **against the rate that is
+allowed**, **lateral rate**, which berth and how far off, the gate in the
+units the readouts are in, and every pad button labelled with the burn it
+gives and an arrow saying whether it takes you toward the berth.
+
+Everything in bold there was found by trying to fly it rather than by looking
+at it. Three chronicles hit the structure at 9.2 m/s with nineteen of twenty
+tonnes of thruster mass unspent, because nothing on the screen said when to
+brake — and `autopilot.safe_rate` is what the computer holds to and had never
+been on a screen. And the pad is in the ship's frame while the berth is off
+the bow, so a pilot pressing *ahead* flies at the middle of the structure.
+
+Flying by hand also found the real gap in stage 3's own gate: **there are two
+roads to "alongside"**, the station-keeping branch and the contact branch, and
+I had gated only the first. The panel berthed 477 m from the mast because it
+had bumped the hull. A gentle touch away from a fitting is a scrape now.
+
+What it can do, flown: the computer brings the hull to the hold point and a
+pilot puts it on the mast in two to six presses, in three chronicles. From
+twelve kilometres a six-axis pad genuinely cannot do it — the hold point and
+the middle of the structure are 2.6° apart at that range — and that is the
+honest division of labour rather than a shortcoming.
+
+**And two of my own checks were not watching what they claimed.** The
+guidance arrows were lost from the button labels at some point and nothing
+noticed, because every check called `moorings.steer` directly instead of
+reading the pad; and a mutation that doubled the figure printed on a button
+passed, because the check compared the *quote* against the burn and never the
+label. The promise is the thing printed on the button. Both read the buttons
+now.
+
+Fourteen mutations across the two stages, fourteen caught.
+
+**And an existing check caught a regression I had introduced.** "More thrust
+is never worse" failed: three hulls flew *worse* for a better engine — a SPORE
+on a plasma drive recovered 80 m/s of drift and the same hull on a stronger
+fusion torch only 5. The cause was the corridor. `safe_rate` measured the room
+to the *structure*, so a powerful engine drove straight through the hold point
+and then chased it back. It measures the room to whichever comes first now,
+the structure or the waypoint, and the table is monotone again: 80→160 across
+the drives on both hulls.
+
+The duplicate-key trap caught me too, in the same table it caught me in
+earlier this month: `berths3d` was already in the tripwire's fast paths and I
+added it again. A dict literal keeps the last silently; the harness guard does
+not.
+
 ## 2026-07-30 — SEEDFALL: the thing you hit is off station afterwards (#105, stage 2)
 
 Stage one could only *say* what a collision did to the other body. The sector

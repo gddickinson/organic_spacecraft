@@ -63,13 +63,25 @@ def target_velocity(conn: Conn, mode: str) -> list | None:
     if mode == "null":
         return [0.0, 0.0, 0.0]
     if mode == "close":
-        # Straight down the line of sight, at the fastest rate the room left
-        # can still absorb. Lateral drift needs no special case: it is simply
-        # velocity this vector does not have.
+        # Toward the **berth**, at the fastest rate the room left can still
+        # absorb. Lateral drift needs no special case: it is simply velocity
+        # this vector does not have.
+        #
+        # It used to aim at the middle of the structure, which is inside it —
+        # so the computer flew at whatever face happened to be in the way and
+        # `alongside` accepted the far side of a hub as a mooring. It flies to
+        # a mast now, and the rate is still measured against the room to the
+        # *structure*, because that is what has to be stopped in.
         r = conn.range_km
         if r < 1e-9:
             return [0.0, 0.0, 0.0]
-        inward = [-p / r for p in conn.pos]
+        from . import moorings
+        aim = moorings.aim(conn)
+        toward = [a - p for a, p in zip(aim, conn.pos)]
+        span = math.dist(toward, (0.0, 0.0, 0.0))
+        if span < 1e-9:
+            return [0.0, 0.0, 0.0]
+        inward = [c / span for c in toward]
         return [c * safe_rate(conn) for c in inward]
     if mode == "orbit":
         r = conn.range_km
@@ -202,6 +214,7 @@ def autopilot(conn: Conn, mode: str) -> tuple[str | None, bool, float]:
     return _toward(conn, error, need)
 
 
+
 def safe_rate(conn: Conn, dv: float | None = None) -> float:
     """The fastest closing rate that can still be stopped in the room left.
 
@@ -218,6 +231,22 @@ def safe_rate(conn: Conn, dv: float | None = None) -> float:
         dv = conn.rcs_dv
     stop_at = conn.target.radius_km + ALONGSIDE_KM * 0.5
     room = max(0.0, (conn.range_km - stop_at) * 1000.0)
+    # **And the room to where it is actually going.** Since the approach flies
+    # a corridor, the next thing to arrive *at* is the hold point, not the
+    # structure — and a rate measured only against the structure lets a strong
+    # engine blow straight through the waypoint and then chase it back.
+    #
+    # Measured by an existing check, which is the one that caught this: with
+    # the room to the structure alone, three hulls flew *worse* for a better
+    # engine — a SPORE on a plasma drive recovered 80 m/s of drift and the
+    # same hull on a stronger fusion torch only 5. More thrust must never be
+    # worse, and it was, because the harder it pushed the further past the
+    # hold point it went.
+    from . import moorings
+    aim = moorings.aim(conn)
+    if any(aim):
+        to_aim = math.dist(conn.pos, aim) * 1000.0
+        room = min(room, to_aim) if room > 0.0 else to_aim
     return max(0.0, math.sqrt(2.0 * dv * room / TICK) * 0.66)
 
 

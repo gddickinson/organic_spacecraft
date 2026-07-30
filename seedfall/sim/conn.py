@@ -169,6 +169,11 @@ class Conn:
     #: alongside; a quay used as a backstop carries these away with it.
     struck_damage: float = 0.0
     struck_dv: float = 0.0
+    #: Which berth on the structure this approach is for. Chosen once by
+    #: `sim/moorings.assign` and held: a computer that re-picks the nearest
+    #: fitting every tick chases a moving aim and runs its tanks dry between
+    #: two of them.
+    berth: str = ""
 
     @property
     def over(self) -> bool:

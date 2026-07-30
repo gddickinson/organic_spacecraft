@@ -115,6 +115,49 @@ def gate() -> tuple:
 #: `ui/viewport` reads it here, so what the plot calls a gate is drawn as one.
 BERTHS = {"quay": quay(), "hub": hub(), "holding": holding(), "gate": gate()}
 
+#: **Where a ship actually ties up**, in the same model space the meshes are
+#: authored in — so a berth is a place on the structure you can see, not a
+#: point on a bounding sphere.
+#:
+#: They live here, beside the builders, because they have to be *the same
+#: numbers*. Every one of these is a feature the mesh above already draws:
+#:
+#: - a **quay** has one arm, ending in the warn-lit box at `(0.86, 0, 0.30)`,
+#:   which is a docking light and is now what it looks like;
+#: - a **hub** has the four lit masts at `0.44·cos θ, 0.44·sin θ, 1.02` —
+#:   `θ = τ·i/4 + 0.4`, exactly as the builder walks them — so a fleet berth
+#:   has four places to put a hull and they are the ones lit up;
+#: - a **holding** has the four gantry stubs over its tanks, at half the tank
+#:   offset and `z = 0.40`;
+#: - a **gate** has the three ROCK blocks on its rim at radius 1.0. Nobody
+#:   moors to a gate for long, but a gate you cannot come alongside would be a
+#:   gate you cannot use.
+#:
+#: A hub's berth is 1.11 model units out and the mesh is drawn at the target's
+#: `radius_km`, so on a 0.4 km hub a berth sits 444 m from the centre —
+#: *outside* the 400 m contact sphere. A ship reaches the berth before it can
+#: touch the structure, which is the right way round.
+BERTH_POINTS = {
+    "quay": (("the arm", (0.86, 0.0, 0.30)),),
+    "hub": tuple(
+        (f"mast {i + 1}", (0.44 * math.cos(math.tau * i / 4 + 0.4),
+                           0.44 * math.sin(math.tau * i / 4 + 0.4), 1.02))
+        for i in range(4)),
+    "holding": tuple(
+        (f"gantry {i + 1}", (0.20 * math.cos(math.tau * i / 4 + 0.78),
+                             0.20 * math.sin(math.tau * i / 4 + 0.78), 0.40))
+        for i in range(4)),
+    "gate": tuple(
+        (f"block {i + 1}", (math.cos(math.tau * i / 3),
+                            math.sin(math.tau * i / 3), 0.0))
+        for i in range(3)),
+}
+
+
+def berth_points(sort: str) -> tuple:
+    """Where a ship ties up on this sort of berth, in model space."""
+    return BERTH_POINTS.get(sort, BERTH_POINTS[DEFAULT_BERTH])
+
 #: What a berth of an unknown sort gets. A quay: the humblest thing that is
 #: still recognisably a port, so a new sort nobody has drawn yet under-promises
 #: rather than turning up as a Fleet Hub.

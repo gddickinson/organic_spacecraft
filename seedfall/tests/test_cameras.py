@@ -235,8 +235,21 @@ def run(suite: Suite) -> None:
                        if solid(x, y))
 
         conn = conn_sim.start(game, contact)
-        pilot_sim.fly(conn, "close", 30)      # close enough to fill the frame
+        # **Flown until it is close, not for a fixed count of ticks.** Thirty
+        # ticks used to bore straight in at the middle of the structure; the
+        # computer flies an approach corridor now — out to a hold point on the
+        # berth's own line and then in — so the same thirty ticks leave the
+        # hull fractionally further out, and the frame came to 393 solid
+        # samples against a bar of 400. The setup was measuring the old flight
+        # path, not the camera. It asks the range instead.
+        opened = conn.range_km
+        for _ in range(300):
+            if conn.over or conn.range_km <= opened * 0.12:
+                break
+            pilot_sim.fly(conn, "close", 1)
         assert not conn.over, conn.outcome
+        assert conn.range_km <= opened * 0.12, (
+            f"still {conn.range_km:.2f} km out of {opened:.2f}")
         # With the sky out of it. This check is about whether a camera sees
         # the thing in front of it; once the windows started drawing the rest
         # of the system, the world a berth orbits legitimately filled the

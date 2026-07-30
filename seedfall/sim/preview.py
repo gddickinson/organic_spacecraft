@@ -88,4 +88,5 @@ def _copy(conn: Conn) -> Conn:
                 hold=conn.hold, star_lum=conn.star_lum,
                 orbit_want_km=conn.orbit_want_km,
                 throttle=conn.throttle, coast_min=conn.coast_min,
-                mass_t=conn.mass_t, target_mass_t=conn.target_mass_t)
+                mass_t=conn.mass_t, target_mass_t=conn.target_mass_t,
+                berth=conn.berth)

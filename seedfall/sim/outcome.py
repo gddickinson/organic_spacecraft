@@ -66,11 +66,20 @@ def impact_damage(speed: float, safe_closing: float, base: float) -> float:
 
 
 def alongside(conn, alongside_km: float, alongside_rate: float) -> bool:
-    """Near enough and slow enough to call it a berth."""
+    """Near enough, slow enough, **and at a berth**.
+
+    The third one is new. `radius_km` is a bounding sphere, so a hull that
+    crept up on the far side of a Fleet Hub — nowhere near a mast — and
+    stopped was moored, and the structure the window spends the whole approach
+    drawing had nothing to do with it. `sim/moorings.py` asks where the berths
+    actually are, off the same numbers `data/berths3d.py` draws them from.
+    """
     if conn.target.kind == "body":
         return False          # a world is orbited, not moored to
+    from . import moorings
     return (conn.range_km <= alongside_km + conn.target.radius_km
-            and conn.speed <= alongside_rate)
+            and conn.speed <= alongside_rate
+            and moorings.at_berth(conn))
 
 
 def resolve(conn, *, safe_closing: float, impact_base: float,
@@ -156,15 +165,30 @@ def resolve(conn, *, safe_closing: float, impact_base: float,
                    if short else ""))
             return
     elif r <= hull:
+        # **Contact is a berthing only at a berth.** There are two roads to
+        # "alongside" — this one, where the hull touches the structure, and
+        # the station-keeping branch below — and gating only the second left
+        # this one accepting a touch anywhere on the skin. Found by flying an
+        # approach *by hand* from the flight-controls window: it berthed 477 m
+        # from the mast with a 140 m reach, because it had bumped the hull.
+        #
+        # A gentle touch away from a fitting is not a mooring, it is a scrape,
+        # and `sim/impulse.py` already prices it — at a couple of metres a
+        # second that is a few points off both of them.
+        from . import moorings
         speed = conn.speed
-        if speed <= safe_closing:
+        if speed <= safe_closing and moorings.at_berth(conn):
             conn.outcome = "alongside"
             conn.log.append(f"Alongside {conn.target.name}.")
         else:
             conn.outcome = "collision"
             conn.damage = hurt(speed)
+            where = moorings.nearest(conn)
+            aside = ("" if where is None or where["at_it"] else
+                     f" — {where['km'] * 1000:,.0f} m from {where['name']}")
             conn.log.append(
-                f"{conn.target.name} at {speed:,.0f} m/s — the frames took it.")
+                f"{conn.target.name} at {speed:,.0f} m/s{aside}. "
+                "The frames took it.")
         return
 
     if alongside(conn, alongside_km, alongside_rate):

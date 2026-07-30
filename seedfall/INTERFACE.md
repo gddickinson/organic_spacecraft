@@ -398,6 +398,50 @@ Wiring it up surfaced two more, both from playing:
   quadratic, the most dangerous approaches were precisely the ones escaping.
   `_sweep_min` tests the whole path now, not its endpoints.
 
+**A berth is a place on the structure, and you can fly to it by hand.**
+Coming alongside was a distance from a *point*: `range_km <= ALONGSIDE_KM +
+radius_km` and slow enough, where `radius_km` is a bounding sphere. So a hull
+that crept up on the far side of a Fleet Hub, nowhere near a mast, and
+stopped, was moored — and the structure the window spends the whole approach
+drawing had nothing to do with it.
+
+`data/berths3d.BERTH_POINTS` says where the berths are, in the model space the
+meshes are authored in and off **the same numbers the builders use**: a quay's
+one arm ends in a warn-lit box and that box is the berth; a hub's four lit
+masts are four berths; a holding has four gantry stubs; a gate has three
+blocks on its rim. So a berth is a thing you can see. `sim/moorings.py` is the
+sim side — the conversion into the approach's frame, which berth this approach
+is for, and whether the ship is at it. The reach is a *share* of the
+structure's own size (0.35), because a fixed tolerance in km would be generous
+on a quay and meaningless on a gate; measured, it separates "alongside the
+fitting" from "the far side" by 5× to 13× at every scale.
+
+`moorings.aim` is the one door for where an approach is going, and both the
+computer and the manual panel read it. Two phases: out to a hold point on the
+berth's own line and clear of the hull, then in along it — and the handover is
+on *reaching* that point rather than on crossing a radius. Both refinements
+were forced by measurement: aiming straight at a fitting ran two of eight
+off-axis approaches dry shuffling round a hub, and switching on radius alone
+left a ship inside the corridor on the wrong side trying to crab round the
+hull where `safe_rate` allows almost nothing. The berth itself is chosen
+freely while there is room to change your mind and held once inside the
+corridor — re-picking every tick chases a moving aim; committing at twelve
+kilometres picks a mast before the drift has played out.
+
+`ui/flight_window.py` is the panel: range, **closing against the rate that is
+allowed**, **lateral rate**, which berth and how far off, the gate in the
+units the readouts are in, and every pad button labelled with the burn it will
+give and an arrow saying whether it takes you toward the berth. Both of the
+emphasised ones were found by trying to fly it — three chronicles hit the
+structure at 9.2 m/s with nineteen of twenty tonnes unspent, because nothing
+said when to brake, and `autopilot.safe_rate` had known all along.
+
+Flying by hand also found the real gap in the berth gate: **there are two
+roads to "alongside"** — the station-keeping branch and the contact branch —
+and only the first had been gated, so a hull that bumped the structure
+anywhere at walking pace was moored 477 m from the mast. A gentle touch away
+from a fitting is a scrape now, priced by `sim/impulse.py`.
+
 **And the thing you hit is off station afterwards.** Stage one could only
 *say* what a collision did to the other body: the sector had nowhere to put
 it. An anchorage's position is its body's, worked out from the calendar every
@@ -1999,6 +2043,8 @@ seedfall/
 │   │                   orders, screening, who draws fire, what they eat
 │   ├── loyalty.py      what the bridge thinks of how you run the ship
 │   ├── works.py        colony development: what a settlement becomes
+│   ├── moorings.py     berths: where a ship ties up on a structure, and
+│   │                   where an approach is actually flying
 │   ├── knock.py        what being shoved off station comes to, and how
 │   │                   long it takes to get back on it
 │   ├── impulse.py      momentum: masses, inelastic contact, and what two
@@ -4003,6 +4049,18 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that
   no course is plotted through a star.
+- **`test_moorings.py`** holds the berths: every sort has them and they scale
+  with the structure; the far side is not a berth at four sorts and four
+  scales; the berth is chosen on final and held; and the computer still
+  berths, asked *where it ended up*. Eight mutations, eight caught.
+- **`test_byhand.py`** puts hands on the flight controls and looks at where
+  the ship stops: three chronicles berthed on the mast in 2–6 presses from the
+  corridor. It reads the pad's own labels rather than the sim behind them —
+  the guidance arrows were lost from the buttons once and nothing noticed,
+  because every other check called `moorings.steer` directly, and a mutation
+  that doubled the figure printed on a button passed until the check read the
+  button. Six mutations, six caught.
+
 - **`test_knock.py`** holds the consequences: a struck quay off station where
   the whole game reads it, measured against the *same day* unstruck because a
   body sweeps tens of millions of km in a fortnight and the first version of
