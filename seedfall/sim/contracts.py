@@ -57,11 +57,21 @@ def cargo_cost(game, sysm, cid: str, amount: float,
     quoting the plain price while the counter charged the one this power's
     memory of you decides — a difference of nearly nine hundred credits on a
     single cargo, which `test_cargo` caught the day the grudge landed.
+
+    The same split decides the wharfage. `sim/wharfage.py` charges a share of
+    every deal over a counter, and the share depends on the captain's standing
+    with whoever holds the quay — so it belongs in the player's quote and not in
+    the fee. Without it the card under-quoted a delivery by 542 credits on
+    16,640, which `test_cargo` caught the day the due was added.
     """
     from ..world.economy import buy_price
     if for_player and sysm.market and sysm.port:
         from . import market as market_sim
+        from . import wharfage as wharfage_sim
         price = market_sim.quote_buy(game, sysm, cid)
+        if price is not None:
+            goods = price * amount
+            return goods + wharfage_sim.due_on(game, sysm, goods)
     else:
         price = buy_price(sysm.market, cid, 0.0, 0.0) if sysm.market else None
     if price is None:

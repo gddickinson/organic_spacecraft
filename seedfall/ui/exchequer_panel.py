@@ -21,7 +21,9 @@ def build(game) -> Panel:
                "to its size and costs the square of it, so an outpost and a "
                "station both clear about the same and a Fleet Hub very nearly "
                "pays for itself and no more. A surplus gets built with. A "
-               "deficit has to give something up."))
+               "deficit has to give something up. Your own trade is on this "
+               "ledger too: whoever holds the quay takes a share of every deal "
+               "you make over it."))
     p.add_row("Berths in the sector",
               f"{total['ports']} · {total['levels']} levels between them")
     p.add_row("Built since you started",
@@ -45,6 +47,9 @@ def build(game) -> Panel:
                            + (f" · {row['pinched']} pinched by a shortage"
                               if row["pinched"] else ""),
                   "warn" if row["pinched"] else "")
+        if row["dues"]:
+            # The one line on this ledger the captain put there personally.
+            p.add_row("Wharfage off you", cr(row["dues"]), "lumen")
         p.add_row("Has paid for",
                   f"{row['works']} works · {row['ventures']} ventures"
                   + (f" · {row['losses']} steps lost" if row["losses"] else ""))

@@ -129,6 +129,50 @@ def run(suite: Suite) -> None:
         return (f"{trip['tonnes']:g} t: {trip['outlay']:,} out, "
                 f"{trip['fuel']:,} of mass, clears {trip['net']:,}")
 
+    @check("the desk never quotes a voyage the port cannot load")
+    def _():
+        # **Measured before the fix: 12 of 15 recommended runs forecast more
+        # tonnage than the berth held, the worst by 2.7× — a 287-tonne voyage
+        # out of a quay holding 59.** It was wrong twice: the card named a load
+        # nobody could take aboard, and `worth_flying` ranks by `net`, which
+        # scales with tonnage, so the ordering was decided by cargo that did not
+        # exist. `voyage` capped by hold and by purse and never by stock, though
+        # `trade.buy` has always capped by all three.
+        #
+        # Checked by *buying* it rather than by re-reading the stock: the claim
+        # is that what the desk quotes can be loaded.
+        seen = short = 0
+        for seed in ("load-a", "load-b", "load-c"):
+            game = new_game(seed)
+            game.credits = 200_000
+            for system in game.galaxy.systems:
+                if system.port and system.market:
+                    market_sim.note_prices(
+                        game, system, game.rep.get(system.port.faction, 0),
+                        game.ship_stats.trade)
+            for system in game.galaxy.systems:
+                if not (system.port and system.market):
+                    continue
+                game.location_id = system.id
+                for run_, trip in freight.worth_flying(game, system, limit=3):
+                    if trip["tonnes"] < 1:
+                        continue
+                    held = system.market.stock[run_.commodity].units
+                    assert trip["tonnes"] <= held + 0.5, (
+                        f"{system.port.name} quotes {trip['tonnes']:g} t of "
+                        f"{run_.commodity} and holds {held:g}")
+                    seen += 1
+                    if seen % 7 == 1:
+                        # And it is loadable in fact, not only on paper.
+                        got = trade_sim.buy(game, run_.commodity,
+                                            int(trip["tonnes"]))
+                        if got.get("ok") and got["units"] < int(trip["tonnes"]):
+                            short += 1
+        assert seen >= 8, seen
+        assert not short, f"{short} of the quoted loads came up short at the till"
+        return (f"{seen} recommended runs across 3 sectors, every one inside the "
+                "stock on the quay")
+
     @check("the register offers every port it knows, not the top few")
     def _():
         # `from_register` walks `best_markets`, which defaults to a *display*

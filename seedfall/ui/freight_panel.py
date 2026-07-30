@@ -57,7 +57,9 @@ def desk(game, system) -> Panel | None:
         p.add_row(f"{run.ly:.1f} ly · {trip['days']} days",
                   f"buy {cr(run.buy_here)} · pays about {cr(run.pays)}")
         p.add_row(f"{trip['tonnes']:g} t and the burn",
-                  f"{cr(trip['outlay'])} out, {cr(trip['fuel'])} of mass")
+                  f"{cr(trip['outlay'])} out, {cr(trip['fuel'])} of mass"
+                  + (f", {cr(trip['dues'])} in dues at both quays"
+                     if trip["dues"] else ""))
         p.add_row("Clears about", cr(trip["net"]), "chloro")
     p.add(spacer(4))
     p.add(note("What it clears is the voyage, not the spread: a four-credit "

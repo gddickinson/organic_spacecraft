@@ -14,6 +14,7 @@ from ..data.commodities import BY_ID, bulk_of
 from . import customs as customs_sim
 from . import market as market_sim
 from . import officials as officials_sim
+from . import wharfage as wharfage_sim
 from . import diplomacy as dip_sim
 from . import loyalty as loyalty_sim
 from .ship import add_cargo, cargo_free
@@ -45,7 +46,11 @@ def buy(game, cid: str, units: int) -> dict:
         return {"ok": False, "why": "They do not stock it."}
 
     room = int(cargo_free(game.ship, game.ship_stats) / bulk_of(cid))
-    afford = int(game.credits // price)
+    # Sized against what a tonne actually costs here — the posted price plus the
+    # quay's cut. Filling the hold to the last credit of the posted price and
+    # then being unable to pay the due is the same defect as an approach that
+    # orders burns it has no mass for.
+    afford = int(game.credits // wharfage_sim.unit_cost(game, system, price))
     stocked = system.market.stock[cid].units
     n = min(units, room, afford, stocked)
     if n <= 0:
@@ -55,6 +60,7 @@ def buy(game, cid: str, units: int) -> dict:
         return {"ok": False, "why": why}
 
     game.credits -= n * price
+    due = wharfage_sim.collect(game, system, n * price)
     # "This once" means this once: the office rate is spent by using it.
     officials_sim.spend_once(game, system, "quiet_price")
     add_cargo(game.ship, cid, n)
@@ -63,8 +69,9 @@ def buy(game, cid: str, units: int) -> dict:
     if not BY_ID[cid].legal:
         game.adjust_rep(system.port.faction, -BUY_TAINT)
     game.add_log(f"Bought {n} {BY_ID[cid].short} at {price:,} — "
-                 f"{n * price:,}.")
-    return {"ok": True, "units": n, "price": price, "paid": n * price}
+                 f"{n * price:,}." + (f" Wharfage {due:,}." if due else ""))
+    return {"ok": True, "units": n, "price": price, "paid": n * price,
+            "due": due, "spent": n * price + due}
 
 
 def sell(game, cid: str, units: int) -> dict:
@@ -82,13 +89,15 @@ def sell(game, cid: str, units: int) -> dict:
         return {"ok": False, "why": "Nothing aboard to sell."}
 
     out = {"ok": True, "units": n, "price": price, "took": n * price,
-           "logged": False}
+           "logged": False, "due": 0, "net": n * price}
     fac = dip_sim.FACTIONS_BY_ID.get(system.port.faction)
     if not BY_ID[cid].legal and (not fac or cid not in fac.sells):
         game.adjust_rep(system.port.faction, -SELL_TAINT)
         out["logged"] = True
 
     game.credits += n * price
+    out["due"] = wharfage_sim.collect(game, system, n * price)
+    out["net"] = n * price - out["due"]
     officials_sim.spend_once(game, system, "quiet_price")
     if n * price >= NOTICED:
         loyalty_sim.record(game, "trade_profit",
@@ -102,7 +111,9 @@ def sell(game, cid: str, units: int) -> dict:
                     min(2, n * 0.05)
                     * dip_sim.agenda_bonus(game, system.port.faction, cid))
     game.add_log(f"Sold {round(n)} {BY_ID[cid].short} at {price:,} — "
-                 f"{round(n * price):,}.")
+                 f"{round(n * price):,}."
+                 + (f" Wharfage {out['due']:,}, {out['net']:,} clear."
+                    if out["due"] else ""))
     return out
 
 

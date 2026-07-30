@@ -1640,6 +1640,7 @@ seedfall/
 │   │                   what each grant means, in words
 │   ├── factions.py     6 powers + reputation bands
 │   ├── exchequer.py    what a port yields, what it costs, what building costs
+│   ├── wharfage.py     what a quay takes off the cargo crossing it
 │   ├── settlements.py  what the ground gives, and what settling it costs
 │   ├── industry.py     processes: which technology makes which good, and
 │   │                   what a licence to run it is worth
@@ -1751,6 +1752,8 @@ seedfall/
 │   ├── ventures.py     what the powers do on their own account
 │   ├── exchequer.py    the public purse: income, upkeep, building,
 │   │                   retrenchment, and the stake a venture costs
+│   ├── wharfage.py     the due on the captain's own trade, and whose purse
+│   │                   it lands in — one door for the rate and for the act
 │   ├── settlement.py   the powers put people on the ground, and the local
 │   │                   market starts hearing about it
 │   ├── industry.py     licensing a process to a power: their treasury pays,
@@ -1867,7 +1870,8 @@ seedfall/
     ├── test_notes.py   8 field-note checks — filed, counted, kept, reachable
     ├── test_layers.py  5 layer checks — no Qt below, no ledger above
     ├── test_cargo.py   6 cargo-contract checks — the board offers no traps
-    ├── test_freight.py 7 freight checks — the desk, its floor, and a career
+    ├── test_freight.py 9 freight checks — the desk, its floor, its stock,
+    │                   and a career
     ├── test_workings.py 7 mining checks — the rig stops when the hold is full
     ├── test_burns.py   7 burn checks — heat, cooking, and a real profile choice
     ├── test_bench.py   5 bench checks — the draw matches what the screen says
@@ -1884,7 +1888,8 @@ seedfall/
     ├── test_helm.py    5 checks — every number on the burn board is accounted
     ├── test_grants.py  5 checks — every colony grant is read, and explained
     ├── test_postings.py 5 checks — the board only offers work you can reach
-    ├── test_counter.py 5 checks — the board's price is the counter's price
+    ├── test_counter.py 6 checks — the board's price is the counter's
+    │                   price, on the screen as well as in the helper
     ├── test_landing.py 6 checks — walking home beats stranding
     ├── test_charting.py 5 checks — a chart is dated, and goes off
     ├── test_conviction.py 6 checks — every event an officer cares about fires
@@ -1895,6 +1900,9 @@ seedfall/
     ├── test_ventures.py 6 checks — both sides of a venture are costed
     ├── test_exchequer.py 10 checks — the powers' purses: income,
     │                   upkeep, building, retrenchment, the venture stake
+    ├── test_wharfage.py 10 checks — the due on your own trade: conserved,
+    │                   named on the board, waived at a free port, priced by
+    │                   standing and by the size of the berth
     ├── test_industry.py 10 checks — a licensed process changes a market
     ├── test_orderplan.py 6 checks — every order says what it will do
     ├── ground_ai.py    a party leader good enough to measure the ground with
@@ -2380,6 +2388,22 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   while the counter charged 31.68. `market.quote_buy`/`quote_sell` are the
   price — office rate, grudge bias and all — and `tests/test_counter.py`
   sweeps the two against each other.
+  **And there was a third door nobody had swept.** The market grid on
+  `ui/port_view.py` called `world.economy.buy_price` directly, so it carried
+  neither the office rate nor the grudge bias, while the comment forty lines
+  above it said "now it is in the quote, and the board says so". Measured with a
+  quiet price in hand: the grid printed 36 and 29 while the counter charged 32
+  and paid 33. A check that reads the helper can never see this — the new one
+  reads the labels out of the rendered grid.
+- **Wharfage is charged on top of the price, not folded into it.**
+  `sim/wharfage.py` takes a share of every deal for whoever holds the quay, and
+  the money moves in `collect`, which debits the captain and credits the purse in
+  one function so the two cannot disagree. It is deliberately *not* inside
+  `quote_buy`/`quote_sell`: a price the board can print stays a price, and the
+  charge is named separately — on the board, in the ship's log, and on the
+  freight desk's forecast of a run. So `res["paid"]` is the goods and
+  `res["due"]` is the quay, and anything measuring what a trade cost has to add
+  them.
 - **A posting has to name somewhere the hull can get to.** `_pick_target` was
   documented as choosing a system "reachable in principle" and tested only
   `bloom < 0.4`; reachability is transitive and nothing checked it, so **65%
@@ -3355,7 +3379,22 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   is profitable at all. It also pins the threshold that made the desk honest
   and the one that nearly made it useless: `COLD` was -8, the floor of Neutral,
   and the Dry Choir *starts* at -10, so a new captain on a Dry Choir quay was
-  locked out on day one.
+  locked out on day one. Its newest check buys what the desk quotes:
+  `voyage` sized a load by hold and purse and never by the stock on the quay, so
+  **12 of 15 recommended runs forecast more tonnage than the port held, the worst
+  by 2.7×** — a 287-tonne voyage out of a berth holding 59. That was wrong twice,
+  because `worth_flying` ranks by `net` and `net` scales with tonnage, so the
+  ordering was decided by cargo that did not exist.
+- **`test_wharfage.py`** trades at nine quays and checks both sides of every
+  deal: what leaves the captain's account arrives in the holder's purse to the
+  credit. The rate it charges is read *off the rendered board* and applied to a
+  real purchase, because reading `wharfage.rate` would only prove the module
+  agrees with itself. It measures what the charge is worth in play — over the
+  runs the desk actually recommends the two quays take **11% of what a run
+  clears**, 10% loading at an outpost against 12% at a station — and what
+  standing is worth: **a factor of four between Kin and Hunted**. A decade of one
+  chronicle: 272 deals, 799,533 across the counter, 18,359 in dues, and **41% of
+  what the Charter holds by the end came off the captain**.
 - **`test_cargo.py`** buys the cargo, flies the delivery and banks the fee,
   and fails unless what the board quoted is what the treasury did. Its haulage
   check measures *net*, not a ratio to cargo value: the first version asserted

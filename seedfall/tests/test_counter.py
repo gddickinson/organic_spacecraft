@@ -58,6 +58,12 @@ def run(suite: Suite) -> None:
         # The general question. It is asked with the favour in hand and
         # without, because the whole defect was a discount that existed on one
         # side of the glass only.
+        #
+        # The quay's own cut is netted out rather than ignored: `sim/wharfage.py`
+        # takes a share of every deal on top of the goods, and the claim here is
+        # about the *price* — that what the board quotes for a tonne is what a
+        # tonne costs. That the due is the one the board names, and that it lands
+        # in the holder's purse, is `test_wharfage`'s question.
         checked = 0
         for favoured in (False, True):
             game, system = _at_a_quay("agree")
@@ -72,10 +78,10 @@ def run(suite: Suite) -> None:
                 res = trade.buy(game, cid, 3)
                 if not res.get("ok"):
                     continue
-                paid = (before - game.credits) / res["units"]
+                paid = (before - game.credits - res["due"]) / res["units"]
                 assert abs(paid - quoted) < 0.01, (
                     f"{cid}: the board says {quoted} and the counter charged "
-                    f"{paid:.2f}"
+                    f"{paid:.2f} for the goods"
                     + (" with the office rate in hand" if favoured else ""))
                 checked += 1
                 if favoured:
@@ -91,14 +97,14 @@ def run(suite: Suite) -> None:
             before = game.credits
             res = trade.sell(game, cid, 15)
             assert res.get("ok"), res
-            got = (game.credits - before) / res["units"]
+            got = (game.credits - before + res["due"]) / res["units"]
             assert abs(got - quoted) < 0.01, (
                 f"{cid}: the board says the port pays {quoted} and it paid "
-                f"{got:.2f}"
+                f"{got:.2f} over the counter"
                 + (" with the office rate in hand" if favoured else ""))
             checked += 1
         assert checked >= 6, checked
-        return f"{checked} deals, board and counter agreeing on every one"
+        return (f"{checked} deals, board and counter agreeing on the price of every one")
 
     @check("a favour granted for one deal is actually recorded")
     def _():
@@ -173,6 +179,68 @@ def run(suite: Suite) -> None:
         return (f"one deal, and the counter goes back to what anyone else "
                 f"pays ({unfavoured}); the office rate cut it to "
                 f"{posted - 4} for exactly one purchase")
+
+    @check("the price columns on the screen are the ones the counter reads")
+    def _():
+        # **The third door, and this suite missed it for as long as it has
+        # existed.** Everything above compares `quote_buy`/`quote_sell` against
+        # the till. The market grid on the port screen was not asking either of
+        # them: it called `world.economy.buy_price` directly, so it carried
+        # neither the grudge bias nor the office rate — and the comment forty
+        # lines above it said "now it is in the quote, and the board says so".
+        #
+        # Measured with a quiet price in hand: the grid printed 36 and 29 while
+        # the counter charged 32 and paid 33. A check that reads the helper can
+        # never see this; it has to read the rendered screen.
+        from .test_ui import _use_offscreen
+        _use_offscreen()
+        from PyQt6.QtWidgets import QApplication, QLabel
+        from ..data.commodities import COMMODITIES
+        from ..ui.window import MainWindow
+
+        app = QApplication.instance() or QApplication([])
+        assert app is not None
+        game, system = _at_a_quay("columns")
+        officials.ask(game, system, "quiet_price", False)
+        win = MainWindow(game)
+        win.toast = lambda *a, **k: None
+        win.go("port")
+        view = win.views["port"]
+        view.tab = "market"
+        view.refresh()
+        for _ in range(3):
+            app.processEvents()
+
+        # The grid is laid out by name in column 0, buy in 1, sell in 2 — so
+        # the row is found by the commodity's name rather than by counting.
+        printed = {}
+        for good in COMMODITIES:
+            row = [lab for lab in view.findChildren(QLabel)
+                   if lab.text() == good.name]
+            if not row:
+                continue
+            grid = row[0].parentWidget().layout()
+            at = grid.indexOf(row[0])
+            r, c, _, _ = grid.getItemPosition(at)
+            printed[good.id] = tuple(
+                grid.itemAtPosition(r, col).widget().text() for col in (1, 2))
+        win.close()
+        assert printed, "the market grid printed no rows at all"
+
+        from ..core.util import credits as cr
+        checked = 0
+        for cid, (shown_buy, shown_sell) in printed.items():
+            for shown, quoted in ((shown_buy, market.quote_buy(game, system, cid)),
+                                  (shown_sell, market.quote_sell(game, system, cid))):
+                if shown == "—":
+                    continue
+                assert shown == cr(quoted), (
+                    f"{cid}: the screen prints {shown} and the counter reads "
+                    f"{cr(quoted)} — with the office rate in hand")
+                checked += 1
+        assert checked >= 10, checked
+        return (f"{checked} price columns across {len(printed)} goods, every one "
+                "the figure the till reads, office rate included")
 
     @check("the desk and the board both say it is in hand")
     def _():

@@ -207,6 +207,7 @@ def voyage(game, run, tonnes: float | None = None) -> dict:
     """
     from .actions import jump_quote
     from .ship import cargo_free
+    from . import wharfage as wharfage_sim
 
     target = game.galaxy.systems[run.target_id]
     quote = jump_quote(game, target)
@@ -216,9 +217,20 @@ def voyage(game, run, tonnes: float | None = None) -> dict:
         fuel_price = buy_price(game.system.market, "volatiles", 0, 0) or 0
 
     room = cargo_free(game.ship, game.ship_stats)
-    afford = int(game.credits // run.buy_here) if run.buy_here else 0
+    afford = (int(game.credits // wharfage_sim.unit_cost(
+        game, game.system, run.buy_here)) if run.buy_here else 0)
+    # And what the port actually has on the quay. **Measured: 12 of 15
+    # recommended runs forecast more tonnage than the port held, the worst by
+    # 2.7×** — a desk quoting a 287-tonne voyage out of a berth holding 59. It
+    # mattered twice over: the figures on the card were unloadable, and
+    # `worth_flying` ranks by `net`, which scales with tonnage, so runs were
+    # ordered by cargo that did not exist. `trade.buy` has always capped at the
+    # stock; this is the same number, read at forecast time.
+    stocked = 0.0
+    if game.system.market and run.commodity in game.system.market.stock:
+        stocked = game.system.market.stock[run.commodity].units
     if tonnes is None:
-        tonnes = max(0.0, min(room, afford))
+        tonnes = max(0.0, min(room, afford, stocked))
 
     outlay = run.buy_here * tonnes
     fuel = fuel_t * fuel_price
@@ -227,10 +239,17 @@ def voyage(game, run, tonnes: float | None = None) -> dict:
     # every run the harbourmaster described look like a loss and emptied the
     # desk. What is uncertain is the margin, not whether they pay you.
     expected = run.margin * run.confidence * tonnes
+    # A quay takes its cut at both ends of a run, and a desk that forecast the
+    # spread and the fuel and not the wharfage would be quoting a number the
+    # counter cannot pay. Both ends are asked of `sim/wharfage.py` — the same
+    # function that takes the money — and the far end is asked about the port
+    # the run actually points at, not this one.
+    dues = (wharfage_sim.due_on(game, game.system, run.buy_here * tonnes)
+            + wharfage_sim.due_on(game, target, run.pays * tonnes))
     return {"tonnes": tonnes, "outlay": round(outlay), "fuel": round(fuel),
             "days": quote["days"], "fuel_t": fuel_t,
-            "takings": round(run.pays * tonnes),
-            "net": round(expected - fuel),
+            "takings": round(run.pays * tonnes), "dues": dues,
+            "net": round(expected - fuel - dues),
             "in_range": quote["in_range"]}
 
 

@@ -19,6 +19,7 @@ from . import freight_panel
 from . import register_panel
 from ..sim import intel as intel_sim
 from ..sim import market as market_sim
+from ..sim import wharfage as wharfage_sim
 from .berths_panel import BerthsMixin
 from ..sim.fieldwork import buy_field_notes, xeno_notes_price
 from ..sim import xeno as xeno_sim
@@ -130,6 +131,15 @@ class PortView(BerthsMixin, View):
                 "These are office rates rather than posted prices.", "",
                 "chloro", wrap=True))
 
+        # What the quay takes for being the quay. Named, never silent: the whole
+        # point of `sim/wharfage.py` is that the figure the board gives here is
+        # the figure the counter charges.
+        toll = wharfage_sim.line(g, sys)
+        if toll:
+            self.col.addWidget(label(
+                toll, "", "dim" if wharfage_sim.holder(g, sys) is None
+                else "lumen", wrap=True))
+
         news = register_panel.local_news(g, sys)
         if news is not None:
             self.col.addWidget(news)
@@ -150,9 +160,14 @@ class PortView(BerthsMixin, View):
             # Yards station for a receipt, which is the exact thing the
             # boarding party is there to stop.
             banned = customs_sim.outlaws(sys.port.faction, c.id)
-            bp = buy_price(m, c.id, rep, g.ship_stats.trade)
-            sp = (None if banned
-                  else sell_price(m, c.id, rep, g.ship_stats.trade))
+            # `quote_buy`, not `buy_price`. These two columns were the third
+            # door onto a price: the till asks the quote helper, which carries
+            # the grudge bias and the office rate, and this grid asked the raw
+            # market. Measured with a quiet price in hand — the board said 36
+            # and 29, the counter charged 32 and paid 33, and the comment forty
+            # lines up claimed the board said so.
+            bp = market_sim.quote_buy(g, sys, c.id)
+            sp = None if banned else market_sim.quote_sell(g, sys, c.id)
             held = g.ship.cargo.get(c.id, 0)
             if bp is None and held <= 0:
                 continue
@@ -219,6 +234,9 @@ class PortView(BerthsMixin, View):
         if not res["ok"]:
             self.win.toast(res["why"], "warn")
             return
+        if res["due"]:
+            self.win.toast(f"{cr(res['paid'])} for the cargo and "
+                           f"{cr(res['due'])} to the quay.", "osteo")
         self.win.refresh()
 
     def _sell(self, cid: str, units: int) -> None:
@@ -229,6 +247,10 @@ class PortView(BerthsMixin, View):
         if res["logged"]:
             self.win.toast("They took it. They also logged who sold it.",
                            "osteo")
+        elif res["due"]:
+            self.win.toast(f"{cr(res['took'])} over the counter, less "
+                           f"{cr(res['due'])} wharfage — {cr(res['net'])} "
+                           "clear.", "osteo")
         self.win.refresh()
 
     # ── contracts ──────────────────────────────────────────────────────────

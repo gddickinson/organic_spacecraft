@@ -2,6 +2,82 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: the quay takes its cut, and a third door onto a price (#100)
+
+The purse cycle wired the powers to the sector's own trade and deliberately left
+the captain's out. A captain could make a fortune over the counter at a Fleet Hub
+the Charter built, maintains and pays upkeep on, and **not one credit reached the
+Charter.** So: wharfage, the oldest charge in shipping — a share of the value
+crossing the quay, taken by whoever holds it, in and out.
+
+Three things move it, and each one is a decision the player already makes.
+**The size of the berth**: an outpost takes 2%, a station 2.5%, a Fleet Hub 3%,
+so "where do I trade" stops being "wherever the spread is widest". **What they
+think of you**: full relief arrives with the Kin band at 70 regard, and the
+Kin-to-Hunted spread is **a factor of four** — standing has always bought a
+better price, and it buys a smaller cut now as well. **Whose quay it is**: a free
+port is free. Nobody takes anything at an independent freehold or at a Free Port
+of your own, which is `exchequer.holdings`' existing rule read from the other
+side, and it gives the sector's seven independents a reason to exist on a trade
+route.
+
+Nothing crosses the quay in three cases and none of them pays: contraband sold
+off the books (the smuggler's edge, in money, for the first time), survey sets —
+task #66 records that surveying is already break-even and this would have tipped
+it — and services, which are bought *from* a port rather than shipped through it.
+
+**Measured before it was tuned, because "a small rate" is not the same as "a
+small change".** A decade of one chronicle: 272 deals, **799,533 across the
+counter, 18,359 in dues**, and by the end **41% of everything the Charter held
+had come off the captain**. Then the number that actually matters — over the runs
+the freight desk itself recommends, the two quays take **11% of what a run
+clears**, 10% loading at an outpost against 12% at a station. Felt, and not
+punitive.
+
+**A third door onto a price, in a screen a suite exists to guard.** `test_counter`
+was written for exactly this defect and its docstring says so: *"a screen that
+quotes one number and charges another is the defect this project keeps finding."*
+It sweeps `market.quote_buy` against the till. But the market grid on the port
+screen was asking neither — it called `world.economy.buy_price` directly, so it
+carried neither the grudge bias nor the office rate, **while the comment forty
+lines above it claimed "now it is in the quote, and the board says so"**. Measured
+with a quiet price in hand: the grid printed 36 and 29 while the counter charged
+32 and paid 33. A check that reads the helper can never see this, so the new one
+reads the labels out of the rendered grid — and it fails the moment the old call
+is put back.
+
+**And the desk was quoting voyages nobody could load.** `freight.voyage` sized a
+run by the hold and by the purse and never by the stock on the quay: **12 of 15
+recommended runs forecast more tonnage than the port held, the worst by 2.7× — a
+287-tonne voyage out of a berth holding 59.** Wrong twice over, because
+`worth_flying` ranks by `net` and `net` scales with tonnage, so the ordering was
+decided by cargo that did not exist. `trade.buy` has always capped at all three.
+
+**Two more forecasts owned up on their own**, both caught by checks that were
+already there, which is the best kind of afternoon:
+
+- The freight desk's card quoted the spread and the fuel and would have left the
+  wharfage out — so `voyage` asks `wharfage.due_on` about *both* quays, the far
+  one about the port the run actually points at, and the card reads
+  "₡54,230 out, ₡140 of mass, ₡3,121 in dues at both quays".
+- A cargo contract's card under-quoted sourcing by 542 on 16,640 (`test_cargo`,
+  3.3% against its 2% tolerance). `cargo_cost` already split neutral generation
+  from the player's quote — a fee cannot depend on who reads the board — and the
+  due depends on standing, so it goes on the same side of that split.
+
+`trade.buy` sizes the purchase against price *plus* due now. A hold filled to the
+last credit of the posted price and then unable to pay the charge is the same
+defect as an approach ordering burns it has no mass for, and there is a check
+that holds a purse containing exactly twenty tonnes and watches it buy nineteen.
+
+Nine deliberate breakages, nine caught by the check that should catch each one:
+the rate zeroed, the due credited to nobody, the board's sentence deleted, your
+own Free Port charged like anyone's, the desk forgetting the far quay, the
+purchase sized on the posted price again, the stock cap removed, relief switched
+off, the port ladder flattened.
+
+Twelve new checks, 948 across the suite, all green.
+
 ## 2026-07-30 — SEEDFALL: two true claims that contradicted each other (#87)
 
 `Lesson.skip_if` — "a watcher that means this is already true" — has been declared

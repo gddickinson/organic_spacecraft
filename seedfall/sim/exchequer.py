@@ -66,6 +66,10 @@ class Purse:
     works: int = 0
     #: Steps given up, which is the same question from the other end.
     losses: int = 0
+    #: Wharfage taken off the captain's own trade at this power's berths — the
+    #: one line on the ledger the player put there personally. See
+    #: `sim/wharfage.py`; shown on the purse panel.
+    dues: float = 0.0
 
 
 @register
@@ -431,6 +435,7 @@ def ledger(game) -> list[dict]:
             "works": p.works,
             "losses": p.losses,
             "ventures": p.ventures,
+            "dues": p.dues,
             "next": _next_work(game, power, p),
         })
     out.sort(key=lambda row: -row["credits"])

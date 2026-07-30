@@ -80,6 +80,10 @@ def run(suite: Suite) -> None:
     def _():
         # The defect this project keeps finding: a screen quoting one number
         # and the ledger using another. One helper feeds both.
+        #
+        # The quay's own cut is netted out: the claim here is that a power's
+        # memory of you moves the *price*, and `sim/wharfage.py` charges its
+        # share on top of it. `test_wharfage` owns the due.
         game, port = _at_port("grudge-till")
         grudge_sim.note(game, port.port.faction, "betrayal",
                         "you ran our blockade at Kessel Gate", 1.4)
@@ -89,7 +93,7 @@ def run(suite: Suite) -> None:
         before = game.credits
         result = trade_sim.buy(game, cid, 4)
         assert result["ok"], result.get("why")
-        paid = (before - game.credits) / result["units"]
+        paid = (before - game.credits - result["due"]) / result["units"]
         assert abs(paid - quoted) < 0.51, (
             f"quoted {quoted}, charged {paid:.1f} each")
 
@@ -97,7 +101,7 @@ def run(suite: Suite) -> None:
         before = game.credits
         sold = trade_sim.sell(game, cid, result["units"])
         assert sold["ok"], sold.get("why")
-        took = (game.credits - before) / sold["units"]
+        took = (game.credits - before + sold["due"]) / sold["units"]
         assert abs(took - got_quote) < 0.51, (
             f"quoted {got_quote}, paid {took:.1f} each")
         return f"buying and selling {cid} both matched the quote to the credit"
