@@ -2,6 +2,36 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: five of six cameras were lying (#79)
+
+Flew a real approach — helm to the body, `berthing.begin`, then the flight
+computer down from 12 km — and rendered the conn's six feeds as one contact
+sheet at 998 m. The Fleet Hub is a proper structure by then: masts, rings,
+docking arms, an amber-lit cap, filling the fore view. Good.
+
+**And all six feeds carried a dashed bracket labelled "Fleet Hub · 998 m" in
+the middle of the frame.** The hub is in one of them. On the dorsal camera the
+bracket sat on top of a planet and named it as the quay.
+
+`render3d.project` returns None for a direction behind the lens, and the
+bracket fell back to the centre of the frame when it did. Every number on
+every feed was correct; five of the six pictures were a lie about direction.
+There is no figure that could have caught this — only the picture.
+
+Checked the two things that looked wrong and were not, before touching them:
+the hub is dim because it orbits an M dwarf and `Viewport.glare` reads
+`star_lum` (0.04 → a glare of 0.55, against an A-type's 22); and the target is
+excluded from `sky.build` on purpose, because it is drawn at the origin of the
+approach's own frame by `_target`.
+
+`tests/test_reticle.py`, all three claims read off pixels. The third one took
+two goes: the first draft compared the bracket against the centroid of every
+lit pixel — the bracket's own included, which drags the target toward it — and
+did it on a bow-on approach where the target projects 10 px from the middle of
+the frame. "Nailed to the centre" and "on the target" are the same picture
+there. Measured 30° off the bore, where they differ by 69 px, with the
+bracket's pixels excluded: three of three mutations caught.
+
 ## 2026-07-30 — SEEDFALL: a tactical station open before anybody shoots (#104)
 
 Measured on a fresh chronicle with nothing shooting:

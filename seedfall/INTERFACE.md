@@ -398,6 +398,26 @@ Wiring it up surfaced two more, both from playing:
   quadratic, the most dangerous approaches were precisely the ones escaping.
   `_sweep_min` tests the whole path now, not its endpoints.
 
+**A reticle may only be drawn where it lands.** Found by rendering the conn's
+six camera feeds as one contact sheet, a kilometre off a Fleet Hub, and
+looking at it: the quay was in the fore view and in no other, and **all six
+feeds carried a dashed bracket labelled "Fleet Hub · 998 m" in the middle of
+the frame**. On the dorsal camera the bracket sat on top of a planet and named
+it as the quay. `render3d.project` returns None for a direction behind the
+lens, and `Viewport._target` fell back to the centre of the frame when it did.
+
+No figure could have found this. Every number on every feed was right — the
+range was 998 m and the target was Fleet Hub — and five of the six *pictures*
+were a lie about where it was.
+
+`tests/test_reticle.py` holds it, entirely off rendered pixels, and its own
+third check needed two goes: the first draft measured the bracket against the
+centroid of every lit pixel *including the bracket's own*, and did it on a
+bow-on approach where the target projects 10 px from the middle of the frame —
+so "nailed to the centre" and "on the target" were the same picture. Measured
+with the nose 30° off, where they part company at 79 px, and with the
+bracket's own pixels excluded, all three mutations are caught.
+
 **A tactical station that is open before anybody shoots.** Measured on a
 fresh chronicle: the battle screen outside an engagement was two labels — *No
 engagement / Nothing is shooting at you* — and a Back button; the gunner's
@@ -3910,6 +3930,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that
   no course is plotted through a star.
+- **`test_reticle.py`** is three pixel-read claims about the target bracket:
+  it appears on one feed of six and it is the one the quay is in; it follows
+  the geometry rather than the name of a camera (nose 90° round and it leaves
+  the bow); and it sits on the target rather than in the middle of the frame,
+  measured 30° off the bore where those two differ by 69 px.
+
 - **`test_readiness.py`** holds the tactical station to seven claims, all
   seven mutation-tested. The rehearsal is the fight's own arithmetic; a
   hundred reports cost no heat, no cargo, no hull and no luck; the window

@@ -403,10 +403,22 @@ class Viewport(QWidget):
 
         if self.compact:
             return
-        sx, sy = w * 0.5, h * 0.5
+        # **Only on the camera that can actually see it.** `project` returns
+        # None for a direction behind the lens, and this used to fall back to
+        # the centre of the frame — so berthing a hull at 998 m drew a dashed
+        # bracket labelled "Fleet Hub · 998 m" in the middle of *all six*
+        # feeds, with the hub visible in exactly one of them. On the dorsal
+        # camera the bracket sat on top of a planet and named it as the quay.
+        #
+        # Found by rendering the six feeds as a contact sheet and looking at
+        # it. No figure could have shown it: every number on every feed was
+        # right, and five of the six pictures were a lie about where the thing
+        # was. A reticle is a claim about direction, so it may only be drawn
+        # where the direction lands.
         toward = project(_unit([-c for c in conn.pos]), cam, w, h)
-        if toward is not None:
-            sx, sy = toward[0], toward[1]
+        if toward is None:
+            return
+        sx, sy = toward[0], toward[1]
         # A bracket and the range, so the main screen is readable on its own.
         box = max(radius + 14, 18)
         p.setBrush(Qt.BrushStyle.NoBrush)
