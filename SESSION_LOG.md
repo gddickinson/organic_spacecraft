@@ -2,6 +2,63 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: an ability that made armour out of nothing, for ever (#combat)
+
+Another zero from the tally: `combat.use_ability` fired **not once** across
+seventy engagements in a played decade. Seven fitted parts grant six abilities and
+nothing had ever driven the module end to end, so I read it — and the project's two
+standing questions found a fault each.
+
+**Is it bounded?** No. `seal` was one line: `side.st.armour += 4`, on a four-turn
+cooldown, with no other rule anywhere. A captain who pressed it whenever it came
+up went **2 → 34 armour over eight firings**, and 43 over a long engagement, with
+no ceiling of any kind. And the opening NAVIS carries `sphincter_seal`, so this
+was available in a captain's first fight.
+
+Its own sentence is the fix: it "irises its bulkheads shut and **gives up the
+breached compartment**". That presupposes a breach, and it is finite — a hull has
+six layers and can only give up the ones it can afford to lose. So the seal now
+needs a layer holed through, spends that layer (`Side.sealed` records it, and the
+same compartment cannot be sold twice), and never touches the pressure vessel,
+because you cannot iris off the compartment the crew is breathing. Measured: five
+compartments of six for **+20 armour**, and the next eight presses buy nothing.
+On a whole hull it refuses, and says why — *"this seals a hole, it does not make
+armour."*
+
+**Does the screen say what it will do?** No. The button showed the part's flavour
+text and a cooldown — on a panel where every helm order prints its consequence and
+the hail now names its odds. `abilities.preview` is the door, `use_ability` asks it
+and then does what it said, and the systems row reads "gives up Sacrificial
+Epidermis · armour 2 → 6", "heat 62 → 17", "Melanised Rind +13", "their fire
+control blind, 2 turns".
+
+**And a third, found while wiring the door.** The cooldown was set *before*
+anything was decided, so pressing a seal on an undamaged hull put it out of action
+for four turns and returned quietly — the gate and the act disagreeing about
+whether anything had happened. It only spends the cooldown if it fires now.
+
+Honest about what I could not show: at the difficulties this harness fights,
+**the player takes no hull damage at all**, so the seal exploit is latent rather
+than decisive today — I could not demonstrate it winning a fight it would have
+lost. It is fixed as a correctness matter, with the 2→34 measurement as the
+evidence, and the note that a *player* pressing it deliberately is who it
+mattered for.
+
+Two mutations taught me something about the checks. Dropping the `critical` guard
+survived at first, because holing only the *losable* layers leaves an intact
+pressure vessel that the hp test skips anyway — the guard only bites on a hull
+open all the way through, which is exactly when giving up the crew's compartment
+would kill them. And one refusal masked another: with a single hole to seal, the
+next press is refused for having no compartment left rather than for the cooldown,
+so the check was reading the wrong reason and had to hole two.
+
+Seven deliberate breakages, seven caught: the seal unbounded again, the pressure
+vessel irised off, the same compartment sold twice, the cooldown burnt on a
+refusal, the forecast quoting a different figure, the screen's rows removed, and
+an ability that fires and does nothing.
+
+Six new checks, 979 across the suite, all green.
+
 ## 2026-07-30 — SEEDFALL: the walk back to the lander had never been costed
 
 Two zeros left in the tally of what a played decade reaches, and this pair told a

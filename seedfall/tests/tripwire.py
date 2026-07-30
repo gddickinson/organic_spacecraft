@@ -140,6 +140,7 @@ KIN = {
     "traffic": ("traffic",), "anchorage": ("anchorage",),
     "doctrine": ("doctrine",), "firing": ("firing", "gunnery"),
     "tactical": ("gunnery", "combat"), "combat": ("seatwork", "combat", "gunnery"),
+    "abilities": ("abilities", "combat"),
     "encounters": ("magazine",),
     "parley": ("parley", "combat"),
     "stations": ("routing", "orderplan", "seatwork"),

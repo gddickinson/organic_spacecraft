@@ -1924,6 +1924,8 @@ seedfall/
     │                   and then measured by hailing four hundred times
     ├── test_wayhome.py 8 checks — the walk back to the lander, priced against
     │                   what walking it spends
+    ├── test_abilities.py 6 checks — every bridge ability fires, is bounded,
+    │                   and says what it will do
     ├── test_wharfage.py 10 checks — the due on your own trade: conserved,
     │                   named on the board, waived at a free port, priced by
     │                   standing and by the size of the berth
@@ -2492,6 +2494,18 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   is worth something — at the same margin, a leader reading the costed walk
   returned 15 parties of 24 and stranded 5, where one counting tiles returned 9
   and stranded 11.
+- **`abilities.preview` is the door, and `seal` is bounded.** Six abilities are
+  granted by seven fitted parts, and a played decade of seventy engagements fired
+  **none of them**, so nothing had driven the module end to end. Reading it for
+  that reason found `seal` doing `st.armour += 4` on a four-turn cooldown with no
+  other rule: **2 armour to 34 over eight firings**, 43 over a long engagement,
+  unbounded — on a part the opening NAVIS carries. Its own sentence says it "gives
+  up the breached compartment", which presupposes a breach and is finite, so it
+  now needs a holed layer, spends it, and never touches the pressure vessel: five
+  compartments of six for +20 and then nothing. `use_ability` asks `preview` and
+  **only spends the cooldown if it fires** — it used to set the cooldown before
+  deciding anything, so an ability that could do nothing still went out of action
+  for four turns and returned quietly.
 - **A consort is a `Side`.** `sim/consorts.py` subclasses it, so `_fire`,
   `_apply_to_layers` and the arc checks work on one without changes. What that
   buys is also the constraint: anything that assumes a battle has exactly two

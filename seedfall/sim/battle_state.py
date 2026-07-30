@@ -29,6 +29,9 @@ class Side:
     interpose: int = 0
     braced: bool = False
     cd: dict = field(default_factory=dict)
+    #: Compartments given up to `abilities.seal`, by layer name. This is what
+    #: bounds it: each layer can be irised off once, so the armour it buys stops.
+    sealed: list = field(default_factory=list)
     dealt: float = 0.0
     taken: float = 0.0
 

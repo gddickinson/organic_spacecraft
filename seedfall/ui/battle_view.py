@@ -15,6 +15,7 @@ from ..core.util import num, pct
 from ..data.chassis import CHASSIS_BY_ID
 from ..data.factions import FACTIONS_BY_ID
 from ..data.part_types import BANDS
+from ..sim import abilities as abilities_sim
 from ..sim import aftermath as aftermath_sim
 from ..sim import stations as st_mod
 from ..sim import tactical as tac
@@ -282,15 +283,30 @@ class BattleView(View):
             ah = QHBoxLayout(ab_row)
             ah.setContentsMargins(0, 0, 0, 0)
             ah.setSpacing(6)
+            told = {}
             for part_ in st.abilities:
                 ab = part_.ability
                 cd = b.player.cd.get(ab.id, 0)
+                # Through `abilities.preview`, which is what `use_ability` reads.
+                # The button used to offer the part's flavour text and a cooldown
+                # — the one control on this panel with a permanent effect on the
+                # hull, and the only one that named no number.
+                say = abilities_sim.preview(b, b.player, ab.id)
+                told[ab.id] = say
                 ah.addWidget(button(f"{ab.name}" + (f" ({cd})" if cd else ""),
                                     lambda _=False, aid=ab.id: self._act(
                                         {"type": "ability", "id": aid}),
-                                    tip=part_.blurb, enabled=cd == 0))
+                                    tip=(part_.blurb + "  "
+                                         + (" · ".join(say["lines"]) if say["can"]
+                                            else say["why"])),
+                                    enabled=say["can"]))
             ah.addStretch(1)
             p.add(ab_row)
+            for aid, say in told.items():
+                if say["can"]:
+                    p.add_row(say["name"], " · ".join(say["lines"]), "chloro")
+                else:
+                    p.add_row(say["name"], say["why"], "dim")
 
         p.add(spacer(4), mono_label("Stations — you may take one this turn"))
         p.add(note("The officers hold the other two at their own level, which is "
