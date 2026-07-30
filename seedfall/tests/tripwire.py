@@ -152,7 +152,7 @@ KIN = {
     "contracts": ("postings", "missions", "cargo"),
     "chains": ("missions",),
     "expedition": ("landing", "ground", "wayhome"), "weather": ("ground",),
-    "territory": ("territory",), "allegiance": ("allegiance",),
+    "territory": ("territory", "levy"), "allegiance": ("allegiance",),
     "charts": ("charting", "charts"), "notes": ("notes",),
     "freight": ("freight",),
     "market": ("trade",), "economy": ("trade",), "commodities": ("trade",),

@@ -70,6 +70,11 @@ class Purse:
     #: one line on the ledger the player put there personally. See
     #: `sim/wharfage.py`; shown on the purse panel.
     dues: float = 0.0
+    #: Levies taken off the captain's own holdings on ground this power claims.
+    #: The other line the player puts here personally — see
+    #: `territory.collect_tithe`, which credited nobody at all until it was
+    #: measured: thirty per cent off a colony's output, vanishing.
+    levies: float = 0.0
 
 
 @register
@@ -436,6 +441,7 @@ def ledger(game) -> list[dict]:
             "losses": p.losses,
             "ventures": p.ventures,
             "dues": p.dues,
+            "levies": p.levies,
             "next": _next_work(game, power, p),
         })
     out.sort(key=lambda row: -row["credits"])

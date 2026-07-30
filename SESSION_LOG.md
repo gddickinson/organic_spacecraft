@@ -2,6 +2,56 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: a third of a colony's output, going nowhere (#politics)
+
+Two more zeros from the tally — `territory.answer` and `territory.collect_tithe`
+never fired in a played decade — and chasing the second one down found something
+the first was only hiding.
+
+`collect_tithe` skims the levy off a holding's output before it reaches the
+captain's stores. `colony.tick` called it like this:
+
+    territory.collect_tithe(game, col, produced, days)
+
+**and threw the return away.** Measured on a RADIX Mine yielding 2.6 t of ore a
+day: over thirty days the works turned out 78 t, the captain received **54.6** —
+and the Charter's purse moved by **nothing at all**. No log line, no event, nobody
+the richer. Thirty per cent of a holding, every month, simply ceasing to exist.
+
+Both halves of that are rules this project has written down twice already. A share
+taken off somebody is a share somebody else receives: `wharfage.collect` moves
+both sides in one function for exactly this reason, and task #95 was a whole cycle
+about powers who paid for nothing. And a deduction the captain cannot see is not a
+cost, it is a mystery — task #100's whole point is that the harbour due is named on
+the board, in the log, and on the desk's forecast.
+
+So the levy lands in `Purse.levies`, beside the wharfage on the same panel, and
+the clock writes: *"Charter took the levy off RADIX Mine · Mereth's Hollow I —
+35.1 t ore, 1.5 t phosphate, worth about 1,089."* In warn tint, because a power
+taking a third of your output is not neutral news.
+
+**And there was a quieter third thing.** The demand screen has always quoted "a
+levy would cost X a year", worked out as `base × 0.55` inside
+`territory.yearly_worth` — a forecast with **no act behind it to be wrong
+against**, since the levy credited nobody. Both read `territory.value_of` now, and
+the quote turns out exact: **8,829 quoted for the year against a year that took
+8,829**, to the credit. That is the first time that number has meant anything.
+
+Checked by playing: the goods that leave equal the credits that arrive; the clock
+really carries the line (not merely `colony.tick`'s return — a returned event
+nobody logs is the same silence in a different place, so the check drives
+`advance_days`); a defiant holding is skimmed for nothing and told nothing; and a
+ceded holding pays nothing because it is not yours to levy.
+
+Seven deliberate breakages, seven caught — the levy paying nobody again, the
+return thrown away again, the goods left off the notice, the quote drifting from
+the act, a defiant holding skimmed anyway, the purse panel's line dropped, and the
+share halved without the quote noticing. My first attempt at the fourth was a
+no-op — I added an unused constant and called it a mutation, which proved nothing
+until I broke the shared door properly.
+
+Five new checks, 984 across the suite, all green.
+
 ## 2026-07-30 — SEEDFALL: an ability that made armour out of nothing, for ever (#combat)
 
 Another zero from the tally: `combat.use_ability` fired **not once** across

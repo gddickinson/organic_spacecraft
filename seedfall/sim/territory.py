@@ -15,7 +15,8 @@ from dataclasses import dataclass
 
 from ..core.save import register
 from ..data.factions import FACTIONS_BY_ID
-from ..data.territory import ANSWERS_BY_ID, LEVY_SHARE, TRESPASS, UNWELCOME
+from ..data.territory import (ANSWERS_BY_ID, LEVY_SHARE, LEVY_VALUE,
+                              TRESPASS, UNWELCOME)
 from . import allegiance
 from . import loyalty
 
@@ -106,16 +107,28 @@ def confront(game, system, power: str) -> dict | None:
             "worth": sum(yearly_worth(game, c) for c in held)}
 
 
+def value_of(goods: dict) -> float:
+    """What a parcel of levied goods is worth to whoever takes it, in credits.
+
+    **The one door**, so the figure the demand screen quotes for a levy and the
+    figure that lands in the claimant's purse are the same arithmetic. They were
+    not: the screen priced a year at `base × 0.55` and the levy itself credited
+    nobody anything, so there was no act for the forecast to be checked against.
+    """
+    from ..data.commodities import BY_ID
+    total = 0.0
+    for cid, amount in goods.items():
+        good = BY_ID.get(cid)
+        if good:
+            total += amount * good.base * LEVY_VALUE
+    return total
+
+
 def yearly_worth(game, colony) -> float:
     """Roughly what a holding turns out in a year, in credits."""
     from . import works as works_sim
-    from ..data.commodities import BY_ID
-    total = 0.0
-    for cid, rate in works_sim.yields_of(colony).items():
-        good = BY_ID.get(cid)
-        if good:
-            total += rate * 365 * good.base * 0.55
-    return total
+    return value_of({cid: rate * 365
+                     for cid, rate in works_sim.yields_of(colony).items()})
 
 
 def answer(game, system, power: str, choice: str) -> dict:
@@ -170,7 +183,21 @@ def answer(game, system, power: str, choice: str) -> dict:
 # ── living with the answer ─────────────────────────────────────────────────
 
 def collect_tithe(game, colony, gains: dict, days: float) -> dict:
-    """Skim the levy off a holding's output before it reaches your stores."""
+    """Skim the levy off a holding's output, and pay it to whoever claimed it.
+
+    **It used to skim and stop there.** Measured on a RADIX Mine yielding 2.6 t
+    of ore a day: over thirty days the works turned out 78 t, the captain
+    received 54.6 — and the Charter's purse moved by **nothing at all**. The
+    thirty per cent simply ceased to exist, unremarked: no log line, no event,
+    nobody the richer. `colony.tick` called this and threw the return away.
+
+    Two rules, both of which the game applies everywhere else. A share taken off
+    somebody is a share somebody else receives — `wharfage.collect` moves both
+    sides in one function for exactly this reason — and a deduction the player
+    cannot see is not a cost, it is a mystery.
+    """
+    from . import exchequer as exchequer_sim
+
     power = getattr(colony, "tithe_to", None)
     if not power or not gains:
         return {}
@@ -181,7 +208,21 @@ def collect_tithe(game, colony, gains: dict, days: float) -> dict:
             continue
         gains[cid] = amount - share
         taken[cid] = share
-    return taken
+    if not taken:
+        return {}
+    worth = value_of(taken)
+    if power in dip_powers():
+        purse = exchequer_sim.purse(game, power)
+        purse.credits += worth
+        purse.levies += worth
+    return {"goods": taken, "worth": worth, "power": power,
+            "colony": colony.name}
+
+
+def dip_powers():
+    """The powers that keep a purse. A claim by anyone else takes goods only."""
+    from . import diplomacy as dip
+    return dip.POWERS
 
 
 def seizures(game, days: float, rng) -> list:

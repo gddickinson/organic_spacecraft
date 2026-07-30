@@ -1926,6 +1926,8 @@ seedfall/
     │                   what walking it spends
     ├── test_abilities.py 6 checks — every bridge ability fires, is bounded,
     │                   and says what it will do
+    ├── test_levy.py    5 checks — the levy on a holding: taken, received,
+    │                   and said out loud
     ├── test_wharfage.py 10 checks — the due on your own trade: conserved,
     │                   named on the board, waived at a free port, priced by
     │                   standing and by the size of the berth
@@ -2494,6 +2496,19 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   is worth something — at the same margin, a leader reading the costed walk
   returned 15 parties of 24 and stranded 5, where one counting tiles returned 9
   and stranded 11.
+- **A levy reaches the power that claimed the ground, and the captain hears about
+  it.** `territory.collect_tithe` skimmed thirty per cent off a holding's output
+  and `colony.tick` **threw its return away**: measured on a RADIX Mine turning out
+  2.6 t of ore a day, thirty days produced 78 t, the captain received 54.6, and the
+  Charter's purse moved by **nothing**. No log line, nobody the richer. It credits
+  `Purse.levies` now and the clock writes "Charter took the levy off RADIX Mine —
+  35.1 t ore, 1.5 t phosphate, worth about 1,089". Both halves are rules the game
+  applies elsewhere: `wharfage.collect` moves both sides in one function, and #100
+  exists so a deduction is never silent.
+  The demand screen has always quoted "a levy would cost X a year" off a bare 0.55
+  inside `yearly_worth` — with nothing receiving the levy there was no act for that
+  forecast to be wrong against. `territory.value_of` is the one door now and the
+  quote is exact: **8,829 a year against a year that took 8,829**.
 - **`abilities.preview` is the door, and `seal` is bounded.** Six abilities are
   granted by seven fitted parts, and a played decade of seventy engagements fired
   **none of them**, so nothing had driven the module end to end. Reading it for

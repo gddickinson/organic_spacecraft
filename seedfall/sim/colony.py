@@ -218,8 +218,18 @@ def tick(game, days: float) -> tuple[dict, list]:
 
         produced = {key: n * days for key, n in works.yields_of(col).items()}
         # A power that annexed the ground takes its share off the top, before
-        # any of it reaches your stores.
-        territory.collect_tithe(game, col, produced, days)
+        # any of it reaches your stores — **and it is said out loud.** The return
+        # here used to be thrown away, so thirty per cent of a holding's output
+        # disappeared with no line in the log and nobody the richer for it.
+        levied = territory.collect_tithe(game, col, produced, days)
+        if levied:
+            short = FACTIONS_BY_ID[levied["power"]].short \
+                if levied["power"] in FACTIONS_BY_ID else levied["power"]
+            what = ", ".join(f"{amount:.1f} t {cid}"
+                             for cid, amount in sorted(levied["goods"].items()))
+            events.append(("warn", f"{short} took the levy off {col.name} — "
+                                   f"{what}, worth about "
+                                   f"{round(levied['worth']):,}."))
         for key, amount in produced.items():
             if key == "credits":
                 game.credits += amount

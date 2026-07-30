@@ -23,7 +23,8 @@ def build(game) -> Panel:
                "pays for itself and no more. A surplus gets built with. A "
                "deficit has to give something up. Your own trade is on this "
                "ledger too: whoever holds the quay takes a share of every deal "
-               "you make over it."))
+               "you make over it. A levy on a holding of yours inside their space "
+               "is the other."))
     p.add_row("Berths in the sector",
               f"{total['ports']} · {total['levels']} levels between them")
     p.add_row("Built since you started",
@@ -50,6 +51,9 @@ def build(game) -> Panel:
         if row["dues"]:
             # The one line on this ledger the captain put there personally.
             p.add_row("Wharfage off you", cr(row["dues"]), "lumen")
+        if row["levies"]:
+            # And the other: a levy on a holding of yours, on ground they claim.
+            p.add_row("Levies off your ground", cr(row["levies"]), "lumen")
         p.add_row("Has paid for",
                   f"{row['works']} works · {row['ventures']} ventures"
                   + (f" · {row['losses']} steps lost" if row["losses"] else ""))

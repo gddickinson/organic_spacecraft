@@ -37,6 +37,16 @@ ANSWERS_BY_ID = {a.id: a for a in ANSWERS}
 #: Share of a holding's yearly output owed under a levy.
 LEVY_SHARE = 0.30
 
+#: What a tonne of levied goods is worth to the power that takes it, as a share
+#: of the commodity's reference price. Under the reference because a power
+#: collecting ore on somebody else's asteroid is not selling it at a hub.
+#:
+#: It lived as a bare 0.55 inside `territory.yearly_worth`, which is what the
+#: demand screen quotes — and the levy itself credited nobody at all, so the
+#: figure the captain was shown had no act behind it to agree or disagree with.
+#: Both read this now.
+LEVY_VALUE = 0.55
+
 #: Standing given up for planting inside a power's declared space, per colony.
 TRESPASS = 9.0
 
