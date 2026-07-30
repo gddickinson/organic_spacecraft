@@ -58,6 +58,16 @@ def offers_panel(view, game, system) -> Panel | None:
         p.add_row("On completion",
                   f"{cr(chain.reward_credits)} · {chain.reward_rep:+g} standing",
                   "lumen" if ok else "dim")
+        # And the technology, where there is one. `reward_tech` has been on the
+        # table since commissions were written and appeared on no screen, so the
+        # one commission in four that hands over a whole node of the tree
+        # advertised itself as credits and standing like the other three — and
+        # the node it named did not exist to be checked against.
+        granted = chain_sim.reward_tech_of(chain)
+        if granted is not None:
+            p.add_row("And the work itself",
+                      f"{granted.name} — {granted.cost:,} points of research "
+                      "you do not have to do", "chloro" if ok else "dim")
         p.add(note(chain.reward_note))
         if chain.blocks:
             shut = ", ".join(chain_sim.CHAINS_BY_ID[b].name for b in chain.blocks

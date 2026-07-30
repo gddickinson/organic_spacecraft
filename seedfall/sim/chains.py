@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from ..core.save import register
 from ..data.chains import CHAINS, CHAINS_BY_ID
 from ..data.contracts import KINDS
+from ..data.tech import TECH_BY_ID
 from . import contracts as contract_sim
 from . import loyalty
 
@@ -87,6 +88,20 @@ def offered(game, system) -> list[tuple]:
                               "before putting this to anyone.")
         out.append((chain, ok, why))
     return out
+
+
+def reward_tech_of(chain):
+    """The technology a commission hands over, as a `Tech`, or None.
+
+    A door rather than a lookup at the call site, because the id has to resolve
+    and nothing checked that it did: the Reliquary named `xenolinguistics`, which
+    exists in neither the research tree nor the xenotech table, and `_finish`
+    appended it to `research.unlocked` anyway — a reward that granted no bonus and
+    opened no node. See `data/chains.Chain.reward_tech`.
+    """
+    if not getattr(chain, "reward_tech", None):
+        return None
+    return TECH_BY_ID.get(chain.reward_tech)
 
 
 def begin(game, chain_id: str, system) -> dict:

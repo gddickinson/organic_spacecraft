@@ -40,6 +40,14 @@ class Chain:
     #: What finishing it is actually worth, beyond the fee.
     reward_credits: int = 0
     reward_rep: int = 0
+    #: A technology handed over on completion, by id. **It has to exist.** The
+    #: Reliquary promised `xenolinguistics`, which is in neither the research
+    #: tree nor the xenotech table, and `chains._finish` appended the string to
+    #: `research.unlocked` regardless — so the reward was a phantom that granted
+    #: no bonus and unlocked no node. Same shape as task #38, where `annex` was
+    #: gated behind a technology nobody had written. `test_missions` guards it
+    #: now, and knows about *both* namespaces: twelve xeno parts name ids that
+    #: live in `data/xenotech.py` and are perfectly real.
     reward_tech: str | None = None
     reward_note: str = ""
     #: Commissions this one shuts the door on the moment you accept it.
@@ -132,7 +140,7 @@ CHAINS: list[Chain] = [
                   outcome="Delivered to the Choir's own hands. They have "
                           "offered you the reading."),
         ),
-        reward_credits=36000, reward_rep=26, reward_tech="xenolinguistics",
+        reward_credits=36000, reward_rep=26, reward_tech="firstcontact",
         reward_note="The Choir's reading, in full — and standing to ask them "
                     "for the next one.",
         feels=("xeno_served",)),

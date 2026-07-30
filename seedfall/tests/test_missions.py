@@ -162,6 +162,114 @@ def run(suite: Suite) -> None:
             "the commission stage is not open at all")
         return f"{len(board)} board contracts, commission stage held apart"
 
+    @check("every reward a commission promises actually exists")
+    def _():
+        # **Task #38's shape, found again.** `annex` was gated behind a
+        # technology nobody had written; the Reliquary *promised* one — 
+        # `reward_tech="xenolinguistics"`, which is in neither the research tree
+        # nor the xenotech table — and `_finish` appended the string to
+        # `research.unlocked` regardless. The reward granted no bonus and opened
+        # no node, and the offer screen never mentioned it, so nothing and nobody
+        # could tell.
+        #
+        # **The guard has to know about both namespaces.** A first sweep checked
+        # the research tree alone and reported thirty-seven phantoms: twelve xeno
+        # parts naming ids that live in `data/xenotech.py` and are perfectly real,
+        # gated behind studied alien technology rather than the bench. A check
+        # that cried wolf about those would have been deleted inside a month.
+        from ..data.factions import FACTIONS_BY_ID
+        from ..data.tech import TECH_BY_ID
+        from ..data.xenotech import XENOTECH_BY_ID
+        from ..sim import chains as chain_sim
+
+        granted = 0
+        for chain in CHAINS:
+            if not chain.reward_tech:
+                continue
+            granted += 1
+            where = ("the research tree" if chain.reward_tech in TECH_BY_ID
+                     else "the xenotech table"
+                     if chain.reward_tech in XENOTECH_BY_ID else None)
+            assert where, (
+                f"{chain.id} promises the technology {chain.reward_tech!r} and "
+                "it exists in neither the research tree nor the xenotech table")
+            # And it has to be a *tree* node, because `_finish` grants it by
+            # appending to `research.unlocked`. A xenotech id is a real id in the
+            # wrong namespace: incorporating studied alien work goes through
+            # `xeno.incorporate` and would need its own reward field, so naming
+            # one here would put a string in the bench's list that the bench does
+            # not know. Caught by mutation — pointing the Reliquary at
+            # `vent_symbiosis`, which exists, still fails here.
+            assert where == "the research tree", (
+                f"{chain.id} promises {chain.reward_tech!r}, which is in "
+                f"{where} — `_finish` grants rewards by appending to "
+                "`research.unlocked`, so only a tree node can be handed over")
+            node = chain_sim.reward_tech_of(chain)
+            assert node is not None and node.cost > 0, (
+                f"{chain.id}: {chain.reward_tech!r} is in {where} and "
+                "`reward_tech_of` cannot hand it to a screen")
+
+        # Every other id a commission names has to resolve too: the kinds its
+        # stages post, and the rivals it shuts.
+        for chain in CHAINS:
+            for stage in chain.stages:
+                assert stage.kind in KINDS, (
+                    f"{chain.id} posts a {stage.kind!r} stage and the contract "
+                    "book has no such kind")
+            for other in chain.blocks:
+                assert other in CHAINS_BY_ID, (
+                    f"{chain.id} closes {other!r}, which is not a commission")
+            assert chain.issuer in FACTIONS_BY_ID, chain.issuer
+        return (f"{granted} commission(s) grant a technology, every one of them "
+                f"real; {sum(len(c.stages) for c in CHAINS)} stages posting "
+                "kinds the book knows, and every rival named")
+
+    @check("the offer says what the technology is worth")
+    def _():
+        # #39's rule. One commission in four hands over a whole node of a
+        # fifty-eight-node tree and the desk advertised it as credits and
+        # standing, exactly like the three that hand over neither.
+        from .test_ui import _use_offscreen
+        _use_offscreen()
+        from PyQt6.QtWidgets import QApplication, QLabel
+        from ..sim import chains as chain_sim
+        from ..ui.window import MainWindow
+
+        app = QApplication.instance() or QApplication([])
+        assert app is not None
+        chain = next(c for c in CHAINS if c.reward_tech)
+        node = chain_sim.reward_tech_of(chain)
+        assert node is not None
+
+        game = new_game("offer-tech")
+        game.rep[chain.issuer] = 90.0
+        system = next((s for s in game.galaxy.systems
+                       if s.port and s.port.faction == chain.issuer), None)
+        assert system is not None, f"nowhere issues {chain.id}"
+        game.location_id = system.id
+        offered = [c.id for c, _ok, _why in chain_sim.offered(game, system)]
+        assert chain.id in offered, (offered, chain.id)
+
+        win = MainWindow(game)
+        win.toast = lambda *a, **k: None
+        win.go("port")
+        view = win.views["port"]
+        view.tab = "contracts"
+        view.refresh()
+        for _ in range(3):
+            app.processEvents()
+        said = " ".join(lab.text() for lab in view.findChildren(QLabel)
+                        if lab.text())
+        win.close()
+        assert node.name in said, (
+            f"{chain.name} grants {node.name} and the desk does not say so: "
+            f"{said[-400:]}")
+        assert f"{node.cost:,} points" in said, (
+            f"{node.cost:,} points of research handed over and the desk does "
+            "not price it")
+        return (f"the desk offers {chain.name} and names {node.name}, "
+                f"{node.cost:,} points of research you do not have to do")
+
     @check("commissions survive a save and reload")
     def _():
         import json

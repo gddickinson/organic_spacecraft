@@ -2,6 +2,59 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: a commission promising a technology nobody had written (#missions)
+
+Missions was the last breadth area untouched this session. The commissions read
+well — four chains, twelve stages, pay multipliers escalating 1.2 → 1.5 → 2.2, and
+the desk already says the premise, the stage count, the credits, the standing and
+which rival commission taking it shuts. So I went looking at what it *doesn't* say,
+and found something worse than a missing line.
+
+`Chain.reward_tech` has been on the table since commissions were written. The
+Reliquary sets it to **`xenolinguistics`**, and there is no such technology — not
+in the research tree, not anywhere. `chains._finish` does this:
+
+    if chain.reward_tech and chain.reward_tech not in game.research.unlocked:
+        game.research.unlocked.append(chain.reward_tech)
+
+...so finishing three escalating stages for the Dry Choir appended a phantom
+string to the bench's list. Measured: it changes the bonuses **not at all**. And
+`reward_tech` appeared on **no screen anywhere**, so the one commission in four
+that hands over a whole node of a fifty-eight-node tree advertised itself as
+credits and standing, exactly like the three that hand over neither — and nobody,
+player or check, was in a position to notice the node did not exist.
+
+This is task #38's shape again: *annex* was gated behind a technology nobody had
+written; here a reward *is* one.
+
+It grants `firstcontact` now — First Contact Protocol, tier 4 of the xenology
+branch, 1,100 points, +0.25 diplomacy and +0.25 research — which is precisely what
+the Reliquary is about: the Choir reading what a relic site says. `reward_tech_of`
+is the door, and the desk reads **"And the work itself — First Contact Protocol —
+1,100 points of research you do not have to do."**
+
+**The guard I wrote to catch it was wrong first, and the way it was wrong is the
+interesting part.** Sweeping every tech id named anywhere in `data/` against the
+research tree reported **thirty-seven phantoms**. Thirty-six of them were real:
+twelve xeno parts, listed in three tables, naming ids that live in
+`data/xenotech.py` — a *second namespace*, gated behind studied alien work rather
+than the bench. A check that cried wolf about twelve pieces of working content
+would have been deleted inside a month, and rightly. So the guard knows about both
+tables, and only the Reliquary's id was ever in neither.
+
+It also refuses a xenotech id used *as a commission reward*, which is a real id in
+the wrong place: `_finish` grants by appending to `research.unlocked`, and only a
+tree node can go there — incorporating alien work is `xeno.incorporate` and would
+need its own field. I found that out by mutation: pointing the Reliquary at
+`vent_symbiosis`, which exists, still fails.
+
+Six deliberate breakages, six caught: the phantom restored, a reward naming a real
+id in the wrong namespace, the desk not naming the technology, the door refusing to
+resolve it, a stage posting a kind the contract book has not got, and a commission
+shutting a rival that does not exist.
+
+Two new checks, 994 across the suite, all green.
+
 ## 2026-07-30 — SEEDFALL: the chart's price told you what the chart was for (#exploration)
 
 `sim/intel.py` ranks a system 0 to 3 and writes down, in as many words, what each

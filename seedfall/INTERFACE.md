@@ -2526,6 +2526,23 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   inside `yearly_worth` — with nothing receiving the levy there was no act for that
   forecast to be wrong against. `territory.value_of` is the one door now and the
   quote is exact: **8,829 a year against a year that took 8,829**.
+- **A commission's reward has to exist, and there are two tech namespaces.**
+  `chains.Chain.reward_tech` promised the Reliquary's captain `xenolinguistics`,
+  which is in **neither** the research tree nor `data/xenotech.py`, and
+  `chains._finish` appended the string to `research.unlocked` regardless — a
+  reward granting no bonus and opening no node, on the one commission in four
+  that hands over a whole node of a fifty-eight-node tree, advertised on no
+  screen. Task #38's shape exactly. It grants `firstcontact` (First Contact
+  Protocol, tier 4, 1,100 points — which is what the Reliquary is *about*),
+  `chains.reward_tech_of` is the door the desk reads, and the desk says "1,100
+  points of research you do not have to do".
+  **The guard has to know about both namespaces.** A first sweep checked the tree
+  alone and reported thirty-seven phantoms — twelve xeno parts naming ids that
+  live in `data/xenotech.py` and are perfectly real, gated behind studied alien
+  work rather than the bench. A check that cried wolf about those would have been
+  deleted inside a month. It also refuses a *xenotech* id as a commission reward,
+  because `_finish` grants by appending to `research.unlocked` and only a tree
+  node can go there — caught by mutation, since `vent_symbiosis` exists.
 - **The fog covers the body count, and a chart's price no longer gives it away.**
   `intel.LEVELS[0]` calls a registry entry "a body count the registry will not
   stand behind" and `LEVELS[1]`, which is what a chart buys, promises "the bodies
