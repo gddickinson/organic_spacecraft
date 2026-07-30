@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from .conn import (ALONGSIDE_RATE, MAIN_COST, SAFE_CLOSING, Conn)
 from .orbits import ORBIT_FLOOR_KM, in_orbit, orbit_band, orbital_speed
+from . import pilot
 
 
 def readout(conn: Conn) -> list[tuple[str, str, str]]:
@@ -62,6 +63,18 @@ def readout(conn: Conn) -> list[tuple[str, str, str]]:
     # pilot learns to skip — the same fault as crying wolf at a good orbit.
     # But a pilot whose throttle silently refuses to open past six tenths needs
     # to be told it is the missing engine and not a fault in the drive.
+    # What the console is set to. On the panel rather than only under the
+    # buttons, because the buttons say "10%" and "5 min" and a bare percentage
+    # of a number the pilot cannot see is not information: the throttle is worth
+    # reading in m/s, which is the unit every other row is judged in.
+    #
+    # Always shown, unlike the trim row below. A setting is not an alarm, and a
+    # pilot wondering why the drive is barely moving the ship needs to be able
+    # to see that it is at a tenth.
+    rows.append(("Throttle", f"{conn.throttle * 100:,.0f}% — "
+                             f"{pilot.dv_of(conn, True):,.2f} m/s", "ok"))
+    rows.append(("Coast", f"{conn.coast_min} min", "ok"))
+
     # And it reads "ok", not "warn". `test_conn.py` caught the first draft
     # marking it amber on fourteen approaches that *succeeded* — which is the
     # very fault this panel was rebuilt to stop. The trim is a fact about the

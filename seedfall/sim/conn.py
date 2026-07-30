@@ -40,7 +40,6 @@ from ..data.starclasses import of as star_class
 from . import outcome as outcome_sim
 from .orbits import (ORBIT_BAND, ORBIT_BAND_SHARE, ORBIT_FLOOR_KM, in_orbit,
                      orbit_band, orbit_note, orbital_speed, semi_major_km)
-from .thrusters import TRIM_COST_SHARE
 from .targets import (G0, Target, approach_range, starlight,
                       target_from_body, target_from_contact)
 
@@ -100,6 +99,13 @@ class Conn:
     rcs_dv: float = RCS_DV
     slew_rate: float = 0.02
     turn_rate_cost: float = 0.0
+    #: What the pilot has set on the throttle, 0..1. See `sim/pilot.py`: the
+    #: drive has been able to throttle since the autopilot was fixed for firing
+    #: everything at once, and until now the console could not ask for it.
+    throttle: float = 1.0
+    #: How many minutes an action lets the clock run afterwards. `apply` fires
+    #: once and *then* steps time, so this is a coast and not a burn length.
+    coast_min: int = 1
     #: How far the main drive can be opened and still be held straight, 0..1.
     #:
     #: `data/mounts.py` has said since it was written that a two-slot hull
@@ -264,12 +270,24 @@ def rotate(vec, heading: float) -> tuple:
     return (x * c - y * s, x * s + y * c, z)
 
 
-def can_burn(conn: Conn, main: bool) -> tuple[bool, str]:
-    """Is there mass to do this? The gate the panel greys its buttons on."""
+def can_burn(conn: Conn, main: bool,
+             throttle: float | None = None) -> tuple[bool, str]:
+    """Is there mass to do this? The gate the panel greys its buttons on.
+
+    **It has to be asked at the throttle the burn will actually use.** This
+    took a whole `MAIN_COST` whatever was set, so a hull holding 0.119 t was
+    told "No reaction mass for the drive" for a burn costing 0.012 — a gate
+    refusing an act it could well afford, which is the fault this project has
+    swept every other gate for. `pilot.burn_cost` is the one door now, and
+    `apply` spends through it too, so the two cannot drift apart.
+    """
+    from . import pilot
     if conn.over:
         return False, "The approach is finished."
-    need = MAIN_COST if main else RCS_COST
-    if conn.rcs < need:
+    want = conn.throttle if throttle is None else throttle
+    if main and pilot.usable_throttle(conn, True, want) <= 0.0:
+        return False, "The throttle is closed."
+    if conn.rcs < pilot.burn_cost(conn, main, want):
         return False, ("No reaction mass for the drive."
                        if main else "The thruster tanks are dry.")
     return True, ""
@@ -304,7 +322,7 @@ def apply(conn: Conn, axis_id: str | None, main: bool = False,
 
     burned = turning = False
     if axis_id:
-        ok, _why = can_burn(conn, main)
+        ok, _why = can_burn(conn, main, throttle)
         if ok and main:
             # The main drive pushes along the nose. If the nose is not on the
             # heading asked for, this tick is spent swinging the hull round
@@ -322,25 +340,18 @@ def apply(conn: Conn, axis_id: str | None, main: bool = False,
             # *worse*: one tick of a fusion torch on a SPORE is 124 m/s, so the
             # computer lit it to trim ten, overshot, corrected the overshoot,
             # and never converged. Attitude clusters are pulsed, not throttled.
-            part = max(0.0, min(1.0, throttle)) if main else 1.0
-            # The flight computer will not open the drive past what it can hold
-            # straight. An unopposed off-axis torque over a whole tick is not a
-            # trim, it is a tumble — 0.0012 rad/s² across sixty seconds is 126
-            # degrees — and no autopilot would allow it. So the cap is the
-            # consequence: a lopsided hull has less usable engine.
-            if main:
-                part = min(part, conn.hold)
+            # The clamp, the lopsided-hull cap and the trim surcharge all live
+            # in `pilot`, because the console has to quote them before the pilot
+            # commits, and a second copy here is how a forecast starts lying.
+            from . import pilot
+            part = pilot.usable_throttle(conn, main, throttle)
             dv = (conn.main_dv if main else conn.rcs_dv) * part
             wx, wy, wz = thrust_axis(conn, axis_id, main)
             conn.vel[0] += wx * dv
             conn.vel[1] += wy * dv
             conn.vel[2] += wz * dv
-            spend = (MAIN_COST * part) if main else RCS_COST
-            # And holding it straight costs mass of its own: the clusters are
-            # firing throughout to answer the torque.
-            if main and conn.hold < 1.0:
-                spend *= 1.0 + TRIM_COST_SHARE * (1.0 - conn.hold)
-            conn.rcs = round(conn.rcs - spend, 4)
+            conn.rcs = round(
+                conn.rcs - pilot.burn_cost(conn, main, throttle), 4)
             burned = part > 0
     for _ in range(max(1, ticks)):
         _step(conn, TICK)

@@ -2,6 +2,67 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: the pilot could not throttle
+
+`sim/conn.apply` has taken a `throttle` since the drive learned to throttle and a
+`ticks` since it was written. **The conn could reach neither.** The window fired
+`apply(conn, axis, main=use_main)` and nothing else, so the human's main drive was
+a switch — full power, one minute — while the flight computer sitting beside it
+throttled freely. `apply` still carries the note explaining why the *computer*
+needed it: "one tick of a fusion torch on a SPORE is 124 m/s, so the computer lit
+it to trim ten, overshot, corrected the overshoot, and never converged." The
+human was left with the firework.
+
+Flown by hand that is not a rough edge, it is a hull that cannot be berthed. A
+SPORE under a Fusion Torch moves **41.9 m/s a press**, so a pilot carrying ten
+metres a second of way on has no move that helps: every press overshoots by more
+than the error. A greedy hand pilot with only full power stays **stuck at 10.00
+m/s**, outside the 1.5 m/s berthing limit, for ever. With the ladder — a tenth, a
+quarter, a half, everything — the same pilot reaches **0.48 m/s** and berths.
+
+Two controls, not one, because `apply` does two things: it fires *once* and then
+steps time `ticks` times. So the second is a **coast** (1, 5 or 15 minutes) and
+not a burn length, and there is a check pinning that, because the button's name
+is all a pilot has to go on and calling it a burn length would be a lie.
+
+**A real fault fell out of routing the cost through one door.** `can_burn`
+demanded a whole `MAIN_COST` whatever the throttle, so a hull holding 0.119 t was
+told "No reaction mass for the drive" for a burn costing 0.012 — a gate refusing
+an act it could well afford, which is the fault this project has swept every
+other gate for. It survived because the throttle was unreachable, so nobody had
+thought to ask. `pilot.burn_cost` is the only door now and `apply` spends through
+it too.
+
+Three things worth recording about the checks rather than the code:
+
+- **The sweep found two holes in my own checks.** `apply` has its *own*
+  `can_burn` call, and asking it at full power left `can_burn` correct and the
+  burn still refused, with nothing failing. And nothing compared
+  `quote()["dv"]` against the act — every check either called `dv_of` directly
+  or compared range and closing. Both closed; both then caught.
+- **One of my mutants was aimed at the wrong file** and mutated nothing. That is
+  a wasted line, not a missed check, and it is worth telling the two apart.
+- **A correction to yesterday.** I wrote that a LEVIATHAN shrugs a missing engine
+  off entirely because its inertia beats the torque. Measured on one engine and
+  generalised too far: a LEVIATHAN holds 1.00 under a Reaction-Mass Organ and
+  **0.20 under a Fusion Torch**, and a NAVIS with one Fusion Torch sits on the
+  0.15 floor. What decides the cap is off-axis thrust against attitude authority
+  — mass helps at equal thrust, but thrust is the term that varies most. So the
+  rule is that **a big engine on a hull with few stations is the liability**,
+  which is a better rule than the one I first wrote. The check has been rewritten
+  to claim that instead, across both engines.
+
+`ui/conn_controls.py` is the console, split out of `ui/conn_window.py` (519 lines)
+along the seam already there: the window owns the cameras, the panel and the
+clock. `sim/pilot.py` holds the ladders and the doors. The panel names both
+settings in m/s, because "10%" of a number the pilot cannot see is not
+information.
+
+`test_pilot.py`, 9 checks, plus one driven through the window itself — pressing
+the buttons rather than calling `apply`, since a check that called
+`apply(throttle=...)` would have passed for as long as the bug existed.
+Thirteen mutations, **thirteen caught**. Full suite green.
+
 ## 2026-07-29 — SEEDFALL: a hull flying lopsided
 
 Three places in the tables had promised this since they were written, and not

@@ -62,6 +62,11 @@ def _copy(conn: Conn) -> Conn:
     and was not on the quote. `test_conn.py` now guards the list itself, so the
     next field cannot be forgotten quietly.
 
+    The fourth time was `throttle` and `coast_min`, and the guard caught them
+    the same afternoon it was written — a forecast is handed both explicitly, so
+    nothing was wrong yet, but a twin holding different console settings from the
+    ship it stands for is a twin waiting to lie.
+
     `landed`, `log`, `outcome` and `damage` are deliberately *not* carried: a
     twin flies from here, and an approach that has already ended cannot be
     forecast.
@@ -74,4 +79,5 @@ def _copy(conn: Conn) -> Conn:
                 rcs_dv=conn.rcs_dv, slew_rate=conn.slew_rate,
                 turn_rate_cost=conn.turn_rate_cost,
                 hold=conn.hold, star_lum=conn.star_lum,
-                orbit_want_km=conn.orbit_want_km)
+                orbit_want_km=conn.orbit_want_km,
+                throttle=conn.throttle, coast_min=conn.coast_min)

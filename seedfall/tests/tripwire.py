@@ -184,6 +184,7 @@ KIN = {
     "declared": ("declared",),
     "consorts": ("combat", "screening"),
     "mounts": ("thrusters", "lopsided"),
+    "pilot": ("pilot", "conn"),
     "battle3d": ("gunfire",),
     "mounts": ("thrusters",), "burnplan": ("thrusters", "helm"),
 }

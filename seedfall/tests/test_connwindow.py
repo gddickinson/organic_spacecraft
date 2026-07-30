@@ -84,6 +84,74 @@ def run(suite: Suite) -> None:
         return (f"{checked} chronicles: moored to a quay, the conn opens on "
                 "the quay and not the world under it")
 
+    @check("the console's throttle and coast reach the burn")
+    def _():
+        # Pressed through the window rather than called in the sim, because the
+        # whole fault was that `apply` supported both and *the console could not
+        # reach them*. A check that calls `apply(throttle=...)` would have
+        # passed for as long as the bug existed.
+        from PyQt6.QtWidgets import QApplication
+
+        from ..sim import pilot as pilot_sim
+        from ..sim.ship import build_layers, make_ship
+        from ..ui.conn_window import ConnWindow, default_target
+        from ..ui.window import MainWindow
+
+        app = QApplication.instance() or QApplication([])
+        assert app is not None
+        game = new_game("console")
+        places = anchorage_sim.in_system(game)
+        assert places, "no quay to fly at"
+        game.orbit_body = game.system.bodies[places[0].body_index].id
+        game.ship = make_ship("spore", ["fusion_torch", "opsin_eyes"])
+        build_layers(game.ship, game.bonuses)
+        game.ship.cargo["volatiles"] = 900
+        win = MainWindow(game)
+        win.toast = lambda *a, **k: None
+        window = ConnWindow(win, default_target(game))
+        conn = window.conn
+        assert conn is not None
+        conn.rcs = 9999.0
+
+        console = window.controls
+        assert set(console.throttle_buttons) == set(pilot_sim.THROTTLE_STEPS)
+        assert set(console.coast_buttons) == set(pilot_sim.COAST_MINUTES)
+
+        console._toggle_drive()
+        assert console.use_main, "the main drive would not select"
+
+        # Set a tenth and five minutes the way a pilot would, then press an axis
+        # and check the ship did the gentle thing rather than the full one.
+        console.throttle_buttons[0.10].click()
+        console.coast_buttons[5].click()
+        assert conn.throttle == 0.10 and conn.coast_min == 5, (
+            f"the console reads {conn.throttle} and {conn.coast_min} after "
+            "pressing 10% and 5 min")
+        gentle = pilot_sim.dv_of(conn, True)
+        full = pilot_sim.dv_of(conn, True, 1.0)
+        assert full > gentle * 4, (full, gentle)
+
+        conn.nose = list(conn_sim.thrust_axis(conn, "forward", main=False))
+        before, clock, held = list(conn.vel), conn.elapsed, conn.rcs
+        window.controls.axis_buttons["forward"].click()
+        moved = sum((a - b) ** 2 for a, b in zip(conn.vel, before)) ** 0.5
+        assert abs(moved - gentle) < max(0.05, gentle * 0.05), (
+            f"the console was set to a tenth ({gentle:.2f} m/s) and the press "
+            f"moved the ship {moved:.2f} — full power is {full:.2f}")
+        assert abs((conn.elapsed - clock) - 5 * conn_sim.TICK) < 1e-6, (
+            f"a five-minute coast let {(conn.elapsed - clock) / 60:.1f} run")
+        assert abs((held - conn.rcs)
+                   - pilot_sim.burn_cost(conn, True, 0.10)) < 1e-4
+
+        # And the marker says which rung is live, so the console is readable.
+        assert console.throttle_buttons[0.10].text().startswith("▶")
+        assert not console.throttle_buttons[1.00].text().startswith("▶")
+        assert console.coast_buttons[5].text().startswith("▶")
+        window.close()
+        return (f"pressed 10% and 5 min: {moved:.2f} m/s and "
+                f"{(conn.elapsed - clock) / 60:.0f} min, against {full:.2f} "
+                "m/s at full power")
+
     @check("the windows follow the ship instead of remembering it")
     def _():
         # The staleness. Both windows used to capture what they needed in

@@ -6,24 +6,25 @@ translation axes on thrusters or the main drive, three autopilot modes, and a
 clock you can let run.
 
 The window owns no rules. Every number on it comes from `sim/conn.py` and
-every button calls into it — including the tooltips, which quote
-`preview.forecast` so what the panel promises is what the burn does.
+every button calls into it — including the tooltips, which quote `pilot.quote`
+so what the panel promises is what the burn does. The console itself is
+`ui/conn_controls.py`; this file owns the cameras, the panel and the clock.
 """
 
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtWidgets import (QDialog, QGridLayout, QHBoxLayout, QLabel,
-                             QVBoxLayout, QWidget)
+from PyQt6.QtWidgets import (QDialog, QHBoxLayout, QLabel, QVBoxLayout,
+                             QWidget)
 
 from ..sim import autopilot as pilot_sim
 from ..sim import berthing as berth_sim
 from ..sim import orbits
 from ..sim import conn as conn_sim
-from ..sim import preview as preview_sim
 from ..sim import instruments as panel_sim
 from ..sim import track as track_sim
 from . import theme
+from .conn_controls import ConnControls
 from .viewport import Viewport
 from .widgets import button, label, note
 
@@ -125,61 +126,8 @@ class ConnWindow(QDialog):
         self.status.setWordWrap(True)
         column.addWidget(self.status)
 
-        column.addWidget(self._controls())
-
-    def _controls(self) -> QWidget:
-        """Translation, drive selection, autopilot, and the clock."""
-        panel = QWidget()
-        grid = QGridLayout(panel)
-        grid.setContentsMargins(0, 4, 0, 0)
-        grid.setHorizontalSpacing(6)
-        grid.setVerticalSpacing(4)
-
-        # Two rows of three: the six axes, laid out the way a pilot's hand
-        # sits on them rather than alphabetically.
-        order = [("left", 0, 0), ("forward", 0, 1), ("right", 0, 2),
-                 ("down", 1, 0), ("back", 1, 1), ("up", 1, 2)]
-        self.axis_buttons = {}
-        for axis_id, row, col in order:
-            _aid, axis_label, _vec = conn_sim.AXES_BY_ID[axis_id]
-            btn = button(axis_label, lambda a=axis_id: self._burn(a))
-            grid.addWidget(btn, row, col)
-            self.axis_buttons[axis_id] = btn
-
-        self.main_btn = button("Main drive: off", self._toggle_drive,
-                               kind="flat")
-        grid.addWidget(self.main_btn, 0, 3)
-        self.use_main = False
-        grid.addWidget(button("Hold (coast a minute)",
-                              lambda: self._burn(None)), 1, 3)
-
-        self.mode_buttons = {}
-        for index, (mode, text) in enumerate(
-                (("null", "Kill relative motion"),
-                 ("close", "Close and berth"),
-                 ("orbit", "Make orbit"))):
-            btn = button(text, lambda m=mode: self._auto(m), kind="flat")
-            grid.addWidget(btn, index // 2, 4 + index % 2)
-            self.mode_buttons[mode] = (btn, text)
-
-        # Which orbit, not merely whether. Only the heights this hull can
-        # actually hold at this body are offered — see `orbits.heights_for`,
-        # because a four-kilometre comet cannot be orbited to order by a ship
-        # whose thrusters move it half a metre a second at a time.
-        # One button per rung of the ladder, always built; `refresh` hides
-        # the ones this hull cannot hold at whatever it is looking at now.
-        self.height_buttons = {}
-        for index, (hid, label, _lift, _share) in enumerate(orbits.ORBIT_HEIGHTS):
-            btn = button(label, lambda h=hid: self._set_height(h), kind="flat")
-            grid.addWidget(btn, index // 2, 7 + index % 2)
-            self.height_buttons[hid] = (btn, label)
-
-        self.run_btn = button("Run clock", self._toggle_clock, kind="primary")
-        grid.addWidget(self.run_btn, 1, 5)
-        grid.addWidget(button("New approach…", self._pick_target, kind="flat"),
-                       0, 6)
-        grid.addWidget(button("Break off", self._break_off, kind="flat"), 1, 6)
-        return panel
+        self.controls = ConnControls(self)
+        column.addWidget(self.controls)
 
     # ── acts ───────────────────────────────────────────────────────────────
 
@@ -207,7 +155,7 @@ class ConnWindow(QDialog):
                 return
 
     def _toggle_drive(self) -> None:
-        self.use_main = not self.use_main
+        self.controls.use_main = not self.controls.use_main
         self.refresh()
 
     def _settle(self) -> None:
@@ -231,8 +179,11 @@ class ConnWindow(QDialog):
     def _burn(self, axis_id) -> None:
         if self.conn is None or self.conn.over:
             return
-        self.conn.apply_result = conn_sim.apply(self.conn, axis_id,
-                                                main=self.use_main)
+        # At the throttle and the coast the console is showing, not at full
+        # power for one minute. `pilot.quote` promises exactly this call.
+        self.conn.apply_result = conn_sim.apply(
+            self.conn, axis_id, main=self.controls.use_main,
+            ticks=self.conn.coast_min, throttle=self.conn.throttle)
         self._settle()
         self.refresh()
 
@@ -364,48 +315,7 @@ class ConnWindow(QDialog):
         self.title.setText(
             f"Conn — {conn.target.name}" if conn.outcome != "watching"
             else f"Conn — station keeping at {self.game.system.name}")
-        self.main_btn.setText(f"Main drive: {'ON' if self.use_main else 'off'}")
-        self.run_btn.setText("Stop clock" if self.running else "Run clock")
-        for mode, (btn, text) in getattr(self, "mode_buttons", {}).items():
-            btn.setText(f"▶ {text}" if self.mode == mode else text)
-
-
-        live = not conn.over
-
-        # Which heights are on offer depends on the target and the hull, and
-        # the target changes when the ship is flown somewhere — so the row is
-        # relabelled from the live conn every refresh rather than from
-        # whatever was alongside when the window was built. That is the same
-        # window-holding-a-copy-of-the-world fault this file has already been
-        # fixed for twice.
-        offered = {hid: (label, radius)
-                   for hid, label, radius in self._heights()}
-        for hid, (btn, _text) in getattr(self, "height_buttons", {}).items():
-            here = offered.get(hid)
-            btn.setVisible(here is not None)
-            if here is None:
-                continue
-            up = here[1] - conn.target.radius_km
-            chosen = abs(conn.orbit_want_km - here[1]) < 1.0
-            btn.setText(f"▶ {here[0]}" if chosen else here[0])
-            btn.setEnabled(live)
-            btn.setToolTip(f"{here[0]} orbit — {up:,.0f} km up. "
-                           f"Leaving costs "
-                           f"x{orbits.departure_factor(conn.target.radius_km, here[1]):.2f}; "
-                           f"a survey resolves "
-                           f"x{orbits.look_factor(conn.target.radius_km, here[1]):.2f}.")
-        ok, why = conn_sim.can_burn(conn, self.use_main)
-        for axis_id, btn in self.axis_buttons.items():
-            btn.setEnabled(live and ok)
-            if live:
-                said = preview_sim.forecast(conn, axis_id, main=self.use_main)
-                btn.setToolTip(
-                    f"{conn_sim.AXES_BY_ID[axis_id][1]}: range "
-                    f"{said['range_km'] * 1000:,.0f} m, closing "
-                    f"{said['closing']:+,.1f} m/s, "
-                    f"{said['rcs']:,.2f} mass left")
-            else:
-                btn.setToolTip(why)
+        self.controls.sync(conn)
 
         while self.side.count():
             item = self.side.takeAt(0)

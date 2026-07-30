@@ -872,6 +872,46 @@ end for end against the SPORE's 50.
 a burn in a new direction is a *turn* first — three ticks to swing a NAVIS 90°
 — and the turn spends reaction mass out of the same tank.
 
+**The pilot could not throttle.** `sim/conn.apply` has taken a `throttle` since
+the drive learned to throttle and a `ticks` since it was written, and the conn
+could reach neither: it fired `apply(conn, axis, main=use_main)` and nothing
+else, so the human's main drive was a switch — full power, one minute — while
+the flight computer beside it throttled freely. `apply` still carries the note
+saying why the *computer* needed it: "one tick of a fusion torch on a SPORE is
+124 m/s, so the computer lit it to trim ten, overshot, corrected the overshoot,
+and never converged."
+
+Flown by hand, that is not a rough edge, it is a hull that cannot be berthed. A
+SPORE under a Fusion Torch moves **41.9 m/s a press**, so a pilot with ten metres
+a second of way on has no move that improves matters: every press overshoots
+further than the error. Measured, a full-power-only pilot stays **stuck at 10.00
+m/s**, outside the 1.5 m/s berthing limit, for ever.
+
+`sim/pilot.py` is the console's side of it: `THROTTLE_STEPS` of a tenth, a
+quarter, a half and everything, and `COAST_MINUTES` of 1, 5 and 15. With the
+ladder that same pilot gets to **0.48 m/s** and berths. Two controls rather than
+one, because `apply` does two things — it fires *once* and then steps time
+`ticks` times, so the second is a **coast** and not a burn length; calling it a
+burn length would be a lie about the button, and the button's name is all a pilot
+has to go on.
+
+`pilot.quote` is the only door the console speaks through, so a tooltip cannot
+promise what the burn will not do; the old tooltip was computed at full power for
+one minute whatever the console said. `pilot.burn_cost` is the only door the
+*cost* comes through, and that fixed a real fault: **`can_burn` demanded a whole
+`MAIN_COST` whatever the throttle**, so a hull holding 0.119 t was told "No
+reaction mass for the drive" for a burn costing 0.012. That is the gate refusing
+an act it could well afford — the fault this project has swept every other gate
+for, and it existed here only because the throttle was unreachable, so nobody had
+thought to ask. `apply` has its own gate call, and a sweep caught *that* one
+separately: asking it at full power left `can_burn` correct and the burn still
+refused, with nothing to show it.
+
+`ui/conn_controls.py` is the console itself, split out of `ui/conn_window.py`
+when that went past five hundred lines along a seam already there — the window
+owns the cameras, the panel and the clock. The panel names the settings in m/s,
+because "10%" of a number the pilot cannot see is not information.
+
 **And losing one engine of a pair now costs something.** Three separate places
 in the tables had promised this for as long as they had existed and not one of
 them was true. `data/mounts.py`, on why the stations are spread across the
@@ -895,11 +935,18 @@ The result is a real trade rather than a number going down. A **NAVIS on one of
 two engines holds 0.62** of the engine it has left and pays 55% of the extra
 mass share for the clusters trimming throughout, which comes to **twice the
 reaction mass per m/s** and a high orbit reached in 1.24× the time for 1.20× the
-mass. A **LEVIATHAN shrugs a missing engine off entirely** — its moment of
-inertia beats the torque — so the penalty falls hardest on the hulls light
-enough to be turned by their own drive, which is where it belongs. And it is
-still flyable: berthing is unaffected (6/6 either way), and every high orbit the
-balanced hull reached, the lopsided one reached too.
+mass. And it is still flyable: berthing is unaffected (6/6 either way), and every
+high orbit the balanced hull reached, the lopsided one reached too.
+
+**A correction to the first telling of this.** It said a LEVIATHAN shrugs a
+missing engine off entirely because its moment of inertia beats the torque, and
+that was measured on one engine and generalised too far. A LEVIATHAN holds 1.00
+under a **Reaction-Mass Organ** and **0.20 under a Fusion Torch** — seven and a
+half times the thrust, and the clusters lose. What decides the cap is off-axis
+thrust against attitude authority; mass helps at equal thrust, but thrust is the
+term that varies most. A NAVIS with one Fusion Torch sits on the floor at 0.15.
+So the shape of the trade is that **a big engine on a hull with few stations is
+the liability**, which is a more interesting rule than the one I first wrote.
 
 One thing fell out sideways. Priced per-seed, the lopsided hull reached a high
 orbit on a seed the *balanced* hull missed: too much thrust overshoots at a
@@ -1288,6 +1335,8 @@ seedfall/
 │   ├── instruments.py  the conn's panel, judged against what it is trying to do
 │   ├── preview.py      what a burn will do before you make it: a throwaway
 │   │                   twin of the ship, flown and reported on
+│   ├── pilot.py        what the console is set to — the throttle ladder, the
+│   │                   coast, and the one door a burn's cost comes through
 │   ├── targets.py      a body or a quay as something with a mu and a radius
 │   ├── weave.py        the ancient anchors, their rings, and lighting a chain
 │   ├── gates.py        transit through the Weave, and what the toll is
@@ -1437,6 +1486,7 @@ seedfall/
     ├── test_legacy.py  7 aftermath checks — an ending is a turn, not a stop
     ├── test_instruments.py 5 checks — a gauge agrees with the ship and itself
     ├── test_lopsided.py 9 checks — what one missing engine of a pair costs
+    ├── test_pilot.py   9 checks — a throttle and a coast the pilot can reach
     ├── test_voices.py  8 checks — the game speaks with no model reachable
     ├── test_grudges.py 9 checks — memory reaches the price and the board
     ├── test_gunnery.py 5 checks — what a weapon delivers is what the bridge said

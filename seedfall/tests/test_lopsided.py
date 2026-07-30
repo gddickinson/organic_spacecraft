@@ -38,8 +38,11 @@ The claims:
   the same fact, and neither is ever true without the other.
 - **It costs more mass for the same speed**, measured by differencing.
 - **And it is still flyable**, because a penalty that ends the game is a bug.
-- **A heavy hull shrugs it off**, which falls out of the inertia rather than
-  being arranged.
+- **What decides the cap is off-axis thrust against attitude authority.** A
+  first draft of that claim said a *heavy hull* shrugs a missing engine off,
+  measured on one engine, and generalised too far: the same LEVIATHAN holds 1.00
+  under a Reaction-Mass Organ and 0.20 under a Fusion Torch. Mass helps at equal
+  thrust; thrust is the term that varies most.
 """
 
 from __future__ import annotations
@@ -221,30 +224,55 @@ def run(suite: Suite) -> None:
         return (f"{per_both:.4f} t per m/s balanced against {per_one:.4f} "
                 f"lopsided — {per_one / per_both:.1f} times the mass")
 
-    @check("a heavy hull shrugs off a missing engine")
+    @check("what decides the cap is off-axis thrust, not the hull's mass")
     def _():
-        # Not arranged: it falls out of the inertia. A LEVIATHAN's moment is
-        # large enough that one engine of four cannot turn it faster than its
-        # clusters can answer, so the penalty falls hardest on the hulls light
-        # enough to be turned by their own drive. Worth asserting because it
-        # is the kind of property that would otherwise be found by a player
-        # and mistaken for a bug.
-        game = new_game("heavy")
-        light = _ship(game, 1, "navis")
-        heavy = _ship(game, 1, "leviathan")
-        light_hold = thrust_sim.holdable_throttle(light)
-        heavy_hold = thrust_sim.holdable_throttle(heavy)
-        assert thrust_sim.offset(heavy) > 0, (
-            "a LEVIATHAN on one of four engines should still be off the "
-            "centreline")
-        assert heavy_hold > light_hold, (
-            f"a LEVIATHAN holds {heavy_hold:.2f} and a NAVIS {light_hold:.2f} "
-            "— the heavier hull is not resisting its own drive any better")
-        assert thrust_sim.mass_tonnes(heavy) > thrust_sim.mass_tonnes(light) * 2
-        return (f"NAVIS holds {light_hold:.2f} on one of two; LEVIATHAN "
-                f"{heavy_hold:.2f} on one of four, at "
-                f"{thrust_sim.mass_tonnes(heavy) / thrust_sim.mass_tonnes(light):.1f}x "
-                "the mass")
+        # **I wrote this check the other way round and it was too narrow.** It
+        # compared a NAVIS with a LEVIATHAN, both under Reaction-Mass Organs,
+        # found the LEVIATHAN held 1.00, and concluded that a heavy hull shrugs
+        # a missing engine off because its inertia beats the torque. True of
+        # that engine. Fit the same LEVIATHAN with a Fusion Torch — seven and a
+        # half times the thrust — and it holds **0.20**. Mass is not what
+        # decides it; off-axis thrust against attitude authority is, and thrust
+        # is the term that varies most.
+        #
+        # So the claim is now the ratio itself, checked across both engines,
+        # which is the thing that is actually true.
+        game = new_game("cap-rule")
+        seen = []
+        for chassis in ("navis", "leviathan"):
+            for part in ("reaction_organ", "fusion_torch"):
+                ship = make_ship(chassis, [part, "opsin_eyes"])
+                build_layers(ship, game.bonuses)
+                ship.cargo["volatiles"] = 900
+                kit = thrust_sim.summary(ship)
+                if kit["offset"] <= 1e-9:
+                    continue
+                seen.append((chassis, part, kit["hold"], kit["yaw_rate"]))
+        assert len(seen) == 4, seen
+
+        # A bigger engine on the same hull is always harder to hold, never
+        # easier — the property the mass story got backwards.
+        for chassis in ("navis", "leviathan"):
+            small = next(h for c, p, h, _y in seen
+                         if c == chassis and p == "reaction_organ"
+                         for h in [h])
+            big = next(h for c, p, h, _y in seen
+                       if c == chassis and p == "fusion_torch" for h in [h])
+            assert big < small, (
+                f"a {chassis} holds {big:.2f} on a Fusion Torch against "
+                f"{small:.2f} on a Reaction-Mass Organ — more off-axis thrust "
+                "has to be harder to hold, not easier")
+
+        # And the heavier hull still helps, at equal thrust: same engine, more
+        # inertia, more of the drive usable. Both halves are true; only the
+        # first was, on its own, the whole story.
+        light = next(h for c, p, h, _y in seen
+                     if c == "navis" and p == "fusion_torch" for h in [h])
+        heavy = next(h for c, p, h, _y in seen
+                     if c == "leviathan" and p == "fusion_torch" for h in [h])
+        assert heavy > light, (heavy, light)
+        return " · ".join(f"{c[:4]}/{p.split('_')[0]} {h:.2f}"
+                          for c, p, h, _y in seen)
 
     @check("the panel says why the throttle will not open")
     def _():
