@@ -8,7 +8,8 @@ called as often as a screen is drawn.
 from __future__ import annotations
 
 from ..data.orders import ORDERS, ORDERS_BY_ID, SHOWN
-from . import chains, colony as colony_sim, consorts, intel
+from . import chains
+from . import consorts, colony as colony_sim, intel
 from . import inquiry, loading, loyalty, market as market_sim
 from . import rumours as rumour_sim
 from . import ventures as venture_sim
@@ -30,8 +31,11 @@ PREDICATES = {
     "restless": lambda g: bool(loyalty.restless(g)),
 
     "overloaded": lambda g: loading.loading(g.ship) > 1.05,
-    "escort": lambda g: any(s is not g.ship and not getattr(s, "escort", False)
-                            for s in g.fleet),
+    # Through `consorts.can_sail`, which is the act. The gate was "you own a
+    # hull that is not already out" — true of a hull berthed six systems away,
+    # which cannot be ordered from here, so the card nagged about something the
+    # captain could not do anything about.
+    "escort": lambda g: any(consorts.can_sail(g, s)[0] for s in g.fleet),
 
     "commission": lambda g: (_at_port(g)
                              and any(ok for _c, ok, _w

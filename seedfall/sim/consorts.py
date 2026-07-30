@@ -226,3 +226,94 @@ def _is_between(battle, consort) -> bool:
 def losses(battle) -> list:
     """Consorts that did not survive, for the after-action report."""
     return [c for c in battle.consorts if is_destroyed(c.ship)]
+
+
+# ── ordering a hull to sail in company ─────────────────────────────────────
+#
+# **This was a screen.** `ui/yard_view._set_escort` wrote `ship.escort` and
+# `ship.docked_at` directly, so the rule about *which* hulls may be ordered out
+# lived in whether the button was drawn — the same fault `shipyard.can_refit_here`
+# was written to fix, where "a hull is only opened where there is a yard to open
+# it" was enforced by a button and any other caller, the remote bridge included,
+# could strip a hull in deep space.
+#
+# Measured while moving it: a decade of play fought **seventy engagements and
+# deployed a consort in none of them**, because a chronicle never lays down a
+# second hull — so nothing had ever driven this end to end.
+
+def can_sail(game, ship) -> tuple[bool, str]:
+    """May this hull be ordered to sail in company? The one rule."""
+    if ship is game.ship or ship.uid == game.ship.uid:
+        return False, "That is your flag. Transfer it first."
+    # Yours, first of all. The screen could only ever offer a row it had drawn
+    # from `game.fleet`, so ownership was implied by the loop — and the first
+    # thing a headless caller did was order out a hull that was not in it.
+    if not any(s is ship or s.uid == ship.uid for s in getattr(game, "fleet", [])):
+        return False, f"{ship.name} is not yours to order."
+    if getattr(ship, "escort", False):
+        return False, f"{ship.name} is already sailing with you."
+    if is_destroyed(ship):
+        return False, f"{ship.name} is a wreck."
+    if getattr(ship, "crew", 0) < 1:
+        return False, f"{ship.name} has nobody aboard to fly it."
+    if ship.docked_at != game.system.id:
+        return False, (f"{ship.name} is berthed elsewhere. Go to it, or send "
+                       "for it.")
+    return True, ""
+
+
+def sail(game, ship) -> dict:
+    """Order a hull out of its berth to keep station on the flag.
+
+    The single writer of `escort`, with `berth` — and it says what the company
+    will cost, because a hull in company eats out of *your* hold. See
+    `upkeep.complement`.
+    """
+    ok, why = can_sail(game, ship)
+    if not ok:
+        return {"ok": False, "why": why}
+    ship.escort = True
+    ship.docked_at = None
+    told = keep(game)
+    game.add_log(f"{ship.name} will sail in company — "
+                 f"{told['mouths']} mouths in the fleet now.", "good")
+    return {"ok": True, "ship": ship, "keep": told}
+
+
+def berth(game, ship) -> dict:
+    """Send a consort back to a berth here. The other single writer."""
+    if not getattr(ship, "escort", False):
+        return {"ok": False, "why": f"{ship.name} is not sailing with you."}
+    ship.escort = False
+    ship.docked_at = game.system.id
+    game.add_log(f"{ship.name} puts in at {game.system.name}.", "")
+    return {"ok": True, "ship": ship, "keep": keep(game)}
+
+
+def keep(game) -> dict:
+    """What sailing in company costs a day, and who is in it.
+
+    Read by the yard screen before the captain commits, and by
+    `test_company` against what `upkeep.tick` actually takes. There is no
+    second sum: the figures come from `upkeep.demand`, which is what feeds
+    everybody.
+    """
+    from . import upkeep
+
+    company = escorts_of(game)
+    with_them = upkeep.demand(game)
+    without = upkeep.demand(game, company=False)
+    # Not rounded. A door that rounds is a door whose figure no longer matches
+    # the act it is quoting, and the screen can format for itself.
+    extra = {cid: rate - without.get(cid, 0.0)
+             for cid, rate in with_them.items()
+             if rate - without.get(cid, 0.0) > 1e-9}
+    return {
+        "hulls": len(company),
+        "names": [s.name for s in company],
+        "crew": sum(max(0, int(getattr(s, "crew", 0))) for s in company),
+        "mouths": sum(max(0, int(getattr(s, "crew", 0)))
+                      for s in [game.ship] + company),
+        "extra": extra,
+        "a_day": sum(extra.values()),
+    }

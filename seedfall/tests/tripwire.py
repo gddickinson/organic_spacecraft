@@ -188,7 +188,7 @@ KIN = {
     "starclasses": ("worlds", "orbits"),
     "programmes": ("programmes",),
     "declared": ("declared",),
-    "consorts": ("combat", "screening"),
+    "consorts": ("combat", "screening", "company"),
     "mounts": ("thrusters", "lopsided"),
     "pilot": ("pilot", "conn", "climbs"),
     "gunnery": ("volley", "gunboard", "gunnery"),

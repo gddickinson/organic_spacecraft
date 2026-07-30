@@ -13,6 +13,7 @@ from ..data.parts import part, parts_available
 from ..sim import colony as colony_sim
 from ..sim import loading
 from ..sim import plans as plans_sim
+from ..sim import consorts as consort_sim
 from ..sim import shipyard
 from ..sim.ship import Ship, hull_pct, stats
 from .plans_panel import ShipPlan
@@ -347,9 +348,22 @@ class YardView(View):
             self.col.addWidget(slips)
 
         p = Panel("Hulls")
+        # What the company costs is on the panel, not left to be discovered.
+        # A consort is your own people in your own second hull and it eats out of
+        # your hold — see `sim/upkeep.complement`, which did not count them until
+        # this was written and so made a fleet free to keep.
+        told = consort_sim.keep(g)
         p.add(note("You command one hull at a time. The rest wait where they were "
                    "built — unless you order them to sail in company, in which "
-                   "case they follow your flag and fight beside it."))
+                   "case they follow your flag and fight beside it. They eat out "
+                   "of your hold while they do."))
+        if told["hulls"]:
+            p.add_row(f"In company · {told['hulls']} hull(s)",
+                      f"{told['crew']} more mouths · "
+                      + (", ".join(f"{amount:.2f} t {cid} a day"
+                                   for cid, amount in told["extra"].items())
+                         or "nothing extra"),
+                      "lumen")
         for s in list(g.fleet):
             ch = CHASSIS_BY_ID[s.chassis]
             active = s.uid == g.ship.uid
@@ -380,13 +394,23 @@ class YardView(View):
         self.col.addWidget(p)
 
     def _set_escort(self, ship: Ship, sailing: bool) -> None:
-        ship.escort = sailing
-        if sailing:
-            ship.docked_at = None
-            self.game.add_log(f"{ship.name} will sail in company.", "good")
-        else:
-            ship.docked_at = self.game.system.id
-            self.game.add_log(f"{ship.name} puts in at {self.game.system.name}.", "")
+        """Order a hull out, or send it back. The sim owns both.
+
+        This used to write `ship.escort` and `ship.docked_at` here, so the rule
+        about which hulls may be ordered out lived in whether the button was
+        drawn — and a headless caller's first act was to order out a hull that
+        was not even in the fleet. `consorts.sail`/`berth` are the door now.
+        """
+        res = (consort_sim.sail(self.game, ship) if sailing
+               else consort_sim.berth(self.game, ship))
+        if not res["ok"]:
+            self.win.toast(res["why"], "warn")
+            return
+        told = res["keep"]
+        if sailing and told["a_day"] > 0:
+            self.win.toast(
+                f"{told['hulls']} in company · {told['crew']} more mouths, "
+                f"{told['a_day']:.2f} t a day out of your hold.", "osteo")
         self.win.refresh()
 
     def _switch_ship(self, ship: Ship) -> None:

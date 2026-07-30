@@ -1773,7 +1773,8 @@ seedfall/
 │   ├── mining.py       seams, depth, and how hard you work a body
 │   ├── rumours.py      leads that point somewhere before you have been,
 │   │                   and what the place you heard one is worth
-│   ├── consorts.py     escorts: standing orders, screening, who draws fire
+│   ├── consorts.py     escorts: ordering one out of its berth, standing
+│   │                   orders, screening, who draws fire, what they eat
 │   ├── loyalty.py      what the bridge thinks of how you run the ship
 │   ├── works.py        colony development: what a settlement becomes
 │   ├── flight.py       the helm: orbits, intercepts, routing, transfer burns
@@ -1913,6 +1914,8 @@ seedfall/
     │                   upkeep, building, retrenchment, the venture stake
     ├── test_climbs.py  5 checks — the conn sells no climb the tank cannot
     │                   make, and prices the ones it refuses
+    ├── test_company.py 6 checks — who may be ordered to sail in company,
+    │                   and what feeding them costs
     ├── test_wharfage.py 10 checks — the due on your own trade: conserved,
     │                   named on the board, waived at a free port, priced by
     │                   standing and by the size of the berth
@@ -2464,6 +2467,28 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   `_apply_to_layers` and the arc checks work on one without changes. What that
   buys is also the constraint: anything that assumes a battle has exactly two
   sides — `_who()` did — has to learn otherwise.
+- **Ordering a hull to sail in company is `consorts.sail`, not a screen.** It was
+  a screen: `yard_view._set_escort` wrote `ship.escort` and `ship.docked_at`
+  itself, so the rule about which hulls may be ordered out lived in whether the
+  button had been drawn, and the first headless caller ordered out a hull that
+  was not in the fleet. `can_sail` is the rule — yours, not the flag, not a wreck,
+  somebody aboard, berthed *here*, not already out — and `data/orders.py`'s escort
+  card reads the same function, having previously nagged about hulls six systems
+  away.
+- **A hull in company eats out of your hold.** `upkeep.complement(game,
+  company=True)` counts its crew; `demand` asks with them and `draw`/`breathers`
+  ask without, because stores come out of the shared hold while air and power are
+  per hull. Before this a fleet was free to keep — measured, a thirty-crew escort
+  moved the day's demand, the power draw and the wage bill by exactly nothing.
+  `consorts.keep` is what the yard quotes, unrounded, so the figure on the panel
+  is the figure `upkeep.tick` takes.
+- **Counting which mechanics a played decade ever reaches is worth doing
+  directly.** Wrapping the doors and playing ten years found that **seventy
+  engagements deployed a consort in none of them** — `escorts_of` was empty every
+  time because a chronicle never lays down a second hull, so orders, screening and
+  interception had never been driven end to end by a game. `test_company` now
+  drives them: four engagements, four consorts deployed, 73 turns with one
+  interposed between the flag and the enemy.
 - **Save identity**: `game.ship` must be the same object as its entry in
   `game.fleet`. `load_game()` re-links them after decoding; damage would
   otherwise apply to a copy.

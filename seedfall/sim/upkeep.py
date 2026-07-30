@@ -38,25 +38,38 @@ GRACE = 6.0
 PER_LOSS = 9.0
 
 
-def complement(game) -> dict:
-    """How many of each lineage are aboard, officers and hands together.
+def complement(game, company: bool = False) -> dict:
+    """How many of each lineage the flag carries, officers and hands together.
 
     The headcount (`ship.crew`) has no individual lineage — it is the captain's
     own stock, which is what "you crew them" on the opening screen means.
     Officers may differ: ports recruit from whoever is in them.
+
+    `company=True` counts the crews of hulls sailing in company as well, which
+    is what **stores** are asked for: a consort is the captain's own people in
+    the captain's own second hull and it eats out of the same hold. It was not,
+    and nothing else charged for it either — measured, ordering a thirty-crew
+    escort out changed the day's demand not at all, so a fleet was free to keep.
+    Air and power are *not* asked with it: every hull breathes and generates for
+    itself, and `game.ship.o2` is this hull's tank.
     """
+    from . import consorts
+
     out: dict = {}
+    mine = of_stock(getattr(getattr(game, "beginning", None), "stock", None))
     hands = max(0, int(getattr(game.ship, "crew", 0)))
+    if company:
+        hands += sum(max(0, int(getattr(s, "crew", 0)))
+                     for s in consorts.escorts_of(game))
     if hands:
-        out[of_stock(getattr(getattr(game, "beginning", None), "stock", None))] \
-            = hands
+        out[mine] = hands
     for officer in active(getattr(game, "officers", [])):
         key = lineage_of(officer, game).id
         out[key] = out.get(key, 0) + 1
     return out
 
 
-def demand(game) -> dict:
+def demand(game, company: bool = True) -> dict:
     """Tonnes per day the people aboard want, by commodity.
 
     Scaled by how many of them are asleep: a vitrified crew eats a twentieth
@@ -65,7 +78,7 @@ def demand(game) -> dict:
     from . import dormancy
     _ageing, fed = dormancy.rates(game, None)
     want: dict = {}
-    for lineage_id, count in complement(game).items():
+    for lineage_id, count in complement(game, company).items():
         lineage = LINEAGES_BY_ID.get(lineage_id)
         if not lineage:
             continue

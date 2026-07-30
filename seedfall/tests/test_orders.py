@@ -68,6 +68,13 @@ def _states():
     escort = make_ship("vesper", ["mag_lance", "reaction_organ", "opsin_eyes"],
                        "Kestrel")
     build_layers(escort, fleeted.bonuses)
+    # Berthed where the captain is, which is the only state the game can put a
+    # second hull in: `shipyard.tick_builds` docks a launched hull at the yard
+    # that built it, and `consorts.sail` is the one thing that clears it. This
+    # fixture left `docked_at` at None — neither berthed nor sailing — and the
+    # escort card's gate now reads `consorts.can_sail`, which refuses a hull
+    # that is not here.
+    escort.docked_at = fleeted.system.id
     fleeted.fleet.append(escort)
     out["second hull"] = fleeted
 

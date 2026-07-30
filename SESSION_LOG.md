@@ -2,6 +2,71 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: seventy battles, no consort, and a fleet that ate nothing
+
+No task for this one. I picked it by **counting which mechanics a played decade
+ever reaches** — wrapping forty doors across politics, combat, the ground and the
+bench, then playing ten years and reading the tally. Most of it fires plenty.
+One block was flat zero:
+
+    0  consorts.deploy      0  consorts.run      0  consorts.interception
+
+...across **seventy engagements.** `deploy` runs only when `escorts_of` returns
+something, and a chronicle never lays down a second hull, so the whole consort
+subsystem — standing orders, screening, who draws fire, the interception share
+that #86 measured so carefully — had never once been driven end to end by a game.
+Nothing was broken. Nothing had been asked.
+
+Two things were wrong underneath, and both are house specialities.
+
+**The act was a screen.** `ui/yard_view._set_escort` wrote `ship.escort` and
+`ship.docked_at` itself, so the rule about which hulls may be ordered out lived
+in whether the button had been drawn — the same shape as `apply_refit` validating
+the design and the cost and *nothing else*. The first thing I did through the new
+door was order out a hull that **was not in the fleet at all**, which the screen
+had prevented by only ever drawing rows from `game.fleet`. `consorts.can_sail` is
+the rule now: yours, not the flag, not a wreck, somebody aboard, berthed *here*,
+not already out. Five refusals, each with a sentence.
+
+**And a fleet was free to keep.** Measured before touching anything: ordering a
+thirty-crew escort out changed the day's demand **not at all**, the power draw not
+at all, the wage bill not at all. `upkeep.complement` counted the flagship's crew
+and the officers and stopped. A consort is the captain's own people in the
+captain's own second hull, so the stores are the flag's: `complement(game,
+company=True)` counts them and `demand` asks with them. **Air and power
+deliberately do not** — `game.ship.o2` is *this hull's* tank and every hull has a
+reactor, so only what comes out of the hold is shared. Measured: 30 more mouths
+is +81% on the day's biomass, 45% of the fleet's stores, and a fortnight takes
+exactly what the yard quoted.
+
+Which is the other half: **the yard says what it costs before you commit.**
+"In company · 1 hull(s) — 26 more mouths · 0.07 t biomass a day", and the log
+reads "Wake of Ash will sail in company — 60 mouths in the fleet now."
+`consorts.keep` is unrounded on purpose — a door that rounds is a door whose
+figure no longer matches the act, and my first draft rounded to four places and
+was caught by the check comparing it against what `upkeep.tick` really took.
+
+**Two more found on the way.** The escort standing order promised "You own more
+than one and only one of them is doing anything — order it to sail in company",
+and its gate was "you own a hull that is not already out" — true of a hull
+berthed six systems away, which cannot be ordered from here. It reads
+`can_sail` now. And `test_orders`' own fixture built a second hull with
+`docked_at = None`: neither berthed nor sailing, a state the game cannot produce,
+since a launched hull is docked at the yard that built it and `sail` is the only
+thing that clears it. Giving the fixture the berth it would really have made the
+guard stricter, not weaker.
+
+Played, at last: four engagements with a TESTUDO in company, four consorts
+deployed, **73 turns with one interposed between the flag and the enemy**, and one
+of them came away holed. The subsystem works. Nobody had asked it to.
+
+Eight deliberate breakages, eight caught: the fleet eating nothing again, a
+consort breathing your tank, the ownership rule dropped, a hull ordered out from
+anywhere, a wreck allowed to sail, the yard's cost line removed, the quote rounded
+away from the act, and the standing order back on its loose gate.
+
+Six new checks, 959 across the suite, all green.
+
 ## 2026-07-30 — SEEDFALL: the conn was selling climbs no hull could make (#102)
 
 Task #102 said the orbit law fights itself and wastes **1,046 tonnes against an
