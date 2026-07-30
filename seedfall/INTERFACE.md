@@ -872,6 +872,52 @@ end for end against the SPORE's 50.
 a burn in a new direction is a *turn* first — three ticks to swing a NAVIS 90°
 — and the turn spends reaction mass out of the same tank.
 
+**One asteroid gave up 8,427 tonnes instead of 140.** Mining picked for breadth,
+and found the largest arithmetic hole in the game so far.
+
+`raise_rate` lifts material with four rigs — `mine` for ore, `phos` for
+phosphate, `drink` for volatiles, `graze` for biomass. `actions.extract` wore the
+body down with **two of them**: `st.mine + st.drink`. So a phosphate rig and a
+harvest tendril raised material and depleted nothing. Fit a token mining root
+beside them, and one body gave up **8,427 t over 283 spells against an ordinary
+hull's 140 t over 8** — sixty times its worth. Not infinite, because `extract`
+refuses a hull with no mining root and no harvest tendril at all, which is what a
+first draft of the check claimed and had to withdraw. Sixty times is enough.
+
+`mining.RIGS` is the one table now — the pairs `raise_rate` walks — and
+`mining.rig_of` sums it, so a rig that lifts material is a rig that wears the body
+down by construction rather than by two lists agreeing. Measured after: 159 t
+against 128 t, which is a hull's fittings mattering rather than a fountain.
+
+**And the forecast was biased by the option it was comparing.** `prospect`
+estimated the average rate at the midpoint of what was left and multiplied by days
+and a `WORKING_LOSS` fudge. Against actually working the body out it was 2% low on
+a bioleach and **45% low on a bore** — the error tracking how fast the method
+depletes, because the faster it goes the fewer steps the average is taken over.
+The days figure was separately a fifth too long, because `prospect` used
+`max(mine, drink)` where `extract` used the sum.
+
+It is a **dry run** now: it walks the body down in five-day steps through
+`raise_rate` and the same depletion arithmetic, and adds up what comes off. It
+cannot disagree with the act because it *is* the act with the ship left at home —
+the same reason `sim/preview.py` flies a throwaway twin instead of predicting a
+burn. Checked with events silenced, the error across all four methods is −0.0%,
++0.0%, +0.2% and +0.1%; with events live it varies ±6% either way, which is a
+windfall and an accident behaving like noise rather than bias.
+
+What that buys is a legible decision. On one ice body the screen now reads: a cut
+and a bore both recover about 98 t, but the bore does it in 64 days against 135;
+a bioleach recovers **254 t** and takes 386. Speed against total, and both figures
+true.
+
+**A hang, and the lesson from it.** The dry run's `while` loop exited only when
+the depletion arithmetic advanced, so a mutation that removed the advance spun for
+ever and took the whole sweep with it — I had to kill it, and killing it left the
+mutation in the tree, which is its own hazard. There is a hard step bound beside
+the depletion test now: a loop whose termination depends on arithmetic is a hang
+waiting for someone to break the arithmetic, and a check that hangs is worse than
+one that fails because it costs everything and tells you nothing.
+
 **"Grievances are counted" was true in three places and false in the code.**
 `approach.preview` tells a captain refusing a levy that "they will file it as a
 grievance, and grievances are counted"; the levy's own `costs` line in

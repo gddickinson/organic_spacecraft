@@ -238,7 +238,8 @@ def extract(game, body_index: int, days: int,
     take("biomass", st.graze)
 
     wear = mining.apply_wear(game, method.id, days)
-    mining.deplete(game, body, method.id, days, st.mine + st.drink)
+    mining.deplete(game, body, method.id, days,
+                   mining.rig_of(st))
     grant_xp(game.officers, "engineering", days * 2, game=game)
 
     summary = ", ".join(f"{round(v)} t {k}" for k, v in got.items())

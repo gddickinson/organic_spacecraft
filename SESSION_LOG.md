@@ -2,6 +2,65 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: one asteroid gave up 8,427 tonnes instead of 140
+
+Mining picked for breadth — nothing had touched it, trading or expeditions for
+many cycles — and it turned up the largest arithmetic hole in the game so far.
+
+`raise_rate` lifts material with four rigs: `mine` for ore, `phos` for phosphate,
+`drink` for volatiles, `graze` for biomass. `actions.extract` wore the body down
+with **two of them**, `st.mine + st.drink`. So a phosphate rig and a harvest
+tendril raised material and depleted nothing at all. Fit a token mining root
+beside them and one body gave up **8,427 t over 283 spells, against an ordinary
+hull's 140 t over 8** — sixty times its worth.
+
+`mining.RIGS` is one table now — the pairs `raise_rate` itself walks — and
+`rig_of` sums it, so a rig that lifts material wears the body down by
+construction rather than by two lists agreeing. After: 159 t against 128 t, which
+is fittings mattering rather than a fountain.
+
+**The forecast was biased by the very option it was there to compare.**
+`prospect` estimated the average rate at the midpoint of what was left, times
+days, times a `WORKING_LOSS` fudge. Against actually working the body out it came
+in 2% low on a bioleach and **45% low on a bore** — the error tracking how fast
+the method depletes. And the days were a fifth too long, because `prospect` used
+`max(mine, drink)` where `extract` used the sum.
+
+It is a dry run now, walking the body down in five-day steps through the same
+`raise_rate` and depletion arithmetic — it cannot disagree with the act because it
+*is* the act with the ship left at home, which is the same reason `sim/preview.py`
+flies a throwaway twin rather than predicting a burn. With events silenced the
+error across all four methods is −0.0%, +0.0%, +0.2%, +0.1%. With events live it
+moves ±6% either way, a windfall and an accident behaving like noise.
+
+The point of all that is a legible choice, and now a true one. On one ice body the
+screen reads: a cut and a bore both recover about 98 t, but the bore takes 64 days
+against 135; a bioleach recovers **254 t** over 386. Speed against total.
+
+**Four things I got wrong, and one that cost real time:**
+
+- **I claimed an infinite source and had to withdraw it.** A phosphate-only hull
+  raises material and depletes nothing — but `extract` refuses a hull with no
+  mining root *and* no harvest tendril, so it is unreachable. The exploit needed a
+  token mine beside it, and is sixty-fold rather than unbounded. I wrote the
+  check on the wrong claim first and it failed, which is how I found out.
+- **My first two measurements compared the wrong things.** One drove
+  `raise_rate` in my own loop rather than the game's `extract`; the next passed
+  its own rig into `deplete`. Both produced tables I nearly reported.
+- **I segfaulted nothing this time but I did hang the sweep.** The dry run's
+  `while` loop exited only when the depletion arithmetic advanced, so the mutation
+  that removed the advance spun for ever. I had to kill the sweep — and killing it
+  left the mutation sitting in the tree, which I caught only by checking the file
+  afterwards. There is a hard step bound beside the depletion test now. A loop
+  whose termination depends on arithmetic is a hang waiting for someone to break
+  the arithmetic, and a check that hangs costs everything and tells you nothing.
+- **One mutation in the sweep mutates nothing observable** — taking the step bound
+  off changes no behaviour while the advance still works. That is defence in depth,
+  not a hole in the checks, so the honest score is 7 caught of 8 tried rather than
+  a claim of 8.
+
+Full suite green.
+
 ## 2026-07-29 — SEEDFALL: "grievances are counted", and they were not
 
 Picked diplomacy for breadth — the last three cycles were piloting, combat and a

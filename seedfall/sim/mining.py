@@ -77,6 +77,31 @@ def available(game, body) -> list[tuple]:
     return out
 
 
+#: Which rig raises which commodity. `raise_rate` walks this, and so does
+#: `rig_of` — so a rig that lifts material off a body is a rig that wears it
+#: down, by construction rather than by two lists agreeing.
+RIGS = (("ore", "mine"), ("phosphate", "phos"),
+        ("volatiles", "drink"), ("biomass", "graze"))
+
+
+def rig_of(stats) -> float:
+    """How hard this hull works a body, summed over every rig that raises.
+
+    **The one door, and there were two.** `actions.extract` depleted the body at
+    `st.mine + st.drink` while `prospect` forecast at `max(st.mine, st.drink)`, so
+    a starting hull — 3.2 mine, 0.8 drink — wore a body down at 4.0 and was told
+    3.2, and every days figure on the screen was a fifth too long.
+
+    Worse, neither counted `phos` or `graze`. Both raise material: a hull fitted
+    with a phosphate rig and nothing else lifted 0.507 t a day and depleted the
+    body by **exactly zero**, so `worked_out` never fired and the seam paid out
+    for ever. A harvest tendril alone did the same at 0.316. An infinite source
+    is not a slow one.
+    """
+    return sum(max(0.0, getattr(stats, attr, 0.0) or 0.0)
+               for _cid, attr in RIGS)
+
+
 def rate_for(body, method_id: str, resource: str, rig: float) -> float:
     """Tonnes per day this method pulls of one resource."""
     method = METHODS_BY_ID.get(method_id, METHODS_BY_ID[DEFAULT_METHOD])
@@ -172,38 +197,80 @@ def deplete(game, body, method_id: str, days: int, rig: float) -> None:
                         + days * 0.0016 * rig * method.depletion_mul)
 
 
+#: How long a step the forecast walks, in days. Small enough that the falling
+#: yield is followed closely and large enough that a body four hundred days deep
+#: is a few dozen steps rather than a few hundred.
+FORECAST_STEP = 5
+
+
 def prospect(body, method_id: str, stats) -> dict:
     """What this method will get out of this body before it is finished.
 
-    A body used to sit at the depletion cap paying a token tonne a session
-    for ever, so there was nothing to forecast and no reason to choose a
-    gentler method. Now it ends, and the two figures that matter — how fast,
-    and how much in total — pull in opposite directions.
+    A body used to sit at the depletion cap paying a token tonne a session for
+    ever, so there was nothing to forecast and no reason to choose a gentler
+    method. Now it ends, and the two figures that matter — how fast, and how
+    much in total — pull in opposite directions: measured on one body, a deep
+    bore lifts four times a skim's daily rate and recovers barely half of what
+    the body holds.
+
+    **It is a dry run, not a formula.** The first version estimated the average
+    rate at the midpoint of what was left and multiplied by days and a
+    `WORKING_LOSS` fudge. Checked against actually working the body out, it was
+    2% low on a bioleach and **45% low on a bore** — the error tracking how fast
+    the method depletes, because the faster it goes the fewer steps the average
+    is taken over and the less the midpoint means. A forecast whose error
+    depends on the option being compared is worse than no forecast, because it
+    tilts the comparison it exists to inform.
+
+    So it walks the body down in `FORECAST_STEP` days at a time through
+    `raise_rate` and the same depletion arithmetic `deplete` uses, and adds up
+    what comes off. It cannot disagree with the act, because it is the act with
+    the ship left at home — the same reason `sim/preview.py` flies a throwaway
+    twin instead of predicting a burn.
     """
-    method = METHODS_BY_ID.get(method_id, METHODS_BY_ID[DEFAULT_METHOD])
-    rig = max(getattr(stats, "mine", 0.0), getattr(stats, "drink", 0.0))
+    rig = rig_of(stats)
     left = max(0.0, WORKED_OUT - getattr(body, "depleted", 0.0))
     if rig <= 0 or left <= 0:
-        return {"left": left, "days": 0.0, "total": 0.0, "rate": 0.0,
-                "finished": left <= 0}
-    per_day_depletion = 0.0016 * rig * method.depletion_mul
-    days = left / per_day_depletion if per_day_depletion else 0.0
-    # Yield falls as the body empties, so the average over its life is taken
-    # at the midpoint rather than at today's rate.
+        return {"left": left, "days": 0.0, "total": 0.0,
+                "rate": 0.0, "finished": left <= 0}
+
+    method = METHODS_BY_ID.get(method_id, METHODS_BY_ID[DEFAULT_METHOD])
+    per_day = 0.0016 * rig * method.depletion_mul
+    if per_day <= 0:
+        return {"left": left, "days": 0.0, "total": 0.0,
+                "rate": raise_rate(body, method_id, stats), "finished": False}
+
     now = raise_rate(body, method_id, stats)
-    remaining = max(0.0, 1 - getattr(body, "depleted", 0.0))
-    mid = (remaining + (1 - WORKED_OUT)) / 2
-    average = now * (mid / remaining) if remaining > 0 else 0.0
-    return {"left": left, "days": days,
-            "total": average * days * WORKING_LOSS,
+    was = getattr(body, "depleted", 0.0)
+    total, days = 0.0, 0.0
+    # A hard step bound as well as the depletion test. **A mutation that removed
+    # the advance below hung the whole suite**, because the loop's only exit was
+    # arithmetic that the mutation stopped happening — and a check that hangs is
+    # worse than one that fails, since it tells you nothing and costs everything.
+    # `WORKED_OUT / (0.0016 * FORECAST_STEP)` is the most steps the slowest legal
+    # rig could need; twice that is head-room and still finite.
+    steps, most = 0, int(2 * WORKED_OUT / (0.0016 * FORECAST_STEP))
+    try:
+        while body.depleted < WORKED_OUT - 1e-9 and steps < most:
+            steps += 1
+            step = min(FORECAST_STEP,
+                       (WORKED_OUT - body.depleted) / per_day)
+            if step <= 0:
+                break
+            total += raise_rate(body, method_id, stats) * step
+            days += step
+            body.depleted = min(WORKED_OUT, body.depleted + step * per_day)
+    finally:
+        body.depleted = was
+    return {"left": left, "days": days, "total": total,
             "rate": now, "finished": False}
 
 
 def raise_rate(body, method_id: str, stats) -> float:
     """Tonnes a day this rig lifts off this body, all seams together."""
-    rigs = {"ore": stats.mine, "phosphate": stats.phos,
-            "volatiles": stats.drink, "biomass": stats.graze}
-    return sum(rate_for(body, method_id, cid, rig) for cid, rig in rigs.items())
+    return sum(rate_for(body, method_id, cid,
+                        max(0.0, getattr(stats, attr, 0.0) or 0.0))
+               for cid, attr in RIGS)
 
 
 def days_of_room(body, method_id: str, stats, room: float, days: int) -> int:

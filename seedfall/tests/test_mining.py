@@ -3,6 +3,20 @@
 Working a body used to be "pick a number of days". These hold the methods to
 being genuinely different bargains, and hold the seam model to the one
 invariant that keeps a captain from being stranded: fuel is always reachable.
+
+Two faults found by working bodies out and watching:
+
+- **A phosphate rig or a harvest tendril stripped a body for ever.**
+  `actions.extract` depleted at `st.mine + st.drink`, and `raise_rate` lifts
+  material with four rigs. A hull carrying only a phosphate rig raised 0.507 t a
+  day and wore the body down by *exactly zero*, so `worked_out` never fired. An
+  infinite source is not a slow one.
+- **The forecast was out by 2% on a bioleach and 45% on a bore.** `prospect`
+  estimated the average rate at the midpoint of what was left and multiplied by
+  days and a `WORKING_LOSS` fudge, and its error tracked how fast the method
+  depletes — so the figure a captain compares methods on was biased *by the
+  method being compared*. It is a dry run now, and matches the act to within a
+  fraction of a per cent.
 """
 
 from __future__ import annotations
@@ -169,6 +183,144 @@ def run(suite: Suite) -> None:
         assert "worked out" in last["why"].lower(), last
         return (f"{early:.0f} t fresh, then the body refused the rig at "
                 f"{body.depleted:.0%} worked out")
+
+    @check("a body gives up the same whichever rigs you skew to")
+    def _():
+        # **The exploit.** `actions.extract` depleted the body at
+        # `st.mine + st.drink`, and `raise_rate` lifts material with four rigs.
+        # So a phosphate rig and a harvest tendril raised material and wore the
+        # body down by nothing: fit a token mining root beside them and one
+        # asteroid gave up **8,427 t over 283 spells instead of 140 t over 8** —
+        # sixty times its worth.
+        #
+        # Not infinite, because `extract` refuses a hull with no mining root and
+        # no harvest tendril at all — which is what a first draft of this check
+        # claimed and had to withdraw. Sixty times is enough.
+        def total(skew, seed="skew"):
+            game = new_game(seed)
+            game.recompute()
+            index = next(i for i, b in enumerate(game.system.bodies)
+                         if b.kind in ("asteroid", "moon", "rocky"))
+            for b in game.system.bodies:
+                b.surveyed = True
+            body = game.system.bodies[index]
+            game.credits = 5_000_000
+            for key in ("volatiles", "biomass"):
+                game.stores[key] = 10 ** 6
+            real = mining.roll_event
+            mining.roll_event = lambda *a, **k: None
+            got, spells = 0.0, 0
+            try:
+                while not mining.worked_out(body) and spells < 900:
+                    game.ship.cargo = {}
+                    game.recompute()
+                    for attr, value in skew.items():
+                        setattr(game.ship_stats, attr, value)
+                    out = extract(game, index, 10, "bore")
+                    if not out.get("ok"):
+                        break
+                    got += sum(out.get("got", {}).values())
+                    spells += 1
+            finally:
+                mining.roll_event = real
+            return got, spells
+
+        plain, plain_spells = total({"mine": 3.2, "phos": 0.1,
+                                     "drink": 0.8, "graze": 0.3})
+        skewed, skewed_spells = total({"mine": 0.1, "phos": 3.2,
+                                       "drink": 0.0, "graze": 3.2})
+        assert plain > 10, plain
+        ratio = skewed / plain
+        assert ratio < 2.5, (
+            f"a hull skewed to phosphate and harvest took {skewed:.0f} t off the "
+            f"body against {plain:.0f} t for an ordinary one — {ratio:.0f} times "
+            "as much. A rig that lifts material has to wear the body down, or "
+            "the body is a fountain")
+        assert skewed_spells < plain_spells * 4, (
+            f"{skewed_spells} spells against {plain_spells}: the skewed hull is "
+            "still working a body that should have finished")
+
+        # And the arithmetic behind it: every rig `raise_rate` lifts with is a
+        # rig `rig_of` counts.
+        class _Rig:
+            """A stand-in carrying only the four rig ratings."""
+
+            def __init__(self, **kw):
+                for attr in ("mine", "phos", "drink", "graze"):
+                    setattr(self, attr, kw.get(attr, 0.0))
+
+        _game, _index, body = _ready("every-rig")
+        for _cid, attr in mining.RIGS:
+            stats = _Rig(**{attr: 3.2})
+            lifts = mining.raise_rate(body, "bore", stats)
+            assert lifts > 0.01, (attr, lifts)
+            assert mining.rig_of(stats) > 0, (
+                f"a {attr} rig lifts {lifts:.3f} t a day and wears the body "
+                "down by nothing")
+        return (f"ordinary {plain:.0f} t in {plain_spells} spells · skewed "
+                f"{skewed:.0f} t in {skewed_spells} — {ratio:.1f}x, was 60x")
+
+    @check("the prospect is what the working actually gives up")
+    def _():
+        # The forecast against the act, which is what a captain chooses a method
+        # on. Events are silenced for the comparison: a strike is a windfall and
+        # a mishap is an accident, and a forecast that promised the average of
+        # them would be wrong on every individual run. They are checked to be
+        # noise either side rather than a bias, below.
+        game, index, body = _ready("prospect")
+        game.credits = 5_000_000
+        for key in ("volatiles", "biomass"):
+            game.stores[key] = 10 ** 6
+
+        def work_out(method_id, quiet=True):
+            g, i, b = _ready(f"pros-{method_id}")
+            g.credits = 5_000_000
+            for key in ("volatiles", "biomass"):
+                g.stores[key] = 10 ** 6
+            if not mining.reachable(b, method_id):
+                return None
+            said = mining.prospect(b, method_id, g.ship_stats)
+            real = mining.roll_event
+            if quiet:
+                mining.roll_event = lambda *a, **k: None
+            got, days, spells = 0.0, 0, 0
+            try:
+                while not mining.worked_out(b) and spells < 500:
+                    g.ship.cargo = {}
+                    g.recompute()
+                    out = extract(g, i, 5, method_id)
+                    if not out.get("ok"):
+                        break
+                    got += sum(out.get("got", {}).values())
+                    days += out.get("days", 0)
+                    spells += 1
+                    if g.dead:
+                        break
+            finally:
+                mining.roll_event = real
+            return said, got, days
+
+        looked, worst = 0, 0.0
+        lines = []
+        for method in METHODS:
+            r = work_out(method.id)
+            if r is None:
+                continue
+            said, got, days = r
+            assert said["total"] > 0 and said["days"] > 0, (method.id, said)
+            off = abs(got - said["total"]) / said["total"]
+            worst = max(worst, off)
+            assert off < 0.05, (
+                f"{method.id}: the screen forecast {said['total']:.1f} t and the "
+                f"working gave up {got:.1f} — {off:.0%} out. A forecast whose "
+                "error depends on the method is a forecast that tilts the "
+                "comparison it exists to inform")
+            assert abs(days - said["days"]) <= 6, (
+                f"{method.id}: forecast {said['days']:.0f} days, took {days}")
+            looked += 1
+            lines.append(f"{method.id} {said['total']:.0f}t/{got:.0f}t")
+        assert looked >= 3, looked
+        return " · ".join(lines) + f" — worst {worst:.1%} out"
 
     @check("deep work is where the mishaps are")
     def _():
