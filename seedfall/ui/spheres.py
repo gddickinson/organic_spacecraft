@@ -32,7 +32,7 @@ from __future__ import annotations
 import math
 
 from PyQt6.QtCore import QPointF, QRectF
-from PyQt6.QtGui import (QBrush, QColor, QPainter, QPainterPath,
+from PyQt6.QtGui import (QBrush, QColor, QPainter, QPainterPath, QPolygonF,
                          QRadialGradient)
 
 from . import render3d, surface
@@ -206,14 +206,38 @@ def draw(painter: QPainter, camera: render3d.Camera, paint, at,
     if seen is None:
         return 0.0
     centre, ahead = seen
-    radius = render3d.screen_radius(camera, ahead, radius_km)
+    # **How far away, not how far ahead.** `camera.project` hands back the
+    # component of the offset along the view axis, and this passed that to
+    # `screen_radius` as the range. On the axis the two agree and everything
+    # looked right; off it, `ahead` shrinks toward zero however far away the
+    # world is, and `screen_radius` — `tan(asin(r/d))` — runs away as `d` falls
+    # under `r`.
+    #
+    # Measured in the conn on an ordinary approach: a 2,419 km world 2,981 km
+    # off, sitting 73° from the view axis, was drawn with a screen radius of
+    # **5,611 pixels instead of 335** — a wall of planet across a 360×290 frame,
+    # where the true silhouette covers a corner of it. That is why every
+    # berthing approach looked out at a flat wash of colour, and why the surface
+    # work of the last two cycles kept failing to show: there was nothing wrong
+    # with the ground, the ground was thirty metres from the lens.
+    rel = (at[0] - camera.at[0], at[1] - camera.at[1], at[2] - camera.at[2])
+    span = math.sqrt(render3d.dot(rel, rel))
+    radius = render3d.screen_radius(camera, span, radius_km)
     if radius < 0.6:
         return 0.0
 
     pole, depth = pole_on_screen(camera, spin, tilt)
+    # The world's *true* outline. A screen circle of `radius` about the
+    # projected centre is right only on the axis: see `surface.limb`, and the
+    # approach it made look out at a flat wash of colour.
     disc = QPainterPath()
-    disc.addEllipse(QRectF(centre.x() - radius, centre.y() - radius,
-                           radius * 2, radius * 2))
+    edge = surface.limb(camera, at, radius_km)
+    if edge:
+        disc.addPolygon(QPolygonF(edge))
+        disc.closeSubpath()
+    else:
+        disc.addEllipse(QRectF(centre.x() - radius, centre.y() - radius,
+                               radius * 2, radius * 2))
 
     painter.save()
     painter.setClipPath(disc)
@@ -239,8 +263,8 @@ def draw(painter: QPainter, camera: render3d.Camera, paint, at,
     # is a lattice fixed to the ground rather than a list, so it costs the
     # cells in view and the same patch looks the same every time.
     if detail and radius > DETAIL_FROM * min(camera.w, camera.h):
-        span = surface.visible_span(camera, at, radius_km, radius)
-        lat0, lon0 = surface.ground_under(camera, at, spin, tilt)
+        span = surface.visible_span(camera, at, radius_km)
+        lat0, lon0 = surface.looking_at(camera, at, radius_km, spin, tilt)
         surface.draw(painter, camera, at, radius_km,
                      detail(lat0, lon0, span), spin, tilt, stretch)
 

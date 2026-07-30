@@ -65,6 +65,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("connwindow", "test_connwindow", "conn window"),
     SuiteSpec("worlds", "test_worlds", "worlds"),
     SuiteSpec("surfaces", "test_surfaces", "surfaces"),
+    SuiteSpec("projection", "test_projection", "projection"),
     SuiteSpec("silhouettes", "test_silhouettes", "silhouettes"),
     SuiteSpec("skykit", "test_sky_kit", "sky kit"),
     SuiteSpec("lighting", "test_lighting", "lighting"),

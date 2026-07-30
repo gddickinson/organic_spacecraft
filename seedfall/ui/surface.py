@@ -159,16 +159,13 @@ def outline(camera: render3d.Camera, at, radius_km: float, n,
     return QPolygonF(points)
 
 
-def ground_under(camera: render3d.Camera, at, spin: float,
-                 tilt: float) -> tuple:
-    """The (latitude, longitude) the camera is looking straight down at.
+def _latlon(v, spin: float, tilt: float) -> tuple:
+    """A direction in the camera's frame, back to a place on the globe.
 
     The inverse of `direction`, which is what makes the detail lattice hold
     still: the cells are named by where they are on the *ground*, so the same
     patch answers the same way however the hull is moving.
     """
-    v = render3d.unit((camera.at[0] - at[0], camera.at[1] - at[1],
-                       camera.at[2] - at[2]))
     ct, st = math.cos(tilt), math.sin(tilt)
     y = v[1] * ct + v[2] * st
     z = -v[1] * st + v[2] * ct
@@ -177,23 +174,79 @@ def ground_under(camera: render3d.Camera, at, spin: float,
     return lat, lon
 
 
+def _meets(camera: render3d.Camera, at, radius_km: float, ray) -> tuple:
+    """Where a ray from the eye meets the globe, as a direction from its centre.
+
+    A ray that misses falls back to its closest approach, so a world at the
+    edge of the frame still answers about the sliver of it that shows.
+    """
+    oc = (camera.at[0] - at[0], camera.at[1] - at[1], camera.at[2] - at[2])
+    b = render3d.dot(oc, ray)
+    c = render3d.dot(oc, oc) - radius_km * radius_km
+    disc = b * b - c
+    step = -b
+    if disc >= 0.0:
+        near = -b - math.sqrt(disc)
+        if near > 0.0:
+            step = near
+    step = max(0.0, step)
+    return render3d.unit((oc[0] + ray[0] * step, oc[1] + ray[1] * step,
+                          oc[2] + ray[2] * step))
+
+
+def looking_at(camera: render3d.Camera, at, radius_km: float, spin: float,
+               tilt: float) -> tuple:
+    """The place on the globe the camera's axis actually meets.
+
+    **Not the point nearest the camera.** The first version used the
+    sub-camera point — where the ground comes closest to the eye — which is
+    the same place only when the world is dead ahead. In the conn's own window
+    a world sits off to one side while the lens looks at a station: measured
+    at 40° off the axis, the lattice was generated around a patch of ground
+    that was not in the picture at all, and the frame stayed the flat wash the
+    whole surface cycle set out to fix. Two bugs, and the same cause both
+    times: asking about the world's *centre* when the question is about a
+    direction.
+
+    A ray that misses the disc falls back to its closest approach, so a world
+    at the edge of the frame still textures the sliver of it that shows.
+    """
+    return _latlon(_meets(camera, at, radius_km, camera.fwd), spin, tilt)
+
+
 def visible_span(camera: render3d.Camera, at, radius_km: float,
-                 screen_radius: float) -> float:
+                 screen_radius: float = 0.0) -> float:
     """How much of the ground the frame holds, in radians of arc.
 
-    The lesser of two limits, because either can bite: the horizon, which is
-    all there is to see from a given altitude, and the frame, which is all the
-    lens holds when the world is larger than the picture.
+    **Measured with rays, not with a ratio of radii.** Two drafts got this
+    wrong in the same direction and both left the docking view a flat wash:
+
+    * the first divided the frame's half-diagonal by the disc's screen radius
+      and took an arcsine, which is the orthographic answer — it assumes the
+      whole hemisphere maps inside that radius. From 561 km over a 2,419 km
+      world it said the frame held 0.043 radians of ground where the true
+      figure is nearer 0.3, so the lattice cut cells eight times too fine and
+      every feature came out about **one pixel**;
+    * before that it took the horizon from the world's *forward* distance
+      rather than its real one, which collapsed to nothing for any world off
+      the axis.
+
+    So: cast the axis ray and a corner ray at the globe and take the angle
+    between where they land. No projection model, no small-angle assumption,
+    and right whether the eye is a diameter away or skimming the surface.
     """
-    ahead = render3d.dot((at[0] - camera.at[0], at[1] - camera.at[1],
-                          at[2] - camera.at[2]), camera.fwd)
-    distance = max(radius_km * 1.000001, abs(ahead))
-    horizon = math.acos(max(-1.0, min(1.0, radius_km / distance)))
-    half_frame = math.hypot(camera.w, camera.h) * 0.5
-    if screen_radius <= 1e-6:
-        return horizon
-    frame = math.asin(min(1.0, half_frame / screen_radius))
-    return max(1e-4, min(horizon, frame))
+    axis = _meets(camera, at, radius_km, camera.fwd)
+    focal = max(1e-6, camera.focal)
+    corner = render3d.unit((
+        camera.fwd[0] + (camera.right[0] * camera.w
+                         + camera.up[0] * camera.h) * 0.5 / focal,
+        camera.fwd[1] + (camera.right[1] * camera.w
+                         + camera.up[1] * camera.h) * 0.5 / focal,
+        camera.fwd[2] + (camera.right[2] * camera.w
+                         + camera.up[2] * camera.h) * 0.5 / focal))
+    edge = _meets(camera, at, radius_km, corner)
+    spread = math.acos(max(-1.0, min(1.0, render3d.dot(axis, edge))))
+    return max(1e-4, min(math.pi * 0.5, spread))
 
 
 def draw(painter, camera: render3d.Camera, at, radius_km: float,
@@ -223,3 +276,92 @@ def draw(painter, camera: render3d.Camera, at, radius_km: float,
         painter.drawPolygon(shape)
         landed += 1
     return landed
+
+
+#: How many points the true silhouette of a world is drawn with. A sphere seen
+#: off-axis has an elliptical outline, and 40 points is smooth at any size a
+#: world is ever drawn — including one filling the frame, where the visible arc
+#: is a small part of the whole and every point of it counts.
+LIMB_POINTS = 40
+
+#: How far in front of the lens the silhouette is clipped, in km. Not zero: a
+#: point exactly on the lens plane projects to infinity.
+NEAR_PLANE = 1e-4
+
+
+def limb(camera: render3d.Camera, at, radius_km: float) -> list:
+    """The world's true outline on screen, as projected points.
+
+    **A sphere's silhouette is only a circle when you are looking straight at
+    it.** `spheres.draw` took the projected centre and drew a screen circle of
+    `render3d.screen_radius` around it, which is exact on the axis and steadily
+    wrong off it. Measured in the conn during an approach: a 2,419 km world
+    2,981 km away sat 73° off the view axis with an angular radius of 54°, so
+    the frame should have shown a curved limb across part of it — and instead
+    the whole picture was filled, because the stand-in circle had a radius of
+    5,392 pixels and a centre far off screen. Everything painted afterwards —
+    the latitude bands, the terminator, the ground texture — was clipped to
+    that, which is why a docking approach looked out at a flat wash of colour
+    however much detail was drawn.
+
+    The honest outline is the tangent circle itself: the points where the line
+    of sight grazes the sphere lie on a circle perpendicular to the direction
+    to the centre, at `r²/d` back from it, of radius `r·sqrt(1 - r²/d²)`. Those
+    are points in space like any others, so projecting them asks the camera the
+    same question everything else asks.
+
+    Returns an empty list when the eye is inside the sphere, which is not a
+    picture this renderer has any answer for.
+    """
+    rel = (at[0] - camera.at[0], at[1] - camera.at[1], at[2] - camera.at[2])
+    span = math.sqrt(render3d.dot(rel, rel))
+    if span <= radius_km * 1.0001:
+        return []
+    to_centre = (rel[0] / span, rel[1] / span, rel[2] / span)
+    back = radius_km * radius_km / span
+    ring = radius_km * math.sqrt(max(0.0, 1.0 - (radius_km / span) ** 2))
+    hub = (at[0] - to_centre[0] * back,
+           at[1] - to_centre[1] * back,
+           at[2] - to_centre[2] * back)
+    seed = (0.0, 0.0, 1.0) if abs(to_centre[2]) < 0.9 else (1.0, 0.0, 0.0)
+    t1 = render3d.unit(render3d.cross(to_centre, seed))
+    t2 = render3d.unit(render3d.cross(to_centre, t1))
+    # The silhouette in space, before it is projected.
+    ring_points = []
+    for i in range(LIMB_POINTS):
+        angle = math.tau * i / LIMB_POINTS
+        cs, sn = math.cos(angle) * ring, math.sin(angle) * ring
+        ring_points.append((hub[0] + t1[0] * cs + t2[0] * sn,
+                            hub[1] + t1[1] * cs + t2[1] * sn,
+                            hub[2] + t1[2] * cs + t2[2] * sn))
+
+    # Clipped against the lens before projecting, not abandoned at it. A world
+    # near enough and far enough off the axis has part of its own silhouette
+    # behind the camera, and the first version returned nothing at all in that
+    # case — which is precisely the close approach the true outline was written
+    # for. Each edge that crosses the plane contributes the point where it
+    # crosses, which is what keeps the outline closed.
+    def ahead_of(point) -> float:
+        return render3d.dot((point[0] - camera.at[0], point[1] - camera.at[1],
+                             point[2] - camera.at[2]), camera.fwd)
+
+    kept = []
+    for index, point in enumerate(ring_points):
+        nxt = ring_points[(index + 1) % len(ring_points)]
+        here, there = ahead_of(point), ahead_of(nxt)
+        if here > NEAR_PLANE:
+            kept.append(point)
+        if (here > NEAR_PLANE) != (there > NEAR_PLANE):
+            share = (NEAR_PLANE - here) / (there - here)
+            kept.append(tuple(point[k] + (nxt[k] - point[k]) * share
+                              for k in range(3)))
+    if len(kept) < 3:
+        return []
+
+    out = []
+    for point in kept:
+        got = camera.project(point)
+        if got is None:
+            return []
+        out.append(got[0])
+    return out

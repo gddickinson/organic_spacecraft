@@ -2,6 +2,59 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: the world was being drawn thirty metres from the lens (#3D)
+
+Two cycles ago I gave worlds a surface and could not make it show in the conn.
+Last cycle I noticed the docking view was still a flat wash and let it go. This
+cycle I chased it, and the answer was underneath all of it.
+
+`ui/spheres.py` sizes a world from `camera.project`'s second return value. That
+value is the offset's component **along the view axis** — how far *ahead* the
+world is — not how far away. On the axis the two agree, which is why every
+synthetic render this project has ever judged a world by looked correct. Off the
+axis `ahead` falls toward zero however distant the world is, and `screen_radius`
+is `tan(asin(r/d))·focal`, which runs away as `d` drops under `r`.
+
+Measured in the conn on an ordinary approach to a station:
+
+    a 2,419 km world, 2,981 km off, 73° from the view axis
+    screen radius drawn      5,611 px       on a 360x290 frame
+    screen radius true         335 px
+    frame covered in ground       99%   ->   15%
+
+So a berthing approach — the activity the whole conn exists for — looked out at
+a featureless wall of planet, and the surface work of two cycles went into
+ground that was being drawn thirty metres from the lens. The picture now shows
+space, stars, the lit station, the sun, and the world's limb curving across a
+corner of the frame with its ground texture on it.
+
+**The same mistake was in my own code from the previous cycle**, in the same
+shape: `surface.visible_span` took the horizon from the world's *forward*
+distance, which collapsed to nothing for anything off the axis. It also
+estimated the ground in frame with an orthographic ratio of radii, which
+understates it eightfold at close range and cut the detail lattice's cells to
+about a pixel each. Both are gone: the span is measured by casting the axis ray
+and a corner ray at the globe and taking the angle between where they land — no
+projection model, no small-angle assumption.
+
+And a sphere's outline is a circle only head-on. Off-axis it is an ellipse, and
+the projected centre can be off the frame while the world still fills a corner.
+`surface.limb` projects the tangent circle itself, which is exact at any angle;
+its first version returned nothing the moment one of those points fell behind
+the lens — precisely the close approach it exists for — and clips against the
+lens plane now.
+
+Retuned on the back of it: with the span finally measured correctly the lattice
+was cutting cells to fit a frame it thought was eight times smaller, so
+`CELLS_ACROSS` goes 12 → 9. Same picture, more of it: 35% of a low-orbit world
+carries ground texture against 23%, at the same local contrast.
+
+Seven mutations swept, all caught — the seventh only after the coverage check
+was tightened from "under 55%" to a measured 6–26%, because a silhouette drawn
+**71% oversized** had been passing at 38%.
+
+`test_projection.py` — 5 checks. Full suite green: **1,030 checks**.
+
 ## 2026-07-30 — SEEDFALL: one shipyard stood in for the whole catalogue (#catalogue)
 
 Task #80 asks whether the catalogue is real variety or the same shape

@@ -1643,7 +1643,9 @@ seedfall/
 │   ├── solid.py        a tiny 3D kit: primitives, projection, key/fill/rim
 │   │                   lighting, specular and a depth term
 │   ├── surface.py     a cap on a sphere projected as an ellipse, from its
-│   │                   own axes rather than from an orthographic guess
+│   │                   own axes rather than from an orthographic guess —
+│   │                   and `limb`, a world's true silhouette, clipped at
+│   │                   the lens rather than abandoned there
 │   ├── llm.py          optional language model, off by default, hard timeout
 │   └── state.py        the Game object, advance_days(), new_game(), load_game()
 ├── data/               static content tables — pure data, no logic
@@ -2509,6 +2511,27 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   0 turns in 89. The real gap was next door — the count check ran only with full
   magazines, where "what trains" and "what burns" are the same list. Both
   mutations bit once it ran with an empty one.
+- **How far away is not how far ahead.** `camera.project` returns the point and
+  the component of the offset *along the view axis*, and `ui/spheres.py` passed
+  that second value to `screen_radius` as the range. On the axis they agree,
+  which is why every synthetic render of a world this project ever judged looked
+  right. Off it, `ahead` falls toward zero however distant the world is, and
+  `tan(asin(r/d))` runs away as `d` drops under `r`. Measured in the conn on an
+  ordinary approach: a 2,419 km world 2,981 km off and 73° from the axis was
+  drawn at a screen radius of **5,611 px instead of 335**, filling 99% of the
+  frame with ground that should cover 15% of it. Every berthing approach looked
+  out at a featureless wall of planet — and two cycles of surface detail went
+  into ground being drawn thirty metres from the lens. The same mistake, in the
+  same shape, was in the span calculation one module over: **when a question is
+  about a direction, do not answer it with a centre.**
+- **A sphere's outline is a circle only head-on.** Off-axis the silhouette is an
+  ellipse, and the projected centre can be off the frame while the world still
+  fills a corner of it. `surface.limb` projects the tangent circle itself — the
+  points where the line of sight grazes, at `r²/d` back from the centre with
+  radius `r·sqrt(1 - (r/d)²)` — which is exact at any angle. Its first version
+  returned nothing as soon as one of those points fell behind the lens, which is
+  precisely the close approach it was written for; it clips against the lens
+  plane now.
 - **A field carried and thrown away is a catalogue that never arrives.**
   `track.Contact.berth` has said quay / hub / holding / gate since it was
   written, with a docstring insisting "a screen should not have to read an id to

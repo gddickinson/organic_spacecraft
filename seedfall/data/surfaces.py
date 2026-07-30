@@ -149,10 +149,16 @@ def stretch_for(kind: str) -> float:
 
 #: How many cells of detail to span the frame with. Judged by looking: six was
 #: the first try and read as soap bubbles — a handful of circles each a sixth of
-#: the picture. Twelve is ground. Past about twenty the marks are smaller than
-#: the contrast between them can carry and it goes back to being a flat wash,
-#: the expensive way.
-CELLS_ACROSS = 12.0
+#: the picture. Past about twenty the marks are smaller than the contrast
+#: between them can carry and it goes back to being a flat wash, the expensive
+#: way.
+#:
+#: Twelve when the span was measured wrongly; nine now that it is measured with
+#: rays. The two are the same picture — the earlier figure was cutting cells to
+#: fit a frame it thought was eight times smaller than it is. Measured at 200 km
+#: over a 3,000 km world: nine covers 35% of the world in ground texture against
+#: twelve's 23%, at the same local contrast.
+CELLS_ACROSS = 9.0
 
 #: A cell's feature covers this share of it, at most. Under 1.0 so the ground
 #: shows between them rather than the surface becoming a tiling.
@@ -171,9 +177,11 @@ NO_GROUND = frozenset({"gas"})
 #: How many cells out from the one underfoot the lattice is ever walked. The
 #: cell size is quantised to powers of two, so `reach / step` swings by a factor
 #: of two either side of `CELLS_ACROSS` and the cell count by a factor of four —
-#: which reached 532 features in a frame before this bound went on. Six rings is
-#: a 13x13 patch, which covers the frame at every range the quantisation lands.
-MAX_RING = 6
+#: which reached 532 features in a frame before this bound went on. Nine rings
+#: is a 19x19 patch: enough to reach the corner of the frame at every step the
+#: quantisation lands on, and still bounded. Six was not — it cut the coverage
+#: short of the frame and left the far half of a close approach bare.
+MAX_RING = 9
 
 #: How much dimmer detail is than the named features. It is ground texture, not
 #: geography, and at the alpha of a mare it reads as a rash.
@@ -214,7 +222,13 @@ def detail_near(kind: str, name: str, lat0: float, lon0: float,
     step = cell_angle(span)
     level = int(round(math.log2(CELL_MAX / step)))
     seed = _seeded(name)
-    reach = span * 0.62
+    # The whole frame, not most of it. At 0.62 the lattice covered a disc of
+    # ground about half the radius the picture holds, and the docking view came
+    # out textured in a band across the top with the rest bare — which reads as
+    # a rendering fault rather than as terrain. `span` is now measured by
+    # casting a ray at the corner of the frame (see `surface.visible_span`), so
+    # reaching exactly that far is reaching exactly as far as the lens sees.
+    reach = span
     out = []
     # **Snapped to the globe, not to the camera.** The first version walked out
     # from `lat0` in steps — `lat = lat0 + dr * step` — and hashed the cell by

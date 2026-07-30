@@ -143,7 +143,7 @@ def run(suite: Suite) -> None:
             f"contrast and the surfaced one {ground:.2f} — there is still "
             "nothing in the frame to look at")
         moved = _differ(flat, full)
-        assert moved > 0.25, (
+        assert moved > 0.30, (
             f"ground texture changes only {moved:.0%} of the world from 200 km")
         # And it is not merely noise: the picture still has large smooth
         # regions, which is what ground looks like rather than static.
@@ -294,7 +294,11 @@ def run(suite: Suite) -> None:
         for span in (1.2, 0.6, 0.3, 0.08, 0.02, 0.004):
             got = surfaces.detail_near("rocky", "Iron Bight I", 0.1, 0.5, span)
             counts.append(len(got))
-        assert max(counts) <= 200, (
+        # 280 now that the span is measured by casting rays rather than by an
+        # orthographic ratio, and the lattice reaches the corner of the frame
+        # instead of two thirds of the way. A frame of the conn's own window
+        # renders in 10–12 ms at this count, which is the figure that matters.
+        assert max(counts) <= 280, (
             f"the lattice reaches {max(counts)} features in one frame: {counts}")
         # The floor is allowed to thin it: once a cell cannot subdivide further
         # the hull is metres off the surface and one cell fills the frame. What
