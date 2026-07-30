@@ -358,6 +358,9 @@ class BattleView(View):
             button("Gunnery…", self._open_gunnery, kind="flat",
                    tip="The gunner's station: every mount's arc, and which of "
                        "them fire this turn."),
+            button("Tactical…", self._open_tactical, kind="flat",
+                   tip="The tactical station, which is open whether or not "
+                       "anybody is shooting."),
             button("Hail them", lambda: self._act({"type": "hail"}),
                    tip=_parley_tip(b, "hail")),
             button("Disengage", lambda: self._act({"type": "flee"}), kind="flat",
@@ -401,6 +404,10 @@ class BattleView(View):
     def _open_gunnery(self) -> None:
         from .gunner_window import open_gunnery
         open_gunnery(self.win)
+
+    def _open_tactical(self) -> None:
+        from .tactical_window import open_tactical
+        open_tactical(self.win)
 
     def _act(self, action: dict) -> None:
         # Through the window, which is the one door: the gunner's station is a

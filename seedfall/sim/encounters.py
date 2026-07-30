@@ -158,6 +158,20 @@ def _pick_hull(rng, pool, difficulty: float):
     return rng.weighted(weights)
 
 
+#: How hard a hull the sector sends, as a range rather than a number. Both
+#: figures were inline literals in `roll_encounter` — `1 + rng.float(0, 2)` —
+#: written twice, and nothing else could ask what a typical opponent is.
+#: `sim/readiness.py` quotes its report at the middle of this, so a readiness
+#: board and an actual encounter describe the same sector.
+THREAT_FLOOR = 1.0
+THREAT_SPREAD = 2.0
+
+
+def typical_threat() -> float:
+    """The middle of what `roll_encounter` draws — the median opponent."""
+    return THREAT_FLOOR + THREAT_SPREAD / 2.0
+
+
 def make_enemy(rng, faction_id: str, difficulty: float = 1.0) -> dict:
     fac = FACTIONS_BY_ID.get(faction_id)
     tier = _tier_for(rng, difficulty)
@@ -225,7 +239,8 @@ def roll_encounter(game, system, rng):
     # Something running dark on the chart is the likeliest thing to meet you.
     if dark and rng.chance(0.55):
         hull = dark[0]
-        enemy = make_enemy(rng, "freeholds", 1 + rng.float(0, 2))
+        enemy = make_enemy(rng, "freeholds",
+                           THREAT_FLOOR + rng.float(0, THREAT_SPREAD))
         enemy["ship"].name = hull.name
         return {
             "enemy": enemy, "no_parley": False, "hull_id": hull.id,
@@ -245,7 +260,7 @@ def roll_encounter(game, system, rng):
     fid = rng.weighted(weighted)
     theirs = next((h for h in traffic_sim.in_system(game, system)
                    if h.faction == fid and not h.hostile), None)
-    enemy = make_enemy(rng, fid, 1 + rng.float(0, 2))
+    enemy = make_enemy(rng, fid, THREAT_FLOOR + rng.float(0, THREAT_SPREAD))
     if theirs is not None:
         enemy["ship"].name = theirs.name
         intro = (f"The {FACTIONS_BY_ID[fid].short} hull you had plotted — "

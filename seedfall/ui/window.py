@@ -315,6 +315,13 @@ class MainWindow(QMainWindow):
         gunner = getattr(self, "gunner_window", None)
         if gunner is not None:
             gunner.refresh()
+        # The tactical station likewise: it is open whether or not there is a
+        # fight, so its readiness board has to follow the ship — a hull that
+        # was two AU off when the window opened is not two AU off after a
+        # transfer, and a board that says it is would be worse than no board.
+        tactical = getattr(self, "tactical_window", None)
+        if tactical is not None:
+            tactical.refresh()
         from ..sim import tutorial as tutorial_sim
         if tutorial_sim.check(self.game):
             self.tutorial_bar.refresh()

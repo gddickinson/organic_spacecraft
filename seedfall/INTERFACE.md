@@ -398,6 +398,45 @@ Wiring it up surfaced two more, both from playing:
   quadratic, the most dangerous approaches were precisely the ones escaping.
   `_sweep_min` tests the whole path now, not its endpoints.
 
+**A tactical station that is open before anybody shoots.** Measured on a
+fresh chronicle: the battle screen outside an engagement was two labels — *No
+engagement / Nothing is shooting at you* — and a Back button; the gunner's
+window was one label; and there were five hulls in the system. Combat existed
+only once it had started, so the decision the whole tactical model is built to
+serve — whether to be here at all — was made blind and reviewed afterwards in
+the log.
+
+`sim/readiness.py` answers it by **rehearsing the fight**: `sparring` builds
+the same `Battle` `combat.start` would build if that hull opened fire, off
+`encounters.make_enemy` at the middle of the range `roll_encounter` actually
+draws, and throws it away. Every figure is then read off it with the
+engagement's own functions — `assessment.weight`, `firing.solution`,
+`gunnery.quote`, `stations.seat_value`. There is no arithmetic in the module
+that a fight would not do. It rehearses on a deep copy of the hull, because a
+board a captain opens on a whim may not spend ammunition.
+
+`ui/tactical_window.py` and `ui/tactical_board.py` are the window: the traffic
+here and how far off, the boresights, the readiness board, and the plot. Two
+states — standing by it shows the rehearsal, captioned as one; engaged it
+shows the live plot and enables the way through to gunnery. Reachable from the
+helm, from the battle screen, and from its own row alongside the conn and the
+plotting board, and refreshed with everything else so the ranges follow the
+ship.
+
+Two faults found by looking at the pictures rather than at the figures:
+
+- **The window titled itself with the ship actually firing and printed a
+  rehearsal against a different one** — *Freeholds GRAFT «Margin Call», turn
+  1* over *against Charter CORAL «Long Consent»*. Every number on it was
+  correct; it was answering another question. `readiness.of` splits report
+  assembly from battle construction so the board reads the live engagement
+  when there is one. The check that catches it had to be narrowed to the
+  board's own labels: reading the whole window included the title it was
+  comparing against, and the mutation sailed through.
+- **The boresight captions sat on top of the arc**, and half the window was
+  dead space. The sight row has a measured height now and the rehearsal's
+  plot fills the third column.
+
 **Where the ship is: one door, and a captain who starts somewhere.**
 `sim/flight.ship_position` is the only place anything asks. Behind it are two
 states and only one of them is stored:
@@ -1871,6 +1910,8 @@ seedfall/
 │   │                   orders, screening, who draws fire, what they eat
 │   ├── loyalty.py      what the bridge thinks of how you run the ship
 │   ├── works.py        colony development: what a settlement becomes
+│   ├── readiness.py    what the ship brings to a fight nobody has started:
+│   │                   a rehearsal through `combat.start`, thrown away
 │   ├── flight.py       the helm: orbits, intercepts, routing, transfer burns;
 │   │                   `ship_position` is the one door for where the hull is,
 │   │                   `hold_at` and `stand_off` the only two writers
@@ -3869,6 +3910,15 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that
   no course is plotted through a star.
+- **`test_readiness.py`** holds the tactical station to seven claims, all
+  seven mutation-tested. The rehearsal is the fight's own arithmetic; a
+  hundred reports cost no heat, no cargo, no hull and no luck; the window
+  shows the fight it is titled with; standing by it lists every hull and
+  admits its plot is a rehearsal; the ranges move when the ship does; and the
+  rehearsal holds still between repaints — that last one asked of the
+  *pixels*, because handing `initial_layout` an rng moves the picture and not
+  one figure in the report.
+
 - **`test_position.py`** is the one door for where the ship is, held to five
   claims: a new captain is moored at the quay their opening log names and the
   conn opens on it (six chronicles); every consumer reads the *same function*,

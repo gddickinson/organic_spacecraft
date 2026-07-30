@@ -2,6 +2,73 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: a tactical station open before anybody shoots (#104)
+
+Measured on a fresh chronicle with nothing shooting:
+
+    the battle screen      2 labels — "No engagement / Nothing is shooting
+                           at you", and a Back button
+    the gunner's window    1 label
+    hulls in the system    5
+
+Combat existed only once it had started. Five hulls on the chart and nowhere
+to ask the one question they raise: *what happens if one of those turns on
+me?* The decision the whole tactical model is built to serve — whether to be
+here at all — was made blind and reviewed afterwards in the log.
+
+`sim/readiness.py` answers it by **rehearsing the fight**. `sparring` builds
+the same `Battle` `combat.start` would build, off `encounters.make_enemy` at
+the middle of the range `roll_encounter` actually draws, and throws it away;
+every figure is then read off it with the engagement's own functions. No
+arithmetic in the module that a fight would not do. It rehearses on a deep
+copy of the hull, because a board a captain opens on a whim may not spend
+ammunition. `THREAT_FLOOR` and `THREAT_SPREAD` were inline literals written
+twice in `roll_encounter` — named now, so the board and the ambush describe
+one sector.
+
+`ui/tactical_window.py` + `ui/tactical_board.py`: traffic and ranges, the
+boresights, the readiness board, and a plot. Standing by it shows the
+rehearsal, captioned as one; engaged it shows the live plot and opens the way
+to gunnery. From the helm, from the battle screen, and refreshed with
+everything else so the ranges follow the ship.
+
+**Both real faults came from looking at the pictures, not the figures.**
+
+- Mid-engagement the window titled itself with the ship actually firing and
+  printed a rehearsal against a different one — *Freeholds GRAFT «Margin
+  Call», turn 1* over *against Charter CORAL «Long Consent»*. Every number was
+  correct. It was answering another question. `readiness.of` splits the report
+  from the battle so the board reads the live one.
+- The boresight captions sat on the arc and half the window was empty.
+
+**And the check for the first fault did not bite.** It read every label in the
+window — including the title it was comparing against — so "the enemy's name
+appears" was satisfied by the title itself, and the mutation that puts the
+fault back sailed through. Narrowed to the board's own labels, it catches it.
+Seven mutations, seven caught, after two rounds of that.
+
+Two were no-ops worth recording rather than gaps: `combat.start` writes
+nothing to the ship it is handed, so "the hull is unscathed" cannot see the
+deep copy (asked structurally instead); and handing `initial_layout` an rng
+moves the *picture* — the pair's orientation and the enemy's heading — while
+every figure in the report stays identical, because the enemy is always dead
+ahead and `weight` has no aspect term. That one is asked of the pixels.
+
+**And then I wrote the tautology the tripwire exists to catch, again.** The
+new constants were pinned with `typical_threat() == FLOOR + SPREAD / 2` —
+the definition rearranged, moving with both and holding neither. All four
+mutations (floor doubled, floor zeroed, spread doubled, spread zeroed) passed.
+Replaced with what the range actually produces, measured over 120 opponents
+per difficulty: median hull 149 at the softest the sector sends, 208 at what a
+report quotes, 359 at the worst. Four of four caught now.
+
+A second habit worth naming: the tripwire *edits source files while it
+sweeps*, so nothing else may run against the tree at the same time — and
+killing it mid-sweep leaves a mutated constant behind. It left
+`THREAT_SPREAD = 0.0` in the working tree here, caught by `git status`.
+
+Full suite green.
+
 ## 2026-07-30 — SEEDFALL: one position for the ship (#103)
 
 The report was that the conn is disconnected from the game and its controls do

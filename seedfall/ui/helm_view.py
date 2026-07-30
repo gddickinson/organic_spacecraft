@@ -301,7 +301,8 @@ class HelmView(View):
             button("System overview", lambda: self.win.go("system")),
             button("Sector chart", lambda: self.win.go("map")),
             button("Plotting board…", self._plotting_board),
-            button("Take the conn…", self._take_conn))
+            button("Take the conn…", self._take_conn),
+            button("Tactical…", self._tactical))
 
     def _plotting_board(self) -> None:
         """The system in its own window, with time and a zoom on it."""
@@ -312,6 +313,11 @@ class HelmView(View):
         """Fly by hand, at the range where a metre a second matters."""
         from .conn_window import open_conn
         open_conn(self.win)
+
+    def _tactical(self) -> None:
+        """What a fight here would be, before there is one."""
+        from .tactical_window import open_tactical
+        open_tactical(self.win)
 
     def _pick(self, index: int) -> None:
         # The chart decides whether a quay or a bare body was hit; the view
