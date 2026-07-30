@@ -2,6 +2,72 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: technology that changes somebody else's market (#96)
+
+The tech tree had **sixty-two nodes and one economic effect**. Thirty-three carry
+a bonus and the only one of them that touched money was `trade` — a haggling
+bonus, which moves the price *the captain* is quoted at a counter and nothing
+else. Nothing anybody could ever learn changed what a market held, what a port
+could make, or what anything cost anybody but the player. The tree was a shopping
+list of ship parts.
+
+A **process** is the other kind of technology: one that makes a thing. Twelve of
+them (`data/industry.py`), each naming a technology the tree already describes and
+the commodity its own blurb already claims — a Separation Gut separates, a
+Magnetosome biomineralises magnetite, Xenopharmacology makes xenopharma.
+
+Licence one to a power and it becomes an industry at every berth they hold. They
+pay out of the treasury the last cycle gave them, so a licence is bounded by
+whether they can find the money; their berths' baseline supply of that good rises;
+and the price comes down and *stays* down. Played, one year, Separation Guts sold
+to the Concordat: **alloy 134 → 118 across their berths, against 187 everywhere
+else**. A berth they found afterwards comes up with the industry already running.
+
+**It cuts both ways, and that is the design.** A port that starts making alloy is
+a port that stops paying well for alloy, so licensing your separation gut to the
+power whose quays you have been selling alloy at is a way to put yourself out of
+business. The panel quotes it in credits a tonne before you sign: 168 quoted
+against 157 it actually cost.
+
+The buyer's side had to make sense too, or nobody would ever sign — so an industry
+lifts what its holder's berths yield (`INDUSTRY_YIELD`, six per cent each). A
+licence pays for itself in a season to a year, which is a deal a power takes for a
+permanent industry. And selling one is a public act: the licensee gains standing,
+every rival loses it, the two of them fall out a little, and the one illicit
+process — unlicensed seed — costs you with everybody including the buyer.
+
+**A real bug, found by checking that the illicit process had somewhere to work.**
+`make_market` stocks unlicensed seed at nine ports in twenty-one and leaves the
+rest with nothing. `tick_market` then adopted a baseline of 1.0 for any stock that
+had none, and its supply floor lifted a zero supply to 0.02 so the shim adopted
+*that*. Between them, **all twenty-one ports were selling contraband one day into
+every chronicle** — most of the point of smuggling, gone, since 2026-07-2x when
+the baseline shim landed. A stock with no baseline *and* no supply is skipped now:
+9 of 21 at day zero, 9 after a day, and the tenth two years later is a berth the
+Freeholds founded, which is correct. It is the only way a market can say "not
+here", and the seed licence is the one thing allowed to open one.
+
+**Three of my own errors, all in the checks rather than the code.**
+
+- The industry check read a **6% fall where four of five berths had fallen 11%**.
+  The fifth had a *strike* on and its price had gone up fifteen per cent. An
+  industry is a permanent change in what a place makes and a shock is a temporary
+  change in what it costs; the two are deliberately separate fields, and a
+  measurement that averages across both is measuring neither.
+- The forecast check said every berth was **40–50% out, all in the same
+  direction** — the signature of a scale factor, not a bad forecast. The forecast
+  quotes what the captain would be charged, standing and haggling included, and I
+  was comparing it against a raw price at rep zero. A captain holding every
+  process in the tree carries a trade bonus of 0.48 and pays a quarter under the
+  sticker. Priced the same way on both sides: **worst forecast 8% out across 21
+  berths, a year later**.
+- A payback-period band of 60–900 days that the cheapest process failed at 59.
+  The constant was fine; the band was arbitrary. `INDUSTRY_YIELD` is pinned by
+  what one industry does to a power's income (3.5–9.5%) rather than by a number
+  the check reads off the constant it is testing.
+
+Ten new checks, 893 across the suite, all green.
+
 ## 2026-07-30 — SEEDFALL: somebody pays for it now (#95, the public purse)
 
 The four powers of the Verge were penniless in the literal sense. They held

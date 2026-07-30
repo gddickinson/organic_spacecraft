@@ -6,8 +6,10 @@ import math
 
 from ..core.util import duration, num
 from ..data.tech import BRANCHES, TECH, TECH_BY_ID
+from ..sim import industry as industry_sim
 from ..sim import inquiry
 from ..sim import research as research_sim
+from . import industry_panel
 from . import inquiry_panel, programmes_panel
 from .widgets import (Card, Panel, Pill, TabBar, View, button, label,
                       mono_label, note)
@@ -44,6 +46,12 @@ class TechView(View):
             in_hand = programmes_panel.findings(self, g)
             if in_hand is not None:
                 self.col.addWidget(in_hand)
+            # What the bench has made that somebody else would pay for. None
+            # until the captain holds a process, so a new chronicle is not shown
+            # a board of things it cannot sell.
+            sellable = industry_panel.build(self, g)
+            if sellable is not None:
+                self.col.addWidget(sellable)
 
         tabs = TabBar([("all", "All")] + [(k, v[0]) for k, v in BRANCHES.items()]
                       + [("xeno", "Xenotech ✦")], self.branch)
@@ -57,6 +65,15 @@ class TechView(View):
         techs = [t for t in TECH if self.branch in ("all", t.branch)]
         techs.sort(key=lambda t: (t.tier, t.name))
         self.grid([self._card(t) for t in techs], cols=3)
+
+    def sell_process(self, process, power: str) -> None:
+        res = industry_sim.licence(self.game, process, power)
+        if not res.get("ok"):
+            self.win.toast(res["why"], "warn")
+            return
+        self.game.add_log(res["text"], "good")
+        self.win.toast(f"Licensed for {round(res['price']):,}.", "good")
+        self.win.refresh()
 
     def _switch(self, tid: str) -> None:
         self.branch = tid

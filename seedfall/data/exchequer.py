@@ -39,6 +39,14 @@ UPKEEP_COEFF = 30.0
 #: done, not merely a berth it owns.
 CAPITAL_BONUS = 0.35
 
+#: What each industry running at a power's berths adds to what they yield. This
+#: is the whole reason a power buys a process off the captain (`sim/industry.py`):
+#: without it a licence is money out for cheaper goods at home, and nobody would
+#: sign. Measured at six per cent: one process across a five-berth power lifts
+#: its income by 49 a day against a licence fee of 16,146, so it pays for itself
+#: in about 330 days. A year for a permanent industry is a deal a power takes.
+INDUSTRY_YIELD = 0.06
+
 #: What a system under a shortage yields while the shortage lasts. This is how
 #: a blockade finally costs its target something — `sim/ventures.py` puts a
 #: scarcity on a rival's market, and the rival's purse feels it.

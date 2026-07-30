@@ -38,10 +38,10 @@ from dataclasses import dataclass, field
 
 from ..core.save import register
 from ..data.exchequer import (CAPITAL_BONUS, FOUND_COST, HARBOUR_DUE,
-                              OPENING_PURSE, RESERVE, RICH_APPETITE,
-                              SETTLE_DAYS, SHORTAGE_YIELD, STEP_COST,
-                              UPKEEP_COEFF, VENTURE_STAKE, WAR_CHEST,
-                              YIELD_PER_LEVEL)
+                              INDUSTRY_YIELD, OPENING_PURSE, RESERVE,
+                              RICH_APPETITE, SETTLE_DAYS, SHORTAGE_YIELD,
+                              STEP_COST, UPKEEP_COEFF, VENTURE_STAKE,
+                              WAR_CHEST, YIELD_PER_LEVEL)
 from ..data.factions import FACTIONS_BY_ID
 from ..world.economy import make_market
 from ..world.galaxy import PORT_KINDS
@@ -111,6 +111,13 @@ def scarce(game, system) -> bool:
                for s in market_sim.at(game, system.id))
 
 
+def industries(game, power: str) -> int:
+    """How many of the captain's processes this power has been licensed."""
+    from . import industry
+    return sum(1 for powers in industry.state(game).held.values()
+               if power in powers)
+
+
 def yield_of(game, system) -> float:
     """What one port pays its holder each day."""
     port = system.port
@@ -119,6 +126,9 @@ def yield_of(game, system) -> float:
     out = port.level * YIELD_PER_LEVEL
     if port.capital:
         out *= 1.0 + CAPITAL_BONUS
+    # What they have been taught to make. A power that buys a process off the
+    # captain is buying this line — see `sim/industry.py`.
+    out *= 1.0 + INDUSTRY_YIELD * industries(game, port.faction)
     if scarce(game, system):
         out *= SHORTAGE_YIELD
     return out
@@ -166,6 +176,11 @@ def found(game, system, power: str) -> str | None:
     from ..world.galaxy import Port
     system.port = Port(kind[0], kind[1], kind[2], kind[3], power)
     system.market = make_market(game.rng(f"found-{system.id}"), system)
+    # Whatever this power has been taught to make, it makes here too. Without
+    # this, a berth built after a licence was sold would be the one port of
+    # theirs that never got the industry — and nothing would ever say why.
+    from . import industry
+    industry.industrialise(game, system)
     return f"a new {kind[1]} is open at {system.name}"
 
 

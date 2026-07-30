@@ -33,6 +33,13 @@ class Stock:
     #: is kept apart from supply so the daily drift cannot quietly erase a
     #: blight, and so the shock can end cleanly.
     shock: float = 1.0
+    #: Industry: what the holder of this berth has been taught to make here.
+    #: Multiplies the *baseline* rather than the price, so an industry is a
+    #: permanent change in what the place produces and the drift settles onto
+    #: it, where a shock is a temporary change in what it costs and lifts
+    #: cleanly. Written only by `sim.industry.industrialise`; `base` stays what
+    #: `make_market` decided so the two can always be told apart.
+    works: float = 1.0
 
 
 @register
@@ -126,14 +133,39 @@ def tick_market(market: Market, days: float, rng, level: int = 1) -> None:
     """
     for cid, s in market.stock.items():
         c = BY_ID.get(cid)
+        if s.base <= 0 and s.supply <= 0:
+            # Not traded here at all, and the drift must leave it that way.
+            # Two separate lines below used to lift it off zero on the very
+            # first tick: the baseline shim wrote 1.0 when it found no
+            # baseline, and the supply floor of 0.02 pushed the supply itself
+            # up so that the shim then adopted *that*. Between them, a good
+            # `make_market` deliberately left out of a port was on sale there
+            # one day into the chronicle. Measured: unlicensed seed is stocked
+            # at 9 ports in 21, and **all 21 sold it after a single day**,
+            # which is most of the point of contraband gone. Found while
+            # checking that licensing the seed process opens a trade
+            # somewhere — there was nowhere left for it to open.
+            continue
         if s.base <= 0:
             # A save written before ports had a character of their own. Adopt
             # whatever it is now rather than flattening it to the sector mean.
-            s.base = s.supply if s.supply > 0 else 1.0
+            #
+            # **`and s.supply > 0` is not a nicety.** The old version wrote a
+            # baseline of 1.0 whenever it found none, and a stock with no
+            # baseline *and* no supply is not an old save — it is a good this
+            # port does not trade. Unlicensed seed is stocked at six ports in
+            # twenty-one by `make_market`, and this line quietly gave it a
+            # sector-average baseline at all the others on the first tick: one
+            # day into every chronicle, **all twenty-one ports would sell you
+            # contraband**. Found while checking that licensing the seed process
+            # opens a trade somewhere, because it turned out there was nowhere
+            # left for it to open.
+            s.base = s.supply
         # Toward what this port is, not toward the sector mean. The
         # docstring at the top of this module has always said "its own
         # equilibrium"; for a long time the arithmetic said 1.0.
-        eq = s.base * (1 + (c.volatility if c else 0.3) * s.trend * 12)
+        eq = (s.base * getattr(s, "works", 1.0)
+              * (1 + (c.volatility if c else 0.3) * s.trend * 12))
         s.supply += (eq - s.supply) * min(0.6, 0.018 * days)
         s.supply = max(0.02, s.supply + rng.float(-0.012, 0.012) * days)
         deep = s.supply * 60 * max(1, level)

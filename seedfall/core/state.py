@@ -130,6 +130,9 @@ class Game:
     #: The powers' treasuries: what each earns from its ports, what holding
     #: them costs, and what it has built or given up. See `sim/exchequer.py`.
     exchequer: object | None = None
+    #: Which powers have been licensed which of the captain's processes, and
+    #: what was paid for each. See `sim/industry.py`.
+    industries: object | None = None
     #: The bench's standing work once the tech tree is finished — which
     #: programme it is on, the rounds it has completed and the findings in
     #: hand. A declared field rather than an attribute `programmes.state`

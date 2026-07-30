@@ -64,6 +64,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("orbits", "test_orbits", "orbits"),
     SuiteSpec("programmes", "test_programmes", "programmes"),
     SuiteSpec("exchequer", "test_exchequer", "exchequer"),
+    SuiteSpec("industry", "test_industry", "industry"),
     SuiteSpec("declared", "test_declared", "declared"),
     SuiteSpec("revived", "test_revived", "revived"),
     SuiteSpec("screening", "test_screening", "screening"),

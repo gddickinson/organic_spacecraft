@@ -1640,6 +1640,8 @@ seedfall/
 │   │                   what each grant means, in words
 │   ├── factions.py     6 powers + reputation bands
 │   ├── exchequer.py    what a port yields, what it costs, what building costs
+│   ├── industry.py     processes: which technology makes which good, and
+│   │                   what a licence to run it is worth
 │   ├── lifeforms.py    xenobiology generation tables + anomalies
 │   ├── strata.py       the four layers of a dig, 3 methods, finds and spoils
 │   ├── contraband.py   who outlaws what, how hard they look, what they say
@@ -1747,6 +1749,8 @@ seedfall/
 │   ├── ventures.py     what the powers do on their own account
 │   ├── exchequer.py    the public purse: income, upkeep, building,
 │   │                   retrenchment, and the stake a venture costs
+│   ├── industry.py     licensing a process to a power: their treasury pays,
+│   │                   their berths start making the thing, its price falls
 │   ├── weather.py      the front overhead during a landing
 │   ├── mining.py       seams, depth, and how hard you work a body
 │   ├── rumours.py      leads that point somewhere before you have been
@@ -1875,6 +1879,7 @@ seedfall/
     ├── test_ventures.py 6 checks — both sides of a venture are costed
     ├── test_exchequer.py 10 checks — the powers' purses: income,
     │                   upkeep, building, retrenchment, the venture stake
+    ├── test_industry.py 10 checks — a licensed process changes a market
     ├── test_orderplan.py 6 checks — every order says what it will do
     ├── ground_ai.py    a party leader good enough to measure the ground with
     ├── suites.py       the suite table `__main__` dispatches from
@@ -1936,6 +1941,28 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 
 ## The parts that will bite you
 
+- **A stock can be genuinely untraded, and the drift must leave it that way.**
+  `tick_market` adopted a baseline of 1.0 for any stock that had none, and the
+  supply floor lifted a zero supply to 0.02 so that the shim then adopted *that*.
+  Between them, a good `make_market` deliberately left out of a port was on sale
+  there one day into the chronicle: unlicensed seed is stocked at **9 ports in
+  21** and **all 21 sold it after a single day**, which is most of the point of
+  contraband gone. A stock with no baseline *and* no supply is skipped now. It is
+  the only way a market says "not here", so anything that writes supply or
+  baseline has to preserve it — `sim.industry.industrialise` is the one thing
+  allowed to open one, and it does so deliberately.
+- **Technology reaches markets through `Stock.works`, not through prices.**
+  A licensed process multiplies the *baseline* of one good at every berth its
+  holder owns, so the daily drift settles onto it and the change is permanent —
+  where a shock multiplies the price and lifts cleanly. Keeping the two apart is
+  what lets a check tell an industry from a strike, and the first draft of that
+  check could not: it read a 6% fall where four of five berths had fallen 11%,
+  because the fifth had a strike on and its price had gone *up*.
+- **A forecast quotes what the captain would be charged.** `industry.forecast`
+  prices a copy of the stock through `buy_price` with the captain's standing and
+  haggling in it. A check comparing it against a raw `buy_price(market, cid, 0)`
+  read every berth as 40–50% out in the same direction — the signature of a
+  scale factor, which here was a trade bonus of 0.48.
 - **A port is not scenery any more, and things that cached one will break.**
   The powers keep treasuries (`sim/exchequer.py`): each berth pays its holder
   `level × 90` a day and costs `30 × level²`, so an outpost and a station both
@@ -3308,6 +3335,15 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   the transfer spends, and that the panel and the sim never disagree about
   whether this is an orbit. One limitation is recorded rather than hidden — see
   the check's own message and task #83.
+- **`test_industry.py`** licenses processes and then goes and looks at the
+  prices: the buyer's treasury pays to the credit, the gate agrees with the act
+  across all 48 process/power pairs, the industry comes up and alloy falls from
+  134 to 118 at the licensee's berths against 187 elsewhere, the forecast lands
+  within 8% of where the market settles a year later across 21 berths, it costs
+  the captain 157 a tonne at that counter against 168 quoted, a berth founded
+  afterwards comes up with the industry already running, licensing twice is
+  refused and bringing an industry up three times changes nothing, every rival
+  notices, and a good a port does not trade stays untraded.
 - **`test_exchequer.py`** measures the public purse by running a sector for
   eight years rather than by calling `promote` and observing that it promotes: a
   day moves each purse by exactly what the ledger says, a surplus builds, a
