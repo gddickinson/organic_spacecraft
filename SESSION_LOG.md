@@ -2,6 +2,78 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: what you can make sense of on the ground (#94, finished)
+
+`Lifeform.metabolism` was the identity key behind the two strings the survey
+screens print, and **nothing read the key itself**. A radiotroph and a
+photoautotroph were the same row with different words; the catalogue could not
+group by anything; and nothing asked whether the captain had any business
+understanding what they were looking at. `test_declared` had carried it for
+cycles with the reason *"a catalogue that groups by metabolism is wanted and the
+tech tree has a branch of that name to match against."*
+
+The pairing is not invented — each of the eight biochemistries goes to the node
+that *is* that biochemistry, and the tree's own names give it away:
+
+    photo    photoautotroph   ← Photosynthetic Intima      0 pts
+    thermo   thermophile      ← Radiator Bloom           140
+    halo     halophile        ← Water Refinery           160
+    chemo    chemolithotroph  ← Mineral Gut              320
+    crypto   cryptobiont      ← Trehalose Cryptobiosis   500
+    methano  methanogen       ← Sabatier Loop            500
+    radio    radiotroph       ← Deinococcus Repair       540
+    piezo    piezophile       ← Piezolyte Physiology     880
+
+Four are exact: the Sabatier Loop makes methane, trehalose vitrification *is*
+cryptobiosis, piezolyte physiology is what a piezophile has, Deinococcus is the
+radiation organism. **Two of the eight are legible on day one** — the mechanic is
+neither off nor already won at the start, and the exotic ones are worth saving up
+for.
+
+**A specimen is worth more to somebody who can read it.** Catalogue a piezophile
+with no piezolyte physiology and you have a jar of tissue: it counts, it goes in
+the register, and it yields 60% of what it would to a bench that can say what it
+is doing. Measured on the same body: **18 points unread, 30 read**; on the same
+whole catch, **116 against 149**. Which closes a loop that was already half built
+— `data/inquiry.py` has the metabolism branch of research running on 60% specimen
+evidence, so the specimens fund the branch that explains the specimens.
+
+**A layer that cannot ask who is looking should not price what it finds.** The
+research for catalogued life was added inside `world/planets.survey_body` as
+`lf.value * 0.25`, in a package the layer rule forbids from seeing the `Game`. It
+moved to `sim/biology.harvest`, which is the only place that arithmetic lives now,
+and the bare constant went with it.
+
+The catalogue is a new codex tab (`ui/life_panel`): every organism you have
+catalogued, grouped by biochemistry, deepest column first, each saying whether the
+bench reads it or what it would take — *"Piezolyte Physiology · 880 points"* — and
+what a specimen of it is worth. Played it: **28 organisms across 8 of 8
+biochemistries, 8 read and 20 not.** The body screen's biota lines carry the same
+line, and the survey debrief says how many went into the register unread and in
+which biochemistries, because a captain who knows they are leaving value on the
+ground has a reason to come back.
+
+**Two things found by looking rather than reasoning.**
+
+- Grouping by the key is how you find out the key was lying. `FORMS` is a pool of
+  body plans — "jointed swimmer", "plated crawler" — and one entry was
+  **"chemotrophic reef"**. The generator picks the form and the metabolism
+  independently, so it had been filing a chemotrophic reef as a photoautotroph
+  since lifeforms were written, and nobody could see it until the catalogue put
+  the two beside each other. Renamed, with a check that no body plan contains a
+  biochemistry stem.
+- The biota line read *"nobody aboard can read it — mineral gut would, at 320
+  points"*. `str.capitalize()` lower-cases everything after the first character,
+  so a technology's name was printed in lower case on the screen telling you to go
+  and research it. There is a check that every such line spells the node exactly
+  as `data/tech.py` does.
+
+And `test_declared` fired its stale-excuse arm the moment the field started being
+read — *"ALLOWED still excuses fields that are now read — delete the entry"* — for
+the second cycle running. That arm has now caught three fields on their way out.
+
+Seven new checks, 924 across the suite, all green.
+
 ## 2026-07-30 — SEEDFALL: two guards excusing each other, and the mesh that was waiting
 
 **A 21,000-credit module and an 18,000-credit colony did nothing at all**, and the

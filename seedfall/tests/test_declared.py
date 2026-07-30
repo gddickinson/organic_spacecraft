@@ -76,12 +76,6 @@ ALLOWED: dict[str, str] = {
         "A watcher naming a thing already true, so a tutorial step can skip "
         "itself. Task #87: the tutorial's step machinery advances on watchers "
         "firing, and skipping needs it to evaluate one at entry instead.",
-    "planets.Lifeform.metabolism":
-        "The identity key behind `metabolism_name` and `metabolism_note`, which "
-        "are what the screens show, and whose value multiplier is spent when the "
-        "lifeform is generated. Kept because a catalogue that groups by "
-        "metabolism is wanted and the tech tree has a branch of that name to "
-        "match against — task #94.",
 }
 
 

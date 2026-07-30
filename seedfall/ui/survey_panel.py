@@ -11,8 +11,9 @@ panel exists rather than a single control.
 from __future__ import annotations
 
 from ..data.xenotech import CULTURES_BY_ID, XENOTECH_BY_ID
+from ..sim import biology
 from ..sim import survey as survey_sim
-from .widgets import Card, Panel, button, label, note
+from .widgets import Card, Panel, button, label, mono_label, note
 
 
 def how_to_look(view, g, b):
@@ -51,7 +52,47 @@ def how_to_look(view, g, b):
     return panel
 
 
-def report(res) -> list:
+def _sentence(text: str) -> str:
+    """Upper-case the first letter and leave the rest alone.
+
+    `str.capitalize()` lower-cases everything after the first character, which
+    turned "Mineral Gut would, at 320 points" into "mineral gut would" on the
+    biota line — a technology's name, in lower case, on the screen that is
+    telling you to go and research it.
+    """
+    return text[:1].upper() + text[1:]
+
+
+def biota(panel, game, body) -> None:
+    """The life on one body, grouped by what it runs on.
+
+    Here rather than in `system_view` for the reason the module docstring gives:
+    the screen holds the screen and the survey holds the survey, and that file
+    has crossed the five-hundred-line mark twice now.
+
+    **Grouped by metabolism, and marked with whether anybody aboard can read
+    it.** That key was declared to be the identity behind the two strings below
+    and was read by nothing at all, so a radiotroph and a photoautotroph were the
+    same row with different words. See `sim/biology.py`.
+    """
+    seen = [lf for lf in body.lifeforms if lf.catalogued]
+    if not body.lifeforms:
+        panel.add(note("No biology detected."))
+        return
+    panel.add(mono_label(f"Biota — {len(seen)}/{len(body.lifeforms)} catalogued"))
+    for lf in sorted(seen, key=lambda x: x.metabolism_name):
+        traits = ("; " + ", ".join(t[1] for t in lf.traits)
+                  if lf.traits else "")
+        panel.add(label(f"{lf.name}, {lf.metabolism_name} — "
+                        f"{lf.metabolism_note}{traits}. {lf.behaviour}.",
+                        "", wrap=True))
+        panel.add(note(_sentence(biology.explain(game, lf)) + "."))
+    if len(seen) < len(body.lifeforms):
+        panel.add(note(f"{len(body.lifeforms) - len(seen)} organism(s) noted "
+                       "but not catalogued."))
+
+
+def report(res, game) -> list:
     """What a finished survey found, as lines for the dialog.
 
     Lives here rather than in `system_view` so the screen holds the screen and
@@ -62,7 +103,16 @@ def report(res) -> list:
              f"organism(s) catalogued, {res['research']} points of research "
              "banked."]
     for lf in res["lifeforms"]:
-        lines.append(f"{lf.name} — {lf.metabolism_name}; {lf.behaviour}.")
+        lines.append(f"{lf.name} — {lf.metabolism_name}; {lf.behaviour}. "
+                     f"{_sentence(biology.explain(game, lf))}.")
+    catch = res.get("catch")
+    if catch and catch["blind"]:
+        # Worth saying out loud: the specimens are bagged and counted, and they
+        # will be worth more to a bench that can read them. See `sim/biology.py`.
+        short = ", ".join(sorted({lf.metabolism_name for lf in catch["blind"]}))
+        lines.append(f"{len(catch['blind'])} of {catch['count']} went into the "
+                     f"register unread — {short}. Catalogued either way, and "
+                     "worth more once the bench can say what they are doing.")
     if res["anomaly"]:
         lines.append(f"{res['anomaly'].name}: {res['anomaly'].text}")
     if res.get("relic"):

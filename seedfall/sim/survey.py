@@ -15,6 +15,7 @@ from __future__ import annotations
 from ..data.surveys import CATEGORIES, DEFAULT, METHODS, METHODS_BY_ID
 from ..world.galaxy import distance
 from ..world.planets import survey_body
+from . import biology
 from . import flight
 from . import charts as chart_sim
 from . import inquiry
@@ -197,6 +198,9 @@ def perform(game, body_index: int, method_id: str = DEFAULT) -> dict:
     # more than a standard one and costs about a seventh more to leave.
     quality = min(1.0, game.ship_stats.scan * method.quality * look_bonus(game, body))
     found = survey_body(body, quality, game.rng("survey"), finds=method.finds)
+    # Priced for the captain who found it, not for the body it was on.
+    found["catch"] = biology.harvest(game, found["lifeforms"])
+    found["research"] += found["catch"]["research"]
     found["ok"] = True
     found["method"] = method
     found["days"] = span

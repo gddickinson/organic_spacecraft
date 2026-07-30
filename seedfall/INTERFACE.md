@@ -1684,6 +1684,7 @@ seedfall/
 │   ├── encounters.py   NPC generation and transit events
 │   ├── threat.py       Bloom growth and spread, cleansing, victory checks
 │   ├── xeno.py         study points, incorporation, alien passive bonuses
+│   ├── biology.py      what your own biology explains on the ground
 │   ├── bloom.py        stages, roaming instars, resistance, the First Instar
 │   ├── contracts.py    generation, acceptance, progress, expiry
 │   ├── diplomacy.py    standing, the relations matrix, treaties, brokering;
@@ -1786,6 +1787,7 @@ seedfall/
 │   ├── crossing_panel.py  the four ways to fly it, costed on both clocks
 │   ├── anchorage_panel.py where you can put in, and how to get back to it
 │   ├── traffic_panel.py   who else is out here, and which of them runs dark
+│   ├── life_panel.py      the life catalogue, grouped by biochemistry
 │   ├── mesh_panel.py      what the picket mesh hears in systems you are
 │   │                   not in, and what the chart marks because of it
 │   ├── doctrine_panel.py  what the seats you are not in intend this turn
@@ -1823,6 +1825,7 @@ seedfall/
     ├── test_empire.py  6 colony checks — works, effects, costs, persistence
     ├── test_crew.py    7 crew checks — convictions, loyalty, consequences
     ├── test_missions.py 7 commission checks — escalation, blocking, lapsing
+    ├── test_biology.py 7 checks — what you can make sense of on the ground
     ├── test_mesh.py    5 checks — what a CHORUS Node lets you see
     ├── test_options.py 8 checks — every setting does something
     ├── test_provenance.py 9 checks — a rumour's source, and whether
@@ -1949,6 +1952,20 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 
 ## The parts that will bite you
 
+- **A layer that cannot ask who is looking should not price what it finds.**
+  `world/planets.survey_body` used to add `lf.value * 0.25` of research for every
+  organism it catalogued — inside `world/`, which by the layer rule cannot see the
+  `Game` and therefore cannot know whether anybody aboard can read a radiotroph.
+  The grant moved to `sim/biology.harvest`, so the same body pays two captains
+  differently: **116 points of research unread against 149 read** on the same
+  catch. The constant went with it (`SPECIMEN_SHARE`), out of the middle of the
+  survey arithmetic.
+- **Grouping by a key is how you find out the key was lying.** `FORMS` is a pool
+  of body plans — "jointed swimmer", "plated crawler" — and one entry was
+  `"chemotrophic reef"`. The generator picks the form and the metabolism
+  independently, so it cheerfully filed a chemotrophic reef as a photoautotroph,
+  and nobody could see it until the catalogue put the two beside each other. There
+  is a check now that no body plan contains a biochemistry stem.
 - **Two guards can excuse each other, and one pair did for a whole feature.**
   `test_grants` asks whether every colony effect is read *by name* somewhere;
   `test_declared` asks whether every declared field is read. The `drift` effect
@@ -3430,6 +3447,13 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   rather than hidden: the height precision at a small body (task #102) and the
   plane change that is most of what a climb costs (task #101), both with the
   measurements that found them.
+- **`test_biology.py`** measures the metabolism pairing by surveying rather than
+  by reading the table: every biochemistry has its own explaining node and no node
+  explains two, a specimen is worth 18 points unread and 30 read, two of eight
+  biochemistries are legible on day one and the dearest costs 880 points, the
+  catalogue groups only what you actually catalogued and deepest-first, the line
+  naming a technology spells it the way `data/tech.py` does — and no body plan
+  claims a biochemistry.
 - **`test_mesh.py`** holds the picket mesh to what its descriptions promise:
   without a node only the system you are in is plotted *while the traffic
   elsewhere really is there*, a node aboard plots the systems you have stood in

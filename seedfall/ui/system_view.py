@@ -186,22 +186,9 @@ class SystemView(View):
                 panel.add(mono_label(f"{key}  {pct(v)}"))
                 panel.add(Bar(v, "chloro" if v > 0.6 else "osteo"))
 
-            seen = [l for l in b.lifeforms if l.catalogued]
             panel.add(spacer(4))
-            if b.lifeforms:
-                panel.add(mono_label(
-                    f"Biota — {len(seen)}/{len(b.lifeforms)} catalogued"))
-                for lf in seen:
-                    traits = ("; " + ", ".join(t[1] for t in lf.traits)
-                              if lf.traits else "")
-                    panel.add(label(f"{lf.name}, {lf.metabolism_name} — "
-                                    f"{lf.metabolism_note}{traits}. {lf.behaviour}.",
-                                    "", wrap=True))
-                if len(seen) < len(b.lifeforms):
-                    panel.add(note(f"{len(b.lifeforms) - len(seen)} organism(s) noted "
-                                   "but not catalogued."))
-            else:
-                panel.add(note("No biology detected."))
+            from .survey_panel import biota
+            biota(panel, g, b)
 
             if b.anomaly and b.anomaly.found:
                 panel.add(spacer(4))
@@ -255,7 +242,8 @@ class SystemView(View):
             return
         if self.win.check_ending():
             return
-        self.win.dialog("Survey complete", report(res), [("Log it", None)])
+        self.win.dialog("Survey complete", report(res, self.game),
+                        [("Log it", None)])
         self.win.refresh()
 
     def set_mining_method(self, method_id: str) -> None:

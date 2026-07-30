@@ -194,6 +194,8 @@ KIN = {
     "memory": ("provenance", "grudges"),
     "options": ("options",),
     "traffic": ("traffic", "mesh"),
+    "lifeforms": ("biology", "surveys"),
+    "biology": ("biology",),
 }
 
 

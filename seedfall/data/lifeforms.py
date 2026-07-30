@@ -27,10 +27,16 @@ def biome_life(bid: str) -> float:
     return BIOMES.get(bid, ("Unknown", 0, "dim"))[1]
 
 
+#: A body plan, and only that. **Not a biochemistry** — `"chemotrophic reef"` was
+#: in this pool, and since the metabolism is a separate field the generator
+#: cheerfully filed a chemotrophic reef as a photoautotroph. Nobody could see it
+#: until the catalogue started grouping by metabolism, and then it was a
+#: contradiction printed on the screen. Every entry here is a shape or a habit;
+#: what the organism runs on is `METABOLISMS`.
 FORMS = [
     "filamentous mat", "sessile calcifier", "drifting bell", "burrowing tube",
     "crystalline frond", "colonial raft", "armoured grazer", "sail-borne float",
-    "chemotrophic reef", "motile spore-cloud", "branching thallus",
+    "encrusting reef", "motile spore-cloud", "branching thallus",
     "jointed swimmer", "plated crawler", "luminous shoal", "anchored siphon",
     "vesicular bloom",
 ]
@@ -98,3 +104,40 @@ def specimen_value(rng, metabolism_id: str, traits: list) -> int:
     base = 40 + rng.int(0, 60)
     mult = next((m[3] for m in METABOLISMS if m[0] == metabolism_id), 1.0)
     return round(base * mult * (1 + 0.35 * len(traits)))
+
+
+# ── what your own biology explains ─────────────────────────────────────────
+#
+# **`Lifeform.metabolism` was the identity key behind the two strings the screens
+# show, and nothing read the key itself.** So a catalogue could not group by it
+# and nothing could ask whether the captain had any business understanding what
+# they were looking at.
+#
+# The pairing is not invented. Each metabolism is matched to the node in
+# `data/tech.py` that is the *same biochemistry*, which the tree's own names give
+# away: the Sabatier Loop makes methane, trehalose vitrification *is*
+# cryptobiosis, piezolyte physiology is what a piezophile has, and Deinococcus is
+# the radiation organism. Four are exact and the rest are the obvious reading of
+# both names.
+#
+# It closes a loop that was already half-built: `data/inquiry.py` says the
+# metabolism branch of research runs on **60% specimen evidence**, and
+# `world/planets.survey_body` grants research for catalogued life. So knowing a
+# biochemistry makes the specimens you find worth more, and the specimens fund
+# the branch that knows more biochemistries.
+METABOLISM_TECH = {
+    "photo": "intima",             # Photosynthetic Intima
+    "chemo": "mineralgut",         # Mineral Gut — eats rock
+    "thermo": "radiatorbloom",     # Radiator Bloom
+    "halo": "waterrefinery",       # Water Refinery
+    "methano": "sabatier",         # Sabatier Loop — makes methane
+    "crypto": "trehalose",         # Trehalose Cryptobiosis
+    "piezo": "piezolyte",          # Piezolyte Physiology
+    "radio": "deinococcus",        # Deinococcus Repair — radiation
+}
+
+#: What a specimen you can actually read is worth against one you cannot, in
+#: research. A tissue sample nobody has the biochemistry for is still a sample:
+#: it is catalogued, it still counts, and it yields less until somebody can say
+#: what it is doing.
+UNDERSTOOD_WORTH = 0.60

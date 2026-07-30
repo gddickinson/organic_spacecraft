@@ -220,7 +220,12 @@ def survey_body(body: Body, quality: float, rng, finds=None) -> dict:
         if rng.chance(0.45 + quality * 0.5):
             lf.catalogued = True
             found["lifeforms"].append(lf)
-            found["research"] += round(lf.value * 0.25)
+            # **What a specimen is worth is not decided here.** This layer knows
+            # what is on the body and cannot know who is looking at it, and a
+            # radiotroph is worth more to a captain who has the biochemistry for
+            # it than to one holding a jar of tissue. The caller in `sim/`
+            # prices the catch through `biology.harvest`, which is the only
+            # place that arithmetic lives now.
 
     if "anomaly" in can and body.anomaly and not body.anomaly.found \
             and rng.chance(0.28 + quality * 0.55):

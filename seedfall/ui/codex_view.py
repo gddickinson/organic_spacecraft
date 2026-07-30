@@ -25,15 +25,15 @@ class CodexView(View):
         self.head("Codex",
                   "The class reference, the powers of the Verge, and the vocabulary.")
         tabs = TabBar([("classes", "Fleet classes"), ("colonies", "Colony classes"),
-                       ("factions", "Powers"), ("notes", "Field notes"),
-                       ("glossary", "Glossary"),
+                       ("factions", "Powers"), ("life", "Life"),
+                       ("notes", "Field notes"), ("glossary", "Glossary"),
                        ("about", "About")], self.tab)
         tabs.changed.connect(self._switch)
         self.col.addWidget(tabs)
 
         {"classes": self._classes, "colonies": self._colonies,
-         "factions": self._factions, "notes": self._notes,
-         "glossary": self._glossary,
+         "factions": self._factions, "life": self._life,
+         "notes": self._notes, "glossary": self._glossary,
          "about": self._about}[self.tab]()
 
     def _switch(self, tid: str) -> None:
@@ -105,6 +105,10 @@ class CodexView(View):
                 p.add(note(f"Buys: {', '.join(f.buys)}. "
                            f"Sells: {', '.join(f.sells) or '—'}."))
             self.col.addWidget(p)
+
+    def _life(self) -> None:
+        from .life_panel import build as life_catalogue
+        self.col.addWidget(life_catalogue(self.game))
 
     def _notes(self) -> None:
         """What landing parties brought back that was not cargo."""

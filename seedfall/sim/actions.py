@@ -9,6 +9,7 @@ from ..data.crossings import CROSSINGS_BY_ID
 from ..data.crossings import DEFAULT as CROSSING_DEFAULT
 from ..world.galaxy import distance, transit_days
 from ..world.planets import survey_body
+from . import biology
 from . import charts as chart_sim
 from . import mining
 from . import responses
@@ -131,6 +132,10 @@ def survey(game, body_index: int) -> dict:
     game.advance_days(days)
 
     found = survey_body(body, game.ship_stats.scan, r)
+    # What the catch is worth to *this* captain: a specimen nobody can read is
+    # still catalogued and yields less. See `sim/biology.py`.
+    catch = biology.harvest(game, found["lifeforms"])
+    found["research"] += catch["research"]
     research_sim.grant(game.research, found["research"])
     inquiry.add(game.research, "survey", found["research"] * 0.9)
     inquiry.add(game.research, "specimen", len(found["lifeforms"]) * 9)
@@ -273,6 +278,7 @@ def dive(game, body_index: int) -> dict:
                      "before the tail could refreeze.", "bad")
 
     found = survey_body(body, min(1.0, game.ship_stats.scan + 0.4), r)
+    found["research"] += biology.harvest(game, found["lifeforms"])["research"]
     research_sim.grant(game.research, found["research"] + 60)
     inquiry.add(game.research, "specimen", 55 + len(found["lifeforms"]) * 12)
     inquiry.add(game.research, "survey", found["research"] * 0.4)
