@@ -55,7 +55,7 @@ def _panel_text(game, system) -> str:
     """The chart's side panel for one system, as a player would read it."""
     from .test_ui import _use_offscreen
     _use_offscreen()
-    from PyQt6.QtWidgets import QApplication, QLabel
+    from PyQt6.QtWidgets import QApplication, QLabel, QPushButton
     from ..ui.window import MainWindow
 
     app = QApplication.instance() or QApplication([])
@@ -68,8 +68,12 @@ def _panel_text(game, system) -> str:
     view.refresh()
     for _ in range(3):
         app.processEvents()
-    text = " ".join(lab.text() for lab in view.findChildren(QLabel)
-                    if lab.text())
+    # Buttons as well as labels: a price a captain reads off the thing they are
+    # about to press is on the screen as much as one in a row. The chart's own
+    # price lives on its button, and a check reading only labels could not see it.
+    text = " ".join(w.text() for w in view.findChildren(QLabel) if w.text())
+    text += " " + " ".join(b.text() for b in view.findChildren(QPushButton)
+                           if b.text())
     win.close()
     return text
 
@@ -245,6 +249,135 @@ def run(suite: Suite) -> None:
             "than merely uninformed")
         assert "of the sector by mass" in text
         return "how bad it is stays public; where it is has to be scouted"
+
+    @check("how many bodies are down there waits for a chart too")
+    def _():
+        # The same rule as the Bloom halo and the faction name, applied to the
+        # one fact a chart exists to sell. `LEVELS[0]` calls a registry entry
+        # "a body count the registry will not stand behind" and `LEVELS[1]`
+        # promises "the bodies are real" — and the panel printed
+        # `len(sys.bodies)` at every rank, so the two rungs differed by a
+        # faction name and the shade of a dot.
+        game = new_game("bodies")
+        dark = next(s for s in game.galaxy.systems
+                    if intel.level(game, s) == 0 and len(s.bodies) >= 2)
+        assert intel.body_count(game, dark) is None, (
+            "an uncatalogued system is handing over its body count")
+        text = _panel_text(game, dark)
+        assert f"{len(dark.bodies)} catalogued bodies" not in text, (
+            f"{dark.name} is uncatalogued and the panel counts its bodies")
+        assert "nobody has said" in text, (
+            f"the panel neither counts them nor says it cannot: {text[:300]}")
+
+        # And a chart delivers it.
+        game.credits = 500_000
+        assert intel.buy_chart(game, dark)["ok"]
+        assert intel.body_count(game, dark) == len(dark.bodies)
+        after = _panel_text(game, dark)
+        assert f"{len(dark.bodies)} catalogued bodies" in after, (
+            f"bought the chart and the count is still withheld: {after[:300]}")
+        return (f"{dark.name}: \"nobody has said\" before the chart, "
+                f"{len(dark.bodies)} bodies after it")
+
+    @check("the marker does not measure out a count nobody has")
+    def _():
+        # The panel is words and the marker is a radius, so reading labels
+        # cannot see it: a mutation putting `r = 2.6 + len(sys.bodies) * 0.3`
+        # back left every check green while the chart drew the withheld number.
+        #
+        # A first draft of this counted *pixels*, in the idiom of the halo check
+        # above, and it was no good: eleven against six on unmutated code, and
+        # red in the full suite but not on its own. A marker is nine pixels
+        # across on a chart full of links, hatching and labels, and there is not
+        # enough ink in it to difference. So the rule itself is a function now,
+        # and this reads it.
+        from ..ui.map_view import marker_radius
+
+        game = new_game("marker")
+        dark = [s for s in game.galaxy.systems if intel.level(game, s) == 0]
+        small = min(dark, key=lambda s: len(s.bodies))
+        big = max(dark, key=lambda s: len(s.bodies))
+        assert len(big.bodies) - len(small.bodies) >= 3, (
+            f"{len(small.bodies)} and {len(big.bodies)} bodies — not far enough "
+            "apart to tell one marker from the other")
+        assert marker_radius(game, small) == marker_radius(game, big), (
+            f"{len(small.bodies)} bodies draws r="
+            f"{marker_radius(game, small):.2f} and {len(big.bodies)} draws "
+            f"{marker_radius(game, big):.2f} — the marker is measuring out the "
+            "count the panel is withholding")
+
+        # And once they are known, the size means something again.
+        game.credits = 500_000
+        assert intel.buy_chart(game, small)["ok"]
+        assert intel.buy_chart(game, big)["ok"]
+        assert marker_radius(game, big) > marker_radius(game, small), (
+            "charted, and the two stars still draw the same size — the marker "
+            "has stopped saying anything at all")
+        return (f"{len(small.bodies)} and {len(big.bodies)} bodies draw the same "
+                f"marker unknown, and {marker_radius(game, small):.1f} against "
+                f"{marker_radius(game, big):.1f} once charted")
+
+    @check("the price of a chart is not the answer written on the tag")
+    def _():
+        # **Measured before the fix: `900 + 260 a body`.** Forty-one unknown
+        # systems, thirteen distinct prices, and the count inverted exactly —
+        # 1,160 meant one body, 1,420 two, 1,680 three. A captain who could do a
+        # subtraction never needed to buy a chart at all.
+        #
+        # Correlation rather than a formula, because the claim is about what the
+        # price *tells* you and not about which terms are in it.
+        import statistics
+
+        def pearson(xs, ys):
+            mx, my = statistics.mean(xs), statistics.mean(ys)
+            num = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+            den = (sum((x - mx) ** 2 for x in xs)
+                   * sum((y - my) ** 2 for y in ys)) ** 0.5
+            return num / den if den else 0.0
+
+        worst = 0.0
+        seeds = ("tag-a", "tag-b", "tag-c")
+        for seed in seeds:
+            game = new_game(seed)
+            rows = [(intel.chart_price(game, s), len(s.bodies))
+                    for s in game.galaxy.systems if intel.level(game, s) == 0]
+            assert len(rows) > 20, len(rows)
+            prices = [r[0] for r in rows]
+            counts = [r[1] for r in rows]
+            old_way = [900 + 260 * n for n in counts]
+            assert abs(pearson(old_way, counts) - 1.0) < 1e-9, (
+                "the old formula is supposed to be the perfectly leaky one")
+            leak = abs(pearson(prices, counts))
+            worst = max(worst, leak)
+            assert leak < 0.35, (
+                f"{seed}: the price still tracks the body count at r={leak:.2f}")
+        return (f"over {len(seeds)} sectors the worst price-to-body-count "
+                f"correlation is {worst:.2f}, against 1.00 for the old formula")
+
+    @check("the offer says what a chart buys")
+    def _():
+        # #39's rule, on the one purchase in the game whose value was entirely
+        # inferable from its price: say what it gives you.
+        game = new_game("offer")
+        game.credits = 500_000
+        dark = next(s for s in game.galaxy.systems if intel.level(game, s) == 0)
+        offer = intel.chart_offer(game, dark)
+        assert offer["can"] and offer["buys"], offer
+        text = _panel_text(game, dark)
+        for line in offer["buys"]:
+            assert line in text, (
+                f"the offer promises {line!r} and the panel does not say it")
+        from ..core.util import credits as cr
+        assert cr(offer["price"]) in text, (
+            f"{cr(offer['price'])} wanted and the panel says otherwise")
+
+        # A captain who cannot pay is told the price, not offered the button.
+        broke = new_game("offer")
+        broke.credits = 10
+        shut = intel.chart_offer(broke, dark)
+        assert not shut["can"] and "credits for it" in shut["why"], shut
+        return (f"the panel names the price and all {len(offer['buys'])} things "
+                "the chart buys")
 
     @check("whose space it is waits for a registry entry")
     def _():

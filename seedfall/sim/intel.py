@@ -91,12 +91,68 @@ def blurb(game, system) -> str:
     return LEVELS[level(game, system)][2]
 
 
+#: What a broker wants before anything else, and what the flying is worth a
+#: light-year. Priced on the trip somebody else made to make the chart, because
+#: that is the part of it a broker can honestly charge for.
+#:
+#: **It used to be `900 + 260 per body`, which handed over the answer.** Measured
+#: across a sector: forty-one unknown systems, thirteen distinct prices, and the
+#: count inverted exactly — 1,160 meant one body, 1,420 two, 1,680 three. The one
+#: fact a chart exists to sell was written on its price tag, and a captain who
+#: could read a subtraction never had to buy one.
+CHART_BASE = 700.0
+CHART_PER_LY = 90.0
+
+
 def chart_price(game, system) -> int:
-    """What a broker wants for the survey they already hold."""
-    base = 900 + len(system.bodies) * 260
-    if system.port:
-        base += 400
+    """What a broker wants for the survey they already hold.
+
+    Distance, not contents. See `CHART_BASE`: pricing it on the body count told
+    the buyer the body count, which is most of what they were buying.
+    """
+    span = distance(system, game.system)
+    base = CHART_BASE + CHART_PER_LY * span
     return int(base * (1.0 - min(0.3, game.ship_stats.trade)))
+
+
+def bodies_known(game, system) -> bool:
+    """Is this system's body list to be believed?
+
+    Level 0 is a registry entry, and `LEVELS[0]` says in as many words that it is
+    "a body count the registry will not stand behind" — while `LEVELS[1]`, which
+    is what a chart buys, promises "the bodies are real". **The screen honoured
+    neither**: it printed `len(system.bodies)` at every rank and sized the marker
+    by it, so the bottom two rungs of the fog differed by a faction name and the
+    shade of a dot. This is the door that makes the difference real, and therefore
+    makes a chart worth its price.
+    """
+    return level(game, system) >= 1
+
+
+def body_count(game, system) -> int | None:
+    """How many bodies are there — or None, when nobody of yours has counted."""
+    return len(system.bodies) if bodies_known(game, system) else None
+
+
+def chart_offer(game, system) -> dict:
+    """The price, and what buying it actually tells you. For the button.
+
+    A chart used to be offered as a bare figure. What it buys is the body list,
+    whose space it is, and a marker that means something — worth saying, since
+    the whole of it was previously inferable from the price.
+    """
+    price = chart_price(game, system)
+    have = level(game, system)
+    return {
+        "price": price,
+        "can": have < 1 and game.credits >= price,
+        "why": ("You already have at least this much." if have >= 1
+                else f"They want {price:,} credits for it."
+                if game.credits < price else ""),
+        "buys": ["how many bodies are down there",
+                 "whose space it is",
+                 "a chart marker you can trust"],
+    }
 
 
 def buy_chart(game, system) -> dict:

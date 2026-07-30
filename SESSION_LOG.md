@@ -2,6 +2,57 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: the chart's price told you what the chart was for (#exploration)
+
+`sim/intel.py` ranks a system 0 to 3 and writes down, in as many words, what each
+rank knows. Rank 0 is "a name, a position and **a body count the registry will not
+stand behind**". Rank 1 — which is exactly what buying a chart gets you — is "read
+at range or bought as a chart. **The bodies are real**; what is on them is
+guesswork."
+
+The screen honoured neither sentence. It printed `len(sys.bodies)` at every rank,
+sized the star's marker by it, and — the part that made the whole thing circular —
+priced the chart at `900 + 260 per body`. **Measured across a sector: forty-one
+unknown systems, thirteen distinct prices, and the count inverting exactly.** 1,160
+meant one body. 1,420 meant two. 1,680 meant three. The single fact a chart exists
+to sell was written on its price tag, and a captain who could do a subtraction
+never had to buy one.
+
+So the bottom two rungs of a four-rung fog differed by a faction name and the shade
+of a dot, on a screen whose own suite says **"how bad is public; where is earned"**.
+
+Now: `intel.body_count` returns the count or None, the panel says *"how many
+bodies, nobody has said"* until somebody has looked, the marker is drawn at a fixed
+size for anything uncatalogued, and the price is `CHART_BASE + CHART_PER_LY ×
+distance` — the trip somebody else made, which is the part of a chart a broker can
+honestly charge for. Its correlation with the body count is **0.02, 0.00 and 0.05
+across three sectors, against 1.00 for the old formula**. And the offer says what
+it buys, in the #39 idiom: *"A chart of this system buys you how many bodies are
+down there, whose space it is, a chart marker you can trust."*
+
+**Two lessons from writing the checks, both about where a rule lives.**
+
+Six of my seven mutations were caught at once; the seventh — putting the old
+`r = 2.6 + len(sys.bodies) * 0.3` back — sailed through, because no check read the
+ink. So I wrote a pixel-counting check in the idiom of the halo check that sits ten
+lines above it in the same file. **It was no good**: eleven pixels against six on
+*unmutated* code, and it went red in the full suite while passing on its own. A
+marker is nine pixels across on a chart full of links, hatching and labels, and
+there is not enough ink in it to difference. The halo works that way because a halo
+is forty pixels of one colour; a dot is not.
+
+The answer was to stop measuring the drawing and give the rule a name:
+`map_view.marker_radius` is a function now, the paint reads it, and the check reads
+it — equal for two uncatalogued stars four bodies apart, and 3.2 against 4.7 once
+both are charted. That catches the mutation exactly and cannot flake.
+
+Seven deliberate breakages, seven caught: the count handed over again, the price
+back on the body count, the panel counting regardless, the marker measuring it out,
+the offer saying nothing, a chart that reveals nothing, and the marker rule
+inlined again.
+
+Four new checks, 992 across the suite, all green.
+
 ## 2026-07-30 — SEEDFALL: five numbers whose own suite could not speak for them
 
 I went looking for a defect in research and did not find one — `inquiry.draw` is

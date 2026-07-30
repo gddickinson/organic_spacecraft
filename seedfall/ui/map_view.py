@@ -25,6 +25,20 @@ from .widgets import Panel, View, button, label, mono_label, note, spacer
 FACTION_COLOUR = {k: theme.tint(v) for k, v in theme.FACTION_TINT.items()}
 
 
+#: What an uncatalogued star's marker is drawn as, in bodies. A fixed stand-in,
+#: because the alternative is the true count — and the marker was measuring out
+#: the very number the panel withholds and the chart's price used to quote.
+UNKNOWN_MARKER_BODIES = 2
+
+
+def marker_radius(game, system) -> float:
+    """How big to draw a star, in pixels. Sized by bodies only where known."""
+    counted = intel_sim.body_count(game, system)
+    if counted is None:
+        counted = UNKNOWN_MARKER_BODIES
+    return 2.6 + counted * 0.3
+
+
 class StarChart(QWidget):
     picked = pyqtSignal(int)
 
@@ -162,7 +176,7 @@ class StarChart(QWidget):
             p.setBrush(grad)
             p.drawEllipse(pt, radius, radius)
 
-        r = 2.6 + len(sys.bodies) * 0.3
+        r = marker_radius(g, sys)
         # How well a system is known reads off the marker: an outline for a
         # name in a registry, a filled disc once you have been, and a ring
         # around anything charted to the last body.
@@ -377,8 +391,17 @@ class MapView(View):
         fac = FACTIONS_BY_ID.get(sys.faction) if sys.faction else None
 
         panel = Panel(sys.name + ("   ·   you are here" if here else ""))
-        panel.add(note(f"{sys.star_name} · {len(sys.bodies)} catalogued bodies"))
         rank = intel_sim.level(g, sys)
+        # **The body count is fogged too.** `LEVELS[0]` says a registry entry is
+        # "a body count the registry will not stand behind" and `LEVELS[1]`, which
+        # is what a chart buys, promises "the bodies are real" — and this line
+        # printed `len(sys.bodies)` at every rank, so the bottom two rungs of the
+        # fog differed by a faction name and the shade of a dot. `intel.body_count`
+        # is the door.
+        count = intel_sim.body_count(g, sys)
+        panel.add(note(f"{sys.star_name} · "
+                       + (f"{count} catalogued bodies" if count is not None
+                          else "how many bodies, nobody has said")))
         if fac and rank >= 1:
             panel.add(label(f"{fac.name}. {fac.creed}", "", wrap=True))
         elif rank >= 1:
@@ -405,10 +428,15 @@ class MapView(View):
                           f"{round(done * len(sys.bodies))}/{len(sys.bodies)}")
             panel.add_bar(done, "lumen")
         if rank == 0:
-            price = intel_sim.chart_price(g, sys)
-            panel.add_buttons(button(f"Buy the chart — {cr(price)}",
+            # Priced on the flying somebody did to make it, and saying what it
+            # buys — both of which are `sim/intel.chart_offer`, because the price
+            # used to be `900 + 260 a body` and therefore *was* the answer.
+            offer = intel_sim.chart_offer(g, sys)
+            panel.add(note("A chart of this system buys you "
+                           + ", ".join(offer["buys"]) + "."))
+            panel.add_buttons(button(f"Buy the chart — {cr(offer['price'])}",
                                      lambda _=False, sid=sys.id: self._buy_chart(sid),
-                                     enabled=g.credits >= price))
+                                     enabled=offer["can"]))
         for rumour in rumour_sim.about(g, sys.id):
             kind = rumour.definition
             panel.add(label(kind.name, "", kind.tint))

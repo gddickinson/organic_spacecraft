@@ -1943,6 +1943,8 @@ seedfall/
     │                   and says what it will do
     ├── test_levy.py    5 checks — the levy on a holding: taken, received,
     │                   and said out loud
+    ├── test_fog.py     10 checks — what the chart shows about a star nobody
+    │                   of yours has looked at, the body count included
     ├── test_wharfage.py 10 checks — the due on your own trade: conserved,
     │                   named on the board, waived at a free port, priced by
     │                   standing and by the size of the berth
@@ -2524,6 +2526,19 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   inside `yearly_worth` — with nothing receiving the levy there was no act for that
   forecast to be wrong against. `territory.value_of` is the one door now and the
   quote is exact: **8,829 a year against a year that took 8,829**.
+- **The fog covers the body count, and a chart's price no longer gives it away.**
+  `intel.LEVELS[0]` calls a registry entry "a body count the registry will not
+  stand behind" and `LEVELS[1]`, which is what a chart buys, promises "the bodies
+  are real" — and the map panel printed `len(sys.bodies)` at every rank, sized the
+  marker by it, **and priced the chart at `900 + 260 a body`**. Measured across a
+  sector: forty-one unknown systems, thirteen distinct prices, the count inverting
+  exactly (1,160 → one body, 1,420 → two, 1,680 → three). The one fact a chart
+  exists to sell was written on its tag. `intel.body_count` is the door; the price
+  is `CHART_BASE + CHART_PER_LY × distance` — the trip somebody made, which is
+  what a broker can honestly charge for — and its correlation with the body count
+  is **0.02 against the old formula's 1.00**. `map_view.marker_radius` is a
+  function rather than an expression because a mutation putting the old radius
+  back left every check green.
 - **`abilities.preview` is the door, and `seal` is bounded.** Six abilities are
   granted by seven fitted parts, and a played decade of seventy engagements fired
   **none of them**, so nothing had driven the module end to end. Reading it for
