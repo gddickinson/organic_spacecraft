@@ -27,6 +27,7 @@ matters at plot scale is the outline and the furniture that breaks it.
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 
 from .hullforms import FORMS, LIVING, ROCK, STRUCT, SYSTEM, VOID, WARM
 from .models3d import _box, _build, _cap, _ring, _shift, _tube
@@ -270,6 +271,80 @@ def mesh_for_family(family: str) -> tuple:
 #: One mesh per family, built once. A mesh per frame is what turns a plot into
 #: a slideshow, and there are only five of them.
 HULLS = {family: mesh_for_family(family) for family in FORMS}
+
+
+# ── one class, one shape ───────────────────────────────────────────────────
+#
+# Five silhouettes is right for a tactical plot, where what matters is *what
+# sort of thing* is out there. It is not enough for a catalogue: the codex
+# lists thirty-five hull classes, and five pictures across thirty-five entries
+# is the same shape recoloured with extra steps.
+#
+# The proportions come from the chassis's own numbers rather than from a table
+# of hand-drawn variants: a hull that carries a great deal for its mass is fat,
+# one that jumps far is long and lean. Both are facts the codex already prints
+# in words on the same card, so the picture and the specification cannot
+# disagree.
+
+#: How far a class may stray from its family's beam and length, either way.
+#: Wide enough to tell a bulk hauler from a courier at a glance, narrow enough
+#: that a grown hull still reads as grown.
+CLASS_SPREAD = 0.42
+
+#: The hold-to-mass ratio, and the jump range, a family's own proportions are
+#: authored at. A class above these is fatter or longer than its kin.
+#:
+#: Both measured across the thirty-five rather than guessed. The first pair —
+#: 0.011 t of hold per tonne and a 3 ly jump — put nearly every class hard
+#: against the beam cap, because the median hull actually carries twice that
+#: and jumps nearly twice as far, so the whole spread was spent before it
+#: started. Anchored on the medians, the range is used.
+HOLD_PER_T = 0.0217
+JUMP_TYPICAL = 5.2
+
+
+@dataclass(frozen=True)
+class Proportions:
+    """How one class differs from the shape of its family."""
+
+    beam: float
+    length: float
+
+
+def proportions(chassis) -> Proportions:
+    """A class's own build, from what it is for.
+
+    Hold against mass gives beam — a hull that carries half its own tonnage is
+    a barrel and a hull that carries nothing is a needle. Jump range gives
+    length, because the tankage a long jump needs has to go somewhere.
+    """
+    mass = max(1.0, float(getattr(chassis, "mass_t", 0) or 1.0))
+    hold = max(0.0, float(getattr(chassis, "cargo", 0) or 0.0))
+    jump = max(0.0, float(getattr(chassis, "jump", 0) or 0.0))
+    fat = (hold / mass) / HOLD_PER_T - 1.0
+    far = jump / JUMP_TYPICAL - 1.0
+    return Proportions(
+        beam=1.0 + max(-CLASS_SPREAD, min(CLASS_SPREAD, fat * 0.5)),
+        length=1.0 + max(-CLASS_SPREAD, min(CLASS_SPREAD, far * 0.5)))
+
+
+def mesh_for_chassis(chassis) -> tuple:
+    """The silhouette of one class: its family's shape, in its own build."""
+    family = getattr(chassis, "family", "") or DEFAULT_FAMILY
+    build = proportions(chassis)
+    key = (family, round(build.beam, 3), round(build.length, 3))
+    got = _BY_CLASS.get(key)
+    if got is None:
+        verts, faces = mesh_for(family)
+        got = (tuple((x * build.beam, y * build.beam, z * build.length)
+                     for x, y, z in verts), faces)
+        _BY_CLASS[key] = got
+    return got
+
+
+#: Built on demand and kept: thirty-five classes collapse to far fewer distinct
+#: builds, and a mesh rebuilt per repaint is a slideshow.
+_BY_CLASS: dict = {}
 
 #: Every family `data/chassis.py` uses must be in `FORMS`, or a ship falls back
 #: to a Yards hull and quietly stops being itself. `tests/test_hullshapes.py`

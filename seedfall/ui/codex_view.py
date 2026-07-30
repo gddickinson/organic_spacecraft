@@ -11,9 +11,36 @@ from ..data.chassis import (CHASSIS, FAMILY_LABEL, FAMILY_NOTE,
 from ..data.colonies import COLONIES
 from ..data.factions import FACTIONS, standing
 from ..data.inquiry import EVIDENCE_BY_ID
+from ..data.berths3d import BERTHS
 from ..data.lore import GLOSSARY, INTRO
+from ..data.starclasses import STAR_CLASSES
+from ..data.worlds3d import WORLD_PAINTS
 from ..sim import notes as notes_sim
+from .thumb3d import Thumb
 from .widgets import (Card, Panel, Pill, TabBar, View, label, note, spacer)
+
+#: A line each for the things the sky draws. Kept here rather than in `data/`
+#: because these describe the *picture* — what a captain is looking at — while
+#: `worlds3d` and `berths3d` describe how to draw it.
+WORLD_BLURB = {
+    "rocky": "Dust, ice at the poles, and whatever the seams hold.",
+    "ocean": "Water enough to matter, and green where it meets land.",
+    "ice": "Cap to cap. What is under it is somebody's problem.",
+    "moon": "Grey rock and dark maria. Cheap to reach, thin to work.",
+    "asteroid": "Not a world. A working, with an orbit.",
+    "comet": "Volatiles on a long ellipse, and worth catching.",
+    "gas": "Belts and zones, a storm that outlives captains, and no ground.",
+}
+
+BERTH_NAME = {"quay": "Outpost quay", "hub": "Fleet Hub",
+              "holding": "Bonded holding", "gate": "Weave gate"}
+
+BERTH_BLURB = {
+    "quay": "A can, a mast and one arm. The humblest thing anybody calls a port.",
+    "hub": "Two habitation rings on a spine. Somewhere a fleet lives.",
+    "holding": "Tanks in a frame. Cargo waits here; nobody does.",
+    "gate": "Older than the Charter, and nobody has built another.",
+}
 
 
 class CodexView(View):
@@ -25,6 +52,7 @@ class CodexView(View):
         self.head("Codex",
                   "The class reference, the powers of the Verge, and the vocabulary.")
         tabs = TabBar([("classes", "Fleet classes"), ("colonies", "Colony classes"),
+                       ("sky", "The sky"),
                        ("factions", "Powers"), ("life", "Life"),
                        ("notes", "Field notes"), ("glossary", "Glossary"),
                        ("about", "About")], self.tab)
@@ -32,6 +60,7 @@ class CodexView(View):
         self.col.addWidget(tabs)
 
         {"classes": self._classes, "colonies": self._colonies,
+         "sky": self._sky,
          "factions": self._factions, "life": self._life,
          "notes": self._notes, "glossary": self._glossary,
          "about": self._about}[self.tab]()
@@ -59,6 +88,11 @@ class CodexView(View):
     def _hull_card(self, c, known) -> Card:
         have = not c.tech or c.tech in known
         card = Card(selectable=False)
+        # The picture first. Thirty-five classes were listed here as text and
+        # nothing else, on top of five hull silhouettes the sky had been
+        # drawing for cycles — and the proportions come from this card's own
+        # numbers, so the portrait and the specification cannot disagree.
+        card.add(Thumb("hull", c, height=96))
         card.add(label(c.name, "h3", FAMILY_TINT[c.family] if have else "dim"))
         card.add(label(f"{c.binomial} · {c.tier}" if c.binomial else c.tier, "sub"))
         card.add(label(c.blurb, "", wrap=True))
@@ -67,6 +101,53 @@ class CodexView(View):
                       f"jump {c.jump:g} ly · {duration(c.grow)} to build"))
         if not have:
             card.add(Pill(f"needs {c.tech}", "dim"))
+        return card
+
+    def _sky(self) -> None:
+        """The worlds, the stars and the berths — drawn, not described.
+
+        Everything on this tab has been in the sky for cycles and on no page a
+        captain could sit and read. A codex that lists thirty-five hulls and
+        says nothing about the nine kinds of star you fly under is half a
+        catalogue.
+        """
+        self.col.addWidget(note(
+            f"{len(WORLD_PAINTS)} kinds of world, {len(STAR_CLASSES)} classes "
+            f"of star and {len(BERTHS)} sorts of berth. Drawn the way the "
+            "windows draw them, so what is on this page is what is out there."))
+
+        self.col.addWidget(spacer(6))
+        self.col.addWidget(label("Worlds", "h3", "chloro"))
+        self.col.addWidget(note(
+            "Painted rather than built: a lit disc, its own latitudes, and "
+            "ground texture at whatever scale you are looking from."))
+        self.grid([self._sky_card("world", kind, kind.title(),
+                                  WORLD_BLURB.get(kind, ""))
+                   for kind in WORLD_PAINTS], cols=4)
+
+        self.col.addWidget(spacer(8))
+        self.col.addWidget(label("Stars", "h3", "osteo"))
+        self.col.addWidget(note(
+            "Nine classes, and the light every one of them throws is the light "
+            "on your hull."))
+        self.grid([self._sky_card("star", key, star.name, star.blurb)
+                   for key, star in STAR_CLASSES.items()], cols=3)
+
+        self.col.addWidget(spacer(8))
+        self.col.addWidget(label("Berths", "h3", "steel"))
+        self.col.addWidget(note(
+            "What you come alongside. A gate is not architecture — it is a "
+            "ring somebody left."))
+        self.grid([self._sky_card("berth", key, BERTH_NAME.get(key, key.title()),
+                                  BERTH_BLURB.get(key, ""))
+                   for key in BERTHS], cols=4)
+
+    def _sky_card(self, kind: str, subject, name: str, blurb: str) -> Card:
+        card = Card(selectable=False)
+        card.add(Thumb(kind, subject, height=104))
+        card.add(label(name, "h3"))
+        if blurb:
+            card.add(note(blurb))
         return card
 
     def _colonies(self) -> None:

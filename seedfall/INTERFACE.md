@@ -1645,6 +1645,8 @@ seedfall/
 │   ├── stars3d.py     the nine classes as nine pictures: colour, corona by
 │   │                   luminosity, a binary as a pair, a black hole as an
 │   │                   absence with a ring round it
+│   ├── thumb3d.py     a catalogue portrait: one hull class, berth, world
+│   │                   or star, on the renderer everything else uses
 │   ├── surface.py     a cap on a sphere projected as an ellipse, from its
 │   │                   own axes rather than from an orthographic guess —
 │   │                   and `limb`, a world's true silhouette, clipped at
@@ -2517,6 +2519,25 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   0 turns in 89. The real gap was next door — the count check ran only with full
   magazines, where "what trains" and "what burns" are the same list. Both
   mutations bit once it ran with an empty one.
+- **The catalogue screen was the last place with no catalogue in it.** The
+  Codex listed thirty-five hull classes and nineteen colony classes as text —
+  name, binomial, tier, blurb, role, crew, mass, hull, hold, jump, build time —
+  while the sky had been drawing five hull silhouettes, four berths, nine star
+  classes and seven kinds of world for cycles. Everything needed to show them
+  existed; nothing pointed at the page whose job it is. **When a renderer lands,
+  ask which screens still describe what it now draws.**
+- **Five pictures across thirty-five entries is not a catalogue either.** A
+  class's proportions come from its own card now — hold against mass gives
+  beam, jump range gives length — so the portrait and the specification are the
+  same facts twice. Both anchors were measured: the first pair, guessed, put
+  nearly every class against the beam cap because the median hull carries twice
+  the assumed hold and jumps nearly twice as far.
+- **Never bound a constant with itself.** The check that claimed the class
+  spread was bounded asserted `1 - CLASS_SPREAD <= beam <= 1 + CLASS_SPREAD`,
+  which moves with the constant it is guarding and passed with the spread set
+  to nine. `tests/tripwire.py` exists because of exactly this habit, and it
+  still turns up in freshly written checks — the written figure is the only
+  form that holds.
 - **A check that asks the helper cannot see the call.** Nine mutations went
   into `ui/battle3d`'s hull drawing and **four passed at once**, because every
   check in the new suite asked `hulls3d.mesh_for`, `battle3d._family` or

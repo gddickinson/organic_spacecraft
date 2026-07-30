@@ -2,6 +2,49 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: the catalogue screen had no catalogue in it (#catalogue)
+
+Task #80 names "the catalogue/codex screens that display them", so I went and
+looked at the Codex. Its "Fleet classes" tab lists **thirty-five hull classes** —
+name, binomial, tier, blurb, role, crew, mass, hull, hold, jump, build time —
+and not one picture. Nor do the nineteen colony and station classes. Five hull
+silhouettes, four berths, nine classes of star and seven kinds of world have
+been in the sky for cycles, and none of it reached the one page whose whole job
+is to show a captain what is out there.
+
+`ui/thumb3d.py` is a portrait: one subject, on the same renderers everything
+else uses — `render3d` for meshes, `spheres` for worlds, `stars3d` for stars —
+so a hull in the codex and the same hull on the tactical plot are the same ship.
+Every fleet-class card carries one, and a new **"The sky"** tab holds the seven
+worlds, the nine stars and the four berths, each with a line about what it is.
+
+**Five pictures across thirty-five classes would not have been a catalogue
+either.** A class's proportions now come from its own entry: hold against mass
+gives beam, jump range gives length. Both are printed in words on the same card,
+so the portrait and the specification are the same facts twice — and thirty-five
+classes give thirty-five distinct builds, a SPORE fat and stubby against a
+LEVIATHAN long and lean.
+
+Both anchors were measured rather than guessed. The first pair — 0.011 t of hold
+per tonne and a 3 ly jump — put nearly every class hard against the beam cap,
+because the median hull actually carries twice that and jumps nearly twice as
+far, so the whole spread was spent before it started.
+
+Two things came from looking at the page. The hull portraits were framed at 3.4
+and cut the docking ridge off the top of every card. And a star's corona runs to
+eleven disc radii, so on a card it was still tinted at the corner — nine classes
+appearing to sit on nine differently-coloured backgrounds, which reads as a
+layout fault rather than as light. `stars3d.draw` takes a `max_glow` now: the
+sky wants no cap, a catalogue card does.
+
+**Nine mutations, eight caught, and the ninth was my own tautology.** The check
+claiming the class spread was bounded asserted `1 - CLASS_SPREAD <= beam <=
+1 + CLASS_SPREAD` — a bound that moves with the constant it guards, and it
+passed happily with the spread set to nine. Written figures now: nothing may
+pass 1.5 either way, and the widest hull in the game sits at 1.42.
+
+`test_catalogue.py` — 5 checks. Full suite green: **1,047 checks**.
+
 ## 2026-07-30 — SEEDFALL: the tactical plot showed one ship twice (#3D)
 
 `data/hullforms.py` opens with "Five families, five silhouettes" and gives each

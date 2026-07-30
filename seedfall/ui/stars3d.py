@@ -113,8 +113,16 @@ def _hex(value: str, fallback: str) -> QColor:
                   else fallback)
 
 
-def draw(painter, camera: render3d.Camera, sight, min_radius: float = 2.4):
-    """Paint one star. Returns its screen radius, or 0 if it is off the lens."""
+def draw(painter, camera: render3d.Camera, sight, min_radius: float = 2.4,
+         max_glow: float = 0.0):
+    """Paint one star. Returns its screen radius, or 0 if it is off the lens.
+
+    `max_glow` caps how far the corona may reach in pixels. The sky wants no
+    cap — a blue giant should wash the window. A catalogue card does: the glow
+    runs to eleven disc radii at the bright end, so on a small tile it was
+    still tinted at the corner and every star sat on a differently-coloured
+    card, which reads as a design accident rather than as light.
+    """
     seen = camera.project(sight.at)
     if seen is None:
         return 0.0
@@ -132,6 +140,8 @@ def draw(painter, camera: render3d.Camera, sight, min_radius: float = 2.4):
         return radius
 
     reach = radius * corona_reach(star)
+    if max_glow > 0.0:
+        reach = min(reach, max_glow)
     glow = QRadialGradient(point, reach)
     lit = _blend(halo, QColor("#ffffff"), core_white(star) * 0.6)
     glow.setColorAt(0.0, QColor(lit.red(), lit.green(), lit.blue(), 215))
