@@ -7,7 +7,7 @@ clock you can let run.
 
 The window owns no rules. Every number on it comes from `sim/conn.py` and
 every button calls into it — including the tooltips, which quote
-`conn.forecast` so what the panel promises is what the burn does.
+`preview.forecast` so what the panel promises is what the burn does.
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ from ..sim import autopilot as pilot_sim
 from ..sim import berthing as berth_sim
 from ..sim import orbits
 from ..sim import conn as conn_sim
+from ..sim import preview as preview_sim
 from ..sim import instruments as panel_sim
 from ..sim import track as track_sim
 from . import theme
@@ -397,7 +398,7 @@ class ConnWindow(QDialog):
         for axis_id, btn in self.axis_buttons.items():
             btn.setEnabled(live and ok)
             if live:
-                said = conn_sim.forecast(conn, axis_id, main=self.use_main)
+                said = preview_sim.forecast(conn, axis_id, main=self.use_main)
                 btn.setToolTip(
                     f"{conn_sim.AXES_BY_ID[axis_id][1]}: range "
                     f"{said['range_km'] * 1000:,.0f} m, closing "

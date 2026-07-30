@@ -113,6 +113,82 @@ def offset(ship) -> float:
     return abs(sum(m.at[0] * m.thrust for m in fitted) / total)
 
 
+def yaw_torque(ship) -> float:
+    """Net torque about the hull's vertical axis under main drive, in N·m.
+
+    `r × F`, summed over the engines actually fitted. This is the one place
+    `Mount.axis` is read for what it is rather than assumed: the cross product
+    needs the direction each engine pushes, and a mount's contribution to yaw
+    is its athwartships offset times its thrust.
+
+    Zero on a balanced hull, because the pair cancel. A two-slot hull running
+    one engine pushes from 0.34 half-lengths out and the hull turns under its
+    own drive — which `data/mounts.py` has claimed since it was written
+    ("losing one leaves the thrust off-axis") and which nothing computed.
+    """
+    arm = half_length_m(ship)
+    total = 0.0
+    for mount in drives(ship):
+        force = mount.thrust * 1000.0                 # N
+        rx, ry, _rz = mount.at
+        ax, ay, _az = mount.axis
+        # The z component of r × F, in a frame where the offsets are in
+        # half-lengths: (rx·Fy − ry·Fx).
+        total += ((rx * arm) * (force * ay)
+                  - (ry * arm) * (force * ax))
+    return total
+
+
+def yaw_rate(ship) -> float:
+    """Angular acceleration about the vertical, in rad/s², under full drive.
+
+    The same moment of inertia `slew_rate` uses, so a big hull resists an
+    unbalanced engine for exactly the reasons it resists being turned on
+    purpose.
+    """
+    arm = half_length_m(ship)
+    inertia = mass_tonnes(ship) * 1000.0 * (arm ** 2) / 3.0
+    if inertia <= 0:
+        return 0.0
+    return yaw_torque(ship) / inertia
+
+
+#: The least of its main drive a hull can ever use, however badly the thrust
+#: is placed. A drive that cannot be opened at all is a stranding, and a
+#: stranding that follows silently from a refit is a worse fault than a
+#: sluggish ship.
+HOLD_FLOOR = 0.15
+
+#: What holding an off-axis burn straight costs, as a share added to the
+#: main-drive mass bill at full imbalance. The clusters fire throughout to
+#: answer the torque, and that mass is real.
+TRIM_COST_SHARE = 0.55
+
+
+def holdable_throttle(ship) -> float:
+    """How far the main drive can be opened and still be held straight.
+
+    An off-centreline drive puts a torque on the hull, and the attitude
+    clusters have a finite authority to answer it. Both scale linearly — the
+    torque with the throttle, the clusters not at all — so there is a throttle
+    above which the nose cannot be held, and it is simply the ratio.
+
+    This is the model rather than letting the hull tumble, and the reason is
+    the tick. A conn tick is a minute, and an unopposed 0.0012 rad/s² over
+    sixty seconds is 126 degrees: a hull that spins like a top, not one that
+    needs trimming. A flight computer would never let that happen — it holds
+    attitude and limits the throttle to what it can hold, which is what
+    `thrusters.offset` meant by "the flight computer has to trim against" it.
+
+    Measured on a NAVIS running one of two engines: 0.62, so a captain gets
+    about three fifths of the engine they have left.
+    """
+    yaw = abs(yaw_rate(ship))
+    if yaw <= 1e-12:
+        return 1.0
+    return max(HOLD_FLOOR, min(1.0, slew_rate(ship) / yaw))
+
+
 def rcs_thrust(ship) -> float:
     """What one attitude cluster gives, in kN, on this hull."""
     chassis = CHASSIS_BY_ID[ship.chassis]
@@ -175,6 +251,8 @@ def summary(ship) -> dict:
         "rcs_accel": rcs_accel(ship),
         "slew_rate": slew_rate(ship),
         "offset": offset(ship),
+        "yaw_rate": yaw_rate(ship),
+        "hold": holdable_throttle(ship),
         "drives": len(drives(ship)),
         "slots": CHASSIS_BY_ID[ship.chassis].slots.get("drive", 1),
         "length_m": half_length_m(ship) * 2.0,

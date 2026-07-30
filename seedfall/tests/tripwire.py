@@ -183,6 +183,7 @@ KIN = {
     "programmes": ("programmes",),
     "declared": ("declared",),
     "consorts": ("combat", "screening"),
+    "mounts": ("thrusters", "lopsided"),
     "battle3d": ("gunfire",),
     "mounts": ("thrusters",), "burnplan": ("thrusters", "helm"),
 }

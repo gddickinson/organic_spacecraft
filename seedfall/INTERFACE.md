@@ -618,6 +618,15 @@ an orbit at an instant is the mistake that took four control laws and three
 contradicting screens to find. The thresholds stay in `conn` and are passed
 in — a constant written twice is the fault this project has hit most often.
 
+**It went past five hundred again**, and the forecast came out into
+`sim/preview.py` for the same reason and along the same seam: `conn` is the act,
+`preview`, `instruments` and `outcome` are what is said *about* the act. It is
+one idea — fly a throwaway twin and report what it ends up with — and it is the
+part that had just been caught lying, so it earns its own file. `_rotate` became
+`conn.rotate` on the way out: `autopilot` had already been importing the private
+name, which is usually the tree telling you something belongs to more than one
+caller.
+
 **A sky with eight kinds of star and seven of world.** The sky then had *one*
 star and *one* world, painted different colours. Eight spectral classes have
 existed since the game was written — M dwarf, K, G, F, A, binary, white dwarf,
@@ -862,6 +871,66 @@ end for end against the SPORE's 50.
 `sim/attitude.py` is the consequence. The main drive pushes along the nose, so
 a burn in a new direction is a *turn* first — three ticks to swing a NAVIS 90°
 — and the turn spends reaction mass out of the same tank.
+
+**And losing one engine of a pair now costs something.** Three separate places
+in the tables had promised this for as long as they had existed and not one of
+them was true. `data/mounts.py`, on why the stations are spread across the
+transom: "so losing one leaves the thrust off-axis". `thrusters.offset`,
+computing exactly how far off: "which the flight computer has to trim against".
+And `Mount.axis`, the direction each engine pushes — declared, and read by
+nobody, because every drive was given the same constant. So a hull on one of two
+engines flew exactly as straight as one on two, only slower.
+
+`thrusters.yaw_torque` is `r × F` over the engines actually fitted, which is the
+one place `Mount.axis` is read for what it is: a cross product has to know
+which way the force points. **My first draft let the hull yaw and was wrong
+about the tick.** An unopposed 0.0012 rad/s² across a sixty-second conn tick is
+126 degrees — not a ship needing trim, a ship spinning like a top — and it made
+my own measurements nonsense, because the nose wrapped past 360° and read as
+zero. No flight computer would permit it. It holds attitude and opens the drive
+only as far as it can hold, which is `holdable_throttle`: attitude authority
+over drive-induced yaw, floored so no refit can strand a ship.
+
+The result is a real trade rather than a number going down. A **NAVIS on one of
+two engines holds 0.62** of the engine it has left and pays 55% of the extra
+mass share for the clusters trimming throughout, which comes to **twice the
+reaction mass per m/s** and a high orbit reached in 1.24× the time for 1.20× the
+mass. A **LEVIATHAN shrugs a missing engine off entirely** — its moment of
+inertia beats the torque — so the penalty falls hardest on the hulls light
+enough to be turned by their own drive, which is where it belongs. And it is
+still flyable: berthing is unaffected (6/6 either way), and every high orbit the
+balanced hull reached, the lopsided one reached too.
+
+One thing fell out sideways. Priced per-seed, the lopsided hull reached a high
+orbit on a seed the *balanced* hull missed: too much thrust overshoots at a
+small body, so the cap gentles the approach. That is task #83 showing its face
+from the other direction, and it is why the cost check compares only the climbs
+both hulls made — a ratio over two different populations would have read as a
+lopsided hull being better.
+
+`sim/instruments.py` says it out loud, because a cap the pilot cannot see is a
+bug report: **"Drive trim — 62% usable"**, and only when there is something to
+say. A row reading 100% forever is a row the pilot learns to skip. My first
+draft marked it *amber*, and `test_conn.py`'s "the panel does not cry wolf at a
+good approach" caught it warning on fourteen approaches that had **succeeded** —
+which is exactly the fault that check was written for. The trim is a fact about
+the hull, not a fault in the flying, so it reads plain.
+
+**And the cap found a third bug in `_copy`.** `conn.forecast` flies a throwaway
+twin, and the twin is built by a hand-written field list. Adding `hold` left it
+thinking it had both engines, so the quote was 0.095 km off the burn: the cap
+was on the act and not on the forecast. Asking the general question — *which*
+fields does the twin drop? — turned up two more, both silent. `orbit_want_km`,
+added when orbit heights arrived, meant `outcome.adrift` measured drift against
+a 12 km opening rather than the 20,000 km the ship was climbing to. `star_lum`
+was harmless, since a forecast never renders, but it was dropped for the same
+reason. Its own docstring already recorded this happening once before with
+`start_km`; the third time it became a guard. `test_conn.py` now enumerates
+`Conn`'s fields and requires every one to be carried, or named as a field a twin
+must *not* inherit with the reason — `landed`, `log`, `outcome` and `damage` are
+the four. The mutation sweep is the proof it was worth it: dropping `hold` fails
+the old forecast check, but dropping `orbit_want_km` or `star_lum` fails **only
+the new guard**.
 
 Three faults came out of building it, all found by flying:
 
@@ -1217,6 +1286,8 @@ seedfall/
 │   ├── burnplan.py     a transfer as a sequence of burns
 │   ├── berthing.py     what an approach charges the chronicle when it ends
 │   ├── instruments.py  the conn's panel, judged against what it is trying to do
+│   ├── preview.py      what a burn will do before you make it: a throwaway
+│   │                   twin of the ship, flown and reported on
 │   ├── targets.py      a body or a quay as something with a mu and a radius
 │   ├── weave.py        the ancient anchors, their rings, and lighting a chain
 │   ├── gates.py        transit through the Weave, and what the toll is
@@ -1365,6 +1436,7 @@ seedfall/
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
     ├── test_legacy.py  7 aftermath checks — an ending is a turn, not a stop
     ├── test_instruments.py 5 checks — a gauge agrees with the ship and itself
+    ├── test_lopsided.py 9 checks — what one missing engine of a pair costs
     ├── test_voices.py  8 checks — the game speaks with no model reachable
     ├── test_grudges.py 9 checks — memory reaches the price and the board
     ├── test_gunnery.py 5 checks — what a weapon delivers is what the bridge said

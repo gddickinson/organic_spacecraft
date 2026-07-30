@@ -25,7 +25,7 @@ from .conn import (AXES, AXES_BY_ID, ALONGSIDE_KM, ALONGSIDE_RATE, TICK,
                    Conn, apply, can_burn)
 from .orbits import (ORBIT_ECCENTRICITY, ORBIT_FLOOR_KM, eccentricity,
                      orbit_band, orbital_speed, semi_major_km)
-from .conn import _rotate
+from .conn import rotate
 
 #: How near the height you asked for counts as being at it, as a share of
 #: that height. Wide enough that the ship settles instead of hunting.
@@ -244,7 +244,7 @@ def _toward(conn: Conn, vec, need: float) -> tuple[str | None, bool, float]:
     want = [v / length for v in vec]
     best, score = None, 0.0
     for axis_id, _label, body_vec in AXES:
-        world = _rotate(body_vec, conn.heading)
+        world = rotate(body_vec, conn.heading)
         dot = sum(a * b for a, b in zip(world, want))
         if dot > score:
             best, score = axis_id, dot
@@ -277,7 +277,7 @@ def worth_turning(conn: Conn, axis_id: str, need: float) -> bool:
     """
     from . import attitude as attitude_sim
     _aid, _label, vec = AXES_BY_ID[axis_id]
-    angle = attitude_sim.angle_between(conn.nose, _rotate(vec, conn.heading))
+    angle = attitude_sim.angle_between(conn.nose, rotate(vec, conn.heading))
     if conn.slew_rate <= 0 or conn.main_dv <= 0:
         return False
     if angle <= attitude_sim.POINTED_RAD:

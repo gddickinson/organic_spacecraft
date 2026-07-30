@@ -40,6 +40,7 @@ from ..data.starclasses import of as star_class
 from . import outcome as outcome_sim
 from .orbits import (ORBIT_BAND, ORBIT_BAND_SHARE, ORBIT_FLOOR_KM, in_orbit,
                      orbit_band, orbit_note, orbital_speed, semi_major_km)
+from .thrusters import TRIM_COST_SHARE
 from .targets import (G0, Target, approach_range, starlight,
                       target_from_body, target_from_contact)
 
@@ -99,6 +100,20 @@ class Conn:
     rcs_dv: float = RCS_DV
     slew_rate: float = 0.02
     turn_rate_cost: float = 0.0
+    #: How far the main drive can be opened and still be held straight, 0..1.
+    #:
+    #: `data/mounts.py` has said since it was written that a two-slot hull
+    #: "carries them either side of the centreline, so losing one leaves the
+    #: thrust off-axis", and `thrusters.offset` computed exactly how far off,
+    #: claiming "the flight computer has to trim against" it. Nothing computed
+    #: the torque and nothing trimmed anything: a hull on one engine flew as
+    #: straight as one on two, only slower.
+    #:
+    #: A NAVIS running one of two engines holds 0.62 — three fifths of the
+    #: engine it has left. A LEVIATHAN shrugs a missing engine off entirely,
+    #: because its inertia beats the torque; the penalty falls hardest on the
+    #: hulls light enough to be turned by their own drive.
+    hold: float = 1.0
     #: Reaction mass left for close work, and what the hull started with.
     rcs: float = 40.0
     #: Seconds since the approach began.
@@ -217,6 +232,7 @@ def start(game, contact, range_km: float | None = None,
     conn = Conn(target=target, pos=[0.0, -r, 0.0], vel=[0.0, abs(drift), 0.0],
                 start_km=r, rcs=aboard, opening_rcs=aboard,
                 main_dv=kit["main_accel"] * TICK,
+                hold=kit["hold"],
                 rcs_dv=kit["rcs_accel"] * TICK,
                 slew_rate=kit["slew_rate"],
                 turn_rate_cost=attitude_sim.turn_cost(game.ship, 6.283185))
@@ -241,7 +257,7 @@ def start(game, contact, range_km: float | None = None,
     return conn
 
 
-def _rotate(vec, heading: float) -> tuple:
+def rotate(vec, heading: float) -> tuple:
     """Turn a vector from the ship's frame into the target's."""
     c, s = math.cos(heading), math.sin(heading)
     x, y, z = vec
@@ -259,33 +275,6 @@ def can_burn(conn: Conn, main: bool) -> tuple[bool, str]:
     return True, ""
 
 
-def forecast(conn: Conn, axis_id: str, main: bool = False,
-             ticks: int = 1, throttle: float = 1.0) -> dict:
-    """What this burn will leave you with, in the terms the panel shows.
-
-    The pilot reads range, closing rate and relative speed; so this quotes
-    range, closing rate and relative speed. A forecast in units nobody is
-    looking at is not a forecast.
-    """
-    # On a copy, and it pays for the burn: quoting the tank as it stands
-    # while the burn empties it is the same lie as quoting the wrong range.
-    trial = _copy(conn)
-    apply(trial, axis_id, main=main, ticks=ticks, throttle=throttle)
-    return {"range_km": trial.range_km, "closing": trial.closing,
-            "speed": trial.speed, "rcs": trial.rcs,
-            "alongside": alongside(trial), "safe": trial.closing <= SAFE_CLOSING,
-            "nose_off": math.degrees(_off_by(conn, axis_id, main))}
-
-
-def _off_by(conn: Conn, axis_id: str, main: bool) -> float:
-    """How far the nose is from where this burn needs it, in radians."""
-    from . import attitude as attitude_sim
-    if not main or not axis_id:
-        return 0.0
-    _aid, _label, vec = AXES_BY_ID[axis_id]
-    return attitude_sim.angle_between(conn.nose, _rotate(vec, conn.heading))
-
-
 def thrust_axis(conn: Conn, axis_id: str, main: bool) -> tuple:
     """Which way a burn actually pushes the ship.
 
@@ -298,25 +287,7 @@ def thrust_axis(conn: Conn, axis_id: str, main: bool) -> tuple:
     if main:
         return tuple(conn.nose)
     _aid, _label, vec = AXES_BY_ID[axis_id]
-    return _rotate(vec, conn.heading)
-
-
-def _copy(conn: Conn) -> Conn:
-    """A throwaway twin for a forecast to fly.
-
-    It has to carry `start_km`, which is what "adrift" is measured against.
-    The first draft left it at the 12 km default, so a forecast for a body
-    approach — which opens thousands of kilometres out — decided it had
-    drifted off before it had moved, and quoted a range nine kilometres away
-    from what the burn actually left.
-    """
-    return Conn(target=conn.target, pos=list(conn.pos), vel=list(conn.vel),
-                heading=conn.heading, rcs=conn.rcs, elapsed=conn.elapsed,
-                start_km=conn.start_km, opening_rcs=conn.opening_rcs,
-                nose=list(conn.nose), star_dir=list(conn.star_dir),
-                sky=conn.sky, main_dv=conn.main_dv,
-                rcs_dv=conn.rcs_dv, slew_rate=conn.slew_rate,
-                turn_rate_cost=conn.turn_rate_cost)
+    return rotate(vec, conn.heading)
 
 
 def apply(conn: Conn, axis_id: str | None, main: bool = False,
@@ -340,7 +311,7 @@ def apply(conn: Conn, axis_id: str | None, main: bool = False,
             # instead of burning — which is what makes a hard burn to port on
             # a loaded freighter a decision rather than a button.
             _aid, _label, vec = AXES_BY_ID[axis_id]
-            want = _rotate(vec, conn.heading)
+            want = rotate(vec, conn.heading)
             if not attitude_sim.pointed_at(conn.nose, want):
                 attitude_sim.slew(conn, want, TICK)
                 turning = True
@@ -352,12 +323,23 @@ def apply(conn: Conn, axis_id: str | None, main: bool = False,
             # computer lit it to trim ten, overshot, corrected the overshoot,
             # and never converged. Attitude clusters are pulsed, not throttled.
             part = max(0.0, min(1.0, throttle)) if main else 1.0
+            # The flight computer will not open the drive past what it can hold
+            # straight. An unopposed off-axis torque over a whole tick is not a
+            # trim, it is a tumble — 0.0012 rad/s² across sixty seconds is 126
+            # degrees — and no autopilot would allow it. So the cap is the
+            # consequence: a lopsided hull has less usable engine.
+            if main:
+                part = min(part, conn.hold)
             dv = (conn.main_dv if main else conn.rcs_dv) * part
             wx, wy, wz = thrust_axis(conn, axis_id, main)
             conn.vel[0] += wx * dv
             conn.vel[1] += wy * dv
             conn.vel[2] += wz * dv
             spend = (MAIN_COST * part) if main else RCS_COST
+            # And holding it straight costs mass of its own: the clusters are
+            # firing throughout to answer the torque.
+            if main and conn.hold < 1.0:
+                spend *= 1.0 + TRIM_COST_SHARE * (1.0 - conn.hold)
             conn.rcs = round(conn.rcs - spend, 4)
             burned = part > 0
     for _ in range(max(1, ticks)):

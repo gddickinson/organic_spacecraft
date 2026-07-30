@@ -57,5 +57,17 @@ def readout(conn: Conn) -> list[tuple[str, str, str]]:
         ]
     rows.append(("Thruster mass", f"{conn.rcs:,.1f}",
                  "bad" if conn.rcs < MAIN_COST else "ok"))
+    # Only when there is something to say. A hull whose drive is on the
+    # centreline reads 100% forever, and a row that is always fine is a row the
+    # pilot learns to skip — the same fault as crying wolf at a good orbit.
+    # But a pilot whose throttle silently refuses to open past six tenths needs
+    # to be told it is the missing engine and not a fault in the drive.
+    # And it reads "ok", not "warn". `test_conn.py` caught the first draft
+    # marking it amber on fourteen approaches that *succeeded* — which is the
+    # very fault this panel was rebuilt to stop. The trim is a fact about the
+    # hull, not a fault in the flying: the pilot needs the number, and nothing
+    # about a 62% drive makes a good orbit a bad one.
+    if conn.hold < 1.0:
+        rows.append(("Drive trim", f"{conn.hold * 100:,.0f}% usable", "ok"))
     rows.append(("Elapsed", f"{conn.elapsed / 60:,.0f} min", "ok"))
     return rows

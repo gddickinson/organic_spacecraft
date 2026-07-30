@@ -41,13 +41,17 @@ costs the chronicle in `test_berthing.py`.
 
 from __future__ import annotations
 
+import dataclasses
+import inspect
 import math
+import re
 
 from ..core.state import new_game
 from ..sim import autopilot as pilot_sim
 from ..sim import berthing as berth_sim
 from ..sim import conn as conn_sim
 from ..sim import flight
+from ..sim import preview as preview_sim
 from ..sim import track as track_sim
 from .harness import Suite
 
@@ -157,7 +161,7 @@ def run(suite: Suite) -> None:
                     for _ in range(4):
                         if conn.over:
                             break
-                        said = conn_sim.forecast(conn, axis_id, main=main)
+                        said = preview_sim.forecast(conn, axis_id, main=main)
                         conn_sim.apply(conn, axis_id, main=main)
                         for field, got in (("range_km", conn.range_km),
                                            ("closing", conn.closing),
@@ -173,6 +177,43 @@ def run(suite: Suite) -> None:
                 "actually left")
         return (f"{counted} comparisons over {len(conn_sim.AXES)} axes and "
                 "both drives, every field exact")
+
+    @check("a forecast's twin carries every field that changes the flying")
+    def _():
+        # `_copy` is a hand-written field list, and it has now been caught
+        # short three times: `start_km` when it was written, then
+        # `orbit_want_km` and `hold`. The failure mode is always the same and
+        # always quiet — the twin takes the dataclass default, flies a slightly
+        # different ship, and the forecast lies by a little. The check above
+        # catches it only when the dropped field happens to change one of the
+        # four numbers it compares, and only on the approaches it flies.
+        #
+        # So guard the list itself. Every field is either carried or named here
+        # as one a twin must *not* inherit, with the reason.
+        fresh = {
+            "landed": "a twin flies from here; it has not landed",
+            "log": "the twin's own log is thrown away with the twin",
+            "outcome": "an approach that has ended cannot be forecast",
+            "damage": "damage taken is the real ship's, not the trial's",
+        }
+        body = inspect.getsource(preview_sim._copy)
+        carried = set(re.findall(r"(\w+)=(?:conn\.|list\(conn\.)", body))
+        missing = []
+        for field in dataclasses.fields(conn_sim.Conn):
+            if field.name in carried or field.name in fresh:
+                continue
+            missing.append(field.name)
+        assert not missing, (
+            f"`_copy` drops {missing} — a forecast would fly a twin holding "
+            "the dataclass default instead of what this ship actually has. "
+            "Carry it, or name it in `fresh` with the reason it must not be.")
+        # And the allowlist has to stay honest: a name in it that is no longer
+        # a field is a reason nobody will ever read again.
+        names = {f.name for f in dataclasses.fields(conn_sim.Conn)}
+        stale = sorted(set(fresh) - names)
+        assert not stale, f"`fresh` names {stale}, which are not fields"
+        return (f"{len(carried)} of {len(names)} fields carried, "
+                f"{len(fresh)} deliberately left fresh")
 
     @check("what the plot predicts is what the chronicle does")
     def _():

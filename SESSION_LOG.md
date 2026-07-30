@@ -2,6 +2,95 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: a hull flying lopsided
+
+Three places in the tables had promised this since they were written, and not
+one of them was true. `data/mounts.py`, on why the drive stations are spread
+across the transom: "so losing one leaves the thrust off-axis".
+`thrusters.offset`, computing exactly how far off: "which the flight computer has
+to trim against". And `Mount.axis`, the direction each engine pushes — declared,
+and read by nobody, because every drive was given the same constant and nothing
+ever looked. So a hull on one of two engines flew exactly as straight as one on
+two, only slower. Prose that describes a consequence which does not exist is
+worse than silence, because it is believable.
+
+`thrusters.yaw_torque` is `r × F` over the engines actually fitted — the one
+place `Mount.axis` is read for what it is, since a cross product has to know
+which way the force points. A balanced pair cancel. A NAVIS on one engine puts
+**0.0012 rad/s² against 0.00076 of attitude authority**.
+
+**My first model was wrong about the tick, and the checks told me so.** I let
+the hull yaw, and wrote a check that the yaw scales with the throttle so easing
+off is a real answer. It failed non-monotonically: 1.0 → 0.00°, 0.9 → 0.00°,
+0.6 → 21.31°, 0.3 → 0.00°. Not noise — 0.0012 rad/s² across a sixty-second conn
+tick is **126 degrees**, so the nose was wrapping past 360° and reading as zero.
+An unopposed torque over a whole minute is not something a pilot trims against;
+it is a ship spinning like a top, and no flight computer would allow it. The
+honest model is the one the docstring already described: the computer *holds*
+the nose, and the cost is that it will not open the drive past what it can hold.
+
+So `holdable_throttle` is attitude authority over drive-induced yaw, floored at
+0.15 because a refit that silently strands a ship is a worse fault than a
+sluggish one. A **NAVIS on one of two engines holds 0.62** and pays 55% of the
+extra mass share for the clusters trimming throughout: **twice the reaction mass
+per m/s**, and a high orbit reached in 1.24× the time for 1.20× the mass. A
+**LEVIATHAN shrugs a missing engine off entirely** — its moment of inertia beats
+the torque — so the penalty lands on the hulls light enough to be turned by
+their own drive, which is where it belongs. It falls out of the physics rather
+than being arranged, and it is asserted, because a player who found it would
+otherwise file it as a bug.
+
+Two things came out of measuring rather than assuming:
+
+- **Priced per seed, the lopsided hull reached a high orbit the balanced one
+  missed.** Too much thrust overshoots at a small body, so the cap gentles the
+  approach — task #83 showing its face from the other side. My first cost ratio
+  summed each hull's own successes and so compared two different populations;
+  it now prices only the climbs both hulls made.
+- **A vacuous assertion of mine.** `assert mass_one > TRIM_COST_SHARE * 0` is
+  true of any positive mass. Replaced with the exact arithmetic the surcharge
+  predicts, which then failed at 1e-9 and turned out to be the tank's own
+  four-place rounding — harmless, because the smallest spend the game can make
+  is 0.018 t, 360 granules, so no pulse is ever free. Checked rather than
+  assumed.
+
+`sim/instruments.py` says it out loud, because a cap the pilot cannot see is a
+bug report: **"Drive trim — 62% usable"**, beside an Engines panel that already
+read "port of the centreline" and "Empty station — no engine fitted". Only when
+there is something to say. I had added the row and asserted nothing about it —
+the hole was mine, and the check came after. **And I marked it amber**, which
+`test_conn.py`'s "the panel does not cry wolf at a good approach" then caught
+warning on fourteen approaches that had *succeeded*: the exact fault that check
+exists for. The trim is a fact about the hull, not a fault in the flying.
+
+**The cap also exposed a third bug in `conn._copy`,** which is worth more than
+the cap itself. A forecast flies a throwaway twin built from a hand-written
+field list, so the twin thought it had both engines and quoted a burn 0.095 km
+off the one the drive would make — the cap was on the act and not on the quote.
+Rather than just adding the field, I asked which *others* the twin drops:
+**`orbit_want_km`**, added when orbit heights arrived, meant `outcome.adrift`
+measured drift against a 12 km opening instead of the 20,000 km being climbed
+to; **`star_lum`** was harmless only because a forecast never renders. The
+docstring already recorded this happening once before with `start_km`. Third
+time, it becomes a guard: `test_conn.py` enumerates every `Conn` field and
+demands it be carried or named as one a twin must not inherit, with the reason.
+Sweeping it proved the guard earns its keep — dropping `hold` fails the old
+forecast check, but dropping `orbit_want_km` or `star_lum` fails **only the new
+one**.
+
+The fix pushed `sim/conn.py` to 525 lines, so the forecast came out into
+`sim/preview.py` — the same seam `instruments.py` and `outcome.py` left along,
+and the right one: `conn` is the act, these are what is said about it. `conn.py`
+is 465 now, `preview.py` 77. `_rotate` became `conn.rotate` on the way, because
+`autopilot` had been importing the private name all along.
+
+`seedfall/tests/test_lopsided.py`, 9 checks. Nine mutations, **nine caught,
+none missed** — the floor turned into a ceiling, the ratio inverted, the cap
+computed and not applied, the conn told every hull is balanced, the surcharge
+dropped, the torque returned as zero, and the panel condition broken in *both*
+directions: silenced, and made to speak when there is nothing to say. Four more
+against `_copy` and the trim row's severity: **four caught, none missed**.
+
 ## 2026-07-29 — SEEDFALL: screening that actually screens
 
 `ConsortOrder.shield` — 1.0 for "screen me", 0.25 for concentrating, 0.0 for
