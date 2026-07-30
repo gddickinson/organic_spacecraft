@@ -171,6 +171,24 @@ def stats(ship: Ship, bonus: dict | None = None, officers=()) -> Stats:
     sci, tac = skill("science"), skill("tactical")
     med, com = skill("medicine"), skill("comms")
 
+    # What the bridge's *traits* add. Every one of the seven in `crew.TRAITS`
+    # declares an effect and a magnitude and not one of them was ever applied:
+    # `Officer.trait_id` was written when the candidate was generated and read
+    # by nobody, so a Bloom veteran fought like anybody else while costing 25 a
+    # month for the privilege.
+    #
+    # Six of the seven keys name a stat computed below. The seventh, `tactical`,
+    # names the *skill* the combat numbers are derived from — so a first draft
+    # converted it into levels, and measuring showed the conversion was nonsense:
+    # it moved accuracy by 0.0026 where every other trait moved its stat by 0.03
+    # to 0.05. A magnitude declared in stat units is a stat, so `tactical` adds
+    # to accuracy and evade directly, which makes the combat trait a little
+    # better than the two that do only one of them. That is the right shape for
+    # the one that costs the same and reads as the strongest.
+    from . import crew as crew_mod
+    tr = crew_mod.trait_effects(officers)
+    fight = tr.get("tactical", 0.0)
+
     # Power discipline: draw more than you generate and everything sags. A
     # synthetic hull is mostly reactor and carries the largest hotel load.
     power = fx["power"] + BASE_POWER.get(ch.family, 5)
@@ -189,21 +207,25 @@ def stats(ship: Ship, bonus: dict | None = None, officers=()) -> Stats:
         jump=max(1, ((ch.jump + fx["jump"]) * (1 + bonus.get("jump", 0))
                      + nav * 0.35) * jump_load),
         speed=max(0.2, (ch.speed * (1 + fx["speed"]) + nav * 0.03) * load),
-        evade=clamp((ch.evade + fx["evade"] + tac * 0.02) * brownout * load, 0, 0.7),
-        accuracy=clamp(0.62 + fx["accuracy"] + tac * 0.035, 0.15, 0.98) * brownout,
+        evade=clamp((ch.evade + fx["evade"] + tr.get("evade", 0.0) + fight
+                     + tac * 0.02) * brownout * load, 0, 0.7),
+        accuracy=clamp(0.62 + fx["accuracy"] + tr.get("accuracy", 0.0) + fight
+                       + tac * 0.035, 0.15, 0.98) * brownout,
         # `bonus["sensor"]` was not read here at all, so three colony works
         # promising longer reach — and any research that grants it — extended
         # your array by exactly nothing. Nothing depended on the number until
         # surveys started using it to decide what a sweep can reach.
         sensor=max(0.5, 2 + fx["sensor"] + bonus.get("sensor", 0) + sci * 0.2),
-        scan=clamp(0.25 + fx["scan"] + bonus.get("scan", 0) + sci * 0.06, 0, 1),
+        scan=clamp(0.25 + fx["scan"] + bonus.get("scan", 0)
+                   + tr.get("scan", 0.0) + sci * 0.06, 0, 1),
         doctrine=clamp(fx["doctrine"] + bonus.get("doctrine", 0), 0, 1),
         cargo=max(0, ch.cargo + fx["cargo"]),
         berths=int(ch.crew + fx["berths"]),
         armour=fx["armour"] + round(eng * 0.5),
         heat_cap=40 + fx["heatCap"] + eng * 4,
         vent=6 + fx["vent"] + eng * 1.5,
-        regen=((1 + fx["regen"] + bonus.get("regen", 0) + eng * 0.05)
+        regen=((1 + fx["regen"] + bonus.get("regen", 0)
+                + tr.get("repair", 0.0) + eng * 0.05)
                * (0 if ch.family in NO_REGEN else 1)
                + ((0.5 + eng * 0.05) if fx["repair"] else 0)),
         mine=fx["mine"] * brownout,
@@ -217,9 +239,10 @@ def stats(ship: Ship, bonus: dict | None = None, officers=()) -> Stats:
         can_colonise=fx["colony"] > 0,
         can_dive=fx["dive"] > 0,
         has_drift=fx["drift"] > 0,
-        trade=bonus.get("trade", 0) + com * 0.03,
+        trade=bonus.get("trade", 0) + tr.get("trade", 0.0) + com * 0.03,
         conceal=fx["conceal"],
-        diplomacy=bonus.get("diplomacy", 0) + com * 0.05,
+        diplomacy=(bonus.get("diplomacy", 0) + tr.get("diplomacy", 0.0)
+                   + com * 0.05),
         morale=fx["morale"] + med * 0.1,
         mass=ch.mass_t + loading.laden(ship),
     )

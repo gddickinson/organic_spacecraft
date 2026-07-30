@@ -68,9 +68,12 @@ def run(suite: Suite) -> None:
         assert game.demand.worth > 0, "the demand does not know what is at stake"
         assert any(kind == "warn" for kind, _t in events), (
             "a power moving on your holding read as ordinary news")
+        # `holdings_in` rather than a count stored on the demand. `Demand`
+        # carried one, set here and read by nobody in the game — a copy that can
+        # disagree with the live answer the moment a colony is lost.
+        held = territory_sim.holdings_in(game, system.id)
         return (f"{system.name} annexed, demand raised over "
-                f"{game.demand.holdings} holding(s) worth "
-                f"{round(game.demand.worth):,}")
+                f"{len(held)} holding(s) worth {round(game.demand.worth):,}")
 
     @check("all three answers are genuinely different")
     def _():
@@ -203,13 +206,13 @@ def run(suite: Suite) -> None:
         venture_sim._apply(game, venture, RNG("annex"))
         assert game.demand is not None
         before = (game.demand.system_id, game.demand.power,
-                  game.demand.holdings, round(game.demand.worth))
+                  round(game.demand.worth))
 
         os.environ["HOME"] = tempfile.mkdtemp()
         save_mod.write({"game": game})
         back = load_game()
         assert back.demand is not None, "the question was lost over a save"
         after = (back.demand.system_id, back.demand.power,
-                 back.demand.holdings, round(back.demand.worth))
+                 round(back.demand.worth))
         assert after == before, f"{after} != {before}"
         return "the question, the power and the stake all came back"

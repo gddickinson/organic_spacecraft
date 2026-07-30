@@ -210,6 +210,10 @@ class GunnerWindow(QDialog):
         self.sight_row.addStretch(1)
 
         self._rows(b, shots)
+        self._last_exchange(b)
+        # After both, since the exchange list is empty before the first volley
+        # and a stretch inside that early return would never be added.
+        self.board.addStretch(1)
         self._heat(b)
 
         live = not b.over and bool(self.chosen())
@@ -238,7 +242,15 @@ class GunnerWindow(QDialog):
             tick.setToolTip(shot.why or "Ready.")
             line.addWidget(tick, 1)
 
-            state = QLabel(shot.blocked_by if not shot.can_fire
+            # `Shot.band_shift` said "bands to close (negative) or open
+            # (positive) to reach its envelope" and nothing read it — on the one
+            # board whose whole job is to say what would fix a mount. "range" is
+            # a complaint; "close 2" is an order for the helm.
+            said = shot.blocked_by
+            if not shot.can_fire and shot.blocked_by == "range" and shot.band_shift:
+                said = (f"close {abs(shot.band_shift)}" if shot.band_shift < 0
+                        else f"open {shot.band_shift}")
+            state = QLabel(said if not shot.can_fire
                            else ("held" if held else "firing"))
             state.setStyleSheet(
                 f"color: {theme.tint('lumen') if firing_now else theme.INK3};"
@@ -249,7 +261,33 @@ class GunnerWindow(QDialog):
             cost.setStyleSheet(f"color: {theme.INK3}; font-size: 11px;")
             line.addWidget(cost)
             self.board.addWidget(row)
-        self.board.addStretch(1)
+
+    def _last_exchange(self, b) -> None:
+        """What the last volley actually did, gun by gun.
+
+        `sim/gunfire.Shot` has recorded `frm`, `to` and `weapon` — "who fired,
+        by name", "who at", "what with" — since it was written, and **nothing
+        read any of them.** `ui/battle3d.py` draws the geometry from the same
+        records and labels the two hulls, so which gun did what existed only as
+        prose in the log. On the gunner's own board it is the answer to the
+        question the trigger asks: did my volley land?
+
+        Both sides, because what came back matters as much as what went out.
+        """
+        shots = list(getattr(b, "shots", None) or [])
+        if not shots:
+            return
+        self.board.addWidget(mono_label("Last exchange"))
+        for shot in shots[-8:]:
+            landed = (f"hit for {shot.damage:,.0f}" if shot.landed
+                      else shot.outcome)
+            tint = (theme.tint("lumen") if shot.landed and shot.mine
+                    else theme.tint("rust") if shot.landed
+                    else theme.INK3)
+            line = QLabel(f"{shot.weapon} · {shot.frm} → {shot.to} · {landed}")
+            line.setStyleSheet(f"color: {tint}; font-size: 11px;"
+                               f"font-family: '{theme.mono_family()}';")
+            self.board.addWidget(line)
 
     def _heat(self, b) -> None:
         """What the chosen volley will do to the hull, before the trigger."""

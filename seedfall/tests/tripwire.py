@@ -185,7 +185,7 @@ KIN = {
     "consorts": ("combat", "screening"),
     "mounts": ("thrusters", "lopsided"),
     "pilot": ("pilot", "conn"),
-    "gunnery": ("volley", "gunnery"),
+    "gunnery": ("volley", "gunboard", "gunnery"),
     "battle3d": ("gunfire",),
     "mounts": ("thrusters",), "burnplan": ("thrusters", "helm"),
 }

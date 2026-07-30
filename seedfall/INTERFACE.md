@@ -872,6 +872,57 @@ end for end against the SPORE's 50.
 a burn in a new direction is a *turn* first — three ticks to swing a NAVIS 90°
 — and the turn spends reaction mass out of the same tank.
 
+**The declared-field guard went past `data/`, and found seven traits that did
+nothing.** Task #88 pointed `test_declared.py` at `sim/`, `world/` and `core/` as
+well — 1,167 fields — and the richest find was in the crew.
+
+`crew.TRAITS` has declared seven officer traits since it was written, each with
+an effect key and a magnitude: Charter-raised +0.04 diplomacy, Yards-trained
++0.05 repair, Freehold-born +0.05 trade, Bloom veteran +0.05 tactical, Wet-wired
++0.03 accuracy, Quiet +0.04 scan, Reckless +0.04 evade. **Not one was ever
+applied.** `Officer.trait_id` was written when a candidate was generated and read
+by nobody: `trait_name` and `trait_note` went to the crew screen, so a Bloom
+veteran said "Was at Kessel's Reach and came back" and fought exactly like
+anybody else. It was not free either — `make_officer` charges 25 a month for a
+trait, so a captain had been paying for seven effects that did not exist.
+
+`crew.trait_effects` sums them by key and `ship.stats` adds each into the stat it
+names. Six of the keys name a stat computed there; the seventh, `tactical`, names
+the *skill* the combat numbers derive from, and a first draft converted it into
+levels — which measuring showed to be nonsense, moving accuracy by 0.0026 where
+every other trait moved its stat by 0.03 to 0.05. A magnitude declared in stat
+units is a stat, so it adds to accuracy and evade directly.
+
+Two more of the findings landed on the gunner's board, which is the one screen
+whose job they were:
+
+- **`firing.Shot.band_shift`** — "bands to close (negative) or open (positive) to
+  reach its envelope" — read by nobody, so a mount out of range said "range" and
+  left the captain to work out which way. It says **"open 3"** now, which is an
+  order for the helm rather than a complaint.
+- **`gunfire.Shot.frm`, `.to` and `.weapon`** recorded who fired, at whom, with
+  what, and nothing read any of them: which gun did what existed only as prose in
+  the log, while a gunner pulling the trigger saw a heat number change and
+  nothing else. The board carries a **Last exchange** list now, both directions.
+
+Two were deleted rather than wired. `anchorage.Anchorage.extras` was a dict built
+in three places carrying a redundant copy of the port's level, a gate's lit flag
+and a colony id, all reachable from the objects themselves; and
+`territory.Demand.holdings` was a count of what was at stake beside a live
+`holdings_in()` — a stored copy that can disagree with the truth the moment a
+colony is lost, which is the two-doors fault this project has hit more than any
+other. The six that remain are allowlisted against tasks #92, #93 and #94.
+
+**And two lessons about the guard itself.** A regex for `.name` counted
+`self.x = 1` as *reading* `x`; it walks the AST for a `Load` now, because a field
+only ever assigned is exactly as dead as one nobody mentions, and three findings
+were of that shape. The other is that a field only the *suite* reads is still
+dead: `extras` was read by `test_anchorage` and by nothing in the game, which is
+why the sweep excludes the tests. Constructor keywords stay invisible to it —
+`Demand(holdings=…)` and `Anchorage(extras=…)` were both real writes it did not
+see — which is right for the verdict, since a write is not a read, but it means
+the count of writes it could report would be wrong.
+
 **The gunner had no middle.** `combat` offered one named mount or `_salvo` —
 "everything that can bear, fired together" — and `_salvo`'s own docstring says
 the cost is heat and ammunition, "which is why a single aimed shot stays a real
@@ -1557,7 +1608,9 @@ seedfall/
     ├── test_instruments.py 5 checks — a gauge agrees with the ship and itself
     ├── test_lopsided.py 9 checks — what one missing engine of a pair costs
     ├── test_pilot.py   9 checks — a throttle and a coast the pilot can reach
-    ├── test_volley.py  9 checks — the gunner's middle: fire some of them
+    ├── test_volley.py  7 checks — the gunner's middle: fire some of them
+    ├── test_gunboard.py 3 checks — the board, pressed and read off screen
+    ├── test_revived.py 5 checks — what the revived dead fields now do
     ├── test_voices.py  8 checks — the game speaks with no model reachable
     ├── test_grudges.py 9 checks — memory reaches the price and the board
     ├── test_gunnery.py 5 checks — what a weapon delivers is what the bridge said

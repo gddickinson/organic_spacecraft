@@ -163,7 +163,7 @@ def run(suite: Suite) -> bool:
             if col is not None:
                 system.faction = "charter"
                 game.demand = territory_sim.Demand(
-                    system_id=system.id, power="charter", holdings=1,
+                    system_id=system.id, power="charter",
                     worth=20000)
         elif screen == "dig":
             from ..data.xenotech import XENOTECH

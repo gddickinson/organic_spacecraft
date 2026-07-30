@@ -32,9 +32,12 @@ class Demand:
     be in the middle of: a save taken between the annexation and the answer
     would otherwise lose the question and leave the holding in limbo.
     """
+    #: `holdings` used to sit here as a count of what was at stake, set by
+    #: nobody and read by nobody. `holdings_in(game, system_id)` is the live
+    #: answer, and a stored copy that can disagree with it is the two-doors
+    #: fault this project has found more often than any other.
     system_id: int
     power: str
-    holdings: int = 1
     worth: float = 0.0
     over: bool = False
     choice: str = ""

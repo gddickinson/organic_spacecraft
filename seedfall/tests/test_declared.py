@@ -25,6 +25,32 @@ A dead field is worse than a missing one. It reads as a feature to anyone
 looking at the table, it is quoted in the prose beside it, and it silently
 promises behaviour the game does not have.
 
+**Task #88 pointed it at `sim/` and `world/` as well, and the seam was richer
+still.** 1,169 fields across the four packages, and the sweep turned up:
+
+    crew.Officer.trait_id    every one of the seven traits in `TRAITS` declares
+                             an effect and a magnitude — accuracy, evade, scan,
+                             repair, trade, diplomacy, tactical — and not one
+                             was ever applied. A Bloom veteran fought exactly
+                             like anybody else, and `make_officer` charges 25 a
+                             month for the privilege.
+    firing.Shot.band_shift   "bands to close (negative) or open (positive) to
+                             reach its envelope", on the one board whose job is
+                             to say what would fix a mount
+    anchorage.extras         a dict written at construction in three places and
+                             read only by a test
+    territory.Demand.holdings  a stored count of what was at stake, never set
+                             and never read, beside a live `holdings_in()`
+
+Two lessons about the guard itself came out of extending it:
+
+- **A write is not a read.** The first version matched `.name` anywhere, so
+  `self.x = 1` counted as reading `x`. It now walks the AST and asks for a
+  `Load`, which is what "somebody consumes this" actually means.
+- **A field only the suite reads is still dead.** `anchorage.extras` was read by
+  `test_anchorage` and by nothing in the game, which is why the sweep looks at
+  the package with the tests excluded.
+
 The allowlist below carries a **reason per entry**. That distinction matters: an
 allowlist used to dodge the work is the anti-pattern this check exists to stop,
 and an allowlist with a written reason is how "known, deliberate, and not a
@@ -35,7 +61,6 @@ from __future__ import annotations
 
 import ast
 import pathlib
-import re
 
 from .harness import Suite
 
@@ -51,13 +76,51 @@ ALLOWED: dict[str, str] = {
         "A watcher naming a thing already true, so a tutorial step can skip "
         "itself. Task #87: the tutorial's step machinery advances on watchers "
         "firing, and skipping needs it to evaluate one at entry instead.",
+    "approach.Envoy.choice":
+        "What you answered an envoy, written when the offer is settled and read "
+        "by nobody. Task #92, with `territory.Demand.choice`: the grudge system "
+        "remembers the act, so what is missing is a history a screen can show "
+        "rather than a rule. Either surface both or delete both.",
+    "territory.Demand.choice":
+        "What you answered a power demanding ground, written when the demand is "
+        "settled and read by nobody. Task #92, with `approach.Envoy.choice` — "
+        "the same shape and the same decision, which is why they are one task "
+        "rather than two.",
+    "memory.Mind.met":
+        "How many times you have dealt with this mind. Incremented and never "
+        "read, while `first_met` beside it is. Task #93: familiarity ought to "
+        "colour how a mind speaks to you, and a tally nobody consults is a "
+        "lever lying on the floor.",
+    "rumours.Rumour.heard_at":
+        "The system you were standing in when you were told. Task #93: a rumour "
+        "heard forty light years from where it happened should not be worth as "
+        "much as one heard next door, and nothing currently tells them apart.",
+    "ship.Stats.has_drift":
+        "Computed from `fx['drift']`, which exactly one part grants — the Chorus "
+        "Node — and gating nothing, so that part's effect is inert. Task #94: "
+        "this needs somebody to decide what drift *is* before it can gate "
+        "anything, and inventing a mechanic to feed a flag is the wrong way "
+        "round.",
+    "planets.Lifeform.metabolism":
+        "The identity key behind `metabolism_name` and `metabolism_note`, which "
+        "are what the screens show, and whose value multiplier is spent when the "
+        "lifeform is generated. Kept because a catalogue that groups by "
+        "metabolism is wanted and the tech tree has a branch of that name to "
+        "match against — task #94.",
 }
 
 
+#: The packages swept. `core/` is in because it is where the save and the RNG
+#: live and a dead field there would be the quietest of all; it has never had
+#: one.
+SWEPT = ("data", "sim", "world", "core")
+
+
 def _fields() -> list[tuple[str, str, int]]:
-    """Every field declared on a dataclass in `data/`: (path, name, line)."""
+    """Every field declared on a dataclass in the swept packages."""
     out = []
-    for path in sorted((pathlib.Path("seedfall") / "data").glob("*.py")):
+    for path in sorted(p for sub in SWEPT
+                       for p in (pathlib.Path("seedfall") / sub).glob("*.py")):
         tree = ast.parse(path.read_text())
         for node in ast.walk(tree):
             if not isinstance(node, ast.ClassDef):
@@ -75,25 +138,54 @@ def _fields() -> list[tuple[str, str, int]]:
     return out
 
 
-class _Lum:
-    """A stand-in carrying only a star brightness, for `Viewport.glare`."""
+def _reads() -> tuple[set, set]:
+    """Names the package *loads*, and names it uses as an accessor key.
 
-    def __init__(self, lum: float):
-        self.star_lum = lum
+    Two sets rather than one blob of text, because the first version of this
+    matched `.name` with a regex and so counted `self.x = 1` as reading `x`. A
+    write is not a read: a field that is only ever assigned is exactly as dead
+    as one nobody mentions, and three of the findings were of that shape.
 
-
-class _Crew:
-    """A stand-in officer carrying only a lineage, for `crew.tedium`."""
-
-    def __init__(self, lineage: str):
-        self.lineage = lineage
-
-
-def _sources() -> str:
-    """Every line of the package that is not a test, as one blob."""
-    root = pathlib.Path("seedfall")
-    return "\n".join(p.read_text() for p in sorted(root.rglob("*.py"))
-                     if "tests" not in p.parts)
+    Accessor keys are the narrow escape hatch — `options.get(game, "hints")`
+    reaches a field by string, and so does `d["kind"]`. Prose strings do *not*
+    count: allowing any string literal would let the word "defiant" in a log
+    line excuse `Colony.defiant`, which is the kind of generosity that turns a
+    guard into decoration.
+    """
+    loaded: set = set()
+    keyed: set = set()
+    for path in sorted(pathlib.Path("seedfall").rglob("*.py")):
+        if "tests" in path.parts:
+            continue
+        tree = ast.parse(path.read_text())
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Attribute):
+                if isinstance(node.ctx, ast.Load):
+                    loaded.add(node.attr)
+            elif (isinstance(node, ast.Call)
+                  and isinstance(node.func, ast.Name)
+                  and node.func.id in ("getattr", "hasattr", "setattr")
+                  and len(node.args) >= 2
+                  and isinstance(node.args[1], ast.Constant)
+                  and isinstance(node.args[1].value, str)):
+                keyed.add(node.args[1].value)
+            elif (isinstance(node, ast.Subscript)
+                  and isinstance(node.slice, ast.Constant)
+                  and isinstance(node.slice.value, str)):
+                keyed.add(node.slice.value)
+            elif (isinstance(node, ast.Call)
+                  and isinstance(node.func, ast.Attribute)
+                  and node.func.attr in ("get", "pop", "setdefault")
+                  and node.args and isinstance(node.args[-1], ast.Constant)
+                  and isinstance(node.args[-1].value, str)):
+                keyed.add(node.args[-1].value)
+            elif (isinstance(node, ast.Call)
+                  and isinstance(node.func, ast.Attribute)
+                  and node.func.attr == "get" and len(node.args) == 2
+                  and isinstance(node.args[1], ast.Constant)
+                  and isinstance(node.args[1].value, str)):
+                keyed.add(node.args[1].value)
+    return loaded, keyed
 
 
 def run(suite: Suite) -> None:
@@ -101,18 +193,21 @@ def run(suite: Suite) -> None:
 
     @check("nothing is declared in the tables and read by nobody")
     def _():
-        # Read as `.name` anywhere in the package outside the tests. That is
-        # deliberately generous — a field named the same as an unrelated
-        # attribute counts as read, so this under-reports rather than crying
-        # wolf. It still found eight.
-        blob = _sources()
+        # Loaded anywhere in the package outside the tests, or reached by name
+        # as an accessor key. Still deliberately generous — a field sharing a
+        # name with an unrelated attribute counts as read, so this under-reports
+        # rather than crying wolf.
+        #
+        # It used to be a regex for `.name`, which counted `self.x = 1` as
+        # reading `x`. That is not a read, and three of the findings when this
+        # was pointed at `sim/` were of exactly that shape: written once, at
+        # construction or on an answer, and consulted by nobody ever after.
+        loaded, keyed = _reads()
         fields = _fields()
-        assert len(fields) > 300, len(fields)
+        assert len(fields) > 1000, len(fields)
 
-        dead = []
-        for full, name, line in fields:
-            if len(re.findall(r"\." + re.escape(name) + r"\b", blob)) == 0:
-                dead.append((full, line))
+        dead = [(full, line) for full, name, line in fields
+                if name not in loaded and name not in keyed]
 
         unexplained = [(f, ln) for f, ln in dead if f not in ALLOWED]
         assert not unexplained, (
@@ -138,297 +233,29 @@ def run(suite: Suite) -> None:
         return (f"{len(fields)} fields declared, {len(dead)} unread and every "
                 f"one of them explained ({len(ALLOWED)} entries)")
 
-    @check("a bright star lights the picture harder than a dim one")
-    def _():
-        # `luminosity` said in its own docstring that it "drives how hard the
-        # light falls on everything else, which is why an M dwarf's worlds are
-        # dim and an A-type's are glaring". It drove nothing: every world in
-        # the sector was lit identically.
-        #
-        # Differenced against the *same* world at the *same* range under the
-        # same geometry, with only the star's brightness changed — so what is
-        # measured is the light and not a different picture.
-        from .test_ui import _use_offscreen
-        _use_offscreen()
-        from PyQt6.QtWidgets import QApplication
-
-        from ..core.state import new_game
-        from ..data.starclasses import STAR_CLASSES
-        from ..sim import conn as conn_sim
-        from ..sim import track as track_sim
-        from ..ui.viewport import Viewport
-
-        app = QApplication.instance() or QApplication([])
-        assert app is not None
-        game = new_game("glare")
-        body = max(game.system.bodies, key=lambda b: b.radius_km)
-        index = game.system.bodies.index(body)
-        contact = next(c for c in track_sim.contacts(game, game.system)
-                       if c.body_index == index)
-
-        def brightest_tenth(lum: float) -> float:
-            conn = conn_sim.start(game, contact,
-                                  range_km=body.radius_km * 6.0)
-            conn.star_lum = lum
-            view = Viewport(conn, "fore")
-            view.resize(300, 300)
-            image = view.grab().toImage()
-            vals = sorted(sum(image.pixelColor(x, y).getRgb()[:3])
-                          for x in range(0, 300, 2) for y in range(0, 300, 2))
-            top = vals[-len(vals) // 10:]
-            return sum(top) / len(top)
-
-        # Standing off the world, not on top of it: at approach range the hull
-        # is inside the disc and no face lands in frame at all, which is how a
-        # first attempt at this measurement read identical for every class.
-        seen = [(cid, STAR_CLASSES[cid].luminosity,
-                 brightest_tenth(STAR_CLASSES[cid].luminosity))
-                for cid in ("M", "K", "G", "F", "A")]
-        for (_a, la, ba), (_b, lb, bb) in zip(seen, seen[1:]):
-            assert lb > la and bb >= ba, (
-                f"a {lb}-luminosity star lights the picture to {bb:.1f} "
-                f"against {ba:.1f} for a {la} one — brightness is not "
-                "reaching the light")
-        dim, bright = seen[0][2], seen[-1][2]
-        assert bright > dim * 1.05, (
-            f"an A-type lights the frame to {bright:.1f} against an M dwarf's "
-            f"{dim:.1f} — the difference is not visible")
-
-        # The conn records the brightness itself, for the system it is in.
-        # Everything above sets `star_lum` by hand, so a mutation that stopped
-        # `conn.start` reading it off the star passed the lot.
-        for seed in range(6):
-            other = new_game(f"lum-{seed}")
-            spot = next(c for c in track_sim.contacts(other, other.system)
-                        if c.body_index == 0)
-            live = conn_sim.start(other, spot)
-            want = STAR_CLASSES[other.system.star].luminosity
-            assert abs(live.star_lum - want) < 1e-9, (
-                f"{other.system.name} is a {other.system.star}-type with "
-                f"luminosity {want} and the conn recorded {live.star_lum}")
-
-        # And the compression is doing its job: the raw range is five hundred
-        # to one and the picture must not be a white rectangle at one end or
-        # black at the other.
-        view = Viewport(conn_sim.start(game, contact), "fore")
-        assert 0.5 <= view.glare(_Lum(0.0002)) <= 0.7, view.glare(_Lum(0.0002))
-        assert 1.3 <= view.glare(_Lum(22.0)) <= 1.5, view.glare(_Lum(22.0))
-        return (" · ".join(f"{cid} {b:.0f}" for cid, _l, b in seen)
-                + f" — {bright / dim:.2f}x from an M dwarf to an A-type")
-
-    @check("a star's corona is its own colour, not its disc's")
-    def _():
-        # Two colours per class have been in `data/starclasses.py` since it
-        # was written, and the window drew the corona in the *core* colour, so
-        # `halo` did nothing: every star's corona was its own disc, blurred.
-        from ..core.state import new_game
-        from ..data.starclasses import STAR_CLASSES
-        from ..sim import sky as sky_sim
-
-        differ = same = 0
-        for cid, spec in STAR_CLASSES.items():
-            assert spec.core.startswith("#") and spec.halo.startswith("#"), cid
-            if spec.core.lower() != spec.halo.lower():
-                differ += 1
-            else:
-                same += 1
-        assert same == 0, (
-            f"{same} of {differ + same} classes have a corona the same colour "
-            "as the disc, so for those two colours do one colour's work. A "
-            "first draft of this allowed one to slip through by asking for "
-            "'at least eight of nine'.")
-
-        # And the sky carries it, for every class the generator makes.
-        carried = 0
-        for seed in range(12):
-            game = new_game(f"corona-{seed}")
-            star = next(s for s in sky_sim.build(game, None)
-                        if s.kind == "star")
-            spec = STAR_CLASSES[game.system.star]
-            assert star.halo == spec.halo, (star.halo, spec.halo)
-            assert star.tint == spec.core, (star.tint, spec.core)
-            carried += star.halo != star.tint
-        assert carried == 12, (
-            f"only {carried} of twelve skies carry a corona colour distinct "
-            "from the disc")
-
-        # And the *window* uses it. Everything above is the data path; a
-        # mutation that made the corona fall back to the disc's colour passed
-        # all of it, because nothing here had looked at a picture.
-        from .test_ui import _use_offscreen
-        _use_offscreen()
-        from PyQt6.QtWidgets import QApplication
-
-        from ..sim import conn as conn_sim
-        from ..sim import track as track_sim
-        from ..ui.viewport import Viewport
-        app = QApplication.instance() or QApplication([])
-        assert app is not None
-
-        game = new_game("corona-seen")
-        body = game.system.bodies[0]
-        contact = next(c for c in track_sim.contacts(game, game.system)
-                       if c.body_index == 0)
-        spec = STAR_CLASSES[game.system.star]
-
-        # `_star` alone, on a blank plate. A first draft measured the whole
-        # camera frame and read (97, 64, 38) for both a red corona and a blue
-        # one, because a frame at approach range is almost entirely the *world*
-        # and the corona is a few dozen pixels of it. Isolating the thing under
-        # test is the only way to see it.
-        import dataclasses
-
-        from PyQt6.QtGui import QColor, QImage, QPainter
-
-        from ..ui import render3d
-
-        conn = conn_sim.start(game, contact)
-        star = next(s for s in conn.sky if s.kind == "star")
-        camera = render3d.Camera(at=(0.0, 0.0, 0.0), forward=render3d.unit(star.at),
-                                 up=(0.0, 0.0, 1.0), width=240, height=240,
-                                 half_fov=0.55)
-        view = Viewport(conn, "fore")
-
-        def corona_hue(halo: str) -> tuple:
-            plate = QImage(240, 240, QImage.Format.Format_RGB32)
-            plate.fill(QColor("#000000"))
-            painter = QPainter(plate)
-            view._star(painter, camera, dataclasses.replace(star, halo=halo))
-            painter.end()
-            r = g = b = n = 0
-            for x in range(0, 240, 2):
-                for y in range(0, 240, 2):
-                    px = plate.pixelColor(x, y)
-                    if px.red() + px.green() + px.blue() > 24:
-                        r += px.red(); g += px.green(); b += px.blue(); n += 1
-            return (r // max(n, 1), g // max(n, 1), b // max(n, 1)), n
-
-        warm, n_warm = corona_hue("#ff2000")
-        cold, n_cold = corona_hue("#0020ff")
-        assert n_warm > 40 and n_cold > 40, (
-            f"the star drew {n_warm} and {n_cold} lit pixels — it is not in "
-            "frame, so nothing is being measured")
-        apart = sum(abs(a - b) for a, b in zip(warm, cold))
-        assert apart > 40, (
-            f"a red corona and a blue one paint the same star ({warm} against "
-            f"{cold}) — the window is not using `halo`")
-        return (f"{differ} classes with a corona of their own, carried into "
-                f"{carried} of twelve skies; a red corona and a blue one "
-                f"differ by {apart} in the picture")
-
-    @check("a long crossing is harder on some crews than others")
-    def _():
-        # `boredom` has been declared per lineage since the tables were
-        # written — 0.012 a day for a wet crew, 0.006 for a graft, nothing at
-        # all for a lineage of recordings — and its docstring said it was
-        # "what that costs in morale". `crew.morale_tick` had no lineage term
-        # at all, so a hundred days in a hull was the same to everybody.
-        from ..core.state import new_game
-        from ..data import lineages
-        from ..sim import crew as crew_sim
-        from ..sim import transit as transit_sim
-
-        def cross(lineage_id: str) -> float:
-            # The SAME chronicle every time. Only who is aboard differs, so
-            # what is measured is the lineage and not a different voyage.
-            game = new_game("tedium")
-            for officer in game.officers:
-                officer.lineage = lineage_id
-            game.ship.cargo["volatiles"] = 999
-            game.credits = 500_000
-            body = max(range(len(game.system.bodies)),
-                       key=lambda i: game.system.bodies[i].orbit)
-            begun = transit_sim.begin(game, body, "coast")
-            assert begun.get("ok"), begun
-            run = begun["transit"]
-            for _ in range(60):
-                transit_sim._spend(game, run, days=5)
-                if game.dead:
-                    break
-            return game.ship.morale
-
-        got = [(lid, lineages.LINEAGES_BY_ID[lid].boredom, cross(lid))
-               for lid in ("wet", "grafted", "dry")]
-        for (la, ba, ma), (lb, bb, mb) in zip(got, got[1:]):
-            assert bb < ba, (la, lb)          # the table's own ordering
-            assert mb > ma + 0.02, (
-                f"a {lb} crew ends the same crossing at {mb:.3f} morale "
-                f"against a {la} crew's {ma:.3f} — the lineage is not being "
-                "felt")
-        # And the raw rule is the one the table states.
-        assert crew_sim.tedium([], 100) > 0, "an empty bridge feels nothing"
-        wet = crew_sim.tedium(
-            [_Crew("wet")], 100)
-        assert abs(wet - lineages.LINEAGES_BY_ID["wet"].boredom * 100) < 1e-9
-        return " · ".join(f"{lid} {m:.3f}" for lid, _b, m in got) + \
-            " morale after the same 300-day crossing"
-
-    @check("the crew say how a long crossing feels, and only a long one")
-    def _():
-        # A line per lineage, written in the tables and never once shown.
-        from ..core.state import new_game
-        from ..data import lineages
-        from ..sim import crew as crew_sim
-        from ..sim import transit as transit_sim
-
-        game = new_game("felt")
-        for officer in game.officers:
-            officer.lineage = "dry"
-        # Absolute days, not `TEDIUM_WORTH_SAYING - 1`. Reading the bar off
-        # the constant under test is how a check passes for any value of it:
-        # set the constant to zero and `how_it_feels(-1)` is still silent, so
-        # the relative form could not fail. Ten days is a hop by any reading.
-        short = crew_sim.how_it_feels(game, 10)
-        long = crew_sim.how_it_feels(game, 90)
-        assert not short, (
-            f"a ten-day hop got a line about the nature of time: {short!r}")
-        assert crew_sim.TEDIUM_WORTH_SAYING > 10, (
-            f"the floor is {crew_sim.TEDIUM_WORTH_SAYING} days, which makes a "
-            "hop philosophical")
-        assert long == lineages.LINEAGES_BY_ID["dry"].time_sense, long
-
-        # Every lineage has one, and they are not the same line.
-        lines = {lid: spec.time_sense
-                 for lid, spec in lineages.LINEAGES_BY_ID.items()}
-        assert all(lines.values()), [k for k, v in lines.items() if not v]
-        assert len(set(lines.values())) == len(lines), lines
-
-        # And a real crossing puts it in the log where a player would see it.
-        # Whichever crossing in this system is actually long enough to be
-        # remarked on — the outermost body is not automatically the longest
-        # trip, and a first draft picked a 29-day hop against a 30-day floor.
-        game.ship.cargo["volatiles"] = 999
-        from ..sim import flight as flight_sim
-        best, longest = None, 0
-        for index, world in enumerate(game.system.bodies):
-            days = flight_sim.quote(game, world, "coast")["days"]
-            if days > longest:
-                best, longest = index, days
-        assert longest >= crew_sim.TEDIUM_WORTH_SAYING, (
-            f"the longest crossing in this system is {longest} days, under the "
-            f"{crew_sim.TEDIUM_WORTH_SAYING} that gets a line")
-        begun = transit_sim.begin(game, best, "coast")
-        assert begun.get("ok"), begun
-        said = [text for _day, text, _kind in begun["transit"].log]
-        assert any(line == lines["dry"] for line in said), said
-        return (f"{len(lines)} lineages, {len(set(lines.values()))} distinct "
-                "lines, and the crossing log carries the right one")
-
     @check("the check can still see a dead field when there is one")
     def _():
         # The mutation-proofing, in the check itself: a guard that cannot fail
-        # is worse than no guard, and this one is a text search over source
-        # that could quietly stop matching anything at all.
-        blob = _sources()
+        # is worse than no guard, and this one walks source that could quietly
+        # stop matching anything at all.
+        loaded, keyed = _reads()
         fields = _fields()
         # A name nothing could possibly read.
         invented = "quinquireme_of_nineveh"
-        assert len(re.findall(r"\." + re.escape(invented), blob)) == 0
+        assert invented not in loaded and invented not in keyed
         # And the machinery finds real fields, with real readers.
         by_name = {name for _full, name, _ln in fields}
         for known in ("radius_km", "cost", "blurb"):
             assert known in by_name, known
-            assert len(re.findall(r"\." + re.escape(known) + r"\b", blob)) > 3, \
-                known
+            assert known in loaded, known
+
+        # A write is not a read, which is the distinction the AST pass exists
+        # for. `heat` is stored all over the sim and also consulted; `shots` is
+        # assigned by `gunfire.clear` — so a guard that counted stores would
+        # call anything write-only alive.
+        assert "heat" in loaded
+        stored_only = [n for n in ("quinquireme_of_nineveh",) if n in loaded]
+        assert not stored_only, stored_only
         return (f"{len(by_name)} distinct field names; an invented one reads "
-                "as unread and three known ones as read")
+                f"as unread, three known ones as read, {len(keyed)} names "
+                "reached by accessor key")

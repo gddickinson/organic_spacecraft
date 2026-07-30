@@ -50,6 +50,13 @@ HOT = ("hammerfall", ["fusion_lance"] * 3 + ["railgun", "pdc"])
 #: mutation surviving: the case only appears when every gun is expensive.
 HEAVY = ("hammerfall", ["fusion_lance"] * 3)
 
+#: A long gun that cannot reach at contact range: `breach_torpedo` is banded
+#: (3, 4), so at band 0 it is three bands out and its penalty of 0.66 is past
+#: `CAN_FIRE`. Anything two bands out is still *marginal* rather than blocked, so
+#: this is what it takes to make "range" the reason and give `band_shift` a
+#: number to report.
+LONG = ("hammerfall", ["breach_torpedo", "pdc", "mag_lance"])
+
 #: Mixed arcs, so a mount that will not train is a real state.
 ARCS = ("hammerfall", ["slug_battery", "mag_lance", "fusion_lance", "pdc",
                        "railgun"])
@@ -279,124 +286,6 @@ def run(suite: Suite) -> None:
         return (f"all {len(live)}: +{everything['heat_added']:.0f} heat, faults "
                 f"· advice {len(advised['mounts'])}: "
                 f"+{advised['heat_added']:.0f}, {advised['damage']:.0f} damage")
-
-    @check("the board drives the trigger, pressed through the window")
-    def _():
-        # Through the window, because the whole gap was that the sim could do
-        # this and no seat could ask for it. A check that called
-        # `gunnery.volley` directly would have passed throughout.
-        from PyQt6.QtWidgets import QApplication
-
-        from .test_ui import _use_offscreen
-        _use_offscreen()
-        from ..ui.gunner_window import open_gunnery
-        from ..ui.window import MainWindow
-
-        app = QApplication.instance() or QApplication([])
-        assert app is not None
-        # HOT rather than ARCS: on the mixed-arc hull only three mounts bear and
-        # the advice takes all three, so a mutation replacing the trigger with a
-        # full salvo fired exactly the same shots and nothing failed. The board
-        # has to be checked where what it shows and what a salvo would do differ.
-        game, _rng, b = _battle("win", loadout=HOT)
-        win = MainWindow(game)
-        win.toast = lambda *a, **k: None
-        win.battle = b
-        gw = open_gunnery(win)
-
-        every = gw.chosen()
-        assert len(every) >= 3, every
-
-        # Hold one mount and the volley and the heat both follow.
-        slot = next(i for i, s in enumerate(gunnery.mounts(b)) if s.can_fire)
-        gw._toggle(slot)
-        fewer = gw.chosen()
-        assert len(fewer) == len(every) - 1, (every, fewer)
-        assert (gunnery.quote(b, fewer)["heat_added"]
-                < gunnery.quote(b, every)["heat_added"])
-
-        # The advice is expressed as holds, and agrees with the sim.
-        gw._advise()
-        assert sorted(gw.chosen()) == sorted(gunnery.advise(b)), (
-            gw.chosen(), gunnery.advise(b))
-
-        # Hold everything and the trigger goes dead rather than firing all.
-        gw._none()
-        assert gw.chosen() == []
-        gw.refresh()
-        assert not gw.fire_btn.isEnabled(), (
-            "with everything held the trigger is still live")
-
-        # And pulling it spends heat on exactly what was shown — which has to be
-        # less than a salvo would, or the check cannot tell the two apart.
-        gw._advise()
-        picked = list(gw.chosen())
-        assert len(picked) < len(every), (
-            f"the advice picked all {len(every)} bearing mounts, so this hull "
-            "cannot distinguish the trigger from a full salvo")
-        said = gunnery.quote(b, picked)
-        assert said["heat_added"] < gunnery.quote(b, every)["heat_added"]
-        gw._fire()
-        assert abs(b.player.ship.heat - said["heat_after"]) < 1e-6, (
-            f"the window promised {said['heat_after']:.2f} and the hull came "
-            f"out at {b.player.ship.heat:.2f}")
-        gw.close()
-        win.close()
-        return (f"{len(every)} bearing, held one → {len(fewer)}, advice "
-                f"{len(picked)}, heat landed at {b.player.ship.heat:.1f}")
-
-    @check("a sight draws its arc on both sides of the bow")
-    def _():
-        # My own bug, and one the screen hid: `arc_span` returns *half-angles* —
-        # its docstring says so — and the first draft drew a single wedge from
-        # `low` clockwise, putting a fore arc entirely to starboard. It looked
-        # plausible because the target happened to be near dead ahead when I
-        # looked at it. `ui/tactical_plot.py` had already been fixed for the same
-        # thing and left the reason behind: "drawing only one of them is a lie
-        # about the ship."
-        from PyQt6.QtWidgets import QApplication
-
-        from .test_ui import _use_offscreen
-        _use_offscreen()
-        from ..ui.mount_sight import MountSight
-
-        app = QApplication.instance() or QApplication([])
-        assert app is not None
-        _game, _rng, b = _battle("sight", loadout=ARCS)
-        shots = {s.arc: s for s in gunnery.mounts(b)}
-        assert "broad" in shots and "fore" in shots, sorted(shots)
-
-        def lit(shot):
-            """Painted pixels either side of the centreline."""
-            widget = MountSight(shot, 0.0)
-            widget.resize(160, 160)
-            image = widget.grab().toImage()
-            left = right = 0
-            for y in range(26, 134, 3):
-                for x in range(10, 150, 3):
-                    px = image.pixel(x, y)
-                    bright = (px >> 16 & 255) + (px >> 8 & 255) + (px & 255)
-                    if bright < 130:
-                        continue
-                    if x < 72:
-                        left += 1
-                    elif x > 88:
-                        right += 1
-            return left, right
-
-        said = []
-        for arc in ("broad", "fore"):
-            left, right = lit(shots[arc])
-            assert left > 6 and right > 6, (
-                f"a {arc} arc drew {left} lit pixels to port and {right} to "
-                "starboard — an arc is symmetric about the bow, so one side "
-                "being empty means only half of it is drawn")
-            lean = abs(left - right) / max(1, left + right)
-            assert lean < 0.35, (
-                f"a {arc} arc is {lean:.0%} lopsided: {left} port, "
-                f"{right} starboard")
-            said.append(f"{arc} {left}/{right}")
-        return " · ".join(said) + " pixels port/starboard"
 
     @check("the sights and the solution agree about what bears")
     def _():

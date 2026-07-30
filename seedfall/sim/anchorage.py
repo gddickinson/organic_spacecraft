@@ -26,7 +26,7 @@ two different things is a bug waiting to be written.)
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from ..data.factions import FACTIONS_BY_ID
 from . import flight
@@ -62,7 +62,6 @@ class Anchorage:
     faction: str | None = None
     #: True when the hull is already alongside.
     here: bool = False
-    extras: dict = field(default_factory=dict)
 
     @property
     def glyph(self) -> str:
@@ -126,8 +125,7 @@ def in_system(game, system=None) -> list:
                 what=(f"{faction.short if faction else 'Independent'} berth in "
                       f"orbit of {body.name}. {offered.capitalize()}."),
                 services=tuple(port.services), faction=port.faction,
-                here=(here_id == body.id),
-                extras={"level": port.level, "capital": port.capital}))
+                here=(here_id == body.id)))
 
     # The Weave. An anchor was drawn on the sector chart and had no place
     # inside its own system at all: invisible on the helm, impossible to fly
@@ -147,8 +145,7 @@ def in_system(game, system=None) -> list:
                       + ("Lit, and busy with it." if lit else
                          "Dark. Whatever it is waiting for, it is not us.")),
                 services=(("refuel",) if lit else ()),
-                here=(here_id == body.id),
-                extras={"lit": lit, "gate": True, "kind": anchor.kind}))
+                here=(here_id == body.id)))
 
     # Your own ground. A holding that can take a hull is exactly the thing a
     # captain wants to be able to find again.
@@ -168,8 +165,7 @@ def in_system(game, system=None) -> list:
                  + (" " + ", ".join(SERVICE_NAMES.get(s, s)
                                     for s in services).capitalize() + "."
                     if services else ""),
-            services=services, here=(here_id == body.id),
-            extras={"colony": colony.id}))
+            services=services, here=(here_id == body.id)))
     return out
 
 

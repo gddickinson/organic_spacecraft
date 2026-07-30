@@ -29,6 +29,36 @@ TRAITS = [
 ]
 
 
+#: By id, so a trait can be looked up from an officer who carries one.
+TRAITS_BY_ID = {t[0]: t for t in TRAITS}
+
+
+def trait_effects(officers) -> dict[str, float]:
+    """What the bridge's traits add, summed by effect key.
+
+    **Every trait in `TRAITS` declares an effect and a magnitude, and nothing
+    anywhere applied one.** `Officer.trait_id` was written when a candidate was
+    generated and read by nobody: `trait_name` and `trait_note` went to the crew
+    screen, so a Bloom veteran said "Was at Kessel's Reach and came back" and
+    fought exactly like anybody else. It is not free, either — `make_officer`
+    charges 25 a month for a trait, so a captain has been paying for seven
+    different effects that did not exist.
+
+    The keys are the names `ship.stats` already computes from officer levels —
+    `accuracy`, `evade`, `scan`, `repair`, `trade`, `diplomacy` — plus
+    `tactical`, which is the *skill* the other combat numbers are derived from
+    rather than a stat of its own. Summed across the bridge, because two
+    yards-trained officers are better than one.
+    """
+    out: dict[str, float] = {}
+    for officer in officers or []:
+        trait = TRAITS_BY_ID.get(getattr(officer, "trait_id", None) or "")
+        if trait is None or getattr(officer, "retired", False):
+            continue
+        out[trait[3]] = out.get(trait[3], 0.0) + trait[4]
+    return out
+
+
 @register
 @dataclass
 class Officer:

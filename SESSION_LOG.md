@@ -2,6 +2,75 @@
 
 Running progress log. Newest first.
 
+## 2026-07-29 — SEEDFALL: seven officer traits that did nothing
+
+Task #88 pointed the declared-field guard past `data/` into `sim/`, `world/` and
+`core/` — 1,167 fields — and the richest seam was the crew.
+
+`crew.TRAITS` has declared seven officer traits since it was written, each with an
+effect key and a magnitude: Charter-raised +0.04 diplomacy, Yards-trained +0.05
+repair, Freehold-born +0.05 trade, Bloom veteran +0.05 tactical, Wet-wired +0.03
+accuracy, Quiet +0.04 scan, Reckless +0.04 evade. **Not one of them was ever
+applied.** `Officer.trait_id` was written when a candidate was generated and read
+by nobody — `trait_name` and `trait_note` reached the crew screen, so a Bloom
+veteran said "Was at Kessel's Reach and came back" and fought exactly like anybody
+else. And it is priced: `make_officer` charges 25 a month for a trait, so a
+captain had been paying for seven effects that did not exist.
+
+`crew.trait_effects` sums them and `ship.stats` adds each into the stat it names.
+**My first wiring of the seventh was wrong and measuring caught it.** Six keys
+name a stat computed in `stats`; `tactical` names the *skill* the combat numbers
+derive from, so I converted it into levels — which moved accuracy by 0.0026 where
+every other trait moved its stat by 0.03 to 0.05. A magnitude declared in stat
+units is a stat. It adds to accuracy and evade directly now, and the constant I
+had invented for the conversion is gone.
+
+Two more findings landed on the gunner's board, which is the one screen whose job
+they were. **`firing.Shot.band_shift`** — "bands to close or open to reach its
+envelope" — was read by nobody, so a mount out of range said "range" and left the
+captain to work out which way; it says "open 3" now, which is an order for the
+helm rather than a complaint. **`gunfire.Shot.frm`, `.to` and `.weapon`** recorded
+who fired, at whom, with what, and nothing read any of them — so which gun did
+what existed only as prose in the log while the gunner saw a heat number change
+and nothing else. There is a Last exchange list now, both directions.
+
+Two were deleted rather than wired: `anchorage.Anchorage.extras`, a dict built in
+three places holding a redundant copy of things reachable from the objects
+themselves, and `territory.Demand.holdings`, a stored count beside a live
+`holdings_in()` — the two-doors fault this project has hit more than any other.
+The six that remain are allowlisted against three new tasks (#92 answers a power
+remembers, #93 familiarity and a rumour's provenance, #94 the Chorus Node's drift).
+
+**Four things went wrong on the way, all mine:**
+
+- **The guard was counting writes as reads.** A regex for `.name` matched
+  `self.x = 1`, so a field only ever assigned looked alive. It walks the AST for a
+  `Load` now — and three of the findings were exactly that shape: written once, at
+  construction or on an answer, and consulted by nobody after.
+- **A field only the suite reads is still dead.** Deleting `extras` broke
+  `test_anchorage`, which was its sole reader in the whole tree. The check now
+  finds that colony berth by its id, and the guard's exclusion of the tests is
+  the reason it found the field at all.
+- **Constructor keywords are invisible to an attribute walk.** Both deletions
+  broke on `Anchorage(extras=…)` and `Demand(holdings=…)`, which my audit had
+  classified as "never touched" when they were written every time one was built.
+  The verdict was right — a write is not a read — but I twice reported a
+  classification I had not earned, and had to go and find the writes.
+- **And I segfaulted the suite.** The new board check reads labels off the
+  rendered window, and my helper swept `findChildren(object)` and called `text()`
+  on whatever came back inside a bare `try` — which is how you reach a Python
+  wrapper whose C++ object has already been destroyed. The whole run died with
+  **exit 139 in the 3D renderer, three suites later**, with nothing in the file
+  that caused it failing. Stashing the changes and running HEAD clean is what
+  established it was mine rather than a flake. Ask for the types you want.
+
+`test_declared.py` covers four packages now: 1,167 fields, 8 unread and every one
+explained. The guard and the behaviour it revived split into `test_declared.py`
+and `test_revived.py` when they went past five hundred lines together, and
+`test_volley.py` shed its window checks into `test_gunboard.py` for the same
+reason — the seam being sim on one side and the seat on the other. 12 mutations,
+**12 caught**. Full suite green: 863 checks across 115 suites.
+
 ## 2026-07-29 — SEEDFALL: the gunner had no middle
 
 `combat` offered two ways to shoot. One named mount, or `_salvo` — "everything

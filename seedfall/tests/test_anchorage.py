@@ -208,7 +208,12 @@ def run(suite: Suite) -> None:
         places = anchorage.in_system(game)
         kinds = {a.kind for a in places}
         assert "quay" in kinds or "hub" in kinds, kinds
-        mine = [a for a in places if a.extras.get("colony") == col.id]
+        # By its id, which `in_system` builds as `colony-<id>`. This used to
+        # reach through `Anchorage.extras`, a dict written at construction and
+        # read by nothing in the game — only here. A field the suite is the sole
+        # reader of is still dead, which is why the declared-field guard ignores
+        # the tests when it looks.
+        mine = [a for a in places if a.id == f"colony-{col.id}"]
         assert mine, "a standing holding is not on the chart"
         assert mine[0].services, "the holding offers nothing at all"
         return (f"{len(places)} places: " +

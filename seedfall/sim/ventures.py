@@ -277,9 +277,12 @@ def _apply(game, venture, rng) -> list[tuple[str, str]]:
             # question somebody is waiting on an answer to.
             demand = territory.confront(game, system, venture.power)
             if demand:
+                # `holdings` used to be set here too, and read by nobody:
+                # `territory.holdings_in` is the live count, and a copy taken at
+                # the moment of the demand can disagree with it the moment a
+                # colony is lost. Deleted rather than wired up.
                 game.demand = territory.Demand(
                     system_id=system.id, power=venture.power,
-                    holdings=len(demand["colonies"]),
                     worth=round(demand["worth"]))
                 out.append(("warn", f"{FACTIONS_BY_ID[venture.power].short} "
                                     f"wants to know about your holding at "
