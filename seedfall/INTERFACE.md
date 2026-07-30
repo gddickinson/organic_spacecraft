@@ -2519,6 +2519,30 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   0 turns in 89. The real gap was next door — the count check ran only with full
   magazines, where "what trains" and "what burns" are the same list. Both
   mutations bit once it ran with an empty one.
+- **Cost that does not scale with the widget.** Six conn camera feeds of
+  **170x92 pixels** cost 31 ms of a 44 ms frame — more than the 782x455 main
+  view at twenty times the area — because each one drew all ninety-six latitude
+  bands of a world whose disc was 301 px across and of which it showed a corner,
+  and asked for an outline for every blotch of the ground lattice regardless of
+  where it landed. The renderer's work was geometry-bound, not pixel-bound.
+  Culling both against the frame took the conn window from 21 to 32 frames a
+  second. **When a small view costs as much as a large one, the cost is not in
+  the pixels.**
+- **A cull that changes the picture is not a cull.** Both first attempts were
+  optimistic: the band test compared the frame's *centre* against the cap's,
+  which is the real test with the boundary ellipse shrunk to a point; and the
+  feature test bounded a blotch by the longer of its two conjugate radii rather
+  than by `hypot(ax, bx)`, and forgot the wobble stretches every radius by up to
+  1.6. Sixteen pixels of a 782x455 approach moved. The check that matters here
+  renders each frame twice — culled and unculled — and demands *zero* differing
+  pixels, and the seed that first exposed the bug is one of the four it flies.
+- **A rule is better asked of the rule.** Reading zero bands drawn, seed after
+  seed, I took it for a broken monkeypatch; it was the cull correctly rejecting
+  all ninety-six of a world the frame happened to miss. How much a cull saves
+  depends entirely on the geometry — 81 of 97 kept with the disc centre in
+  frame, all 97 with it off frame and nothing to save, 42 with the world larger
+  than the picture. A bar set on the best case would have called the honest
+  middle case a failure.
 - **The catalogue screen was the last place with no catalogue in it.** The
   Codex listed thirty-five hull classes and nineteen colony classes as text —
   name, binomial, tier, blurb, role, crew, mass, hull, hold, jump, build time —

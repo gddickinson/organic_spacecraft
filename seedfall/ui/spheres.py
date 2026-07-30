@@ -45,6 +45,20 @@ from . import render3d, surface
 #: about 3 ms more.
 CAPS = 96
 
+#: The fewest bands worth drawing, and how many pixels of disc each band is
+#: allowed to cover. Ninety-six was a fixed cost paid at every size — measured
+#: in the conn's own window, `_cap_path` ran **97 times a frame for 5.4 ms of a
+#: 25 ms budget**, and a world 40 pixels across was being cut into bands two
+#: fifths of a pixel wide. The bands crowd toward the poles, so the count is
+#: taken against the disc's *diameter* and still lands under a pixel there.
+CAPS_MIN = 12
+PIXELS_PER_CAP = 2.0
+
+
+def cap_count(radius: float) -> int:
+    """How many latitude bands are worth drawing at this size on screen."""
+    return max(CAPS_MIN, min(CAPS, int(radius * 2.0 / PIXELS_PER_CAP)))
+
 #: How far the lit pole of the gradient sits from the disc's centre, as a share
 #: of the radius, when the star is directly to one side. Not 1.0: the sub-stellar
 #: point is *on* the sphere, and at full profile it sits on the limb, but putting
@@ -120,6 +134,47 @@ def pole_on_screen(camera: render3d.Camera, spin: float, tilt: float) -> tuple:
 #: How many segments an ellipse of latitude is drawn with. It is a smooth curve
 #: on the picture, so this only has to beat the pixel grid at the limb.
 ARC = 40
+
+
+def cap_shows(camera, centre: QPointF, radius: float, pole: tuple,
+              depth: float, lat: float) -> bool:
+    """Could this band paint anything the frame can see?
+
+    A cap is "everything south of a circle of latitude", drawn north to south
+    with each over the last — so one whose boundary ellipse lies entirely off
+    the frame *and* whose southern side faces away paints nothing visible, and
+    can be skipped without changing a pixel.
+
+    This is where a close approach spends its afternoon. Measured in the conn's
+    own window: six camera feeds of 170x92 pixels cost **31 ms of a 44 ms
+    frame** — more than the 782x455 main view — because each one drew all
+    ninety-six bands of a world whose disc was 301 pixels across and of which
+    the frame showed a corner. The geometry cost did not scale with the widget
+    at all.
+    """
+    across = math.sqrt(max(0.0, 1.0 - lat * lat)) * radius
+    along = across * abs(depth)
+    px, py = pole
+    cx = centre.x() + px * lat * radius
+    cy = centre.y() + py * lat * radius
+
+    # The cap covers everything from its boundary southward, and the boundary
+    # is an ellipse reaching `along` either side of the circle of latitude. So
+    # it paints nothing here only when **every corner of the frame** lies north
+    # of the boundary's southernmost edge.
+    #
+    # A first version compared the frame's *centre* against the cap's centre,
+    # which is the same test with the ellipse shrunk to a point — and near the
+    # limb the ellipse is wide enough for the frame to straddle it. That drew
+    # sixteen pixels of a 782x455 approach differently, which is the whole
+    # optimisation invalidated: a cull that changes the picture is not a cull.
+    south_x, south_y = -px, -py
+    for corner_x, corner_y in ((0.0, 0.0), (camera.w, 0.0),
+                               (0.0, camera.h), (camera.w, camera.h)):
+        reach = ((corner_x - cx) * south_x + (corner_y - cy) * south_y)
+        if reach >= -along:
+            return True
+    return False
 
 
 def _cap_path(centre: QPointF, radius: float, pole: tuple, depth: float,
@@ -243,9 +298,13 @@ def draw(painter: QPainter, camera: render3d.Camera, paint, at,
     painter.setClipPath(disc)
     painter.setPen(QColor(0, 0, 0, 0))
 
-    # The surface: caps from north to south, each over the last.
-    for step in range(CAPS + 1):
-        lat = 1.0 - 2.0 * step / CAPS
+    # The surface: caps from north to south, each over the last, at whatever
+    # count this world's size on screen can actually show.
+    caps = cap_count(radius)
+    for step in range(caps + 1):
+        lat = 1.0 - 2.0 * step / caps
+        if not cap_shows(camera, centre, radius, pole, depth, lat):
+            continue
         colour = QColor(paint(lat))
         painter.setBrush(colour)
         painter.drawPath(_cap_path(centre, radius, pole, depth, lat))

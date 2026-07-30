@@ -85,6 +85,11 @@ def direction(lat: float, lon: float, spin: float, tilt: float) -> tuple:
 #: polygon and this only moves its points.
 WOBBLE = 0.34
 
+#: The most `_rim` can stretch a radius. Its three harmonics have weights that
+#: peak at 0.70, 0.56 and 0.36, so the worst case is `1 + WOBBLE * 1.62`;
+#: rounded up, because a bound used for culling must never be optimistic.
+WOBBLE_MAX = 1.60
+
 
 def _rim(phase: float, angle: float) -> float:
     """The radius multiplier for a blotch at this angle round its rim.
@@ -148,6 +153,21 @@ def outline(camera: render3d.Camera, at, radius_km: float, n,
 
     (ax, ay), (bx, by) = arms
     reach = max(math.hypot(ax, ay), math.hypot(bx, by))
+
+    # Off the lens entirely: drop it before building an outline for Qt to clip.
+    #
+    # **Bounded properly, or not at all.** The outline is
+    # `centre + v1·cos φ + v2·sin φ`, so its half-width is `hypot(ax, bx)` —
+    # *not* the longer of the two arms, which is what the first version used.
+    # `_rim` then stretches every radius by up to `WOBBLE_MAX`. Bounding by the
+    # longer arm alone dropped blotches that did reach the frame and changed
+    # sixteen pixels of a 782x455 approach, which is the whole optimisation
+    # invalidated: a cull that alters the picture is not a cull.
+    half_x = math.hypot(ax, bx) * WOBBLE_MAX
+    half_y = math.hypot(ay, by) * WOBBLE_MAX
+    if (middle.x() + half_x < 0 or middle.x() - half_x > camera.w
+            or middle.y() + half_y < 0 or middle.y() - half_y > camera.h):
+        return None
     steps = max(OUTLINE_MIN, min(OUTLINE_MAX, int(reach / 6) + OUTLINE_MIN))
     points = []
     for i in range(steps):

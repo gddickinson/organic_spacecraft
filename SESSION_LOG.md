@@ -2,6 +2,48 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: a 170x92 feed cost more than a 782x455 view (#3D)
+
+Measured the conn window during an approach — the live 3D view the whole
+docking activity happens inside:
+
+    conn window        47.0 ms   ->  21 frames a second
+    six camera feeds   31.2 ms   of that
+    the 782x455 main   12.0 ms
+
+The six feeds are **170x92 pixels each** and together cost more than the main
+view at twenty times the area. The renderer's work was never pixel-bound: each
+feed drew all ninety-six latitude bands of a world whose disc was 301 px across
+and of which the frame showed a corner, and asked for an outline for every
+blotch of the ground lattice whether or not it could land on the picture.
+
+Two culls — a band that paints nothing, a blotch whose box misses the frame —
+plus a cap count that follows the disc's size. **21 to 32 frames a second.**
+
+**Both first attempts were optimistic, which is the one thing a cull may not
+be.** The band test compared the frame's *centre* against the cap's, which is
+the real test with the boundary ellipse shrunk to a point. The feature test
+bounded a blotch by the longer of its two conjugate radii instead of by
+`hypot(ax, bx)`, and forgot that the wobble stretches every radius by up to
+1.6. Sixteen pixels of a 782x455 approach moved — and I only knew because the
+first thing I did after the speedup was render both versions and diff every
+pixel.
+
+**And I misread my own instrument for an hour.** Counting bands drawn, seed
+after seed, I read zero and took it for a broken monkeypatch. It was the cull
+correctly rejecting all ninety-six of a world the frame happened to miss. How
+much this saves depends entirely on geometry — 81 of 97 kept with the disc
+centre in frame, all 97 with it off frame and nothing to save at all, 42 with
+the world larger than the picture. A bar set on the best case would have called
+the honest middle case a failure, so the check states all three.
+
+Seven mutations swept. Four passed the first version of the suite — two
+weakenings of the feature bound, and two that make the renderer slower without
+making it wrong — and closing them meant flying the seed that had exposed the
+original bug and counting bands at the act rather than at the rule.
+
+`test_drawbudget.py` — 3 checks. Full suite green: **1,050 checks**.
+
 ## 2026-07-30 — SEEDFALL: the catalogue screen had no catalogue in it (#catalogue)
 
 Task #80 names "the catalogue/codex screens that display them", so I went and
