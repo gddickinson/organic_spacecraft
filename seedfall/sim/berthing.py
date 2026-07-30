@@ -150,6 +150,17 @@ def commit(game, conn) -> dict:
     if conn.damage:
         hurt = apply_damage(game.ship, conn.damage)
 
+    # **And what the other thing took.** A collision is two bodies, and until
+    # `sim/impulse.py` it was one: the damage came off the player's hull and
+    # the quay it was struck against was neither moved nor marked. The figures
+    # come off the approach, worked out from both masses, and the chronicle
+    # says so — a captain who uses a hub as a backstop should find it in the
+    # log, and so should anyone reading back.
+    if conn.struck_damage or conn.struck_dv:
+        game.add_log(
+            f"{conn.target.name} took {conn.struck_damage:,.0f} and was "
+            f"shoved {conn.struck_dv:.2f} m/s off station.", "bad")
+
     moved = None
     index = _berth_index(conn)
     if index is not None and 0 <= index < len(game.system.bodies):

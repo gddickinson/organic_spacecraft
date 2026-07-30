@@ -157,6 +157,18 @@ class Conn:
     outcome: str = ""
     #: Damage taken coming in, for the caller to charge.
     damage: float = 0.0
+    #: The masses on both sides of this approach, in tonnes, recorded when it
+    #: opens the way `star_dir` and `star_lum` are. A collision needs both —
+    #: momentum is not a property of one body — and `sim/outcome.py` decides
+    #: outcomes without a `game` to ask, so the figures come with the approach
+    #: rather than being looked up mid-contact.
+    mass_t: float = 24_000.0
+    target_mass_t: float = 60_000.0
+    #: What the *other* thing took, and how hard it was shoved, in the same
+    #: contact that damaged this hull. Zero on every approach that ends
+    #: alongside; a quay used as a backstop carries these away with it.
+    struck_damage: float = 0.0
+    struck_dv: float = 0.0
 
     @property
     def over(self) -> bool:
@@ -235,8 +247,11 @@ def start(game, contact, range_km: float | None = None,
     from . import attitude as attitude_sim
     from . import thrusters
     kit = thrusters.summary(game.ship)
+    from . import impulse
     conn = Conn(target=target, pos=[0.0, -r, 0.0], vel=[0.0, abs(drift), 0.0],
                 start_km=r, rcs=aboard, opening_rcs=aboard,
+                mass_t=impulse.ship_mass(game),
+                target_mass_t=impulse.mass_of(game, target),
                 main_dv=kit["main_accel"] * TICK,
                 hold=kit["hold"],
                 rcs_dv=kit["rcs_accel"] * TICK,

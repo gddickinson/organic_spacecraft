@@ -2,6 +2,57 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: a collision is two bodies (#105, stage 1)
+
+Asked for real docking physics. Measured first, and the model turned out to
+have one thing right and two things missing.
+
+**Right**: the conn already works in the *target's* frame, so `conn.vel` is
+the relative velocity and matching a station's motion is exactly what flying
+it to zero means. That part needed nothing.
+
+**Missing**: a collision was one-sided — `outcome.impact_damage(speed)` took a
+number off the player and that was the whole event, so a quay could be used as
+a backstop and was neither moved nor marked. And nothing in the game had a
+mass, so nothing could be shoved by anything, and a hull moored to a station
+could open its main drive without either of them going anywhere.
+
+Both follow from one piece of physics, so there is one module. Contact is
+perfectly inelastic — hulls do not bounce off quays — and two masses meeting
+at a closing speed share a velocity. Everything missing falls out: how hard
+the striker is stopped, how hard the struck one is shoved, and the
+reduced-mass energy `½·μ·v²`, which is the only energy there is because the
+rest is still in the pair's shared motion and cannot break anything. Each pays
+for it per tonne of itself, so a courier is wrecked by an impact a hub shrugs
+off — without either being written down as a rule.
+
+The calibration constant is *derived*: the reference case is the hull the game
+ships with meeting the hub it starts beside, which must still cost the 6
+points at 4 m/s the old formula charged. So the written consequences — a
+scrape at 8 m/s, half the hull at 20, the end of the chronicle at 45 — come
+through unaltered, and the checks hold all four against written figures rather
+than against the constant.
+
+Measured, flown: 30 m/s into a Fleet Hub ends the chronicle at 338 off the
+hull, and the hub takes 20 points and 1.70 m/s off station, both in the log.
+A NAVIS into a courier at 20 m/s: 6 against 153, the courier knocked to
+19.3 m/s. Twelve m/s of burn against a mooring moves the pair 0.68 on a hub,
+11.6 on a courier, 0.11 on a Weave gate.
+
+Writing `mass_of` surfaced a fallback that weighed a star the same as a pier.
+The conn's own guard — "a forecast's twin carries every field that changes the
+flying" — caught the two new mass fields within the minute, which is the fifth
+time that check has earned its place.
+
+Eight mutations, eight caught.
+
+**Not done yet, and named as such**: the shove is recorded and logged but does
+not displace a station or hull in the sector, because there is nowhere in the
+sector's state to hold a knock — anchorages and traffic hulls are derived from
+their body's orbit. That, berthing at a named berth on the structure rather
+than anywhere on a bounding sphere, and a manual flight-controls window are
+the remaining stages.
+
 ## 2026-07-30 — SEEDFALL: five of six cameras were lying (#79)
 
 Flew a real approach — helm to the body, `berthing.begin`, then the flight

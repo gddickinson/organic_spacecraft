@@ -67,9 +67,16 @@ def _copy(conn: Conn) -> Conn:
     nothing was wrong yet, but a twin holding different console settings from the
     ship it stands for is a twin waiting to lie.
 
+    The fifth time was `mass_t` and `target_mass_t`, and the guard caught them
+    within the minute. Both change the flying now: contact damage is worked
+    out from the two masses, so a twin carrying the dataclass defaults would
+    forecast the collision of a different pair of objects.
+
     `landed`, `log`, `outcome` and `damage` are deliberately *not* carried: a
     twin flies from here, and an approach that has already ended cannot be
-    forecast.
+    forecast. Neither are `struck_damage` and `struck_dv`, for the same
+    reason and one more: they are what the *other* body took, and a trial run
+    may not bill a station for a collision that has not happened.
     """
     return Conn(target=conn.target, pos=list(conn.pos), vel=list(conn.vel),
                 heading=conn.heading, rcs=conn.rcs, elapsed=conn.elapsed,
@@ -80,4 +87,5 @@ def _copy(conn: Conn) -> Conn:
                 turn_rate_cost=conn.turn_rate_cost,
                 hold=conn.hold, star_lum=conn.star_lum,
                 orbit_want_km=conn.orbit_want_km,
-                throttle=conn.throttle, coast_min=conn.coast_min)
+                throttle=conn.throttle, coast_min=conn.coast_min,
+                mass_t=conn.mass_t, target_mass_t=conn.target_mass_t)

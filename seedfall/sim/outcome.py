@@ -87,7 +87,26 @@ def resolve(conn, *, safe_closing: float, impact_base: float,
     hull = conn.target.radius_km
 
     def hurt(speed: float) -> float:
-        return impact_damage(speed, safe_closing, impact_base)
+        """What this hull takes, and what it does to the other one.
+
+        **The one door for a collision.** `impact_damage` was the whole event
+        — a number off the player and nothing else — so a quay could be used
+        as a backstop and a hull rammed on purpose was neither moved nor
+        marked. `sim/impulse.py` answers for both sides off the two masses,
+        and writes what the other one took onto the approach so `berthing`
+        can carry it out to the sector.
+
+        Calibrated to leave this side unchanged: the reference case is the
+        ship this game ships with meeting the hub it starts beside, and it
+        still costs exactly what it always did.
+        """
+        from . import impulse
+        both = impulse.collide(getattr(conn, "mass_t", 24_000.0),
+                               getattr(conn, "target_mass_t", 60_000.0),
+                               speed)
+        conn.struck_damage = both["harm_b"]
+        conn.struck_dv = both["dv_b"]
+        return both["harm_a"]
 
     # **An approach with nothing left to burn is over.** Found by flying the
     # heights the conn offers with the tank a hull actually carries: at the high

@@ -398,6 +398,47 @@ Wiring it up surfaced two more, both from playing:
   quadratic, the most dangerous approaches were precisely the ones escaping.
   `_sweep_min` tests the whole path now, not its endpoints.
 
+**A collision is two bodies.** `outcome.impact_damage(speed)` took a number
+off the player's hull and that was the entire event: the quay a captain hit at
+forty metres a second was neither moved nor marked, and could be used as a
+backstop. Nothing in the game had a mass, so nothing could be shoved by
+anything, and a hull moored to a station could open its main drive without
+either of them going anywhere.
+
+`sim/impulse.py` is the physics, and knows nothing about ships or stations —
+it takes masses and speeds. Contact is **perfectly inelastic**, because hulls
+do not bounce off quays, so two masses meeting at a closing speed share a
+velocity and the rest falls out of it: `Δv₁ = −v·m₂/(m₁+m₂)`,
+`Δv₂ = +v·m₁/(m₁+m₂)`, and `E = ½·μ·v²` with `μ` the reduced mass — the only
+energy there is, since the rest is still in the pair's shared motion and
+cannot break anything. Each structure pays for `E` per tonne of itself, which
+is why a courier is destroyed by an impact a hub shrugs off without either of
+those being written down as a rule.
+
+`HARM_PER_MJ_PER_T = 795.0` is **derived, not chosen**: the reference case is
+the hull the game ships with meeting the hub it starts beside, and it must
+still cost the 6 points at 4 m/s that `impact_damage` charged — so the written
+consequences (a scrape at 8, half the hull at 20, the end of the chronicle at
+45) survive the change unaltered, and `tests/test_impulse.py` holds all four
+against written figures rather than against the constant.
+
+`impulse.mass_of` is the one door for what a thing weighs: worlds and stars an
+effectively infinite mass (which makes lithobraking fall out of the same
+arithmetic rather than needing a special case), berths by kind — a quay is
+60,000 t against a NAVIS's 24,000, a capital hub 400,000, a Weave gate
+2,500,000 — and hulls off their chassis. Writing it surfaced a fallback that
+weighed a star the same as a pier.
+
+`Conn` records both masses when the approach opens, the way it records
+`star_dir` and `star_lum`, so `sim/outcome.py` can resolve a contact without a
+`game` to ask; `berthing.commit` carries what the struck body took out to the
+chronicle. **What is not done yet**: the shove is recorded and logged but does
+not yet displace a station or hull in the sector — there is nowhere in the
+sector's state to hold a knock, since anchorages and traffic hulls are derived
+from their body's orbit. That, berthing at a named berth on the structure
+rather than anywhere on a bounding sphere, and a manual flight-controls window
+are the remaining stages of #105.
+
 **A reticle may only be drawn where it lands.** Found by rendering the conn's
 six camera feeds as one contact sheet, a kilometre off a Fleet Hub, and
 looking at it: the quay was in the fore view and in no other, and **all six
@@ -1930,6 +1971,8 @@ seedfall/
 │   │                   orders, screening, who draws fire, what they eat
 │   ├── loyalty.py      what the bridge thinks of how you run the ship
 │   ├── works.py        colony development: what a settlement becomes
+│   ├── impulse.py      momentum: masses, inelastic contact, and what two
+│   │                   things do to each other — both of them
 │   ├── readiness.py    what the ship brings to a fight nobody has started:
 │   │                   a rehearsal through `combat.start`, thrown away
 │   ├── flight.py       the helm: orbits, intercepts, routing, transfer burns;
@@ -3930,6 +3973,15 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that
   no course is plotted through a star.
+- **`test_impulse.py`** holds the momentum: conservation measured across four
+  decades of mass rather than asserted from the formula that produced it; the
+  player charged exactly what the one-sided formula charged at all four
+  written speeds; the mass ratio deciding who suffers, symmetric under
+  swapping the roles; a burn against a mooring moving the pair (0.68 m/s on a
+  hub, 11.6 on a courier, 0.11 on a gate, from 12 m/s of ship); and a hub
+  rammed at 30 m/s reaching the chronicle from both sides. Eight mutations,
+  eight caught.
+
 - **`test_reticle.py`** is three pixel-read claims about the target bracket:
   it appears on one feed of six and it is the one the quay is in; it follows
   the geometry rather than the name of a camera (nose 90° round and it leaves

@@ -150,6 +150,7 @@ KIN = {
     "tactical": ("gunnery", "combat"), "combat": ("seatwork", "combat", "gunnery"),
     "abilities": ("abilities", "combat"),
     "encounters": ("magazine", "readiness"),
+    "impulse": ("impulse", "conn"),
     "readiness": ("readiness",),
     "parley": ("parley", "combat"),
     "stations": ("routing", "orderplan", "seatwork", "turnplan", "gunnery"),

@@ -243,6 +243,11 @@ def run(suite: Suite) -> None:
             "log": "the twin's own log is thrown away with the twin",
             "outcome": "an approach that has ended cannot be forecast",
             "damage": "damage taken is the real ship's, not the trial's",
+            "struck_damage": "what the other body took, and a trial run may "
+                             "not bill a station for a collision that has "
+                             "not happened",
+            "struck_dv": "the shove the other body took, likewise the real "
+                         "approach's and not the trial's",
         }
         body = inspect.getsource(preview_sim._copy)
         carried = set(re.findall(r"(\w+)=(?:conn\.|list\(conn\.)", body))
