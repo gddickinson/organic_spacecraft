@@ -97,6 +97,26 @@ def _shade(base: QColor, lit: float, rim: float, glare: float = 1.0) -> QColor:
                   min(255, int(base.blue() * level)))
 
 
+
+def place(v, spin: float = 0.0, tilt: float = 0.0, yaw: float = 0.0) -> tuple:
+    """One point through a model's own rotation: spin, then tilt, then yaw.
+
+    **Split out of `draw` so a thing drawn *on* a model lands on it.** The
+    flight panel marks each engine at the place `data/mounts.py` says it sits,
+    and a mark rotated by a second copy of this arithmetic would sit near the
+    hull rather than on it — which is the class of fault this project has been
+    bitten by every time a number was written twice.
+    """
+    cs, sn = math.cos(spin), math.sin(spin)
+    ct, st = math.cos(tilt), math.sin(tilt)
+    x, y = v[0] * cs - v[1] * sn, v[0] * sn + v[1] * cs
+    y, z = y * ct - v[2] * st, y * st + v[2] * ct
+    if yaw:
+        yc, ys = math.cos(yaw), math.sin(yaw)
+        x, y = x * yc - y * ys, x * ys + y * yc
+    return x, y, z
+
+
 def draw(painter, camera: Camera, mesh, at, scale: float, light,
          spin: float = 0.0, tilt: float = 0.0, outline: bool = False,
          glare: float = 1.0, yaw: float = 0.0) -> int:
@@ -118,18 +138,8 @@ def draw(painter, camera: Camera, mesh, at, scale: float, light,
     was added, and why a heading could not be read off the picture at all.
     """
     verts, faces = mesh
-    cs, sn = math.cos(spin), math.sin(spin)
-    ct, st = math.cos(tilt), math.sin(tilt)
-    yc, ys = math.cos(yaw), math.sin(yaw)
-    placed = []
-    for vx, vy, vz in verts:
-        # spin about the model's own pole, tilt it over, then swing it round
-        x, y = vx * cs - vy * sn, vx * sn + vy * cs
-        y, z = y * ct - vz * st, y * st + vz * ct
-        if yaw:
-            x, y = x * yc - y * ys, x * ys + y * yc
-        placed.append((at[0] + x * scale, at[1] + y * scale,
-                       at[2] + z * scale))
+    placed = [tuple(a + c * scale for a, c in zip(at, place(v, spin, tilt, yaw)))
+              for v in verts]
 
     lit_from = unit(light)
     drawn = []

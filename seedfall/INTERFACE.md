@@ -398,6 +398,40 @@ Wiring it up surfaced two more, both from playing:
   quadratic, the most dangerous approaches were precisely the ones escaping.
   `_sweep_min` tests the whole path now, not its endpoints.
 
+**Showing the autopilot fly.** The computer has flown the ship since it was
+written and nothing on any screen said so: a captain watching the conn saw six
+identical buttons, no sign of which thruster was firing, and no indication the
+autopilot was even on.
+
+`Conn.fired_axis/fired_main/fired_share/fired_turning` are written by
+`conn.apply` — **the burn that happened**, not a fresh ask of the computer,
+which would be a forecast and would disagree the moment anything moved. Both
+the conn's console and the flight panel light the control that fired off that
+record, and the autopilot's modes light too. Arming it from either window arms
+the one computer; pressing the running mode again turns it off, and so does an
+explicit *Autopilot off*, so there is no way to be uncertain whether it is on.
+
+`sim/thrusters.firing` says which mounts are alight, and **a thruster fires
+opposite to the way the ship goes** — pressing *Ahead* lights the **aft**
+cluster. `data/mounts.RCS_CLUSTERS` has carried each cluster's shove direction
+since it was written and no screen had ever used it, so the game could say
+"the forward cluster" and mean the one that slows you down.
+`ui/shipdiagram.py` draws the hull with a mark at every mount and a plume on
+the lit ones. `render3d.place` was split out of `draw` for it: a mark rotated
+by a second copy of that arithmetic sits *near* the hull rather than on it.
+
+`ui/approach_window.py` is the third view — ship and target together from
+outside, with zoom, pan and tilt, because which way to look at a docking is a
+question only the pilot can answer. The camera orbits **the midpoint of the
+pair**, not the target: orbiting the target puts a ship twelve kilometres out
+in a corner and leaves most of the window empty.
+
+`sim/preview.track` draws the predicted course, and it is a **dry run of the
+act**: a throwaway twin flown with the real `apply` under the real flight
+computer. Checked by flying the real approach the same distance — 1,746 m
+predicted, 1,746 m flown, exact rather than close, because it is the same
+code.
+
 **A berth is a place on the structure, and you can fly to it by hand.**
 Coming alongside was a distance from a *point*: `range_km <= ALONGSIDE_KM +
 radius_km` and slow enough, where `radius_km` is a bounding sphere. So a hull
@@ -4049,6 +4083,18 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   fixed set of orbits *in every process*, that a transfer aims where a body
   will be rather than where it is, that the intercept solve converges, and that
   no course is plotted through a star.
+- **`test_showflying.py`** holds all of it, mostly off the widgets rather than
+  the sim behind them: the record is the burn and is cleared by a coast; both
+  consoles light exactly the axis that fired; the toggle is shared and turns
+  off two ways; *Ahead* lights the aft cluster; the diagram's new light lands
+  **on the mount that fired**, measured in pixels against where
+  `data/mounts.py` puts it; and the predicted course equals the flying to the
+  digit. Its framing check needed three goes — a bounding box cannot tell
+  "centred on the pair" from "centred on the target", and neither can the 2D
+  midpoint, because perspective throws it 20–31 px out even when correct. What
+  is crisp is which *side* of the centre each object falls on, asked at three
+  camera angles. Fourteen mutations, fourteen caught.
+
 - **`test_moorings.py`** holds the berths: every sort has them and they scale
   with the structure; the far side is not a berth at four sorts and four
   scales; the berth is chosen on final and held; and the computer still

@@ -36,9 +36,16 @@ from PyQt6.QtWidgets import (QDialog, QGridLayout, QHBoxLayout, QVBoxLayout,
 from ..sim import autopilot as pilot_sim
 from ..sim import conn as conn_sim
 from ..sim import moorings
+from ..sim import thrusters
 from ..sim import pilot as quote_sim
 from . import theme
-from .widgets import button, label, mono_label, note
+from .widgets import button, label, light, mono_label, note
+
+def win_game(win):
+    """The chronicle a window is on. One line, so the diagram is not handed a
+    window and left to reach through it for the ship."""
+    return win.game
+
 
 #: How often the clock ticks while it is running, in ms. The conn's own beat,
 #: so a berthing takes the same time flown from either window.
@@ -97,6 +104,10 @@ class FlightWindow(QDialog):
         self.gate = note("")
         column.addWidget(self.gate)
 
+        from .shipdiagram import ShipDiagram
+        self.ship = ShipDiagram(win_game(self.win))
+        column.addWidget(self.ship)
+
         self.dials = QWidget()
         self.dial_box = QVBoxLayout(self.dials)
         self.dial_box.setContentsMargins(0, 0, 0, 0)
@@ -129,11 +140,24 @@ class FlightWindow(QDialog):
             self.throttle_buttons[share] = btn
         column.addLayout(row)
 
+        column.addWidget(label("Autopilot", "h3"))
+        row = QHBoxLayout()
+        self.auto_buttons = {}
+        for mode, text in (("close", "Close and berth"), ("null", "Hold still"),
+                           ("orbit", "Make orbit")):
+            btn = button(text, lambda m=mode: self._auto(m), kind="flat")
+            row.addWidget(btn)
+            self.auto_buttons[mode] = btn
+        self.off_btn = button("Autopilot off", lambda: self._auto(None))
+        row.addWidget(self.off_btn)
+        column.addLayout(row)
+
         row = QHBoxLayout()
         self.run_btn = button("Run clock", self._toggle_clock, kind="primary")
         row.addWidget(self.run_btn)
         row.addWidget(button("Kill relative motion", self._null, kind="flat"))
         row.addWidget(button("Conn…", self._conn, kind="flat"))
+        row.addWidget(button("Approach view…", self._approach, kind="flat"))
         column.addLayout(row)
         column.addStretch(1)
 
@@ -161,6 +185,31 @@ class FlightWindow(QDialog):
         conn_sim.apply(conn, axis, main=main, throttle=throttle)
         self._settle()
 
+    def _auto(self, mode) -> None:
+        """Hand the ship to the computer, or take it back.
+
+        The conn holds the mode, because there is one approach and one
+        computer flying it — a pilot who arms the autopilot here and looks at
+        the conn must see it armed there. Pressing the mode that is already
+        running turns it off, and so does *Autopilot off*, so there is no way
+        to be uncertain whether it is on.
+        """
+        window = getattr(self.win, "conn_window", None)
+        if window is not None:
+            if mode is not None and window.mode == mode:
+                mode = None
+            window.mode = mode
+            if mode is not None and not window.running:
+                window._toggle_clock()
+        self.win.refresh()
+        self.refresh()
+
+    @property
+    def mode(self):
+        """Which autopilot mode is running, if any — the conn's."""
+        window = getattr(self.win, "conn_window", None)
+        return getattr(window, "mode", None)
+
     def _toggle_main(self) -> None:
         self.use_main = not self.use_main
         self.refresh()
@@ -180,10 +229,19 @@ class FlightWindow(QDialog):
         self.refresh()
 
     def _tick(self) -> None:
+        """One beat of the clock — flown by the computer if it has the ship.
+
+        The panel used to coast on every tick regardless, so arming the
+        autopilot and running the clock *here* did nothing while the same act
+        on the conn flew the approach. One computer, one ship, either window.
+        """
         conn = self.conn
         if conn is None or conn.over:
             self.running = False
             self.timer.stop()
+        elif self.mode:
+            axis, main, throttle = pilot_sim.autopilot(conn, self.mode)
+            conn_sim.apply(conn, axis, main=main, throttle=throttle)
         else:
             conn_sim.apply(conn, None)
         self._settle()
@@ -203,15 +261,34 @@ class FlightWindow(QDialog):
         from .conn_window import open_conn
         open_conn(self.win)
 
+    def _approach(self) -> None:
+        """Ship and target together, from outside."""
+        from .approach_window import open_approach
+        open_approach(self.win)
+
     # ── reading ────────────────────────────────────────────────────────────
 
     def refresh(self) -> None:
         conn = self.conn
+        self.ship.conn = conn
+        self.ship.update()
         while self.dial_box.count():
             old = self.dial_box.takeAt(0).widget()
             if old is not None:
+                # **Detached, not merely scheduled.** `deleteLater` defers to
+                # the event loop, so a widget taken out of the layout is still
+                # a child of the window until then — and a check reading the
+                # window's labels sees six copies of a line the panel shows
+                # once. Parenting to None takes it out now.
+                old.setParent(None)
                 old.deleteLater()
+        # The label is the *pilot's* selection; the light is what the ship
+        # fired. Those can differ — the computer opens the drive while the
+        # pad is set to clusters — and a button reading "off" with a light on
+        # it is a screen arguing with itself, so the firing case says so.
+        firing = conn is not None and conn.fired_main and conn.fired_axis
         self.main_btn.setText(
+            f"Main drive: FIRING {conn.fired_share:.0%}" if firing else
             f"Main drive: {'armed' if self.use_main else 'off'}")
         self.run_btn.setText("Stop clock" if self.running else "Run clock")
         if conn is None:
@@ -275,6 +352,32 @@ class FlightWindow(QDialog):
             toward = helps.get(axis_id, 0.0)
             arrow = "▲" if toward > 0.25 else ("▼" if toward < -0.25 else "·")
             btn.setText(f"{arrow} {name}\n{said['dv']:.2f} m/s")
+            # **Lit when it is the one firing**, so a pilot watching the
+            # computer work can see which thruster it is using. Off
+            # `conn.fired_axis`, which is what the ship *did* rather than what
+            # the computer would ask for if asked again.
+            light(btn, conn.fired_axis == axis_id)
+        light(self.main_btn, bool(conn.fired_axis) and conn.fired_main)
+        for mode, btn in self.auto_buttons.items():
+            light(btn, self.mode == mode)
+        light(self.off_btn, not self.mode, "warn")
+        # Which engine is doing the work, in words, under the diagram.
+        alight = [row[2] for row in thrusters.firing(
+            self.win.game.ship, conn.fired_axis, conn.fired_main) if row[4]]
+        if alight:
+            # **How far it is open**, not merely that it is. The computer runs
+            # a drive at 62% and then at 25% within four ticks, and a pilot
+            # watching a light with no number on it cannot tell those apart.
+            # Clusters are pulsed rather than throttled, so the share is only
+            # worth printing for the drive.
+            share = (f" at {conn.fired_share:.0%}"
+                     if conn.fired_main and conn.fired_share < 0.999 else "")
+            self.dial_box.addWidget(
+                note("Firing: " + ", ".join(alight) + share + "."))
+        if conn.fired_turning:
+            self.dial_box.addWidget(note(
+                "Swinging the hull round — the drive only pushes along the "
+                "nose, so this tick is spent turning."))
 
     def closeEvent(self, event) -> None:      # noqa: N802
         self.timer.stop()

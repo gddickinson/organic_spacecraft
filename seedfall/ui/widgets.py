@@ -110,6 +110,25 @@ def button(text: str, on_click=None, kind: str = "", tip: str = "",
     return b
 
 
+#: How a control that is *firing right now* is drawn. A pilot watching the
+#: computer work needs to see which thruster it is using, and the pad is six
+#: identical buttons — so the lit one carries its own border and glow rather
+#: than a word nobody will read in the half-second it is on.
+LIT_STYLE = ("border: 1px solid {tint}; color: {tint}; "
+             "background: rgba(90, 210, 160, 0.14);")
+
+
+def light(btn, on: bool, tint: str = "lumen") -> None:
+    """Light a button, or put it out. Idempotent, and safe on any button.
+
+    Set as an explicit stylesheet rather than a Qt property, because the
+    theme's sheet is applied to the whole window and a property would need a
+    re-polish on every refresh — which is a repaint of everything, sixty times
+    a berthing.
+    """
+    btn.setStyleSheet(LIT_STYLE.format(tint=theme.tint(tint)) if on else "")
+
+
 def hrule() -> QFrame:
     f = QFrame()
     f.setProperty("role", "hr")

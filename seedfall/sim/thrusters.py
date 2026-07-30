@@ -273,3 +273,34 @@ def slew_seconds(ship, radians: float) -> float:
     if rate <= 0:
         return math.inf
     return 2.0 * math.sqrt(angle / rate)
+
+def firing(ship, axis_id: str | None, main: bool = False) -> list:
+    """Which mounts are alight for this burn, and where they are.
+
+    Each row is `(at, axis, label, thrust_kn, lit)` in the ship's own frame,
+    so a diagram can draw every engine the hull carries and pick out the ones
+    doing the work. Nothing decides here what a burn *does* — `conn.apply`
+    does that — this only says which hardware it comes out of.
+
+    **A thruster fires opposite to the way the ship goes.** Pressing *Ahead*
+    lights the aft cluster, because that is the one pushing. `RCS_CLUSTERS`
+    has carried each cluster's shove direction since it was written and no
+    screen had ever used it, so the game has been able to say "the forward
+    cluster" and mean the one that slows you down.
+    """
+    from ..data.mounts import AXES_BY_ID
+
+    want = None
+    if axis_id:
+        _aid, _label, want = AXES_BY_ID[axis_id]
+    out = []
+    for mount in drives(ship):
+        alight = bool(axis_id) and main
+        out.append((tuple(mount.at), tuple(mount.axis), mount.label,
+                    float(mount.thrust), alight))
+    for at, push, name in RCS_CLUSTERS:
+        alight = (bool(axis_id) and not main and want is not None
+                  and sum(p * w for p, w in zip(push, want)) > 0.5)
+        out.append((tuple(at), tuple(push), name, rcs_thrust(ship), alight))
+    return out
+

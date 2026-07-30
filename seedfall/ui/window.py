@@ -328,6 +328,9 @@ class MainWindow(QMainWindow):
         flying = getattr(self, "flight_window", None)
         if flying is not None:
             flying.refresh()
+        approach = getattr(self, "approach_window", None)
+        if approach is not None:
+            approach.refresh()
         from ..sim import tutorial as tutorial_sim
         if tutorial_sim.check(self.game):
             self.tutorial_bar.refresh()

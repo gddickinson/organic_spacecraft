@@ -167,6 +167,7 @@ class TacticalWindow(QDialog):
         while self.plot_box.count():
             old = self.plot_box.takeAt(0).widget()
             if old is not None:
+                old.setParent(None)
                 old.deleteLater()
         # Off the live battle when there is one. Asking for a rehearsal here
         # put a forecast against a hypothetical opponent under a title naming
@@ -211,6 +212,7 @@ class TacticalWindow(QDialog):
         while self.sight_row.count():
             old = self.sight_row.takeAt(0).widget()
             if old is not None:
+                old.setParent(None)
                 old.deleteLater()
         shots = report["shots"][:SIGHTS_ACROSS]
         if not shots:

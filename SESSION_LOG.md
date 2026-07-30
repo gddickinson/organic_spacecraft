@@ -2,6 +2,60 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: showing the autopilot fly (#106)
+
+The computer has flown the ship since it was written and nothing on any screen
+said so. A captain watching the conn saw six identical buttons, no sign of
+which thruster was firing, and no indication the autopilot was even on.
+
+`conn.apply` records the burn it made — the axis, whether it was the drive or
+the clusters, how far the throttle actually opened, and whether the tick was
+spent swinging the hull round instead. **What happened, not a fresh ask of the
+computer**: asking again would be a forecast, and the two differ every tick.
+Both consoles light off that record; the autopilot's modes light too; arming
+it from either window arms the one computer, and pressing the running mode
+again turns it off, as does an explicit *Autopilot off*.
+
+A thruster fires **opposite** to the way the ship goes, so *Ahead* lights the
+**aft** cluster. `data/mounts.RCS_CLUSTERS` has carried each cluster's shove
+direction since it was written and no screen had used it — so the game could
+say "the forward cluster" and mean the one that slows you down.
+`ui/shipdiagram.py` draws the hull with a mark at every mount and a plume on
+the lit ones. `render3d.place` had to come out of `draw` for it: a mark
+rotated by a second copy of that arithmetic sits *near* the hull rather than
+on it, which is the fault this project has hit every time a number was written
+twice.
+
+`ui/approach_window.py` is the third view — ship and target together from
+outside, zoom, pan and tilt, with the predicted course drawn as a track with
+the minutes written on it. The camera orbits the *midpoint of the pair*: the
+first version orbited the target, which puts a ship twelve kilometres out in a
+corner and leaves most of the window empty. It looked like a mistake because
+it was one, and looking at the picture is what said so.
+
+`sim/preview.track` is the prediction, and it is a dry run of the act — a
+throwaway twin flown with the real `apply` under the real computer. Checked by
+flying the real approach the same distance: 1,746 m predicted, 1,746 m flown.
+Exact, because it is the same code.
+
+**The framing check took three goes**, and the two that failed are the
+instructive ones. A bounding box cannot tell "centred on the pair" from
+"centred on the target" — with the target centred the ship is 111 px off and
+both are still inside the frame. Nor can the 2D midpoint: perspective puts the
+near object further from centre than the far one, so even correct centring
+lands it 20–31 px out against 55 for the fault, and a bar between those is a
+bar written to fit rather than to mean something. What is crisp is which
+*side* of the centre each object falls on — opposite sides when it is centred
+on both, and nothing straddling anything when it is not. Asked at three camera
+angles, because one is a coincidence.
+
+Fourteen mutations, fourteen caught.
+
+And the declared-field guard from an earlier cycle caught `fired_share`:
+written by `apply` and read by nothing. Wired up rather than deleted, because
+it is the number that tells 62% of a drive from 25% — which the computer does
+inside four ticks, and which a light with no figure on it cannot say.
+
 ## 2026-07-30 — SEEDFALL: berths you can see, and a panel you can fly (#105, stages 3 and 4)
 
 **Stage 3.** Coming alongside was a distance from a point — `range_km <=

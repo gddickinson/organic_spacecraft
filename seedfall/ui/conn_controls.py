@@ -20,7 +20,7 @@ from PyQt6.QtWidgets import QGridLayout, QWidget
 from ..sim import conn as conn_sim
 from ..sim import orbits
 from ..sim import pilot as pilot_sim
-from .widgets import button
+from .widgets import button, light
 
 
 class ConnControls(QWidget):
@@ -135,6 +135,18 @@ class ConnControls(QWidget):
             "Stop clock" if self.window.running else "Run clock")
         for mode, (btn, text) in self.mode_buttons.items():
             btn.setText(f"▶ {text}" if self.window.mode == mode else text)
+
+        # **Lit where the ship is actually firing.** The computer flies this
+        # console as much as the pilot does, and until now a captain watching
+        # it work saw six identical buttons and no sign of which one the
+        # autopilot was using. `conn.fired_axis` is what the ship did last
+        # tick — not what the computer would ask for if asked again, which is
+        # a fresh forecast and disagrees the moment anything moves.
+        for axis_id, btn in self.axis_buttons.items():
+            light(btn, conn.fired_axis == axis_id)
+        light(self.main_btn, bool(conn.fired_axis) and conn.fired_main)
+        for mode, (btn, _text) in self.mode_buttons.items():
+            light(btn, self.window.mode == mode)
 
         self._sync_heights(conn, live)
         self._sync_throttle(conn, live)

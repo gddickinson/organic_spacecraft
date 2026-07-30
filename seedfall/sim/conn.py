@@ -174,6 +174,20 @@ class Conn:
     #: fitting every tick chases a moving aim and runs its tanks dry between
     #: two of them.
     berth: str = ""
+    #: **What the ship actually fired last tick**, so a screen can light the
+    #: control that was used. Recorded by `apply` rather than asked of the
+    #: autopilot again: what a pilot needs to see is the burn that happened,
+    #: and a second call to the computer would be a fresh forecast, which is
+    #: not the same thing and would disagree the moment anything moved.
+    #: `fired_axis` is None on a tick that coasted; `fired_main` says whether
+    #: it was the drive or the clusters; `fired_share` is how far the throttle
+    #: was actually opened, which is not always what was asked for.
+    fired_axis: str | None = None
+    fired_main: bool = False
+    fired_share: float = 0.0
+    #: True on a tick spent swinging the hull round instead of burning. The
+    #: console has always had this in `apply`'s return and thrown it away.
+    fired_turning: bool = False
 
     @property
     def over(self) -> bool:
@@ -352,6 +366,8 @@ def apply(conn: Conn, axis_id: str | None, main: bool = False,
     from . import attitude as attitude_sim
 
     burned = turning = False
+    conn.fired_axis, conn.fired_main = None, bool(main)
+    conn.fired_share, conn.fired_turning = 0.0, False
     if axis_id:
         ok, _why = can_burn(conn, main, throttle)
         if ok and main:
@@ -363,7 +379,7 @@ def apply(conn: Conn, axis_id: str | None, main: bool = False,
             want = rotate(vec, conn.heading)
             if not attitude_sim.pointed_at(conn.nose, want):
                 attitude_sim.slew(conn, want, TICK)
-                turning = True
+                turning = conn.fired_turning = True
                 ok = False
         if ok:
             # The main drive throttles. It is the difference between an engine
@@ -384,6 +400,8 @@ def apply(conn: Conn, axis_id: str | None, main: bool = False,
             conn.rcs = round(
                 conn.rcs - pilot.burn_cost(conn, main, throttle), 4)
             burned = part > 0
+            if burned:
+                conn.fired_axis, conn.fired_share = axis_id, part
     for _ in range(max(1, ticks)):
         _step(conn, TICK)
         if conn.over:

@@ -90,3 +90,37 @@ def _copy(conn: Conn) -> Conn:
                 throttle=conn.throttle, coast_min=conn.coast_min,
                 mass_t=conn.mass_t, target_mass_t=conn.target_mass_t,
                 berth=conn.berth)
+
+def track(conn, mode: str | None = None, ticks: int = 60,
+          every: int = 6) -> list:
+    """Where this approach will be, tick by tick — a dry run of the flying.
+
+    **The same act, not a second model.** It flies a throwaway twin with the
+    real `conn.apply`, under the flight computer if `mode` is given and
+    coasting if it is not, and writes down where it gets to. A predicted
+    course worked out from a formula would be a second answer to a question
+    the game already answers by doing it — which is the fault this project
+    has chased out of the docking forecast, the turn plan and the readiness
+    board, and it is not coming back in through the navigation display.
+
+    Returns `(seconds, position, range_km, speed)` every `every` ticks, so a
+    plot can mark the time as well as the path. The list stops early if the
+    approach ends: a course that arrives is a course that stops.
+    """
+    from . import autopilot as pilot
+
+    trial = _copy(conn)
+    out = [(0.0, tuple(trial.pos), trial.range_km, trial.speed)]
+    for step in range(1, max(1, ticks) + 1):
+        if trial.over:
+            break
+        if mode:
+            axis, main, throttle = pilot.autopilot(trial, mode)
+            apply(trial, axis, main=main, throttle=throttle)
+        else:
+            apply(trial, None)
+        if step % max(1, every) == 0 or trial.over:
+            out.append((trial.elapsed - conn.elapsed, tuple(trial.pos),
+                        trial.range_km, trial.speed))
+    return out
+
