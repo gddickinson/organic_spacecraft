@@ -2,6 +2,53 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: nine star classes, one white dot (#catalogue)
+
+`data/starclasses.py` has carried a `core` colour per class since it was
+written — an M dwarf's salmon, a K-type's amber, a G-type's cream, an A-type's
+blue-white, a black hole's violet. `ui/viewport._star` worked that colour out
+into a local called `tint` and then drew:
+
+    p.setBrush(QColor(255, 253, 244))
+    p.drawEllipse(point, radius, radius)
+
+The same off-white, nine times. So **the black hole — whose own entry says there
+is nothing to see, and that the accretion disc is the only reason you know where
+it is — was drawn as the brightest object in the picture**, identical to an
+A-type at twenty-two solar luminosities.
+
+Two lines above that fill is a comment congratulating an earlier cycle for
+noticing the *corona* colour was going unused. It fixed the halo and left the
+core. Worth keeping: a guard against unconsumed *fields* cannot catch this,
+because `core` is read — into a variable that is then dropped.
+
+`ui/stars3d.py` gives each class its own picture, and all three levers come from
+the data already there:
+
+- **Colour**, with a hot centre whose whiteness follows luminosity, so an
+  A-type reads as violent and an M dwarf as an ember.
+- **Corona**, spreading and brightening on a log scale — the range is 0.0002 to
+  22, and a linear law gives eight of the nine classes no glow at all.
+- **Kind.** A black hole is an absence with a ring round it. A white dwarf and a
+  neutron star get a hard rim, because degenerate matter has an edge.
+
+And **a binary pair is drawn as a pair**. Its entry says "two stars about a
+common centre" and it was one disc, in a cream within eight points of the
+G-type's — so the two classes rendered as the same star. That came out of the
+checks, not the eye: the closest pair scored 8 apart, and the fix was the
+picture rather than the threshold.
+
+**The mutation sweep earned its keep twice.** Six mutations, five caught at
+once. The sixth pinned the disc's *innermost* gradient stop to white and walked
+past two versions of the check: the first sampled off-centre, where the class
+colour rules; the second compared two classes at three pixels — the size most
+stars are actually seen at — and still passed, because the mutation moves a warm
+class toward white without moving a hot one. What caught it was a property with
+a measured margin: an M dwarf's centre carries 98 points of red over blue, and
+the mutation leaves 46.
+
+`test_starlight.py` — 5 checks. Full suite green: **1,035 checks**.
+
 ## 2026-07-30 — SEEDFALL: the world was being drawn thirty metres from the lens (#3D)
 
 Two cycles ago I gave worlds a surface and could not make it show in the conn.

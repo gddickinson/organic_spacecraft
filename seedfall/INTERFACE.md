@@ -1642,6 +1642,9 @@ seedfall/
 │   ├── save.py         generic dataclass ⇄ JSON codec, @register, atomic write
 │   ├── solid.py        a tiny 3D kit: primitives, projection, key/fill/rim
 │   │                   lighting, specular and a depth term
+│   ├── stars3d.py     the nine classes as nine pictures: colour, corona by
+│   │                   luminosity, a binary as a pair, a black hole as an
+│   │                   absence with a ring round it
 │   ├── surface.py     a cap on a sphere projected as an ellipse, from its
 │   │                   own axes rather than from an orthographic guess —
 │   │                   and `limb`, a world's true silhouette, clipped at
@@ -2511,6 +2514,25 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   0 turns in 89. The real gap was next door — the count check ran only with full
   magazines, where "what trains" and "what burns" are the same list. Both
   mutations bit once it ran with an empty one.
+- **The same defect twice, in the same file, and only half of it noticed.**
+  `ui/viewport._star` worked out a star's `tint` from its class and drew the
+  disc as a hard-coded `QColor(255, 253, 244)` — the same off-white for all nine
+  classes, so **a black hole rendered as brightly as an A-type** while its own
+  entry says there is nothing to see. Two lines above the offending fill sits a
+  comment congratulating an earlier cycle for catching that the *corona* colour
+  was unused. That cycle fixed the halo, left the core, and wrote a note about
+  it. A guard against unconsumed *fields* would not have caught this: `core` is
+  read, into a local, and dropped. **When a cycle finds one dropped value, look
+  for its sibling in the same expression.**
+- **Check at the size the thing is actually seen.** The first version of the
+  star checks sampled off-centre, where the class colour dominates — and a
+  mutation that pinned the *innermost* stop to white walked straight past, even
+  though most stars in the game are three pixels across and are nothing but
+  their middle. The second version compared two classes at three pixels and it
+  walked past that too, because it moved a warm class toward white without
+  moving a hot one. What caught it was a property with a measured margin: an
+  M dwarf's centre carries 98 points of red over blue, and the mutation leaves
+  46.
 - **How far away is not how far ahead.** `camera.project` returns the point and
   the component of the offset *along the view axis*, and `ui/spheres.py` passed
   that second value to `screen_radius` as the range. On the axis they agree,

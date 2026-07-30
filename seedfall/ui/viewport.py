@@ -31,7 +31,7 @@ from PyQt6.QtWidgets import QWidget
 from ..core.rng import RNG
 from ..data import models3d, surfaces, worlds3d
 from ..sim import conn as conn_sim
-from . import render3d, spheres, theme
+from . import render3d, spheres, stars3d, theme
 
 #: Half the field of view, in radians. A wide-ish lens: enough to keep a
 #: target in frame while manoeuvring, tight enough that motion reads.
@@ -304,34 +304,14 @@ class Viewport(QWidget):
                           spin=shown["spin"], tilt=shown["tilt"], glare=hard)
 
     def _star(self, p: QPainter, camera, sight) -> None:
-        """The star: a disc that is its own light, and a corona."""
-        at = camera.project(sight.at)
-        if at is None:
-            return
-        point, _ahead = at
-        # Never smaller than a bright point: a star at four AU is a tenth of
-        # a degree and would round to nothing.
-        radius = max(2.4, render3d.screen_radius(camera, sight.range_km,
-                                                 sight.radius_km))
-        # The disc is `tint` — the core — and the corona is `halo`. Two
-        # colours per class have been in `data/starclasses.py` since it was
-        # written and the corona was being drawn in the core's colour, so the
-        # second one did nothing: an A-type's blue-white corona and an M
-        # dwarf's dull red one were each just their own disc, blurred.
-        tint = QColor(sight.tint if sight.tint.startswith("#") else "#ffd9a0")
-        crown = QColor(sight.halo if sight.halo.startswith("#") else sight.tint
-                       if sight.tint.startswith("#") else "#e07a5f")
-        glow = QRadialGradient(point, radius * 5.0)
-        glow.setColorAt(0.0, QColor(255, 255, 240, 210))
-        glow.setColorAt(0.18, QColor(crown.red(), crown.green(), crown.blue(),
-                                     150))
-        glow.setColorAt(1.0, QColor(crown.red(), crown.green(), crown.blue(),
-                                    0))
-        p.setBrush(glow)
-        p.setPen(Qt.PenStyle.NoPen)
-        p.drawEllipse(point, radius * 5.0, radius * 5.0)
-        p.setBrush(QColor(255, 253, 244))
-        p.drawEllipse(point, radius, radius)
+        """The star: its own class's disc, its own corona, and its own kind.
+
+        `ui/stars3d.py` holds it. It was nine lines here that drew every one of
+        the nine classes as the same off-white circle — the `tint` worked out
+        from the class was assigned and never used — so a black hole came out
+        brighter than an A-type.
+        """
+        stars3d.draw(p, camera, sight)
 
     def _model_for(self, conn, across: float = 0.0):
         """Which mesh, and how it is oriented, for what is out there.
