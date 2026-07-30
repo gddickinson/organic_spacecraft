@@ -2,6 +2,84 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: the checks were flying a ship the game does not fly
+
+Went after #83 — "the last few per cent of a high orbit at a small body", a
+limitation `test_orbits` records in its own failure message rather than hiding.
+Found something bigger on the way in.
+
+**`conn.apply(conn, axis, main, throttle)` — the signature is
+`(conn, axis_id, main, ticks, throttle)`.** Four check call sites passed the
+throttle positionally, into `ticks`, where `max(1, ticks)` quietly rounded it to
+one tick and left the throttle at its default of fully open. So **every flight
+those checks flew had the main drive wide open** — which is the one thing
+`pilot.usable_throttle` exists to prevent, and this module's own comment records
+why: an unthrottled drive made a bigger engine *worse*, because one tick of a
+fusion torch is 124 m/s and the computer would light it to trim ten, overshoot,
+correct the overshoot, and never converge.
+
+`ticks` and `throttle` are keyword-only now. A positional throttle is a
+`TypeError` rather than a silent misfire.
+
+**And one check was passing because of it.** "A lopsided hull still makes orbit,
+slower and dearer" flew body 0 of each system — small bodies, where an orbit climb
+is thruster work and the throttle cap has nothing to bite on. With the throttle
+actually reaching the drive, one engine took **0.79× the time and 1.03× the
+mass**: losing half the drive cost nothing at all. Re-measured at the largest body
+in each system, where circular speed runs from three to twenty-five kilometres a
+second and the drive does the lifting: **2.32× the time and 1.91× the mass**. Both
+figures are now in the check, because the reversal is a fact about the game and
+not a nuisance.
+
+**Then the thing #83 was really about.** Every orbit check flies with
+`conn.rcs = 99999` — "the fuel is checked elsewhere" — and `orbits.heights_for`
+offers a rung on `holdable` alone, which asks whether the thrusters are *fine*
+enough and has never asked whether the tank is *big* enough. Flown with the twenty
+tonnes a hull actually carries, the high rung of a 153 km asteroid:
+
+    spent all 20 t in ~2,000 ticks reaching 95% of the height
+    then ordered a burn every tick for another 18,000 ticks
+    refused each time by can_burn — nothing moved, nothing said
+    the approach never resolved
+
+A captain watching the conn would see the computer working and the numbers not
+changing, for ever. `outcome.resolve` ends it now: as **orbit** if the hull is in a
+sound one — reporting the height it actually reached, *"550 km against the 1,753
+asked for, and the tanks are dry — this is the orbit you have"* — and as **dry** if
+it is not in orbit and no longer closing. Still closing is left alone, because a
+dry hull can arrive on momentum and taking the approach off it would be wrong.
+Measured after: 716 ticks instead of never, and every one of 32 offered heights
+across three sectors resolves inside 6,000 ticks on a real tank.
+
+**Two things I tried and took out again**, both recorded in the code because they
+are the obvious next ideas:
+
+- **Modulating the thrusters** down to a minimum impulse bit, since a full pulse
+  is twice the deadband and a ship therefore cannot settle. It changed the
+  flights not at all — because of the argument bug above, which is how I found
+  that.
+- **A thrust-limited spiral** in place of the vis-viva transfer demand: circular
+  speed nudged one pulse toward the aim. It settles beautifully at a small body
+  and **descends into the ground at a large one**. `_across` returns the tangent
+  *in the xy plane*, so an inclined arrival is asked to flatten itself, and that
+  plane change is worth thousands of metres a second at a 57,000 km world — the
+  axis fell 62,133 → 56,737 km over 1,288 ticks with the drive at full throttle
+  the whole way. The shipped law survives it only by out-muscling its own plane
+  change. That is filed as #101, and the spiral cannot be used until it is fixed;
+  the limit cycle it would fix is #102, with the measurement that names it: **1,046
+  tonnes against an ideal of 4**.
+
+I also wrote three functions and deleted all three. `orbits.trim_dv` and
+`orbits.settled` were to let the computer stop when it could do no better; measured,
+they changed the outcome of **0 of 32 flights**, so they were decoration.
+`orbits.transfer_dv` — an exact Hohmann — I argued should stay as the thing a fuel
+quote would be built on, and `test_reachable` disagreed: *"1 public function
+nothing ever calls. Either wire it into the game or delete it."* Kept-for-later is
+exactly what that guard exists to refuse, and the arithmetic is four lines whenever
+it is actually wanted.
+
+Two new checks, 904 across the suite, all green.
+
 ## 2026-07-30 — SEEDFALL: whose word it is (#93, two fields nobody read)
 
 Two fields had been written since the day their features shipped and read by

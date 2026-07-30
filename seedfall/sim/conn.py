@@ -309,12 +309,23 @@ def thrust_axis(conn: Conn, axis_id: str, main: bool) -> tuple:
 
 
 def apply(conn: Conn, axis_id: str | None, main: bool = False,
-          ticks: int = 1, throttle: float = 1.0) -> dict:
+          *, ticks: int = 1, throttle: float = 1.0) -> dict:
     """Fire along an axis (or coast, with no axis) and let time run.
 
     Returns what happened. It never raises on an empty tank: an out-of-mass
     pilot still coasts, which is exactly the situation the model has to be
     able to represent.
+
+    **`ticks` and `throttle` are keyword-only, and that is a bug fix.** They
+    used to be positional, and four checks called `apply(conn, axis, main,
+    throttle)` — putting the throttle into `ticks`, where `max(1, ticks)`
+    quietly rounded it to one tick, and leaving `throttle` at its default. So
+    every flight those checks flew had **the main drive wide open**, which is
+    the one thing `pilot.usable_throttle` exists to prevent: this module's own
+    comment records that an unthrottled drive made a bigger engine *worse*,
+    because one tick of a fusion torch is 124 m/s and the computer lit it to
+    trim ten. The checks were verifying a ship the game does not fly. A
+    keyword-only parameter cannot be passed by accident.
     """
     if conn.over:
         return {"ok": False, "why": "The approach is finished."}

@@ -187,7 +187,8 @@ def commit(game, conn) -> dict:
 
 def _tone(conn) -> str:
     return {"alongside": "good", "orbit": "good", "collision": "bad",
-            "aground": "bad", "adrift": "warn"}.get(conn.outcome, "")
+            "aground": "bad", "adrift": "warn", "dry": "warn"}.get(
+                conn.outcome, "")
 
 
 def _line(conn, fuel: float, hurt: float) -> str:
@@ -207,4 +208,7 @@ def _line(conn, fuel: float, hurt: float) -> str:
         return f"Put the hull down on {name}: {round(hurt)} off her, {cost}."
     if conn.outcome == "adrift":
         return f"Lost the approach on {name}. {cost.capitalize()} for nothing."
+    if conn.outcome == "dry":
+        return (f"Ran the thrusters dry off {name} without making orbit: "
+                f"{cost}.")
     return f"Broke off the approach on {name}: {cost}."

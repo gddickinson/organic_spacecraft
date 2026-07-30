@@ -322,17 +322,37 @@ def run(suite: Suite) -> None:
             for seed in range(4):
                 game = new_game(f"climb-{seed}")
                 game.ship = _ship(game, drives)
-                contact = next(c for c in track_sim.contacts(game, game.system)
-                               if c.body_index == 0)
+                # **The biggest body in the system, not the first one.** At a
+                # small body an orbit climb is thruster work — circular speed is
+                # tens of metres a second and the main drive is barely lit — so
+                # the throttle cap has nothing to bite on, and a gentler drive
+                # is if anything an *advantage*: measured at body 0, one engine
+                # took 0.79x the time and 1.03x the mass, which is not a
+                # handicap. The claim is about losing half a drive, so it has to
+                # be measured where the drive does the work. At the largest body
+                # in these systems circular speed runs from three to
+                # twenty-five kilometres a second and the difference is plain.
+                #
+                # This check used to pass at body 0, for a bad reason: every
+                # `apply` here passed the throttle positionally into `ticks`, so
+                # both hulls flew with the drive wide open and only the lopsided
+                # cap distinguished them. `conn.apply` takes the throttle by
+                # keyword only now, and the claim had to be re-measured.
+                cands = list(track_sim.contacts(game, game.system))
+
+                def _radius(contact, g=game):
+                    return conn_sim.start(g, contact).target.radius_km
+
+                contact = max(cands, key=_radius)
                 conn = conn_sim.start(game, contact)
                 conn.rcs = 99999.0
                 held = conn.rcs
                 conn.orbit_want_km = orbits.height_km(conn.target.radius_km,
                                                       "high")
                 ticks = 0
-                for ticks in range(1, 6001):
+                for ticks in range(1, 12001):
                     axis, main, throttle = autopilot.autopilot(conn, "orbit")
-                    conn_sim.apply(conn, axis, main, throttle)
+                    conn_sim.apply(conn, axis, main, throttle=throttle)
                     if conn.over:
                         break
                 if conn.outcome == "orbit":
@@ -346,19 +366,16 @@ def run(suite: Suite) -> None:
         assert len(reached[2]) >= 3, sorted(reached[2])
 
         # Priced only on the climbs *both* hulls made. A first draft summed
-        # across each hull's own successes and read "4/3" — the lopsided hull
-        # reached a high orbit on a seed the balanced one missed, because too
-        # much thrust overshoots at a small body (task #83), so the cap gentles
-        # the approach. A real finding, and a ratio over two different
-        # populations either way.
+        # across each hull's own successes and read "4/3" — a ratio over two
+        # different populations.
         both = sorted(reached[1] & reached[2])
         assert len(both) >= 3, both
         slow = sum(cost[1][s][0] for s in both) / sum(cost[2][s][0] for s in both)
         dear = sum(cost[1][s][1] for s in both) / sum(cost[2][s][1] for s in both)
-        assert slow > 1.05 and dear > 1.05, (
+        assert slow > 1.4 and dear > 1.4, (
             f"one engine took {slow:.2f}x the time and {dear:.2f}x the mass "
             f"over the {len(both)} climbs both hulls made — losing half the "
-            "drive should be felt")
+            "drive should be felt where the drive is doing the work")
         return (f"{len(both)} climbs made on either drive, one engine taking "
                 f"{slow:.2f}x the time and {dear:.2f}x the mass")
 
@@ -381,7 +398,7 @@ def run(suite: Suite) -> None:
                 conn.rcs = 99999.0
                 for _ in range(6000):
                     axis, main, throttle = autopilot.autopilot(conn, "close")
-                    conn_sim.apply(conn, axis, main, throttle)
+                    conn_sim.apply(conn, axis, main, throttle=throttle)
                     if conn.over:
                         break
                 got[conn.outcome or "never"] = got.get(conn.outcome or "never",

@@ -1944,6 +1944,32 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 
 ## The parts that will bite you
 
+- **`conn.apply` takes `ticks` and `throttle` by keyword only, and that is a bug
+  fix.** They used to be positional, and four checks called
+  `apply(conn, axis, main, throttle)` — putting the throttle into `ticks`, where
+  `max(1, ticks)` quietly rounded it to one, and leaving the throttle at its
+  default. So every flight those checks flew had **the main drive wide open**,
+  which is the one thing `pilot.usable_throttle` exists to prevent: an
+  unthrottled drive made a bigger engine *worse*, because one tick of a fusion
+  torch is 124 m/s and the computer would light it to trim ten. The checks were
+  verifying a ship the game does not fly, and one of them —
+  "a lopsided hull still makes orbit, slower and dearer" — was passing for that
+  reason. Re-measured at a body where the drive does the work, one engine takes
+  **2.32× the time and 1.91× the mass**; at a small body, where an orbit climb is
+  thruster work, the same comparison comes out 0.79× and the cap has nothing to
+  bite on. If you add a call to `apply`, the signature will not let you make
+  this mistake.
+- **An approach with nothing left to burn is over.** Every orbit check flew with
+  `conn.rcs = 99999`, and `orbits.heights_for` offers a rung on `holdable` alone
+  — whether the thrusters are *fine* enough — and has never asked whether the
+  tank is *big* enough. Flown with the twenty tonnes a hull carries, the high
+  rung of a 153 km asteroid spent the lot in about two thousand ticks and then
+  ordered a burn every tick for another eighteen thousand, refused each time by
+  `can_burn`: nothing moved, nothing was said, the approach never ended.
+  `outcome.resolve` now ends it — as `orbit` if the hull is in a sound one, which
+  it reports along with the height it actually reached, and as `dry` if it is not
+  in orbit and no longer closing. Still closing is left alone: a dry hull can
+  arrive on momentum, and taking the approach away from it would be wrong.
 - **Two fields were being written and read by nobody for as long as their
   features have existed.** `Rumour.heard_at` recorded the port you were told
   something at, and truth was a per-kind coin flip — so a story about the far
@@ -3356,8 +3382,14 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   ones withheld genuinely cannot, that the height is a trade in both
   directions, that the fuel the helm quotes for leaving an orbit is the fuel
   the transfer spends, and that the panel and the sim never disagree about
-  whether this is an orbit. One limitation is recorded rather than hidden — see
-  the check's own message and task #83.
+  whether this is an orbit. Two checks were added when `apply`'s signature was
+  fixed: **every offered height resolves on the tank a hull actually carries**
+  (32 approaches, all inside 6,000 ticks, 31 in orbit and one run dry — where one
+  used to run 60,000 ticks and never resolve), and **a dry hull is told what it
+  has** rather than left ordering refused burns. Two limitations are recorded
+  rather than hidden: the height precision at a small body (task #102) and the
+  plane change that is most of what a climb costs (task #101), both with the
+  measurements that found them.
 - **`test_provenance.py`** measures both revived fields over samples big enough
   to see a rate in: 2,214 stories from six sectors come true 77% of the time from
   a local source and 45% from the far side, the trust figure the desk prints

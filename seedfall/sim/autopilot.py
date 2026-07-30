@@ -120,6 +120,22 @@ def target_velocity(conn: Conn, mode: str) -> list | None:
         # Round already: now move it. Vis-viva for the transfer from here to
         # the height asked for, `v² = mu(2/r − 1/a)` with `a` the semi-major
         # axis of the ellipse between them — no constant of any kind.
+        #
+        # **A thrust-limited spiral was tried here and is worse**, which is
+        # worth recording because it is the obvious next idea. Demanding
+        # circular speed nudged by one pulse toward the aim keeps the orbit
+        # round the whole way up and settles beautifully at a small body — and
+        # at a large one it *descends into the ground*. The demand `side` is the
+        # tangent **in the xy plane**, so an inclined arrival is asked to flatten
+        # itself, and that plane change is worth thousands of metres a second at
+        # a 57,000 km world: measured, the axis fell 62,133 → 56,737 km over
+        # 1,288 ticks with the main drive at full throttle the whole way, and the
+        # hull went aground. The full transfer demand is big enough to climb
+        # *while* being dragged into the plane; a one-pulse demand is not.
+        #
+        # The plane change is a real defect and is filed as its own task rather
+        # than tuned around here — the fix is a demand that keeps the orbit's own
+        # plane, not a bigger number in this expression.
         transfer = (r + aim) * 0.5
         speed = math.sqrt(max(0.0, conn.target.mu * (2.0 / r - 1.0 / transfer)))
         return [side[i] / length * speed * 1000.0 for i in range(3)]

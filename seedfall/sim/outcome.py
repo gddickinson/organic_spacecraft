@@ -42,6 +42,18 @@ def at_wanted_height(conn) -> bool:
                                                   1.0)
 
 
+def _dry(conn) -> bool:
+    """Can this hull no longer fire even one thruster pulse?
+
+    Asked through `pilot.burn_cost`, which is the one door onto what a burn
+    costs — the same function `conn.can_burn` refuses on and `conn.apply` spends
+    through, so the outcome cannot disagree with them about whether a pulse is
+    affordable.
+    """
+    from . import pilot
+    return conn.rcs < pilot.burn_cost(conn, False)
+
+
 def impact_damage(speed: float, safe_closing: float, base: float) -> float:
     """What hitting something at this speed takes off the hull.
 
@@ -77,6 +89,27 @@ def resolve(conn, *, safe_closing: float, impact_base: float,
     def hurt(speed: float) -> float:
         return impact_damage(speed, safe_closing, impact_base)
 
+    # **An approach with nothing left to burn is over.** Found by flying the
+    # heights the conn offers with the tank a hull actually carries: at the high
+    # rung of a 153 km asteroid the computer spent all twenty tonnes in about
+    # two thousand ticks getting to 95% of the height, and then went on ordering
+    # a burn every tick for another eighteen thousand — refused each time by
+    # `conn.can_burn`, so nothing moved and nothing was said. The approach never
+    # resolved, and a captain watching the conn saw the computer working and the
+    # numbers not changing.
+    #
+    # Two cases, and they end differently. A dry hull that *is* in a sound
+    # orbit has an orbit — just not the one it asked for — and the orbit branch
+    # below accepts it and says which. A dry hull that is not in orbit and no
+    # longer closing has nothing left that can change, so the approach is over.
+    # One that is still closing might yet arrive on momentum, and is left to.
+    if _dry(conn) and not in_orbit(conn) and conn.closing <= 0:
+        conn.outcome = "dry"
+        conn.log.append(
+            f"The thruster tanks are dry {r - hull:,.0f} km off "
+            f"{conn.target.name}, and the computer has stopped asking.")
+        return
+
     if conn.target.kind == "body":
         if r <= hull:
             conn.outcome = "aground"
@@ -85,11 +118,23 @@ def resolve(conn, *, safe_closing: float, impact_base: float,
                 f"The hull is down on {conn.target.name} at "
                 f"{conn.speed:,.0f} m/s. That was not a landing.")
             return
-        if in_orbit(conn) and at_wanted_height(conn):
+        # `or _dry(conn)`: an orbit you cannot improve on is the orbit you
+        # have. Without it a hull that spent its tank climbing to 95% of the
+        # height asked for went on ordering refused burns for the rest of the
+        # flight and the approach never ended — measured, eighteen thousand
+        # ticks of a computer working and nothing changing.
+        if in_orbit(conn) and (at_wanted_height(conn) or _dry(conn)):
             conn.outcome = "orbit"
+            axis = semi_major_km(conn)
+            want = conn.orbit_want_km
+            short = (want > 0 and abs(axis - want)
+                     > max(want * ORBIT_HEIGHT_SLACK, 1.0))
             conn.log.append(
                 f"Orbit at {r - hull:.0f} km, "
-                f"{conn.speed:.0f} m/s. The drive can rest.")
+                f"{conn.speed:.0f} m/s. The drive can rest."
+                + (f" {axis:,.0f} km against the {want:,.0f} asked for, and "
+                   "the tanks are dry — this is the orbit you have."
+                   if short else ""))
             return
     elif r <= hull:
         speed = conn.speed

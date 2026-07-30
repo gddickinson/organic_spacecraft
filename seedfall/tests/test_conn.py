@@ -375,7 +375,12 @@ def run(suite: Suite) -> None:
             "a dry ship cannot even coast — which is the one thing it must "
             "still be able to do")
 
-        # And enough for a pulse but not a main burn.
+        # And enough for a pulse but not a main burn. On a *fresh* conn: an
+        # approach with nothing left to burn and nothing still happening now
+        # ends as `dry` (see `outcome.resolve`), and asking a finished approach
+        # whether it can burn gets "the approach is finished" — which is true,
+        # and not what this half of the check is about.
+        conn = conn_sim.start(game, contact)
         conn.rcs = conn_sim.RCS_COST
         assert conn_sim.can_burn(conn, main=False)[0]
         assert not conn_sim.can_burn(conn, main=True)[0], (

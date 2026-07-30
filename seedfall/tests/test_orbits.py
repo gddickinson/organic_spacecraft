@@ -53,7 +53,7 @@ def _fly(game, contact, want_km: float, limit: int = 60000):
     conn.orbit_want_km = want_km
     for _tick in range(limit):
         axis, main, throttle = autopilot.autopilot(conn, "orbit")
-        conn_sim.apply(conn, axis, main, throttle)
+        conn_sim.apply(conn, axis, main, throttle=throttle)
         if conn.over:
             break
     return conn
@@ -179,6 +179,108 @@ def run(suite: Suite) -> None:
         return (f"{reached} of {reached + missed} heights flown to within "
                 f"{worst:.1%}; every one a sound orbit; "
                 f"{withheld} rungs withheld as unholdable")
+
+    @check("an approach with the tank a hull carries always resolves")
+    def _():
+        # **Every orbit check in this file flew with `conn.rcs = 99999`**, and
+        # the one that offers heights never asked whether the tank could pay for
+        # one. Flown with the twenty tonnes a hull actually carries, the high
+        # rung of a 153 km asteroid spent the lot in about two thousand ticks
+        # getting to 95% of the height and then ordered a burn every tick for
+        # another eighteen thousand — refused each time by `can_burn`, so nothing
+        # moved, nothing was said, and the approach never ended.
+        budget = 6000
+        slow, dry, orbits_made = [], 0, 0
+        for seed in ("orb-a", "orb-b", "orb-c"):
+            game = new_game(seed)
+            for _index, body, contact in _bodies(game):
+                probe = conn_sim.start(game, contact)
+                for hid, _label, want in orbits.heights_for(probe.target,
+                                                            probe.rcs_dv):
+                    conn = conn_sim.start(game, contact)
+                    conn.orbit_want_km = want
+                    ticks = 0
+                    for ticks in range(1, budget + 1):
+                        axis, main, throttle = autopilot.autopilot(conn, "orbit")
+                        conn_sim.apply(conn, axis, main, throttle=throttle)
+                        if conn.over:
+                            break
+                    if not conn.over:
+                        slow.append(f"{body.name} {hid} still flying after "
+                                    f"{ticks:,} ticks with {conn.rcs:.2f} t left")
+                    elif conn.outcome == "dry":
+                        dry += 1
+                    elif conn.outcome == "orbit":
+                        orbits_made += 1
+        assert not slow, (
+            f"{len(slow)} approach(es) never resolved on a real tank: {slow[:3]}")
+        assert orbits_made > 20, orbits_made
+        return (f"{orbits_made + dry} approaches on a real tank, every one "
+                f"resolved inside {budget:,} ticks: {orbits_made} in orbit, "
+                f"{dry} run dry")
+
+    @check("a dry hull is told what it has, not left ordering burns")
+    def _():
+        # Two endings, and they are different things. Dry in a sound orbit is an
+        # orbit — the one you have rather than the one you asked for, and the log
+        # says which. Dry, not in orbit and no longer closing is over.
+        game = new_game("orb-a")
+        found = {}
+        for _index, body, contact in _bodies(game):
+            probe = conn_sim.start(game, contact)
+            for hid, _label, want in orbits.heights_for(probe.target,
+                                                        probe.rcs_dv):
+                conn = conn_sim.start(game, contact)
+                conn.orbit_want_km = want
+                for _tick in range(6000):
+                    axis, main, throttle = autopilot.autopilot(conn, "orbit")
+                    conn_sim.apply(conn, axis, main, throttle=throttle)
+                    if conn.over:
+                        break
+                if conn.outcome == "orbit" and conn.rcs < conn_sim.RCS_COST:
+                    found.setdefault("short", (body.name, hid, conn))
+        assert "short" in found, (
+            "no approach in this system spent its tank short of the height "
+            "asked for, so this check is not measuring anything")
+        name, hid, conn = found["short"]
+        axis = orbits.semi_major_km(conn)
+        assert orbits.in_orbit(conn), "reported an orbit that is not one"
+        assert abs(axis - conn.orbit_want_km) > conn.orbit_want_km * 0.035, (
+            "this one made the height after all")
+        said = " ".join(conn.log[-1:])
+        assert "asked for" in said and "dry" in said, (
+            f"the log does not say what happened: {said!r}")
+        assert f"{axis:,.0f}" in said, (
+            f"the log does not say what height it reached: {said!r}")
+
+        # And the other ending: dry, not in orbit, and nothing left that can
+        # change. **Drifting outward, not standing still** — a dry hull left
+        # stationary is *falling*, which is closing, and a fall still resolves
+        # itself as aground. That distinction is the whole reason the rule asks
+        # about the closing rate: an approach that can still arrive is left to.
+        contact = next(c for _i, _b, c in _bodies(game))
+        bare = conn_sim.start(game, contact)
+        bare.rcs = 0.0
+        out = math.dist(bare.pos, (0.0, 0.0, 0.0)) or 1.0
+        bare.vel = [p / out * 40.0 for p in bare.pos]      # opening, m/s
+        conn_sim.apply(bare, None)
+        assert bare.closing < 0, bare.closing
+        assert bare.outcome == "dry", (
+            f"a dry hull drifting away from {contact.name} resolved as "
+            f"{bare.outcome!r}")
+        assert "dry" in " ".join(bare.log[-1:]).lower(), bare.log[-1:]
+
+        # A hull that is still closing is *not* cut off: it may yet arrive on
+        # momentum, and taking the approach away from it would be wrong.
+        falling = conn_sim.start(game, contact)
+        falling.rcs = 0.0
+        falling.vel = [0.0, 0.0, 0.0]
+        conn_sim.apply(falling, None)
+        assert falling.outcome != "dry", (
+            "a dry hull still falling toward the body was cut off, and it can "
+            "still arrive")
+        return (f"{name} {hid}: reported {axis:,.0f} km against "
+                f"{conn.orbit_want_km:,.0f} asked for, and said why")
 
     @check("a height withheld really is beyond the hull")
     def _():
@@ -404,7 +506,7 @@ def run(suite: Suite) -> None:
                 conn.orbit_want_km = want
                 for _tick in range(3000):
                     axis, main, throttle = autopilot.autopilot(conn, "orbit")
-                    conn_sim.apply(conn, axis, main, throttle)
+                    conn_sim.apply(conn, axis, main, throttle=throttle)
                     said = orbits.orbit_note(conn)
                     is_orbit = orbits.in_orbit(conn)
                     looked += 1
