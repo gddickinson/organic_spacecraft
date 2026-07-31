@@ -158,6 +158,7 @@ KIN = {
     "berths3d": ("standoff", "silhouettes"),
     "works3d": ("works3d",),
     "robots": ("robots",),
+    "robots3d": ("robots3d",),
     "readiness": ("readiness",),
     "parley": ("parley", "combat"),
     "stations": ("routing", "orderplan", "seatwork", "turnplan", "gunnery"),

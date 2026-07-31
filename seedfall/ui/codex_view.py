@@ -237,6 +237,9 @@ class CodexView(View):
     def _machine_card(self, r, known) -> Card:
         have = not r.tech or r.tech in known
         card = Card(selectable=False)
+        # The picture first, as on a hull card and a colony card. The Machines
+        # tab was the last catalogue page in the game that was pure text.
+        card.add(Thumb("robot", r.id, height=96))
         card.add(label(r.name, "h3", FAMILY_TINT[r.family] if have else "dim"))
         card.add(label(f"{r.binomial} · {FAMILY_LABEL[r.family]}"
                        if r.binomial else FAMILY_LABEL[r.family], "sub"))

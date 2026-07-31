@@ -27,6 +27,7 @@ from ..data.robots import (DUTIES, ROBOTS, ROBOTS_BY_ID, autonomy_name,
                            autonomy_note, autonomy_tint, by_family)
 from ..sim import robots as robots_sim
 from .robots_panel import lag_line, where_line
+from .thumb3d import Thumb
 from .widgets import Card, Panel, Pill, button, label, note, spacer
 
 
@@ -96,6 +97,7 @@ class MachineShop:
     def _card(self, game, klass) -> Card:
         ok, why = robots_sim.can_build(game, klass.id)
         card = Card(selectable=False)
+        card.add(Thumb("robot", klass.id, height=88))
         card.add(label(klass.name, "h3",
                        FAMILY_TINT[klass.family] if ok else "dim"))
         card.add(Pill(autonomy_name(klass.autonomy),

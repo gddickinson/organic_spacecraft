@@ -2075,6 +2075,10 @@ seedfall/
 │   │                   one silhouette each, where there was one shipyard
 │   ├── ships3d.py      and other people's ships by what they are doing:
 │   │                   courier, trader, prospector, patrol, no transponder
+│   ├── robots3d.py     a body per machine class, built from its own card:
+│   │                   duties give it arms, a rig, a dish or a pack; the
+│   │                   autonomy rung gives it a sensor head or a relay mast;
+│   │                   tonnage gives it bulk and level a second pair of hands
 │   ├── robots.py       20 classes of machine across the same five yards,
 │   │                   each rated on the ECSS autonomy ladder (E1 teleoperated
 │   │                   … E4 goal-directed) — the number that decides where a

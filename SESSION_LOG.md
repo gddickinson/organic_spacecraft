@@ -2,6 +2,44 @@
 
 Running progress log. Newest first.
 
+## 2026-07-31 — SEEDFALL: what a machine looks like, from what it is for (#110, fourth slice)
+
+The Machines tab was the last catalogue page in the game that was a wall of
+text. `data/robots3d.py` gives each of the twenty classes a body, built out of
+its own entry the way `works3d` builds a holding — so a new class gets a body
+without anybody drawing one, and there is a check that proves it: an invented
+E4, level-five, eleven-tonne mining-and-survey frame comes out as `trunk, rig,
+dish, thrusters, hands, head`.
+
+The vocabulary is the one real robotics uses — what it stands on, what it works
+with, what it senses with. Cargo gives it a slung hold, mining gives it cutting
+heads, repair and works give it manipulators, survey a dish, ground a ventral
+pack. **Autonomy is drawn**: at E3 and above a machine carries a sensor head,
+because deciding for itself is what it is for and the thing that decides needs
+something to decide with; below that it carries a relay mast, because somebody
+else is flying it. A class with no watch that goes to the body has thrusters
+and no feet. A Loader Exoframe is a harness with a person-shaped hole; an
+Anchorite is a rack and nothing else.
+
+**Three defects, all the same defect.** The silhouette check found a gun mount
+drawn exactly where a hybrid's graft band already sat — a Wet-wired Gunner
+rendering **100%** the same as a Graft-Pilot; then bulk reaching only the trunk,
+so a 2 t Hullwright and a 4 t Myrmidon shared **95%**; then level drawn nowhere
+at all, so a Precentor rated four looked like a Coral Tender rated two at
+**89%**. Each time the difference was in the data and could not be seen. The
+fixes were bulk through the limbs and stance, and a second pair of manipulators
+for a senior machine.
+
+The bar is 88%, and higher than `test_silhouettes`' 72% on purpose: that one is
+for gates against couriers, long spindly things whose outlines barely meet.
+These are compact frames that all stand on legs and carry arms, and the honest
+worst pair is a Precentor against a Coral Tender at 86%. Every defect the check
+caught sat at 89% or above, so the margin is real rather than a rubber stamp.
+
+The reachability guard caught one more: `robots3d.is_robot`, written by analogy
+with `works3d.is_work` and needed by nothing, since `mesh_for` already returns
+None for a class that has no body. Deleted rather than given an invented caller.
+
 ## 2026-07-31 — SEEDFALL: hands that are not people (#110)
 
 Asked for robots — robotic ships, robots on stations, robot crew, cyborgs,

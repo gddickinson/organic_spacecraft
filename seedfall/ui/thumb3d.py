@@ -45,6 +45,14 @@ HALF_FOV = math.radians(29)
 #: nothing clips. At 2.4 the mirror lost its rim.
 WORK_AT = 2.7
 
+#: Where a machine sits, and how it is held. Authored about a unit tall, so
+#: closer than a work; the tilt is `models3d.ATTITUDE["work"]`'s, because the
+#: same argument applies — a thing with a head and feet has a right way up, and
+#: a positive tilt puts its head at the bottom of the card.
+ROBOT_AT = 2.1
+ROBOT_TILT = -1.32
+ROBOT_SPIN = 0.7
+
 #: The void a portrait is drawn against. `theme.TINTS` has no key for it —
 #: `theme.tint("void")` falls back to a *light* ink, which is how the first
 #: draft came out with every hull on a pale grey card.
@@ -120,6 +128,18 @@ def paint(painter, camera: render3d.Camera, kind: str, subject) -> None:
         shown = models3d.present("anchorage", look)
         render3d.draw(painter, camera, shown["mesh"], (0.0, 0.0, WORK_AT),
                       1.0, LIGHT, spin=0.6, tilt=shown["tilt"])
+    elif kind == "robot":
+        # A machine, through the same renderer everything else uses. Held
+        # nearer broadside than a berth and the right way up, like a work:
+        # a robot has a head, feet and a front, and at the berth attitude
+        # every one of them was a foreshortened lump.
+        from ..data import robots3d
+        look = getattr(subject, "id", subject)
+        mesh = robots3d.mesh_for(look)
+        if mesh is None:
+            return
+        render3d.draw(painter, camera, mesh, (0.0, 0.0, ROBOT_AT), 1.0, LIGHT,
+                      spin=ROBOT_SPIN, tilt=ROBOT_TILT)
     elif kind == "ship":
         shown = models3d.present("hull", subject)
         render3d.draw(painter, camera, shown["mesh"], (0.0, 0.0, SUBJECT_AT),
