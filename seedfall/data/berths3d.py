@@ -154,8 +154,56 @@ BERTH_POINTS = {
 }
 
 
+#: What *kind* of provision each sort of berth is, which decides how a hull
+#: gets onto it rather than merely where.
+#:
+#: - **fitting** — a hard point on the structure's own hull. You come
+#:   alongside it and make fast: the quay's arm, the hub's masts.
+#: - **standoff** — the structure does not want you against it at all. You
+#:   hold station off the end of a gantry and a boom comes out and takes you.
+#:   A holding is a bonded store on a frame of tanks: nothing about it wants a
+#:   freighter's nose in among them, and its four gantry stubs are exactly
+#:   what a boom would swing from.
+#:
+#: The sort is here beside the meshes because it is a fact about the *thing*,
+#: and because a boom that comes out has to come out of something you can see.
+BERTH_SORTS = {
+    "quay": "fitting",
+    "hub": "fitting",
+    "holding": "standoff",
+    "gate": "fitting",
+}
+
+#: How far off a standoff berth a hull waits, as a multiple of the fitting's
+#: own distance from the structure's pole. The boom covers the rest — so this
+#: is *the length of the boom*, in the only units the model has.
+STANDOFF = 2.4
+
+
+def berth_sort(sort: str) -> str:
+    """Whether this kind of berth is a fitting or a standoff."""
+    return BERTH_SORTS.get(sort, "fitting")
+
+
 def berth_points(sort: str) -> tuple:
-    """Where a ship ties up on this sort of berth, in model space."""
+    """Where a ship ties up on this sort of berth, in model space.
+
+    For a standoff that is *off the end of the boom*, not on the gantry: the
+    place the hull actually waits. The gantry stub is where the boom is hinged
+    and is drawn there; a ship that flew to it would be inside the tank frame.
+    """
+    points = BERTH_POINTS.get(sort, BERTH_POINTS[DEFAULT_BERTH])
+    if berth_sort(sort) != "standoff":
+        return points
+    return tuple((name, tuple(c * STANDOFF for c in at)) for name, at in points)
+
+
+def hinge_points(sort: str) -> tuple:
+    """Where a standoff's booms are hinged — on the structure itself.
+
+    The berth is off the end of the boom; this is the other end of it, so a
+    window can draw the arm reaching out to a hull that is holding station.
+    """
     return BERTH_POINTS.get(sort, BERTH_POINTS[DEFAULT_BERTH])
 
 #: What a berth of an unknown sort gets. A quay: the humblest thing that is

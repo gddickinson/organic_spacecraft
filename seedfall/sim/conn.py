@@ -193,6 +193,10 @@ class Conn:
     #: so a berth assigned by the port cannot be quietly swapped for one the
     #: ship preferred.
     cleared: object = None
+    #: How far a standoff berth's boom has come out, 0 to 1. Only a standoff
+    #: has one; see `sim/moorings.boom_step`. It runs out while the hull holds
+    #: station in reach and steady, and back in when it does not.
+    boom: float = 0.0
 
     @property
     def over(self) -> bool:
@@ -475,6 +479,10 @@ def _step(conn: Conn, dt: float) -> None:
         for i in range(3):
             conn.pos[i] += conn.vel[i] * h / 1000.0    # m/s · s → km
         conn.elapsed += h
+        # The boom, if this is a berth with one: it runs out while the hull
+        # holds station off it, and back in the moment it does not.
+        from . import moorings
+        moorings.boom_step(conn, h)
         # Contact anywhere along the path, not merely at the end of it.
         if _sweep_min(was, conn.pos) <= conn.target.radius_km:
             _touch(conn)

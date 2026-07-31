@@ -197,6 +197,61 @@ def reach_km(target) -> float:
     return float(getattr(target, "radius_km", 0.0) or 0.0) * BERTH_REACH
 
 
+#: How long a boom takes to come out and take a hull, in seconds. A minute
+#: and a half: long enough that holding still is a thing a pilot has to *do*
+#: rather than a threshold they cross, short enough that it is not a wait.
+BOOM_SECONDS = 90.0
+
+#: How steady a hull must be for a boom to take it, as a share of the rate a
+#: fitting allows. **Derived**, because the two are the same kind of number
+#: and a standoff is the harder one: a fitting you arrive at, a boom has to
+#: catch, and it catches something that is holding station rather than still
+#: moving. A third of the rate.
+BOOM_STEADY = 0.34
+
+
+def sort_of(target) -> str:
+    """Whether this structure's berths are fittings or standoffs."""
+    from ..data.berths3d import berth_sort
+    if getattr(target, "kind", "") != "anchorage":
+        return "fitting"
+    return berth_sort(getattr(target, "berth", "") or "")
+
+
+def hold_rate(target) -> float:
+    """How steady a hull must be for this structure's boom, in m/s."""
+    from .conn import ALONGSIDE_RATE
+    return ALONGSIDE_RATE * BOOM_STEADY
+
+
+def boom_step(conn, seconds: float) -> float:
+    """Run the boom out — or let it back in — for one tick. Returns 0..1.
+
+    **The whole of what makes a standoff a different act.** At a fitting you
+    arrive; here you *hold*, and the arm comes to you while you do. Drift off
+    the berth or get above the rate the arm can catch and it goes back in, so
+    the manoeuvre is station-keeping rather than a threshold to cross.
+    """
+    if sort_of(conn.target) != "standoff":
+        conn.boom = 0.0
+        return 0.0
+    found = nearest(conn)
+    steady = rates(conn)
+    holding = (found is not None and found["at_it"]
+               and abs(steady["closing"]) <= hold_rate(conn.target)
+               and steady["cross"] <= hold_rate(conn.target))
+    pace = float(seconds) / BOOM_SECONDS
+    conn.boom = max(0.0, min(1.0, conn.boom + (pace if holding else -pace)))
+    return conn.boom
+
+
+def captured(conn) -> bool:
+    """Has the boom got the ship? True for anything that is not a standoff."""
+    if sort_of(conn.target) != "standoff":
+        return True
+    return getattr(conn, "boom", 0.0) >= 1.0
+
+
 def at_berth(conn) -> bool:
     """Is the ship at a berth — not merely near the structure?
 

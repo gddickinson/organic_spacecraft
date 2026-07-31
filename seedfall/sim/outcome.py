@@ -79,7 +79,11 @@ def alongside(conn, alongside_km: float, alongside_rate: float) -> bool:
     from . import moorings
     return (conn.range_km <= alongside_km + conn.target.radius_km
             and conn.speed <= alongside_rate
-            and moorings.at_berth(conn))
+            and moorings.at_berth(conn)
+            # At a standoff nothing is made fast until the boom has you. The
+            # ship is holding station in open space off the end of a gantry:
+            # near enough and slow enough is the *start* of the manoeuvre.
+            and moorings.captured(conn))
 
 
 def resolve(conn, *, safe_closing: float, impact_base: float,

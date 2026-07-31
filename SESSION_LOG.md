@@ -2,6 +2,49 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: the dock that comes out to you (#108, second slice)
+
+At a fitting you arrive. At a **standoff** berth you hold still, and the
+structure comes and gets you — which is a different manoeuvre, not a longer
+one, and it needed the clearance protocol built in the last slice to be sayable
+at all: a boom is a *procedure*, and no approaching pilot could infer it from
+a mesh.
+
+A holding's four gantry stubs became standoff berths. `berths3d.STANDOFF` puts
+the berth 429 m out of a 400 m hull with `hinge_points` giving the other end of
+the arm, so the thing the ship aims at is off the structure entirely.
+`moorings.boom_step` runs the arm out over 90 seconds while the hull is inside
+reach and steadier than `hold_rate` — a third of `ALONGSIDE_RATE`, 0.51 m/s —
+and runs it back in the moment it is not. `outcome.alongside` now also asks
+`moorings.captured`, so near and slow is no longer moored: the arm has to have
+you. The clearance says so in its own words, with its own rate: *"Fleet Hub:
+cleared for gantry 1. Hold station off the boom at 0.51 m/s or steadier and it
+will come out to you; the gantry travels 0.38 m/s."* Flown end to end, the
+computer holds and is captured at 47 minutes.
+
+**The check was the defect, again, and this one is worth writing down.** The
+drawing check counted lit pixels in the frame — 26 with the arm in, 43 at half,
+63 at full — and rising numbers looked exactly like an arm coming out. They
+were not. A mutation that drew the tip at the berth whatever `conn.boom` said,
+an arm permanently at full stretch, passed at 44 against 43: the count was
+mostly reading the change of tint and pen at capture (amber 1.8 px while it
+travels, lumen 2.4 px once it has you), not length. Two effects moving the same
+way, and only one of them was the claim.
+
+So the picture is now asked the question the code claims to answer: walk the
+arm's own path — hinge to berth, from the data, through the same camera the
+window builds — and find the furthest lit point along it. Commanded against
+drawn: 0%→0%, 25%→32%, 50%→56%, 75%→82%, 100%→100%. The bias is the tip's own
+dot. All three drawing mutations now die on it.
+
+Thirteen mutations, twelve caught; the thirteenth is a no-op and recorded as
+one in `viewport._boom` — `boom_step` already zeroes the boom at anything that
+is not a standoff, so the window's own guard is a second bolt on a locked door,
+kept deliberately.
+
+**Next on this task**: bays inside structures big enough to fly into, with an
+aperture to pass through and a berth within.
+
 ## 2026-07-30 — SEEDFALL: docking is granted, not taken (#108, first slice)
 
 Berthing was something the *ship* worked out — read a table of fittings, pick

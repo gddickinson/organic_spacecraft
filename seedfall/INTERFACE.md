@@ -429,10 +429,24 @@ fitting you get — and `test_clearance` holds them to the metre, because a
 clearance that named one place while the flying went to another would be the
 worst of both.
 
-**Not built yet, and named in `Clearance.sort` so the field means something
-now rather than being widened later**: berths that stand off the structure on
-a boom that extends to capture a holding ship, and bays inside structures big
-enough to fly into.
+**A standoff berth is the second sort, and a different manoeuvre.** At a
+fitting you arrive; at a standoff you hold still and the structure comes and
+gets you. A holding's four gantry stubs are standoff berths: `berths3d.
+STANDOFF` puts the berth 429 m out of a 400 m hull and `hinge_points` gives
+the other end of the arm, so what the ship aims at is off the structure
+entirely. `moorings.boom_step` runs the arm out over `BOOM_SECONDS` while the
+hull is inside reach and steadier than `hold_rate` — `BOOM_STEADY` of
+`ALONGSIDE_RATE`, 0.51 m/s — and back in the moment it is not, so the whole
+content of the manoeuvre is station-keeping rather than a threshold to cross.
+`outcome.alongside` also asks `moorings.captured`, so near and slow is not
+moored until the arm has you, and `clearance.line` gives the standoff its own
+instruction and its own rate rather than a fitting's. `viewport._boom` draws
+it reaching from hinge to tip, amber while it travels and lumen once it has
+you.
+
+**Still to build, and named in `Clearance.sort` so the field means something
+now rather than being widened later**: bays inside structures big enough to
+fly into, with an aperture to pass through and a berth within.
 
 **One hard sun.** The renderer lit everything with `AMBIENT = 0.40` — a
 studio fill, not a star. Every shadowed face came up to the same grey, and a
@@ -4183,6 +4197,20 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   its collar; the approach flying the berth the port assigned rather than the
   one it fancied; and the clearance agreeing with the geometry to the metre.
   Nine mutations, nine caught.
+
+- **`test_standoff.py`** holds the berth that comes out to you: the berth is
+  off the hull rather than on it; holding still runs the boom out and drifting
+  runs it back in; near and slow is not moored until it has you; the clearance
+  says a different act in different words at a tighter rate; and the arm is
+  *drawn* as far out as it has come. That last check was the interesting one —
+  it first counted lit pixels in the whole frame, which rose with the boom and
+  looked convincing, but a mutation drawing the arm permanently at full stretch
+  passed it 44 against 43, because the count was mostly reading the change of
+  tint and pen at capture rather than length. It now walks the arm's own path
+  through the same camera the window builds and finds the furthest lit point:
+  commanded against drawn, 25%→32%, 50%→56%, 75%→82%, 100%→100%. Thirteen
+  mutations, twelve caught, the thirteenth a no-op recorded as one in
+  `viewport._boom`.
 
 - **`test_moorings.py`** holds the berths: every sort has them and they scale
   with the structure; the far side is not a berth at four sorts and four

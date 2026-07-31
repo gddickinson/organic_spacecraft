@@ -154,6 +154,7 @@ KIN = {
     "knock": ("knock",),
     "moorings": ("moorings", "conn"),
     "clearance": ("clearance", "berthing"),
+    "berths3d": ("standoff", "silhouettes"),
     "readiness": ("readiness",),
     "parley": ("parley", "combat"),
     "stations": ("routing", "orderplan", "seatwork", "turnplan", "gunnery"),
@@ -226,7 +227,7 @@ KIN = {
     "surfaces": ("surfaces", "worlds", "lighting"),
     "hulls3d": ("hullshapes", "combat"),
     "stars3d": ("starlight", "cameras"),
-    "berths3d": ("silhouettes",), "ships3d": ("silhouettes",),
+    "ships3d": ("silhouettes",),          # berths3d is above, with "standoff"
 }
 
 

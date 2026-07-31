@@ -401,6 +401,7 @@ class Viewport(QWidget):
                 render3d.draw(p, camera, mesh, (0.0, 0.0, 0.0),
                               conn.target.radius_km, self.light(conn),
                               spin=spin, tilt=tilt, glare=hard)
+                self._boom(p, camera, conn)
             if ringed:
                 render3d.draw(p, camera, worlds3d.RINGS_FRONT, (0.0, 0.0, 0.0),
                               conn.target.radius_km, self.light(conn),
@@ -425,7 +426,11 @@ class Viewport(QWidget):
             return
         sx, sy = toward[0], toward[1]
         # A bracket and the range, so the main screen is readable on its own.
-        box = max(radius + 14, 18)
+        # **Capped to the frame**: at a standoff berth the hull holds station
+        # a few tens of metres off a structure that fills the view, and a
+        # bracket sized to its screen radius came out wider than the window —
+        # a dashed line straight across the picture, marking nothing.
+        box = max(min(radius + 14, min(w, h) * 0.42), 18)
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.setPen(QPen(QColor(theme.tint("warn")), 1.2, Qt.PenStyle.DashLine))
         p.drawRect(QRectF(sx - box, sy - box, box * 2, box * 2))
@@ -434,6 +439,51 @@ class Viewport(QWidget):
         span = (f"{r_km * 1000:,.0f} m" if r_km < 2 else f"{r_km:,.1f} km")
         p.drawText(QPointF(sx - box, sy - box - 6),
                    f"{conn.target.name} · {span}")
+
+    def _boom(self, p: QPainter, camera, conn) -> None:
+        """The arm coming out to take the ship, at a standoff berth.
+
+        **Drawn because it is real.** `sim/moorings.boom_step` runs it out
+        while the hull holds station and back in when it drifts, and a
+        manoeuvre whose whole content is *hold still while this happens*
+        cannot be flown off a percentage in a table. It reaches from the
+        gantry it is hinged on toward the berth, as far as it has got.
+        """
+        from ..data.berths3d import hinge_points
+        from ..sim import moorings
+
+        # Belt and braces, knowingly: `moorings.boom_step` already zeroes the
+        # boom at anything that is not a standoff, so removing this line draws
+        # nothing anywhere and no check moves. Kept because the window should
+        # not depend on the sim's housekeeping to avoid drawing a gantry arm
+        # on a quay that has none.
+        if moorings.sort_of(conn.target) != "standoff":
+            return
+        out = float(getattr(conn, "boom", 0.0) or 0.0)
+        if out <= 0.0:
+            return
+        want = getattr(conn, "berth", "")
+        scale = float(conn.target.radius_km or 0.0)
+        spin = moorings.spin_at(conn.target, conn.elapsed)
+        cs, sn = math.cos(spin), math.sin(spin)
+        berths = dict(moorings.points(conn.target, spin))
+        for name, at in hinge_points(getattr(conn.target, "berth", "") or ""):
+            if name != want or name not in berths:
+                continue
+            x, y, z = (c * scale for c in at)
+            hinge = (x * cs - y * sn, x * sn + y * cs, z)
+            far = berths[name]
+            tip = tuple(h + (f - h) * out for h, f in zip(hinge, far))
+            here, there = camera.project(hinge), camera.project(tip)
+            if here is None or there is None:
+                return
+            tint = QColor(theme.tint("lumen" if out >= 1.0 else "amber"))
+            p.setPen(QPen(tint, 2.4 if out >= 1.0 else 1.8))
+            p.drawLine(here[0], there[0])
+            p.setBrush(tint)
+            p.setPen(Qt.PenStyle.NoPen)
+            p.drawEllipse(there[0], 3.2, 3.2)
+            return
 
     def glare(self, conn) -> float:
         """How hard this star lights everything, against the Sun.

@@ -107,7 +107,8 @@ def request(game, contact, conn=None) -> Clearance:
         granted=True,
         why=f"{contact.name} clears you for {name}.",
         berth=name, at=tuple(at),
-        sort="collar" if kind == "hull" else "fitting",
+        sort=("collar" if kind == "hull"
+              else moorings.sort_of(target)),
         turn_seconds=period,
         berth_speed=moorings.rim_speed() if period > 0.0 else 0.0,
         hold_km=(moorings.corridor_km(target) if kind == "anchorage"
@@ -115,7 +116,10 @@ def request(game, contact, conn=None) -> Clearance:
         reach_km=(moorings.reach_km(target) if kind == "anchorage"
                   else float(getattr(target, "radius_km", 0.0) or 0.0)
                   * HULL_REACH),
-        max_closing=_max_closing(),
+        max_closing=(moorings.hold_rate(target)
+                     if kind == "anchorage"
+                     and moorings.sort_of(target) == "standoff"
+                     else _max_closing()),
         station=contact.name,
         services=tuple(getattr(contact, "services", ()) or ()),
     )
@@ -198,6 +202,16 @@ def line(cleared: Clearance) -> str:
     """One line for a screen, whichever way the answer went."""
     if not cleared.granted:
         return cleared.why
+    if cleared.sort == "standoff":
+        # A different instruction, because it is a different act: nobody is
+        # asking the hull to come alongside anything. It holds station off the
+        # end of a gantry and the arm comes out and takes it.
+        said = (f"{cleared.station}: cleared for {cleared.berth}. Hold "
+                f"station off the boom at {cleared.max_closing:.2f} m/s or "
+                "steadier and it will come out to you")
+        if cleared.berth_speed > 0.01:
+            said += f"; the gantry travels {cleared.berth_speed:.2f} m/s"
+        return said + "."
     said = (f"{cleared.station}: cleared for {cleared.berth}, "
             f"hold at {cleared.hold_km * 1000:,.0f} m, "
             f"{cleared.max_closing:.1f} m/s or under")

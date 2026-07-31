@@ -344,6 +344,15 @@ class FlightWindow(QDialog):
             # and a pilot nulling that fights the rotation instead of joining
             # it. Measured: a hand-flown approach did exactly that and
             # arrived 482 m from the fitting with its tanks spent.
+            if moorings.sort_of(conn.target) == "standoff":
+                # There is nothing to arrive *at* here — the manoeuvre is
+                # holding still while the arm comes out, so the reading that
+                # matters is how far out it has got.
+                rows.append(("Boom",
+                             f"{conn.boom:.0%} out"
+                             + ("" if conn.boom >= 1.0 else
+                                f" · hold under "
+                                f"{moorings.hold_rate(conn.target):.2f} m/s")))
             on_berth = moorings.rates(conn)
             if on_berth["berth_speed"] > 0.01:
                 rows.append(("On the berth",

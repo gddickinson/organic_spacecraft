@@ -72,6 +72,14 @@ def _copy(conn: Conn) -> Conn:
     out from the two masses, so a twin carrying the dataclass defaults would
     forecast the collision of a different pair of objects.
 
+    The sixth was `boom`, caught the same way. At a standoff berth the arm is
+    already part way out, and how far it has come is the whole state of the
+    manoeuvre: a twin starting it from nought would forecast a hull still
+    ninety seconds from capture when it is in fact about to be taken, and a
+    twin that drifts would forecast the arm running back in from the wrong
+    place. It is carried, and `outcome.alongside` reads it through
+    `moorings.captured` on the twin exactly as it does on the ship.
+
     `landed`, `log`, `outcome` and `damage` are deliberately *not* carried: a
     twin flies from here, and an approach that has already ended cannot be
     forecast. Neither are `struck_damage` and `struck_dv`, for the same
@@ -89,7 +97,7 @@ def _copy(conn: Conn) -> Conn:
                 orbit_want_km=conn.orbit_want_km,
                 throttle=conn.throttle, coast_min=conn.coast_min,
                 mass_t=conn.mass_t, target_mass_t=conn.target_mass_t,
-                berth=conn.berth)
+                berth=conn.berth, boom=conn.boom)
 
 def track(conn, mode: str | None = None, ticks: int = 60,
           every: int = 6) -> list:
