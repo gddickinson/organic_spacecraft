@@ -10,6 +10,8 @@ from ..data.chassis import (CHASSIS, FAMILY_LABEL, FAMILY_NOTE,
                             FAMILY_ORDER, FAMILY_TINT, by_family)
 from ..data.colonies import COLONIES
 from ..data.factions import FACTIONS, standing
+from ..data.part_types import SLOT_LABEL, SLOT_ORDER
+from ..data.parts import PARTS
 from ..data.robots import (DUTIES, ROBOTS, autonomy_name, autonomy_note,
                            autonomy_tint, by_family as robots_by_family,
                            with_duty)
@@ -57,7 +59,8 @@ class CodexView(View):
         self.head("Codex",
                   "The class reference, the powers of the Verge, and the vocabulary.")
         tabs = TabBar([("classes", "Fleet classes"), ("colonies", "Colony classes"),
-                       ("machines", "Machines"), ("sky", "The sky"),
+                       ("machines", "Machines"), ("fittings", "Fittings"),
+                       ("sky", "The sky"),
                        ("factions", "Powers"), ("life", "Life"),
                        ("notes", "Field notes"), ("glossary", "Glossary"),
                        ("about", "About")], self.tab)
@@ -65,7 +68,8 @@ class CodexView(View):
         self.col.addWidget(tabs)
 
         {"classes": self._classes, "colonies": self._colonies,
-         "machines": self._machines, "sky": self._sky,
+         "machines": self._machines, "fittings": self._fittings,
+         "sky": self._sky,
          "factions": self._factions, "life": self._life,
          "notes": self._notes, "glossary": self._glossary,
          "about": self._about}[self.tab]()
@@ -253,6 +257,50 @@ class CodexView(View):
             f"{amount:.3g} {key}" for key, amount in sorted(r.upkeep.items()))))
         if not have:
             card.add(Pill(f"needs {r.tech}", "dim"))
+        return card
+
+    def _fittings(self) -> None:
+        """Everything that bolts to a hull, by the slot it goes in.
+
+        The last page in the catalogue that was words only. A fitting's
+        picture makes a narrower claim than a hull's — what kind of thing it
+        is, whose yard built it, and roughly how much hull it eats — because
+        eighteen defensive plates cannot be eighteen pictures and pretending
+        otherwise would be a distinction drawn where none exists.
+        """
+        known = self.game.research.unlocked
+        self.col.addWidget(note(
+            f"{len(PARTS)} fittings across {len(SLOT_ORDER)} slots. The slot "
+            "is the shape, the yard is the colour and the tonnage is the "
+            "bulk — so a railgun does not look like a radiator, and a grown "
+            "organ does not look like a Yards weld."))
+        for slot in SLOT_ORDER:
+            inslot = [p for p in PARTS if p.slot == slot]
+            if not inslot:
+                continue
+            self.col.addWidget(spacer(6))
+            self.col.addWidget(label(
+                f"{SLOT_LABEL.get(slot, slot.title())} — {len(inslot)}", "h3"))
+            self.grid([self._fitting_card(p, known)
+                       for p in sorted(inslot, key=lambda p: p.mass)], cols=3)
+
+    def _fitting_card(self, part, known) -> Card:
+        have = not part.tech or part.tech in known
+        card = Card(selectable=False)
+        card.add(Thumb("part", part, height=88))
+        card.add(label(part.name, "h3",
+                       FAMILY_TINT.get(part.family, "") if have else "dim"))
+        card.add(label(f"{mass(part.mass)} · "
+                       + (FAMILY_LABEL[part.family]
+                          if part.family in FAMILY_LABEL else "any yard"),
+                       "sub"))
+        card.add(label(part.blurb, "", wrap=True))
+        if part.wpn is not None:
+            card.add(Pill("weapon", "warn"))
+        if part.ability is not None:
+            card.add(Pill("ability", "lumen"))
+        if not have:
+            card.add(Pill(f"needs {part.tech}", "dim"))
         return card
 
     def _factions(self) -> None:

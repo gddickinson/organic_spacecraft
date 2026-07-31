@@ -161,6 +161,7 @@ KIN = {
     "robots3d": ("robots3d",),
     "bays": ("bay", "berthing"),
     "life3d": ("life3d",),
+    "parts3d": ("parts3d",),
     "readiness": ("readiness",),
     "parley": ("parley", "combat"),
     "stations": ("routing", "orderplan", "seatwork", "turnplan", "gunnery"),

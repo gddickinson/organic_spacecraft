@@ -60,6 +60,13 @@ LIFE_AT = 2.0
 LIFE_TILT = -1.05
 LIFE_SPIN = 0.55
 
+#: Where a fitting sits. These are components, authored about a unit long, and
+#: shown three-quarters on: a bell, a barrel and a stack of plate all need
+#: their length *and* their girth to read.
+PART_AT = 2.2
+PART_TILT = -1.15
+PART_SPIN = 0.75
+
 #: The void a portrait is drawn against. `theme.TINTS` has no key for it —
 #: `theme.tint("void")` falls back to a *light* ink, which is how the first
 #: draft came out with every hull on a pale grey card.
@@ -154,6 +161,17 @@ def paint(painter, camera: render3d.Camera, kind: str, subject) -> None:
             return
         render3d.draw(painter, camera, mesh, (0.0, 0.0, ROBOT_AT), 1.0, LIGHT,
                       spin=ROBOT_SPIN, tilt=ROBOT_TILT)
+    elif kind == "part":
+        # A fitting: the slot is the silhouette, the yard the colour, the
+        # tonnage the bulk. `subject` is a Part or its id.
+        from ..data import parts3d
+        from ..data.parts import PARTS_BY_ID
+        got = subject if hasattr(subject, "slot") else PARTS_BY_ID.get(subject)
+        if got is None:
+            return
+        render3d.draw(painter, camera, parts3d.build(got).mesh,
+                      (0.0, 0.0, PART_AT), 1.0, LIGHT,
+                      spin=PART_SPIN, tilt=PART_TILT)
     elif kind == "life":
         # An organism, built from its own record: the body plan is the
         # silhouette, the biochemistry the colour, a trait a feature you can

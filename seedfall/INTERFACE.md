@@ -2075,6 +2075,9 @@ seedfall/
 │   │                   one silhouette each, where there was one shipyard
 │   ├── ships3d.py      and other people's ships by what they are doing:
 │   │                   courier, trader, prospector, patrol, no transponder
+│   ├── parts3d.py      a fitting's picture: the slot is the silhouette, the
+│   │                   yard the colour, the tonnage the bulk — and a barrel,
+│   │                   an emitter or a housing for what it does
 │   ├── life3d.py       a xenoform's body, from the three things it is made
 │   │                   of: the plan is the silhouette, the metabolism the
 │   │                   colour, a trait a feature you can see — and `marks`
@@ -3164,6 +3167,14 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   catalogue names both — "drawn" against "real, and nothing a portrait can
   show" — because a page that implies the portrait is the whole organism is
   lying in the small way this project keeps finding.
+- **Write the check to the claim the picture can actually make.** Eighteen
+  defensive plates cannot be eighteen pictures, and asserting they were would be
+  the same lie as five silhouettes across thirty-five hull classes, pointing the
+  other way: a distinction drawn where none exists. `data/parts3d.py` promises
+  three things a captain needs at a glance — what kind of thing it is, whose
+  yard built it, how much hull it eats — and `test_parts3d` measures exactly
+  those. All five checks passed first time, which is what happens when the
+  claim is honest before the code is written.
 - **A promise in the sales text is a claim the game has to meet.** A treaty was
   sold as "mutual berthing, shared charts, and a clause about the Bloom that
   nobody expects to be honoured" for 30,000 credits. The third is a joke; the

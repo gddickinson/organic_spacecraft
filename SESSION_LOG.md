@@ -2,6 +2,44 @@
 
 Running progress log. Newest first.
 
+## 2026-07-31 — SEEDFALL: eighty-four fittings, and #80 closes
+
+The last page in the catalogue that was words only: the shipyard listed every
+part as a name, a tonnage and a sentence. `data/parts3d.py` draws all
+eighty-four, and the interesting thing about this one is the **claim**, which is
+deliberately narrower than for a hull or an organism.
+
+A fitting is a component. At a glance a captain needs to know what kind of thing
+it is, whose yard built it, and roughly how much hull it will eat — not *which*
+of the eighteen defensive plates this is. Eighteen plates cannot be eighteen
+pictures, and asserting they were would be the same lie as five silhouettes
+across thirty-five hull classes, pointing the other way: a distinction drawn
+where none exists.
+
+So: the slot is the silhouette, the yard is the colour, the tonnage is the bulk,
+and three marks carry what it does — a `wpn` gets a barrel, an `ability` an
+emitter, a `civilian` fitting a housing instead of a hardpoint. Measured: seven
+slots with a worst pair of compute against utility at 68%; five yards each
+sharing under half its palette with any other on the same can; a 10 t Bioelectric
+Net covering 1,607 px against a 210 t Foldrunner Coil at 5,428; and 18 armed
+fittings carrying a barrel with nothing else doing so, checked against the field
+on every one of the eighty-four.
+
+**All five passed first time** — the first time that has happened this session,
+and the reason is that the claim was honest before the code was written.
+
+The reachability guard sharpened three commits ago caught new code within
+minutes: `parts3d.mesh_for`, written by analogy with `works3d.mesh_for` and
+`robots3d.mesh_for` and called by nothing, since `thumb3d` uses `build(...).mesh`
+directly. Deleted rather than given an invented caller. Fourth orphan this
+session.
+
+**#80 is closed.** Every catalogue page in the game now carries pictures: 35
+hull classes, 19 stations, 20 machines, 16 xenoform body plans, 84 fittings, 7
+worlds, 9 stars, 5 errands of traffic and 4 berths.
+
+Full suite green: **1,151 checks**.
+
 ## 2026-07-31 — SEEDFALL: sixteen body plans and eight biochemistries (#80)
 
 The Life tab was the last catalogue page in the game with no picture on it, and
