@@ -62,6 +62,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("impulse", "test_impulse", "impulse"),
     SuiteSpec("knock", "test_knock", "knock"),
     SuiteSpec("moorings", "test_moorings", "moorings"),
+    SuiteSpec("clearance", "test_clearance", "clearance"),
     SuiteSpec("byhand", "test_byhand", "flying by hand"),
     SuiteSpec("showflying", "test_showflying", "showing the flying"),
     SuiteSpec("fog", "test_fog", "fog"),

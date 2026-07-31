@@ -90,11 +90,35 @@ def can_conn(game, contact) -> tuple[bool, str]:
 
 
 def begin(game, contact):
-    """Open an approach, or say why not."""
+    """Open an approach, or say why not.
+
+    **Two gates, and they ask different sides.** `can_conn` asks the ship —
+    is it near enough, has it any reaction mass, is an approach already
+    running. `sim/clearance.py` asks the *structure* — will it have you, and
+    at which berth. Until the second existed a hostile patrol and a Charter
+    Fleet Hub offered the same welcome, because neither was ever asked.
+    """
+    from . import clearance as clearance_sim
     ok, why = can_conn(game, contact)
     if not ok:
         return None, why
-    return conn_sim.start(game, contact), ""
+    conn = conn_sim.start(game, contact)
+    cleared = clearance_sim.request(game, contact, conn)
+    conn.cleared = cleared
+    # **A clearance is for docking, not for flying near something.** The first
+    # version refused any approach that was not granted one, which shut every
+    # *orbit*: a world is not a thing that clears you, and going into orbit
+    # round one needs nobody's permission. Two checks caught it — the climb
+    # rungs and the conn's own screens — because a body approach stopped
+    # opening at all.
+    if not cleared.granted and contact.kind in ("anchorage", "hull"):
+        return None, cleared.why
+    if cleared.granted:
+        # The berth is the one the *port* assigned, not the one the ship
+        # fancied.
+        conn.berth = cleared.berth
+        game.add_log(clearance_sim.line(cleared), "")
+    return conn, ""
 
 
 def spent(conn) -> float:

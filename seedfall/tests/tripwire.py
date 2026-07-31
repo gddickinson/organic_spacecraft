@@ -153,6 +153,7 @@ KIN = {
     "impulse": ("impulse", "conn"),
     "knock": ("knock",),
     "moorings": ("moorings", "conn"),
+    "clearance": ("clearance", "berthing"),
     "readiness": ("readiness",),
     "parley": ("parley", "combat"),
     "stations": ("routing", "orderplan", "seatwork", "turnplan", "gunnery"),

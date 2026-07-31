@@ -188,6 +188,11 @@ class Conn:
     #: True on a tick spent swinging the hull round instead of burning. The
     #: console has always had this in `apply`'s return and thrown it away.
     fired_turning: bool = False
+    #: What the structure said when it was asked. `sim/clearance.py` issues
+    #: it; the approach carries it so every screen quotes the same words, and
+    #: so a berth assigned by the port cannot be quietly swapped for one the
+    #: ship preferred.
+    cleared: object = None
 
     @property
     def over(self) -> bool:

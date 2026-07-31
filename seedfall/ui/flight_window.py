@@ -301,9 +301,18 @@ class FlightWindow(QDialog):
             btn.setEnabled(not conn.over)
 
         self.title.setText(f"Flight controls — {conn.target.name}")
-        self.gate.setText(
-            f"Berths at {conn_sim.ALONGSIDE_KM * 1000:,.0f} m or less and "
-            f"{conn_sim.ALONGSIDE_RATE:.1f} m/s or less, at a berth.")
+        # **What the structure actually said**, in its own words, rather than
+        # the game's general rule. A clearance carries the berth it assigned,
+        # the hold point and the rate it will be crossed at — and the pilot
+        # flying the approach is the one who needs to read it.
+        cleared = getattr(conn, "cleared", None)
+        if cleared is not None and getattr(cleared, "granted", False):
+            from ..sim import clearance as clearance_sim
+            self.gate.setText(clearance_sim.line(cleared))
+        else:
+            self.gate.setText(
+                f"Berths at {conn_sim.ALONGSIDE_KM * 1000:,.0f} m or less and "
+                f"{conn_sim.ALONGSIDE_RATE:.1f} m/s or less, at a berth.")
 
         across = math.dist(pilot_sim.lateral(conn), (0.0, 0.0, 0.0))
         # **The rate you are allowed**, beside the rate you have. Without it

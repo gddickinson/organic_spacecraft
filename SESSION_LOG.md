@@ -2,6 +2,48 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: docking is granted, not taken (#108, first slice)
+
+Berthing was something the *ship* worked out — read a table of fittings, pick
+the nearest, fly at it. Nobody ever asked the quay whether it would have you,
+so a hostile patrol and a Charter Fleet Hub offered the same welcome: none,
+because neither was ever asked.
+
+`sim/clearance.py` moves the authority to the structure. A quay, a shipyard or
+a hull that will take you issues a clearance — which berth it has assigned,
+where it is and how fast it travels, how long the structure takes to come
+round, where to hold, and the rate it will be crossed at. Two gates now, and
+they ask different sides: `can_conn` asks the ship, the clearance asks the
+structure.
+
+Four refusals in four sets of words: a world is orbited rather than docked
+with; a Weave gate is a relic with nothing to tie up to; a hostile hull "does
+not answer, and is closing"; and a port whose power has turned against you
+shuts the quay. Writing that last one surfaced a gap — `track.Contact` carried
+no faction though `Anchorage` has had one since it was written, so a port a
+power had turned against still waved every hull in.
+
+A ship clears you for **the collar**: one hard point amidships, no masts, no
+arms, no rotation. Hull-to-hull docking through the same door.
+
+**And a real bug of my own, caught by two checks at once.** The first version
+refused any approach that was not granted a clearance — which shut every
+*orbit*, because a world is not a thing that clears you and going into orbit
+round one needs nobody's permission. The climb rungs and the conn's own
+screens both went dark. A clearance is for docking, not for flying near
+something.
+
+The declared-field guard caught `Conn.cleared` stored and read by nothing, so
+the flight panel shows what the structure actually said in its own words
+rather than the game's general rule.
+
+Nine mutations, nine caught.
+
+**Next on this task**: berths that stand off the structure on a boom that
+extends to capture a holding ship, and bays inside structures big enough to
+fly into. `Clearance.sort` is already the field that will carry them, named
+now so it means something rather than being widened later.
+
 ## 2026-07-30 — SEEDFALL: the stations turn (#107, second slice)
 
 2001's stations rotate, and a rotating berth is not decoration — it is a

@@ -398,6 +398,42 @@ Wiring it up surfaced two more, both from playing:
   quadratic, the most dangerous approaches were precisely the ones escaping.
   `_sweep_min` tests the whole path now, not its endpoints.
 
+**Docking is granted, not taken.** Berthing was something the *ship* worked
+out: `sim/moorings.py` read a table of fittings, picked the nearest and flew
+at it. Nobody ever asked the quay whether it would have you, so a hostile
+patrol and a Charter Fleet Hub offered the same welcome — none, because
+neither was asked.
+
+`sim/clearance.py` moves the authority to the structure. A quay, a shipyard or
+a hull that will take you **issues a clearance**: which berth it has assigned,
+where that berth is and how fast it is travelling, how long the structure
+takes to come round, where to hold before the run in, and the rate it may be
+crossed at. `berthing.begin` asks for one and a refusal stops the approach, so
+there are two gates asking different sides — `can_conn` asks the ship (near
+enough, any reaction mass, nothing already running) and the clearance asks the
+structure.
+
+Four refusals, each in its own words: a world is orbited rather than docked
+with; a Weave gate is a relic with nothing to tie up to; a hostile hull "does
+not answer, and is closing"; and a port whose power has turned against you
+shuts the quay at `WELCOME_AT`. Writing that last one surfaced a gap —
+`track.Contact` carried no faction, though `Anchorage` has had one since it
+was written, so a port a power had turned against still waved every hull in.
+
+A ship clears you for **the collar**: one hard point amidships, no masts and
+no arms, and it does not turn. That is hull-to-hull docking through the same
+door.
+
+`moorings` stays the geometry and the clearance is the authority over which
+fitting you get — and `test_clearance` holds them to the metre, because a
+clearance that named one place while the flying went to another would be the
+worst of both.
+
+**Not built yet, and named in `Clearance.sort` so the field means something
+now rather than being widened later**: berths that stand off the structure on
+a boom that extends to capture a holding ship, and bays inside structures big
+enough to fly into.
+
 **One hard sun.** The renderer lit everything with `AMBIENT = 0.40` — a
 studio fill, not a star. Every shadowed face came up to the same grey, and a
 Fleet Hub at 943 m read as a flat cutout: measured, the whole structure sat
@@ -2120,6 +2156,8 @@ seedfall/
 │   │                   orders, screening, who draws fire, what they eat
 │   ├── loyalty.py      what the bridge thinks of how you run the ship
 │   ├── works.py        colony development: what a settlement becomes
+│   ├── clearance.py    being cleared to dock: which berth the structure
+│   │                   assigns, and everything the approach needs
 │   ├── moorings.py     berths: where a ship ties up on a structure, and
 │   │                   where an approach is actually flying
 │   ├── knock.py        what being shoved off station comes to, and how
@@ -4137,6 +4175,14 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   midpoint, because perspective throws it 20–31 px out even when correct. What
   is crisp is which *side* of the centre each object falls on, asked at three
   camera angles. Fourteen mutations, fourteen caught.
+
+- **`test_clearance.py`** holds the protocol: what a willing structure sends
+  (and that none of it is trivial — a turning hub must say it turns); four
+  distinct refusals with four distinct reasons, and the standing one proved to
+  be a *gate* by putting the captain back in favour; a ship clearing you for
+  its collar; the approach flying the berth the port assigned rather than the
+  one it fancied; and the clearance agreeing with the geometry to the metre.
+  Nine mutations, nine caught.
 
 - **`test_moorings.py`** holds the berths: every sort has them and they scale
   with the structure; the far side is not a berth at four sorts and four

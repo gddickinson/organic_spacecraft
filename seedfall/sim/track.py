@@ -67,6 +67,11 @@ class Contact:
     hull_id: str | None = None
     at_xy: tuple | None = None      # for a bare point in space
     hostile: bool = False
+    #: Who holds this berth, so `sim/clearance.py` can ask what they think of
+    #: you before it clears you for it. The `Anchorage` has carried a faction
+    #: since it was written and the contact did not, so a port a power had
+    #: turned against still waved every hull in.
+    faction: str | None = None
     #: For an anchorage, what sort: quay, hub, holding or gate. A screen
     #: should not have to read an id to know whether it is looking at a
     #: shipyard or at something older than the Charter.
@@ -106,7 +111,8 @@ def contacts(game, system=None) -> list[Contact]:
             id=f"quay:{place.id}", name=place.name, kind="anchorage",
             tint="warn" if place.kind == "gate" else "lumen",
             detail=place.what or place.kind.title(),
-            body_index=place.body_index, berth=place.kind))
+            body_index=place.body_index, berth=place.kind,
+            faction=place.faction))
     for hull in traffic_sim.in_system(game, system):
         out.append(Contact(
             id=f"hull:{hull.id}", name=hull.name, kind="hull",
