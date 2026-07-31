@@ -2015,6 +2015,11 @@ seedfall/
 │   ├── stars3d.py     the nine classes as nine pictures: colour, corona by
 │   │                   luminosity, a binary as a pair, a black hole as an
 │   │                   absence with a ring round it
+│   ├── machineshop.py  build a machine, post it, scrap it — and the posting
+│   │                   control quotes what it would be worth *there*
+│   │                   before you send it
+│   ├── robots_panel.py the machines you own, and what each is worth where
+│   │                   it is standing — never its rating
 │   ├── thumb3d.py     a catalogue portrait: one hull class, berth, world
 │   │                   or star, on the renderer everything else uses
 │   ├── surface.py     a cap on a sphere projected as an ellipse, from its

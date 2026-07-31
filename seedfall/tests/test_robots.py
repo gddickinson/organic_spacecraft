@@ -321,6 +321,74 @@ def run(suite: Suite) -> None:
         return (f"{where} · {said} · the panel says "
                 f"{[t for t in pills if '/' in t][0]}, not lvl {rated}")
 
+    @check("there is a door: a captain can build one and send it away")
+    def _():
+        # The defect this shop was written for. The first robots cycle shipped
+        # a roster, a law and a panel and nothing in the game called `build`,
+        # `post` or `scrap` — so twenty classes were a catalogue entry a player
+        # could read and never own. The reachability guard does not catch it,
+        # because a call from a check counts as a call.
+        #
+        # Driven through the real widgets rather than the sim, because "there
+        # is a door" is a claim about the interface.
+        from PyQt6.QtWidgets import QComboBox, QPushButton
+
+        from .test_ui import _use_offscreen
+        _use_offscreen()
+        from PyQt6.QtWidgets import QApplication
+        keep = QApplication.instance() or QApplication([])
+        assert keep is not None
+        from ..ui.window import MainWindow
+
+        game = _yard("shop")
+        colony = _holding(game)
+        game.recompute()
+        window = MainWindow(game)
+        window.toast = lambda *a, **k: None
+        window.go("yard")
+        view = window.views["yard"]
+        view.tab = "machines"
+        view.refresh()
+
+        offered = [b for b in view.findChildren(QPushButton)
+                   if b.text() == "Build"]
+        assert len(offered) > 5, f"only {len(offered)} classes offered"
+        before = len(robots_sim.owned(game))
+        offered[0].click()
+        assert len(robots_sim.owned(game)) == before + 1, "the button built nothing"
+
+        # And the posting control quotes what it would be worth *there*,
+        # before you send it — which is the whole decision.
+        view = window.views["yard"]
+        view.tab = "machines"
+        view.refresh()
+        boxes = view.findChildren(QComboBox)
+        assert boxes, "no way to post a machine"
+        box = boxes[0]
+        away = next(i for i in range(box.count())
+                    if str(box.itemData(i)).startswith("colony:"))
+        quoted = box.itemText(away)
+        assert "lvl" in quoted, quoted
+        box.activated.emit(away)
+        robot = robots_sim.owned(game)[0]
+        assert robot.posting.startswith("colony:"), robot.posting
+        # The quote and the act agree.
+        got = robots_sim.effective(game, robot)
+        assert f"{got:.2f}" in quoted, (quoted, got)
+
+        # Scrapping gives materials back and takes it off the roster.
+        view = window.views["yard"]
+        view.tab = "machines"
+        view.refresh()
+        scraps = [b for b in view.findChildren(QPushButton) if b.text() == "Scrap"]
+        assert scraps, "nothing offers to break one up"
+        held = len(robots_sim.owned(game))
+        scraps[0].click()
+        assert len(robots_sim.owned(game)) == held - 1
+        window.close()
+        return (f"{len(offered)} classes offered · built one, posted it to "
+                f"{colony.name} at the quoted {got:.2f}, and scrapped it")
+
     @check("a holding in another system is a light-year away, and it shows")
     def _():
         # The rule that decides what you leave behind when you sail: only a

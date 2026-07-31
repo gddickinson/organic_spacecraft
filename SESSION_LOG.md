@@ -73,7 +73,26 @@ was not named by any suite that knew what it meant. Sixty days of work now
 puts a welded Hullwright under at 0.23 and leaves a grown Myrmidon at 1.00,
 and forty days stowed mends one and not the other. 0 of 6 unprotected.
 
-Full suite green: **1,126 checks**.
+**And then the hole that mattered most.** The cycle above shipped a roster, a
+law, a panel and a codex tab — and nothing in the game called `build`, `post`
+or `scrap`. Twenty classes a player could read about and never own. The
+reachability guard does not catch that, because a call from a check counts as
+a call. `ui/machineshop.py` is the door: build cards per yard, a posting
+control, and scrap.
+
+The posting control is the part worth having. It quotes what a machine would
+be worth **at the place you are about to send it**, before you send it — the
+same Myrmidon reads "Aboard — standing a watch — lvl 2.00" and "Post to
+Deepcut — lvl 0.33" in one list. Driven through the real widgets: three Build
+presses built three machines, the combo posted one to Deepcut, and the
+effective level came out at 0.3267 against the quoted 0.33.
+
+Two defects from looking at the rendered screen: cards with no binomial printed
+the first sentence of the blurb as a sub-label and then the blurb under it, so
+every fabricated card said the same thing twice; and there was no check that
+the door existed at all, which there now is — it clicks the real buttons.
+
+Full suite green: **1,127 checks**.
 
 ## 2026-07-31 — SEEDFALL: nineteen stations, one mesh (#80)
 

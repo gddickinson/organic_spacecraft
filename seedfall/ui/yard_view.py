@@ -17,6 +17,7 @@ from ..sim import consorts as consort_sim
 from ..sim import shipyard
 from ..sim.ship import Ship, hull_pct, stats
 from .plans_panel import ShipPlan
+from .machineshop import MachineShop
 from .widgets import (defer, Card, Panel, Pill, TabBar, View, button, label,
                       mono_label, note, spacer)
 
@@ -39,12 +40,22 @@ class YardView(View):
                   else f"{sysm.name} · no yard here — design only")
 
         tabs = TabBar([("refit", "Refit"), ("build", "Lay down a hull"),
-                       ("fleet", "Fleet")], self.tab)
+                       ("machines", "Machine shop"), ("fleet", "Fleet")],
+                      self.tab)
         tabs.changed.connect(self._switch)
         self.col.addWidget(tabs)
 
         if self.tab == "fleet":
             self._fleet(sysm)
+            return
+        if self.tab == "machines":
+            # Hands that are not people. Its own module: `ui/machineshop.py`,
+            # because this file was already at the edge of the limit and a
+            # robot has nothing to do with a slot editor.
+            shop = MachineShop(self)
+            self.col.addWidget(shop.roster())
+            self.col.addWidget(spacer(8))
+            shop.picker()
             return
         self._ensure_design()
         if self.tab == "build":
