@@ -68,6 +68,15 @@ def build(game) -> Panel:
 
     reading = robots_sim.summary(game)
     panel.add_row("On watch", f"{reading['watch']} of {reading['aboard']} aboard")
+    if robots_sim.crewless(game):
+        # The state the whole slice exists for, said plainly. A hull like
+        # this needs no air and no food and cannot mutiny; what it needs is
+        # metals and a yard.
+        panel.add_row("Complement", "machines only", "lumen")
+        panel.add(note("Nobody alive aboard. The machines hold the watches, "
+                       "so this hull wants no air and no food — only the "
+                       "metals they patch themselves with, and a yard to "
+                       "mend at when they wear through."))
     if reading["posted"]:
         panel.add_row("Posted away", str(reading["posted"]))
     if reading["broken"]:

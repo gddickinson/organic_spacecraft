@@ -39,6 +39,7 @@ from ..sim import territory as territory_sim
 from ..sim import upkeep as upkeep_sim
 from ..data.territory import SEIZED as TERRITORY_SEIZED
 from ..world.economy import tick_market
+from ..sim import robots as robots_sim
 from ..sim.ship import cool, is_breached, repair_tick
 
 
@@ -236,8 +237,18 @@ def advance_days(game, n: float, dilation: float = 1.0) -> None:
                 loyalty_sim.record(game, "crew_death")
                 if game.ship.crew <= 0 and not lifespan_sim.active(
                         game.officers):
-                    game.die("Nobody left aboard to hold the watch.")
-                    return
+                    # Unless something aboard does not need the air. A hull
+                    # with machines standing its watches is not abandoned —
+                    # it is what `hullforms` has called crewless Dry Choir
+                    # work since the families were written.
+                    if robots_sim.watchkeepers(game):
+                        game.add_log(
+                            "The last of the crew is gone. The machines are "
+                            "still standing their watches, and the hull is "
+                            "under way.", "warn")
+                    else:
+                        game.die("Nobody left aboard to hold the watch.")
+                        return
             elif r.chance(0.2):
                 game.add_log("The air is gone. Nothing aboard has lungs, "
                              "and the silence is unremarkable.", "warn")
@@ -252,7 +263,9 @@ def advance_days(game, n: float, dilation: float = 1.0) -> None:
     # The machines eat too, and wear out doing it. On the sector clock rather
     # than the ship's: a Verger left at a holding goes on working while the
     # hull is in transit, which is the whole reason to leave one there.
-    from ..sim import robots as robots_sim
+    # (Imported at module scope — a second `from ... import` down here made
+    # the name local to this whole function, so the *earlier* use of it in the
+    # air branch was unbound and the crewless path crashed.)
     for kind, text in robots_sim.tick(game, n, r):
         game.add_log(text, kind)
     if game.dead:

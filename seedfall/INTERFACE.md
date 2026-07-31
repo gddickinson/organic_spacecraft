@@ -3102,6 +3102,19 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   hand, with no second capability system beside the first — and the one place
   that computes what the ship can do, `state.recompute`, is the only line that
   had to change.
+- **The same condition written twice is a rule you will forget to update
+  once.** `crew <= 0 and not lifespan.active(officers)` was the test for "this
+  hull is deserted", in `core/clock` and again in `sim/upkeep`, and neither
+  asked whether anything mechanical was standing a watch — while
+  `state.recompute` was already computing the ship's repair and research rates
+  off exactly those machines. `robots.watchkeepers` is the one door now.
+- **A guard that returns the right answer for the wrong reason is a bug
+  waiting.** `dormancy.awake_share` gave a full work share to a complement of
+  zero through its `total <= 0` line, which read as "a crewless hull is
+  manned" and was really "divide by nothing". Counting machines makes it true
+  on purpose — and produced the consequence that had been missing all along: a
+  sleeping crew's bench keeps turning at whatever share the machines are of the
+  complement.
 - **A promise in the sales text is a claim the game has to meet.** A treaty was
   sold as "mutual berthing, shared charts, and a clause about the Bloom that
   nobody expects to be honoured" for 30,000 credits. The third is a joke; the

@@ -213,7 +213,15 @@ def tick(game, days: float, rng) -> list:
                                    "the lineage needs. Something did not come "
                                    "back the same."))
         if game.ship.crew <= 0 and not active(game.officers):
-            game.die("Nobody left aboard to hold the watch.")
+            # The same door the air path uses. A machine does not starve; it
+            # runs out of the metals it patches itself with, which is
+            # `sim/robots.tick`'s business and not this one's.
+            from . import robots as robots_sim
+            if robots_sim.watchkeepers(game):
+                out.append(("warn", "The last of the crew is gone. The "
+                                    "machines have the hull."))
+            else:
+                game.die("Nobody left aboard to hold the watch.")
     elif rng.chance(0.25):
         out.append(("warn", f"Still short of {', '.join(missing)}. It is "
                             "starting to tell."))

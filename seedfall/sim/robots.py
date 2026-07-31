@@ -339,6 +339,35 @@ def aboard_effects(game) -> dict:
     return out
 
 
+def watchkeepers(game) -> int:
+    """How many machines aboard could hold a watch if nobody else could.
+
+    **The one door for "is this hull deserted".** Two places ask it — the air
+    running out in `core/clock` and the stores running out in `sim/upkeep` —
+    and both used to ask only whether any *person* was left:
+
+        if game.ship.crew <= 0 and not lifespan.active(game.officers):
+            game.die("Nobody left aboard to hold the watch.")
+
+    Measured with three machines standing engineering, science and comms, and
+    the ship's own stats reading regen 1.71 and research 1.38 off them: both
+    lines fired. A hull the Dry Choir would call fully crewed was reported as
+    abandoned, which is the opposite of what `hullforms` has said about the
+    synthetic family since it was written — "crewless Dry Choir work".
+    """
+    return len([r for r in owned(game)
+                if (r.posting or STOWED) == ABOARD and not r.broken
+                and r.definition.stat])
+
+
+def crewless(game) -> bool:
+    """True when the machines are the crew: nobody alive, and a watch held."""
+    from . import lifespan
+    people = max(0, int(getattr(game.ship, "crew", 0) or 0))
+    return (people <= 0 and not lifespan.active(getattr(game, "officers", []))
+            and watchkeepers(game) > 0)
+
+
 def working(game, colony, duty: str) -> float:
     """What this holding's machines add on this duty, in levels.
 

@@ -101,8 +101,18 @@ def asleep(game) -> int:
 
 
 def awake_share(game) -> float:
-    """Fraction of the complement standing a watch. 1.0 when nobody sleeps."""
-    total = complement(game)
+    """Fraction of the complement standing a watch. 1.0 when nobody sleeps.
+
+    Machines count, and they never sleep. Two consequences, both wanted: a
+    hull whose people are all under still turns its bench at whatever share
+    its machines are of the complement, and a hull with **no** people is
+    manned rather than idle — which it already was, but by accident. With a
+    complement of zero this returned 1.0 through the guard below, which is
+    the right answer arrived at for no reason.
+    """
+    from . import robots as robots_sim
+    machines = robots_sim.watchkeepers(game)
+    total = complement(game) + machines
     if total <= 0:
         return 1.0
     return max(0.0, min(1.0, (total - asleep(game)) / total))

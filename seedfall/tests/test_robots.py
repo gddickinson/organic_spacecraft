@@ -433,6 +433,152 @@ def run(suite: Suite) -> None:
         return (f"{len(offered)} classes offered · built one, posted it to "
                 f"{colony.name} at the quoted {got:.2f}, and scrapped it")
 
+    @check("machines can hold a hull that has nobody alive on it")
+    def _():
+        # The defect: two death paths — the air running out in `core/clock`
+        # and the stores running out in `sim/upkeep` — asked only whether any
+        # *person* was left. Measured with three machines standing
+        # engineering, science and comms and the ship's own stats reading
+        # regen 1.71 and research 1.38 off them: both lines fired. A hull the
+        # Dry Choir would call fully crewed was reported as abandoned.
+        def last_breath(seed, machines):
+            game = _yard(seed)
+            for class_id in machines:
+                robots_sim.build(game, class_id)
+            game.officers.clear()
+            game.ship.crew = 2
+            game.ship.o2 = 0.02
+            for layer in game.ship.layers:
+                layer.hp = 0.0            # breached: the air cannot be remade
+            game.recompute()
+            for _ in range(60):
+                game.advance_days(1)
+                if game.dead:
+                    break
+            return game
+
+        alone = last_breath("die", ())
+        assert alone.ship.crew <= 0 and alone.dead, (
+            "a hull with nobody and nothing aboard should still end")
+        held = last_breath("hold", ("precentor", "servitor"))
+        assert held.ship.crew <= 0, held.ship.crew
+        assert not held.dead, "the machines were aboard and it ended anyway"
+        assert robots_sim.crewless(held)
+        assert robots_sim.watchkeepers(held) == 2
+        assert any("machines are still standing" in text
+                   for _day, text, _kind in held.log), "nothing said so"
+        # And it goes on being a ship: the bench runs and the stats are the
+        # machines'.
+        stats = held.recompute()
+        assert stats.regen > 0 and stats.research > 0, stats
+        from ..sim import dormancy
+        assert dormancy.ship_work(held) > 0.5, dormancy.ship_work(held)
+        # The best evidence that it is still a working ship: the machines
+        # mend the breach that killed the crew. `repair_tick` reads `regen`,
+        # and `regen` here is the Precentor standing engineering.
+        # Set from a known state rather than from wherever the sixty days
+        # left it, or the bar depends on the seed.
+        for layer in held.ship.layers:
+            layer.hp = layer.max * 0.1
+        whole = sum(layer.max for layer in held.ship.layers)
+        was_hull = sum(layer.hp for layer in held.ship.layers)
+        banked = held.research.banked
+        held.advance_days(200)
+        assert not held.dead, "it died over the next two hundred days"
+        now_hull = sum(layer.hp for layer in held.ship.layers)
+        assert now_hull > whole * 0.5, (
+            f"the hull went {was_hull / whole:.0%} → {now_hull / whole:.0%} "
+            "of whole; nothing is repairing it")
+        # And the bench turns, which is `dormancy.ship_work` counting them.
+        # (Points bank rather than unlock, because nothing has been chosen to
+        # research — that is the player's decision, not the machines'.)
+        assert held.research.banked > banked, "the bench stood idle"
+        return (f"the last two died and {robots_sim.watchkeepers(held)} "
+                f"machines carried the hull 200 days further, mending it from "
+                f"{was_hull / whole:.0%} to {now_hull / whole:.0%} of whole")
+
+    @check("starving to the last hand ends the same way, and machines hold")
+    def _():
+        # The *other* death path — `sim/upkeep`, when the stores run out —
+        # and the first version of this suite never reached it, so a mutation
+        # deleting its machine branch passed clean.
+        def starve(seed, machines):
+            game = _yard(seed)
+            for class_id in machines:
+                robots_sim.build(game, class_id)
+            game.officers.clear()
+            game.ship.crew = 2
+            game.stores.clear()
+            game.ship.cargo.clear()
+            game.recompute()
+            for _ in range(400):
+                game.advance_days(1)
+                if game.dead or game.ship.crew <= 0:
+                    break
+            return game
+
+        alone = starve("starve", ())
+        assert alone.dead, "a hull with nobody left aboard did not end"
+        held = starve("starve-held", ("precentor", "servitor"))
+        assert held.ship.crew <= 0, held.ship.crew
+        assert not held.dead, "the machines were aboard and it ended anyway"
+        assert any("machines have the hull" in text
+                   for _day, text, _kind in held.log), "nothing said so"
+        # A machine in a crate holds nothing either. Stowed first, because
+        # that is the easier mistake to make and a sweep caught it: the
+        # condition is "aboard **and** working", not "not broken".
+        for robot in robots_sim.owned(held):
+            robot.posting = robots_sim.STOWED
+        assert robots_sim.watchkeepers(held) == 0, (
+            "a machine crated in the hold was counted as standing a watch")
+        for robot in robots_sim.owned(held):
+            robot.posting = robots_sim.ABOARD
+        assert robots_sim.watchkeepers(held) == 2
+        # And one that has worn through holds nothing.
+        for robot in robots_sim.owned(held):
+            robot.condition = 0.0
+        assert robots_sim.watchkeepers(held) == 0, "a broken frame is a watch"
+        assert not robots_sim.crewless(held)
+        return ("stores gone: alone the chronicle ends, with two machines it "
+                "does not — and it does again once they wear through")
+
+    @check("a sleeping crew still has its machines on watch")
+    def _():
+        # `awake_share` counted only people, so a hull whose crew were all
+        # under read as unmanned however many machines were awake — and with
+        # a complement of zero it returned 1.0 through a guard, which is the
+        # right answer for no reason.
+        from ..sim import dormancy
+        game = _yard("asleep")
+        game.recompute()
+        assert abs(dormancy.awake_share(game) - 1.0) < 1e-9, "somebody is under"
+
+        # Put as many under as the hull allows, with nothing mechanical aboard.
+        # `available` yields (method, allowed, why); "watch" is the one that
+        # is nobody sleeping, so take the first that actually puts them under.
+        method = next(m for m, ok, _why in dormancy.available(game)
+                      if ok and m.id != "watch")
+        under = dormancy.most_that_can_sleep(game)
+        assert under > 0, "nobody can sleep on this hull; move the check"
+        got = dormancy.put_under(game, method.id, under)
+        assert got.get("ok"), got
+        bare = dormancy.awake_share(game)
+        bare_work = dormancy.ship_work(game)
+        assert bare < 0.5, f"{under} under and the share is still {bare:.2f}"
+
+        # The same sleeping hull, with machines that never go under.
+        robots_sim.build(game, "precentor")
+        robots_sim.build(game, "servitor")
+        with_machines = dormancy.awake_share(game)
+        assert with_machines > bare * 1.15, (
+            f"{under} asleep: {bare:.3f} without machines, "
+            f"{with_machines:.3f} with two — they are not being counted")
+        assert dormancy.ship_work(game) > bare_work, "the bench felt nothing"
+        return (f"{dormancy.complement(game)} aboard with {under} under: "
+                f"watch {bare:.0%} alone, {with_machines:.0%} with two "
+                f"machines · bench {bare_work:.0%} → "
+                f"{dormancy.ship_work(game):.0%}")
+
     @check("a holding in another system is a light-year away, and it shows")
     def _():
         # The rule that decides what you leave behind when you sail: only a

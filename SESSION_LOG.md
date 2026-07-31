@@ -2,6 +2,49 @@
 
 Running progress log. Newest first.
 
+## 2026-07-31 — SEEDFALL: a hull the machines are holding (#110, fifth slice)
+
+Robotic ships, and the fix was one condition written twice. Both places that
+ask whether a hull is deserted — the air running out in `core/clock` and the
+stores running out in `sim/upkeep` — asked only whether any *person* was left:
+
+    if game.ship.crew <= 0 and not lifespan.active(game.officers):
+        game.die("Nobody left aboard to hold the watch.")
+
+Measured with three machines standing engineering, science and comms, and
+`state.recompute` already reading regen 1.71 and research 1.38 off them: both
+lines fired. A hull the Dry Choir would call fully crewed was reported as
+abandoned — the opposite of what `hullforms` has said about the synthetic
+family since it was written, "crewless Dry Choir work".
+
+`robots.watchkeepers` is the one door both consult now. Driven through the
+game: a breach kills the last two hands, and two machines carry the hull two
+hundred days further — **mending the very breach that killed the crew, 10% to
+100% of whole.** Starve it instead and the other path does the same. Take the
+machines away and both end the chronicle exactly as before; break them, or
+crate them in the hold, and it ends again.
+
+**`awake_share` was right by accident.** With a complement of zero it returned
+1.0 through a `total <= 0` guard rather than because anything counted machines.
+Now they count, and the consequence that was missing appears: 37 aboard with 30
+under reads 19% alone and 23% with two machines, and the bench goes 31% to 36%.
+Machines keep the workshop turning while the crew sleeps, which is a thing a
+captain would obviously expect and the game did not do.
+
+One bug of my own making: the second `from ..sim import robots as robots_sim`
+inside `advance_days` made the name local to the whole function, so the
+module-level import was unbound at the *earlier* use and the crewless path
+crashed on its first run.
+
+Six mutations, six caught — but three of them only after the checks were
+strengthened. The starvation path was never exercised, a broken frame was never
+tested as a non-watch, and the sleep check asserted something true either way.
+A fourth came out of the sweep itself: the condition is *aboard **and**
+working*, not *not broken*, and a machine crated in the hold was holding the
+ship.
+
+Full suite green: **1,135 checks**.
+
 ## 2026-07-31 — SEEDFALL: what a machine looks like, from what it is for (#110, fourth slice)
 
 The Machines tab was the last catalogue page in the game that was a wall of
