@@ -28,6 +28,7 @@ from __future__ import annotations
 import math
 
 from ..data.berths3d import berth_points
+from ..data.models3d import attitude_of, place
 
 #: How near a berth counts as at it, as a share of the structure's radius.
 #: Measured against what it has to tell apart: on a hub, the nearest mast from
@@ -103,8 +104,19 @@ def points(target, spin: float = 0.0) -> list:
 
     Scaled by `radius_km` because that is the scale `ui/viewport` draws the
     mesh at — so the berth this returns is under the fitting on the screen —
-    and turned by `spin`, about the structure's own pole, because the mesh is
-    drawn turned by the same angle.
+    and put through the model's **whole** rotation, which is the bit this got
+    wrong for as long as it existed.
+
+    It turned the berth by `spin` about the pole and stopped. The window draws
+    the same structure through `spin` *and* the tilt in `models3d.ATTITUDE`, so
+    the sim and the picture disagreed about where every fitting in the game
+    was: measured on a 0.4 km Fleet Hub, 172 to 183 metres apart against a
+    berth reach of 140. A hull moored to a mast it was not beside, and a pilot
+    flying on the picture — which is all a pilot has — was flying at a mast the
+    computer was not aiming for.
+
+    `models3d.place` is now the one door for a model's own rotation, and this
+    goes through it with the tilt `models3d.attitude_of` gives the renderer.
     """
     if getattr(target, "kind", "") != "anchorage":
         return []
@@ -112,12 +124,9 @@ def points(target, spin: float = 0.0) -> list:
     if scale <= 0.0:
         return []
     sort = getattr(target, "berth", "") or ""
-    cs, sn = math.cos(spin), math.sin(spin)
-    out = []
-    for name, offset in berth_points(sort):
-        x, y, z = (c * scale for c in offset)
-        out.append((name, (x * cs - y * sn, x * sn + y * cs, z)))
-    return out
+    _rate, tilt = attitude_of("anchorage", sort)
+    return [(name, place(tuple(c * scale for c in offset), spin, tilt))
+            for name, offset in berth_points(sort)]
 
 
 #: How far out the approach corridor's hold point sits, as a multiple of
@@ -161,6 +170,18 @@ def assign(conn) -> str:
     A pilot is cleared for a berth on final approach, and that is the rule:
     outside the corridor take whichever is nearest and keep looking, inside it
     commit and stop changing your mind.
+
+    **And outside it, a berth has to actually win to take the assignment.** A
+    bare `min` flaps: two masts of a hub are near enough the same distance
+    from a hull creeping up between them that a single coarse burn swaps
+    which is nearest, and the guidance then points somewhere else every few
+    seconds. The computer flies fast enough to be inside the corridor before
+    it matters; a pilot on the manual panel does not. Measured, on the
+    approach that found this: two of three hand-flown chronicles never
+    arrived, stalled 1.2 km out chasing an assignment that changed under
+    them. So a rival must be nearer by more than the berth's own reach —
+    a length already written down, and the smallest distance at which the
+    two are meaningfully different places to be.
     """
     berths = points(conn.target, spin_of(conn))
     if not berths:
@@ -168,7 +189,12 @@ def assign(conn) -> str:
     known = {name for name, _at in berths}
     if conn.berth in known and conn.range_km <= corridor_km(conn.target):
         return conn.berth
-    name, _at = min(berths, key=lambda row: math.dist(conn.pos, row[1]))
+    name, at = min(berths, key=lambda row: math.dist(conn.pos, row[1]))
+    if conn.berth in known and conn.berth != name:
+        held = next(off for n, off in berths if n == conn.berth)
+        if (math.dist(conn.pos, held) - math.dist(conn.pos, at)
+                <= reach_km(conn.target)):
+            return conn.berth
     conn.berth = name
     return name
 

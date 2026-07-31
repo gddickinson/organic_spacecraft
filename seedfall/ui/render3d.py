@@ -30,6 +30,8 @@ from PyQt6.QtCore import QPointF
 from PyQt6.QtGui import QColor, QPen, QPolygonF
 from PyQt6.QtCore import Qt
 
+from ..data import models3d
+
 #: How much light a face gets with the star behind it.
 #:
 #: **Near nothing, because in vacuum there is near nothing.** This was 0.40,
@@ -119,23 +121,16 @@ def _shade(base: QColor, lit: float, rim: float, glare: float = 1.0) -> QColor:
 
 
 
-def place(v, spin: float = 0.0, tilt: float = 0.0, yaw: float = 0.0) -> tuple:
-    """One point through a model's own rotation: spin, then tilt, then yaw.
-
-    **Split out of `draw` so a thing drawn *on* a model lands on it.** The
-    flight panel marks each engine at the place `data/mounts.py` says it sits,
-    and a mark rotated by a second copy of this arithmetic would sit near the
-    hull rather than on it — which is the class of fault this project has been
-    bitten by every time a number was written twice.
-    """
-    cs, sn = math.cos(spin), math.sin(spin)
-    ct, st = math.cos(tilt), math.sin(tilt)
-    x, y = v[0] * cs - v[1] * sn, v[0] * sn + v[1] * cs
-    y, z = y * ct - v[2] * st, y * st + v[2] * ct
-    if yaw:
-        yc, ys = math.cos(yaw), math.sin(yaw)
-        x, y = x * yc - y * ys, x * ys + y * yc
-    return x, y, z
+#: One point through a model's own rotation: spin, then tilt, then yaw.
+#:
+#: **Split out of `draw` so a thing drawn *on* a model lands on it**, and then
+#: moved down into `data/models3d.py` so a thing *flown at* lands on it too.
+#: The flight panel marks each engine where `data/mounts.py` says it sits, and
+#: `sim/moorings` puts a berth where the mesh draws the fitting: three callers,
+#: one rotation, because this project has been bitten every time a number was
+#: written twice. It is re-exported here because this is where the renderer's
+#: callers look for it.
+place = models3d.place
 
 
 def draw(painter, camera: Camera, mesh, at, scale: float, light,

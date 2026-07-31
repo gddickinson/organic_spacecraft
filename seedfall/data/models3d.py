@@ -272,6 +272,45 @@ ATTITUDE = {
 }
 
 
+def place(v, spin: float = 0.0, tilt: float = 0.0, yaw: float = 0.0) -> tuple:
+    """One point through a model's own rotation: spin, then tilt, then yaw.
+
+    **Here, in the data, because the sim needs it as much as the renderer
+    does.** It began in `ui/render3d.py`, which was the only place a model was
+    rotated — until it was not. `sim/moorings.points` turned a berth by `spin`
+    and stopped, while the window drew the same structure through spin *and*
+    the tilt in `ATTITUDE`, so the two disagreed about where every fitting in
+    the game was. Measured on a 0.4 km Fleet Hub: 172 to 183 metres apart,
+    against a berth reach of 140. A hull could be moored to a mast it was not
+    beside, and the picture — which is what a pilot flies on — showed the mast
+    somewhere else entirely.
+
+    The tilt is a fact about how a model is *held*, and it lives here beside
+    the meshes and `ATTITUDE`. `ui/render3d.place` is this function.
+    """
+    cs, sn = math.cos(spin), math.sin(spin)
+    ct, st = math.cos(tilt), math.sin(tilt)
+    x, y = v[0] * cs - v[1] * sn, v[0] * sn + v[1] * cs
+    y, z = y * ct - v[2] * st, y * st + v[2] * ct
+    if yaw:
+        yc, ys = math.cos(yaw), math.sin(yaw)
+        x, y = x * yc - y * ys, x * ys + y * yc
+    return x, y, z
+
+
+def attitude_of(kind: str, look: str) -> tuple:
+    """The (rate, tilt) a thing of this kind is held at — the one door.
+
+    `present` reads it to orient a mesh and `sim/moorings` reads it to place a
+    berth, so a fitting cannot be drawn at one angle and berthed at another.
+    """
+    if kind == "hull":
+        return ATTITUDE["hull"]
+    if look == "gate":
+        return ATTITUDE["gate"]
+    return ATTITUDE["berth"]
+
+
 def present(kind: str, look: str, elapsed: float = 0.0,
             spin: float | None = None) -> dict:
     """The mesh for one thing in the sky, and how to hold it up.
@@ -286,12 +325,7 @@ def present(kind: str, look: str, elapsed: float = 0.0,
     exactly that angle.
     """
     mesh = for_sight(kind, look)
-    if kind == "hull":
-        rate, tilt = ATTITUDE["hull"]
-    elif look == "gate":
-        rate, tilt = ATTITUDE["gate"]
-    else:
-        rate, tilt = ATTITUDE["berth"]
+    rate, tilt = attitude_of(kind, look)
     turned = elapsed * rate if spin is None else float(spin)
     return {"mesh": mesh, "spin": turned, "tilt": tilt}
 

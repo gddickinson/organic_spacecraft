@@ -463,15 +463,19 @@ class Viewport(QWidget):
         if out <= 0.0:
             return
         want = getattr(conn, "berth", "")
+        sort = getattr(conn.target, "berth", "") or ""
         scale = float(conn.target.radius_km or 0.0)
         spin = moorings.spin_at(conn.target, conn.elapsed)
-        cs, sn = math.cos(spin), math.sin(spin)
+        # Through the model's *whole* rotation, the same door the mesh and the
+        # berths go through. Rotating the hinge by spin alone put the arm's
+        # root off the structure it is bolted to by the tilt, which is the
+        # fault `models3d.place` exists to make impossible.
+        tilt = models3d.attitude_of("anchorage", sort)[1]
         berths = dict(moorings.points(conn.target, spin))
-        for name, at in hinge_points(getattr(conn.target, "berth", "") or ""):
+        for name, at in hinge_points(sort):
             if name != want or name not in berths:
                 continue
-            x, y, z = (c * scale for c in at)
-            hinge = (x * cs - y * sn, x * sn + y * cs, z)
+            hinge = render3d.place(tuple(c * scale for c in at), spin, tilt)
             far = berths[name]
             tip = tuple(h + (f - h) * out for h, f in zip(hinge, far))
             here, there = camera.project(hinge), camera.project(tip)

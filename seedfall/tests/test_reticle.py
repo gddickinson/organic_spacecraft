@@ -67,6 +67,20 @@ def _closed_in(seed: str = "dock", to_km: float = 1.0):
     return game, conn
 
 
+#: How wide a run of warn-tinted pixels has to be before it is *the bracket*
+#: rather than something warn-coloured in the picture. The bracket is a dashed
+#: rectangle at least a couple of hundred pixels across; a quay's docking
+#: light is a lit box a pixel or two wide, and it is drawn in the same tint —
+#: `data/berths3d.quay` ends its arm in `WARN` on purpose, because that is
+#: what a docking light looks like.
+#:
+#: This exists because counting bare pixels could not tell them apart. One
+#: stray lit pixel in the port feed read as "the bracket is on two cameras"
+#: and failed a check that was right about everything it claimed. Measured on
+#: the frame that found it: the bracket spans 219 px, the docking light 0.
+BRACKET_SPAN = 20
+
+
 def _bracket_pixels(conn, view_id: str, size=(380, 240)) -> set:
     """Where the warn-tinted bracket lands in one feed, as pixels.
 
@@ -94,6 +108,16 @@ def _bracket_pixels(conn, view_id: str, size=(380, 240)) -> set:
     return out
 
 
+def _bracketed(conn, view_id: str) -> bool:
+    """Is *the bracket* in this feed — not merely a warn-tinted pixel?"""
+    found = _bracket_pixels(conn, view_id)
+    if not found:
+        return False
+    xs = [x for x, _y in found]
+    ys = [y for _x, y in found]
+    return max(max(xs) - min(xs), max(ys) - min(ys)) >= BRACKET_SPAN
+
+
 def run(suite: Suite) -> None:
     check = suite.check
 
@@ -105,7 +129,8 @@ def run(suite: Suite) -> None:
         assert conn.range_km < 2.0, conn.range_km
         marked = {view: len(_bracket_pixels(conn, view))
                   for view, _label, _vec in conn_sim.VIEWS}
-        showing = [view for view, count in marked.items() if count > 0]
+        showing = [view for view, _l, _v in conn_sim.VIEWS
+                   if _bracketed(conn, view)]
         assert showing == ["fore"], (
             f"the quay is dead ahead and the bracket is on {showing}: {marked}")
         return (f"{conn.range_km * 1000:.0f} m off a hub: the bracket is on "
@@ -120,12 +145,12 @@ def run(suite: Suite) -> None:
         # the frame centre it would be on all six.
         game, conn = _closed_in()
         bow = {view for view, _l, _v in conn_sim.VIEWS
-               if _bracket_pixels(conn, view)}
+               if _bracketed(conn, view)}
         # The ship is at (0, -r, 0) with its nose along +y, so the quay is
         # dead ahead. Point the nose along +x and the quay is off to port.
         conn.nose = [1.0, 0.0, 0.0]
         beam = {view for view, _l, _v in conn_sim.VIEWS
-                if _bracket_pixels(conn, view)}
+                if _bracketed(conn, view)}
         assert bow == {"fore"}, bow
         assert beam and beam != bow, (
             f"the nose came 90° round and the bracket stayed on {beam}")
@@ -150,45 +175,81 @@ def run(suite: Suite) -> None:
         #
         # Measured with the nose 30° off, which is where those two part
         # company: the target lands 79 px from the frame's centre.
+        #
+        # **And against the target, not against everything bright.** The
+        # second draft compared the bracket with the centroid of every lit
+        # pixel that was not warn-tinted, calling that "the hull". A
+        # kilometre off a hub the frame also holds a starfield and a planet:
+        # measured, those "hull" pixels spanned 0–378 by 0–239, which is the
+        # whole picture. The centroid of the whole picture is not the target,
+        # and the 60 px it was allowed was slop tuned to one frame — it moved
+        # to 70 the moment the structure's attitude was corrected. So the
+        # target's centre is *projected* through the same camera the window
+        # builds, which is a place the drawing code has no say in.
         import math
 
         from PyQt6.QtGui import QColor
-        from ..ui import theme
-        from ..ui.viewport import Viewport
+        from ..ui import render3d, theme
+        from ..ui import viewport as viewport_ui
 
         game, conn = _closed_in()
-        conn.nose = [0.5, 0.866, 0.0]          # 30° off the target
+        # **Off the bearing to the target, not off a fixed vector.** This used
+        # to set `nose = [0.5, 0.866, 0]`, which was 30° off the target for
+        # the pose that approach happened to end in. Change anything upstream
+        # and it is 30° off nothing in particular: measured after the berths
+        # were corrected for the model's tilt, the target projected to y=291
+        # in a 240 px frame — off the bottom of the picture — and the check
+        # was comparing a bracket that was mostly not drawn. So the angle is
+        # taken from where the target actually is, and 20° of the 31° half
+        # field of view keeps it well inside the frame and well off centre.
+        u = viewport_ui._unit([-c for c in conn.pos])
+        side = viewport_ui._unit(viewport_ui._cross(u, (0.0, 0.0, 1.0)))
+        lean = math.radians(20.0)
+        conn.nose = [u[i] * math.cos(lean) + side[i] * math.sin(lean)
+                     for i in range(3)]
         keep = _app()
         assert keep is not None
-        feed = Viewport(conn, "fore")
-        feed.resize(380, 240)
+        wide, high = 380, 240
+        feed = viewport_ui.Viewport(conn, "fore")
+        feed.resize(wide, high)
         image = feed.grab().toImage()
         warn = QColor(theme.tint("warn"))
-        marks, solid = [], []
+        marks = []
         for y in range(image.height()):
             for x in range(image.width()):
                 got = image.pixelColor(x, y)
-                if (abs(got.red() - warn.red()) < 30
-                        and abs(got.green() - warn.green()) < 30
-                        and abs(got.blue() - warn.blue()) < 30):
+                if (abs(got.red() - warn.red()) < 55
+                        and abs(got.green() - warn.green()) < 55
+                        and abs(got.blue() - warn.blue()) < 55):
                     marks.append((x, y))
-                elif got.red() + got.green() + got.blue() > 90:
-                    solid.append((x, y))
-        assert marks, "no bracket on the feed the quay is in"
-        assert len(solid) > 200, f"{len(solid)} lit samples — nothing to bracket"
-        mid = lambda pts: (sum(a for a, _b in pts) / len(pts),
-                           sum(b for _a, b in pts) / len(pts))
-        mark_x, mark_y = mid(marks)
-        hull_x, hull_y = mid(solid)
-        gap = math.hypot(mark_x - hull_x, mark_y - hull_y)
-        from_centre = math.hypot(mark_x - image.width() / 2,
-                                 mark_y - image.height() / 2)
-        assert gap < 60, (
-            f"the bracket's centre is {gap:.0f} px from the middle of what is "
-            "drawn — it is bracketing empty space")
+        assert len(marks) > 40, (
+            f"{len(marks)} warn-tinted pixels — no bracket to speak of")
+        _vid, _label, vec = feed.view
+        cam = viewport_ui.basis(vec, conn)
+        camera = render3d.Camera(at=conn.pos, forward=cam[0], up=cam[2],
+                                 width=wide, height=high,
+                                 half_fov=viewport_ui.HALF_FOV)
+        seen = camera.project((0.0, 0.0, 0.0))   # the target's own centre
+        assert seen is not None, "the target does not project into this feed"
+        assert 0 <= seen[0].x() < wide and 0 <= seen[0].y() < high, (
+            f"the target projects to {seen[0].x():.0f},{seen[0].y():.0f}, "
+            "outside the frame — there is nothing here to check")
+        # **The bracket's own box, not the average of its pixels.** It is a
+        # rectangle drawn around the target: the middle of its extent is its
+        # centre, while the mean of whichever dashes happen to survive the
+        # tint test is wherever those dashes are.
+        xs = [x for x, _y in marks]
+        ys = [y for _x, y in marks]
+        mark_x = (min(xs) + max(xs)) / 2
+        mark_y = (min(ys) + max(ys)) / 2
+        gap = math.hypot(mark_x - seen[0].x(), mark_y - seen[0].y())
+        from_centre = math.hypot(mark_x - wide / 2, mark_y - high / 2)
+        assert gap < 30, (
+            f"the bracket's centre is {gap:.0f} px from where the target "
+            "projects — it is bracketing empty space")
         assert from_centre > 40, (
             f"the target is off the bore and the bracket is {from_centre:.0f} "
             "px from the middle of the frame — it is nailed to the centre "
             "rather than following the target")
-        return (f"nose 30° off: the bracket lands {gap:.0f} px from the "
-                f"target and {from_centre:.0f} px off the frame's centre")
+        return (f"nose 20° off: the bracket lands {gap:.0f} px from where the "
+                f"target projects and {from_centre:.0f} px off frame centre")

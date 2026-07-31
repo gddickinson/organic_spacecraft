@@ -182,6 +182,7 @@ def run(suite: Suite) -> None:
         # it and is still nowhere near half a boom.
         from PyQt6.QtGui import QColor
         from ..data.berths3d import hinge_points
+        from ..data import models3d
         from ..ui import render3d, theme
         from ..ui import viewport as viewport_ui
 
@@ -200,7 +201,7 @@ def run(suite: Suite) -> None:
         at = found["at"]
         span = math.dist(at, (0.0, 0.0, 0.0)) or 1.0
         side = (-at[1] / span, at[0] / span, 0.0)
-        conn.pos = [c * conn.target.radius_km * 4.5 for c in side]
+        conn.pos = [c * conn.target.radius_km * 2.5 for c in side]
         conn.vel = [0.0, 0.0, 0.0]
         # And **looking at it**: the fore camera points along the nose, and
         # moving a hull does not turn it. Without this the frame was a
@@ -220,12 +221,17 @@ def run(suite: Suite) -> None:
         spin = moorings.spin_at(conn.target, conn.elapsed)
         berths = dict(moorings.points(conn.target, spin))
         scale = conn.target.radius_km
-        turn = math.cos(spin), math.sin(spin)
+        # Through `models3d.place`, the one door for a model's own rotation —
+        # not a hand-rolled copy of it. This check carried its own spin-only
+        # arithmetic and went blind the moment the tilt was added to the real
+        # thing: it looked for the arm where nothing was drawn and reported
+        # the boom at 0% out. A check that recomputes what it is checking is
+        # only ever testing its own copy.
+        tilt = models3d.attitude_of("anchorage", conn.target.berth)[1]
         hinge = next(
-            ((x * turn[0] - y * turn[1], x * turn[1] + y * turn[0], z)
-             for name, place in hinge_points(conn.target.berth)
-             if name == conn.berth
-             for x, y, z in [tuple(c * scale for c in place)]), None)
+            (models3d.place(tuple(c * scale for c in at), spin, tilt)
+             for name, at in hinge_points(conn.target.berth)
+             if name == conn.berth), None)
         assert hinge is not None, "the assigned berth has no gantry to hinge on"
         ends = camera.project(hinge), camera.project(berths[conn.berth])
         assert all(e is not None for e in ends), "the arm is not in the frame"
@@ -256,11 +262,22 @@ def run(suite: Suite) -> None:
                             return along
             return 0.0
 
+        # **The tolerance is derived, not chosen.** The arm is drawn with a
+        # 3.2 px dot at its tip and this walks the path in a +/-2 px box, so
+        # the lit path genuinely runs about five pixels past the geometry. As
+        # a *fraction* that depends on how long the arm is on screen — which
+        # is why a fixed 12% passed at 48 px and failed at 48 px once the tilt
+        # moved the arm. So it is worked out from the arm's own length, plus
+        # four points for the antialiasing either side.
+        arm_px = math.dist((x0, y0), (x1, y1))
+        slop = (3.2 + 2.0) / arm_px + 0.04
+        assert 0.05 < slop < 0.15, (arm_px, slop)
         rows = []
         for out in (0.0, 0.25, 0.5, 0.75, 1.0):
             drawn = reach(out)
-            assert abs(drawn - out) < 0.12, (
+            assert abs(drawn - out) <= slop, (
                 f"the boom {out:.0%} out is drawn {drawn:.0%} of the way to "
-                "the berth")
+                f"the berth, past the {slop:.0%} the drawing can account for")
             rows.append(f"{out:.0%}→{drawn:.0%}")
-        return "commanded against drawn, along the arm: " + " · ".join(rows)
+        return (f"commanded against drawn along a {arm_px:.0f} px arm, "
+                f"inside {slop:.0%}: " + " · ".join(rows))

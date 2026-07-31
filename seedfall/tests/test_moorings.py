@@ -108,12 +108,38 @@ def run(suite: Suite) -> None:
         target = _Target("hub", 0.4)
         corridor = moorings.corridor_km(target)
         assert corridor > 0.4, corridor
+        names = [n for n, _at in moorings.points(target)]
+        places = dict(moorings.points(target))
         far = _At(target, [0.0, -12.0, 0.0])
         first = moorings.assign(far)
-        far.pos = [12.0, 0.0, 0.0]            # come round, still far out
-        assert moorings.assign(far) != first or len(
-            moorings.points(target)) == 1, (
-            "outside the corridor the computer will not change its mind")
+        # **Come round to another mast and it changes its mind** — but the
+        # scenario has to be one where the two are actually different places.
+        # This used to reposition from 12 km on one side to 12 km on the
+        # other and demand a change; measured, four masts of a 0.4 km hub are
+        # within 94 m of each other at that range, against a berth reach of
+        # 140. Switching on 94 m at 12 km *is* the flapping the hysteresis
+        # exists to stop, so the check now stands where the choice is real.
+        # The berth on the *other side*, not merely a different one: adjacent
+        # masts of a hub are 135 m apart at this range, inside the reach, and
+        # a computer that swapped between them there would be flapping.
+        other = max(places, key=lambda n: math.dist(places[first], places[n]))
+        assert other != first and len(names) > 1
+        at = places[other]
+        out = math.dist(at, (0.0, 0.0, 0.0)) or 1.0
+        far.pos = [c * (corridor * 1.4) / out for c in at]
+        assert moorings.assign(far) == other, (
+            "another berth is plainly the near one and it will not change "
+            "its mind")
+        # And a rival that is barely nearer does not steal the assignment.
+        far.pos = [0.0, -12.0, 0.0]
+        held = moorings.assign(far)
+        far.pos = [12.0, 0.0, 0.0]
+        margin = (math.dist(far.pos, places[held])
+                  - min(math.dist(far.pos, p) for p in places.values()))
+        assert 0 < margin < moorings.reach_km(target), margin
+        assert moorings.assign(far) == held, (
+            f"a berth {margin * 1000:.0f} m nearer — inside the reach — took "
+            "the assignment off the one already being flown")
         # Inside it, the choice sticks even if another fitting is nearer.
         near = _At(target, [0.0, 0.0, 0.0])
         names = [n for n, _at in moorings.points(target)]
