@@ -124,7 +124,24 @@ def run(suite: Suite) -> None:
                 for contact in track_sim.contacts(game, system):
                     if contact.kind == "anchorage":
                         berths.add(contact.berth)
-        stray = sorted(b for b in berths if b not in berths3d.BERTHS)
+        # Your own holdings turn up as berth sorts too — one per colony class,
+        # drawn by `data/works3d` rather than by the four here — so a fresh
+        # sector is not the whole vocabulary. Plant one of everything.
+        from ..data import works3d
+        from ..data.colonies import COLONIES
+        from ..sim import colony as colony_sim
+        settled = new_game("settled")
+        ground = settled.system.bodies[-1]
+        for index, klass in enumerate(COLONIES):
+            settled.colonies.append(colony_sim.Colony(
+                id=index + 1, class_id=klass.id, name=klass.name,
+                system_id=settled.system.id, body_id=ground.id,
+                need=0, online=True))
+        for contact in track_sim.contacts(settled):
+            if contact.kind == "anchorage":
+                berths.add(contact.berth)
+        stray = sorted(b for b in berths
+                       if b not in berths3d.BERTHS and not works3d.is_work(b))
         assert not stray, f"berth sorts the sector makes and nothing draws: {stray}"
         assert len(berths) >= 3, berths
         return (f"{len(traffic_sim.ERRANDS)} errands and {len(berths)} berth "

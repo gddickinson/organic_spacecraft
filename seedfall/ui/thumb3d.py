@@ -35,6 +35,16 @@ from . import render3d, spheres, stars3d
 SUBJECT_AT = 5.0
 HALF_FOV = math.radians(29)
 
+#: Where a holding of your own sits. Closer than a hull, because a work is
+#: authored about a unit across rather than two, and at `SUBJECT_AT` the
+#: nineteen came out as models on a shelf at the far end of the card.
+#:
+#: Measured rather than eyeballed: the tallest of the nineteen through its own
+#: attitude is a SOL-FORGE at 1.25 units off the axis, and at this range the
+#: frame's half-height is 1.50 — so the biggest fills 83% of the card and
+#: nothing clips. At 2.4 the mirror lost its rim.
+WORK_AT = 2.7
+
 #: The void a portrait is drawn against. `theme.TINTS` has no key for it —
 #: `theme.tint("void")` falls back to a *light* ink, which is how the first
 #: draft came out with every hull on a pale grey card.
@@ -101,6 +111,14 @@ def paint(painter, camera: render3d.Camera, kind: str, subject) -> None:
     elif kind == "berth":
         shown = models3d.present("anchorage", subject)
         render3d.draw(painter, camera, shown["mesh"], (0.0, 0.0, SUBJECT_AT),
+                      1.0, LIGHT, spin=0.6, tilt=shown["tilt"])
+    elif kind == "work":
+        # A holding of your own, through the same door the sky uses: the
+        # portrait on the card *is* the structure you fly up to. `subject` is
+        # a colony class or its id, so a card can pass either.
+        look = getattr(subject, "id", subject)
+        shown = models3d.present("anchorage", look)
+        render3d.draw(painter, camera, shown["mesh"], (0.0, 0.0, WORK_AT),
                       1.0, LIGHT, spin=0.6, tilt=shown["tilt"])
     elif kind == "ship":
         shown = models3d.present("hull", subject)

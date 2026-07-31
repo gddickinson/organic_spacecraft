@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import math
 
+from . import works3d
 from .models3d import (GOLD, LUMEN, PLATE, PLATE_DARK, ROCK, ROCK_DARK, WARN,
                        _box, _build, _cap, _ring, _shift, _tube)
 
@@ -182,7 +183,11 @@ STANDOFF = 2.4
 
 def berth_sort(sort: str) -> str:
     """Whether this kind of berth is a fitting or a standoff."""
-    return BERTH_SORTS.get(sort, "fitting")
+    if sort in BERTH_SORTS:
+        return BERTH_SORTS[sort]
+    if works3d.is_work(sort):
+        return works3d.sort_for(sort)
+    return "fitting"
 
 
 def berth_points(sort: str) -> tuple:
@@ -192,10 +197,17 @@ def berth_points(sort: str) -> tuple:
     place the hull actually waits. The gantry stub is where the boom is hinged
     and is drawn there; a ship that flew to it would be inside the tank frame.
     """
-    points = BERTH_POINTS.get(sort, BERTH_POINTS[DEFAULT_BERTH])
+    points = _points(sort)
     if berth_sort(sort) != "standoff":
         return points
     return tuple((name, tuple(c * STANDOFF for c in at)) for name, at in points)
+
+
+def _points(sort: str) -> tuple:
+    """The fittings themselves, whoever drew them."""
+    if sort in BERTH_POINTS:
+        return BERTH_POINTS[sort]
+    return works3d.points_for(sort) or BERTH_POINTS[DEFAULT_BERTH]
 
 
 def hinge_points(sort: str) -> tuple:
@@ -204,7 +216,7 @@ def hinge_points(sort: str) -> tuple:
     The berth is off the end of the boom; this is the other end of it, so a
     window can draw the arm reaching out to a hull that is holding station.
     """
-    return BERTH_POINTS.get(sort, BERTH_POINTS[DEFAULT_BERTH])
+    return _points(sort)
 
 #: What a berth of an unknown sort gets. A quay: the humblest thing that is
 #: still recognisably a port, so a new sort nobody has drawn yet under-promises
@@ -213,4 +225,23 @@ DEFAULT_BERTH = "quay"
 
 
 def berth_mesh(sort: str) -> tuple:
-    return BERTHS.get(sort) or BERTHS[DEFAULT_BERTH]
+    return BERTHS.get(sort) or works3d.mesh_for(sort) or BERTHS[DEFAULT_BERTH]
+
+
+#: How big a structure of this sort is, in kilometres of radius — **the one
+#: door**, and it was two.
+#:
+#: `sim/sky` drew every anchorage at 0.6 km while `sim/targets` handed the
+#: approach 0.4 km for the same object, so what you picked out at forty
+#: kilometres was half again the size of the thing you came alongside. A gate
+#: was the only one either of them got right, and only in one of the two.
+BERTH_KM = {"quay": 0.4, "hub": 0.4, "holding": 0.4, "gate": 1.1}
+
+
+def radius_km(sort: str) -> float:
+    """How big this sort of structure is. Ask here, draw here, fly to here."""
+    if sort in BERTH_KM:
+        return BERTH_KM[sort]
+    if works3d.is_work(sort):
+        return works3d.size_km(sort)
+    return BERTH_KM[DEFAULT_BERTH]

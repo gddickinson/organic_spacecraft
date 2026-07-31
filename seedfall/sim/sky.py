@@ -152,7 +152,13 @@ def build(game, contact=None) -> list:
             # and every hull in the sky reached the window as an anonymous
             # "not a world" and was drawn with the one shipyard mesh. Both
             # contacts have carried what they are all along.
-            radius, kind, look, ringed = 0.6, "anchorage", other.berth, False
+            # Size from the same door the approach reads, `berths3d.radius_km`.
+            # This said 0.6 while `targets` said 0.4 for the same structure,
+            # so the thing you picked out at forty kilometres was half again
+            # the size of the thing you came alongside.
+            from ..data.berths3d import radius_km
+            look = other.berth
+            radius, kind, ringed = radius_km(look), "anchorage", False
         else:
             radius, kind, look, ringed = 0.08, "hull", other.errand, False
         out.append(Sight(name=other.name, kind=kind,

@@ -2,6 +2,68 @@
 
 Running progress log. Newest first.
 
+## 2026-07-31 — SEEDFALL: nineteen stations, one mesh (#80)
+
+Asked for a real catalogue of the things in the universe, so I went and
+measured what is drawn rather than what is listed. Plant one of each colony
+class, ask the game what is in the sky:
+
+    colony anchorages: 19
+    distinct meshes: 1
+
+Every holding a captain can build — an ARCA Habitat with a million people
+aboard, a TARDIGRADE Vault, a VESPER Picket, a Fabricator Yard — was
+`berths3d.holding()`, four tanks in a frame. In the sky, on the approach, and
+at the berth you tie up to. And the codex tab that lists all nineteen carried
+no picture at all: a page of specifications sitting on top of a renderer the
+rest of the game had been using for cycles.
+
+`data/works3d.py` builds one structure per class **out of the class's own
+entry**, the way `hulls3d.proportions` reads a chassis. Ore or phosphate gives
+it roots down into the body; volatiles a condenser bell; alloy a set of stacks;
+biomass fronds; research a dish; a sensor or a survey yield gives it masts.
+`gestation` is a womb and `drydock` a slipway cradle, because a nursery grows a
+hull inside a placenta and the Yards weld one on a slip — the fiction had that
+distinction and the picture was not using it. `megastructure` is a drum people
+live *inside*, `vault` an anchored armoured drum, `ward` turrets, `port` a quay
+arm with a light on the end, `drift` the vanes of something that is not
+station-keeping. Nothing is hand-drawn, so a new class in `colonies.py` gets a
+structure without anybody drawing one — and the portrait cannot disagree with
+the card, because they are the same document.
+
+The Jaccard check earned its keep three times, each time on **a difference
+that was drawn and invisible**: masts at 0.24 sat inside the mouth of a dish,
+so a Relay Choir rendered 93% the same as a CHORUS Node; stacks at 0.30 sat
+inside a cradle cage, so a Fabricator Yard was 90% a GRAVID Nursery; a
+habitation ring at 0.66 hid in the same cage. Two of the three fixes were
+better models rather than bigger numbers. Worst pair now 69%, and it is the two
+things that genuinely are both slipways.
+
+A structure has a right way up and a ship does not. `ATTITUDE["berth"]`'s 0.42
+is right for rings and arms and wrong for anything built along its own axis:
+all nineteen came out as the same lumpy egg with fittings stuck on. The sign
+mattered too — a positive tilt sends model +z *down* the screen, which is
+nothing to a ship shown broadside and turns every dish in the sector upside
+down into a skirt.
+
+**And a size was two sizes.** `sim/sky` drew every anchorage at 0.6 km while
+`sim/targets` handed the approach 0.4 km for the same object, so the thing you
+picked out at forty kilometres was half again the size of the thing you came
+alongside. `berths3d.radius_km` is one door now, and the scale is pinned to the
+one habitat whose true size the GESTALT documents state: ARCA comes out at
+2.5 km, the picket at 0.29, and every structure in between falls where its
+build time and its crowd put it.
+
+The traffic joined the codex while I was there — five errands the sky has drawn
+since `ships3d` was written and no page ever showed, so a captain could not
+learn what an unmarked hull looks like except by meeting one.
+
+Nine mutations run. Eight caught; the ninth (moving `GANTRY_R`) is a genuine
+no-op, because the builder and the berths read the same constant and the
+fitting travels with the berth — which is the one door working. Offsetting the
+berths alone, which is the disagreement the check exists for, is caught. Full
+suite green: **1,116 checks**.
+
 ## 2026-07-30 — SEEDFALL: a captain may take the conn whenever they like (#109)
 
 Reported by the player: *"There still doesn't seem to be a way to

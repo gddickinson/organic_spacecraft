@@ -98,8 +98,13 @@ def target_from_contact(game, contact) -> Target:
         berth = getattr(contact, "berth", "")
         # An anchor is a far bigger thing than a quay, and it should read
         # that way in the window on the way in.
+        # How big it is comes from `berths3d.radius_km` — the same door the
+        # sky draws it at, so what you pick out at range and what you come
+        # alongside are one object. An anchor is a far bigger thing than a
+        # quay and always was; an ARCA Habitat is bigger again.
+        from ..data.berths3d import radius_km
         return Target(id=contact.id, name=contact.name, kind="anchorage",
-                      radius_km=1.1 if berth == "gate" else 0.4,
+                      radius_km=radius_km(berth),
                       detail=contact.detail, berth=berth,
                       body_index=contact.body_index)
     if contact.kind == "hull":

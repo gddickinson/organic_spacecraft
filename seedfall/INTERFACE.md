@@ -2070,6 +2070,11 @@ seedfall/
 │   │                   one silhouette each, where there was one shipyard
 │   ├── ships3d.py      and other people's ships by what they are doing:
 │   │                   courier, trader, prospector, patrol, no transponder
+│   ├── works3d.py      your own holdings: one structure per colony class,
+│   │                   built out of what the class *does* — roots, a bell,
+│   │                   a dish, a cradle, a womb, a drum — plus its berths
+│   │                   and its size in km, which is the one door for how
+│   │                   big anything you come alongside is
 │   ├── hulls3d.py      the five hull families as silhouettes, built from
 │   │                   `hullforms`' own lengths, beams, tapers and facet
 │   │                   counts — what the tactical plot draws
@@ -3023,6 +3028,39 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   outline, and before the cycle every pair shared 100%. That check is also what
   found the prospector, which at 73% against the trader was a chunky can with a
   bell like the trader's — the fix was the mesh, not the threshold.
+- **The same shape *unrecoloured*, one layer down.** `berths3d` fixed the sky
+  for quays, hubs, holdings and gates — and every one of the nineteen colony and
+  station classes was still the holding. Measured through the game's doors: plant
+  one of each, ask the sky, and `19 anchorages → 1 mesh`. An ARCA Habitat holding
+  a million people and a VESPER Picket were the same four tanks in a frame, in
+  the sky, on the approach and at the berth. `data/works3d.py` builds one
+  structure per class **out of the class's own entry** — ore gives it roots,
+  volatiles a condenser bell, research a dish, `gestation` a womb, `drydock` a
+  slipway cradle, `megastructure` a drum people live inside, `drift` the vanes of
+  something not station-keeping — so the portrait and the specification are the
+  same document, and a new class in `colonies.py` gets a structure without
+  anybody drawing one.
+- **A difference that is drawn and invisible is not a difference.** The Jaccard
+  check found three of them in a row, each a case of one feature sitting inside
+  another's outline: masts at 0.24 hid in the mouth of a dish (a Relay Choir
+  rendered **93%** the same as a CHORUS Node), stacks at 0.30 hid inside a cradle
+  cage (Fabricator Yard **90%** against a GRAVID Nursery), and a ring at 0.66 hid
+  inside the same cage. Two of the three fixes were better *models* rather than
+  bigger numbers — a nursery gestates and a yard welds, so one is a shell and the
+  other a cage; a megastructure is a drum, not a ring on a keel. Worst pair is
+  now 69%, and it is the two things that genuinely are both slipways.
+- **A right way up is a thing a structure has and a ship does not.**
+  `ATTITUDE["berth"]`'s 0.42 is right for rings and arms and wrong for anything
+  built along its own axis: all nineteen works came out as the same lumpy egg
+  with fittings stuck on. And the *sign* mattered — a positive tilt sends model
+  +z down the screen, which is nothing to a ship shown broadside and turns every
+  dish in the sector upside down into a skirt.
+- **How big a thing is, is a fact, and it was two facts.** `sim/sky` drew every
+  anchorage at 0.6 km while `sim/targets` handed the approach 0.4 km for the same
+  object — so what you picked out at forty kilometres was half again the size of
+  what you came alongside. `berths3d.radius_km` is the one door; the scale is
+  pinned to the one habitat whose true size the GESTALT documents state, and ARCA
+  comes out at the 2.5 km the documents say.
 - **A promise in the sales text is a claim the game has to meet.** A treaty was
   sold as "mutual berthing, shared charts, and a clause about the Bloom that
   nobody expects to be honoured" for 30,000 credits. The third is a joke; the

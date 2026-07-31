@@ -111,7 +111,7 @@ def contacts(game, system=None) -> list[Contact]:
             id=f"quay:{place.id}", name=place.name, kind="anchorage",
             tint="warn" if place.kind == "gate" else "lumen",
             detail=place.what or place.kind.title(),
-            body_index=place.body_index, berth=place.kind,
+            body_index=place.body_index, berth=place.look,
             faction=place.faction))
     for hull in traffic_sim.in_system(game, system):
         out.append(Contact(

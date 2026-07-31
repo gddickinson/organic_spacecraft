@@ -265,10 +265,24 @@ WORLDS = {kind: recoloured(WORLD, tint) for kind, tint in BODY_TINT.items()}
 #: This module is `data/` and may not reach into `sim/`, so the fallback here
 #: is *still*: a berth nobody has told about the clock does not turn, which is
 #: wrong in a small and visible way rather than in a large and invisible one.
+#:
+#: **And a work is not a berth.** A quay or a Fleet Hub is rings and arms —
+#: features that stand out sideways, and read at the shallow tilt. One of your
+#: own holdings is built the other way: the dish, the stacks and the mast go
+#: up, the roots and the scoop go down, and rendered at 0.42 all nineteen came
+#: out as the same lumpy egg with things stuck on it. Same lesson as the hulls,
+#: same fix — hold it nearer broadside, so the axis it is built along is across
+#: the picture rather than down the lens.
+#:
+#: The sign is the other half of it. A positive tilt sends model +z *down* the
+#: screen — which is nothing to a ship shown broadside, and turns every dish in
+#: the sector upside down into a skirt. A work is the one thing here with a
+#: right way up.
 ATTITUDE = {
     "hull": (0.0, 1.28),
     "gate": (1.0 / 2600.0, 0.52),
     "berth": (0.0, 0.42),
+    "work": (0.0, -1.10),
 }
 
 
@@ -304,10 +318,13 @@ def attitude_of(kind: str, look: str) -> tuple:
     `present` reads it to orient a mesh and `sim/moorings` reads it to place a
     berth, so a fitting cannot be drawn at one angle and berthed at another.
     """
+    from .works3d import is_work
     if kind == "hull":
         return ATTITUDE["hull"]
     if look == "gate":
         return ATTITUDE["gate"]
+    if is_work(look):
+        return ATTITUDE["work"]
     return ATTITUDE["berth"]
 
 

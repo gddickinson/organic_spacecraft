@@ -18,7 +18,7 @@ The claims:
 - **Thirty-five classes are thirty-five pictures**, and a hauler is fatter than
   a courier because the numbers say so.
 - **The sky tab holds everything the sky draws** — no kind of world, class of
-  star or sort of berth quietly missing.
+  star, errand of traffic or sort of berth quietly missing.
 - **A star's glow stays on its own card**, so nine classes do not appear to sit
   on nine differently-coloured backgrounds.
 """
@@ -32,6 +32,7 @@ from ..data import hulls3d
 from ..data.berths3d import BERTHS
 from ..data.chassis import CHASSIS, CHASSIS_BY_ID
 from ..data.starclasses import STAR_CLASSES
+from ..sim.traffic import ERRANDS
 from ..data.worlds3d import WORLD_PAINTS
 from .harness import Suite
 
@@ -106,7 +107,7 @@ def run(suite: Suite) -> None:
             f"the fleet tab lists {len(CHASSIS)} classes and draws "
             f"{counts['classes']} of them")
         assert counts["sky"] >= (len(WORLD_PAINTS) + len(STAR_CLASSES)
-                                 + len(BERTHS)), counts
+                                 + len(BERTHS) + len(ERRANDS)), counts
         return (f"{counts['classes']} hull portraits on the fleet tab, "
                 f"{counts['sky']} on the sky tab")
 
@@ -175,8 +176,15 @@ def run(suite: Suite) -> None:
             assert len(_drawn(_portrait("star", key))) > 200, key
         for key in BERTHS:
             assert len(_drawn(_portrait("berth", key))) > 120, key
-        return (f"{len(WORLD_PAINTS)} worlds, {len(STAR_CLASSES)} stars and "
-                f"{len(BERTHS)} berths, every one named and drawn")
+        # The traffic too. Five errands the sky has drawn since `ships3d` was
+        # written, and the one page whose job is to show you what is out there
+        # had none of them — so a captain could not learn what an unmarked
+        # hull looks like except by meeting one.
+        for errand in ERRANDS:
+            assert len(_drawn(_portrait("ship", errand))) > 120, errand
+        return (f"{len(WORLD_PAINTS)} worlds, {len(STAR_CLASSES)} stars, "
+                f"{len(ERRANDS)} errands and {len(BERTHS)} berths, every one "
+                "named and drawn")
 
     @check("a star's glow stays on its own card")
     def _():

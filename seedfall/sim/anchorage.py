@@ -62,6 +62,17 @@ class Anchorage:
     faction: str | None = None
     #: True when the hull is already alongside.
     here: bool = False
+    #: **What it looks like**, which is not always what it *is*. Every one of
+    #: your own holdings is a "holding" for the purposes of what it offers,
+    #: and an ARCA Habitat holding a million people is not the same structure
+    #: as a VESPER Picket. Nineteen classes reached the sky as one mesh — four
+    #: tanks in a frame — because the only thing carried was the kind.
+    #: Defaults to the kind, so a quay is still drawn as a quay.
+    look: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.look:
+            self.look = self.kind
 
     @property
     def glyph(self) -> str:
@@ -165,7 +176,8 @@ def in_system(game, system=None) -> list:
                  + (" " + ", ".join(SERVICE_NAMES.get(s, s)
                                     for s in services).capitalize() + "."
                     if services else ""),
-            services=services, here=(here_id == body.id)))
+            services=services, here=(here_id == body.id),
+            look=colony.class_id))
     return out
 
 

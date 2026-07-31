@@ -14,8 +14,10 @@ from ..data.inquiry import EVIDENCE_BY_ID
 from ..data.berths3d import BERTHS
 from ..data.lore import GLOSSARY, INTRO
 from ..data.starclasses import STAR_CLASSES
+from ..data import works3d
 from ..data.worlds3d import WORLD_PAINTS
 from ..sim import notes as notes_sim
+from ..sim.traffic import ERRANDS
 from .thumb3d import Thumb
 from .widgets import (Card, Panel, Pill, TabBar, View, label, note, spacer)
 
@@ -113,8 +115,9 @@ class CodexView(View):
         """
         self.col.addWidget(note(
             f"{len(WORLD_PAINTS)} kinds of world, {len(STAR_CLASSES)} classes "
-            f"of star and {len(BERTHS)} sorts of berth. Drawn the way the "
-            "windows draw them, so what is on this page is what is out there."))
+            f"of star, {len(ERRANDS)} errands of traffic and {len(BERTHS)} "
+            "sorts of berth. Drawn the way the windows draw them, so what is "
+            "on this page is what is out there."))
 
         self.col.addWidget(spacer(6))
         self.col.addWidget(label("Worlds", "h3", "chloro"))
@@ -132,6 +135,16 @@ class CodexView(View):
             "on your hull."))
         self.grid([self._sky_card("star", key, star.name, star.blurb)
                    for key, star in STAR_CLASSES.items()], cols=3)
+
+        self.col.addWidget(spacer(8))
+        self.col.addWidget(label("Traffic", "h3", "steel"))
+        self.col.addWidget(note(
+            "Other people's hulls, by what they are out here doing. At the "
+            "range traffic is seen the outline is the whole of it — which is "
+            "why an unmarked hull is worth knowing on sight."))
+        self.grid([self._sky_card("ship", errand, ERRANDS[errand][0],
+                                  ERRANDS[errand][1].capitalize() + ".")
+                   for errand in ERRANDS], cols=3)
 
         self.col.addWidget(spacer(8))
         self.col.addWidget(label("Berths", "h3", "steel"))
@@ -154,16 +167,28 @@ class CodexView(View):
         known = self.game.research.unlocked
         self.col.addWidget(note(
             f"{len(COLONIES)} station and colony classes. Plant one and walk "
-            "away; it yields every day, wherever you happen to be."))
+            "away; it yields every day, wherever you happen to be. Every "
+            "structure here is built out of its own entry — what it digs, "
+            "what it distils, what it builds and how many people are aboard "
+            "— so the picture and the specification cannot disagree."))
         cards = []
         for c in COLONIES:
             have = not c.tech or c.tech in known
             card = Card(selectable=False)
+            # The picture first, as on a hull card. Nineteen classes were
+            # listed here as text and nothing else, while the sky drew all
+            # nineteen as the same four tanks in a frame.
+            card.add(Thumb("work", c, height=96))
             card.add(label(c.name, "h3", FAMILY_TINT[c.family] if have else "dim"))
             card.add(label(c.binomial or "Fabricated", "sub"))
             card.add(label(c.blurb, "", wrap=True))
+            # Every card is drawn level so the shapes can be compared, the way
+            # the star cards are — so the one thing a level portrait cannot
+            # say, the size, is said in words. A picket is 0.6 km across and
+            # ARCA is five.
             card.add(note(f"Sites: {', '.join(c.sites)} · {duration(c.days)} gestation"
-                          + (f" · holds {num(c.pop)}" if c.pop else "")))
+                          + (f" · holds {num(c.pop)}" if c.pop else "")
+                          + f" · {works3d.size_km(c.id) * 2:,.1f} km across"))
             if not have:
                 card.add(Pill(f"needs {c.tech}", "dim"))
             cards.append(card)
