@@ -2210,6 +2210,9 @@ seedfall/
 │   ├── consorts.py     escorts: ordering one out of its berth, standing
 │   │                   orders, screening, who draws fire, what they eat
 │   ├── loyalty.py      what the bridge thinks of how you run the ship
+│   ├── bays.py         what a hull can actually strike — a bounding radius is
+│   │                   not a hull — and the structures you fly *into*: the
+│   │                   aperture, the corridor through it, and the rim
 │   ├── robots.py       machines you own: the roster, where each is posted,
 │   │                   and `grip` — how much of a machine's rating survives
 │   │                   the light-lag to whoever is supervising it. The one
@@ -3115,6 +3118,21 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   on purpose — and produced the consequence that had been missing all along: a
   sleeping crew's bench keeps turning at whatever share the machines are of the
   complement.
+- **One field doing two jobs is two bugs waiting.** `Target.radius_km` was how
+  big a structure is *drawn* and also what a ship could *hit*, and the moment
+  `works3d` gave each holding real furniture the two came apart: seven of
+  nineteen had berths inside their own contact sphere and could not be docked
+  with at any speed. A berth is a fitting on the **outside** — a mast, a
+  gantry, an arm — so a berth inside the bounding sphere is the normal case,
+  not the impossible one. `sim/bays.hull_km` is the one door, and it was asked
+  in two places before it existed.
+- **A constant chosen for one problem will break another.** The first fix
+  applied a single 0.55 share to every structure. It rescued the seven and it
+  also halved the solid radius of a quay, a hub and a Weave gate — whose berths
+  sit at 0.91 to 1.11 of their radius and never needed it — so a hull rammed
+  into a station at 45 m/s came away *adrift*. Three suites caught it at once.
+  The rule that survives is derived per structure from the mesh's own numbers:
+  the hull stops just inside its nearest berth.
 - **A promise in the sales text is a claim the game has to meet.** A treaty was
   sold as "mutual berthing, shared charts, and a clause about the Bloom that
   nobody expects to be honoured" for 30,000 credits. The third is a joke; the

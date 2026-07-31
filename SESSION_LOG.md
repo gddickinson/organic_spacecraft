@@ -2,6 +2,54 @@
 
 Running progress log. Newest first.
 
+## 2026-07-31 — SEEDFALL: structures you fly into (#108, third slice)
+
+The last named piece of the docking-clearance request — *"stations large enough
+that a ship can fly inside of them, and then be docked internally"* — and it
+began by finding that **seven of the nineteen holdings could not be docked with
+at all.**
+
+Not a speculative feature. `data/works3d.py` gave every colony class its own
+structure with its own berths, and `radius_km` was quietly doing two jobs: how
+big a thing *is* (what the window draws, what the card says) and what a ship can
+*hit*. Furniture — rings, masts, gantries, arms — is exactly what you berth
+against, so a berth inside the bounding sphere is normal. Flown rather than
+computed, a conn driven at an ARCA Habitat reported
+
+    ARCA Deepcut at 12 m/s — 3,995 m from mast 3. The frames took it.
+
+And the same question was asked in **two** places, both reading `radius_km`:
+`sim/conn`'s swept-path test and `sim/outcome`'s arrival test. `bays.hull_km`
+is the one door now. A world keeps its own radius — a planet has no furniture,
+so its radius is its ground.
+
+**The rule is derived per structure rather than chosen once.** A berth is a
+fitting on the outside, so the hull stops just short of the nearest one. The
+first draft did apply a single share — 0.55 — to everything, which made the
+seven reachable and also halved the solid radius of a quay, a hub and a Weave
+gate whose berths sit at 0.91 to 1.11 and never needed it. Three checks caught
+it at once: a hull driven into a station at 45 m/s came away **adrift**, because
+the thing it was aimed at had shrunk out from under it. Ramming a hub is a real
+act with real consequences for both hulls, and a constant chosen for one problem
+broke it.
+
+**And then the bays.** A drum a million people live inside and a gestation shell
+that hands out finished hulls have their berths in the middle *on purpose*, so
+those two stay solid and you go in through the aperture. Flown: a hull passes a
+**383 m mouth** and makes fast at a cradle **120 m from the middle** of a GRAVID
+Nursery — *"Station held on Deepcut: 120 m, 0.4 m/s relative. Lines across."*
+ARCA opens **2,050 m** across a 2.75 km drum, with the berths on the inner wall.
+Fly down the middle and you get inside; keep going and you hit the far end,
+which is right — you must stop and cross to the wall.
+
+One modelling error the flying caught: the first bore was *wider than the solid
+part*, a 3.2 km opening through a 2.7 km middle, so every off-axis approach
+simply flew past and there was no rim to miss. The check holds the two apart for
+every bay now.
+
+`bays.clearance_km` was written and called by nothing, and deleted rather than
+given an invented caller. That is the third time this cycle.
+
 ## 2026-07-31 — SEEDFALL: a hull the machines are holding (#110, fifth slice)
 
 Robotic ships, and the fix was one condition written twice. Both places that

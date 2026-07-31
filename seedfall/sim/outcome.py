@@ -13,6 +13,7 @@ control laws and three contradicting screens to find. See `orbits.in_orbit`.
 
 from __future__ import annotations
 
+from .moorings import spin_of
 from .orbits import in_orbit, semi_major_km
 
 #: How near the height you asked for counts as arriving at it. Wider than the
@@ -108,7 +109,14 @@ def resolve(conn, *, safe_closing: float, impact_base: float,
     if is_open(conn.target):
         return
     r = conn.range_km
-    hull = conn.target.radius_km
+    # **What you can hit, not how big it is.** `radius_km` is the bounding
+    # sphere the window draws the structure at, furniture and all — and seven
+    # of the nineteen holdings had berths inside it, so flying at an ARCA
+    # Habitat reported a collision 3,995 m from the mast it was aiming for.
+    # `sim/bays.hull_km` is the solid middle, and for a structure with a way
+    # in it is not solid at the aperture at all.
+    from . import bays
+    hull = bays.hull_km(conn.target)
 
     def hurt(speed: float) -> float:
         """What this hull takes, and what it does to the other one.
@@ -179,7 +187,7 @@ def resolve(conn, *, safe_closing: float, impact_base: float,
                    "the tanks are dry — this is the orbit you have."
                    if short else ""))
             return
-    elif r <= hull:
+    elif r <= hull and not bays.in_corridor(conn, spin_of(conn)):
         # **Contact is a berthing only at a berth.** There are two roads to
         # "alongside" — this one, where the hull touches the structure, and
         # the station-keeping branch below — and gating only the second left

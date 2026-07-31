@@ -490,8 +490,14 @@ def _step(conn: Conn, dt: float) -> None:
         # holds station off it, and back in the moment it does not.
         from . import moorings
         moorings.boom_step(conn, h)
-        # Contact anywhere along the path, not merely at the end of it.
-        if _sweep_min(was, conn.pos) <= conn.target.radius_km:
+        # Contact anywhere along the path, not merely at the end of it — and
+        # against what is *solid*, which is not the bounding radius. See
+        # `sim/bays.hull_km`: a structure's furniture is what you berth
+        # against, and seven holdings had their berths inside the sphere this
+        # line used to test. A hull inside the way in touches nothing.
+        from . import bays
+        if (_sweep_min(was, conn.pos) <= bays.hull_km(conn.target)
+                and not bays.in_corridor(conn, moorings.spin_of(conn))):
             _touch(conn)
             if conn.over:
                 return
@@ -507,8 +513,9 @@ def _touch(conn: Conn) -> None:
     actually met the hull, which is the position every reading and every log
     line should be quoting.
     """
+    from . import bays
     r = conn.range_km
-    skin = max(conn.target.radius_km, 1e-6)
+    skin = max(bays.hull_km(conn.target), 1e-6)
     if r > 1e-9:
         conn.pos = [p * (skin / r) for p in conn.pos]
     else:

@@ -507,11 +507,18 @@ PARTS = {
 # ── where a hull ties up ───────────────────────────────────────────────────
 
 def _drum_points() -> tuple:
-    """Masts standing off a drum's forward end."""
+    """Berths **inside** a drum, on its inner wall.
+
+    A million people live in there; so do the ships. Standing them off the
+    forward end was the timid answer and it made the biggest structure in the
+    sector just another mast — `sim/bays` is what lets a hull fly in through
+    the open end and tie up on the inside, which is the whole of #108's last
+    piece.
+    """
     return tuple(
-        (f"mast {i + 1}", (DRUM_R * 0.62 * math.cos(math.tau * i / DRUM_BERTHS),
-                           DRUM_R * 0.62 * math.sin(math.tau * i / DRUM_BERTHS),
-                           DRUM_Z + 0.10))
+        (f"bay {i + 1}", (DRUM_R * 0.55 * math.cos(math.tau * i / DRUM_BERTHS),
+                          DRUM_R * 0.55 * math.sin(math.tau * i / DRUM_BERTHS),
+                          -DRUM_Z * 0.30))
         for i in range(DRUM_BERTHS))
 
 
@@ -524,11 +531,15 @@ def _ring_points() -> tuple:
 
 
 def _womb_points() -> tuple:
-    """Round the mouth of a gestation shell, where a hull is handed out."""
+    """**Inside** a gestation shell, where a hull is grown and handed out.
+
+    Round the mouth was where these started, which is a hull hanging outside
+    a womb rather than in one. `sim/bays` flies the corridor.
+    """
     return tuple(
-        (f"mouth {i + 1}", (WOMB_MOUTH * math.cos(math.tau * i / WOMB_BERTHS),
-                            WOMB_MOUTH * math.sin(math.tau * i / WOMB_BERTHS),
-                            WOMB_Z))
+        (f"cradle {i + 1}", (WOMB_MOUTH * 0.72 * math.cos(math.tau * i / WOMB_BERTHS),
+                             WOMB_MOUTH * 0.72 * math.sin(math.tau * i / WOMB_BERTHS),
+                             -0.06))
         for i in range(WOMB_BERTHS))
 
 
