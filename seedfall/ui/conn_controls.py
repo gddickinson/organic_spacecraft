@@ -84,7 +84,12 @@ class ConnControls(QWidget):
         grid.addWidget(self.run_btn, 1, 5)
         grid.addWidget(button("New approach…", win._pick_target, kind="flat"),
                        0, 6)
-        grid.addWidget(button("Break off", win._break_off, kind="flat"), 1, 6)
+        # One button for *stop what you are doing*, and it says which. Giving
+        # up on a berth and securing from a free flight are different acts:
+        # the first abandons an approach, the second simply stops flying and
+        # writes down where the ship ended up.
+        self.free_btn = button("Break off", win._break_off, kind="flat")
+        grid.addWidget(self.free_btn, 1, 6)
 
         # ── the throttle and the coast ─────────────────────────────────────
         # A third row, because these govern every button above them rather than
@@ -133,6 +138,14 @@ class ConnControls(QWidget):
             f"Main drive: {'ON' if self.use_main else 'off'}")
         self.run_btn.setText(
             "Stop clock" if self.window.running else "Run clock")
+        # The one button that changes what it *is*: with an approach running it
+        # gives that approach up, and on a free flight it stops flying and
+        # writes down where the ship ended up. Reading the approach rather
+        # than a flag on the window, so it cannot say one thing while the pad
+        # is doing the other.
+        from ..sim import freeflight as free_sim
+        free = free_sim.is_free(conn)
+        self.free_btn.setText("Secure from the conn" if free else "Break off")
         for mode, (btn, text) in self.mode_buttons.items():
             btn.setText(f"▶ {text}" if self.window.mode == mode else text)
 

@@ -2,6 +2,57 @@
 
 Running progress log. Newest first.
 
+## 2026-07-30 — SEEDFALL: a captain may take the conn whenever they like (#109)
+
+Reported by the player: *"There still doesn't seem to be a way to
+independently pilot the ship when not engaged in some prescribed activity."*
+Measured, exactly right. `berthing.can_conn` was the only door into the flight
+pad and it wants a contact — it says so, "a position in empty space is
+somewhere to steer for, not something to come alongside" — so the six axes,
+the main drive, the six cameras and the 3D windows all existed and none of
+them could be touched unless the ship was arriving somewhere. Between
+structures, movement was the plotting board, which is plotting rather than
+flying.
+
+`sim/freeflight.py` is an approach with no target: open space, at the ship's
+own position, the hull at the origin of its own frame. Everything downstream
+keeps working because it is still a `Conn` — same axes, same tank, same
+physics, same cameras.
+
+Two things stop it being a screensaver. **It moves the ship**: `secure` writes
+where she drifted to through `flight.stand_off`, the one door #103 built, so
+the kilometres flown are kilometres moved on every screen that plots the
+system. Measured end to end through the real window: 111 km flown by hand,
+111 km moved. And **it is charged for**, through `berthing.commit` like any
+other approach — 924 km flown, 8.69 t of reaction mass, 2.0 hours, and a
+ledger line that says *"Under way on the conn"* rather than calling it a
+broken-off approach on open space, which would have been two lies in one line.
+
+The trap worth writing down: a free flight opens at zero range against a
+target of radius zero, so `r <= hull` is 0 ≤ 0 and every arrival threshold in
+`sim/outcome` is true at once. The first tick reported the ship as having
+struck open space. It now returns early for open space and the flight ends
+when the pilot says so and at no other time.
+
+`hand_over` turns a free flight into an approach to something while keeping
+the way on — 101.8 m/s flown by hand, handed to the computer still making
+101.8 — so the last of an approach can be given away without the computer
+starting again from a standing start.
+
+Ten mutations, ten caught, but the tenth only after the check was fixed. The
+refusal check used a target out of reach, which `can_conn` turns away *before*
+the ship's position is touched — so the restore it claimed to cover was never
+on the path, and deleting that restore passed. It now also uses a hostile
+hull, which gets past the ship's own gate and is refused by the clearance,
+after the position has been stood off.
+
+`FAR_KM` was 20,000 km of advice nobody could ever be given: a full 20 t tank
+spent flat out moves this hull about 17,000. It is derived now — a twentieth
+of `berthing.REACH_KM`, 10,000 km — and the conn says, past it, that the
+thrusters have become the slow way and the plotting board is the fast one.
+
+1109 checks green.
+
 ## 2026-07-30 — SEEDFALL: the dock that comes out to you (#108, second slice)
 
 At a fitting you arrive. At a **standoff** berth you hold still, and the

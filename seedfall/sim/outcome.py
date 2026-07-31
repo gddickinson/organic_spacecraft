@@ -95,7 +95,18 @@ def resolve(conn, *, safe_closing: float, impact_base: float,
     here. This module decides *which question* to ask; the numbers stay in one
     place, because a constant written twice is the fault this project has been
     bitten by more than any other.
+
+    **A free flight has no answer to this question, and that is the point.**
+    There is nothing to come alongside, nothing to fall into, and drifting
+    away from where you let go is what flying *is*. Without this the first
+    tick ended it: a free flight opens at zero range with a target of radius
+    zero, so `r <= hull` is true at 0 ≤ 0 and the pilot was reported as having
+    hit open space before touching a control. It ends when the pilot secures —
+    `sim/freeflight.secure` — and at no other time.
     """
+    from .targets import is_open
+    if is_open(conn.target):
+        return
     r = conn.range_km
     hull = conn.target.radius_km
 

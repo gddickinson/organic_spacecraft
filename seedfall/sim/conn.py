@@ -40,7 +40,7 @@ from ..data.starclasses import of as star_class
 from . import outcome as outcome_sim
 from .orbits import (ORBIT_BAND, ORBIT_BAND_SHARE, ORBIT_FLOOR_KM, in_orbit,
                      orbit_band, orbit_note, orbital_speed, semi_major_km)
-from .targets import (G0, Target, approach_range, starlight,
+from .targets import (G0, Target, approach_range, is_open, starlight,
                       target_from_body, target_from_contact)
 
 #: Delta-v from one thruster pulse and one main-drive burn, in m/s.
@@ -285,11 +285,18 @@ def start(game, contact, range_km: float | None = None,
                 rcs_dv=kit["rcs_accel"] * TICK,
                 slew_rate=kit["slew_rate"],
                 turn_rate_cost=attitude_sim.turn_cost(game.ship, 6.283185))
-    conn.nose = list(attitude_sim.unit([-p for p in conn.pos]))
+    # Pointing at the target — except on a free flight, where the ship *is*
+    # the origin and there is nothing to point at. `unit` of a zero vector has
+    # no answer, so the nose keeps the heading the frame is built on and the
+    # pilot turns it wherever they like.
+    conn.nose = (list(attitude_sim.unit([-p for p in conn.pos]))
+                 if r > 1e-9 else [0.0, 1.0, 0.0])
     conn.star_dir = list(starlight(game, contact))
     conn.star_lum = star_class(game.system).luminosity
     from . import sky as sky_sim
-    conn.sky = sky_sim.build(game, contact)
+    # A free flight has no contact behind its target, and `sky.build` has
+    # always known how to draw the view from wherever the ship is standing.
+    conn.sky = sky_sim.build(game, None if is_open(target) else contact)
     if target.mu > 0:
         # Across the line of sight at circular speed, less the error the
         # transfer left. Radially inward a little, so it is falling: an

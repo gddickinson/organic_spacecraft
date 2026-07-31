@@ -154,6 +154,7 @@ KIN = {
     "knock": ("knock",),
     "moorings": ("moorings", "conn"),
     "clearance": ("clearance", "berthing"),
+    "freeflight": ("freeflight", "conn"),
     "berths3d": ("standoff", "silhouettes"),
     "readiness": ("readiness",),
     "parley": ("parley", "combat"),

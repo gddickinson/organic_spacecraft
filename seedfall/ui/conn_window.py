@@ -278,18 +278,24 @@ class ConnWindow(QDialog):
         """
         self._settle()
         near = [c for c in self.contacts if berth_sim.can_conn(self.game, c)[0]]
-        if not near:
-            self.win.toast("Nothing within reach of the thrusters. Plot a "
-                           "transfer first.", "warn")
-            return
+        # **Flying for its own sake is one of the choices.** With nothing in
+        # reach this used to be a dead end — "plot a transfer first" — which
+        # is true about *berthing* and was being said about *flying*. A
+        # captain may take the conn whenever they like; there is nobody to
+        # ask permission of to move your own ship.
         rows = [f"{c.name} — {c.detail}" for c in near[:12]]
         picked = self.win.dialog(
             "Approach which?",
-            ["The conn is the last few kilometres. These are what the ship "
-             "is already alongside."] + rows,
+            (["The conn is the last few kilometres. These are what the ship "
+              "is already alongside."] if near else
+             ["Nothing is within reach of the thrusters — but the ship is "
+              "yours to fly."]) + rows,
             [(c.name, index) for index, c in enumerate(near[:6])]
-            + [("Cancel", None)])
+            + [("Fly free — no destination", "free"), ("Cancel", None)])
         if picked is None:
+            return
+        if picked == "free":
+            self._free_flight()
             return
         self.contact = near[picked]
         self.mode = None
@@ -299,8 +305,50 @@ class ConnWindow(QDialog):
         self.screen.conn = self.conn
         self.refresh()
 
+    def _free_flight(self) -> None:
+        """Take the conn on open space: fly the ship because you want to.
+
+        The same pad, the same cameras, the same tank — with no target and
+        nothing to arrive at. It ends when the pilot secures.
+        """
+        from ..sim import freeflight as free_sim
+        self._settle()
+        conn, why = free_sim.begin(self.game)
+        if conn is None:
+            self.win.toast(why, "warn")
+            return
+        self.contact = None
+        self.mode = None
+        self.conn, self.refused = conn, ""
+        # The window watches for the ship being moved out from under it; a
+        # free flight *is* the ship being moved, so what it opened at has to
+        # be brought up to date or the next refresh throws the flight away.
+        self.opened_at = (self.game.location_id,
+                          getattr(self.game, "orbit_body", None))
+        for feed in self.feeds.values():
+            feed.conn = self.conn
+        self.screen.conn = self.conn
+        self.win.toast("The conn is yours. No destination set.")
+        self.refresh()
+
     def _break_off(self) -> None:
-        """Give it up. The mass already burned is not coming back."""
+        """Stop. Give up an approach, or secure from a free flight.
+
+        Two acts behind one button, told apart by what is being flown rather
+        than by a flag on the window. Breaking off abandons a berth and the
+        mass already burned is not coming back; securing writes down where the
+        ship has actually got to, which is the whole point of having flown.
+        """
+        from ..sim import freeflight as free_sim
+        if self.conn is not None and free_sim.is_free(self.conn):
+            said = free_sim.secure(self.game, self.conn)
+            self.running = False
+            self.timer.stop()
+            self._settle()
+            self.win.toast(said)
+            self._reopen()
+            self.refresh()
+            return
         if self.conn is not None and not self.conn.over:
             self.conn.outcome = "broken off"
             self.conn.log.append("Approach broken off.")
@@ -325,9 +373,16 @@ class ConnWindow(QDialog):
         if conn is None:
             self.title.setText("Nothing in range to approach")
             return
-        self.title.setText(
-            f"Conn — {conn.target.name}" if conn.outcome != "watching"
-            else f"Conn — station keeping at {self.game.system.name}")
+        from ..sim import freeflight as free_sim
+        if free_sim.is_free(conn):
+            # Not "Conn — open space": the title is where a captain looks to
+            # know what the ship is doing, and what it is doing is flying.
+            self.title.setText(
+                f"Conn — under way, {free_sim.standing(self.game, conn)}")
+        else:
+            self.title.setText(
+                f"Conn — {conn.target.name}" if conn.outcome != "watching"
+                else f"Conn — station keeping at {self.game.system.name}")
         self.controls.sync(conn)
 
         while self.side.count():

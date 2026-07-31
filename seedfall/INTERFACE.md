@@ -329,6 +329,29 @@ was the Bloom crossing a threshold in `traffic` (0.15, where raiders can draw;
 is causal: it projects the growth forward and asks whether a crossing falls
 before the arrival, rather than decaying with time for its own sake.
 
+**A captain may take the conn whenever they like.** Every manual control hung
+off an approach *to a thing*: `berthing.can_conn` wanted a contact and said so
+— "a position in empty space is somewhere to steer for, not something to come
+alongside" — so the six axes, the main drive, the cameras and the 3D windows
+could only be used while arriving somewhere. Between structures, movement was
+the plotting board, which is plotting rather than flying. Reported by a player,
+and they were right.
+
+`sim/freeflight.py` is an approach with **no target**: open space, at the
+ship's own position, with the hull at the origin of its own frame. Everything
+downstream keeps working because it is still a `Conn`. Two things make it real
+rather than a screensaver. It **moves the ship** — `secure` writes where she
+drifted to through `flight.stand_off`, the one door #103 built, so the
+kilometres flown are kilometres moved on every screen that plots the system —
+and it is **charged for**, through `berthing.commit` like any other approach:
+the mass, the hours, and a line in the ledger that says what it was rather
+than calling it a broken-off approach. Nothing ends it but the pilot, which
+needed saying in `sim/outcome`: a free flight opens at zero range against a
+target of radius zero, so every arrival threshold is true at once and the
+first tick reported the ship as having struck open space. `hand_over` turns
+one into an approach to something while keeping the way on, so flying by hand
+and then giving the computer the last of it is one approach rather than two.
+
 `sim/conn.py` is the close-quarters frame — kilometres, metres a second, and
 a minute a tick. Reaction control for fine work, the main drive for closing
 distance, `mu` taken from the body's own `radius_km` and `gravity` so a heavy
@@ -2172,6 +2195,8 @@ seedfall/
 │   ├── works.py        colony development: what a settlement becomes
 │   ├── clearance.py    being cleared to dock: which berth the structure
 │   │                   assigns, and everything the approach needs
+│   ├── freeflight.py   taking the conn on nothing in particular: flying the
+│   │                   ship for its own sake, and having it move the hull
 │   ├── moorings.py     berths: where a ship ties up on a structure, and
 │   │                   where an approach is actually flying
 │   ├── knock.py        what being shoved off station comes to, and how
@@ -4197,6 +4222,18 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   its collar; the approach flying the berth the port assigned rather than the
   one it fancied; and the clearance agreeing with the geometry to the metre.
   Nine mutations, nine caught.
+
+- **`test_freeflight.py`** holds flying for its own sake: the pad is live
+  with nothing to approach; nothing ends the flight but the pilot, including
+  at zero range where every arrival test is true at once; what was flown is
+  where the ship has got to, to within a kilometre in four thousand; the mass
+  and the hours are charged and the ledger says what it was; a hand-over keeps
+  the way on; a refused hand-over moves nothing; and the window offers it with
+  a button that says which act it will do. Ten mutations, ten caught — the
+  tenth only after the refusal check was made to use a *clearance* refusal:
+  the first one it tried was turned away by `can_conn` before the ship had
+  been moved at all, so it could never have exercised the restore it claimed
+  to cover.
 
 - **`test_standoff.py`** holds the berth that comes out to you: the berth is
   off the hull rather than on it; holding still runs the boom out and drifting

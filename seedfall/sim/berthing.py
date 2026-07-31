@@ -253,4 +253,10 @@ def _line(conn, fuel: float, hurt: float) -> str:
     if conn.outcome == "dry":
         return (f"Ran the thrusters dry off {name} without making orbit: "
                 f"{cost}.")
+    if conn.outcome == "secured":
+        # A free flight was not an approach and did not fail: the ship went
+        # somewhere because the captain flew it there. Saying "broke off the
+        # approach on open space" would be two lies in one line.
+        flew = math.dist(conn.pos, (0.0, 0.0, 0.0))
+        return (f"Under way on the conn: {flew:,.0f} km flown, {cost}.")
     return f"Broke off the approach on {name}: {cost}."

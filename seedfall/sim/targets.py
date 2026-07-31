@@ -17,6 +17,18 @@ from .orbits import ORBIT_FLOOR_KM
 G0 = 9.80665
 
 
+#: The kind a free flight's target carries: open space, at the place the ship
+#: took the conn. It lives here rather than in `sim/freeflight` because `Conn`
+#: is built here and asks the question before that module is importable —
+#: `freeflight` imports the conn, so the conn cannot import it back.
+OPEN = "open"
+
+
+def is_open(target) -> bool:
+    """Is this 'target' the open space of a free flight rather than a thing?"""
+    return getattr(target, "kind", "") == OPEN
+
+
 @dataclass
 class Target:
     """What the conn is flying relative to."""
@@ -67,7 +79,15 @@ def target_from_body(body, name: str | None = None,
 
 
 def target_from_contact(game, contact) -> Target:
-    """Build a conn target from anything `track` can put a cursor on."""
+    """Build a conn target from anything `track` can put a cursor on.
+
+    A `Target` handed in is already the answer. `sim/freeflight` builds one
+    for open space — there is no contact behind it, because the whole point
+    is that the ship is not approaching anything — and it must arrive at the
+    conn unchanged rather than being flattened into a "point".
+    """
+    if isinstance(contact, Target):
+        return contact
     system = game.system
     if contact.kind in ("body", "anchorage") and contact.body_index is not None:
         body = system.bodies[contact.body_index]
