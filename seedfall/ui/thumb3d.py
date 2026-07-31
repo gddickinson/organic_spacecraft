@@ -53,6 +53,13 @@ ROBOT_AT = 2.1
 ROBOT_TILT = -1.32
 ROBOT_SPIN = 0.7
 
+#: Where a xenoform sits. Authored about a unit across, and held a little more
+#: side-on than a machine: most of these are wider than they are tall, and a
+#: mat seen from directly above is a disc.
+LIFE_AT = 2.0
+LIFE_TILT = -1.05
+LIFE_SPIN = 0.55
+
 #: The void a portrait is drawn against. `theme.TINTS` has no key for it —
 #: `theme.tint("void")` falls back to a *light* ink, which is how the first
 #: draft came out with every hull on a pale grey card.
@@ -82,7 +89,8 @@ WORLD_LIGHT = (-0.72, -0.28, 0.36)
 class Thumb(QWidget):
     """One catalogue portrait: a hull class, a berth, a world or a star."""
 
-    def __init__(self, kind: str, subject, height: int = 92):
+    def __init__(self, kind: str, subject, height: int = 92,
+                 width: int | None = None):
         super().__init__()
         self.kind = kind
         self.subject = subject
@@ -90,6 +98,12 @@ class Thumb(QWidget):
         self.setMinimumHeight(height)
         self.setSizePolicy(QSizePolicy.Policy.MinimumExpanding,
                            QSizePolicy.Policy.Fixed)
+        # A portrait stacked down a panel rather than sitting in a card grid
+        # will take the whole width if it is allowed to: measured on the life
+        # catalogue, a 620-pixel band with an 80-pixel organism in the middle
+        # of it. A cap turns the band back into a picture.
+        if width is not None:
+            self.setMaximumWidth(width)
 
     def sizeHint(self) -> QSize:
         return QSize(self._height * 2, self._height)
@@ -140,6 +154,18 @@ def paint(painter, camera: render3d.Camera, kind: str, subject) -> None:
             return
         render3d.draw(painter, camera, mesh, (0.0, 0.0, ROBOT_AT), 1.0, LIGHT,
                       spin=ROBOT_SPIN, tilt=ROBOT_TILT)
+    elif kind == "life":
+        # An organism, built from its own record: the body plan is the
+        # silhouette, the biochemistry the colour, a trait a feature you can
+        # see. `subject` is a Lifeform, or (form, metabolism, traits).
+        from ..data import life3d
+        if hasattr(subject, "metabolism"):
+            shape = life3d.for_lifeform(subject)
+        else:
+            form, met, *rest = tuple(subject) + ((),)
+            shape = life3d.build(form, met, rest[0] if rest else ())
+        render3d.draw(painter, camera, shape.mesh, (0.0, 0.0, LIFE_AT), 1.0,
+                      LIGHT, spin=LIFE_SPIN, tilt=LIFE_TILT)
     elif kind == "ship":
         shown = models3d.present("hull", subject)
         render3d.draw(painter, camera, shown["mesh"], (0.0, 0.0, SUBJECT_AT),

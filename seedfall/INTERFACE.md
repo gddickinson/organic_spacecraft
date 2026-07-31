@@ -2075,6 +2075,10 @@ seedfall/
 │   │                   one silhouette each, where there was one shipyard
 │   ├── ships3d.py      and other people's ships by what they are doing:
 │   │                   courier, trader, prospector, patrol, no transponder
+│   ├── life3d.py       a xenoform's body, from the three things it is made
+│   │                   of: the plan is the silhouette, the metabolism the
+│   │                   colour, a trait a feature you can see — and `marks`
+│   │                   says which traits a portrait cannot show
 │   ├── robots3d.py     a body per machine class, built from its own card:
 │   │                   duties give it arms, a rig, a dish or a pack; the
 │   │                   autonomy rung gives it a sensor head or a relay mast;
@@ -3143,6 +3147,23 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   — plus decorators, which register a function with something that dispatches
   by name. What cannot be placed stays loose and credits everything, so the
   check under-reports rather than crying wolf.
+- **A generated thing needs a generated picture.** There is no bestiary in this
+  game to illustrate: `world/planets._make_lifeform` assembles an organism from
+  a body plan, a metabolism and up to two traits, so `data/life3d.py` assembles
+  the portrait the same way — off the record itself, since `Lifeform.name` *is*
+  the plan. Sixteen plans, eight liveries, five visible traits, and an organism
+  nobody drew still arrives with a body.
+- **A mark is sized to the creature, not to one of its axes.** Scaled by
+  `height`, every trait on a long low animal came out between three and sixteen
+  pixels — an armoured grazer's glass spines were three pixels of glass. And
+  before that, a magnetotactic organism's aligned chains were drawn *inside* the
+  body and changed **zero**: the one thing that trait means is that everything
+  lines up, and you can only see that if the line leaves the animal.
+- **Say what the picture cannot show.** Five of the ten traits are visible;
+  damage-suppressed chromatin and obligate symbiosis are real and are not. The
+  catalogue names both — "drawn" against "real, and nothing a portrait can
+  show" — because a page that implies the portrait is the whole organism is
+  lying in the small way this project keeps finding.
 - **A promise in the sales text is a claim the game has to meet.** A treaty was
   sold as "mutual berthing, shared charts, and a clause about the Bloom that
   nobody expects to be honoured" for 30,000 credits. The third is a joke; the

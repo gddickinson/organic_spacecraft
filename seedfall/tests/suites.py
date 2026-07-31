@@ -85,6 +85,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("robots", "test_robots", "machines"),
     SuiteSpec("robots3d", "test_robots3d", "machine bodies"),
     SuiteSpec("bay", "test_bay", "internal bays"),
+    SuiteSpec("life3d", "test_life3d", "xenoform bodies"),
     SuiteSpec("skykit", "test_sky_kit", "sky kit"),
     SuiteSpec("lighting", "test_lighting", "lighting"),
     SuiteSpec("orbits", "test_orbits", "orbits"),

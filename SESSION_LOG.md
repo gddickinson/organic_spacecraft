@@ -2,6 +2,46 @@
 
 Running progress log. Newest first.
 
+## 2026-07-31 — SEEDFALL: sixteen body plans and eight biochemistries (#80)
+
+The Life tab was the last catalogue page in the game with no picture on it, and
+it is the most interesting of the four because **there is no bestiary to
+illustrate.** `world/planets._make_lifeform` assembles an organism from a body
+plan, a metabolism and up to two traits, so a picture has to be assembled the
+same way. `data/life3d.py` is that, off the record itself — `Lifeform.name`
+*is* the body plan, because the generator passes `rng.pick(FORMS)` straight
+into it, so nothing had to be stored twice or parsed back out of prose.
+
+Sixteen plans over five silhouettes — mats spread, bells drift with tentacles,
+tubes anchor, fronds stand, bodies segment and grow limbs. Eight biochemistries
+as eight liveries, each measured to share under half its palette with any
+other: chemo in rock, thermo in vent-red, halo in brine-white, radio in gold,
+crypto in glassy teal, piezo in abyssal blue. Five traits you can see, and five
+you cannot.
+
+**Two defects, and both the same one.** A magnetotactic organism's aligned
+magnetite chains changed **zero pixels** — drawn inside the body, where a dome
+is wider than they were, so the one thing that trait means was invisible. And
+once that was fixed, every trait on a long low animal came out between three
+and sixteen pixels, because the marks were scaled by `height` and an armoured
+grazer is 0.30 tall: three pixels of glass on a silaffin lattice. A mark is
+sized to the creature now, whichever axis its largest dimension lies along.
+Faintest anywhere is 40 px.
+
+The declared-field guard caught the tail of it: `Shape.livery` was the
+metabolism echoed back and is gone, and `Shape.marks` earned its keep by
+becoming the honest line on the panel — "silaffin lattice, ice-binding —
+drawn" against "damage-suppressed — real, and nothing a portrait can show."
+You cannot see a repaired chromosome from a lander, and a page implying the
+portrait is the whole organism would be lying in the small way this project
+keeps finding.
+
+One from looking at the rendered screen: a portrait stacked down a panel takes
+the whole width if allowed to, so each was a 620-pixel black band with an
+80-pixel animal in the middle of it.
+
+Full suite green: **1,146 checks**.
+
 ## 2026-07-31 — SEEDFALL: a call resolves to the module it came from (#26)
 
 The reachability guard matched **bare names**: `defined` held `module.func` and
