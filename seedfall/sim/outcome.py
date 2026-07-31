@@ -55,17 +55,6 @@ def _dry(conn) -> bool:
     return conn.rcs < pilot.burn_cost(conn, False)
 
 
-def impact_damage(speed: float, safe_closing: float, base: float) -> float:
-    """What hitting something at this speed takes off the hull.
-
-    Quadratic and uncapped. A cap is what let a five-kilometre-a-second
-    lithobraking manoeuvre cost less than a bad week in the Bloom.
-    """
-    if speed <= 0:
-        return 0.0
-    return round((speed / safe_closing) ** 2 * base, 1)
-
-
 def alongside(conn, alongside_km: float, alongside_rate: float) -> bool:
     """Near enough, slow enough, **and at a berth**.
 

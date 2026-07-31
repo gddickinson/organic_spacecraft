@@ -2,6 +2,50 @@
 
 Running progress log. Newest first.
 
+## 2026-07-31 — SEEDFALL: a call resolves to the module it came from (#26)
+
+The reachability guard matched **bare names**: `defined` held `module.func` and
+`called` held bare `func`, so a `mining.summary` nobody calls was masked by any
+other module's `summary` being called. Its own docstring guessed that hid "one
+orphan, not a class of them". It hid **thirteen**.
+
+Getting the resolution right took four rounds, each a path a naive version gets
+wrong, and each one measured before it was fixed:
+
+- **A call where the function lives.** `BERTHS = {"quay": quay(), ...}` inside
+  `berths3d.py` is a use. Missing it alone reported **220** false orphans.
+- **An aliased import.** `from .life_panel import build as life_catalogue`
+  means a call to `life_catalogue()` is `life_panel.build`, not
+  `life_panel.life_catalogue` — the obvious version credits the alias.
+- **A re-export.** `chassis_data.accepts_family` is
+  `hull_types.accepts_family`, reached through a module that imported it.
+- **A reference that is not a call.** A callback or a dispatch-table entry is
+  consumed without ever being written `f()`.
+
+And a decorated function is consumed by whatever registers it: `@verb` builds
+the bridge's vocabulary in `protocol.VERBS`, `@register` the save codec. Nobody
+decorates a function for nothing. Anything still unplaceable — a call on a
+parameter like `ops.enemy_turn`, a `getattr`, a string key — stays in a loose
+bucket crediting every module, so the check under-reports rather than crying
+wolf. 1,267 of 1,278 now resolve exactly.
+
+**Two of the thirteen were harm, not dead weight.** `conn.impact_damage` was a
+thin wrapper around `outcome.impact_damage` that nothing called — a *second
+door* onto collision damage, after `sim/impulse.collide` became the one door
+and made a collision two-sided. Deleting it exposed that
+`outcome.impact_damage` was itself dead, superseded by that model. Both gone,
+and the impact figures are unchanged: 8 m/s → 24, 20 → 150, 45 → 759.
+
+The other eleven are readouts with no reader — six `summary()` aggregators
+written "for the panel" that no panel opens, plus `sky.note`,
+`berthing.preview`, `bays.line`, `contracts.summary` and `transit.summary`.
+Recorded in `ALLOWED` with a reason each rather than decided in a hurry: every
+one needs a judgement about whether the screen that would show it deserves to
+exist, and that is a piece of work on its own. The check can see them now,
+which it never could.
+
+Full suite green: **1,140 checks**.
+
 ## 2026-07-31 — SEEDFALL: structures you fly into (#108, third slice)
 
 The last named piece of the docking-clearance request — *"stations large enough

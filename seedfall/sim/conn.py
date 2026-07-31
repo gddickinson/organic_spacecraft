@@ -535,10 +535,6 @@ def _resolve(conn: Conn) -> None:
                         adrift_multiple=ADRIFT_MULTIPLE)
 
 
-def impact_damage(speed: float) -> float:
-    """What hitting something at this speed takes off the hull."""
-    return outcome_sim.impact_damage(speed, SAFE_CLOSING, IMPACT_BASE)
-
 
 def alongside(conn: Conn) -> bool:
     """Near enough and slow enough to call it a berth."""

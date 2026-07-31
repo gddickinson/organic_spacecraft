@@ -15,12 +15,34 @@ Finding it also turned up two genuine holes rather than dead code — treaties
 that bought no trade advantage despite the function promising one, and instars
 that could never be killed because nothing called `kill_instar`.
 
-Known floor: names are matched bare, so a `dig.summary` nobody calls is masked
-by any other module's `summary` being called. Measured across the package that
-currently hides one orphan, not a class of them — resolving calls to their
-defining module means following aliased imports and re-exports, which throws
-five false alarms if done naively. Worth doing properly, not worth bolting on.
-A function called only from a readout also passes: it is consumed, even if the
+**Calls resolve to the module they were defined in.** They did not: names were
+matched bare, so a `mining.summary` nobody calls was masked by any other
+module's `summary` being called — and across the package that hid **eleven**
+functions, not the one the earlier note guessed at. Six of them are aggregation
+readouts written "for the panel" that no panel ever opened.
+
+Resolving properly means following four paths a naive version gets wrong, each
+of which cost a round of false alarms before it was handled:
+
+- **A call where the function lives.** `BERTHS = {"quay": quay(), ...}` inside
+  `berths3d.py` is a use. Missing this alone reported 220 false orphans.
+- **An aliased import.** `from .life_panel import build as life_catalogue`
+  means a call to `life_catalogue()` is `life_panel.build`, not
+  `life_panel.life_catalogue`.
+- **A re-export.** `chassis_data.accepts_family` is `hull_types.accepts_family`,
+  reached through a module that imported it.
+- **A reference that is not a call.** A function passed as a callback or put in
+  a dispatch table is consumed without ever being written `f()`.
+
+And a **decorated** function is consumed by whatever its decorator registers it
+with: `@verb` puts the bridge's vocabulary in `protocol.VERBS`, `@register`
+puts a dataclass in the save codec. Nobody decorates a function for nothing.
+
+Anything the resolver cannot place — a call on a parameter, `ops.enemy_turn`;
+a name reached through `getattr`; a string in a table — stays in a loose bucket
+that credits every module. The check under-reports rather than crying wolf.
+
+A function called only from a readout still passes: it is consumed, even if the
 readout is never opened.
 """
 
@@ -39,7 +61,29 @@ EXPORTED = {"main", "run", "encode", "decode", "read", "write", "exists",
             "clear_save", "report", "check", "build_app"}
 
 #: Deliberately kept, with the reason. Anything added here needs one.
-ALLOWED: dict[str, str] = {}
+#:
+#: These eleven are what precise resolution found on the day it was written —
+#: every one a readout with no reader, invisible to bare-name matching because
+#: some *other* module's `summary`, `line`, `note` or `preview` is called.
+#: They are recorded rather than quietly allowed: each needs a decision about
+#: whether the screen that wants it should exist, and that is a piece of work
+#: on its own rather than eleven snap judgements at the end of a long day.
+ALLOWED: dict[str, str] = {
+    "bays.line": "what a bay tells an approaching hull; the clearance screen "
+                 "should say it and does not yet",
+    "berthing.preview": "what committing would cost, in `commit`'s own terms; "
+                        "the conn shows its own figures instead",
+    "chains.summary": "counts of chains live, done and failed — no screen asks",
+    "contracts.summary": "one contract as a line; the board formats its own",
+    "diplomacy.summary": "treaties and the whole relations matrix, unread",
+    "grudge.summary": "every power, what it feels and why — unread",
+    "mining.summary": "seams reachable and out of reach; the panel walks them "
+                      "itself",
+    "programmes.summary": "what the bench has been for — unread",
+    "sky.note": "one line naming what is in the sky — unread",
+    "transit.summary": "a transit's spend against its plan — unread",
+    "ventures.summary": "ventures live, resolved, backed and opposed — unread",
+}
 
 
 def _hands_back_a_value(node: ast.FunctionDef) -> bool:
@@ -58,15 +102,19 @@ def _hands_back_a_value(node: ast.FunctionDef) -> bool:
     return False
 
 
-def _public_functions() -> dict[str, str]:
-    """Every public module-level function, whether or not it returns anything.
+def _public_functions() -> dict[tuple, str]:
+    """Every public module-level function, keyed by where it was defined.
 
     Restricting this to value-returning functions missed `kill_instar`, which
     mutates and returns nothing — and which nothing called, so a roaming Bloom
     mass could never be destroyed. A function nobody calls is a feature that
     does not exist regardless of its return type.
+
+    A **decorated** function is skipped: whatever the decorator registers it
+    with is the consumer. `@verb` is the bridge's vocabulary and `@register`
+    the save codec, and both dispatch by name from a table.
     """
-    found: dict[str, str] = {}
+    found: dict[tuple, str] = {}
     for path in sorted(ROOT.rglob("*.py")):
         if path.parent.name == "tests":
             continue
@@ -76,31 +124,104 @@ def _public_functions() -> dict[str, str]:
                 continue
             if node.name.startswith("_") or node.name in EXPORTED:
                 continue
-            found[f"{path.stem}.{node.name}"] = node.name
+            if node.decorator_list:
+                continue
+            found[(path.stem, node.name)] = f"{path.stem}.{node.name}"
     return found
 
 
-def _called_anywhere() -> set[str]:
-    """Every name called or exported anywhere, tests included.
+def _imports(tree) -> tuple[dict, dict]:
+    """What the names in one file refer to.
+
+    Returns (module aliases, name imports). `from ..sim import robots as r`
+    puts `r` in the first; `from .life_panel import build as shown` puts
+    `shown -> (life_panel, build)` in the second — **the original name**, which
+    is the one a naive version gets wrong.
+    """
+    mods: dict[str, str] = {}
+    names: dict[str, tuple] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            base = (node.module or "").split(".")[-1]
+            for alias in node.names:
+                mods[alias.asname or alias.name] = alias.name
+                if base:
+                    names[alias.asname or alias.name] = (base, alias.name)
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                stem = alias.name.split(".")[-1]
+                mods[alias.asname or stem] = stem
+    return mods, names
+
+
+def _reexports() -> dict:
+    """Where a re-exported name really lives.
+
+    `chassis.py` does `from .hull_types import accepts_family`, so a call to
+    `chassis_data.accepts_family` is a use of `hull_types.accepts_family`.
+    """
+    out: dict = {}
+    for path in sorted(ROOT.rglob("*.py")):
+        if path.parent.name == "tests":
+            continue
+        for node in ast.walk(ast.parse(path.read_text())):
+            if isinstance(node, ast.ImportFrom) and node.module:
+                base = node.module.split(".")[-1]
+                for alias in node.names:
+                    if alias.asname is None:
+                        out[(path.stem, alias.name)] = (base, alias.name)
+    return out
+
+
+def _used(defined: dict) -> tuple[set, set]:
+    """What is used, as (resolved to a module, unplaceable bare names).
 
     Tests count as consumers: a function driven only by the suite is at least
     being exercised deliberately, which is a different mistake from one nobody
     calls at all.
+
+    Anything that cannot be placed — a call on a parameter, a name reached
+    through `getattr`, a string in a dispatch table — goes in the loose set and
+    credits **every** module with that name. The check under-reports rather
+    than crying wolf.
     """
-    names: set[str] = set()
+    here: dict[str, set] = {}
+    for module, name in defined:
+        here.setdefault(module, set()).add(name)
+
+    exact: set = set()
+    loose: set = set()
     for path in ROOT.rglob("*.py"):
         tree = ast.parse(path.read_text())
+        mods, names = _imports(tree)
+        mine = here.get(path.stem, set())
         for node in ast.walk(tree):
-            if isinstance(node, ast.Call):
-                func = node.func
-                name = (func.attr if isinstance(func, ast.Attribute)
-                        else getattr(func, "id", None))
-                if name:
-                    names.add(name)
-            # `__all__` entries and getattr("name") count as use.
+            # A *reference* is a use: a callback or a dispatch-table entry is
+            # consumed without ever being written `f()`.
+            if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+                owner = mods.get(node.value.id)
+                (exact.add((owner, node.attr)) if owner
+                 else loose.add(node.attr))
+            elif isinstance(node, ast.Attribute):
+                loose.add(node.attr)
+            elif isinstance(node, ast.Name):
+                if node.id in mine:
+                    exact.add((path.stem, node.id))   # used where it lives
+                elif node.id in names:
+                    exact.add(names[node.id])
+                else:
+                    loose.add(node.id)
+            # `__all__` entries, getattr("name") and dispatch keys count.
             elif isinstance(node, ast.Constant) and isinstance(node.value, str):
-                names.add(node.value)
-    return names
+                loose.add(node.value)
+
+    via = _reexports()
+    for _ in range(4):                       # chains of re-exports are short
+        grown = {via[key] for key in list(exact) if key in via}
+        if grown <= exact:
+            break
+        exact |= grown
+    return exact, loose
 
 
 def run(suite: Suite) -> None:
@@ -115,14 +236,18 @@ def run(suite: Suite) -> None:
         # while contributing nothing to the simulation, and this check would
         # have passed on it. Being reachable is a floor, not a guarantee.
         defined = _public_functions()
-        called = _called_anywhere()
-        orphans = sorted(name for name, bare in defined.items()
-                         if bare not in called and name not in ALLOWED)
+        exact, loose = _used(defined)
+        orphans = sorted(
+            label for key, label in defined.items()
+            if key not in exact and key[1] not in loose and label not in ALLOWED)
         assert not orphans, (
             f"{len(orphans)} public function(s) nothing ever calls. Either "
             "wire it into the game or delete it:\n      "
             + "\n      ".join(orphans))
-        return f"{len(defined)} public functions, every one reachable"
+        placed = sum(1 for key in defined if key in exact)
+        return (f"{len(defined)} public functions, every one reachable · "
+                f"{placed} resolved to the module they were defined in, "
+                f"{len(ALLOWED)} readouts recorded as having no reader")
 
     @check("the check can still see an orphan when there is one")
     def _():

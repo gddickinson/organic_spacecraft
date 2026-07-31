@@ -3133,6 +3133,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   into a station at 45 m/s came away *adrift*. Three suites caught it at once.
   The rule that survives is derived per structure from the mesh's own numbers:
   the hull stops just inside its nearest berth.
+- **A guard that matches bare names is a guard with a blind spot the size of
+  your naming conventions.** `test_reachable` held `module.func` on one side
+  and bare `func` on the other, so any module's `summary` being called covered
+  every other module's. It hid thirteen orphans, two of which were a *second
+  door* onto collision damage. Resolving properly means crediting four things a
+  naive version misses — a call where the function lives (220 false alarms on
+  its own), an aliased import, a re-export, and a reference that is not a call
+  — plus decorators, which register a function with something that dispatches
+  by name. What cannot be placed stays loose and credits everything, so the
+  check under-reports rather than crying wolf.
 - **A promise in the sales text is a claim the game has to meet.** A treaty was
   sold as "mutual berthing, shared charts, and a clause about the Bloom that
   nobody expects to be honoured" for 30,000 credits. The third is a joke; the
