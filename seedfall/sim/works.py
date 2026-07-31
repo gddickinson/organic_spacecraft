@@ -33,6 +33,42 @@ def yields_of(col) -> dict:
     return out
 
 
+#: What one level of machine posted to a holding adds to its output.
+#:
+#: Measured against what a machine costs to have there. A Verger is level 3 and
+#: 7,200 credits plus five silicon and four magnetite; on a RADIX Mine's 2.6 t
+#: of ore a day it lifts production by 18%, which at the ore price pays the
+#: build back in a little under two years and its own upkeep in about a month.
+#: Slower than a trade run and it never sleeps, which is the shape a standing
+#: asset should have.
+YIELD_PER_LEVEL = 0.06
+
+
+def hands_at(game, col) -> float:
+    """Levels of machine posted to this holding and fit to work its plant.
+
+    Through `sim/robots.working`, which is where the distance to whoever is
+    supervising them is felt — so a teleoperated frame at a holding you have
+    sailed away from contributes very nearly nothing, and this is the number
+    that says so.
+    """
+    from . import robots
+    return robots.working(game, col, "works")
+
+
+def crewed_yields(game, col) -> dict:
+    """**What this holding actually produces today**, machines included.
+
+    The one door. `yields_of` is what the class and its works are worth on
+    paper; nobody outside this module should be reading that when there is a
+    game to hand, because a holding with three Vergers on it produces more
+    than its card says and both the forecast and the tick must agree about
+    how much.
+    """
+    lift = 1.0 + YIELD_PER_LEVEL * hands_at(game, col)
+    return {key: amount * lift for key, amount in yields_of(col).items()}
+
+
 def upkeep_of(col) -> dict:
     out = dict(col.definition.upkeep)
     for work in done(col):

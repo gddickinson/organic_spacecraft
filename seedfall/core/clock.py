@@ -249,6 +249,12 @@ def advance_days(game, n: float, dilation: float = 1.0) -> None:
         game.add_log(text, kind)
     for kind, text in upkeep_sim.tick(game, ship_n, r):
         game.add_log(text, kind)
+    # The machines eat too, and wear out doing it. On the sector clock rather
+    # than the ship's: a Verger left at a holding goes on working while the
+    # hull is in transit, which is the whole reason to leave one there.
+    from ..sim import robots as robots_sim
+    for kind, text in robots_sim.tick(game, n, r):
+        game.add_log(text, kind)
     if game.dead:
         return
 

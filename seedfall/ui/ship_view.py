@@ -18,6 +18,7 @@ from ..sim.actions import transfer
 from ..sim import trade as trade_sim
 from ..sim.ship import cargo_used, hull_pct, is_breached
 from .plans_panel import ShipPlan
+from . import robots_panel
 from .widgets import (body_or, Bar, Panel, Pill, TabBar, View, button, label,
                       mono_label, note, spacer)
 
@@ -50,6 +51,10 @@ class ShipView(View):
 
         self.row(self._layers(ship), self._performance(st, ch))
         self.row(self._fitted(ship), self._crew())
+        # Hands that are not people, kept in their own panel because
+        # nothing about morale, loyalty or a working life applies to a
+        # frame with a hull number.
+        self.col.addWidget(robots_panel.build(g))
         self.col.addWidget(self._sleep())
         self.col.addWidget(self._hold(ship, st))
         self.buttons(button("Refit or build", lambda: self.win.go("yard"),

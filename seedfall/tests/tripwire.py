@@ -157,6 +157,7 @@ KIN = {
     "freeflight": ("freeflight", "conn"),
     "berths3d": ("standoff", "silhouettes"),
     "works3d": ("works3d",),
+    "robots": ("robots",),
     "readiness": ("readiness",),
     "parley": ("parley", "combat"),
     "stations": ("routing", "orderplan", "seatwork", "turnplan", "gunnery"),

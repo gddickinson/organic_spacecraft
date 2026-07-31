@@ -2,6 +2,79 @@
 
 Running progress log. Newest first.
 
+## 2026-07-31 — SEEDFALL: hands that are not people (#110)
+
+Asked for robots — robotic ships, robots on stations, robot crew, cyborgs,
+organic robots, and different kinds for different technologies — and asked
+whether `genesis-world` helps.
+
+**It does not, and it is worth saying why.** Genesis World is a GPU
+multi-physics platform for training embodied-AI policies: rigid/FEM/MPM/SPH/PBD
+solvers sharing one scene, URDF and MJCF asset parsing, ray-traced rendering,
+kernels compiled to CUDA and Metal. It simulates contact-rich manipulation at
+kilohertz. SEEDFALL simulates orbital mechanics on a sixty-second tick, renders
+through a 219-line software rasteriser, keeps every file under five hundred
+lines, and rests its entire test harness on being deterministic and headless.
+Taking it as a dependency would trade all of that for physics the game does not
+have a question for. What *is* useful from the research is the **ECSS autonomy
+ladder** — E1 real-time teleoperation, E2 preplanned, E3 adaptive, E4
+goal-directed — and the light-lag figures behind it: 20 ms in low orbit, 3–5 s
+to the Moon, 8–40 minutes to Mars, which is why nobody drives a rover with a
+joystick.
+
+That ladder is the design. **A robot is worth what its autonomy can carry
+across the gap to whoever is telling it what to do**, and SEEDFALL measures
+that gap everywhere already. So `sim/robots.grip` is two terms: what a machine
+does on its own account, plus the share that needed you, decaying with the
+round trip. Measured across the rungs:
+
+    alongside    E1 1.000  E2 1.000  E3 1.000  E4 1.000
+    the Moon     E1 0.597  E2 0.998  E3 1.000  E4 1.000
+    1 AU         E1 0.004  E2 0.569  E3 0.967  E4 1.000
+    40 AU        E1 0.000  E2 0.078  E3 0.513  E4 0.999
+    4.2 ly       E1 0.000  E2 0.050  E3 0.250  E4 0.643
+
+Which turns "which robot" into "where will it be working". Measured in play: a
+Spar Rigger is **level four** and teleoperated, and posted to a holding 2.1 AU
+away — a 36-minute round trip — it works at **0.007**. A Verger is level three
+and adaptive, at the same holding, and works at **2.80**. The catalogue never
+has to say which is better.
+
+Twenty classes across the five families the hulls and holdings already use:
+Yards frames that are cheap and obedient, Dry Choir recordings that are superb
+and autonomous and never mend, grown Myrmidons and Scarabs that eat biomass and
+heal overnight, hybrid graft-pilots and wet-wired gunners who are a person and
+a machine and pay both bills, and two xeno things nobody has explained. Every
+one is gated on a technology that already existed in the tree — `aicore`,
+`dronework`, `synthmind`, `consensus`, `mea`, `neuromorphic`, `xenoalloy` — and
+none of them is a bonus with a name: a machine either stands a bridge watch the
+game already reads, or holds a duty a holding already needs doing.
+
+**The model was wrong before the constant was.** The first draft had grip decay
+to zero, so an Anchorite — a mind racked in a holding and *bought to be left
+behind* — kept a thousandth of itself the moment the ship sailed. The ECSS
+ladder does not describe how well a robot obeys; it describes how much mission
+it executes on its own. `STANDING` is that: E1 nothing, E4 sixty per cent. What
+the distance costs is the part that was you.
+
+A machine carries no loyalty field on purpose, so it works at exactly its level
+— neither the 1.2 a devoted officer gives nor the 0.45 a mutinous one does.
+
+Ten mutations, ten caught — but the tenth only after the check was fixed. The
+panel check exercised `where_line` and `lag_line` and never built the widget,
+so printing the *rating* instead of the *reading* passed. It reads the pills
+now: a statue at a holding says `LVL 0.01/4`, not `lvl 4`.
+
+The tripwire sweep found two more: `ALONGSIDE_AU` was declared and never read
+— it is the clamp that stops a machine on the body the hull is holding over
+paying grip for a few hundred kilometres of orbit — and `MEND_PER_DAY` and
+`BROKEN_AT` were held only by the wide set, so the grown-against-built trade
+was not named by any suite that knew what it meant. Sixty days of work now
+puts a welded Hullwright under at 0.23 and leaves a grown Myrmidon at 1.00,
+and forty days stowed mends one and not the other. 0 of 6 unprotected.
+
+Full suite green: **1,126 checks**.
+
 ## 2026-07-31 — SEEDFALL: nineteen stations, one mesh (#80)
 
 Asked for a real catalogue of the things in the universe, so I went and

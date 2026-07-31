@@ -2070,6 +2070,10 @@ seedfall/
 │   │                   one silhouette each, where there was one shipyard
 │   ├── ships3d.py      and other people's ships by what they are doing:
 │   │                   courier, trader, prospector, patrol, no transponder
+│   ├── robots.py       20 classes of machine across the same five yards,
+│   │                   each rated on the ECSS autonomy ladder (E1 teleoperated
+│   │                   … E4 goal-directed) — the number that decides where a
+│   │                   machine is worth putting
 │   ├── works3d.py      your own holdings: one structure per colony class,
 │   │                   built out of what the class *does* — roots, a bell,
 │   │                   a dish, a cradle, a womb, a drum — plus its berths
@@ -2197,6 +2201,10 @@ seedfall/
 │   ├── consorts.py     escorts: ordering one out of its berth, standing
 │   │                   orders, screening, who draws fire, what they eat
 │   ├── loyalty.py      what the bridge thinks of how you run the ship
+│   ├── robots.py       machines you own: the roster, where each is posted,
+│   │                   and `grip` — how much of a machine's rating survives
+│   │                   the light-lag to whoever is supervising it. The one
+│   │                   law the whole robot design turns on
 │   ├── works.py        colony development: what a settlement becomes
 │   ├── clearance.py    being cleared to dock: which berth the structure
 │   │                   assigns, and everything the approach needs
@@ -3061,6 +3069,30 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   what you came alongside. `berths3d.radius_km` is the one door; the scale is
   pinned to the one habitat whose true size the GESTALT documents state, and ARCA
   comes out at the 2.5 km the documents say.
+- **A rung that fails at the one job its class exists for is a wrong number,
+  not a hard trade.** `sim/robots.grip` began as pure decay: whatever a machine
+  was rated at, the light-lag to the ship ate it. Which made an Anchorite —
+  a mind racked in a holding, sold on being *left there* — worth a thousandth
+  of itself the moment the hull sailed. The ECSS ladder the design is built on
+  does not describe how well a robot obeys; it describes **how much mission it
+  executes on its own**. `STANDING` is that half, and what the distance costs
+  is only the share that needed you. The check caught it, and the fix was the
+  model rather than the constant.
+- **A check that tests a screen's helpers has not tested the screen.**
+  `test_robots` verified `robots_panel.where_line` and `lag_line` and computed
+  the effective level itself — so a mutation that made the panel print a
+  machine's *rating* instead of its *reading*, which is the one lie that panel
+  exists to prevent, passed clean. It builds the widget and reads the pills
+  now. Same shape as the standoff-drawing miss: measure the artefact, not the
+  arithmetic beside it.
+- **Look for the spine before adding one.** The robots cycle wanted crew that
+  are not people, and `data/lineages.py` already opened with "a lineage is a
+  substrate" and shipped a Dry Choir *recording* that eats silicon and
+  magnetite and does not breathe; `hullforms` already had a crewless synthetic
+  family. So a machine standing a bridge watch goes through `ship.stats` as a
+  hand, with no second capability system beside the first — and the one place
+  that computes what the ship can do, `state.recompute`, is the only line that
+  had to change.
 - **A promise in the sales text is a claim the game has to meet.** A treaty was
   sold as "mutual berthing, shared charts, and a clause about the Bloom that
   nobody expects to be honoured" for 30,000 credits. The third is a joke; the

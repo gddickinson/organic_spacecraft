@@ -83,6 +83,11 @@ class Game:
     #: made before the conn could be asked for one, and is read as standard.
     orbit_alt_km: float = 0.0
     colonies: list = field(default_factory=list)
+    #: Machines you own — see `sim/robots.py`. Hands that are not people, and
+    #: kept apart from `officers` because almost nothing about them is the
+    #: same: they are built rather than hired, worn rather than tired, and
+    #: what they are worth depends on how far away they are working.
+    robots: list = field(default_factory=list)
     building: list = field(default_factory=list)
     flags: dict = field(default_factory=dict)
     log: list = field(default_factory=list)
@@ -229,7 +234,13 @@ class Game:
         for key, value in xeno_sim.bonuses(self).items():
             self.bonuses[key] = self.bonuses.get(key, 0.0) + value
         self.colony_fx = colony_sim.effects(self)
-        self.ship_stats = stats(self.ship, self.bonuses, self.officers)
+        # Officers *and* the machines standing a watch. One door, because a
+        # bridge does not care what a hand is made of — `sim/robots.standing`
+        # hands back objects shaped the way `ship.stats` already reads, with
+        # the level each machine is actually working at where it stands.
+        from ..sim import robots as robots_sim
+        self.ship_stats = stats(self.ship, self.bonuses,
+                                list(self.officers) + robots_sim.standing(self))
         self.ship_stats.diplomacy += self.colony_fx.get("diplomacy", 0)
         # A signed treaty is berthing rights and a tariff line, which is worth
         # something at every quay. The function computing it existed from the

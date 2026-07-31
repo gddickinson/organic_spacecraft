@@ -10,6 +10,9 @@ from ..data.chassis import (CHASSIS, FAMILY_LABEL, FAMILY_NOTE,
                             FAMILY_ORDER, FAMILY_TINT, by_family)
 from ..data.colonies import COLONIES
 from ..data.factions import FACTIONS, standing
+from ..data.robots import (DUTIES, ROBOTS, autonomy_name, autonomy_note,
+                           autonomy_tint, by_family as robots_by_family,
+                           with_duty)
 from ..data.inquiry import EVIDENCE_BY_ID
 from ..data.berths3d import BERTHS
 from ..data.lore import GLOSSARY, INTRO
@@ -54,7 +57,7 @@ class CodexView(View):
         self.head("Codex",
                   "The class reference, the powers of the Verge, and the vocabulary.")
         tabs = TabBar([("classes", "Fleet classes"), ("colonies", "Colony classes"),
-                       ("sky", "The sky"),
+                       ("machines", "Machines"), ("sky", "The sky"),
                        ("factions", "Powers"), ("life", "Life"),
                        ("notes", "Field notes"), ("glossary", "Glossary"),
                        ("about", "About")], self.tab)
@@ -62,7 +65,7 @@ class CodexView(View):
         self.col.addWidget(tabs)
 
         {"classes": self._classes, "colonies": self._colonies,
-         "sky": self._sky,
+         "machines": self._machines, "sky": self._sky,
          "factions": self._factions, "life": self._life,
          "notes": self._notes, "glossary": self._glossary,
          "about": self._about}[self.tab]()
@@ -193,6 +196,61 @@ class CodexView(View):
                 card.add(Pill(f"needs {c.tech}", "dim"))
             cards.append(card)
         self.grid(cards, cols=2)
+
+    def _machines(self) -> None:
+        """Hands that are not people, by what they can be left alone to do.
+
+        The tab is organised by **autonomy** rather than by family, because
+        that is the axis a captain actually chooses on: what a machine is
+        rated at matters far less than how much of that rating survives the
+        distance to wherever you are going to leave it. See `sim/robots.grip`.
+        """
+        known = self.game.research.unlocked
+        self.col.addWidget(note(
+            f"{len(ROBOTS)} classes of machine across the same five "
+            "technologies the hulls are built in. Every one of them is rated "
+            "on the same ladder real spacecraft are — teleoperated, "
+            "preplanned, adaptive, goal-directed — and that rating, not the "
+            "level on the card, is what decides where it is worth putting."))
+        self.col.addWidget(spacer(4))
+        self.col.addWidget(note("Duties: " + " · ".join(
+            f"{label_}, {len(with_duty(duty))} classes"
+            for duty, (label_, _blurb) in DUTIES.items())))
+
+        for rung in (4, 3, 2, 1):
+            classes = [r for r in ROBOTS if r.autonomy == rung]
+            if not classes:
+                continue
+            self.col.addWidget(spacer(6))
+            self.col.addWidget(label(
+                f"{autonomy_name(rung)} — {len(classes)}", "h3",
+                autonomy_tint(rung)))
+            self.col.addWidget(note(autonomy_note(rung)))
+            self.grid([self._machine_card(r, known) for r in classes], cols=2)
+
+        self.col.addWidget(spacer(8))
+        self.col.addWidget(label("By yard", "h3", "steel"))
+        self.col.addWidget(note(" · ".join(
+            f"{FAMILY_LABEL[family]} {len(robots_by_family(family))}"
+            for family in FAMILY_ORDER if robots_by_family(family))))
+
+    def _machine_card(self, r, known) -> Card:
+        have = not r.tech or r.tech in known
+        card = Card(selectable=False)
+        card.add(label(r.name, "h3", FAMILY_TINT[r.family] if have else "dim"))
+        card.add(label(f"{r.binomial} · {FAMILY_LABEL[r.family]}"
+                       if r.binomial else FAMILY_LABEL[r.family], "sub"))
+        card.add(label(r.blurb, "", wrap=True))
+        does = [DUTIES[d][0] for d in r.duties if d in DUTIES]
+        if r.stat:
+            does.insert(0, f"stands {r.stat}")
+        card.add(note(f"Level {r.level} · {mass(r.mass_t)} · "
+                      + (", ".join(does) or "no posting")))
+        card.add(note("Upkeep " + ", ".join(
+            f"{amount:.3g} {key}" for key, amount in sorted(r.upkeep.items()))))
+        if not have:
+            card.add(Pill(f"needs {r.tech}", "dim"))
+        return card
 
     def _factions(self) -> None:
         g = self.game

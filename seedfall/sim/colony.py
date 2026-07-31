@@ -216,7 +216,8 @@ def tick(game, days: float) -> tuple[dict, list]:
                 events.append(("good", f"{opened.name} now has a market "
                                        "flying your colours."))
 
-        produced = {key: n * days for key, n in works.yields_of(col).items()}
+        produced = {key: n * days
+                    for key, n in works.crewed_yields(game, col).items()}
         # A power that annexed the ground takes its share off the top, before
         # any of it reaches your stores — **and it is said out loud.** The return
         # here used to be thrown away, so thirty per cent of a holding's output
