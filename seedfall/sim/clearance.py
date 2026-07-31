@@ -30,6 +30,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..core.save import register
+from . import bays
 from . import moorings
 
 #: Standing below which a port turns you away from its quays. Well under the
@@ -62,6 +63,9 @@ class Clearance:
     reach_km: float = 0.0
     #: The condition the structure imposes, in m/s.
     max_closing: float = 0.0
+    #: How wide the way in is, for a structure you fly into. Zero for the
+    #: rest, which is every berth you come alongside.
+    bore_km: float = 0.0
     #: Who is speaking, for the log and the screens.
     station: str = ""
     services: tuple = field(default_factory=tuple)
@@ -107,7 +111,12 @@ def request(game, contact, conn=None) -> Clearance:
         granted=True,
         why=f"{contact.name} clears you for {name}.",
         berth=name, at=tuple(at),
+        # A structure you fly *into* gives a different instruction from one
+        # you come alongside, and the field was named for it before it
+        # existed — "the sorts that stand off it or lie inside it are the
+        # next slice of this". This is that slice.
         sort=("collar" if kind == "hull"
+              else "bay" if bays.is_bay(getattr(target, "berth", "") or "")
               else moorings.sort_of(target)),
         turn_seconds=period,
         berth_speed=moorings.rim_speed() if period > 0.0 else 0.0,
@@ -116,6 +125,7 @@ def request(game, contact, conn=None) -> Clearance:
         reach_km=(moorings.reach_km(target) if kind == "anchorage"
                   else float(getattr(target, "radius_km", 0.0) or 0.0)
                   * HULL_REACH),
+        bore_km=(bays.bore_km(target) if kind == "anchorage" else 0.0),
         max_closing=(moorings.hold_rate(target)
                      if kind == "anchorage"
                      and moorings.sort_of(target) == "standoff"
@@ -202,6 +212,19 @@ def line(cleared: Clearance) -> str:
     """One line for a screen, whichever way the answer went."""
     if not cleared.granted:
         return cleared.why
+    if cleared.sort == "bay":
+        # The manoeuvre nobody was told about. ARCA's berths are on the inner
+        # wall of a drum: you fly the centreline in, and then you have to stop
+        # and cross to the wall — carry on down the middle and you strike the
+        # far end, which is what the physics does and what no screen said.
+        said = (f"{cleared.station}: you are cleared inside for "
+                f"{cleared.berth}. The way in is "
+                f"{cleared.bore_km * 2000:,.0f} m across — hold the "
+                f"centreline, mind the rim, and check up before you cross to "
+                f"the berth at {cleared.max_closing:.1f} m/s or under")
+        if cleared.berth_speed > 0.01:
+            said += f"; the berth travels {cleared.berth_speed:.2f} m/s"
+        return said + "."
     if cleared.sort == "standoff":
         # A different instruction, because it is a different act: nobody is
         # asking the hull to come alongside anything. It holds station off the

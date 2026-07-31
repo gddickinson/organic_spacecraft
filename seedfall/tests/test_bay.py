@@ -176,6 +176,38 @@ def run(suite: Suite) -> None:
                 f"made fast at {held.berth}, {held.range_km * 1000:,.0f} m "
                 f"from the middle: {held.log[-1]}")
 
+    @check("a structure you fly into says so, and says how")
+    def _():
+        # The gap this closes: ARCA's berths are on the inner wall of a drum,
+        # so berthing means flying the centreline, checking up, and crossing
+        # to the wall — carry on down the middle and you strike the far end.
+        # The physics did that from the day the bays landed and no screen said
+        # a word about it.
+        from ..sim import clearance as clearance_sim
+        for look in [k.id for k in COLONIES if bays.is_bay(k.id)]:
+            game, target = _at(look, seed=f"say-{look}")
+            contact = next(c for c in track_sim.contacts(game)
+                           if c.kind == "anchorage" and c.berth == look)
+            conn = conn_sim.start(game, target)
+            said = clearance_sim.request(game, contact, conn)
+            assert said.granted, said.why
+            assert said.sort == "bay", said.sort
+            assert abs(said.bore_km - bays.bore_km(target)) < 1e-9
+            told = clearance_sim.line(said)
+            assert "inside" in told, told
+            assert "centreline" in told, told
+            # The width on the screen is the width in the sim.
+            assert f"{bays.bore_km(target) * 2000:,.0f} m" in told, told
+        # And a structure with no way in says nothing of the kind.
+        game, port = _at("free_port", seed="say-port")
+        contact = next(c for c in track_sim.contacts(game)
+                       if c.kind == "anchorage" and c.berth == "free_port")
+        plain = clearance_sim.request(game, contact,
+                                      conn_sim.start(game, port))
+        assert plain.sort != "bay" and plain.bore_km == 0.0
+        assert "centreline" not in clearance_sim.line(plain)
+        return told
+
     @check("the physics and the outcome agree about what is solid")
     def _():
         # It was asked in two places — `sim/conn`'s swept-path test and

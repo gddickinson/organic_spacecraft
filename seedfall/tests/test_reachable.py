@@ -62,15 +62,17 @@ EXPORTED = {"main", "run", "encode", "decode", "read", "write", "exists",
 
 #: Deliberately kept, with the reason. Anything added here needs one.
 #:
-#: These eleven are what precise resolution found on the day it was written —
+#: These are what precise resolution found on the day it was written —
 #: every one a readout with no reader, invisible to bare-name matching because
 #: some *other* module's `summary`, `line`, `note` or `preview` is called.
 #: They are recorded rather than quietly allowed: each needs a decision about
 #: whether the screen that wants it should exist, and that is a piece of work
-#: on its own rather than eleven snap judgements at the end of a long day.
+#: on its own rather than a row of snap judgements at the end of a long day.
+#:
+#: One has since gone: `bays.line` said what a structure you fly into tells an
+#: approaching hull, and that belonged inside `clearance.line` — the one door a
+#: structure already speaks through — rather than beside it.
 ALLOWED: dict[str, str] = {
-    "bays.line": "what a bay tells an approaching hull; the clearance screen "
-                 "should say it and does not yet",
     "berthing.preview": "what committing would cost, in `commit`'s own terms; "
                         "the conn shows its own figures instead",
     "chains.summary": "counts of chains live, done and failed — no screen asks",

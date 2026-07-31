@@ -182,13 +182,3 @@ def berths_inside(target) -> list:
     solid = hull_km(target)
     return [(name, at) for name, at in berth_points(sort)
             if math.dist(at, (0.0, 0.0, 0.0)) * radius < solid]
-
-
-def line(target) -> str:
-    """What a structure with a bay tells an approaching hull."""
-    if not is_bay(getattr(target, "berth", "") or ""):
-        return ""
-    bore = bore_km(target)
-    return (f"{target.name} is open along its axis. The way in is "
-            f"{bore * 2000:,.0f} m across; hold the centreline and mind the "
-            "rim.")
