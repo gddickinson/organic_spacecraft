@@ -92,7 +92,26 @@ the first sentence of the blurb as a sub-label and then the blurb under it, so
 every fabricated card said the same thing twice; and there was no check that
 the door existed at all, which there now is — it clicks the real buttons.
 
-Full suite green: **1,127 checks**.
+**Six duties advertised, one consumed.** A Scarab Crawler said "Mining" on its
+card and cut no rock; a Stevedore said "Cargo" and stowed nothing. That is the
+defect `tests/test_declared` guards one layer down, committed one layer up.
+
+The fix needed no new plumbing, because every duty already had a number that
+meant it on `Stats` — the door the whole game reads. `repair` lifts `regen`,
+which `repair_tick` reads; `mine` lifts `mine`, which `mining.rig_of` walks;
+`cargo` lifts the hold; `survey` lifts `scan`; `ground` lifts `crew_guard`,
+which `sim/damage` reads when a boarding costs people. Measured: regen
+1.35→1.58, mine 3.2→3.71, cargo 340→372 t, scan 0.72→1.00, crew_guard 0→0.15,
+and a holding's ore 2.6→2.7. One derived magnitude behind all of them — a
+level-three machine lifts its stat by about fifteen per cent of a starting
+hull's, the same share a Verger lifts a holding by.
+
+The check is the general guard rather than six specific ones: it walks
+`DUTIES`, finds a class advertising each, puts it aboard or at a holding, and
+demands the number move — and refuses any effect wired for a duty no card
+offers. A seventh duty added tomorrow fails until it does something.
+
+Full suite green: **1,128 checks**.
 
 ## 2026-07-31 — SEEDFALL: nineteen stations, one mesh (#80)
 

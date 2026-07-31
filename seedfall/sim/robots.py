@@ -278,6 +278,67 @@ def standing(game) -> list:
     return out
 
 
+#: What a duty **does**, as (the stat it lifts, per level of machine).
+#:
+#: Written because the first cut declared six duties in `data/robots.py` and
+#: consumed exactly one of them. A Scarab Crawler said "Mining" on its card and
+#: cut no rock; a Stevedore said "Cargo" and stowed nothing. That is the defect
+#: this project has a guard for one layer down — `tests/test_declared` — and it
+#: had been committed one layer up.
+#:
+#: Every one goes through `sim/ship.Stats`, which is the one door the whole game
+#: already reads: `mining.rig_of` walks the rig stats, `repair_tick` reads
+#: `regen`, a survey reads `scan`, and `damage` reads `crew_guard`. So nothing
+#: here needed new plumbing — the duty had only to be pointed at the number that
+#: already meant it.
+#:
+#: The magnitudes are one figure: **a level-three machine lifts its stat by
+#: about fifteen per cent of a starting hull's**, the same share a Verger lifts
+#: a holding by. Measured against a fresh NAVIS — regen 1.35, cargo 340 t, mine
+#: 3.2, scan 0.63 — so a Scarab is half a tonne a day of rig and a Stevedore
+#: thirty-odd tonnes of hold.
+#:
+#: `works` is deliberately absent: it is the duty that acts on a *holding*
+#: rather than on the ship, through `works.crewed_yields`.
+DUTY_FX = {
+    "repair": ("regen", 0.065),
+    "cargo": ("cargo", 16.0),
+    "mine": ("mine", 0.17),
+    "survey": ("scan", 0.035),
+    "ground": ("crew_guard", 0.05),
+}
+
+#: How far `crew_guard` can be pushed by machines going in first. It starts at
+#: zero and is subtracted from one in `sim/damage`, so uncapped a shelf of
+#: Myrmidons would make a crew unkillable.
+GUARD_CEILING = 0.6
+
+
+def aboard_effects(game) -> dict:
+    """What the machines on this ship add to its stats, by stat name.
+
+    Aboard only. A Verger posted to a holding two AU away is working on the
+    holding, and a ship that collected its repair rating from something in
+    another orbit would be the two-doors fault this file exists to avoid.
+    """
+    out: dict = {}
+    for robot in owned(game):
+        if (robot.posting or STOWED) != ABOARD or robot.broken:
+            continue
+        got = effective(game, robot)
+        if got <= 0:
+            continue
+        for duty in robot.definition.duties:
+            fx = DUTY_FX.get(duty)
+            if fx is None:
+                continue
+            stat, per = fx
+            out[stat] = out.get(stat, 0.0) + got * per
+    if "crew_guard" in out:
+        out["crew_guard"] = min(GUARD_CEILING, out["crew_guard"])
+    return out
+
+
 def working(game, colony, duty: str) -> float:
     """What this holding's machines add on this duty, in levels.
 

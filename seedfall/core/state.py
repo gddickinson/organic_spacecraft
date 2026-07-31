@@ -241,6 +241,15 @@ class Game:
         from ..sim import robots as robots_sim
         self.ship_stats = stats(self.ship, self.bonuses,
                                 list(self.officers) + robots_sim.standing(self))
+        # And what the machines *do*, as opposed to what they stand. A watch is
+        # a level on a stat the bridge reads; a duty is a pair of hands on the
+        # hull — a Hullwright's welding, a Stevedore's stowing, a Scarab's rig.
+        # Both land on `Stats` because that is the one door everything
+        # downstream already asks: `mining.rig_of` walks the rig stats,
+        # `repair_tick` reads regen, `damage` reads crew_guard.
+        for key, value in robots_sim.aboard_effects(self).items():
+            setattr(self.ship_stats, key,
+                    getattr(self.ship_stats, key, 0.0) + value)
         self.ship_stats.diplomacy += self.colony_fx.get("diplomacy", 0)
         # A signed treaty is berthing rights and a tariff line, which is worth
         # something at every quay. The function computing it existed from the

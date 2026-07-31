@@ -321,6 +321,50 @@ def run(suite: Suite) -> None:
         return (f"{where} · {said} · the panel says "
                 f"{[t for t in pills if '/' in t][0]}, not lvl {rated}")
 
+    @check("every duty a card advertises actually does something")
+    def _():
+        # The defect this check exists for: the first cut declared six duties
+        # and consumed one. A Scarab Crawler said "Mining" on its card and cut
+        # no rock. This is the general guard — walk `DUTIES`, find a class that
+        # advertises each, put it aboard or at a holding, and measure.
+        from ..data.robots import DUTIES
+        from ..sim import mining
+        moved = {}
+        for duty in DUTIES:
+            klass = next((k for k in ROBOTS if duty in k.duties), None)
+            assert klass is not None, f"{duty} is advertised by no class"
+            game = _yard(f"duty-{duty}")
+            if duty == "works":
+                # The one duty that acts on a holding rather than the ship.
+                colony = _holding(game)
+                bare = works_sim.crewed_yields(game, colony)
+                robot = robots_sim.build(game, klass.id)
+                robots_sim.post(game, robot, f"colony:{colony.id}")
+                after = works_sim.crewed_yields(game, colony)
+                key = next(iter(bare))
+                assert after[key] > bare[key], duty
+                moved[duty] = f"{key} {bare[key]:.3g}→{after[key]:.3g}"
+                continue
+            stat, _per = robots_sim.DUTY_FX[duty]
+            was = getattr(game.recompute(), stat, 0.0)
+            robots_sim.build(game, klass.id)
+            now = getattr(game.recompute(), stat, 0.0)
+            assert now > was, (
+                f"{klass.name} advertises {duty} and {stat} did not move: "
+                f"{was} → {now}")
+            moved[duty] = f"{stat} {was:.3g}→{now:.3g}"
+        # And the rig duty reaches the machinery that reads it, not just the
+        # number: `mining.rig_of` walks the rig stats, so a Scarab aboard cuts.
+        game = _yard("rig")
+        before = mining.rig_of(game.recompute())
+        robots_sim.build(game, "scarab")
+        assert mining.rig_of(game.recompute()) > before, "the rig never felt it"
+        # Nothing advertised that is not wired, and nothing wired that is not
+        # advertised.
+        stray = sorted(set(robots_sim.DUTY_FX) - set(DUTIES))
+        assert not stray, f"effects for duties no card offers: {stray}"
+        return " · ".join(f"{duty}: {said}" for duty, said in moved.items())
+
     @check("there is a door: a captain can build one and send it away")
     def _():
         # The defect this shop was written for. The first robots cycle shipped
