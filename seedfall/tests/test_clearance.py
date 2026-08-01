@@ -77,7 +77,14 @@ def run(suite: Suite) -> None:
                     if c.kind == "anchorage")
         seen["a gate"] = clearance_sim.request(
             game, dataclasses.replace(quay, berth="gate"))
-        game.rep[quay.faction] = clearance_sim.WELCOME_AT - 40.0
+        # **Absolute, deliberately not `WELCOME_AT - 40`.** Derived from the
+        # constant, this moved with it: double the bar to -80 and the standing
+        # became -120, still under, still refused, still green. That is the
+        # "tautologically checked" state `tests/tripwire.py` opens by warning
+        # about, and it is why `WELCOME_AT` swept as protected while being
+        # pinned by nothing. Where the bar actually sits is bracketed by the
+        # check below.
+        game.rep[quay.faction] = -100.0
         seen["a power that hates you"] = clearance_sim.request(game, quay)
         for why, said in seen.items():
             assert not said.granted, (why, said)
@@ -89,6 +96,42 @@ def run(suite: Suite) -> None:
         assert clearance_sim.request(game, quay).granted
         return " · ".join(f"{why}: {said.why.split(':')[0][:38]}"
                           for why, said in seen.items())
+
+    @check("the quay shuts at the standing it says it shuts at")
+    def _():
+        # `WELCOME_AT` decides whether a berth opens to you at all, and until
+        # this existed nothing held it: swept at double and half its value, the
+        # whole suite stayed green both ways. The only check that touched the
+        # gate set the standing to `WELCOME_AT - 40`, so the test moved with
+        # the thing it was testing.
+        #
+        # The two standings here are **absolute numbers on purpose**. They
+        # bracket -40 by a point either side, so moving the bar in either
+        # direction puts one of them on the wrong side of it.
+        game = _here()
+        quay = next(c for c in track_sim.contacts(game)
+                    if c.kind == "anchorage")
+        assert clearance_sim.WELCOME_AT == -40.0, (
+            f"the bar moved to {clearance_sim.WELCOME_AT}; this check brackets "
+            "-40 with absolute values and has to be re-bracketed by hand, "
+            "which is the point of it")
+
+        game.rep[quay.faction] = -39.0
+        above = clearance_sim.request(game, quay)
+        game.rep[quay.faction] = -41.0
+        below = clearance_sim.request(game, quay)
+
+        assert above.granted, (
+            f"standing -39 is above the bar and the quay refused anyway: "
+            f"{above.why}")
+        assert not below.granted, (
+            "standing -41 is under the bar and the quay opened anyway")
+        assert "standing" in below.why, (
+            f"refused at -41 for some other reason: {below.why}")
+        # And the refusal quotes the standing, so a captain can tell how far
+        # short they are rather than being told only that they are short.
+        assert "-41" in below.why, below.why
+        return (f"granted at -39, refused at -41: \u201c{below.why}\u201d")
 
     @check("a ship clears you for its collar")
     def _():

@@ -167,11 +167,28 @@ def run(suite: Suite) -> None:
 
         # Distrusted first, on an empty site, so the refusal is about standing
         # and not about the body being occupied.
-        game.rep["charter"] = UNWELCOME - 10
+        #
+        # **The two standings are absolute, and they bracket the bar.** This
+        # read `UNWELCOME - 10`, which moved with the constant: double the bar
+        # to -50 and the standing became -60, still under, still refused,
+        # still green — so `UNWELCOME` swept as protected while nothing held
+        # it. -26 and -24 sit a point either side of -25, so moving the bar in
+        # either direction puts one of them on the wrong side.
+        assert UNWELCOME == -25.0, (
+            f"the bar moved to {UNWELCOME}; the standings below bracket -25 "
+            "with absolute values and have to be re-bracketed by hand, which "
+            "is the point of them")
+        game.rep["charter"] = -26.0
         ok, refusal = colony_sim.can_found(game, system, sites[0], "radix_mine")
-        assert not ok, f"planted anyway at {UNWELCOME - 10} standing"
+        assert not ok, "planted anyway at -26 standing, under the bar"
         assert "let you put anything down" in refusal, (
             f"refused for the wrong reason: {refusal!r}")
+
+        # And a point the other side of it, they will have you — so this is a
+        # bar and not a blanket refusal.
+        game.rep["charter"] = -24.0
+        ok, why = colony_sim.can_found(game, system, sites[0], "radix_mine")
+        assert ok, f"refused at -24, which is above the bar: {why!r}"
 
         game.rep["charter"] = 40
         before = game.rep["charter"]

@@ -10472,3 +10472,49 @@ in one cycle is how a check gets written to pass rather than to bite.
   Patching `clearance.WELCOME_AT = 0.0` in-process and running its suite
   finished normally, all five checks passing — so the hang was never the
   constant, and the tool was the thing at fault.
+
+## Two of the seven unpinned constants, and the shape of why (#132)
+
+`clearance.WELCOME_AT` (-40) decides whether a quay opens a hatch to you at
+all; `territory.UNWELCOME` (-25) decides whether a claimant will let you plant
+on their register. Both swept green at double and half. Neither was dead, and
+neither was unread — both were **tautologically checked**, the second of the
+three states `tests/tripwire.py` opens by naming:
+
+    test_clearance.py:80   game.rep[quay.faction] = clearance_sim.WELCOME_AT - 40.0
+    test_territory.py:170  game.rep["charter"]    = UNWELCOME - 10
+
+The check read the same constant the code read, so the two moved together.
+Double the bar to -80 and the standing became -120: still under, still refused,
+still green. The assertion could not fail.
+
+Both now bracket the bar with **absolute** standings, a point either side, so
+moving it in either direction puts one of them on the wrong side:
+
+    WELCOME_AT   granted at -39, refused at -41 with "standing -41" in the words
+    UNWELCOME    refused at -26, and welcome at -24
+
+Measured through the game's own doors first, to find where the bar really is —
+`clearance.request` flips between -40.0 and -40.5, `territory.welcome` between
+-25 and -26, both strict `<`.
+
+Proved by hand-sweeping each constant to double, half, **and a 1.5-point
+nudge**: all three go red now, and all three were green before.
+
+Five remain, filed in #132: `gates.TOLL_REFUSED_BELOW`,
+`industry.ILLICIT_COST`, `robots3d.DRIVE_Z`, `approach.LOSING`,
+`voice.COLD_AT`.
+
+### Wrong turns worth keeping
+
+- **The first probe could not have shown the granted side.** It took the first
+  anchorage with a faction and swept the standing down, and every value came
+  back refused — including 0 — because that berth answers "no berth to offer"
+  regardless. A check written on that fixture would have asserted "refused at
+  -41" against a quay that refuses everybody, which is a green tick for
+  nothing. The suite's own `_here()` fixture grants at 0, and that is what both
+  checks use.
+- **Each check now asserts the bar is where it thinks it is** — `assert
+  WELCOME_AT == -40.0` — and says why in the message: absolute brackets have to
+  be re-bracketed by hand if the constant is retuned. That is deliberate. A
+  bracket that follows the constant is the defect being fixed here.
