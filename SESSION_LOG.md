@@ -10314,3 +10314,60 @@ is where a fleet action has to happen.
   one**, which is the right shape: the old check is about peacetime and must
   not care. Mutating the *holdings* out instead reddens four, including the
   peacetime one — the two halves are separately pinned.
+
+## A fleet action, at the scale the economy pays for (#114)
+
+`sim/armada.py` — derived, stores nothing, resolves nothing. `combat` remains
+the only thing that constructs a `Battle`; this answers who is contesting a
+system, how the weight of metal falls, and what that does to the annexation
+being fought over.
+
+**The title's scale does not exist and was not built.** #114 asked for "a
+battle of two hundred hulls". Measured: the economy sustains a mean of **23
+hulls in the entire sector** (25, 26, 23, 24, 20, 22 over six), because
+`fleets.UPKEEP` is 45/day against the margins `exchequer` produces. And a
+contested system, over eight sectors flown a decade each:
+
+    contested systems per sector   10, 11, 13, 0, 8, 0, 0, 13   (mean 6.9)
+    hulls in one                   min 2, median 3, max 4
+
+Three of those eight sectors never went to war. So a fleet action here is a
+handful of hulls over a quay — roughly **fifty times** smaller than the title —
+which is also precisely why one hull can tip one.
+
+**The claim the task set, measured.** `ventures.odds` weighed the sponsor's
+levies, its standing with everybody else and whether the player had leant on
+it, and not one term asked who had hulls over the place. `armada.balance` now
+feeds it at `BALANCE_SWAY = 0.25`. On a 2-against-1 at Ferron Hollow, with the
+**stance held fixed** so this measures the hull and not the opinion:
+
+    backed    away 0.717   present 0.800    the hull alone is worth +0.083
+    opposed   away 0.117   present 0.075    the hull alone is worth -0.042
+
+The player's hull counts when they are *there* **and** have taken a side —
+`Venture.stance`, which they already set from the ventures panel and which
+`odds` already read, so taking a side in a fleet action needed no new state and
+no new screen.
+
+### Wrong turns worth keeping
+
+- **My first measurement of the claim was +0.383, and it was mostly not the
+  hull.** It compared "away and neutral" against "present and backing", so it
+  counted `ventures.SWAY` — the player's opinion, which already counted before
+  any of this existed. Holding the stance fixed and moving only the ship gives
+  +0.083, which is the honest number and the one the check asserts.
+- **A mutation deleting the `at_war` filter in `sides()` left every check
+  green**, because in play hulls only reach a foreign system *through*
+  `war.spoils`, so the filter is unreachable by flying. Rather than delete a
+  guard that states what makes the module mean "contested" rather than
+  "crowded", the check now constructs the case — a non-belligerent squadron
+  parked over somebody's quay — and asserts it is not an action.
+- **The harness caught the new module before I did**, refusing it for having a
+  tuning constant and no tripwire fast path. Registering `armada` was the fix;
+  the investigation behind it found something worse and is filed as **#130**:
+  `tripwire.constants()` matches `ast.Constant`, and `-60.0` parses as
+  `UnaryOp(USub, Constant(60.0))`, so **14 negative constants across the
+  codebase have never been swept at all** — including `clearance.WELCOME_AT`,
+  `grudge.COLD_SHOULDER`, `allegiance.IMPLACABLE` and `war.WAR_AT`. 422 are
+  swept; those 14 are invisible. Task #60's "none unprotected" was true only of
+  the constants the scanner could see.

@@ -191,6 +191,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("resume", "test_resume", "resume", True),
     SuiteSpec("verbs", "test_verbs", "verbs", True),
     SuiteSpec("war", "test_war", "war"),
+    SuiteSpec("armada", "test_armada", "fleet actions"),
     SuiteSpec("savefile", "test_savefile", "save file"),
     SuiteSpec("ui", "test_ui", "interface", True),
     SuiteSpec("orrery", "test_orrery", "orrery", True),

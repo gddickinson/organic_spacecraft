@@ -187,6 +187,18 @@ def odds(game, venture) -> float:
     standing = sum(dip.relation(game, venture.power, p)
                    for p in dip.POWERS if p != venture.power)
     chance += max(-0.12, min(0.12, standing / 600.0))
+    # **And who actually has hulls over the place, which counted for nothing.**
+    # Every term above is about the sponsor in the abstract — its levies, its
+    # reputation, whether the player leant on it — so a power could be
+    # out-shipped three to one above the target and take it at exactly the same
+    # odds. `sim/armada` owns that reading, and the player's own hull is in it
+    # when they are present and have taken a side.
+    if venture.place is not None:
+        from . import armada as armada_sim
+        target = game.galaxy.systems[venture.place]
+        if armada_sim.sides(game, target) is not None:
+            chance += armada_sim.BALANCE_SWAY * armada_sim.balance(
+                game, target, venture.power)
     return max(0.05, min(0.95, chance))
 
 

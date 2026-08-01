@@ -2211,6 +2211,11 @@ seedfall/
 │   │                  holdings, and — at war — on what `war.spoils`
 │   │                  says it is trying to take (`FRONT_WEIGHT` 0.6).
 │   │                  That is the only way two flags share a system.
+│   ├── armada.py       the fleet action at a contested system. Frames a
+│   │                  skirmish, resolves nothing — `combat` still owns
+│   │                  gunfire. `balance` feeds `ventures.odds`, and your
+│   │                  own hull is in it when you are present AND have
+│   │                  taken a side (`Venture.stance`).
 │   ├── war.py          who is at war with whom, derived from the relation
 │   │                  matrix (`WAR_AT` = -60); `spoils` is what a
 │   │                  belligerent may take. Taking a system in war
