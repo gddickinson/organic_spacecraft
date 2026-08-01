@@ -10560,3 +10560,54 @@ Four of seven done. Three remain: `industry.ILLICIT_COST`, `robots3d.DRIVE_Z`,
   check that did not exist. Treating the sweep's verdict as a diagnosis rather
   than a symptom would have produced one edit and left the second constant
   exactly as unprotected as before.
+
+## Two more, and the worst of the four defect shapes so far (#132)
+
+`industry.ILLICIT_COST` (-18) is what teaching somebody an unlicensed process
+costs you with everybody else. `voice.COLD_AT` (-18) decides the mood a speaker
+answers you in. Both swept green at double and half, and again for different
+reasons.
+
+**`COLD_AT` was held by nothing** — no check referenced it or `WARM_AT`.
+Measured through `voice.mood_for`, both gates are inclusive: greet at -17, cold
+at exactly -18, warm at exactly +18. Bracketed absolutely, in `test_voices`.
+
+**`ILLICIT_COST` was worse than tautological: its check never ran.** The
+assertion was
+
+    if got is not None:
+        ...
+        assert all(h <= RIVAL_COST + ILLICIT_COST + 1e-9 for h in hit)
+
+and `best_buyer` returns `None` here, because the seed licence is the dearest
+in the tree — measured, all four powers answer *"cannot raise 23,645–31,280,
+the treasury will not stand it"*. So the branch was skipped every run, **and
+the check still returned a summary reading "an illicit licence -18 on top"**.
+It narrated a measurement it had not made.
+
+Funded the purses (500,000 each) so the case is reached, asserted the buyer
+exists rather than hoping, and replaced the derived bound with the absolute
+figures the flight actually produces:
+
+    licensee            +14
+    each rival, licit    -6
+    each rival, illicit -24     (the -18 is the difference)
+
+Both now go red at double, half and a 1.5-point nudge.
+
+**Six of seven done.** `robots3d.DRIVE_Z` remains and is the genuine odd one
+out: it positions a drone's thruster ring in `data/robots3d.py` and nothing
+outside the mesh reads it. Measured: 3 of 20 machine looks carry a ring —
+`lamplighter`, `rigger`, `verger` — the other 17 get legs. It needs a picture
+check, not an arithmetic one.
+
+### Wrong turns worth keeping
+
+- **I wrote a vacuous assertion while removing one.** The first draft of the
+  industry fix ended with `assert all(...) is False or True`, which is `True`
+  whatever the generator says — the exact defect the cycle was for. Caught on
+  re-reading before running.
+- **A skipped branch that still reports is worse than a tautology**, and it is
+  invisible in a green run: the tautology at least executes. Any `if x is not
+  None:` wrapping the substance of a check deserves an `assert x is not None`
+  above it.

@@ -375,25 +375,46 @@ def run(suite: Suite) -> None:
         assert ind.licence(game, process, power)["ok"]
         assert game.rep[power] - rep_was[power] == LICENSEE_GAIN
         for other in rivals:
-            assert game.rep[other] - rep_was[other] == RIVAL_COST, (
-                f"{other} did not mind at all")
+            # Absolute, not `== RIVAL_COST`: read off the constant this
+            # moved with it and could not fail. A licit licence costs a rival
+            # 6, and the illicit one below costs 24 — the difference is the
+            # 18 that `ILLICIT_COST` is.
+            assert abs(game.rep[other] - rep_was[other] - (-6.0)) < 1e-9, (
+                f"{other} lost {game.rep[other] - rep_was[other]:+.1f}, not 6")
             assert dip.relation(game, power, other) < rel_was[other], (
                 "it is a fact about the two of them as well, and their "
                 "relation did not move")
 
         # And the seed process costs you with everybody, licensee included.
+        #
+        # **This branch never ran, and the line below still reported it.** It
+        # was wrapped in `if got is not None`, and `best_buyer` returns None
+        # here because the seed licence is the dearest in the tree — measured,
+        # all four powers answer "cannot raise 23,645–31,280, the treasury
+        # will not stand it". So the check skipped the whole illicit case and
+        # returned a summary quoting `ILLICIT_COST` as though it had tested
+        # it. The purse is funded now and the buyer is asserted, so the case
+        # is reached rather than hoped for.
+        for who in dip.POWERS:
+            ex.purse(game, who).credits = 500_000.0
         seed = ind.process_of("multifront")
         got = ind.best_buyer(game, seed)
-        if got is not None:
-            before = {p: game.rep.get(p, 0) for p in dip.POWERS}
-            assert ind.licence(game, seed, got["power"])["ok"]
-            hit = [game.rep[p] - before[p] for p in dip.POWERS
-                   if p != got["power"]]
-            assert all(h <= RIVAL_COST + ILLICIT_COST + 1e-9 for h in hit), (
-                f"teaching somebody to grow unlicensed seed cost {hit} with "
-                "the rest of the sector")
-        return (f"licensee {LICENSEE_GAIN:+.0f}, each rival {RIVAL_COST:+.0f}, "
-                f"and an illicit licence {ILLICIT_COST:+.0f} on top")
+        assert got is not None, (
+            "nobody can afford the seed licence, so the illicit cost is "
+            "untested — fund the purse rather than skipping the case")
+        before = {p: game.rep.get(p, 0) for p in dip.POWERS}
+        assert ind.licence(game, seed, got["power"])["ok"]
+        hit = [game.rep[p] - before[p] for p in dip.POWERS
+               if p != got["power"]]
+        # **Absolute, deliberately not `RIVAL_COST + ILLICIT_COST`.** Read off
+        # the constants, the assertion moved with them and could not fail.
+        # Measured: a rival loses 6 for the licence and 18 more for it being
+        # illicit, so 24 exactly.
+        assert all(abs(h - (-24.0)) < 1e-9 for h in hit), (
+            f"teaching somebody to grow unlicensed seed cost {hit} with the "
+            "rest of the sector, against -24 each")
+        return (f"licensee {LICENSEE_GAIN:+.0f}, each rival {RIVAL_COST:+.0f} "
+                f"for a licence and -24 for an illicit one")
 
     @check("a good a port does not trade stays untraded")
     def _():

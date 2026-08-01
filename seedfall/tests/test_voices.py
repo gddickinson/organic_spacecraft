@@ -86,6 +86,47 @@ def run(suite: Suite) -> None:
                 f"personas that say the same thing: {lines}")
         return f"{len(PERSONAS)} personas, {len(MOODS)} moods each, all distinct"
 
+    @check("a speaker turns cold at the impression it says it does")
+    def _():
+        # `voice.COLD_AT` and `WARM_AT` decide the mood a speaker answers in,
+        # and **no check anywhere referenced either** — swept at double and
+        # half, the whole suite stayed green. Real, load-bearing and held by
+        # nothing, which is the state `tests/tripwire.py` exists to find.
+        #
+        # Bracketed with absolute impressions. Measured through `mood_for`:
+        # both gates are inclusive, so a mind at exactly -18 is already cold
+        # and one at -17 is not.
+        assert (voice_sim.COLD_AT, voice_sim.WARM_AT) == (-18.0, 18.0), (
+            f"the bars moved to {voice_sim.COLD_AT}/{voice_sim.WARM_AT}; the "
+            "impressions below bracket -18 and +18 with absolute values and "
+            "must be re-bracketed by hand, which is the point of them")
+
+        class Speaker:
+            """Just enough of a mind for `mood_for`, and nothing more."""
+            persona = "plain"
+
+            def __init__(self, value):
+                self._value = value
+
+            def impression(self):
+                return self._value
+
+        def mood(value):
+            return voice_sim.mood_for(Speaker(value))
+
+        assert mood(-17.0) != "cold", (
+            "a speaker one point short of cold is already cold")
+        assert mood(-18.0) == "cold", (
+            "a speaker at exactly the bar is not cold; the gate is `<=`")
+        assert mood(-40.0) == "cold"
+        assert mood(+17.0) != "warm", (
+            "a speaker one point short of warm is already warm")
+        assert mood(+18.0) == "warm", (
+            "a speaker at exactly the bar is not warm; the gate is `>=`")
+        assert mood(0.0) == "greet", (
+            f"an indifferent speaker answers {mood(0.0)!r} rather than plainly")
+        return "greet at -17, cold at -18, warm at +18"
+
     @check("what a mind holds changes what it says")
     def _():
         with _NoNetwork():
