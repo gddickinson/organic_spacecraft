@@ -3201,6 +3201,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berthing cannot be completed. The machinery was already there —
   `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
   you — and had no way to say no.
+- **Validate the instrument before believing the measurement.** The tick sweep
+  first reported all fourteen subsystems as per-call, which is not a credible
+  result — a decay tick cannot be per-call. Two fresh games from one seed did
+  not match, because `Ship.uid` and `Officer.id` climb across games from module
+  counters. A verdict that indicts everything is a broken probe, and the
+  control that would have caught it costs two lines.
+- **A sensitivity control needs a change bigger than the resolution.** The same
+  file's probe failed twice more: five days of memory decay is 0.27% against a
+  print rounding to three places, and two hundred days is a no-op because a
+  fresh game has no memories. Proving an instrument can see *something* wants
+  the crudest possible change — a single credit.
 - **A field read only by its gate is a fact nobody priced.** `Run.ly` was on
   every freight run and consulted solely by `reachable`, so the desk knew the
   distance to everything it recommended and discounted none of it. When a

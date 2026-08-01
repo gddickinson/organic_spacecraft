@@ -2,6 +2,52 @@
 
 Running progress log. Newest first.
 
+## 2026-08-01 — SEEDFALL: the sweep that should have been written first
+
+Last cycle I said the right move was to stop discovering per-call ticks one at
+a time and sweep all of them up front. This is that sweep, and it is the
+artefact #116 has been missing for six cycles.
+
+**Four of fourteen, named at once:**
+
+    decision   ventures  exchequer  approach  loyalty
+    rate       dormancy colony shipyard market lifespan upkeep
+               robots threat memory legacy
+
+Each tick called two ways on identical games — once for thirty days, once
+thirty times for one — and the whole encoded game diffed. It is now
+`test_ticks`, so the list cannot grow silently and cannot rot: one check
+refuses a *new* per-call tick, and another refuses an entry that has quietly
+been fixed, because a known-faults list that is wrong in either direction is a
+guard spending a licence nobody needs.
+
+**The instrument nearly lied, three times, and validating it is the story.**
+
+The first version reported *all fourteen* as per-call — which should have been
+unbelievable on its face, since a decay tick cannot be per-call. It was: two
+fresh games from the same seed did not match each other, because `Ship.uid` and
+`Officer.id` come from module counters that keep climbing across games. Five
+fields, and every verdict was noise. I nearly wrote up fourteen false
+positives.
+
+Then the sensitivity control failed twice on its own account. Five days of
+memory decay moves a salience by 0.27% and the print rounds floats to three
+places, so it was below the instrument's resolution. Two hundred days did not
+help either — a fresh game has no memories to decay, so the tick was a no-op. A
+single credit is what finally proved the print can see anything at all.
+
+Three mutations run, three red, and the third breaks the instrument rather than
+the code: remove the id-stripping and the controls go red before the verdicts
+do, which is the right order.
+
+**What this means for #116.** The remaining work is four named ticks rather
+than an unknown number found one per cycle. `lifespan` reads as a rate here
+while #121 says ageing breaks under the honest clock — so that failure is
+about how the *generator* is consumed across calls rather than the tick's
+shape, which is worth knowing before anybody starts on it.
+
+Full suite green at 1,227 checks.
+
 ## 2026-08-01 — SEEDFALL: the desk learns the journey
 
 #120. **`Run.ly` was carried on every freight run and read by `reachable`

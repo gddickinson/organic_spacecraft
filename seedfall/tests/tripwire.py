@@ -186,7 +186,7 @@ KIN = {
     "market": ("trade",), "economy": ("trade",), "commodities": ("trade",),
     "loyalty": ("conviction", "crew"), "convictions": ("conviction", "crew"),
     "crew": ("conviction", "crew"),
-    "lifespan": ("time",), "upkeep": ("time",), "clock": ("time",),
+    "lifespan": ("time",), "upkeep": ("time",), "clock": ("time", "ticks"),
     "bloom": ("bloom",),
     "threat": ("bloom",), "ventures": ("politics",),
     "intel": ("explore",), "transit": ("transit",), "shipyard": ("design",),

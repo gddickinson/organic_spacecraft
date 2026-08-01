@@ -92,6 +92,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("piracy", "test_piracy", "piracy"),
     SuiteSpec("fence", "test_fence", "the fence"),
     SuiteSpec("feedstock", "test_feedstock", "feedstock"),
+    SuiteSpec("ticks", "test_ticks", "tick shapes"),
     SuiteSpec("swarm", "test_swarm", "machines on guard"),
     SuiteSpec("life3d", "test_life3d", "xenoform bodies"),
     SuiteSpec("parts3d", "test_parts3d", "fitting pictures"),
