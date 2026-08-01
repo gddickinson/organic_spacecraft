@@ -465,6 +465,82 @@ def run(suite: Suite) -> None:
                 f"{control.LADDER[soft.told]} in {slow_ticks} and "
                 f"{soft.damage:.0f}")
 
+    @check("being cleared buys something: the boats take you in for nothing")
+    def _():
+        # The other side of the ledger. Everything else here is what a
+        # structure does about a hull it does not want; this is what it does
+        # for one it does, and without it clearance is a gate rather than a
+        # service.
+        from ..sim import autopilot as pilot
+
+        game, hub = _hub("tug")
+        target = targets_sim.target_from_contact(game, hub)
+
+        def fly(wait):
+            conn = conn_sim.start(game, target)
+            said = clearance_sim.request(game, hub, conn)
+            assert said.granted, said.why
+            conn.cleared = said
+            conn.watch = control.post(game, hub)
+            opening = conn.rcs
+            ticks = 0
+            for ticks in range(20_000):
+                if wait:
+                    conn_sim.apply(conn, None, main=False, ticks=1)
+                else:
+                    axis, main, throttle = pilot.autopilot(conn, "close")
+                    conn_sim.apply(conn, axis, main=main, throttle=throttle,
+                                   ticks=1)
+                if conn.over:
+                    break
+            return conn, opening - conn.rcs, ticks
+
+        towed, tow_cost, tow_ticks = fly(True)
+        flown, fly_cost, fly_ticks = fly(False)
+        assert towed.outcome == "alongside", towed.outcome
+        assert flown.outcome == "alongside", flown.outcome
+        assert control.under_tow(towed), "the boats never got a line on"
+        assert towed.towed > 1.0, f"towed only {towed.towed:.3f} km"
+
+        # Free, and slow. Both halves matter: a tug that saved nothing would
+        # be a service nobody waits for, and one that cost no time would make
+        # flying it yourself pointless.
+        assert tow_cost < fly_cost * 0.1, (
+            f"the boats cost {tow_cost:.2f} t against {fly_cost:.2f} flown — "
+            "waiting has to be worth something")
+        assert tow_ticks > fly_ticks * 1.5, (
+            f"the boats took {tow_ticks} ticks against {fly_ticks} — waiting "
+            "has to cost something too")
+        told = control.tug_line(towed)
+        assert "boats have you" in told, told
+        # And the clearance says so before you commit to waiting.
+        assert "boats will take you in" in clearance_sim.line(towed.cleared)
+        return (f"boats: {towed.towed:.1f} km towed, {tow_cost:.2f} t over "
+                f"{tow_ticks / 60:.1f} h · flown: {fly_cost:.2f} t over "
+                f"{fly_ticks / 60:.1f} h")
+
+    @check("a wayside quay keeps no boats")
+    def _():
+        game, hub = _hub("noboats")
+        port = game.system.port
+        assert port is not None
+        was = port.level
+        try:
+            port.level = 1
+            assert not control.has_tug(game, hub), "a level-1 quay has tugs"
+            conn = conn_sim.start(
+                game, targets_sim.target_from_contact(game, hub))
+            said = clearance_sim.request(game, hub, conn)
+            assert not said.tug
+            assert "boats" not in clearance_sim.line(said)
+            conn.cleared = said
+            assert control.tug_step(conn, 600.0) == 0.0
+            port.level = control.TUG_FROM
+            assert control.has_tug(game, hub)
+        finally:
+            port.level = was
+        return (f"level 1 keeps none; level {control.TUG_FROM} keeps boats")
+
     @check("a Weave anchor has nobody in it to defy")
     def _():
         # Control is a thing a station has. A ring somebody left grants

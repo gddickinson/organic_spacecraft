@@ -3201,6 +3201,19 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berthing cannot be completed. The machinery was already there —
   `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
   you — and had no way to say no.
+- **Carry the state, leave the record.** The rule `preview._copy` took nine
+  fields to make sayable. `boom` and `tug` are how far a structure's equipment
+  has come out and decide what the next tick does, so a forecast's twin carries
+  them. `sheered` and `towed` are how far the station moved away or walked the
+  hull in — a trial run may not credit or bill a station for something it has
+  not done, the same reasoning that keeps `struck_damage` out.
+- **Measure the saving on the right segment.** Tugs that caught a hull at the
+  hold point saved 0.04 t of a 0.98 t approach, and being more generous about
+  the catch took it to 0.08 — because nearly all the mass goes into *reaching*
+  the corridor rather than into the last five hundred metres. No amount of
+  tuning the catch could fix a figure measured on the wrong leg. Boats that
+  come out to the opening range make it 1.41 t against nothing, at the price of
+  2.7 hours, which is a decision.
 - **A promise in the sales text is a claim the game has to meet.** A treaty was
   sold as "mutual berthing, shared charts, and a clause about the Bloom that
   nobody expects to be honoured" for 30,000 credits. The third is a joke; the

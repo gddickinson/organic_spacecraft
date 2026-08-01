@@ -95,6 +95,12 @@ def _copy(conn: Conn) -> Conn:
     an arm was half way out. What it will leave you with includes what the
     station will take off you while you make it.
 
+    `tug` is carried and `towed` is not, which is the same split as `boom`
+    against `sheered`: how far the boats have come out is the *state of the
+    manoeuvre* and changes what the next tick does, while how far they have
+    walked the hull is a record of what the station did for it, and a trial
+    run may not credit them with a tow that has not happened.
+
     `sheered` is deliberately *not* carried, and it is the exception that
     proves the rule about `cleared`: a twin has to know what the structure
     granted, because that decides which berth it flies to — but it may not
@@ -120,7 +126,8 @@ def _copy(conn: Conn) -> Conn:
                 mass_t=conn.mass_t, target_mass_t=conn.target_mass_t,
                 berth=conn.berth, boom=conn.boom,
                 cleared=conn.cleared, watch=conn.watch, told=conn.told,
-                told_for=conn.told_for, warded_for=conn.warded_for)
+                told_for=conn.told_for, warded_for=conn.warded_for,
+                tug=conn.tug)
 
 def track(conn, mode: str | None = None, ticks: int = 60,
           every: int = 6) -> list:

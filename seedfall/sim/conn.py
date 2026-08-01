@@ -211,6 +211,12 @@ class Conn:
     #: why point defence hurts more the longer you take it.
     told_for: float = 0.0
     warded_for: int = 0
+    #: How far a tug has come out to this hull, 0 to 1, and how far it has
+    #: walked it in. Only a structure that keeps boats has one; see
+    #: `sim/control.tug_step`. What it buys is reaction mass — the tug's drive
+    #: does the work, so a cleared hull that waits berths for nothing.
+    tug: float = 0.0
+    towed: float = 0.0
     #: How far the structure has worked itself away from this hull, in km.
     #: Carried out to the sector by `sim/berthing.commit` as a knock, so a
     #: station that sheered off is off station on every screen afterwards.
@@ -523,6 +529,8 @@ def _step(conn: Conn, dt: float) -> None:
         # `control.sheer_step`: the range opens because the berth is going,
         # not because the ship is being pushed.
         control.sheer_step(conn, h)
+        # And the other side of it: a structure that wants you sends boats.
+        control.tug_step(conn, h)
         # Contact anywhere along the path, not merely at the end of it — and
         # against what is *solid*, which is not the bounding radius. See
         # `sim/bays.hull_km`: a structure's furniture is what you berth

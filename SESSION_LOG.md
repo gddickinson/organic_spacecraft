@@ -2,6 +2,48 @@
 
 Running progress log. Newest first.
 
+## 2026-07-31 — SEEDFALL: the boats come out for a hull that asked
+
+The other side of approach control. Everything built for it so far is what a
+structure does about a hull it does not want; this is what it does for one it
+does, and without it clearance is a gate to get past rather than a service
+worth asking for.
+
+**It took three measurements to become a decision rather than a rounding
+error**, and the wrong turns are the interesting part.
+
+The boats first caught a hull only at the hold point, and only once it had
+braked itself to a standstill: **0.04 t saved on a 0.98 t approach**. Letting
+them catch one still moving took it to **0.08 t**. Both were nothing, and the
+second attempt showed why the first could not be fixed by being more generous
+about the catch — nearly all the mass goes into *reaching* the corridor, not
+into the last five hundred metres. The saving was being measured on the wrong
+segment.
+
+So the boats come out to meet you where the approach opens, and the trade
+became real:
+
+    wait for the boats:  alongside, 10.5 km under tow, 0.00 t over 3.4 hours
+    fly it yourself:     alongside,                    1.41 t over 0.7 hours
+
+Free and slow against fast and expensive. Both halves are pinned: a tug that
+saved nothing is a service nobody waits for, and one that cost no time would
+make flying it yourself pointless. A wayside quay at level 1 keeps no boats, so
+it stays a gate — which is right for a wayside quay.
+
+The shadowing trap appeared a third time: a second `from . import control`
+inside `clearance.request` made the name local to that whole function and
+unbound it at the earlier use. It is commented at both sites now.
+
+And `preview._copy` learned its ninth field, which finally made the rule
+sayable: **carry the state, leave the record.** `boom` and `tug` are how far
+the equipment has come out and change what the next tick does, so they are
+carried. `sheered` and `towed` are how far the station moved away or walked
+the hull in — a trial run may not credit or bill a station for something it
+has not done. 30 of 42 carried, 12 deliberately fresh.
+
+Full suite green: **1,169 checks**.
+
 ## 2026-07-31 — SEEDFALL: a structure has authority over the volume round it
 
 Asked for approach control — flightpaths, waiting areas, warnings, defences,

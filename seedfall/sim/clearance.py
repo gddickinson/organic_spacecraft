@@ -31,6 +31,7 @@ from dataclasses import dataclass, field
 
 from ..core.save import register
 from . import bays
+from . import control
 from . import moorings
 
 #: Standing below which a port turns you away from its quays. Well under the
@@ -66,6 +67,10 @@ class Clearance:
     #: How wide the way in is, for a structure you fly into. Zero for the
     #: rest, which is every berth you come alongside.
     bore_km: float = 0.0
+    #: Whether this structure keeps boats. A cleared hull that holds steady in
+    #: the corridor is taken in on the tug's mass rather than its own — which
+    #: is what being cleared *buys*, as against merely being allowed.
+    tug: bool = False
     #: Who is speaking, for the log and the screens.
     station: str = ""
     services: tuple = field(default_factory=tuple)
@@ -103,7 +108,10 @@ def request(game, contact, conn=None) -> Clearance:
     target = _target_of(game, contact, conn)
     berths = _berths(game, contact, conn)
     if not berths:
-        from . import control
+        # (`control` is imported at module scope. A second `from . import`
+        # down here would make the name local to this whole function and
+        # unbind it at the *earlier* uses — the exact trap `core/clock` fell
+        # into when the machines' tick was added.)
         if control.full(game, contact):
             # A different refusal from "there is nothing here": every berth
             # is worked and somebody is on it. Hold off and wait, or go.
@@ -136,6 +144,7 @@ def request(game, contact, conn=None) -> Clearance:
                   else float(getattr(target, "radius_km", 0.0) or 0.0)
                   * HULL_REACH),
         bore_km=(bays.bore_km(target) if kind == "anchorage" else 0.0),
+        tug=control.has_tug(game, contact),
         max_closing=(moorings.hold_rate(target)
                      if kind == "anchorage"
                      and moorings.sort_of(target) == "standoff"
@@ -199,7 +208,6 @@ def _berths(game, contact, conn) -> list:
     # Only what is actually free. A structure with four masts and three hulls
     # already on them has one berth to offer, and had four for ever until
     # `sim/control` gave it a way to know who was there.
-    from . import control
     taken = control.holders(game, contact)
     return [(name, at) for name, at in moorings.points(target, spin)
             if name not in taken]
@@ -254,6 +262,8 @@ def line(cleared: Clearance) -> str:
     said = (f"{cleared.station}: cleared for {cleared.berth}, "
             f"hold at {cleared.hold_km * 1000:,.0f} m, "
             f"{cleared.max_closing:.1f} m/s or under")
+    if cleared.tug:
+        said += "; hold steady in the corridor and our boats will take you in"
     if cleared.berth_speed > 0.01:
         said += (f"; the berth travels {cleared.berth_speed:.2f} m/s, "
                  f"round once in {cleared.turn_seconds / 60:.0f} min")
