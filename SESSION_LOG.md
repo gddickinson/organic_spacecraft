@@ -10268,3 +10268,49 @@ After: **12 wars over 10 sectors x 3,600 days, 5 quays changed hands, in 4 of
   deliberate two-fact distinction documented in `exchequer.holdings`, not a
   duplicated door; and `ventures.live()` has no lazy side effect — the same
   chronicle observed and unobserved produced identical results on three seeds.
+
+## Hulls can meet: force projection, and keeper_of stops lying (#129)
+
+`fleets.keeper_of` said in its own docstring that "a power can be out-shipped
+over its own holding, and that is worth being able to see". Measured across six
+sectors, it agreed with `system.port.faction` in **99 of 99** non-empty cases
+and differed in **0** — a `max()` over a dict that could never hold two
+entries, because `_weights` put hulls only on `exchequer.holdings`.
+
+#115 did not fix it. Wars move *holdings*, not hulls: measured after a decade
+with **nine live wars**, powers-with-hulls-per-system was still `{1: 195,
+0: 141}`. Never two, by construction.
+
+`_weights` now also stations hulls on what `war.spoils` says a power is trying
+to take. `FRONT_WEIGHT` is 0.6, chosen against a sweep over eight sectors flown
+a decade each:
+
+    0.0   contested  0    holder out-shipped  0    holdings left bare 1
+    0.3   contested 65    holder out-shipped  6    holdings left bare 1
+    0.6   contested 77    holder out-shipped  9    holdings left bare 1
+    1.0   contested 77    holder out-shipped 34    holdings left bare 4
+    1.6   contested 76    holder out-shipped 48    holdings left bare 7
+
+Below 1.0 on purpose: a power defends its own ground harder than it presses
+somebody else's, so the attacker is usually the smaller squadron and taking a
+system off its holder is an achievement. At 1.0 the holder is out-shipped in
+44% of contests, which reads as a sector with no home ground at all.
+
+The change is **inert in peacetime** — at day 0 nobody is at war, `spoils` is
+empty, and placement is exactly what it was.
+
+**This unblocks #114.** Two powers' squadrons can now be in one system, which
+is where a fleet action has to happen.
+
+### Wrong turns worth keeping
+
+- **An existing check asserted something this makes false, and it stayed green
+  by luck.** "Hulls sit where the holdings are" asserts `set(spread) <= held`,
+  which is true only at peace; it passed because its fixture is a fresh sector
+  where nobody is fighting. Renamed to say "in peacetime" and given an explicit
+  `assert not war.wars(game)`, so it fails loudly if that fixture ever starts
+  at war rather than quietly testing a different claim.
+- **Mutating the front to nothing reddens the two new checks but not the old
+  one**, which is the right shape: the old check is about peacetime and must
+  not care. Mutating the *holdings* out instead reddens four, including the
+  peacetime one — the two halves are separately pinned.

@@ -60,6 +60,30 @@ UPKEEP = 45.0
 #: because it is a bigger port, which is the reason that was always true.
 LEVEL_WEIGHT = 1.0
 
+#: What a system a power is *trying to take* is worth as a place to keep hulls,
+#: against one it already holds.
+#:
+#: Below 1.0 on purpose: a power defends its own ground harder than it presses
+#: somebody else's, so the attacker is usually the smaller squadron and taking
+#: a system off its holder is an achievement rather than a formality.
+#:
+#: Measured over eight sectors flown a decade each, with wars live. Systems
+#: carrying two flags at once, and how often the holder is out-shipped on its
+#: own holding:
+#:
+#:     0.0   contested  0    out-shipped  0    holdings left bare 1
+#:     0.3   contested 65    out-shipped  6    holdings left bare 1
+#:     0.6   contested 77    out-shipped  9    holdings left bare 1
+#:     1.0   contested 77    out-shipped 34    holdings left bare 4
+#:     1.6   contested 76    out-shipped 48    holdings left bare 7
+#:
+#: At 0 there is no such thing as a contested system, which is where this
+#: started. At 1.0 the attacker weighs as much as the defender and the holder
+#: is out-shipped in 44% of contests, which reads as a sector with no
+#: home ground at all. 0.6 puts contest almost everywhere a war reaches while
+#: leaving out-shipping to about one contested system in eight.
+FRONT_WEIGHT = 0.6
+
 
 def sustains(game, power: str) -> float:
     """The daily margin this power has left once its ports are paid for.
@@ -77,12 +101,30 @@ def strength(game, power: str) -> int:
 
 
 def _weights(game, power: str) -> list:
-    """(system, share) for everywhere this power keeps hulls."""
+    """(system, share) for everywhere this power keeps hulls.
+
+    **Two kinds of place, and until wars existed there was only one.** Hulls
+    sat on holdings, and holdings are the systems where a power has a port —
+    so no two powers' squadrons could ever be in the same system. Measured
+    after a decade with nine live wars, powers with hulls in one system came
+    out `{1: 195, 0: 141}`: never two, by construction. That made
+    `keeper_of`'s whole reason for existing — "a power can be out-shipped over
+    its own holding" — describe something that could not happen, and it left
+    a fleet action with nowhere to occur.
+
+    A power at war also keeps hulls **off** what it is trying to take, which
+    is what `sim/war.spoils` names. That is the only way two flags end up in
+    one volume.
+    """
     out = []
     for system in exchequer_sim.holdings(game, power):
         port = system.port
         out.append((system, float(
             LEVEL_WEIGHT * max(1, int(getattr(port, "level", 1))))))
+    from . import war as war_sim
+    for system in war_sim.spoils(game, power):
+        out.append((system, float(
+            FRONT_WEIGHT * max(1, int(getattr(system.port, "level", 1))))))
     return out
 
 
@@ -136,6 +178,15 @@ def keeper_of(game, system) -> str:
     The strongest squadron present, which is not always whose port it is — a
     power can be out-shipped over its own holding, and that is worth being
     able to see.
+
+    **That sentence was false for as long as it stood.** Hulls only ever sat on
+    holdings, so `squadron_at` never returned two powers and this was a `max()`
+    over a dict that could not have two entries: measured across six sectors,
+    `keeper_of` agreed with `system.port.faction` in 99 of 99 non-empty cases
+    and differed in 0. It is true now because `_weights` puts hulls on what a
+    power is trying to take as well as on what it holds — measured over eight
+    sectors flown a decade each, 77 systems carry two flags and the holder is
+    out-shipped on 9 of them.
     """
     here = squadron_at(game, system)
     if not here:

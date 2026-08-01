@@ -46,6 +46,7 @@ from ..sim import control
 from ..sim import diplomacy as dip
 from ..sim import exchequer as ex
 from ..sim import fleets
+from ..sim import war
 from .harness import Suite
 
 SEEDS = "abcdef"
@@ -124,9 +125,14 @@ def run(suite: Suite) -> None:
                 f"{margin:.0f}→{fleets.sustains(game, power):.0f}, fleet "
                 f"{before}→{after}")
 
-    @check("hulls sit where the holdings are, weighted by port level")
+    @check("in peacetime hulls sit where the holdings are, by port level")
     def _():
+        # "In peacetime" is not decoration. A power at war keeps hulls off what
+        # it is trying to take as well — see the two checks below — so `spread`
+        # is a subset of the holdings only while nobody is fighting, which is
+        # the case at day 0 of a fresh sector.
         game = new_game("where")
+        assert not war.wars(game), "this sector starts at war; pick another"
         for power in dip.POWERS:
             spread = fleets.stations(game, power)
             assert sum(spread.values()) == fleets.strength(game, power), (
@@ -134,7 +140,7 @@ def run(suite: Suite) -> None:
                 f"strength of {fleets.strength(game, power)}")
             held = {s.id for s in ex.holdings(game, power)}
             assert set(spread) <= held, (
-                f"{power} has hulls somewhere it holds nothing")
+                f"{power} has hulls somewhere it holds nothing, at peace")
         # And the share follows the **port level**, which is what makes a
         # capital hold more than an outpost.
         #
@@ -180,6 +186,59 @@ def run(suite: Suite) -> None:
         shown = [f"{strict} of {pairs} pairs across six sectors put more at "
                  "the developed holding, and none put fewer"]
         return " · ".join(shown)
+
+    @check("a power at war keeps hulls off what it is trying to take")
+    def _():
+        # The change that makes a contested system possible at all. Before it,
+        # hulls only ever sat on holdings, so two powers could not be in one
+        # system: measured over eight sectors flown a decade each with nine
+        # live wars, powers-with-hulls-per-system came out {1: 195, 0: 141}.
+        game = new_game("front")
+        dip.ensure(game)
+        dip.shift_relation(game, "charter", "freeholds", -200)
+        assert war.at_war(game, "charter", "freeholds")
+        spoils = {s.id for s in war.spoils(game, "charter")}
+        assert spoils, "at war and nothing of theirs is takeable"
+        spread = fleets.stations(game, "charter")
+        forward = spoils & set(spread)
+        assert forward, (
+            "charter is at war and keeps every hull at home; nothing can "
+            "ever be contested")
+        held = {s.id for s in ex.holdings(game, "charter")}
+        assert set(spread) & held, "the whole fleet went forward and left home bare"
+        assert sum(spread.values()) == fleets.strength(game, "charter"), (
+            "hulls were created or lost by going to the front")
+        # And a system at the front now carries two flags.
+        contested = [s for s in game.galaxy.systems
+                     if len(fleets.squadron_at(game, s)) > 1]
+        assert contested, "two powers at war and not one system carries two flags"
+        return (f"{len(forward)} of charter's stations are enemy ground; "
+                f"{len(contested)} systems carry two flags")
+
+    @check("a holder can be out-shipped over its own holding")
+    def _():
+        # `keeper_of` said this in its docstring and it was false: measured
+        # across six sectors it agreed with `system.port.faction` in 99 of 99
+        # non-empty cases and differed in 0, because `squadron_at` could never
+        # return two powers.
+        seen = out = 0
+        for i in range(6):
+            game = new_game(f"keep{i}")
+            dip.ensure(game)
+            for a, b in (("charter", "freeholds"), ("concordat", "sanhedrin")):
+                dip.shift_relation(game, a, b, -200)
+            for system in game.galaxy.systems:
+                here = fleets.squadron_at(game, system)
+                if len(here) < 2:
+                    continue
+                seen += 1
+                if fleets.keeper_of(game, system) != system.port.faction:
+                    out += 1
+        assert seen, "no contested system anywhere, so nothing was tested"
+        assert out, (
+            f"{seen} contested systems and the holder kept every one of them; "
+            "`keeper_of` still cannot differ from the port's own faction")
+        return f"{out} of {seen} contested systems are held by somebody else's fleet"
 
     @check("the answer is derived, so it never drifts")
     def _():

@@ -2207,6 +2207,10 @@ seedfall/
 │   ├── responses.py    provocation, the Bloom's answers, and studying a mass
 │   ├── market.py       supply shocks, and the prices you wrote down
 │   ├── ventures.py     what the powers do on their own account
+│   ├── fleets.py       what a power fields, and where. Hulls sit on its
+│   │                  holdings, and — at war — on what `war.spoils`
+│   │                  says it is trying to take (`FRONT_WEIGHT` 0.6).
+│   │                  That is the only way two flags share a system.
 │   ├── war.py          who is at war with whom, derived from the relation
 │   │                  matrix (`WAR_AT` = -60); `spoils` is what a
 │   │                  belligerent may take. Taking a system in war
