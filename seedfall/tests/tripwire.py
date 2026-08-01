@@ -84,10 +84,25 @@ def constants(only: str = "") -> list:
                 if target.id in SKIP:
                     continue
                 value = node.value
+                # **A negative literal is not an `ast.Constant`.** `-60.0`
+                # parses as `UnaryOp(op=USub, operand=Constant(60.0))`, so for
+                # as long as this matched only `ast.Constant` every negative
+                # constant in the codebase was skipped in silence. Measured
+                # when it was found: 422 swept, **14 invisible**, among them
+                # `clearance.WELCOME_AT` (whether a quay opens a hatch to
+                # you), `grudge.COLD_SHOULDER` and `allegiance.IMPLACABLE`
+                # (whether a power will deal with you at all) and
+                # `war.WAR_AT` (whether two powers are fighting). Task #60 is
+                # titled "all 153 tuning constants measured, none
+                # unprotected"; that was true only of the ones this could see.
+                sign = 1
+                if isinstance(value, ast.UnaryOp) and \
+                        isinstance(value.op, ast.USub):
+                    sign, value = -1, value.operand
                 if isinstance(value, ast.Constant) and \
                         isinstance(value.value, (int, float)) and \
                         not isinstance(value.value, bool):
-                    out.append((path, target.id, value.value))
+                    out.append((path, target.id, sign * value.value))
     return out
 
 
@@ -167,6 +182,7 @@ KIN = {
     "relics3d": ("relics3d",),
     "fleets": ("fleets", "control"),
     "armada": ("armada", "fleets"),
+    "war": ("war", "armada"),
     "piracy": ("piracy", "traffic", "fence"),
     "life3d": ("life3d",),
     "parts3d": ("parts3d",),

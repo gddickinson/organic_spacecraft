@@ -10371,3 +10371,49 @@ no new screen.
   `grudge.COLD_SHOULDER`, `allegiance.IMPLACABLE` and `war.WAR_AT`. 422 are
   swept; those 14 are invisible. Task #60's "none unprotected" was true only of
   the constants the scanner could see.
+
+## The tripwire could not see a negative constant (#130)
+
+`tripwire.constants()` walked each module's AST and kept assignments whose value
+was an `ast.Constant`. **A negative literal is not one** — `-60.0` parses as
+`UnaryOp(op=USub, operand=Constant(60.0))` — so every negative module-level
+constant was skipped in silence.
+
+    swept before the fix    422
+    invisible               14
+    swept after             436
+
+The fourteen are not incidental numbers. `clearance.WELCOME_AT` decides whether
+a quay opens a hatch to you; `grudge.COLD_SHOULDER` and
+`allegiance.IMPLACABLE` decide whether a power will deal with you at all;
+`gates.TOLL_REFUSED_BELOW` decides whether a gate lets you through;
+`war.WAR_AT` decides whether two powers are fighting. Task #60 is titled "all
+153 tuning constants measured, none unprotected" — true only of the constants
+the scanner could see.
+
+**Swept, and the result is the good one: 14 of 14 are noticed, 0 survive.**
+They were protected all along; nothing could see that they were. No new checks
+were needed, which is the outcome worth having and not the one to assume.
+
+`sim/war` also had no fast path — it was added last cycle carrying only
+`WAR_AT`, which was invisible, so `test_harness_guard` had nothing to complain
+about. Registered as `("war", "armada")`.
+
+### Wrong turns worth keeping
+
+- **My sweep left a constant mutated in the working tree.** The refinement pass
+  was killed by an outer 10-minute timeout, so its `finally` never ran and
+  `data/territory.py` was left holding `UNWELCOME = -12.5` against a real value
+  of -25.0. `tripwire.main` guards against exactly this and says so in its
+  docstring — "a tool that edits source has to put it back on the way out, not
+  only on the happy path" — and my ad-hoc probe reimplemented the trap it
+  warns about. Caught by diffing the constants against their expected values
+  before committing; a `git status` alone would have shown a modified file with
+  no hint of what was wrong with it.
+- **The distinction between "bites" and "hangs" was left unmeasured.** Of the
+  fourteen, six were caught by a check going red and eight by the run timing
+  out with the constant at zero. `suite_passes` counts a hang as noticed and
+  documents that, so the sweep's verdict stands — but a hang is weaker evidence
+  than a red check, and the pass that would have separated them (trying the
+  doubled and halved variants for those eight) ran past ten minutes and was
+  abandoned rather than left half-reported.
