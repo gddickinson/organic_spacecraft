@@ -3201,6 +3201,18 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berthing cannot be completed. The machinery was already there —
   `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
   you — and had no way to say no.
+- **Lazily built state records when it was first asked for.** `exchequer.purse`
+  is born carrying `settled = game.day`, so any comparison that advances the
+  clock before the first call starts the two runs from different stored state.
+  It had `exchequer` wrongly flagged in `test_ticks` for a cycle, and it made
+  my own probe report a working fix as doing nothing. Give both sides an
+  identical first step before letting them diverge.
+- **A deterministic driver cannot see a probabilistic defect.** The tick sweep
+  uses a stateless generator so only structure shows — which turns `chance(p)`
+  into a threshold that clears in both runs or neither, and makes a genuinely
+  per-call roll look like a rate. `ventures` needs 60 trials under a real
+  generator to show 0.400 against 0.500. Two kinds of defect, two kinds of
+  measurement.
 - **A tolerance is part of the claim, not a weakening of it.** `test_ticks`
   first demanded two chopping of a span agree exactly, and that is
   unachievable for any tick applying two per-day rates in sequence — they do

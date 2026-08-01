@@ -2,6 +2,67 @@
 
 Running progress log. Newest first.
 
+## 2026-08-01 — SEEDFALL: the exchequer keeps a cadence, and the sweep had two blind spots
+
+#116's list was three; it is one. But the interesting part is that the guard
+itself was wrong in two different ways, and both were flattering it.
+
+**The fix.** `exchequer.settle` accrued money in proportion to the span and
+made its decision — found a berth, raise one, give one up — once per *call*.
+`_books` now works a `SETTLE_DAYS` cadence at a time, and `settled` advances
+*by* the cadence rather than snapping to today. Measured on seed "exq" over
+900 days:
+
+    before   one call 0 settlements, margins 214/274/394/214
+    after    one call 25 settlements, margins 202/260/374/200
+    walked   29 settlements,          margins 282/342/471/303
+
+Over ninety days the two agree exactly, which is why this survived: the gap
+only opens once a span covers more than one cadence.
+
+**Blind spot one: lazy state, and it cost a whole cycle.** The sweep jumped
+one game to day 30 before its first call and stepped the other. Several
+subsystems build state on first use and stamp it with the day they were asked
+— `exchequer.purse` is born carrying `settled = game.day` — so the two runs
+started from different stored state and the tick was flagged for *when it was
+created*, not how it scales. It cost me an hour of this cycle too: my first
+probe created the purse after advancing the day, so no decision could ever
+fire and I read "the fix does nothing" three times before tracing it. Both
+games now share an identical first day before they diverge.
+
+**Blind spot two: the fixed generator cannot see a probability.** The sweep
+drives every tick with a stateless generator so only structure shows, and that
+makes `chance(p)` a threshold which either clears in both runs or neither.
+`ventures` rolls `ONSET_PER_MONTH * (days / 30)` once per call and is
+genuinely per-call — under a *real* generator, 60 trials a side, one call of
+thirty leaves 0.400 ventures live against 0.500 walked. It would have dropped
+silently off the list. It now sits in `PROBABILISTIC` with its own
+trials-based check.
+
+**And the guard could not see its own fix.** `test_ticks` runs 30 days, where
+exchequer agrees either way, so both mutations of the repair came back green.
+A focused check at 900 days pins it — the same lesson as `loyalty` last cycle,
+which needed a finer check than the coarse diff could give.
+
+    structural per-call   approach
+    probabilistic         ventures
+    rate                  the other twelve
+
+**And a downstream check went red, which is the fix working.** `test_politics`
+asks that background politics never foreclose the Concord ending. Its window
+compared 10 years against 25 and allowed a 12-point slide; the reading is now
+12.4, because powers that actually expand generate more territorial friction.
+Measured further out, the property holds and the curve simply bends later:
+
+    0y −45.00   10y −62.67   25y −75.10   50y −74.69   80y −75.36
+
+Flat from 25 onward. So the check reads the plateau where it is rather than
+widening the old window, which makes it a stronger claim than before — it now
+demands relations actually *stop*, and separately that they never reach the
+floor, instead of merely sliding slowly.
+
+Full suite green at 1,230 checks.
+
 ## 2026-08-01 — SEEDFALL: loyalty comes off the list, and two of my three fixes were tidying
 
 Working #116's list from last cycle. Four per-call ticks named; this cycle took

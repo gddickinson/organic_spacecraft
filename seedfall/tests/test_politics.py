@@ -142,7 +142,7 @@ def run(suite: Suite) -> None:
         # of churn drove every pair far below the Concord threshold and left an
         # ending unreachable through no fault of the player.
         readings = {}
-        for years in (0, 10, 25):
+        for years in (0, 10, 25, 50):
             worst = []
             for seed in range(6):
                 game = new_game(f"concord-{seed}")
@@ -150,9 +150,23 @@ def run(suite: Suite) -> None:
                 _years(game, years)
                 worst.append(min(_pairs(game)))
             readings[years] = sum(worst) / len(worst)
-        assert readings[25] <= readings[0] + 1, "relations only ever improve"
-        assert readings[25] > readings[10] - 12, (
-            f"relations are still sliding at 25 years: {readings}")
+        assert readings[50] <= readings[0] + 1, "relations only ever improve"
+        # **The plateau is the claim, and it now happens later.** This used to
+        # read 10 against 25 and allow a 12-point slide between them. Once
+        # `exchequer.settle` kept a real cadence (#116) the powers actually
+        # expand — before that a long jump gave them one decision each — so
+        # there is more territorial friction and the curve bends later:
+        #
+        #     0y −45.00   10y −62.67   25y −75.10   50y −74.69   80y −75.36
+        #
+        # Flat from 25 onward. Reading the plateau where it is, rather than
+        # widening the old window, makes this a stronger claim than before: it
+        # demands relations actually *stop*, not merely slide slowly.
+        assert abs(readings[50] - readings[25]) < 4, (
+            f"relations have not settled between 25 and 50 years: {readings}")
+        assert readings[50] > -90, (
+            f"relations have gone to the floor, which forecloses the Concord "
+            f"as surely as a ratchet would: {readings}")
 
         # The emergent numbers alone are a weak signal — they plateau against
         # the -100 floor either way. Test the mechanism that stops the ratchet:

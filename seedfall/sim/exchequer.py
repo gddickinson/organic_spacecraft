@@ -385,12 +385,42 @@ def settle(game, days: float) -> list[tuple[str, str]]:
         game.credits += paid
 
     for power in dip.POWERS:
-        p = state.purses[power]
-        took, owed = income(game, power) * days, outlay(game, power) * days
-        p.credits += took - owed
+        events.extend(_books(game, power, state.purses[power], float(days)))
+    return events
+
+
+def _books(game, power: str, p, days: float) -> list[tuple[str, str]]:
+    """Accrue and decide over a span, a cadence at a time.
+
+    **The money scaled with the span and the decision did not.** Founding a
+    berth, raising one, giving one up — all of it fired once per *call*
+    however long the call stood for, so a chronicle advanced in one go handed
+    each power a single investment and the whole span's bills. Measured on
+    seed "exq", the same 900 days:
+
+        one call of 900   margins 214/274/394/214    0 settlements
+        a day at a time   margins 282/347/477/305   27 settlements
+
+    Nothing was ever founded, so income never grew to meet the upkeep. Over
+    ninety days the two agree exactly — the gap only opens once a span covers
+    more than one `SETTLE_DAYS`, which is why it survived so long.
+
+    The cadence is what a power's books run on, so a span covering several of
+    them owes several decisions. `settled` advances *by* the cadence rather
+    than snapping to today: snapping is what made one call one decision.
+    """
+    events: list[tuple[str, str]] = []
+    left = float(days)
+    while left > 0.0:
+        span = min(left, float(SETTLE_DAYS))
+        left -= span
+        p.credits += (income(game, power) - outlay(game, power)) * span
+        # Against how long the books have gone undone, not against today —
+        # `game.day` has already been advanced by the whole span before this
+        # runs, so testing it directly fires once and only once.
         if game.day - p.settled < SETTLE_DAYS:
             continue
-        p.settled = game.day
+        p.settled = min(game.day, p.settled + SETTLE_DAYS)
         told = (_retrench(game, power, p) if p.credits < 0
                 else _invest(game, power, p))
         if told:

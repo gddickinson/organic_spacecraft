@@ -48,7 +48,21 @@ DAYS = 30
 #: Every one of these makes a long jump differ from the same span walked, and
 #: every one is work remaining on #116. Shrinking this list is the task;
 #: *growing* it silently is what the check below exists to prevent.
-PER_CALL = {"ventures", "exchequer", "approach"}
+PER_CALL = {"approach"}
+
+#: Ticks whose per-call defect is *probabilistic*, and which the sweep above
+#: cannot see.
+#:
+#: The sweep drives every tick with a fixed generator so that only structure
+#: shows. That is what makes it readable, and it is also blind to a whole
+#: class: `ventures` rolls `ONSET_PER_MONTH * (days / 30)` once per call, and
+#: a fixed `chance()` either clears the bar in both runs or in neither. Under a
+#: real generator, measured over 60 trials, one call of thirty days leaves 0.400
+#: ventures live against 0.500 walked — a quarter more, because a power that
+#: gets thirty chances can start one, resolve it and start another.
+#:
+#: Each of these needs its own trials-based check; see below.
+PROBABILISTIC = {"ventures"}
 
 
 class _Fixed:
@@ -140,13 +154,24 @@ def _print(game):
 
 
 def _is_rate(name) -> bool:
-    """Does this tick give the same game for one call of 30 as thirty of one?"""
+    """Does this tick give the same game for one call of 30 as thirty of one?
+
+    **Both games are given the same first day before they diverge.** Several
+    subsystems build their state lazily and stamp it with the day they were
+    first asked — `exchequer.purse` is born carrying `settled = game.day` —
+    so a run that jumps to day 30 before the first call starts from different
+    stored state than one that steps. That is when the state was *created*,
+    not how the tick scales, and it had `exchequer` flagged here for a whole
+    cycle before the difference was traced.
+    """
     call = TICKS[name]
-    whole = new_game("sweep")
+    whole, walked = new_game("sweep"), new_game("sweep")
+    for game in (whole, walked):
+        game.day = 1
+        call(game, 1.0, _Fixed())
     whole.day = DAYS
-    call(whole, float(DAYS), _Fixed())
-    walked = new_game("sweep")
-    for day in range(DAYS):
+    call(whole, float(DAYS - 1), _Fixed())
+    for day in range(1, DAYS):
         walked.day = day + 1
         call(walked, 1.0, _Fixed())
     return not _apart(_print(whole), _print(walked))
@@ -218,6 +243,58 @@ def run(suite: Suite) -> None:
         return " · ".join(
             f"{step}d {'/'.join(f'{v:.1f}' for v in got)}"
             for step, got in sorted(runs.items(), reverse=True))
+
+    @check("a power's books are done once a month, not once a call")
+    def _():
+        # The sweep above runs 30 days and cannot see this: `SETTLE_DAYS` is
+        # 30, so one cadence fits in one call either way and the two agree
+        # exactly. The gap only opens across several — which is why it
+        # survived until a 900-day jump was tried.
+        from ..sim import diplomacy as dip_sim
+        from ..sim import exchequer as ex_sim
+        from ..sim import settlement as settle_sim
+        got = {}
+        for step in (900, 1):
+            game = new_game("exq")
+            ex_sim.ensure(game)          # purses born on day 0, as in play
+            for _ in range(900 // step):
+                game.day += step
+                list(ex_sim.settle(game, float(step)))
+            got[step] = sum(len(settle_sim.of_power(game, p))
+                            for p in dip_sim.POWERS)
+        assert got[900] >= got[1] * 0.7, (
+            f"900 days in one call founded {got[900]} settlements against "
+            f"{got[1]} a day at a time — the books are being done once per "
+            "call again")
+        return (f"900 days: {got[900]} settlements founded in one call, "
+                f"{got[1]} walked")
+
+    @check("a probability spread over days is not one roll")
+    def _():
+        # `ventures` is per-call and the sweep above cannot see it, because a
+        # fixed generator turns `chance(p)` into a threshold that either
+        # clears in both runs or neither. This is the measurement that does
+        # see it: sixty games a side under a real generator.
+        from ..core.rng import RNG
+        from ..sim import ventures
+        got = {}
+        for step in (30, 1):
+            total = 0
+            for trial in range(60):
+                game = new_game(f"v{trial}")
+                rng = RNG(f"vr{trial}")
+                for _ in range(30 // step):
+                    game.day += step
+                    list(ventures.tick(game, float(step), rng))
+                total += len(ventures.live(game))
+            got[step] = total / 60
+        assert "ventures" in PROBABILISTIC, "this check has lost its subject"
+        assert got[1] > got[30] * 1.1, (
+            f"ventures now yields {got[1]:.3f} walked against {got[30]:.3f} "
+            "in one call — if that gap has closed it is fixed, so take it off "
+            "PROBABILISTIC and delete this check")
+        return (f"60 trials a side: {got[30]:.3f} live in one call of 30 "
+                f"against {got[1]:.3f} walked")
 
     @check("the ones on the list really are still broken")
     def _():
