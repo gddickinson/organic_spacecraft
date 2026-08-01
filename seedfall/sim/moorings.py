@@ -187,6 +187,17 @@ def assign(conn) -> str:
     if not berths:
         return ""
     known = {name for name, _at in berths}
+    # **The berth the structure gave you wins.** It is the one that will be
+    # made ready, and since `sim/control` began enforcing the assignment it is
+    # the only one that can take your lines — so a flight computer aiming at
+    # the nearest fitting instead was aiming at a berth that would not open.
+    # Caught by `test_byhand`: a hand-flown approach settled 22 m off mast 3,
+    # cleared for another, and burned to dry never berthing.
+    from . import control
+    given = control.cleared_for(conn)
+    if given in known:
+        conn.berth = given
+        return given
     if conn.berth in known and conn.range_km <= corridor_km(conn.target):
         return conn.berth
     name, at = min(berths, key=lambda row: math.dist(conn.pos, row[1]))
@@ -261,6 +272,12 @@ def boom_step(conn, seconds: float) -> float:
     if sort_of(conn.target) != "standoff":
         conn.boom = 0.0
         return 0.0
+    # A dock that has not cleared you does not swing its arm out. The quiet
+    # defence, and the one every structure has whatever else it has.
+    from . import control
+    if control.withheld(conn):
+        conn.boom = max(0.0, conn.boom - seconds / BOOM_SECONDS)
+        return conn.boom
     found = nearest(conn)
     steady = rates(conn)
     holding = (found is not None and found["at_it"]
@@ -287,7 +304,17 @@ def at_berth(conn) -> bool:
     silently refused every mooring would be a hard one to find.
     """
     found = nearest(conn)
-    return True if found is None else bool(found["at_it"])
+    if found is None:
+        return True
+    if not found["at_it"]:
+        return False
+    # **And it must be the berth you were given.** `Conn.cleared` has carried
+    # the assignment since the protocol landed, with a docstring promising a
+    # berth "cannot be quietly swapped for one the ship preferred" — and
+    # nothing read it, so a hull cleared for mast 4 moored to mast 3. A
+    # structure that will not work its equipment for you is `control.withheld`.
+    from . import control
+    return not control.withheld(conn)
 
 
 def aim(conn) -> tuple:

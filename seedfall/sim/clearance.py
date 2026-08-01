@@ -103,6 +103,16 @@ def request(game, contact, conn=None) -> Clearance:
     target = _target_of(game, contact, conn)
     berths = _berths(game, contact, conn)
     if not berths:
+        from . import control
+        if control.full(game, contact):
+            # A different refusal from "there is nothing here": every berth
+            # is worked and somebody is on it. Hold off and wait, or go.
+            return Clearance(
+                False,
+                f"{contact.name} is full — "
+                + control.waiting_line(game, contact)
+                + " Hold off until one clears.",
+                station=contact.name)
         return Clearance(False, f"{contact.name} has no berth to offer.")
     name, at = _assign(berths, conn)
     period = (moorings.turn_seconds(target)
@@ -186,7 +196,13 @@ def _berths(game, contact, conn) -> list:
     if kind != "anchorage":
         return []
     spin = moorings.spin_at(target, getattr(conn, "elapsed", 0.0))
-    return moorings.points(target, spin)
+    # Only what is actually free. A structure with four masts and three hulls
+    # already on them has one berth to offer, and had four for ever until
+    # `sim/control` gave it a way to know who was there.
+    from . import control
+    taken = control.holders(game, contact)
+    return [(name, at) for name, at in moorings.points(target, spin)
+            if name not in taken]
 
 
 def _assign(berths: list, conn):

@@ -80,6 +80,27 @@ def _copy(conn: Conn) -> Conn:
     place. It is carried, and `outcome.alongside` reads it through
     `moorings.captured` on the twin exactly as it does on the ship.
 
+    The seventh was `cleared`, the berth the port assigned — and it was the
+    first that broke a check rather than being caught by the guard. Once
+    `moorings.assign` began returning the granted berth, a twin without it
+    aimed at the nearest fitting instead, and the plot quoted a course to a
+    berth that would not have opened: 1.7503 km predicted against 1.7390
+    flown.
+
+    The eighth was the approach-control ladder — `watch`, `told`, `told_for`
+    and `warded_for` — and the guard had them within the minute. All four are
+    carried, and the reason is the same one that carried `boom`: a hull being
+    fired on is *in* something, and a forecast that quoted the next burn as
+    though nobody were shooting would be exactly as wrong as one that forgot
+    an arm was half way out. What it will leave you with includes what the
+    station will take off you while you make it.
+
+    `sheered` is deliberately *not* carried, and it is the exception that
+    proves the rule about `cleared`: a twin has to know what the structure
+    granted, because that decides which berth it flies to — but it may not
+    bill the station for having stood off, any more than for a collision that
+    has not happened.
+
     `landed`, `log`, `outcome` and `damage` are deliberately *not* carried: a
     twin flies from here, and an approach that has already ended cannot be
     forecast. Neither are `struck_damage` and `struck_dv`, for the same
@@ -97,7 +118,9 @@ def _copy(conn: Conn) -> Conn:
                 orbit_want_km=conn.orbit_want_km,
                 throttle=conn.throttle, coast_min=conn.coast_min,
                 mass_t=conn.mass_t, target_mass_t=conn.target_mass_t,
-                berth=conn.berth, boom=conn.boom)
+                berth=conn.berth, boom=conn.boom,
+                cleared=conn.cleared, watch=conn.watch, told=conn.told,
+                told_for=conn.told_for, warded_for=conn.warded_for)
 
 def track(conn, mode: str | None = None, ticks: int = 60,
           every: int = 6) -> list:

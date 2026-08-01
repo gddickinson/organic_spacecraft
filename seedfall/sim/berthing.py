@@ -118,6 +118,11 @@ def begin(game, contact):
         # fancied.
         conn.berth = cleared.berth
         game.add_log(clearance_sim.line(cleared), "")
+    # What this structure could do about an uncleared hull, and how long it
+    # would put up with one. Set whether or not the clearance was granted —
+    # a refusal is precisely when it matters.
+    from . import control
+    conn.watch = control.post(game, contact)
     return conn, ""
 
 
@@ -191,6 +196,19 @@ def commit(game, conn) -> dict:
             f"shoved {conn.struck_dv:.2f} m/s off station"
             + (f" — {peak:,.0f} km adrift at worst." if peak >= 1.0 else "."),
             "bad")
+
+    # A structure that worked itself away from an unwelcome hull really is
+    # somewhere else afterwards. Through `sim/knock`, the same door a shove
+    # uses, so the plot, the ranges and every forecast agree about where it
+    # now is — a station that ran from you is a station you have to chase.
+    if getattr(conn, "sheered", 0.0) > 0.0:
+        from . import control
+        from . import knock as knock_sim
+        knock_sim.record(game, conn.target, control.SHEER_RATE)
+        game.add_log(
+            f"{conn.target.name} stood off under power rather than take you "
+            f"alongside — {conn.sheered * 1000:,.0f} m opened, and it is not "
+            "back on station yet.", "warn")
 
     moved = None
     index = _berth_index(conn)

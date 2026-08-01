@@ -252,8 +252,10 @@ def run(suite: Suite) -> None:
             "fired_main": "likewise — a twin's burn is not the ship's",
             "fired_share": "likewise",
             "fired_turning": "likewise",
-            "cleared": "a clearance is granted to the ship by the structure; "
-                       "a trial run has not been cleared for anything",
+            "sheered": "how far the structure has worked itself away from "
+                       "the *ship*. A trial run may not bill a station for "
+                       "standing off, for the same reason it may not bill it "
+                       "for a collision that has not happened",
         }
         body = inspect.getsource(preview_sim._copy)
         carried = set(re.findall(r"(\w+)=(?:conn\.|list\(conn\.)", body))

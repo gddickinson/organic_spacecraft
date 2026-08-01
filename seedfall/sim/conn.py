@@ -197,6 +197,24 @@ class Conn:
     #: has one; see `sim/moorings.boom_step`. It runs out while the hull holds
     #: station in reach and steady, and back in when it does not.
     boom: float = 0.0
+    #: What this structure can do about a hull it has not cleared, and how
+    #: patient it is — see `sim/control.post`. Set once when the approach
+    #: opens, so the tick loop can run the ladder without a handle on the
+    #: world. None for anything with nobody in it.
+    watch: object = None
+    #: How far up that ladder the structure has gone: an index into
+    #: `control.LADDER`. Zero for a hull that is welcome, and it falls back to
+    #: zero the moment one becomes welcome.
+    told: int = 0
+    #: Ticks of continued closing at the present rung, and ticks spent under
+    #: fire. The first decides when the structure loses patience; the second is
+    #: why point defence hurts more the longer you take it.
+    told_for: float = 0.0
+    warded_for: int = 0
+    #: How far the structure has worked itself away from this hull, in km.
+    #: Carried out to the sector by `sim/berthing.commit` as a knock, so a
+    #: station that sheered off is off station on every screen afterwards.
+    sheered: float = 0.0
 
     @property
     def over(self) -> bool:
@@ -490,6 +508,21 @@ def _step(conn: Conn, dt: float) -> None:
         # holds station off it, and back in the moment it does not.
         from . import moorings
         moorings.boom_step(conn, h)
+        # A structure's patience, one tick of it. The ladder climbs only while
+        # the hull is still closing, so checking up or opening the range stops
+        # it — a warning rather than a countdown.
+        from . import control
+        said = control.step(conn, conn.closing > 0.0)
+        if said:
+            conn.log.append(said)
+        bite = control.ward_bite(conn)
+        if bite > 0.0:
+            conn.warded_for += 1
+            conn.damage = round(conn.damage + bite, 1)
+        # And a structure with somebody aboard simply leaves. See
+        # `control.sheer_step`: the range opens because the berth is going,
+        # not because the ship is being pushed.
+        control.sheer_step(conn, h)
         # Contact anywhere along the path, not merely at the end of it — and
         # against what is *solid*, which is not the bounding radius. See
         # `sim/bays.hull_km`: a structure's furniture is what you berth

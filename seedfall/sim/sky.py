@@ -134,6 +134,18 @@ def build(game, contact=None) -> list:
                  radius_km=star.radius_km, tint=star.core, look=star.id,
                  halo=star.halo)]
 
+    # Where the docked traffic is, so a hull holding a berth is drawn *on* it
+    # rather than floating near the structure. `sim/control` knows who is in
+    # which berth; without this the occupancy existed and a pilot flying up to
+    # a full station saw four empty masts.
+    from . import control
+    docked = {}
+    for other in track_sim.contacts(game, system):
+        if other.kind != "anchorage":
+            continue
+        for berth, who in control.holders(game, other).items():
+            docked[who] = (other, berth)
+
     for index, other in enumerate(track_sim.contacts(game, system)):
         if other.id == skip or other.kind == "star":
             continue
@@ -161,11 +173,49 @@ def build(game, contact=None) -> list:
             radius, kind, ringed = radius_km(look), "anchorage", False
         else:
             radius, kind, look, ringed = 0.08, "hull", other.errand, False
+        where = offset(x, y, radius, index)
+        held = docked.get(other.name) if kind == "hull" else None
+        if held is not None and contact is not None:
+            # On the berth it is holding. Only when the frame is an approach —
+            # with no target the sky is the view from wherever the ship is
+            # standing, and the structure's own frame is not the one being
+            # drawn in.
+            spot = _berth_spot(game, held[0], held[1], tx, ty)
+            if spot is not None:
+                where = spot
         out.append(Sight(name=other.name, kind=kind,
-                         at=offset(x, y, radius, index),
+                         at=where,
                          radius_km=radius, tint=other.tint,
                          look=look, ringed=ringed))
     return out
+
+
+def _berth_spot(game, structure, berth: str, tx: float, ty: float):
+    """Where a berth on this structure is, in the approach's own frame.
+
+    Through `moorings.points`, which is the one door for where a fitting is —
+    the same numbers the flight computer aims at and `ui/viewport` draws the
+    mesh by, so a hull shown on a mast is on the mast.
+
+    Deliberately **not** through `offset`. That helper lifts anything sharing
+    the target's position clear of it so a world and its quay do not stack, and
+    a berth is the one thing that must not be moved: measured, a docked hull
+    came out 418 km from a mast 444 m off the structure's pole.
+    """
+    from . import moorings
+    from . import targets as targets_sim
+    from . import track as track_sim
+    try:
+        target = targets_sim.target_from_contact(game, structure)
+        spin = moorings.spin_at(target, 0.0)
+        at = dict(moorings.points(target, spin)).get(berth)
+        if at is None:
+            return None
+        sx, sy = track_sim.at(game, structure, game.day)
+    except Exception:
+        return None
+    dx, dy = (sx - tx) * AU_KM, (sy - ty) * AU_KM
+    return (dx + at[0], dy + at[1], at[2])
 
 
 def has_rings(body) -> bool:

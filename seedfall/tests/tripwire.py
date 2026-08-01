@@ -160,6 +160,7 @@ KIN = {
     "robots": ("robots",),
     "robots3d": ("robots3d",),
     "bays": ("bay", "berthing"),
+    "control": ("control", "berthing"),
     "life3d": ("life3d",),
     "parts3d": ("parts3d",),
     "readiness": ("readiness",),

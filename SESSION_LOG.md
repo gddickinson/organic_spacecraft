@@ -2,6 +2,73 @@
 
 Running progress log. Newest first.
 
+## 2026-07-31 — SEEDFALL: a structure has authority over the volume round it
+
+Asked for approach control — flightpaths, waiting areas, warnings, defences,
+stations that move away, full berths, traffic. Measured first, by flying it,
+and the ground was worse than the ask assumed:
+
+    Fleet Hub: cleared for mast 4, hold at 555 m, 1.5 m/s or under.
+    ... flew in regardless -> berthed at mast 3
+
+**The clearance was advisory.** `Conn.cleared` had carried the whole
+`Clearance` since the protocol landed, with a docstring promising a berth
+"cannot be quietly swapped for one the ship preferred", and nothing downstream
+read the field. And the berths were never full: four masts on a hub, five
+hulls of traffic working the same system, and the docks and the traffic had
+never met.
+
+`sim/control.py` is the authority a structure has over the volume around it.
+
+**Who holds each berth**, derived from where the traffic actually is rather
+than stored — the discipline `sim/anchorage` uses to build a quay fresh every
+call. *"3 of 4 berths clear; mast 3 (Held Breath) occupied."* A full structure
+refuses and names the ships on it.
+
+**What you were told**, enforced — and the enforcement needed no rule. Once
+`moorings.assign` returns the granted berth, `nearest` measures the gap to
+*that* fitting and no other, so a hull parked perfectly on somebody else's is
+352 m from the only berth that counts. The extra condition I had written into
+`control.withheld` came straight back out.
+
+**The quiet refusal.** A dock that has not cleared you does not open and does
+not swing its boom: cleared, the arm runs out to 1.00; refused, it stays in at
+0.00. The machinery already existed and had no way to say no. It is the
+defence every structure has whatever else it has.
+
+**The ladder** — hail, warn, ward, repel. What a structure will do is what it
+*has*, off `Port.level`, `Port.capital` and the system's ward: a wayside quay
+can only shout, a capital can vector a response. Standing buys patience and
+never a bigger gun — rep +80 gives ten ticks a rung, −80 gives two. And it
+climbs only while the hull keeps closing, so a captain who blunders in and
+corrects is hailed and forgiven: ignored, *warned* and 66 damage; corrected at
+tick 14, *hailed* and none.
+
+**A station simply leaves**, through `sim/knock` — the door a shove already
+uses — so one that ran from you is off station on the plot, in the ranges and
+in every forecast. Applied to the position rather than the velocity: it is not
+pushing you, it is going.
+
+**Six defects, and only two pre-dated the work.** The clearance being advisory
+and the berths never filling were there all along. The other four were made by
+turning a record into a rule, which is the honest cost of that: the occupancy
+was invisible until docked hulls were drawn on their fittings; a docked hull
+came out 418 km from a mast 444 m off the pole, because `sky.build` lifts
+anything sharing the target's position and a berth is the one thing that must
+never move; the flight computer and the port disagreed about which berth to
+fly to, which sent a hand-flown approach to a door that would not open and
+burned it to dry 22 m short; and **patience was counted in ticks**, so a hull
+pressed in at full drive got a hail and a warning while one merely drifting got
+all four rungs — ramming was safer than politeness. A station's clock is the
+range: `control.haste` spends it against `Clearance.max_closing`, and pressed
+in is now *repelled* in 25 ticks and 71 damage against 123 ticks and 2.
+
+`preview._copy` learned its seventh and eighth fields, and the `fresh` entry
+saying a twin is never cleared turned out to be a claim a measurement refuted —
+a twin must know what was granted, because that decides where it flies.
+
+Full suite green: **1,167 checks**.
+
 ## 2026-07-31 — SEEDFALL: eighty-four fittings, and #80 closes
 
 The last page in the catalogue that was words only: the shipyard listed every

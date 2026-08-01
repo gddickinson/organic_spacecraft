@@ -2217,6 +2217,10 @@ seedfall/
 │   ├── consorts.py     escorts: ordering one out of its berth, standing
 │   │                   orders, screening, who draws fire, what they eat
 │   ├── loyalty.py      what the bridge thinks of how you run the ship
+│   ├── control.py      approach control: who holds each berth (derived from
+│   │                   the traffic), what the structure told you, the quiet
+│   │                   refusal, the hail→warn→ward→repel ladder, and a
+│   │                   station that simply leaves
 │   ├── bays.py         what a hull can actually strike — a bounding radius is
 │   │                   not a hull — and the structures you fly *into*: the
 │   │                   aperture, the corridor through it, and the rim
@@ -3175,6 +3179,28 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   yard built it, how much hull it eats — and `test_parts3d` measures exactly
   those. All five checks passed first time, which is what happens when the
   claim is honest before the code is written.
+- **A record nobody reads is a rule nobody obeys.** `Conn.cleared` carried the
+  whole `Clearance` from the day the protocol landed, with a docstring
+  promising a berth "cannot be quietly swapped for one the ship preferred" —
+  and no code downstream read the field. Flown: cleared for mast 4, moored to
+  mast 3. Enforcing it turned out to need no rule at all: once
+  `moorings.assign` returns the granted berth, `nearest` measures the gap to
+  *that* fitting and no other, so sitting on somebody else's is simply 352 m
+  from the only berth that counts. The extra condition written into
+  `control.withheld` came straight back out.
+- **A station's patience is the range, not the calendar.** The first ladder
+  advanced a rung every six ticks, so a hull pressed in at full drive covered
+  twelve kilometres in twenty ticks and collected a hail and a warning, while
+  one merely *drifting* in took two hundred ticks and collected all four rungs
+  — barrelling at a station was safer than approaching politely. `control.haste`
+  spends patience against `Clearance.max_closing`, the rate the structure
+  already asks you to hold: pressed in, *repelled* in 25 ticks and 71 damage;
+  drifted, 123 ticks and 2.
+- **The quiet defence is the one every dock has.** A structure that does not
+  want you need not shoot: it declines to swing the boom out, and a standoff
+  berthing cannot be completed. The machinery was already there —
+  `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
+  you — and had no way to say no.
 - **A promise in the sales text is a claim the game has to meet.** A treaty was
   sold as "mutual berthing, shared charts, and a clause about the Bloom that
   nobody expects to be honoured" for 30,000 credits. The third is a joke; the
