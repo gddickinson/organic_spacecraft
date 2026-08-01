@@ -2,6 +2,59 @@
 
 Running progress log. Newest first.
 
+## 2026-08-01 — SEEDFALL: a grown hull that rebuilt itself out of nothing
+
+Opening #116 again. The clock fix it needs is blocked on a balance problem —
+hard burning stops costing anything once repair ticks honestly — and this cycle
+went after *why*. **Repair was free.**
+
+`ship.repair_tick` worked out what the healing should eat and then took
+whatever happened to be aboard:
+
+    fed = min(ship.cargo.get("biomass", 0), budget * 0.004)
+
+`min` against the hold, and the healing went ahead regardless. Measured on a
+hull at 60% going to 100% — 136 points:
+
+    with 500 t aboard   healed 136.0
+    with 20 t aboard    healed 136.0
+    with none at all    healed 136.0
+
+A cost that is calculated and does not constrain is not a cost. Same family as
+a field declared and never read, one level up: the arithmetic was there and the
+consequence was not.
+
+And the rate made it moot regardless. A full rebuild of the starting hull is
+336 points, which at 0.004 t a point is **1.3 tonnes and 89 credits** against a
+340-tonne hold. `FEED_PER_HP` is 0.05 now — 16.8 t and about 1,100 credits,
+roughly the 20.5 t a new ship sails with, 5% of the hold. What it buys:
+
+    0 t aboard   nothing at all
+    2 t          40 points   0.595 → 0.714
+    5 t          100 points  0.595 → 0.893
+    20.5 t       136 points  0.595 → 1.000, 13.7 t left
+    500 t        136 points  — the drive rate caps it, not the larder
+
+So a ship that has burned itself out with an empty hold does not heal, and one
+that thought about it carries the tonnage to put itself back together.
+
+**A check I wrote was wrong and the mutation found it.** I asserted repair
+"still mends one layer and stops" — it never did: a layer that fills lets the
+loop carry on, and six came back full in a sixty-day call before this change as
+much as after. The claim that actually holds is that with feedstock to spare
+the healing is identical to the old formula, which is what "I only added a
+constraint" means. 169.0 points either way.
+
+Deliberately not touched: the one-layer-per-*call* cadence. Making that a rate
+heals a great deal more and is exactly what broke the burn-cost balance when
+#116 was attempted — task #119, and it belongs with the clock.
+
+Three mutations run, three red. And I made the duplicate-tripwire-key mistake
+for the **third** time, then dropped the entry entirely while merging it. The
+harness guard caught both.
+
+Full suite green at 1,224 checks.
+
 ## 2026-08-01 — SEEDFALL: a fence is a distance, because it cannot be a place
 
 #118, the half of #111 that was not built. Taken because #114 and #115 are

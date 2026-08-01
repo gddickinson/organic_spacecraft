@@ -197,7 +197,7 @@ KIN = {
     "aftermath": ("aftermath",), "assessment": ("assessment",),
     "colony": ("grants", "founding", "swarm"),
     "minigames": ("approaching", "approach"),
-    "plans": ("picture",), "ship": ("thermal_doors", "thermal"),
+    "plans": ("picture",), "ship": ("thermal_doors", "thermal", "feedstock"),
     "shocks": ("trade",), "tech": ("evidence", "bench"),
     "trade": ("counter", "trade"), "orders": ("orders",),
     "legacy": ("legacy",), "beginning": ("beginnings",),

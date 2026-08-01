@@ -292,22 +292,48 @@ def apply_damage(ship: Ship, amount: float) -> float:
     return amount - left
 
 
+#: Tonnes of biomass a grown hull eats to put back one point of itself.
+#:
+#: Sized against the hold rather than picked round. A full rebuild of the
+#: starting hull is 336 points: at the old 0.004 that was 1.3 t and 89
+#: credits, which is nothing, and at 0.05 it is 16.8 t and about 1,100 —
+#: roughly the 20.5 t a new ship sails with, and 5% of a 340 t hold. So one
+#: full rebuild is a hold-load you have to have thought about, and a ship
+#: that has burned itself out with an empty hold does not heal at all.
+FEED_PER_HP = 0.05
+
+
 def repair_tick(ship: Ship, days: float, s: Stats) -> float:
     """Between-turn healing: seal first, then rebuild, innermost layer first."""
     if s.regen <= 0:
         return 0.0
+    # **A grown hull cannot rebuild itself out of nothing, and it did.**
+    # The feedstack was computed and then thrown at whatever happened to be
+    # aboard: `fed = min(cargo, budget * 0.004)` took what it could get and
+    # healed the full amount regardless. Measured, a hull at 60% went to 100%
+    # — 136 points — on 0.54 t of biomass, and healed exactly the same with
+    # 20 t aboard as with 500, or with none at all. A cost that is calculated
+    # and does not constrain is not a cost.
     budget = 0.0
+    held = float(ship.cargo.get("biomass", 0.0))
     for L in reversed(ship.layers):
         if L.hp >= L.max:
             continue
-        before = L.hp
-        L.hp = min(L.max, L.hp + L.max * L.regen * s.regen * days)
-        budget += L.hp - before
+        want = min(L.max - L.hp, L.max * L.regen * s.regen * days)
+        heal = min(want, held / FEED_PER_HP) if FEED_PER_HP > 0 else want
+        if heal <= 0:
+            break
+        L.hp += heal
+        budget += heal
+        held -= heal * FEED_PER_HP
+        # The same one-layer-at-a-time cadence as before. Making *that* a
+        # rate is task #119, and it belongs with the clock fix rather than
+        # here — it heals a great deal more, which is a balance question and
+        # not a correctness one.
         if L.hp < L.max:
             break
     if budget > 0:
-        fed = min(ship.cargo.get("biomass", 0), budget * 0.004)
-        add_cargo(ship, "biomass", -fed)
+        add_cargo(ship, "biomass", -(budget * FEED_PER_HP))
     return budget
 
 

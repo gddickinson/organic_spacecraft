@@ -3201,6 +3201,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berthing cannot be completed. The machinery was already there —
   `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
   you — and had no way to say no.
+- **`min(what you have, what it costs)` is how a cost stops being one.**
+  `repair_tick` computed the biomass a rebuild should eat, took the smaller of
+  that and the hold, and healed the full amount either way — so a hull mended
+  identically on 500 tonnes, on 20, and on none. The arithmetic was right and
+  nothing downstream depended on it. Whenever a spend is written as a `min`
+  against stock, ask what happens when the stock is zero.
+- **A cost nobody can feel is not a cost.** Even made binding, the old rate put
+  a whole hull back for 1.3 t of a 340 t hold. Sizing it against what the ship
+  carries (20.5 t) rather than against nothing is what turned it into a
+  decision.
 - **When two things can never coincide, the link between them is a distance.**
   #118 wanted raider presence to feed the local black market, and raiders never
   work a system with a port while a market *is* a port — 28 raided systems
