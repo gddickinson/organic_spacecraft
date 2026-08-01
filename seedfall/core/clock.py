@@ -75,9 +75,46 @@ def advance_days(game, n: float, dilation: float = 1.0) -> None:
     That split is what stops a hard burn from being free. It buys your
     crew their lives back, and it costs you everything you would have got
     done in the time you skipped.
+    **A jump of N days has to equal N jumps of one, and it did not.** Every
+    subsystem below is handed `n` and asked to do a tick's work with it. Ones
+    that scale a *rate* by it are fine; ones that make a *decision* once per
+    call are not. Measured on seed "a" across 900 days, the same game three
+    ways:
+
+        one jump of 900   charter −252  concordat −198  freeholds −138
+        90 jumps of 10    charter +515  concordat +257  freeholds +345
+        900 jumps of 1    charter +489  concordat +256  freeholds +279
+
+    Traced to `exchequer.settle`, which took 900 days of bills and made **one**
+    investment — 0 settlements against 6. Fixing it there was tried and is the
+    wrong place: by then its *inputs* have diverged too, because the market and
+    colony ticks were handed the same span.
+
+    `MAX_STEP` is 1 rather than something coarser because that turns the claim
+    from "within six per cent" into an equality with no tolerance in it.
     """
     if game.dead or game.victory:
         return
+    left = float(n)
+    if left > MAX_STEP:
+        while left > 0.0 and not (game.dead or game.victory):
+            span = min(left, float(MAX_STEP))
+            left -= span
+            _one_step(game, span, dilation)
+        return
+    _one_step(game, left, dilation)
+
+
+#: The longest span any subsystem tick is asked to cover in one go.
+#:
+#: One day. At ten the answer stops depending on how the caller chopped the
+#: time but still sits 5.3% from playing it out day by day; at one the jump
+#: *is* the walk. A thirty-day transit costs 25 ms against 8 at ten.
+MAX_STEP = 1
+
+
+def _one_step(game, n: float, dilation: float) -> None:
+    """One tick of everything, over a span no longer than `MAX_STEP`."""
     r = game.rng("tick")
     # The epsilon is not decoration: a hundred tenth-days sum to
     # 9.999999999999998, so taking the whole part naively loses a day

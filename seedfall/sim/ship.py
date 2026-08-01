@@ -303,9 +303,27 @@ def apply_damage(ship: Ship, amount: float) -> float:
 FEED_PER_HP = 0.05
 
 
+def excess_heat(ship: Ship, stats) -> float:
+    """How far over its cap this hull is running, or 0 if it is not.
+
+    **One door.** `cool` cooks on this and `repair_tick` refuses to rebuild
+    on it, so a hull can never be regrowing the same layer the radiators are
+    cooking. The two used to answer it separately — in fact only `cool` asked
+    at all — and the honest clock showed what that was worth: over fourteen
+    hard burns the ship cooked 225.8 hp and healed 239.7, so running 82 points
+    over the cap for 74 days cost 7.5% of the hull. A hard burn bought the
+    crossing in 87 days against economy's 234 and very nearly free.
+    """
+    return max(0.0, float(ship.heat) - float(getattr(stats, "heat_cap", 0.0)))
+
+
 def repair_tick(ship: Ship, days: float, s: Stats) -> float:
     """Between-turn healing: seal first, then rebuild, innermost layer first."""
     if s.regen <= 0:
+        return 0.0
+    # Nothing regrows while it is cooking. Not a balance knob but the same
+    # fact `cool` is already acting on, read through the one door.
+    if excess_heat(ship, s) > 0:
         return 0.0
     # **A grown hull cannot rebuild itself out of nothing, and it did.**
     # The feedstack was computed and then thrown at whatever happened to be
@@ -420,7 +438,7 @@ def cool(ship: Ship, stats, days: float) -> dict:
     out = {"shed": 0.0, "cooked": 0.0}
     if days <= 0 or ship.heat <= 0:
         return out
-    over = ship.heat - stats.heat_cap
+    over = excess_heat(ship, stats)
     if over > 0:
         # Only the excess cooks, and only for as long as it is excess.
         out["cooked"] = min(over, over * COOK * days)

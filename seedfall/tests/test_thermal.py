@@ -290,6 +290,33 @@ def run(suite: Suite) -> None:
         return (f"cold: {cold.result} on turn {cold_turns} · after ten hard "
                 f"burns: {hot.result} on turn {hot_turns}")
 
+    @check("a hull does not regrow the layer its own radiators are cooking")
+    def _():
+        # The two halves of the same fact used to be asked by one side only:
+        # `cool` knew what "over the cap" meant and `repair_tick` did not, so
+        # a hull cooked and healed at once. Measured over fourteen hard burns
+        # under the honest clock: 225.8 hp cooked against 239.7 hp healed, and
+        # a crossing bought in 87 days instead of 234 cost 7.5% of the hull.
+        game = new_game("regrow")
+        st, ship = game.ship_stats, game.ship
+        ship_mod.apply_damage(ship, sum(L.max for L in ship.layers) * 0.4)
+        ship.cargo["biomass"] = 500.0
+        hurt = hull_pct(ship)
+
+        ship.heat = st.heat_cap + 40.0
+        assert ship_mod.excess_heat(ship, st) == 40.0
+        assert ship_mod.repair_tick(ship, 10.0, st) == 0.0, (
+            f"healed {hull_pct(ship) - hurt:.1%} of hull while 40 points over "
+            "the cap — the radiators and the regrowth are both winning")
+
+        ship.heat = 0.0
+        assert ship_mod.excess_heat(ship, st) == 0.0
+        assert ship_mod.repair_tick(ship, 10.0, st) > 0.0, (
+            "a cool hull with 500 t of biomass aboard healed nothing, so the "
+            "gate is refusing everything rather than refusing the hot case")
+        return (f"40 over the cap: 0 hp · at the cap: "
+                f"{hull_pct(ship) - hurt:+.1%} hull on the same ten days")
+
     @check("flying hot still costs, or the ceiling has made it free")
     def _():
         def fly(burn: str, legs: int = 14):

@@ -9947,3 +9947,59 @@ whose full round-by-round history and queue live in `deepen-roadmap.md`.
   regeneration, sustainability) documented as chat answers + python-grounded
   figures; the **Fleet Class Reference** and interactive **3D Models** documents;
   and a whole-program consistency + cross-linking pass. Program now ten documents.
+
+## The honest clock lands (#116, #121) — eight cycles
+
+`core/clock.MAX_STEP = 1`: `advance_days(N)` now chops into single days, so a
+jump of N days equals N jumps of one for **every** N. Full suite green at
+**1,231 checks**.
+
+The fix itself was 15 lines and was written, verified and reverted five times
+across seven earlier cycles. Every revert was on the strength of one red check,
+and every one of those checks turned out to be a **real defect the honest clock
+exposed** rather than a fault in the clock: free hull repair, artefact zeros in
+mining, a probe that would not sell, a freight desk that never priced time,
+loyalty's scale floor, the exchequer deciding once per call. This cycle closed
+the last two.
+
+**#121 was wrongly premised, and the measurement said so.** `lifespan.tick` does
+`officer.age = was + years * lineage.ageing * slowed` — a pure rate, correct as
+written. Against the days that actually elapse: wet 5.75 y over 2100 days,
+grafted 4.39 over 2760, dry 1.40 over 3650 — every one exact on its table rate.
+Two things had been masquerading as a per-call defect. Instrumented, of 2130
+days handed to `lifespan.tick` the wet officer was **absent from the roster for
+918 of them**: the fixture cannot pay wages and the last officer quits on day
+1220, so `age_of` went on reporting a three-year-stale age. Separately, an
+unattended chronicle reaches `victory="ruin"` on day 2100 and `advance_days` has
+always stopped there — "ten years passed" was never true. Fixed in the check,
+not the sim: it now asks for a **rate** (+/-0.01 against `lineage.ageing`) and
+asserts the officer is still aboard.
+
+**Thermal: a hull was regrowing the layer its own radiators were cooking.** Over
+fourteen hard burns: 225.8 hp cooked against 239.7 healed, so a crossing bought
+in 87 days instead of 234 cost 7.5% of hull. `cool` knew what "over the cap"
+meant; `repair_tick` never asked. Closed with `ship.excess_heat`, read by both.
+Gap went 7.5 points -> 77 (hard ends at 23% hull, economy at 100%).
+
+**Chronicle: "fought something" was covered by one lucky die.** One fight in a
+decade under the old clock, zero under the honest one — and separately **zero
+encounters in 360 in-system arrivals across 30 seeds**, so every fight the
+driver ever had came from an interstellar jump. `_seek_trouble` now asks
+`encounters.roll_encounter` directly where `sim/piracy` says raiders work.
+
+### Wrong turns worth keeping
+
+- **The `MAX_STEP` docstring claimed step 10 sat "5.3% from playing it out day
+  by day". That was dice noise read as error.** `game.rng("tick")` is drawn once
+  per step, so a different step is a different stream. The drift is not
+  monotonic — step 10 drifts 1,367 where step 2 drifts 11,417 and step 5 drifts
+  13,306 — and the player's own credits come out identical (191,909) at every
+  step. The justification for 1 is exact, not statistical.
+- **A timed-out mutation run left `excess_heat` stubbed to `return 0.0`, and the
+  "backup" was then taken from the mutated file** — so the first restore
+  restored the mutation. Caught only because the restored run was still red.
+  A backup taken mid-mutation is worthless.
+- **"The surveyor/navis opening leaves you with 1 credit" was wrong.** 1 credit
+  was the purse *after* 1,160 days of an unflown chronicle. Measured properly,
+  all 12 legal openings start at 6,000-32,000 credits, which is 600-2,133 days
+  of payroll at 10-15/day.

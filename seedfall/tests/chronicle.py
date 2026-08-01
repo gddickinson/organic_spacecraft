@@ -364,6 +364,36 @@ def _refuel(game) -> bool:
     return extract(game, ice, 40, "cut").get("ok", False)
 
 
+def _seek_trouble(game, rng, plan) -> None:
+    """Go looking for a fight, if a decade of flying has not produced one.
+
+    **Coverage was luck, and the honest clock proved it.** This driver reached
+    "fought something" only when an arrival happened to hand it an encounter:
+    one in a whole decade on seed `chronicle-cover`, and measured separately,
+    *zero* encounters in 360 in-system arrivals across 30 seeds — the ones it
+    got came from interstellar jumps. So when `advance_days` began walking day
+    by day and the tick stream moved, that single roll went away and the check
+    that calls itself "everything it claims to" was covering the whole tactical
+    suite on one die.
+
+    So the driver asks instead of waiting. It goes through the same door the
+    arrival does — `encounters.roll_encounter` — in the systems where raiders
+    actually work, which `sim/piracy` derives rather than guesses. Nothing is
+    fabricated: if the sector has nowhere lawless enough, this finds nothing
+    and the check fails, which is the correct outcome.
+    """
+    from ..sim import encounters as enc_sim, piracy as piracy_sim
+    known = [s for s in game.galaxy.systems
+             if piracy_sim.raider_chance(game, s) > 0]
+    known.sort(key=lambda s: -piracy_sim.lawlessness(game, s))
+    for system in known[:6]:
+        for _ in range(12):
+            met = enc_sim.roll_encounter(game, system, rng)
+            if met and met.get("enemy"):
+                plan.setdefault("fights", []).append(_fight(game, met, rng))
+                return
+
+
 def _fight(game, encounter, rng) -> str:
     """Actually take the engagement, with the captain the tactical suite uses.
 
@@ -475,6 +505,8 @@ def play(game, years: int = 10, on_beat=None, stipend: float = STIPEND) -> dict:
             break
         if not _move_on(game, rng, plan):
             game.advance_days(30)
+    if not plan.get("fights") and not game.dead:
+        _seek_trouble(game, rng, plan)
     return {"rounds": rounds, "days": game.day - start, "dead": game.dead,
             "fights": list(plan.get("fights", [])),
             "victory": game.victory,

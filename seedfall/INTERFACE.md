@@ -2451,6 +2451,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`core/state.Game` owns time.** `advance_days(n)` is the only clock: it ticks
   research, colonies, build slips, hull regrowth, every market, payroll, air,
   morale and the Bloom, then checks for victory. Nothing else advances a day.
+- **A jump of N days *is* N jumps of one.** `core/clock.MAX_STEP` is 1, and
+  `advance_days` chops any longer span into single days through `_one_step`.
+  This is the only value for which the identity holds for every N; at any
+  larger step it holds only when N is a multiple of it. It costs about 10x
+  (264 ms a simulated year against 28 at step 10 — `world/economy.tick` is 64%
+  of it, at 365 days x 23 markets), and the full suite runs 13-16 minutes as a
+  result. Do **not** read cross-step differences as accuracy: `game.rng("tick")`
+  is drawn once per step, so a different step size is a different random
+  stream, and the drift is chaotic rather than convergent (measured on seed
+  "a", 900 days: step 10 drifts 1,367 where step 2 drifts 11,417 and step 5
+  drifts 13,306, while the player's own credits are identical at every step).
 - **`sim/` never imports Qt.** It takes a `game` and returns plain data. That is
   why the simulation suite can run headless and why the whole rules layer is
   testable without a display.

@@ -107,25 +107,53 @@ def run(suite: Suite) -> None:
 
     @check("time passes for the people, and differently for each lineage")
     def _():
-        aged = {}
+        # Asked as a *rate*, because a chronicle nobody flies does not last
+        # ten years. Measured under the honest clock: an idle wet captain
+        # reaches ruin on day 2100 and a grafted one on day 2760, so "aged in
+        # ten years" was reading two lineages over spans that differed by 660
+        # days and calling the difference lineage. Per elapsed year the three
+        # come out at exactly their table rate, which is the stronger claim
+        # anyway: it has no tolerance for a tick that decides per call.
+        rate, span = {}, {}
         for stock in ("wet", "dry", "grafted"):
             game = _of(stock, f"age-{stock}")
+            # Wages paid. On the opening purse of 1 credit the officers quit
+            # around day 1160 and an officer off the roster stops ageing while
+            # `age_of` still reads their last age — the old check measured
+            # someone who had walked off three years earlier.
+            game.credits = 200_000
             who = game.officers[0]
             was = lifespan.age_of(who, game)
             game.advance_days(3650)             # ten years of sector time
-            aged[stock] = lifespan.age_of(who, game) - was
-        assert aged["wet"] > 9.5, (
-            f"ten years passed and a wet officer aged {aged['wet']:.2f}")
-        assert aged["dry"] < aged["grafted"] < aged["wet"], (
-            f"lineages age in the wrong order: {aged}")
-        return " · ".join(f"{k} aged {v:.1f}y in 10 sector years"
-                          for k, v in aged.items())
+            assert who in game.officers, (
+                f"the {stock} officer left on day {game.day}, so nothing "
+                "below is a measurement of ageing")
+            span[stock] = game.ship_day / lifespan.YEAR
+            assert span[stock] > 5.0, (
+                f"the {stock} chronicle only ran {span[stock]:.1f} years")
+            rate[stock] = (lifespan.age_of(who, game) - was) / span[stock]
+            want = lifespan.lineage_of(who, game).ageing
+            assert abs(rate[stock] - want) < 0.01, (
+                f"a {stock} officer aged {rate[stock]:.3f} years per elapsed "
+                f"year, and their lineage ages at {want}")
+        assert rate["dry"] < rate["grafted"] < rate["wet"], (
+            f"lineages age in the wrong order: {rate}")
+        return " · ".join(f"{k} {rate[k]:.2f}y/y over {span[k]:.1f}y"
+                          for k in rate)
 
     @check("a long enough chronicle ends a career, and opens the berth")
     def _():
         from ..sim import legacy as legacy_sim
         span = LINEAGES_BY_ID["wet"].span
         game = _of("wet", "span")
+        # Wages paid, because an officer who is not paid *leaves*, and an
+        # officer off the roster is never handed to `lifespan.tick` again —
+        # they stop ageing where they stood while `age_of` goes on reporting
+        # that last age. Measured on the opening purse: this one walked off at
+        # 98, the roster was empty by day 12515, and the loop below spent the
+        # remaining thirty-four years waiting for a retirement that could no
+        # longer happen. Funded, they retire at 101.8 in the eighth year.
+        game.credits = 200_000
         who = game.officers[0]
         who.age = span - 2
         start_level = who.level
@@ -134,6 +162,9 @@ def run(suite: Suite) -> None:
             game.advance_days(365)
             if getattr(who, "retired", False):
                 break
+            assert who in game.officers, (
+                f"{who.name} left the roster on day {game.day} without "
+                "retiring, and nothing after this would be a measurement")
             # **The sector's story can end before a career does**, and the
             # clock stops dead when it does: `advance_days` returns on
             # `game.victory`. This check used to run its forty years on the
