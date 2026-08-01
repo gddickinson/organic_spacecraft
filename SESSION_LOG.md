@@ -10914,3 +10914,40 @@ same hour.
   could let a forecast decide the ship had already paid for time it has not
   flown. Named, with that reason.
 - Neither was a check I had to write. Both were already there, waiting.
+
+## The five-hundred-line rule had no guard, and sixteen files were past it
+
+#137's first move was `ui/window.py` at 519 lines. Splitting it turned up
+something larger: **the rule was never checked**, and measured across the
+package, sixteen files were over — `data/works3d.py` 635, `sim/robots.py` 616,
+`sim/conn.py` 612, `sim/control.py` 602, `tests/test_orbits.py` 567,
+`tests/test_control.py` 560, `ui/viewport.py` 535, and nine more.
+
+`window.py` split along a seam its own comments already marked — the endings
+went to `ui/endings.py` (70 lines) and `check_ending` stays as a two-line door,
+because nine screens call it and every check that stubs a window relies on it
+being a method. 519 → 475.
+
+That also turned up **twelve dead imports** in `window.py` — `Bar`, `Pill`,
+`ALIGN_R`, `spacer`, `hull_pct`, `cargo_used`, `CHASSIS_BY_ID` and more, left
+behind when the HUD moved to `ui/hud.py` and never removed. The project's
+"declared and unconsumed" guard covers functions, not imports, so nothing saw
+them.
+
+Splitting sixteen files is not one cycle's work, so the new check is a
+**ratchet**: every file over five hundred is named at the length it has today.
+A named file may shrink but never grow, and a file not on the list may never
+cross. Proved by three mutations — a named file gaining one line, an unnamed
+file crossing, and the `window.py` split being undone.
+
+### Wrong turns worth keeping
+
+- **I destroyed my own uncommitted work with `git checkout --`.** Restoring
+  `ui/window.py` after a mutation reverted it to HEAD — the *pre-split*
+  519-line version — because the split was not committed. `ui/endings.py`
+  survived only by being untracked. Every mutation elsewhere this session used
+  a temp copy for exactly this reason; here I reached for git and lost the
+  work. Redone from the recipe.
+- **A heredoc turned `\n` into a literal backslash-n** and `ast.parse` refused
+  the file before it was written, which is the only reason nothing was
+  corrupted. Parse before writing, always.

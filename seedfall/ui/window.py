@@ -4,17 +4,15 @@ ship's log. Also the host for dialogs and the combat hand-off."""
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QLabel, QMainWindow,
+from PyQt6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QMainWindow,
                              QVBoxLayout, QWidget)
 
 from ..core import state as state_mod
-from ..core.util import credits, num, pct, stardate
-from ..data.chassis import CHASSIS_BY_ID
+from ..core.util import stardate
 from ..data.screens import KEY_FOR, NAV as SCREENS_NAV
-from ..data.lore import ENDINGS, TITLE, VICTORIES
-from ..sim.ship import cargo_used, hull_pct, is_breached
+from ..data.lore import TITLE
 from . import theme
-from .widgets import (ALIGN_R, Bar, Pill, button, label, mono_label, spacer,
+from .widgets import (button, label, mono_label,
                       hrule)
 
 #: The rail, and the key for each screen, from `data/screens.py` — which
@@ -460,56 +458,14 @@ class MainWindow(QMainWindow):
     # ── endings ────────────────────────────────────────────────────────────
 
     def check_ending(self) -> bool:
-        g = self.game
-        if g.victory:
-            name = next((v[1] for v in VICTORIES if v[0] == g.victory), "Ending")
-            self._ending(name, ENDINGS.get(g.victory, ""), ending=g.victory)
-            return True
-        if g.dead:
-            key = g.ending or "lost"
-            name = "Overgrown" if key == "overgrown" else "The chronicle ends"
-            # The game has always known why; it simply never said.
-            self._ending(name, ENDINGS.get(key, ENDINGS["lost"]),
-                         g.death_reason)
-            return True
-        return False
+        """Whether the chronicle has ended, and the ending if it has.
 
-    def _ending(self, heading: str, text: str, cause: str = "",
-                ending: str = "") -> None:
-        """An ending is a turn in the sector's history, not necessarily a stop.
-
-        Every ending opens an epoch — the world is rewritten once and a new
-        clock starts in place of the Bloom — so the dialog offers to carry on
-        as well as to begin again.
+        Nine screens call this and every check that stubs a window relies on
+        it being a method, so it stays here as a door onto `ui/endings.py`,
+        which is where it went when this file passed five hundred lines.
         """
-        from ..data.epochs import EPOCHS_BY_ID
-        from ..sim import legacy as legacy_sim
-
-        g = self.game
-        stats_line = (f"Stardate {g.day} days · {len(g.discovered['systems'])} systems "
-                      f"visited · {g.discovered['lifeforms']} organisms catalogued · "
-                      f"{len(g.colonies)} colonies planted.")
-        body = [text]
-        if cause:
-            body.append(label(cause, "", "warn", wrap=True))
-        body.append(label(stats_line, "note", wrap=True))
-
-        epoch = EPOCHS_BY_ID.get(ending)
-        choices = [("Begin again", "again")]
-        if epoch is not None:
-            body.append(label(f"What follows: {epoch.name}. {epoch.pressure}",
-                              "", "chloro", wrap=True))
-            choices.insert(0, (f"Carry on into {epoch.name}", "carry"))
-
-        picked = self.dialog(heading, body, choices)
-        if picked == "carry" and epoch is not None:
-            legacy_sim.begin(g, ending)
-            self.save()
-            self.go("legacy")
-            return
-        state_mod.clear_save()
-        from .title import start_new_chronicle
-        start_new_chronicle(self)
+        from .endings import reached
+        return reached(self)
 
 
 def body_or(w):

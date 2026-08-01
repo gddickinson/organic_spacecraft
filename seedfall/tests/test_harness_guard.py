@@ -227,3 +227,54 @@ def run(suite: Suite) -> None:
             "meant to be a wide net, not a second fast path")
         return (f"{len(over_budget)} suites over budget, all excluded; "
                 f"{len(tripwire.SUITES)} left in the net")
+
+    @check("no file in the package is past five hundred lines")
+    def _():
+        # The project's own rule, and it had gone unwatched: measured when this
+        # was written, `ui/window.py` was 519 lines and `ui/conn_window.py`
+        # 508, both past it at HEAD, and nothing said so. `window.py` split
+        # along the seam its own comments already marked — the endings went to
+        # `ui/endings.py` — and came back to 475.
+        #
+        # `conn_window` is the one still over, and is named here rather than
+        # quietly tolerated: a rule with an unrecorded exception is not a rule.
+        import pathlib
+        # **Today's sizes, so the rule stops rotting further.** Splitting
+        # sixteen files is not one cycle's work, and a rule with no guard at
+        # all is how they got here: measured when this was written, sixteen
+        # files were past five hundred and nothing said so. Each is named with
+        # the length it had, so a file may shrink but never grow, and a file
+        # not on the list may never cross. See the task on working the list
+        # down — every removal from here is a real split along a real seam.
+        allowed = {
+            "data/works3d.py": 635,
+            "sim/conn.py": 612,
+            "sim/control.py": 602,
+            "sim/exchequer.py": 506,
+            "sim/flight.py": 512,
+            "sim/robots.py": 616,
+            "tests/chronicle.py": 517,
+            "tests/test_conn.py": 523,
+            "tests/test_control.py": 560,
+            "tests/test_industry.py": 520,
+            "tests/test_orbits.py": 567,
+            "tests/test_robots.py": 624,
+            "ui/conn_window.py": 508,
+            "ui/map_view.py": 526,
+            "ui/viewport.py": 535,
+            "ui/widgets.py": 517,
+        }
+        root = pathlib.Path(__file__).resolve().parent.parent
+        over = []
+        for path in sorted(root.rglob("*.py")):
+            if "__pycache__" in str(path):
+                continue
+            lines = len(path.read_text().splitlines())
+            cap = allowed.get(str(path.relative_to(root)), 500)
+            if lines > cap:
+                over.append(f"{path.relative_to(root)} {lines}")
+        assert not over, (
+            "past five hundred lines, and not named as a known exception: "
+            + ", ".join(over) + " — split it along a real seam")
+        return (f"{len(allowed)} files named at their present length, "
+                "none may grow and none may join them")
