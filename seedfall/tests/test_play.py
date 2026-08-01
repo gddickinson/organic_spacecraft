@@ -328,7 +328,15 @@ def run(suite: Suite) -> None:
             res = actions.strike_heart(g)
             assert res.get("ok"), res.get("why")
         assert bloom_sim.heart_dead(g), "the heart could not be killed at all"
-        assert strikes > 1, "the heart died to a single pass — no climax at all"
+        # **Bracketed, because `strikes > 1` did not hold `HEART_HP` at all.**
+        # Measured with a battleship: 9 passes at 1,300, 19 at 2,600, 37 at
+        # 5,200 — so halving and doubling the Heart both sailed through the
+        # old bound, and doubling cleared the loop's own cap of 40 by three.
+        # `data/bloom.HEART_HP` decides how long the game's climax lasts and
+        # was pinned by nothing; the numbers here are absolute on purpose.
+        assert 14 <= strikes <= 26, (
+            f"the heart took {strikes} passes from a battleship, against 19 "
+            "when this was measured — the climax has changed length")
         assert threat.check_victory(g) == "containment", "killing it did not win"
         return f"heart took {strikes} passes from a battleship"
 

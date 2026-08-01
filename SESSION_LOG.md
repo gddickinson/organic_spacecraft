@@ -10650,3 +10650,53 @@ one and left the rest:
   a summary quoting the constant.
 - **Cosmetic-looking but visible** (1) — `DRIVE_Z`, which needed a rendered
   measurement to know it mattered at all.
+
+## The first honest full sweep since #116, and what it found
+
+With the task list empty, the well-founded work was the sweep itself: #131 made
+`tripwire` stop counting a timeout as proof, so its verdicts mean something
+again — and nobody had run it over the whole set since.
+
+**Rate, measured: 9 survivors in the first 18 constants — 50%.** Alphabetical,
+so `approaches`, `bloom`, `charts`, `diplomacy`:
+
+    approaches.QUIET_DAYS  approaches.ODDS_PER_DAY  bloom.MAX_RESIST
+    bloom.RESIST_PER_HIT   bloom.RESIST_DECAY       bloom.HEART_HP
+    charts.KNOWN_WORTH     diplomacy.COURTSHIP_KNEE diplomacy.COURTSHIP_FLOOR
+
+The sweep also costs about **42 seconds a constant** now, so a full pass is
+roughly five hours. Both facts are filed as #133 — the honest reading is that
+these were never caught by their own module's suite but by the *broad* stage,
+which cost 36 seconds when written and takes about 25 minutes since
+`MAX_STEP` became 1. **#116 destroyed the diffuse coverage and #131 made it
+visible.** Writing ~200 checks is not the answer; narrowing the broad stage to
+the suites that could plausibly be affected is the fix worth designing.
+
+### One landed: the length of the game's climax
+
+`data/bloom.HEART_HP = 2600` is the Bloom Heart's hit points — the thing a
+captain has to destroy to win. It *was* checked, by `test_play`, which the
+sweep cannot reach because `play` is in `SLOW`. But the assertion was
+`strikes > 1` inside a `while strikes < 40` loop, and measured with a
+battleship:
+
+    HEART_HP 1300 ->  9 passes      2600 -> 19 passes      5200 -> 37 passes
+
+so halving and doubling both sailed through, and doubling cleared the loop's
+own cap by three. Bracketed at 14..26 against the measured 19. Red at half and
+at double; green at 3,000, which is deliberate — this is a pacing number and
+"several visits, not one and not forty" is the design intent, unlike the
+threshold constants in #132 where a single point matters.
+
+### Wrong turns worth keeping
+
+- **My first hand-verification was worthless and looked fine.** Checking
+  whether `HEART_HP` was really unpinned, I rewrote `sim/bloom.py` — the
+  constant lives in `data/bloom.py`. The mutation never applied, the suite
+  passed, and that would have read as "the sweep is wrong, nothing to do here".
+  The `assert n != s` in the mutation script is what caught it.
+- **The sweep script restores atomically now**, keeping the original in a
+  sibling temp file and putting it back with `os.replace`. Killing this run
+  mid-sweep left the tree clean, where the `write_text` approach two cycles ago
+  truncated `data/industry.py` to nothing — it truncates before it writes, and
+  a signal in that window loses the file.
