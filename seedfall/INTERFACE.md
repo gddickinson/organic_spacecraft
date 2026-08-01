@@ -3201,6 +3201,12 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berthing cannot be completed. The machinery was already there —
   `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
   you — and had no way to say no.
+- **Fix the free lunch before tuning the meal.** #116 reverted once because an
+  honest clock let repair erase the cost of a hard burn. The instinct was to
+  re-tune burn heat; the actual cause was that repair was *free*, and once
+  feedstock bound, the balance came right with no tuning at all — hard burning
+  went from healing to 0.0000 over a month to costing 0.2413, seventeen times
+  economy. Look for the missing constraint before reaching for a constant.
 - **`min(what you have, what it costs)` is how a cost stops being one.**
   `repair_tick` computed the biomass a rebuild should eat, took the smaller of
   that and the hold, and healed the full amount either way — so a hull mended

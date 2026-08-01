@@ -2,6 +2,46 @@
 
 Running progress log. Newest first.
 
+## 2026-08-01 — SEEDFALL: the burn balance fixed itself, and the clock found two more
+
+Third run at #116, and the instruction I left myself last cycle — *measure the
+burn balance before tuning it* — was the right one.
+
+**Binding feedstock had already fixed it.** A tour ship carries volatiles and
+no biomass, so with `FEED_PER_HP` binding it cannot heal at all, and the cost
+of a hard burn stops vanishing over a month — it *grows*:
+
+    rest  0 days   coast 0.0272  economy 0.0138  standard 0.0272  hard 0.1099
+    rest 30 days   coast 0.0272  economy 0.0138  standard 0.0272  hard 0.2413
+
+Seventeen times economy's cost after a month, where last attempt every profile
+healed to 0.0000. No tuning was needed at all — only the free lunch taken away
+first, which was last cycle's work.
+
+So the clock chunking went in, and it works: every step size from 1 to 900
+gives identical margins (charter 489, concordat 256, freeholds 279, sanhedrin
+385), and hard burning still costs 13.57% against economy's 2.90% after a
+month. Five checks written for it, all green.
+
+**And it turned up two failures that are not recalibration.** `test_mining`
+says *skimming wore the hull* and `test_stranded` says *a naive captain ran
+out of moves on day 1605 with 51 credits*. Both are the honest clock ticking
+those subsystems thirty times where it used to tick once, and both are real
+gameplay consequences rather than thresholds tuned against the defect. The
+stranded one especially: a captain who cannot afford biomass now cannot
+repair, and can get stuck.
+
+So the clock is reverted again — deliberately, and with the remaining scope
+now precisely known rather than guessed. What went in is the piece that stands
+on its own: `test_settlement`'s control was "a market with no settlements at
+all", which is the wrong control for a claim about *one good* and is unrelated
+to the clock. It now compares markets where that good is not worked —
+phosphate 312 against 393, ore 32 against 45.
+
+The guard I added to catch my own duplicate-tripwire-key habit fired on the
+first try, which is the first time in four that I have not had to be told by
+the harness.
+
 ## 2026-08-01 — SEEDFALL: a grown hull that rebuilt itself out of nothing
 
 Opening #116 again. The clock fix it needs is blocked on a balance problem —

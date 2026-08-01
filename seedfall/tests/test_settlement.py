@@ -143,9 +143,17 @@ def run(suite: Suite) -> None:
                 price = buy_price(system.market, good, 0)
                 if not price:
                     continue
+                # The control is a market where *this good* is not worked,
+                # not one with no settlements at all. That stricter version
+                # stopped being measurable when `core/clock` began stepping a
+                # day at a time (#116): the powers get some seventy times more
+                # decisions over six years, found 77 settlements and leave 1
+                # of 27 markets untouched. It is also the wrong control for
+                # the claim, which is about one good and not about being
+                # settled at all.
                 if any(s.good == good for s in here):
                     settled.append(price)
-                elif not here:
+                else:
                     bare.append(price)
             if len(settled) >= 2 and len(bare) >= 3:
                 by_good[good] = (mean(settled), mean(bare))
