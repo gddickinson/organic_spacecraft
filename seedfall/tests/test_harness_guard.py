@@ -81,11 +81,19 @@ def run(suite: Suite) -> None:
             f"fast paths naming a suite that does not exist, so the stage "
             f"passes without running anything: {unknown}")
 
-        slow = sorted(f"{mod}->{name}" for mod, near in tripwire.KIN.items()
-                      for name in near if name in tripwire.SLOW)
-        assert not slow, (
-            f"fast paths pointing at a suite the sweep itself excludes, so a "
-            f"constant's verdict depends on having an entry: {slow}")
+        # **This used to forbid a fast path naming a suite in `SLOW`**, on the
+        # grounds that a constant's verdict would then depend on having an
+        # entry. That was right while `SLOW` held seventeen suites that mostly
+        # needed a window. It is wrong now: the two stages have different jobs.
+        # The fast path is *the suite that knows this module* and running one
+        # expensive suite for the one constant it speaks for is exactly what it
+        # is for; the broad stage is *did anything at all notice* and has to be
+        # cheap enough to finish, or it abstains and guards nothing. Measured,
+        # 118 of the fast paths now name a suite the broad set excludes, and
+        # every one of them is the right suite for its module.
+        #
+        # What still has to hold is that a fast path names a suite that exists
+        # — checked above — and that it is named once, checked below.
 
         # Every module holding constants either has a fast path or is named
         # here as having no suite that covers it. A new module with tuning in
@@ -168,3 +176,54 @@ def run(suite: Suite) -> None:
             tripwire._CLEAN.clear()
             tripwire._CLEAN.update(real_clean)
         return "a timed-out stage abstains; a clean one may still convict"
+
+    @check("every suite measured over budget is out of the broad stage")
+    def _():
+        # **The guard for the defect behind #131.** `tripwire` runs a
+        # constant's own suites and then a broad set, and a timeout in either
+        # used to count as proof it noticed. The broad set cost 36 seconds when
+        # written and about thirteen minutes once `core/clock.MAX_STEP` became
+        # 1, so it timed out on everything and handed every constant a pass
+        # mark earned by a stopwatch. `completes` makes an unfinishable stage
+        # abstain, which is honest but leaves those constants unguarded —
+        # measured, 9 survivors in the first 18 swept.
+        #
+        # So the broad set has to stay affordable. Timed individually: 155
+        # suites, 761 s in total, `politics` alone 145. These are the ones over
+        # 1.5 s; excluding them leaves 71 suites and about 30 s.
+        #
+        # This is deliberately a *static* check. Asking whether the stage
+        # really finishes means running 71 suites inside a suite run, and
+        # measured that way it exceeds `LIMIT` on a loaded machine — it would
+        # be timing the hardware, not the design. Re-time with the script in
+        # the task notes when suites change speed, and update this list.
+        from . import tripwire
+        over_budget = {
+        "aftermath", "anchorage", "approaching", "bench", "bloom",
+        "burns", "byhand", "cameras", "cargo", "charting",
+        "climbs", "conn", "connwindow", "counter", "courting",
+        "customs", "declared", "docking", "dormancy", "drawbudget",
+        "empire", "evidence", "exchequer", "fence", "fleets",
+        "fog", "freight", "gates", "geography", "grants",
+        "grudges", "hands", "helm", "industry", "landing",
+        "levy", "life3d", "lopsided", "mining", "notes",
+        "officials", "options", "orbits", "orders", "orrery",
+        "parley", "picture", "pilot", "politics", "postings",
+        "programmes", "provisional", "public", "readiness", "research",
+        "reticle", "revived", "robots", "robots3d", "salvage",
+        "seams", "seatwork", "settlement", "showflying", "sim",
+        "stranded", "territory", "thermal", "thermal_doors", "thrusters",
+        "ticks", "time", "trade", "traffic", "transit",
+        "turnplan", "tutorial", "ventures", "war", "watches",
+        "wayhome", "weave", "wharfage", "works3d",
+        }
+        adrift = sorted(over_budget - tripwire.SLOW)
+        assert not adrift, (
+            f"measured over 1.5 s and still in the broad stage: {adrift} — "
+            "the stage will stop finishing inside LIMIT, abstain, and leave "
+            "every constant its own fast path misses unguarded")
+        assert len(tripwire.SUITES) >= 60, (
+            f"the broad stage is down to {len(tripwire.SUITES)} suites; it is "
+            "meant to be a wide net, not a second fast path")
+        return (f"{len(over_budget)} suites over budget, all excluded; "
+                f"{len(tripwire.SUITES)} left in the net")

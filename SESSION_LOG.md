@@ -10700,3 +10700,54 @@ threshold constants in #132 where a single point matters.
   mid-sweep left the tree clean, where the `write_text` approach two cycles ago
   truncated `data/industry.py` to nothing — it truncates before it writes, and
   a signal in that window loses the file.
+
+## The sweep's broad stage can finish again, so it votes again (#133)
+
+The task proposed narrowing the broad stage to the suites that could plausibly
+be affected, computed from the import graph. **Measured, that does not work:**
+median fan-in is **163 of 172** test modules, because `core/state` is a hub
+every test reaches, so transitive reachability is nearly universal. It would
+have bought 163 suites instead of 155.
+
+What does work came from timing every suite individually:
+
+    155 suites, 761 s in total, and wildly lopsided
+    politics 145 s (19% of everything)   byhand 52   provisional 34   orders 29
+
+    keep <= 1.0 s   55 suites,  27 s        keep <= 2.0 s   81 suites,  65 s
+    keep <= 1.5 s   71 suites,  47 s        keep <= 3.0 s  101 suites, 114 s
+
+`SLOW` — the exclusion list — was hand-kept and calibrated before
+`core/clock.MAX_STEP` became 1. None of `politics`, `byhand`, `provisional` or
+`orders` was in it, and all four had grown past half a minute. Set from the
+measurement at a 1.5 s cut: **71 suites, 29 s of wall clock, inside `LIMIT`**.
+
+Proved it recovers coverage on three constants that survived last cycle's
+sweep — `bloom.MAX_RESIST`, `charts.KNOWN_WORTH`, `diplomacy.COURTSHIP_KNEE`
+are all **CAUGHT** now.
+
+Also closed a hazard the change created: `_run` inherited `SEEDFALL_SAVE`, so a
+sweep child would have written over the save of the run that spawned it. It
+gets its own now.
+
+### Wrong turns worth keeping
+
+- **I wrote the same string bug twice.** Emitting a set literal as
+  `" ".join(repr(n) ...)` and wrapping it with `textwrap.fill` produced
+  `'bloombridge'` — adjacent string literals concatenate in Python. It landed
+  in `SLOW` first and then, unbelievably, in the guard's own table. Caught both
+  times by reconciling counts against the measurement rather than by reading
+  the file; the second version asserts the parsed literal equals the measured
+  set.
+- **The obvious check was not viable and measuring it said so.** Asserting
+  `completes(SUITES)` inside a suite run means launching 71 child suites on an
+  already-loaded machine, and it exceeded `LIMIT` — it would have been timing
+  the hardware, not the design. The check is static instead: every suite
+  measured over budget is named, and must be excluded.
+- **The change broke an existing guard, and the guard was the thing that was
+  wrong.** "A fast path may not name a suite in `SLOW`" was right while `SLOW`
+  held seventeen mostly-window-needing suites. With the two stages doing
+  different jobs it is not: the fast path is *the suite that knows this
+  module*, and running one expensive suite for the one constant it speaks for
+  is exactly its purpose. 118 fast paths now name an excluded suite and every
+  one is the right suite for its module.

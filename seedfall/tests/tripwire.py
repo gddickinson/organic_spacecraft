@@ -37,20 +37,59 @@ import pathlib
 import subprocess
 import sys
 
-#: Every suite except the slow ones and the ones that need a window. Derived
-#: from the canonical list rather than copied: this module kept its own, it
-#: went stale the moment a suite was added, and the constants that suite
-#: protected looked unprotected because nothing here was running it. My own
-#: `SIGNING_FEE` check was reported unprotected for exactly that reason.
+#: Suites the sweep does not run in its broad stage, because they cost too
+#: much to run once per constant.
 #:
-#: `tutorial` was in here for building a window, and that cost it its fast path:
-#: `SETTLED_IN_DAYS` looked unprotected because the only suite that could speak
-#: for it was excluded. It sets the offscreen platform itself and the whole
-#: suite is two seconds, so needing a window was never the reason to skip it —
-#: being expensive is. Zero, half and double are all caught.
-SLOW = {"chronicle", "verbs", "ui", "resume", "efficacy", "balance",
-        "instruments", "bridge", "manual", "voices", "play",
-        "layers", "plans", "xeno", "dig", "reachable", "tuning"}
+#: **Measured, not judged.** Timed every suite individually: 155 of them,
+#: 761 seconds in total, and it is wildly lopsided — `politics` alone is 145 s
+#: (19% of everything), `byhand` 52, `provisional` 34, `orders` 29. Excluding
+#: everything over 1.5 s leaves **71 suites that run in 47 seconds**, inside
+#: `LIMIT`, where the whole set is nearly thirteen minutes.
+#:
+#: That number is the point. `completes(SUITES)` calibrates whether the broad
+#: stage finishes clean, and while it did not, the stage abstained and every
+#: constant its own fast path missed went unguarded — measured, 9 survivors in
+#: the first 18 constants swept. The stage votes again now.
+#:
+#: The old list was hand-kept and calibrated before `core/clock.MAX_STEP`
+#: became 1. None of `politics`, `byhand`, `provisional` or `orders` was in it;
+#: all four had grown past half a minute. A hand-kept list of what is expensive
+#: goes stale the moment the thing it describes changes speed, which is why
+#: these figures are written down beside it.
+#:
+#: The entries that are here for needing a window or being a whole chronicle
+#: are kept: `ui`, `bridge`, `instruments`, `chronicle`, `play` and the rest.
+#: `tutorial` was once excluded for building a window and lost its fast path
+#: over it — it sets the offscreen platform itself, so being expensive is the
+#: only reason to skip a suite, and at 5.1 s it now is one.
+SLOW = {
+    "aftermath", "anchorage", "approaching", "balance",
+    "bench", "bloom", "bridge", "burns",
+    "byhand", "cameras", "cargo", "charting",
+    "chronicle", "climbs", "conn", "connwindow",
+    "counter", "courting", "customs", "declared",
+    "dig", "docking", "dormancy", "drawbudget",
+    "efficacy", "empire", "evidence", "exchequer",
+    "fence", "fleets", "fog", "freight",
+    "gates", "geography", "grants", "grudges",
+    "hands", "helm", "industry", "instruments",
+    "landing", "layers", "levy", "life3d",
+    "lopsided", "manual", "mining", "notes",
+    "officials", "options", "orbits", "orders",
+    "orrery", "parley", "picture", "pilot",
+    "plans", "play", "politics", "postings",
+    "programmes", "provisional", "public", "reachable",
+    "readiness", "research", "resume", "reticle",
+    "revived", "robots", "robots3d", "salvage",
+    "seams", "seatwork", "settlement", "showflying",
+    "sim", "stranded", "territory", "thermal",
+    "thermal_doors", "thrusters", "ticks", "time",
+    "trade", "traffic", "transit", "tuning",
+    "turnplan", "tutorial", "ui", "ventures",
+    "verbs", "voices", "war", "watches",
+    "wayhome", "weave", "wharfage", "works3d",
+    "xeno",
+}
 
 
 def _suites() -> list:
@@ -276,7 +315,14 @@ def _run(suites) -> bool:
     Every result from a sweep without this is worthless in both directions —
     a mutation that outlived its restore, or a restore that never took.
     """
+    # A child gets its **own** save file. `tests/__init__` sets `SEEDFALL_SAVE`
+    # per pid and `setdefault` means a child would otherwise inherit the
+    # parent's and write over the run that spawned it — harmless while this was
+    # only ever a command-line tool, and not harmless now that a check calls
+    # `completes` during a suite run.
+    from ..core.save import SAVE_ENV
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
+    env.pop(SAVE_ENV, None)
     done = subprocess.run(
         [sys.executable, "-B", "-m", "seedfall.tests", *suites],
         capture_output=True, text=True, cwd=ROOT, timeout=LIMIT, env=env)
