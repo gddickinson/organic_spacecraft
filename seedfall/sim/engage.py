@@ -97,11 +97,18 @@ def open_fire(game, conn, contact, rng):
     enemy = encounters_sim.make_enemy(rng, faction)
     enemy["name"] = getattr(contact, "name", enemy.get("name", "Unknown hull"))
     enemy["faction"] = faction
+    # **Your escorts come with you.** `ui/battle_view.begin` passes
+    # `consorts.escorts_of` when an encounter starts a fight, and the first
+    # draft of this did not — measured, a captain sailing with one consort
+    # opened fire from the conn and fought alone, while the same captain
+    # jumped by the same enemy fought two-to-one. A hull that sails with the
+    # flag sails with it whoever picked the fight.
+    from . import consorts as consorts_sim
     battle = combat_sim.start(
         game.ship, game.ship_stats, enemy,
         bonuses=game.bonuses, officers=game.officers,
         rep=game.rep.get(faction, 0.0), band=band_for(conn),
-        game=game, rng=rng)
+        game=game, rng=rng, fleet=consorts_sim.escorts_of(game))
     return battle, ""
 
 

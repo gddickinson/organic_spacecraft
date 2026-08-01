@@ -10801,3 +10801,39 @@ So the flying earns the range: 200 km opens at Contact, 120 units apart;
   left every check green, because "Loam Fall I is not a hull" and "Fleet Hub is
   not a hull" are different strings. The check asserts the *kind* of refusal
   now — a world is refused for being a world.
+
+## A conn engagement fought alone (#136, part)
+
+**A defect in what shipped last cycle, found by measuring rather than reading.**
+`ui/battle_view.begin` passes `fleet=consorts.escorts_of(g)` when an encounter
+starts a fight. `engage.open_fire` did not. Measured with one consort aboard:
+
+    consorts.escorts_of(game)          ['Consort']
+    consorts in a conn engagement      []
+
+So the same captain, against the same enemy, fought two-to-one when jumped and
+alone when they picked the fight themselves. Who started it is not a reason to
+leave your escort behind. Fixed, and checked.
+
+### And the measurement that decides the rest of #136
+
+Whether the pilot can aim at a *second* contact turns on whether hulls have
+local geometry. Asked through **both** doors, which agree exactly:
+
+    hull                track.at (km)     traffic.position (km)
+    Held Breath                     0                         0
+    Patient Ledger         39,588,118                39,588,118
+    Long Consent          429,631,101               429,631,101
+
+A hull sharing a body with the ship sits at that body's **exact** AU position —
+zero kilometres off. There is no sub-body geometry to project into the conn's
+frame, so "fly toward that asteroid and engage the ship beside it" cannot be
+expressed today: flying toward anything increases `conn.pos`, which is what
+`engage.band_for` reads, so it opens the fight *further* off.
+
+That is a modelling change to `sim/traffic` — giving hulls positions within a
+body's neighbourhood — and not a projection. Left filed rather than guessed at.
+
+Noted while working: `ui/conn_window.py` is **508 lines** at HEAD, already past
+the five-hundred rule before anything was added to it. The fire control will
+need its own module rather than making that worse.

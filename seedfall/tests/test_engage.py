@@ -22,7 +22,9 @@ from __future__ import annotations
 from ..core.rng import RNG
 from ..core.state import new_game
 from ..sim import combat as combat_sim
+from ..sim import consorts as consort_sim
 from ..sim import engage, freeflight, track
+from ..sim import ship as ship_sim
 from .harness import Suite
 
 
@@ -138,6 +140,29 @@ def run(suite: Suite) -> None:
         # And with no conn at all there is nothing to fire from.
         assert not engage.may_engage(game, None, hull)[0]
         return f"refused mid-approach: “{line}”"
+
+    @check("a hull that sails with the flag sails into a conn fight too")
+    def _():
+        # **This was missing from the first version and the flight found it.**
+        # `ui/battle_view.begin` passes `consorts.escorts_of` when an encounter
+        # starts a fight; `open_fire` did not. Measured: a captain sailing with
+        # one consort opened fire from the conn and fought alone, while the
+        # same captain jumped by the same enemy fought two-to-one. Who picked
+        # the fight is not a reason to leave your escort behind.
+        game, conn = _flying("escort")
+        extra = ship_sim.make_ship("navis", name="Consort")
+        extra.escort = True
+        game.fleet.append(extra)
+        assert [s.name for s in consort_sim.escorts_of(game)] == ["Consort"]
+        hull = next(x for x in track.contacts(game) if x.kind == "hull")
+        conn.pos = [100.0, 0.0, 0.0]
+        battle, why = engage.open_fire(game, conn, hull, RNG("escort"))
+        assert battle is not None, why
+        aboard = [c.name for c in getattr(battle, "consorts", [])]
+        assert aboard == ["Consort"], (
+            f"sailing with {[s.name for s in consort_sim.escorts_of(game)]} "
+            f"and fought with {aboard}")
+        return f"opened fire in company: {', '.join(aboard)}"
 
     @check("the enemy comes from the one door that builds one")
     def _():
