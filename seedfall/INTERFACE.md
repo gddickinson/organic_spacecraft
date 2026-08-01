@@ -3201,6 +3201,18 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berthing cannot be completed. The machinery was already there —
   `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
   you — and had no way to say no.
+- **A tolerance is part of the claim, not a weakening of it.** `test_ticks`
+  first demanded two chopping of a span agree exactly, and that is
+  unachievable for any tick applying two per-day rates in sequence — they do
+  not commute, so interleaving them thirty times lands a fraction away from
+  doing each once. The check is for finding ticks that are *materially*
+  per-call; the residue is convergence and shrinks with the step.
+- **Mutate every part of a fix, not the fix as a whole.** Three changes went
+  into `loyalty` and only one was load-bearing: the dead-band I removed never
+  fires, and linear-versus-compounding drift is 0.13 of a point. Both
+  mutations came back green, which is the only reason I know. A fix described
+  as three repairs when it is one is a docstring that will mislead the next
+  person.
 - **Validate the instrument before believing the measurement.** The tick sweep
   first reported all fourteen subsystems as per-call, which is not a credible
   result — a decay tick cannot be per-call. Two fresh games from one seed did

@@ -2,6 +2,52 @@
 
 Running progress log. Newest first.
 
+## 2026-08-01 — SEEDFALL: loyalty comes off the list, and two of my three fixes were tidying
+
+Working #116's list from last cycle. Four per-call ticks named; this cycle took
+`loyalty`, and it is now three.
+
+**What was wrong.** `tick` recorded a payday at
+`scale=min(3.0, max(0.25, days / 30))`. The floor is the defect: a day at a
+time credits a *full month* thirty times over. Measured over thirty days,
+officers ended at
+
+    one call of 30   57.97 / 67.01 / 63.40
+    thirty of one    67.42 / 99.92 / 72.87
+
+One officer 33 points high. Removing the floor brings the two within 0.25 of a
+point, and the guard now calls `loyalty` a rate.
+
+**Two of my three changes turned out to be tidying, and the mutations said
+so.** I also removed a 0.005 dead-band in `record` and made `drift` compound
+rather than add. Both are more correct. Neither is load-bearing:
+
+- the dead-band never fires — `feels` is large enough that a thirtieth of a
+  month still clears 0.005, so putting it back changes nothing. It *looked*
+  like the reason the 0.25 floor existed, and it is not.
+- linear against compounding drift is 6.40% versus 6.60% over a month, about
+  0.13 of a point on an officer.
+
+Both mutations came back green. I have written that into the code rather than
+leaving comments implying I fixed three things.
+
+**And the guard needed correcting too.** Exact equality was the wrong test: a
+tick applying two per-day rates in sequence can never match itself across
+chopping, because they do not commute — `loyalty` records a payday and then
+drifts toward the ship's mood, and interleaving those lands 0.23 of a point
+from doing each once. That is convergence, not a defect, and the clock's step
+is one day anyway. `test_ticks` now diffs with a 2% tolerance, and a separate
+finer check watches the loyalty numbers directly, because the coarse diff
+cannot see the things the tolerance was widened past.
+
+The third check earned itself immediately: the moment `loyalty` was fixed it
+went red saying "take it off the list, the guard is loose by that much".
+
+    decide per call   approach  exchequer  ventures
+    rate              the other eleven
+
+Full suite green at 1,228 checks.
+
 ## 2026-08-01 — SEEDFALL: the sweep that should have been written first
 
 Last cycle I said the right move was to stop discovering per-call ticks one at

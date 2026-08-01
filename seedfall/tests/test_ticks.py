@@ -19,6 +19,9 @@ Measured when it was written — four of fourteen:
     rate       dormancy colony shipyard market lifespan upkeep
                robots threat memory legacy
 
+`loyalty` has since been fixed and taken off the list, which is what the third
+check below is for — it went red the moment the fix landed and said so.
+
 **The instrument nearly lied, and validating it is half this file.** The first
 version fingerprinted the game through the save encoder and reported *every*
 tick as a decision, which should have been unbelievable on its face — a decay
@@ -30,8 +33,6 @@ below them are noise.
 """
 
 from __future__ import annotations
-
-import json
 
 from ..core import save as save_mod
 from ..core.state import new_game
@@ -47,7 +48,7 @@ DAYS = 30
 #: Every one of these makes a long jump differ from the same span walked, and
 #: every one is work remaining on #116. Shrinking this list is the task;
 #: *growing* it silently is what the check below exists to prevent.
-PER_CALL = {"ventures", "exchequer", "approach", "loyalty"}
+PER_CALL = {"ventures", "exchequer", "approach"}
 
 
 class _Fixed:
@@ -97,21 +98,45 @@ TICKS = {
 }
 
 
-def _norm(o):
+#: How far two runs may differ and still count as the same rate.
+#:
+#: **Not exact equality, and the reason is worth stating.** A tick that applies
+#: two per-day rates in sequence can never match itself across chopping,
+#: because the two do not commute: `loyalty` records a payday and then drifts
+#: toward the ship's mood, and interleaving those thirty times lands 0.23 of a
+#: point away from doing each once. That is convergence, not a defect — the
+#: gap shrinks with the step, and the clock's step is one day. What this file
+#: is for is finding ticks that are *materially* per-call, like the dead-band
+#: that made a month of paydays vanish entirely when asked for a day at a
+#: time.
+TOLERANCE = 0.02
+
+
+def _strip(o):
     """Drop the counter-derived ids that differ between identical games."""
-    if isinstance(o, float):
-        return round(o, 3)
     if isinstance(o, dict):
-        return {k: _norm(v) for k, v in o.items()
+        return {k: _strip(v) for k, v in o.items()
                 if not (k in ("id", "uid") and isinstance(v, int))}
     if isinstance(o, list):
-        return [_norm(v) for v in o]
+        return [_strip(v) for v in o]
     return o
 
 
-def _print(game) -> str:
-    return json.dumps(_norm(save_mod.encode({"game": game})),
-                      sort_keys=True, default=str)
+def _apart(x, y) -> bool:
+    """Do these two encoded games differ by more than rounding?"""
+    if isinstance(x, (int, float)) and isinstance(y, (int, float)) \
+            and not isinstance(x, bool) and not isinstance(y, bool):
+        return abs(x - y) > TOLERANCE * max(1.0, abs(x), abs(y))
+    if isinstance(x, dict) and isinstance(y, dict):
+        return (set(x) != set(y)
+                or any(_apart(x[k], y[k]) for k in x))
+    if isinstance(x, list) and isinstance(y, list):
+        return len(x) != len(y) or any(_apart(a, b) for a, b in zip(x, y))
+    return x != y
+
+
+def _print(game):
+    return _strip(save_mod.encode({"game": game}))
 
 
 def _is_rate(name) -> bool:
@@ -124,7 +149,7 @@ def _is_rate(name) -> bool:
     for day in range(DAYS):
         walked.day = day + 1
         call(walked, 1.0, _Fixed())
-    return _print(whole) == _print(walked)
+    return not _apart(_print(whole), _print(walked))
 
 
 def run(suite: Suite) -> None:
@@ -137,23 +162,23 @@ def run(suite: Suite) -> None:
         # come from module counters that climb across games — the prints
         # differed before any tick ran.
         one, two = new_game("probe"), new_game("probe")
-        assert _print(one) == _print(two), (
+        assert not _apart(_print(one), _print(two)), (
             "two fresh games from one seed do not match, so every verdict "
             "below is noise")
         memory.tick(one, 30.0)
         memory.tick(two, 30.0)
-        assert _print(one) == _print(two), (
+        assert not _apart(_print(one), _print(two)), (
             "the same tick applied the same way to two games disagrees")
         # And it must be able to *see* a change. Two earlier versions of this
         # line used memory decay and neither worked: five days moves a
         # salience by 0.27% and the print rounds to three places, and a fresh
         # game has no memories to decay at all, so the tick was a no-op. A
         # sensitivity probe has to change something that certainly exists.
-        two.credits += 1
-        assert _print(one) != _print(two), (
-            "a credit of difference is invisible to the print — it is too "
-            "coarse to detect anything at all")
-        return "identical games match, and a single credit of change shows"
+        two.credits *= 2
+        assert _apart(_print(one), _print(two)), (
+            "doubling the purse is invisible to the diff — it is too coarse "
+            "to detect anything at all")
+        return "identical games match, and a doubled purse shows"
 
     @check("no tick decides per call except the ones we know about")
     def _():
@@ -165,6 +190,34 @@ def run(suite: Suite) -> None:
             "which is #116 all over again")
         return (f"{len(TICKS)} ticks · {len(found)} decide per call: "
                 f"{', '.join(sorted(found))}")
+
+    @check("a month of paydays is a month however it is asked for")
+    def _():
+        # Measured on the officers directly rather than through the
+        # whole-game diff above, which works to 2% and cannot see this. Two
+        # of the three things wrong with `loyalty` were under that
+        # resolution: the dead-band that dropped any move under 0.005, and a
+        # drift that added per day instead of compounding. They are real —
+        # the dead-band is *why* the scale carried a 0.25 floor, since a
+        # thirtieth of a month's credit fell under it and vanished — so they
+        # are pinned here where the numbers are visible.
+        from ..sim import loyalty
+        runs = {}
+        for step in (30, 10, 1):
+            game = new_game("loy")
+            for _ in range(30 // step):
+                game.day += step
+                list(loyalty.tick(game, float(step), True))
+            runs[step] = [loyalty.loyalty_of(o) for o in game.officers]
+        base = runs[30]
+        for step, got in runs.items():
+            for want, have in zip(base, got):
+                assert abs(want - have) < 0.5, (
+                    f"a month in steps of {step} left an officer at "
+                    f"{have:.3f} against {want:.3f} in one call")
+        return " · ".join(
+            f"{step}d {'/'.join(f'{v:.1f}' for v in got)}"
+            for step, got in sorted(runs.items(), reverse=True))
 
     @check("the ones on the list really are still broken")
     def _():

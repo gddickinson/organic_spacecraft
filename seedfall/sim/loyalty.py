@@ -50,7 +50,15 @@ def record(game, event: str, scale: float = 1.0) -> list[tuple]:
     moved = []
     for officer in getattr(game, "officers", []):
         delta = feels(officer, event) * scale
-        if abs(delta) < 0.005:
+        # **No dead-band**, and this is tidying rather than the fix. There
+        # was one at 0.005, which looked like the reason `tick` carried a
+        # `max(0.25, ...)` floor on its scale — a threshold that swallows a
+        # thirtieth of a month's credit would certainly need one. Measured, it
+        # does not: `feels` is large enough that a thirtieth still clears
+        # 0.005, so putting the dead-band back changes nothing. It goes anyway
+        # because an arbitrary threshold on a rate is what this whole class of
+        # defect is made of, but the floor above was the thing that mattered.
+        if not delta:
             continue
         shift(officer, delta)
         moved.append((officer, delta))
@@ -133,6 +141,14 @@ def walkouts(game) -> list:
     return leaving
 
 
+#: How far loyalty is pulled toward the ship's mood each day.
+#:
+#: Deliberately weak — see `drift`. Applied as a compounding rate so that a
+#: month asked for in one call and a month asked for a day at a time land in
+#: the same place.
+DRIFT_PER_DAY = 0.0022
+
+
 def drift(game, days: float) -> None:
     """Loyalty creeps toward the ship's mood when nothing else happens.
 
@@ -141,9 +157,17 @@ def drift(game, days: float) -> None:
     did has to matter more than the ambient weather.
     """
     target = 40 + getattr(game.ship, "morale", 0.7) * 32
+    # **Compounding, not linear**, and this too is tidying rather than the
+    # fix. A pull of 0.22% *a day* over `days` is `1 - (1 - r)**days`, and the
+    # old `min(0.35, r * days)` was neither — but the gap it caused is small:
+    # thirty separate days came to 6.40% against 6.60% for one call of thirty,
+    # about 0.13 of a point on an officer. Worth having because the
+    # compounding form composes exactly and saturates on its own, so the
+    # ceiling it used to need is gone; not worth claiming as the repair.
+    pull = 1.0 - (1.0 - DRIFT_PER_DAY) ** max(0.0, days)
     for officer in getattr(game, "officers", []):
         value = loyalty_of(officer)
-        officer.loyalty = value + (target - value) * min(0.35, 0.0022 * days)
+        officer.loyalty = value + (target - value) * pull
 
 
 def tick(game, days: float, paid: bool) -> list[tuple[str, str]]:
@@ -151,8 +175,12 @@ def tick(game, days: float, paid: bool) -> list[tuple[str, str]]:
     events: list[tuple[str, str]] = []
     if not getattr(game, "officers", []):
         return events
+    # A payday is a monthly thing, so a span is that many paydays — no floor,
+    # or a day at a time credits a full month's worth thirty times over. The
+    # ceiling stays: it is what stops one enormous jump swamping a career, and
+    # with the span chopped (#116) it is never reached.
     record(game, "payday" if paid else "missed_pay",
-           scale=min(3.0, max(0.25, days / 30)))
+           scale=min(3.0, days / 30))
     drift(game, days)
 
     for officer in walkouts(game):
