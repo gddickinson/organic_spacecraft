@@ -2,6 +2,50 @@
 
 Running progress log. Newest first.
 
+## 2026-08-01 — SEEDFALL: #117 was wrong on both counts, and the sort it doubted was unguarded
+
+Taken ahead of #114–#116 because those are blocked on the clock, and because
+unbounded founding was one of the six things that broke when #116 landed —
+fixing it would have shrunk that blast radius. It turns out there was nothing
+to fix.
+
+**"Founding is free" — false, and my own measurement was the mistake.** I read
+it by calling `exchequer.found()` directly, which is the raw operation. The
+game's own door is `_invest`, and it pays: `p.credits -= cost`. Founding costs
+40,000 against a 12,000 reserve, so a power opening with 30,000 **cannot found
+at all** until it saves — `_invest` returns None four times running on a fresh
+sector. Measuring through the wrong door is how a feature looks broken when it
+is not, and it is the same error as reading a mesh from a cache instead of the
+object you were handed.
+
+**"Promoting is neutral" — true, known, deliberate, and already handled.**
+Measured across the levels of one berth:
+
+    level    1     2     3     4     5
+    yield   90   180   270   360   450
+    upkeep  30   120   270   480   750
+    net    +60   +60     0  −120  −300
+
+Yield is linear and upkeep quadratic, so promotion clears nothing at level 2
+and loses money above it. `exchequer.payback`'s docstring has said exactly this
+since it was written — including the sector that "planted six settlements in
+year one and none in the seven years after" when `_invest` chose by price — and
+the fix was already there: `works_open` sorts by payback, so works that never
+pay are what a power does with money it has nothing better to do with. Which is
+what a Fleet Hub is.
+
+**What was actually wrong, and it is small.** That design was unguarded —
+nothing in the suite asked whether `payback` still says `inf`, or whether the
+sort still puts the never-paying works last. And `payback` carried a dead
+`if False: gain = 0.0` branch, left when #99 hoisted the `settle:` case into an
+early return and neutered the condition instead of deleting the arm.
+
+So: the dead branch is gone, and one check now pins the ordering. Three
+mutations run, three red — payback not returning `inf`, the sort going back to
+price, and the yield curve made superlinear so promotion pays.
+
+Founding pays back in 667 days; promoting to levels 2, 3 and 4 never does.
+
 ## 2026-08-01 — SEEDFALL: the machines guard something, and the task was mis-scoped
 
 #112, written as drone warfare — light-lag deciding engagements, the controller

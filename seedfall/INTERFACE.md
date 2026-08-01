@@ -3201,6 +3201,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berthing cannot be completed. The machinery was already there —
   `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
   you — and had no way to say no.
+- **Measure through the door the game uses, not the one underneath it.**
+  "Founding is free" survived a whole task description because it was measured
+  by calling `exchequer.found()` directly. The game never does: `_invest` pays
+  `p.credits -= cost`, and at a 40,000 cost against a 12,000 reserve a power
+  opening with 30,000 cannot found at all. The raw operation and the act are
+  different questions.
+- **A design decision nothing checks is a design decision waiting to be
+  undone.** `exchequer.payback`'s docstring explains at length why the sort is
+  by payback and not by price — the upkeep curve is quadratic and the yield
+  linear, so the cheap works are the ones that never pay — and nothing in the
+  suite asked whether either half was still true. A paragraph is not a guard.
 - **A threshold of `> 0.0` is a bug waiting for a continuous input.**
   `control` and `interdiction` both asked `ward_at(...) > 0.0`, which was
   correct while a ward could only be a built work worth 0.28 — and became

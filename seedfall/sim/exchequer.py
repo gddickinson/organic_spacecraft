@@ -260,9 +260,7 @@ def payback(game, power: str, cost: int, what: str) -> float:
         # mature rate reads 1,000 days where the truth is 1,485.
         from . import settlement as settlement_sim
         return settlement_sim.payback_days()
-    if False:
-        gain = 0.0
-    elif what == "found":
+    if what == "found":
         gain = YIELD_PER_LEVEL * PORT_KINDS[0][2] - upkeep_at(PORT_KINDS[0][2])
     else:
         level = int(what.split(":", 1)[1]) if ":" in what else 0

@@ -135,6 +135,50 @@ def run(suite: Suite) -> None:
         return (f"upkeep {before:,.0f} → {after:,.0f} a day; "
                 f"{levels_before} levels → {levels_after}")
 
+    @check("a power builds what pays for itself, and not what is cheapest")
+    def _():
+        # `exchequer.payback`'s docstring has described this since it was
+        # written and nothing has ever checked it: the upkeep curve is
+        # quadratic and the yield is linear, so **the cheap works are the ones
+        # that never pay**. Measured on a level-1 berth:
+        #
+        #     level   1      2      3      4      5
+        #     yield  90    180    270    360    450
+        #     upkeep 30    120    270    480    750
+        #     net   +60    +60      0   −120   −300
+        #
+        # Promoting an outpost to a station is worth exactly nothing a day,
+        # and every step above it is a loss. That is deliberate — a Fleet Hub
+        # is what a power builds with money it has nothing better to do with —
+        # but it only works because `works_open` sorts by payback rather than
+        # by price, and that sort was unguarded.
+        game = new_game("payback")
+        power = dip.POWERS[0]
+        found = ex.payback(game, power, ex.FOUND_COST, "found")
+        assert found < float("inf"), (
+            f"founding a berth never pays for itself: {found}")
+        for level in (2, 3, 4):
+            step = ex.payback(game, power, 10_000, f"promote:{level}")
+            assert step == float("inf"), (
+                f"promoting to level {level} claims to pay back in {step:.0f} "
+                "days, and it clears nothing a day")
+        # And the ordering the sort exists for: nothing that never pays is
+        # offered ahead of something that does.
+        for held in ex.holdings(game, power):
+            opts = ex.works_open(game, power)
+            if len(opts) < 2:
+                continue
+            paying = [i for i, (cost, _s, what) in enumerate(opts)
+                      if ex.payback(game, power, cost, what) < float("inf")]
+            never = [i for i, (cost, _s, what) in enumerate(opts)
+                     if ex.payback(game, power, cost, what) == float("inf")]
+            if paying and never:
+                assert max(paying) < min(never), (
+                    "a work that never pays is offered before one that does")
+            break
+        return (f"founding pays back in {found:,.0f} days; promoting to "
+                "levels 2, 3 and 4 never does, and is offered last")
+
     @check("a power that cannot pay the stake starts nothing")
     def _():
         # A venture used to cost its sponsor exactly nothing, so a power
