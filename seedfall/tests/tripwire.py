@@ -283,12 +283,63 @@ def _run(suites) -> bool:
     return done.returncode == 0
 
 
+_CLEAN: dict = {}
+
+
+def completes(suites) -> bool:
+    """Does this set finish inside `LIMIT` with **nothing** mutated?
+
+    **A hang only means something if the same run does not hang anyway**, and
+    for the broad set it does. Measured: `SUITES` is 155 suites and takes about
+    25 minutes since `core/clock.MAX_STEP` became 1 — the note on `KIN` saying
+    "the broad set costs thirty-six seconds" was written before that. So the
+    second stage has been timing out on every constant, mutated or not, since
+    #116 landed.
+
+    That would be merely useless if a timeout were treated as no information.
+    It was treated as *proof*: "a hang is a very loud notice". So every
+    constant its own suite failed to catch has been reported protected on the
+    strength of a stopwatch. Calibrated once per set and cached, because the
+    answer cannot change inside a run.
+    """
+    key = tuple(suites)
+    if key not in _CLEAN:
+        try:
+            _run(suites)
+            _CLEAN[key] = True
+        except subprocess.TimeoutExpired:
+            _CLEAN[key] = False
+    return _CLEAN[key]
+
+
+def noticed(suites) -> bool:
+    """Did any of these object to what is on disk right now?
+
+    **The one door for that question**, and there were two: `suite_passes` and
+    the `try_value` closure inside `main` each had their own `try/except`
+    around `_run`, and only one of them could be reached by a check. A
+    mutation restoring the old "a hang is a very loud notice" in the other
+    left every check green.
+    """
+    try:
+        return not _run(suites)
+    except subprocess.TimeoutExpired:
+        return completes(suites)
+
+
 def suite_passes(module: str = "") -> bool:
-    """True if nothing noticed. A hang counts as noticed — loudly."""
+    """True if nothing noticed.
+
+    A hang counts as noticed only where `completes` says the set finishes when
+    unmutated — otherwise the stopwatch is measuring the suite, not the
+    constant, and a stage that cannot finish clean does not get a vote.
+    """
     near = KIN.get(module)
-    if near and _run(near) is False:
+    if near and noticed(near):
         return False
-    return _run(SUITES)
+    if not completes(SUITES):
+        return True                     # the broad stage abstains
+    return not noticed(SUITES)
 
 
 def main(argv: list) -> int:
@@ -335,9 +386,11 @@ def main(argv: list) -> int:
                 return False
             holding[str(path)] = original
             try:
-                return not _run(suites)
-            except subprocess.TimeoutExpired:
-                return True             # a hang is a very loud notice
+                # Through `noticed`, the one door for "did anything object".
+                # This carried its own copy of the try/except, and no check
+                # could reach it — so a mutation restoring "a hang is a very
+                # loud notice" here left the whole suite green.
+                return noticed(suites)
             finally:
                 path.write_text(original)
                 holding.pop(str(path), None)

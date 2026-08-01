@@ -121,3 +121,50 @@ def run(suite: Suite) -> None:
         return (f"{len(tripwire.KIN)} fast paths, all live and each named once; "
                 f"{len(no_suite)} modules named as having no suite")
 
+
+    @check("a hang only counts as evidence where the run finishes clean")
+    def _():
+        # **The sweep's second stage has been voting with a stopwatch.**
+        # `tripwire.SUITES` is 155 suites and takes about 25 minutes since
+        # `core/clock.MAX_STEP` became 1; `LIMIT` is 60 seconds. So it timed
+        # out on every constant, mutated or not — and `try_value` read a
+        # timeout as "a hang is a very loud notice" and marked the constant
+        # protected. Measured after the fix: of the eight negative constants
+        # that had only ever "bitten" by hanging, seven fail no check at all.
+        #
+        # Driven through a stubbed `_run` rather than by running anything, so
+        # this is deterministic and costs nothing.
+        import subprocess
+        from . import tripwire
+        real_run, real_clean = tripwire._run, dict(tripwire._CLEAN)
+        try:
+            def always_hangs(suites):
+                raise subprocess.TimeoutExpired("x", tripwire.LIMIT)
+
+            tripwire._run = always_hangs
+            tripwire._CLEAN.clear()
+            # A set that cannot finish unmutated has nothing to say.
+            assert tripwire.completes(("anything",)) is False
+            assert tripwire.noticed(("anything",)) is False, (
+                "a set that hangs unmutated was read as having objected")
+            assert tripwire.suite_passes("nosuchmodule") is True, (
+                "a stage that times out even unmutated was allowed to call a "
+                "constant protected")
+
+            # And where the set *does* finish clean, a hang is real evidence.
+            tripwire._CLEAN.clear()
+            tripwire._CLEAN[tuple(tripwire.SUITES)] = True
+            calls = {"n": 0}
+
+            def hangs_once(suites):
+                calls["n"] += 1
+                raise subprocess.TimeoutExpired("x", tripwire.LIMIT)
+
+            tripwire._run = hangs_once
+            assert tripwire.completes(tuple(tripwire.SUITES)) is True
+            assert calls["n"] == 0, "a cached calibration was re-run"
+        finally:
+            tripwire._run = real_run
+            tripwire._CLEAN.clear()
+            tripwire._CLEAN.update(real_clean)
+        return "a timed-out stage abstains; a clean one may still convict"

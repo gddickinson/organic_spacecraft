@@ -10417,3 +10417,58 @@ about. Registered as `("war", "armada")`.
   than a red check, and the pass that would have separated them (trying the
   doubled and halved variants for those eight) ran past ten minutes and was
   abandoned rather than left half-reported.
+
+## The sweep has been voting with a stopwatch since #116 (#131)
+
+`tripwire.suite_passes` runs a constant's own suites, then the broad set. Both
+stages read a `subprocess.TimeoutExpired` as proof — *"a hang is a very loud
+notice"*. Measured this cycle, and the premise under that is gone:
+
+    the broad set          155 suites
+    LIMIT                  60 seconds
+    time it actually takes ~25 minutes, since `core/clock.MAX_STEP` became 1
+
+The note beside `KIN` still says "the broad set costs thirty-six seconds",
+which was true before the honest clock landed. **It now times out unmutated**,
+so every constant its own fast path failed to catch has been handed a pass mark
+earned by a stopwatch, for as long as #116 has been in.
+
+Fixed: `completes(suites)` calibrates once, per set, whether a run finishes
+inside `LIMIT` with nothing mutated; a timeout counts as evidence only where it
+does; and a stage that cannot finish clean abstains rather than convicting.
+
+Re-measured the eight constants that had only ever "bitten" by hanging, at
+double and half (skipping zero, the value already known to hang):
+
+    industry.RIVAL_COST      -12.0 RED     pinned
+    gates.TOLL_REFUSED_BELOW  both green   NOT pinned
+    industry.ILLICIT_COST     both green   NOT pinned
+    robots3d.DRIVE_Z          both green   NOT pinned
+    territory.UNWELCOME       both green   NOT pinned
+    approach.LOSING           both green   NOT pinned
+    clearance.WELCOME_AT      both green   NOT pinned
+    voice.COLD_AT             both green   NOT pinned
+
+**Seven of eight are pinned by nothing.** Filed as #132; writing seven checks
+in one cycle is how a check gets written to pass rather than to bite.
+
+### Wrong turns worth keeping
+
+- **My probe emptied a source file, and my verification said it was clean.**
+  Killing the background sweep sent SIGTERM into `path.write_text`, which
+  truncates before it writes — `seedfall/data/industry.py` was left at **0
+  bytes**. The check I ran afterwards compared each constant against its
+  expected value and reported "no mutated leftovers", because a file with no
+  constants in it has nothing that compares unequal. `git diff` is the only
+  verification that catches a deletion; a value check cannot. Restored from
+  git before anything was committed.
+- **The most important half of the fix was unreachable by any check.**
+  `try_value` is a closure inside `main()` and carried its own copy of the
+  try/except, so a mutation restoring "a hang is proof" there left the whole
+  suite green. Both now go through one `noticed(suites)`, which is also the
+  one door for "did anything object" — there were two.
+- **The first diagnosis was wrong and cheap to disprove.** The obvious reading
+  was that zeroing these constants sent the sim into an unbounded loop.
+  Patching `clearance.WELCOME_AT = 0.0` in-process and running its suite
+  finished normally, all five checks passing — so the hang was never the
+  constant, and the tool was the thing at fault.
