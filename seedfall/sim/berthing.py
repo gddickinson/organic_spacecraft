@@ -158,6 +158,30 @@ def _berth_index(conn) -> int | None:
     return conn.target.body_index
 
 
+def charge_flown(game, conn) -> float:
+    """Bill the chronicle for time this conn has flown and not yet paid for.
+
+    **The one door for turning flying into elapsed time**, and there have to
+    be two callers: `commit`, which settles an approach at the end, and a
+    screen that flies with the clock running and settles as it goes. Both
+    charging the same minute would let a pilot who broke off pay twice for
+    the same hour.
+
+    Charging in pieces is *exactly* charging once, and that is not an
+    approximation — `core/clock.MAX_STEP` is 1, so a jump of N days is N
+    jumps of one (#116). Measured: three days billed in one call and in 4,320
+    leave the same day and the same purse to the cent.
+
+    Returns the seconds actually billed.
+    """
+    owed = float(conn.elapsed) - float(getattr(conn, "charged", 0.0))
+    if owed <= 0.0:
+        return 0.0
+    conn.charged = float(conn.elapsed)
+    game.advance_days(owed / DAY_SECONDS)
+    return owed
+
+
 def commit(game, conn) -> dict:
     """Charge the chronicle for an approach and put the ship where it ended.
 
@@ -254,9 +278,11 @@ def commit(game, conn) -> dict:
         return out
 
     # The clock last, because it can end the chronicle too, and everything
-    # above is something that happened before it did.
+    # above is something that happened before it did. Through `charge_flown`,
+    # which only ever bills the minutes nobody has billed yet — a screen that
+    # flies with the clock running has already paid for some of them.
     if conn.elapsed > 0:
-        game.advance_days(conn.elapsed / DAY_SECONDS)
+        charge_flown(game, conn)
     return out
 
 

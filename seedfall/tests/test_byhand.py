@@ -38,6 +38,7 @@ from ..sim import autopilot as pilot_sim
 from ..sim import conn as conn_sim
 from ..sim import moorings
 from ..sim import pilot as quote_sim
+from ..sim import freeflight as free_sim
 from .harness import Suite
 
 #: Held at module scope: a local reference dies when its helper returns, and
@@ -222,6 +223,59 @@ def run(suite: Suite) -> None:
         panel.close()
         assert seen >= 20, seen
         return f"{seen} ticks: the arrows and the computer point the same way"
+
+    @check("flying with the clock running costs what flying costs")
+    def _():
+        # **The foundation the Pilot screen stands on (#137).** An approach
+        # tells the clock once, at the end. A screen that flies with the clock
+        # running has to tell it as it goes — and the two must come to the
+        # same thing, or a live view would be a way to buy or dodge time.
+        #
+        # They do, and not by approximation: `core/clock.MAX_STEP` is 1, so a
+        # jump of N days is N jumps of one (#116). Measured directly below,
+        # and separately: three days billed in one call and in 4,320 leave the
+        # same day and the same purse to the cent.
+        from ..sim import berthing as berth_sim
+        at_end, as_flown = new_game("bill"), new_game("bill")
+        one, live = free_sim.begin(at_end)[0], free_sim.begin(as_flown)[0]
+        assert one is not None and live is not None
+
+        one.elapsed = 3.0 * berth_sim.DAY_SECONDS
+        berth_sim.charge_flown(at_end, one)
+
+        for _ in range(72):                     # an hour at a time, for three days
+            live.elapsed += 3600.0
+            berth_sim.charge_flown(as_flown, live)
+
+        assert at_end.day == as_flown.day == 3, (
+            f"billed once reached day {at_end.day}; billed hourly reached "
+            f"{as_flown.day}")
+        assert abs(at_end.credits - as_flown.credits) < 0.01, (
+            f"the purse came out {at_end.credits:,.2f} against "
+            f"{as_flown.credits:,.2f} — flying live is worth money")
+        return (f"three days, billed once and billed 72 times: day "
+                f"{at_end.day} either way, purse {at_end.credits:,.0f}")
+
+    @check("nobody pays twice for the same minute")
+    def _():
+        # `commit` settles an approach and a live screen settles as it goes.
+        # Both charging the same minute would bill a pilot who broke off twice
+        # for the same hour, which is why `charge_flown` is the one door and
+        # `Conn.charged` is what it remembers.
+        from ..sim import berthing as berth_sim
+        game = new_game("twice")
+        conn, _why = free_sim.begin(game)
+        conn.elapsed = 2.0 * berth_sim.DAY_SECONDS
+        assert berth_sim.charge_flown(game, conn) > 0
+        assert game.day == 2, game.day
+        # Asked again with nothing new flown, it bills nothing.
+        assert berth_sim.charge_flown(game, conn) == 0.0
+        assert game.day == 2, "billed twice for the same two days"
+        # And committing afterwards does not re-bill them either.
+        berth_sim.commit(game, conn)
+        assert game.day == 2, (
+            f"commit re-billed time already paid for: day {game.day}")
+        return "two days billed once, and neither a second call nor commit repeats it"
 
     @check("both windows are one approach, and a promise is what happens")
     def _():

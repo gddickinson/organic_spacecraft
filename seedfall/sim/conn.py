@@ -124,6 +124,13 @@ class Conn:
     rcs: float = 40.0
     #: Seconds since the approach began.
     elapsed: float = 0.0
+    #: Seconds of that the chronicle has already been charged for.
+    #:
+    #: An approach tells the clock once, at the end. A screen that flies with
+    #: the clock running has to tell it as it goes, and the two must not both
+    #: charge the same minute — see `berthing.charge_flown`, which is the one
+    #: door either way.
+    charged: float = 0.0
     #: The range the approach opened at, which is what "adrift" is measured
     #: against — a fixed distance cannot serve both a quay and a gas giant.
     start_km: float = 12.0

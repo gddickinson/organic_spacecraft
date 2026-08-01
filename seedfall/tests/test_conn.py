@@ -256,6 +256,11 @@ def run(suite: Suite) -> None:
                      "run may not credit a station with a tow it has not "
                      "made, for the same reason it may not bill one for a "
                      "collision that has not happened",
+            "charged": "seconds of the flight the *chronicle* has already "
+                       "been billed for. A ledger fact, not a flying one: a "
+                       "trial run bills nobody, and a twin that carried it "
+                       "could let a forecast decide the ship had already "
+                       "paid for time it has not yet flown",
             "sheered": "how far the structure has worked itself away from "
                        "the *ship*. A trial run may not bill a station for "
                        "standing off, for the same reason it may not bill it "

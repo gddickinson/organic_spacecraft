@@ -10875,3 +10875,42 @@ it is a reading of the identity. Measured: two hulls holding station 4,826 and
   them holds station at another world half a billion kilometres away. The
   claim is about a hull and *its own body*; measured that way it passes and
   means something.
+
+## Flying with the clock running (#137, the foundation)
+
+The Pilot screen's hard part was never the view — it was the clock. An approach
+tells the chronicle **once**, at the end: `berthing.commit` charges
+`advance_days(conn.elapsed / DAY_SECONDS)`. A screen where the clock is always
+running has to tell it as it goes, and the two must come to the same thing or a
+live view is a way to buy or dodge time.
+
+Measured first:
+
+    conn.TICK = 60 s        one tick is a minute of ship time
+    DAY_SECONDS = 86,400    so 1,440 ticks is exactly one game day
+
+And the two do come to the same thing — **not approximately.** Three days
+charged in one call and in 4,320 calls:
+
+    charged once        day 3, credits 17,947.00
+    charged 4,320 times day 3, credits 17,947.00     difference 0.0000
+
+That is #116 paying off directly: `core/clock.MAX_STEP` is 1, so a jump of N
+days *is* N jumps of one. A live clock is safe because the clock is honest.
+
+`berthing.charge_flown(game, conn)` is the one door, billing only the minutes
+nobody has billed yet, remembered on `Conn.charged`. `commit` goes through it
+too, so a pilot who flies live and then breaks off does not pay twice for the
+same hour.
+
+### Wrong turns worth keeping
+
+- **The suite went red twice, and both guards were right.** `test_reachable`
+  refused `engage.flown_km` once the range moved onto the contact — dead code,
+  deleted. Then `test_conn` refused the new `Conn.charged` field: `_copy`,
+  which builds the twin a forecast flies, dropped it. That guard demands the
+  field be carried **or named with the reason it must not be** — and it must
+  not be: `charged` is a ledger fact, not a flying one, and a twin carrying it
+  could let a forecast decide the ship had already paid for time it has not
+  flown. Named, with that reason.
+- Neither was a check I had to write. Both were already there, waiting.
