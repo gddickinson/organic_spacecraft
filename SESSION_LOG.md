@@ -10101,3 +10101,57 @@ fifteen now-dead imports removed. The orrery's checks moved with it into a new
   still distinct and still clickable; the stability claim is now checked by
   handing the same game back with `in_system` reversed and demanding the same
   marks.
+
+## Repair spends days, not calls (#119)
+
+The last place #116's claim was not enforced. `ship.repair_tick` worked the
+layer stack innermost-first and `break` fired only when a layer was left
+*unfilled* — so a call standing for thirty days filled the innermost layer and
+walked on to the next one **still carrying all thirty of them**, while thirty
+calls of one day filled nothing and stopped each time. On a hull at 50% with
+feedstock to spare, the same thirty days:
+
+    one call of 30 days     1.0000 hull
+    two calls of 15         1.0000
+    five calls of 6         0.9677
+    ten calls of 3          0.8561
+    thirty calls of 1       0.8384
+
+**The task had the direction backwards** — its title says the honest clock made
+repair "30x faster". It made it *slower*: the old code's cascade needed a long
+call to happen at all, and `MAX_STEP = 1` took that away.
+
+Days are the resource now, spent innermost-first: a layer takes the days its own
+rate needs and the remainder goes to the next one out. Measured across every
+chopping from one call to sixty, in all three feedstock regimes:
+
+    feedstock to spare   0.829259   spread 3.3e-16
+    feedstock short      0.678571   spread 2.2e-16
+    no feedstock         0.500000   spread 0
+
+The cadence the docstring promises is unchanged — nothing outer is touched while
+something inner is still open. What changed is the total: a month of mending now
+heals 67.19 points where it healed 136, so the drive rate caps the larder at
+3.36 t rather than 20.5 t.
+
+### Wrong turns worth keeping
+
+- **My first mutation did not restore the defect it claimed to.** Setting
+  `left -= 0.0` left the chop-independence check *green* at 1.0000, because I
+  had also removed the old `break`-on-unfilled — and undiminished days without
+  that break is still additive. The original defect was the two together. The
+  mutation was redone by restoring the original loop verbatim, which reddens
+  three checks.
+- **A mutation proved one of my own new lines dead.** The draft opened the loop
+  with `if left <= 0: break`; deleting it changed no verdict, because once the
+  days are gone `rate * left` is zero, `want` is zero, and the existing
+  `heal <= 0` already breaks. Removed — an unreachable branch is the same
+  defect as a field that is declared and never read.
+- **Two existing checks encoded the old cadence and had to be re-derived, not
+  just re-baselined.** "What it eats is what it is limited by" tested 2/5/20.5/
+  500 t and now caps at 3.36 t, so its levels moved to 1/2/5/500 to keep both
+  the feedstock-bound and rate-bound regions walked. "With a full larder it
+  heals exactly what it always did" recomputed the *old* formula as its
+  expectation; it now models day-spending independently and additionally
+  asserts all sixty days were consumed, so it cannot pass by both sides being
+  wrong the same way.

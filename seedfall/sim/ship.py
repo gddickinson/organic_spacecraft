@@ -332,24 +332,43 @@ def repair_tick(ship: Ship, days: float, s: Stats) -> float:
     # — 136 points — on 0.54 t of biomass, and healed exactly the same with
     # 20 t aboard as with 500, or with none at all. A cost that is calculated
     # and does not constrain is not a cost.
+    # **And the answer must not depend on how the caller chopped the time.**
+    # It did. The old loop worked a layer, and `break` only fired when that
+    # layer was left *unfilled* — so a call standing for thirty days filled
+    # the innermost layer and walked on to the next one still carrying all
+    # thirty, while thirty calls of one day filled nothing and stopped each
+    # time. Measured on a hull at 50% with feedstock to spare, the same thirty
+    # days: **1.0000 hull in one call against 0.8384 in thirty.** That is
+    # #116's claim in the one place it was not fixed, and note the direction —
+    # the honest clock made repair *slower*, not faster.
+    #
+    # Days are the resource now, spent innermost-first. A layer takes the days
+    # its own rate needs; whatever is left goes to the next one out. Thirty
+    # days at once is thirty days one at a time, exactly, because spending is
+    # additive. The cadence the docstring promises is unchanged: nothing outer
+    # is touched while something inner is still open.
     budget = 0.0
     held = float(ship.cargo.get("biomass", 0.0))
+    left = float(days)
     for L in reversed(ship.layers):
         if L.hp >= L.max:
             continue
-        want = min(L.max - L.hp, L.max * L.regen * s.regen * days)
+        rate = L.max * L.regen * s.regen           # hit points a day, this layer
+        if rate <= 0:
+            break
+        # No `if left <= 0: break` here, though the first draft had one and a
+        # mutation proved it dead: once the days are gone `rate * left` is
+        # zero, so `want` is zero and the `heal <= 0` below already stops the
+        # loop. A branch that cannot change the answer is the same defect as a
+        # field that is declared and never read.
+        want = min(L.max - L.hp, rate * left)
         heal = min(want, held / FEED_PER_HP) if FEED_PER_HP > 0 else want
         if heal <= 0:
             break
         L.hp += heal
         budget += heal
         held -= heal * FEED_PER_HP
-        # The same one-layer-at-a-time cadence as before. Making *that* a
-        # rate is task #119, and it belongs with the clock fix rather than
-        # here — it heals a great deal more, which is a balance question and
-        # not a correctness one.
-        if L.hp < L.max:
-            break
+        left -= heal / rate                        # the days that work took
     if budget > 0:
         add_cargo(ship, "biomass", -(budget * FEED_PER_HP))
     return budget

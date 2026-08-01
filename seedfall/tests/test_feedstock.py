@@ -36,9 +36,21 @@ What that buys, measured across a hull at 60%:
 So a ship that has burned itself out with an empty hold does not heal, and one
 that has thought about it carries the tonnage to put itself back together.
 
-**Deliberately not fixed here:** the one-layer-per-*call* cadence. Making that
-a rate heals a great deal more and is what broke the burn-cost balance when
-#116 was attempted — it is task #119, and it belongs with the clock.
+**The one-layer-per-call cadence is fixed now too** (#119), and it turned out
+to run the other way from the note that used to stand here. `break` only fired
+when a layer was left *unfilled*, so a call standing for thirty days filled the
+innermost layer and walked on to the next still carrying all thirty of them,
+while thirty calls of one day filled nothing and stopped each time. The same
+thirty days on a hull at 50%:
+
+    one call of 30 days     1.0000 hull
+    five calls of 6 days    0.9677
+    thirty calls of 1 day   0.8384
+
+So the honest clock made repair **slower**, not faster. Days are the resource
+now, spent innermost-first: a layer takes the days its own rate needs and the
+remainder goes to the next one out. Measured across every chopping from one
+call to sixty, and in all three feedstock regimes, the spread is 3.3e-16.
 """
 
 from __future__ import annotations
@@ -72,8 +84,12 @@ def run(suite: Suite) -> None:
     def _():
         # The defect exactly: the old line took `min(cargo, want)` and healed
         # the full amount either way, so 500 t and 0 t did the same thing.
+        # The levels moved when #119 made the days a resource: a month now
+        # heals 67.19 points rather than 136, so the drive rate caps the
+        # larder at 3.36 t instead of 20.5. Both regions are still walked —
+        # 1 t and 2 t are feedstock-bound, 5 t and 500 t are rate-bound.
         rows = []
-        for feed in (2.0, 5.0, 20.5, 500.0):
+        for feed in (1.0, 2.0, 5.0, 500.0):
             game = _hurt(biomass=feed)
             healed = repair_tick(game.ship, 30.0, stats(game.ship))
             rows.append((feed, healed, game.ship.cargo.get("biomass", 0.0)))
@@ -82,7 +98,7 @@ def run(suite: Suite) -> None:
         # Above the drive's own rate, more feedstock buys nothing — the cap is
         # the regeneration, not the larder.
         assert abs(rows[2][1] - rows[3][1]) < 1e-9, (
-            f"500 t healed {rows[3][1]:.1f} against {rows[2][1]:.1f} at 20.5 "
+            f"500 t healed {rows[3][1]:.1f} against {rows[2][1]:.1f} at 5 t "
             "— the drive rate is not capping it")
         # And it is actually taken out of the hold.
         for feed, healed, left in rows:
@@ -109,29 +125,66 @@ def run(suite: Suite) -> None:
                 f"{carried:.1f} t carried and a "
                 f"{stats(game.ship).cargo:.0f} t hold")
 
-    @check("with a full larder it heals exactly what it always did")
+    @check("a month of mending is a month however the clock hands it over")
     def _():
-        # Guarding that this only *added a constraint*. The claim is not about
-        # the cadence — my first version asserted repair stops after one layer
-        # and that was never true: a layer that fills lets the loop carry on,
-        # and six came back full in a sixty-day call before this change as
-        # much as after. What must hold is that with feedstock to spare the
-        # healing is identical to the old formula.
+        # #119, and the same claim #116 makes of every other tick. `break`
+        # only fired when a layer was left *unfilled*, so a call standing for
+        # thirty days filled the innermost layer and walked on to the next one
+        # still carrying all thirty. Measured on a hull at 50% before the fix:
+        # 1.0000 hull in one call, 0.9677 in five, 0.8384 in thirty.
+        #
+        # All three feedstock regimes, because the larder is the other thing
+        # that can bind and it has to stay additive too.
+        out = []
+        for larder, why in ((5000.0, "to spare"), (3.0, "short"),
+                            (0.0, "none")):
+            spread = []
+            for chops in (1, 2, 5, 10, 30, 60):
+                game = _hurt(share=0.5, biomass=larder)
+                s = stats(game.ship)
+                for _ in range(chops):
+                    repair_tick(game.ship, 30.0 / chops, s)
+                spread.append(hull_pct(game.ship))
+            gap = max(spread) - min(spread)
+            assert gap < 1e-9, (
+                f"with feedstock {why}, thirty days healed {min(spread):.4f} "
+                f"one way and {max(spread):.4f} the other — a gap of {gap:.2e}"
+                " that depends only on how the caller chopped the time")
+            out.append(f"{why} {spread[0]:.4f}")
+        return "30 days, 1 to 60 calls, identical: " + " · ".join(out)
+
+    @check("with a full larder it heals exactly what the days pay for")
+    def _():
+        # Guarding that with feedstock to spare the answer is the *rate* and
+        # nothing else — worked out here a second way, against the layers, so
+        # a change in `repair_tick` cannot quietly redefine what it is being
+        # compared with.
+        #
+        # It used to spend the whole span on every layer in turn, which is the
+        # #119 defect: sixty days filled the innermost layer and then bought
+        # sixty more days of work on the next. Days are a resource now, so the
+        # model below deducts what each layer's fill actually took.
         game = _hurt(share=0.5, biomass=10_000.0)
         s = stats(game.ship)
-        want = 0.0
+        want, left = 0.0, 60.0
         for layer in reversed(game.ship.layers):
+            if left <= 0:
+                break
             if layer.hp >= layer.max:
                 continue
-            grew = min(layer.max - layer.hp,
-                       layer.max * layer.regen * s.regen * 60.0)
-            want += grew
-            if layer.hp + grew < layer.max:
+            rate = layer.max * layer.regen * s.regen
+            if rate <= 0:
                 break
+            grew = min(layer.max - layer.hp, rate * left)
+            want += grew
+            left -= grew / rate
         healed = repair_tick(game.ship, 60.0, s)
         assert abs(healed - want) < 1e-6, (
             f"healed {healed:.3f} with feedstock to spare, against "
             f"{want:.3f} from the rate alone — this changed more than the "
             "constraint")
-        return (f"{healed:.1f} points either way; only the larder is new "
-                f"({healed * FEED_PER_HP:.1f} t of it)")
+        assert left < 1e-9, (
+            f"{left:.2f} of the sixty days went unspent with a hull at 50% "
+            "and a full larder, so the model is not the binding thing")
+        return (f"{healed:.1f} points on {60 - left:.0f} days of work; "
+                f"{healed * FEED_PER_HP:.1f} t of feedstock")

@@ -2455,6 +2455,13 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`core/state.Game` owns time.** `advance_days(n)` is the only clock: it ticks
   research, colonies, build slips, hull regrowth, every market, payroll, air,
   morale and the Bloom, then checks for victory. Nothing else advances a day.
+- **Hull repair spends days, not calls.** `ship.repair_tick` works the stack
+  innermost-first and each layer takes the days its own rate needs, so the
+  remainder passes outward. Measured on a hull at 50% with feedstock to
+  spare, thirty days chopped every way from one call to sixty: identical to
+  3.3e-16. Before, `break` fired only on an *unfilled* layer, so one call of
+  thirty days filled the innermost and carried all thirty on to the next —
+  1.0000 hull against 0.8384 for thirty calls of one day.
 - **A jump of N days *is* N jumps of one.** `core/clock.MAX_STEP` is 1, and
   `advance_days` chops any longer span into single days through `_one_step`.
   This is the only value for which the identity holds for every N; at any
