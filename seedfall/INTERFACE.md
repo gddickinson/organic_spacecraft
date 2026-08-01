@@ -3201,6 +3201,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berthing cannot be completed. The machinery was already there —
   `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
   you — and had no way to say no.
+- **A field read only by its gate is a fact nobody priced.** `Run.ly` was on
+  every freight run and consulted solely by `reachable`, so the desk knew the
+  distance to everything it recommended and discounted none of it. When a
+  value is carried but only ever compared against a limit, ask what else
+  should have been reading it.
+- **When a fix disturbs five things, four of them are usually other bugs.**
+  The clock took five attempts; each red check it produced was a separate
+  defect it had merely been hiding — free repair, an artefact zero, a probe
+  that would not sell, and a desk that never priced time. Fixing the thing
+  that reveals defects last, not first, is what made it land unchanged.
 - **A probe that fails is not the same as the thing it probes failing.**
   `test_stranded` reported a captain stalled with 51 credits; he was at a
   market with ten thousand credits of cargo aboard and the bot only ever sold

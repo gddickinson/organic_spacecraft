@@ -347,7 +347,14 @@ def run(suite: Suite) -> None:
                     market_sim.note_prices(game, system,
                                            game.rep.get(system.port.faction, 0),
                                            game.ship_stats.trade)
-            for system in game.galaxy.systems[:14]:
+            # The whole sector rather than the first fourteen. Once
+            # `freight.MIN_SPREAD` began testing what *survives* the voyage
+            # rather than what is quoted at the desk (#120), fewer runs are
+            # recommended — rightly, they were the ones losing money — and
+            # this fell to seven rows against the eight it needs. The claim
+            # is about the share the quays take, so the fix is more sample
+            # and not a looser bar.
+            for system in game.galaxy.systems:
                 if not (system.port and system.market):
                     continue
                 _stand_at(game, system)

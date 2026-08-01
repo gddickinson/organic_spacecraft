@@ -2,6 +2,49 @@
 
 Running progress log. Newest first.
 
+## 2026-08-01 — SEEDFALL: the desk learns the journey
+
+#120. **`Run.ly` was carried on every freight run and read by `reachable`
+alone.** The desk knew how far each run was and priced none of it, so a thin
+margin eleven days away ranked level with a fat one seven days away, and the
+board recommended runs whose spread had closed before the hull arrived. The
+module's own `MIN_SPREAD` note already said prices drift "several per cent over
+a week's voyage" — written down, never applied.
+
+Measured on the desk's own runs: 5.5 ly took 7 days, 8.5 took 9, 10.6 took 11.
+The market closes about 1.8% of a gap a day. `Run.survives` is what is left of
+the margin on arrival; `worth` is discounted by it; and — the part that
+matters — `MIN_SPREAD` now tests **what survives the voyage** rather than what
+is quoted at the desk. A spread only just over the floor when you load is under
+it when you arrive, which is exactly the trade that floor exists to refuse.
+
+    ly   days   margin   survives   on arrival
+    5.5   7.0      112      88.1%         98.6
+    8.5  10.0      102      83.3%         85.0
+   10.6  12.1       56      80.3%         45.0
+
+Two-year careers, 24 a side, on today's clock:
+
+    before   91,896 blind   165,748 desk
+    after   241,282 blind   375,908 desk
+
+Not a rebalance — a filter. The desk stopped recommending the runs that lose
+money. One knock-on: fewer runs are recommended, so `test_wharfage` fell to
+seven sample rows against the eight it needs. Widened to the whole sector
+rather than the first fourteen systems — 23 runs, the quays taking 13.1%.
+
+**And the clock still did not land, for the fifth time.** With it in, the four
+known checks all pass — freight now 108,865 blind against 139,184 with the desk
+— and two *new* subsystems surface with the same per-call defect: officer
+ageing (`test_time`: ten years passed and a wet officer aged 1.95) and the
+career length that depends on it. Not the clock's fault, and not something to
+rush at the end of a cycle. Tasks #121.
+
+So #120 lands on its own merit, which it has: the desk is worth 1.5x what
+trading blind is, where before this it was worth less than nothing.
+
+Four mutations run, four red. Full suite green at 1,224 checks.
+
 ## 2026-08-01 — SEEDFALL: the clock is down to one blocker, and it is a real one
 
 Fourth run at #116. The list was finite this time — four red checks — and

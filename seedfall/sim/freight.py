@@ -73,6 +73,23 @@ HEARSAY = 0.75
 #: recommend one.
 MIN_SPREAD = 0.20
 
+#: How much of a price gap the market closes on its own, per day of voyage.
+#:
+#: `market.tick_market` drags supply toward equilibrium by about 1.8% a day,
+#: which the `MIN_SPREAD` note above already relies on — it is written down
+#: there and was never *applied*. A run is quoted at the moment you are
+#: standing at the desk and flown over the days that follow, so the margin you
+#: are shown is not the margin you get.
+DRIFT_PER_DAY = 0.018
+
+#: Days a light year of voyage costs, for pricing the wait.
+#:
+#: Measured on the desk's own runs rather than guessed: 5.5 ly took 7 days,
+#: 8.5 took 9, 10.6 took 11. About a day a light year plus a day and a half of
+#: getting under way, and near enough for discounting a price.
+DAYS_PER_LY = 1.0
+DAYS_FIXED = 1.5
+
 
 @dataclass(frozen=True)
 class Run:
@@ -90,9 +107,33 @@ class Run:
         return self.pays - self.buy_here
 
     @property
+    def days(self) -> float:
+        """Roughly how long getting there takes."""
+        return DAYS_FIXED + DAYS_PER_LY * self.ly
+
+    @property
+    def survives(self) -> float:
+        """The share of the quoted margin still there when you arrive.
+
+        **`ly` was carried on every run and read by `reachable` alone.** The
+        desk knew how far each run was and priced none of it, so a thin margin
+        eleven days away ranked level with a fat one seven days away, and the
+        board recommended runs whose spread had closed before the hull got
+        there. Measured over 24 careers, following the desk earned 44,627
+        against 47,910 for trading on what you could see — the advice was
+        worse than no advice.
+        """
+        return (1.0 - DRIFT_PER_DAY) ** self.days
+
+    @property
     def worth(self) -> float:
-        """Margin discounted by how much the number is to be trusted."""
-        return self.margin * self.confidence
+        """Margin discounted by trust in the number *and* by the journey."""
+        return self.margin * self.confidence * self.survives
+
+    @property
+    def on_arrival(self) -> float:
+        """What the margin is expected to be worth by the time you are there."""
+        return self.margin * self.survives
 
 
 def _buyable(game, here) -> dict[str, int]:
@@ -259,7 +300,11 @@ def worth_flying(game, here, limit: int = 6) -> list[tuple]:
     for run in runs(game, here, limit=99):
         if not reachable(game, run):
             continue
-        if run.margin < run.buy_here * MIN_SPREAD:
+        # Against what survives the voyage, not what is quoted at the desk.
+        # A spread that is only just over the floor when you load is under it
+        # by the time you arrive, which is exactly the trade `MIN_SPREAD`
+        # exists to refuse.
+        if run.on_arrival < run.buy_here * MIN_SPREAD:
             continue          # inside the drift; not a trade
         trip = voyage(game, run)
         if trip["tonnes"] < 1 or trip["net"] <= 0:
