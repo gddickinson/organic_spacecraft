@@ -2255,6 +2255,10 @@ seedfall/
 │   ├── clearance.py    being cleared to dock: which berth the structure
 │   │                   assigns, and everything the approach needs
 │   ├── freeflight.py   taking the conn on nothing in particular: flying the
+│   ├── engage.py       the seam from flying to fighting. Decides whether a
+│   │                  pilot may open fire and **at what band the fight
+│   │                  starts**, from how far `conn.pos` has been flown, then
+│   │                  hands both to `combat.start`. Resolves nothing itself.
 │   │                   ship for its own sake, and having it move the hull
 │   ├── moorings.py     berths: where a ship ties up on a structure, and
 │   │                   where an approach is actually flying

@@ -10751,3 +10751,53 @@ gets its own now.
   module*, and running one expensive suite for the one constant it speaks for
   is exactly its purpose. 118 fast paths now name an excluded suite and every
   one is the right suite for its module.
+
+## Opening fire from the pilot's seat (#135)
+
+Asked for manual flight at any time, off the clock, with undocking, leaving
+orbit, and combat in live control. **Measured first, and most of it already
+existed** — `sim/freeflight` (#109):
+
+    freeflight.begin(game)   no target, no clearance; the gate is reaction mass
+    200 conn ticks           advanced game.day by 0 — it does not run on the clock
+    hours charged once       on berthing.commit, as conn.elapsed / DAY_SECONDS
+    hand_over(...)           becomes an approach carrying the way already on
+    leaving a dock/orbit     derived from position, so flying away *is* leaving
+    the conn already offers  Break off · Make orbit · Close and berth ·
+                             New approach… · Secure · Run clock / Stop clock
+
+**The gap was the guns.** Measured on `sim/conn.py`: "weapon" appeared 0 times
+and "hostile" 0. No door from live flight into a fight.
+
+`sim/engage.py` is that door and resolves nothing — `combat` still builds the
+`Battle`, `firing` still says which mounts can speak, `encounters.make_enemy`
+still says what a hull of a given flag carries.
+
+**What the range means, and why it is `conn.pos`.** Asked through `sim/track`,
+every contact sharing a body with the hull reads as **0 km** away and every
+other body as hundreds of millions — measured on seed "engage", the nearest was
+429,631,101 km. There is no local geometry for a second hull, so "fire at
+whatever is out there" has no honest answer. What there is is how far the hull
+has flown from where it let go, which is the range to anything left behind at
+the quay. Against `freeflight.far_km()` of 10,000 and five bands, that is a
+2,000 km step each:
+
+    alongside   Contact      5,000 km   Medium      9,000 km   Extreme
+    3,000 km    Close        7,000 km   Long
+
+So the flying earns the range: 200 km opens at Contact, 120 units apart;
+9,000 km opens at Extreme, 1,080 units apart. Same seed, same hull, same dice.
+
+### Wrong turns worth keeping
+
+- **I nearly filed a defect I had invented.** Flying 5,000 km from a quay
+  leaves `ship.docked_at` set, which looked like two doors disagreeing — until
+  I checked what writes it. `Ship.docked_at` holds a **system id** for fleet
+  hulls laid up in a yard (`consorts`, `shipyard`, `yard_view`); the player's
+  berth is `anchorage.docked_at`, which is **derived from position**. I had set
+  the field to a quay id, a value the game never puts there. No defect.
+- **A "the messages differ" assertion cannot tell refusals apart when each
+  carries the contact's name.** Deleting the world clause from `may_engage`
+  left every check green, because "Loam Fall I is not a hull" and "Fleet Hub is
+  not a hull" are different strings. The check asserts the *kind* of refusal
+  now — a world is refused for being a world.

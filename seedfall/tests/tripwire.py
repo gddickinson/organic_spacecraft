@@ -221,6 +221,7 @@ KIN = {
     "relics3d": ("relics3d",),
     "fleets": ("fleets", "control"),
     "armada": ("armada", "fleets"),
+    "engage": ("engage", "combat"),
     "war": ("war", "armada"),
     "piracy": ("piracy", "traffic", "fence"),
     "life3d": ("life3d",),
