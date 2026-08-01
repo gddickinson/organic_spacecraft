@@ -1999,7 +1999,16 @@ python -m seedfall.tests sim        # one suite
 ```
 
 Requires **PyQt6** (`pip install PyQt6`). Nothing else — no network, no server,
-no browser. Saves live in `~/.seedfall/save.json`.
+no browser. Saves live in `~/.seedfall/save.json` — but **ask
+`core.save.save_path()`, never a constant.** It resolves every time it is
+called and honours `SEEDFALL_SAVE`, which `seedfall/tests/__init__.py` sets
+to a per-pid file on import. The path used to be a module constant spent as
+a *default argument*, which binds at definition time and so could not be
+redirected by anything: fourteen check files call `save_mod.write({...})`
+with no path, and a suite run therefore wrote over the player's own
+chronicle. Two runs at once also raced each other through `save.tmp`.
+Both are fixed, and **running two suites concurrently is now safe** —
+measured, four at once are green and leave the player's save byte-identical.
 
 ## Layout
 

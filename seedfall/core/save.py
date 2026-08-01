@@ -10,12 +10,48 @@ stays valid when the tables gain new entries.
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import fields, is_dataclass
 from pathlib import Path
 
 SAVE_DIR = Path.home() / ".seedfall"
-SAVE_PATH = SAVE_DIR / "save.json"
+SAVE_NAME = "save.json"
 SAVE_VERSION = 1
+
+#: Environment variable that moves the chronicle somewhere else.
+#:
+#: The test harness sets it, per process. Named rather than hard-coded in two
+#: places because `tests/__init__.py` is the only thing that writes it and this
+#: is the only thing that reads it.
+SAVE_ENV = "SEEDFALL_SAVE"
+
+
+def save_path() -> Path:
+    """Where the chronicle is kept. **One door, asked afresh every time.**
+
+    It used to be a module constant, `SAVE_PATH`, spent as a *default
+    argument* on `write`, `read`, `exists` and `clear`. A default binds when
+    the function is defined, so the path could not be redirected by anything —
+    not by a test, not by a second process, not by assigning to the constant
+    afterwards.
+
+    Two things followed, and both were measured rather than supposed:
+
+    - **The suite wrote over the player's own saved game.** Fourteen check
+      files call `save_mod.write({"game": game})` with no path. After a run,
+      `~/.seedfall/save.json` held 192,514 bytes of a game seeded `lab8` — a
+      fixture invented for the orrery checks — at day 0 with 18,000 credits.
+      Whatever chronicle the player had was gone.
+    - **Two runs at once corrupted each other.** `write` stages through
+      `save.tmp` and renames, which is atomic for one writer and a race for
+      two. It produced five phantom failures in one session — `anchorage`,
+      `traffic`, `tutorial`, `grudges`, `territory` — none of which was a real
+      defect. The full suite now takes about 25 minutes against a cron that
+      fires every 10, so overlapping runs are the normal case and not the
+      unlucky one.
+    """
+    override = os.environ.get(SAVE_ENV)
+    return Path(override) if override else SAVE_DIR / SAVE_NAME
 
 _REGISTRY: dict[str, type] = {}
 
@@ -62,7 +98,8 @@ def decode(obj):
     return obj
 
 
-def write(state_dict: dict, path: Path = SAVE_PATH) -> bool:
+def write(state_dict: dict, path: Path | None = None) -> bool:
+    path = Path(path) if path is not None else save_path()
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         payload = {"version": SAVE_VERSION, "state": encode(state_dict)}
@@ -75,7 +112,8 @@ def write(state_dict: dict, path: Path = SAVE_PATH) -> bool:
         return False
 
 
-def read(path: Path = SAVE_PATH):
+def read(path: Path | None = None):
+    path = Path(path) if path is not None else save_path()
     try:
         if not path.is_file():
             return None
@@ -88,11 +126,13 @@ def read(path: Path = SAVE_PATH):
         return None
 
 
-def exists(path: Path = SAVE_PATH) -> bool:
+def exists(path: Path | None = None) -> bool:
+    path = Path(path) if path is not None else save_path()
     return path.is_file()
 
 
-def clear(path: Path = SAVE_PATH) -> None:
+def clear(path: Path | None = None) -> None:
+    path = Path(path) if path is not None else save_path()
     try:
         path.unlink(missing_ok=True)
     except OSError:

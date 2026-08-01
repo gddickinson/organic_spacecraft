@@ -10155,3 +10155,50 @@ heals 67.19 points where it healed 136, so the drive rate caps the larder at
   expectation; it now models day-spending independently and additionally
   asserts all sixty days were consumed, so it cannot pass by both sides being
   wrong the same way.
+
+## The suite was overwriting the player's saved game (#122)
+
+Filed as a scheduling problem — the suite takes ~25 minutes against a cron that
+fires every 10, so overlapping runs are the normal case. Measuring it found a
+worse defect underneath.
+
+`core/save` spent `SAVE_PATH` as a **default argument** on `write`, `read`,
+`exists` and `clear`. A default binds when the function is defined, so the path
+could not be redirected by a test, by a second process, or by assigning to the
+constant afterwards. Fourteen check files call `save_mod.write({"game": game})`
+with no path.
+
+Measured, not supposed. After a full run, `~/.seedfall/save.json` held **192,514
+bytes of a game seeded `lab8`** — a fixture invented three cycles earlier for
+the orrery checks — at day 0 with 18,000 credits. Whatever chronicle the player
+had was already gone before this cycle began.
+
+Now `save.save_path()` is one door, resolved at call time, honouring
+`SEEDFALL_SAVE`. `tests/__init__.py` sets it to `seedfall-test-<pid>.json` in
+the temp directory on import — there rather than in `__main__` because a check
+module is often imported on its own, and an `atexit` hook takes the file and its
+`.tmp` away again.
+
+Measured after the fix:
+
+    four concurrent runs      4 x 3 checks, all green, no interference
+    player's save             a68363554e0ec50a, 52 bytes, before and after
+    full 25-minute suite      player's save byte-identical afterwards
+    temp files left behind    0
+
+**The cycle prompt's rule that the suite must be run alone is now obsolete.**
+It was a workaround for this defect.
+
+### Wrong turns worth keeping
+
+- **The first version of the guard destroyed the thing it guarded.** It wrote
+  with no path and *then* compared the player's save before and after — so
+  proving it bites, by reverting `save_path` and running it, put a 52-byte
+  marker over `~/.seedfall/save.json`. It now asserts `save_path() != theirs`
+  **before** writing anything; re-run against the reverted code it fails three
+  checks and leaves the file's hash untouched.
+- **A mutation that only reddens one check is not proof the whole fix is
+  pinned.** Three were needed, each landing on a different check: reverting
+  `save_path` to the home path (all three red), stopping the harness setting
+  the variable (two red), and dropping the pid from the filename so concurrent
+  runs would collide again (one red — and only that one).
