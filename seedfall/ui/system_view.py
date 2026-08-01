@@ -43,6 +43,14 @@ class SystemView(View):
                   f"{sys.star_name} · {len(sys.bodies)} bodies · "
                   f"{fac.name if fac else 'unclaimed'}")
 
+        # Whose hulls are actually here, which is not the same as whose flag
+        # flies over the port. See `sim/fleets`: a power fields what its
+        # margin sustains once its ports are paid for, so a power can be
+        # out-shipped over its own holding — and until this line the game
+        # computed that and showed it nowhere.
+        from ..sim import fleets as fleets_sim
+        self.col.addWidget(note(fleets_sim.note(g, sys)))
+
         if sys.bloom > 0.02:
             p = Panel("Unlicensed growth in this system", "warn")
             p.add(label(f"Roughly {round(sys.bloom * 100)}% of the accessible mass "

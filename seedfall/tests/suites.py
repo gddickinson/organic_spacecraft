@@ -88,6 +88,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("control", "test_control", "approach control"),
     SuiteSpec("forcing", "test_forcing", "forcing a berth"),
     SuiteSpec("interdiction", "test_interdiction", "interdiction"),
+    SuiteSpec("fleets", "test_fleets", "order of battle"),
     SuiteSpec("life3d", "test_life3d", "xenoform bodies"),
     SuiteSpec("parts3d", "test_parts3d", "fitting pictures"),
     SuiteSpec("relics3d", "test_relics3d", "relic pictures"),

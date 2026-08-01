@@ -3201,6 +3201,23 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berthing cannot be completed. The machinery was already there —
   `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
   you — and had no way to say no.
+- **Two constants the data can never separate are one constant.**
+  `fleets.CAPITAL_WEIGHT` tripled a capital's share of a fleet, and every
+  capital in the game is level 3 while no ordinary port ever is — so it and
+  `LEVEL_WEIGHT` were never distinguishable, and flattening it changed no
+  verdict anywhere. Deleted, not pinned. A knob a check cannot bite is a knob
+  the model does not have.
+- **Check the claim the numbers support, not the one you wanted.** At fleets of
+  four to eight spread over three to six holdings, largest-remainder rounding
+  is bigger than the level weighting: only one power in six sectors shows a gap
+  of two. The true and pinnable claim was the *ordering* — 22 of 24 pairs put
+  more at the developed holding and none put fewer.
+- **Step the clock in a check, never jump it.** `advance_days` runs each
+  subsystem's tick once with `n` as an argument, so a per-day decision fires
+  once for a 900-day jump. Same seed, same span: one jump leaves every power
+  insolvent (−79 to −252) and ninety steps of ten leaves them all thriving
+  (+198 to +515). Anything measured across a long jump is measured on a game
+  that does not exist.
 - **A cache keyed by id will draw the wrong thing.** `relics3d.mesh_for` looked
   an object up by its id and returned the cached mesh, so a relic whose fields
   had been changed still drew the canonical one — and a check comparing a relic

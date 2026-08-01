@@ -287,9 +287,22 @@ def means(game, contact) -> int:
     warded = colony_sim.ward_at(game, system.id) if system else 0.0
     if port.level >= 2 or warded > 0.0:
         top = 3
-    if port.capital:
+    if port.capital and _hulls_here(game, system, port):
+        # **The top rung needs something that can come out after you.**
+        # `repelled` is not a heavier gun, it is being driven off — and a
+        # capital with no squadron on station cannot drive anybody anywhere,
+        # however grand its berths are. See `sim/fleets`: what a power keeps
+        # in space is what its margin sustains once its ports are paid for,
+        # so a power that overextends loses the ability to see you off before
+        # it loses anything else.
         top = 4
     return top
+
+
+def _hulls_here(game, system, port) -> int:
+    """How many of this port's own power's hulls are on station here."""
+    from . import fleets
+    return fleets.guard_at(game, system, getattr(port, "faction", "") or "")
 
 
 def post(game, contact) -> dict:

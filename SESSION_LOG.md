@@ -2,6 +2,63 @@
 
 Running progress log. Newest first.
 
+## 2026-07-31 — SEEDFALL: an order of battle, and three things the measuring found
+
+#110. The powers have real purses — income, outlay, a margin, and they found
+and promote ports with them. The sector has eighty-four hulls, twenty-one on
+patrol, each flying somebody's flag. **The two had nothing to do with each
+other:**
+
+    traffic._busyness = 1 + port.level (+1 capital, +2 lit anchor, −1 bloom)
+
+A power's presence was a reading of its infrastructure and never of its
+treasury, so a bankrupt power had exactly as many hulls on station as a
+thriving one.
+
+`sim/fleets.py` derives the whole order of battle every time it is asked —
+nothing stored, the discipline `anchorage` uses for a quay. Measured across
+ten sectors at three dates, 120 power-days: margin p10 98, p50 274, p90 336.
+At **45 a day per hull** that is a median fleet of 6, most 10, and 10 of 120
+power-days with none at all. Played out over 600 days in six sectors the
+sector fields 18–30 hulls, median 24.5 — against the 21 patrols already there.
+
+The payoff: `control.means` grants the top rung, *repelled*, only where a
+squadron is actually on station. Being driven off needs something that can
+come out after you; a capital without one still shoots from its own batteries.
+
+**Three things the measuring found, and two of them killed a plan.**
+
+*The clock.* The first pass at "how often does a power lose its squadron"
+advanced 900 days in one call and reported 12 of 24 capitals losing theirs.
+Stepped ten days at a time over the same span it is 1 of 24. `advance_days`
+runs each subsystem's tick once with `n` as an argument, so a per-day
+*decision* fires once for the whole jump. Every number in that first round was
+measured on an economy the game never reaches. Task #116.
+
+*The trade that does not exist.* This was built around "ports are paid for in
+hulls" and the economy says no: founding costs the purse nothing and pays 60 a
+day immediately — six foundings took the freeholds from 7 hulls to 15 with the
+purse unmoved at 30,000 — and promoting moves margin by exactly zero. There is
+no choice a power can make that costs it margin. Task #117. The check claims
+what is true instead: the fleet follows the margin *down* as well as up, shown
+by losing holdings, which is what annexation already does.
+
+*A constant that was never distinguishable.* `CAPITAL_WEIGHT` tripled a
+capital's share — and **every capital in the game is level 3 and no ordinary
+port ever is**, so it and the port level were never separable. Dropping it to
+1.0 changed no verdict. Deleted rather than pinned: one door, and the level had
+been doing the work all along.
+
+The capital-weight check was wrong three times before it said something true.
+`>=` (a tie satisfies it). Then "two more hulls than a same-level holding"
+(there is no such holding). Then "a gap of two by level" — measured, exactly
+one power in six sectors produces one, because with fleets of 4–8 over 3–6
+holdings largest-remainder rounding is bigger than the weighting. What the
+numbers support is the *ordering*: 22 of 24 pairs put more at the developed
+holding and **none** put fewer.
+
+Five mutations run, five red.
+
 ## 2026-07-31 — SEEDFALL: twelve relics, four makers, and the last words-only page
 
 Finishing #80. Audited every catalogue of objects in the game against whether
