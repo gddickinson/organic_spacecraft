@@ -284,8 +284,8 @@ def means(game, contact) -> int:
         return 2                       # somebody is talking, and that is all
     top = 2
     from . import colony as colony_sim
-    warded = colony_sim.ward_at(game, system.id) if system else 0.0
-    if port.level >= 2 or warded > 0.0:
+    warded = colony_sim.is_warded(game, system.id) if system else False
+    if port.level >= 2 or warded:
         top = 3
     if port.capital and _hulls_here(game, system, port):
         # **The top rung needs something that can come out after you.**

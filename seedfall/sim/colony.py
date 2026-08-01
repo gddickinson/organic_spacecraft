@@ -333,12 +333,48 @@ def fabricating(game, system_id: int) -> bool:
                if c.online and c.system_id == system_id)
 
 
+#: How much ward counts as a defence at all.
+#:
+#: **A threshold, because the quantity became continuous.** Both places that
+#: ask "is this warded" tested `> 0.0`, which was right when a ward could only
+#: come from a built work worth 0.28 — and wrong the moment machines started
+#: contributing, because a teleoperated guard nine AU from its supervisor is
+#: worth about 1e-7 and that is greater than zero. It armed a world with a
+#: hand that could not have lifted a spanner.
+#:
+#: Set below a third of what one machine standing right there is worth (0.09)
+#: and above what a preplanned one yields from across a system (0.0097), so
+#: real help counts and a hand out of contact does not.
+WARD_ENOUGH = 0.02
+
+
+def is_warded(game, system_id: int) -> bool:
+    """Is anything here actually defending the place? The one door.
+
+    `sim/control` and `sim/interdiction` both used to test `ward_at() > 0.0`
+    for themselves, which is the same question asked twice — and both were
+    wrong in the same way at the same moment.
+    """
+    return ward_at(game, system_id) >= WARD_ENOUGH
+
+
 def ward_at(game, system_id: int) -> float:
-    """How strongly a system is defended against unlicensed growth, 0..0.9."""
-    total = sum(works.effects_of(c).get("ward", 0.0)
+    """How strongly a system is defended, 0..0.9.
+
+    Works *and* machines. Until `robots.ward_from` this counted only what had
+    been built — so twenty classes of machine, four of them carrying a ground
+    duty, defended nothing anywhere in the game, and a captain who left guards
+    on a holding had left them to do nothing.
+
+    What they are worth is a function of how far away their supervisor is
+    standing, which is the one place in this game where `robots.grip` decides
+    something a power can feel: see `sim/robots.ward_from`.
+    """
+    from . import robots as robots_sim
+    built = sum(works.effects_of(c).get("ward", 0.0)
                 for c in game.colonies
                 if c.online and c.system_id == system_id)
-    return min(0.9, total)
+    return min(0.9, built + robots_sim.ward_from(game, system_id))
 
 
 #: How much of an attack a megastructure simply shrugs off.

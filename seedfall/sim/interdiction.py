@@ -157,11 +157,10 @@ def claim(game, target):
     who = settlement_sim.on_body(game, system.id, body.id)
     if who is not None:
         grown = settlement_sim.maturity(game, who)
-        warded = colony_sim.ward_at(game, who.system_id)
+        warded = colony_sim.is_warded(game, who.system_id)
         return Claim(who=who.power, name=getattr(target, "name", "the colony"),
                      sort="settled",
-                     means=ARMED if (grown >= ARMED_AT or warded > 0.0)
-                     else SPEAKS)
+                     means=ARMED if (grown >= ARMED_AT or warded) else SPEAKS)
 
     holder = territory_sim.claimant(game, system)
     grades = getattr(body, "resources", None) or {}

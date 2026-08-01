@@ -2,6 +2,59 @@
 
 Running progress log. Newest first.
 
+## 2026-08-01 — SEEDFALL: the machines guard something, and the task was mis-scoped
+
+#112, written as drone warfare — light-lag deciding engagements, the controller
+as the thing to shoot. **Measured against the law that already exists, and the
+premise is false at that scale:**
+
+    halving a teleoperated hand needs 4.0 s round trip = 599,585 km
+    the tactical arena is 1,400 units; a band is 240
+
+At 1,400 km the round trip is 9.3 ms and an E1 hand keeps **99.77%** of
+itself. Light-lag cannot decide a gunfight and no tuning would make it. It is a
+strategic law, and the arena where it bites is one the game already had.
+
+Machines can be posted to a holding, and `robots.effective` has priced them by
+`grip` since the day they landed. But `colony.ward_at` — what defends a system,
+read by `control` and `interdiction` for what a place may do about an
+approaching hull — counted only **built works**. Twenty classes of machine,
+four carrying a ground duty, defended nothing anywhere in the game.
+
+The data held the whole design and never expressed it:
+
+    loader      level 3, autonomy 1,  1,800 credits
+    myrmidon    level 2, autonomy 2,  1,600 credits
+    servitor    level 3, autonomy 4,  9,000 credits
+
+Five times the price for autonomy. What it buys, measured in ward and in what
+the world may do about you:
+
+    loader     alongside 0.0900 rung 3 · across a system 0.0001 rung 2
+    myrmidon   alongside 0.0600 rung 3 · across a system 0.0192 rung 2
+    servitor   alongside 0.0900 rung 3 · across a system 0.0900 rung 3
+
+That is "the controller is the objective", and the objective is your own hull
+being in the system. Sized against the thing it stands beside: a `garrison`
+work is 0.28, so three machines come to about one garrison — they supplement
+infrastructure rather than replacing it.
+
+**One defect this turned up, the old one in a new place.** Both callers tested
+`ward_at(...) > 0.0`. Right while a ward could only come from a built work
+worth 0.28; wrong the moment a continuous quantity fed it — a teleoperated
+guard nine AU out is worth 1e-7, which is greater than zero, and it armed a
+world with a hand that could not have lifted a spanner. Measured: with the
+floor removed the loader keeps its world at rung 3 from anywhere.
+`colony.is_warded` is the one door now, floored at 0.02 — below a third of one
+machine standing there (0.09) and above what a preplanned one yields from
+across a system (0.019).
+
+Four mutations run, four red. And the harness guard caught a second thing on
+the way out: I added a `colony` row to the tripwire fast-path table that
+already had one, and in a dict literal the later wins silently. Merged.
+
+Full suite green at 1,214 checks.
+
 ## 2026-08-01 — SEEDFALL: raiders where the law is not
 
 #111. Raiders already existed — `traffic` gave one in ten systems an unmarked

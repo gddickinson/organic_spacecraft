@@ -195,7 +195,8 @@ KIN = {
     # constant they own — twenty-one of them, including `ship`, which holds
     # the thermal rule the whole game reads.
     "aftermath": ("aftermath",), "assessment": ("assessment",),
-    "colony": ("grants", "founding"), "minigames": ("approaching", "approach"),
+    "colony": ("grants", "founding", "swarm"),
+    "minigames": ("approaching", "approach"),
     "plans": ("picture",), "ship": ("thermal_doors", "thermal"),
     "shocks": ("trade",), "tech": ("evidence", "bench"),
     "trade": ("counter", "trade"), "orders": ("orders",),

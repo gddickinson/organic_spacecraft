@@ -3201,6 +3201,18 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berthing cannot be completed. The machinery was already there —
   `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
   you — and had no way to say no.
+- **A threshold of `> 0.0` is a bug waiting for a continuous input.**
+  `control` and `interdiction` both asked `ward_at(...) > 0.0`, which was
+  correct while a ward could only be a built work worth 0.28 — and became
+  wrong the instant machines contributed, because a teleoperated guard nine AU
+  from its supervisor is worth 1e-7 and that is greater than zero. When a
+  quantity stops being chunky, every test against zero has to be re-read.
+- **Check the scale a law works at before building on it.** #112 was scoped as
+  light-lag deciding gunfights; halving a teleoperated hand takes 599,585 km
+  and the tactical arena is 1,400 units across, so at combat range an E1 hand
+  keeps 99.77% of itself. The law was right and the arena was wrong — the same
+  mechanism moved to colony postings gives a 1,800-credit guard that stops
+  working the moment you leave orbit and a 9,000-credit one that does not.
 - **A gate over thin traffic produces nothing.** Replacing the raider gate
   with a lawlessness threshold dropped piracy from 26 systems to 9 — because
   the least policed places are the portless ones and they carry about one hull

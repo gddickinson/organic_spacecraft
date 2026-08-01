@@ -215,6 +215,56 @@ def effective(game, robot) -> float:
         * robot.condition
 
 
+#: What one point of effective machine is worth as a colony's ward.
+#:
+#: Sized against the thing it stands beside: a `garrison` work is worth 0.28,
+#: so at 0.03 a level-3 machine standing right there is worth 0.09 and three
+#: of them come to about one garrison. Machines supplement infrastructure;
+#: they do not replace it.
+WARD_PER_POINT = 0.03
+
+#: The duty a machine needs before it is any use defending a place. Four of
+#: the twenty carry it, and the data already draws the line this feature is
+#: about: `loader` is level 3, teleoperated, 1,800 credits, and `servitor` is
+#: level 3, goal-directed, 9,000. Five times the price for autonomy, and
+#: until now the two defended a holding equally well — which is to say,
+#: neither of them did.
+GUARD_DUTY = "ground"
+
+
+def ward_from(game, system_id: int) -> float:
+    """What the machines posted in this system add to its defence.
+
+    **The one door**, and the reason `sim/robots.grip` finally reaches
+    something that is not colony piecework. A machine left to guard a holding
+    is worth what it can do *at the distance its supervisor is standing*: a
+    teleoperated hand is worth almost nothing the moment the ship leaves
+    orbit, and a goal-directed one is worth the same in the next system as it
+    is alongside.
+
+    Measured, a level-3 guard at each rung, in ward:
+
+        alongside   E1 0.090   E2 0.090   E3 0.090   E4 0.090
+        0.5 AU      E1 0.001   E2 0.065   E3 0.088   E4 0.090
+        another system         E2 0.005   E3 0.027   E4 0.090
+
+    That is the whole of "the controller is the objective", and it is a
+    strategic law and not a tactical one — see `test_swarm`, which measures
+    what light-lag does at combat range and finds it does nothing at all.
+    """
+    total = 0.0
+    for robot in owned(game):
+        colony = _colony_of(game, robot)
+        if colony is None or not colony.online:
+            continue
+        if colony.system_id != system_id:
+            continue
+        if GUARD_DUTY not in robot.definition.duties:
+            continue
+        total += effective(game, robot)
+    return total * WARD_PER_POINT
+
+
 def _colony_of(game, robot):
     posting = robot.posting or ""
     if not posting.startswith("colony:"):
