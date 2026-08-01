@@ -19,6 +19,7 @@ from ..data.inquiry import EVIDENCE_BY_ID
 from ..data.berths3d import BERTHS
 from ..data.lore import GLOSSARY, INTRO
 from ..data.starclasses import STAR_CLASSES
+from ..data.xenotech import CULTURES, XENOTECH
 from ..data import works3d
 from ..data.worlds3d import WORLD_PAINTS
 from ..sim import notes as notes_sim
@@ -60,7 +61,7 @@ class CodexView(View):
                   "The class reference, the powers of the Verge, and the vocabulary.")
         tabs = TabBar([("classes", "Fleet classes"), ("colonies", "Colony classes"),
                        ("machines", "Machines"), ("fittings", "Fittings"),
-                       ("sky", "The sky"),
+                       ("sky", "The sky"), ("relics", "Relics"),
                        ("factions", "Powers"), ("life", "Life"),
                        ("notes", "Field notes"), ("glossary", "Glossary"),
                        ("about", "About")], self.tab)
@@ -69,7 +70,7 @@ class CodexView(View):
 
         {"classes": self._classes, "colonies": self._colonies,
          "machines": self._machines, "fittings": self._fittings,
-         "sky": self._sky,
+         "sky": self._sky, "relics": self._relics,
          "factions": self._factions, "life": self._life,
          "notes": self._notes, "glossary": self._glossary,
          "about": self._about}[self.tab]()
@@ -301,6 +302,48 @@ class CodexView(View):
             card.add(Pill("ability", "lumen"))
         if not have:
             card.add(Pill(f"needs {part.tech}", "dim"))
+        return card
+
+    def _relics(self) -> None:
+        """What four cultures that were not people left lying about.
+
+        The last page in the catalogue that was words only, and the one that
+        wanted a picture most: a captain could carry a Pressure Song for a
+        whole chronicle and never see it. Grouped by **who made it**, because
+        that is what the picture claims — three artefacts of one dead culture
+        cannot be three silhouettes without inventing a distinction the cards
+        do not make.
+        """
+        known = self.game.research.unlocked
+        self.col.addWidget(note(
+            f"{len(XENOTECH)} artefacts left by {len(CULTURES)} makers. The "
+            "maker is the shape and the colour, how much there is to learn is "
+            "the bulk, and a lit core means it does something to a ship "
+            "rather than teaching you something."))
+        for culture in CULTURES:
+            theirs = [x for x in XENOTECH if x.culture == culture.id]
+            if not theirs:
+                continue
+            self.col.addWidget(spacer(6))
+            self.col.addWidget(label(
+                f"{culture.name} — {len(theirs)}", "h3", culture.tint))
+            self.col.addWidget(note(culture.blurb))
+            self.grid([self._relic_card(x, known)
+                       for x in sorted(theirs, key=lambda x: x.study)], cols=3)
+
+    def _relic_card(self, relic, known) -> Card:
+        card = Card(selectable=False)
+        card.add(Thumb("relic", relic, height=96))
+        card.add(label(relic.name, "h3",
+                       "" if relic.id in known else "dim"))
+        card.add(label(f"{relic.study} study", "sub"))
+        card.add(label(relic.blurb, "", wrap=True))
+        for stat, amount in sorted((relic.bonus or {}).items()):
+            card.add(Pill(f"{stat} +{amount:.0%}", "lumen"))
+        if not relic.bonus:
+            card.add(Pill("teaches, not fits", "dim"))
+        if relic.id not in known:
+            card.add(Pill("unstudied", "dim"))
         return card
 
     def _factions(self) -> None:

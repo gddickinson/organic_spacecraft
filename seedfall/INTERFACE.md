@@ -3201,6 +3201,20 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berthing cannot be completed. The machinery was already there —
   `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
   you — and had no way to say no.
+- **A cache keyed by id will draw the wrong thing.** `relics3d.mesh_for` looked
+  an object up by its id and returned the cached mesh, so a relic whose fields
+  had been changed still drew the canonical one — and a check comparing a relic
+  with and without its bonus compared one picture with itself and passed on a
+  mark that was never drawn. Handed an object, draw that object; the cache is a
+  fast path for ids only.
+- **One shape's gaps are not evidence about the others.** The mark check probed
+  a single relic and passed with the mark buried at the centre, because that
+  maker's prism stack leaks light between its tiers. A claim about every member
+  of a family has to be measured on every member.
+- **Silhouettes in one frame trade against each other.** Widening the
+  tessellate relic to separate it from abyssal (52%→43%) pushed it into weft
+  (62%→70%), so the worst pair got worse. Tune against the worst pair, never
+  against the pair in front of you.
 - **A guard's fallback is where its blind spot lives.** `test_reachable`
   resolved 1,319 of 1,329 calls precisely and fell back to bare-name matching
   for the rest — and the fallback credited every module with a function of

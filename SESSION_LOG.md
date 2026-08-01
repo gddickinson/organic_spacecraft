@@ -2,6 +2,55 @@
 
 Running progress log. Newest first.
 
+## 2026-07-31 — SEEDFALL: twelve relics, four makers, and the last words-only page
+
+Finishing #80. Audited every catalogue of objects in the game against whether
+it has pictures, and found exactly one gap: **xenotech**. Twelve artefacts left
+by four cultures that are not people, and the codex had ten tabs — fleet
+classes, colony classes, machines, fittings, the sky, powers, life, field
+notes, glossary, about — and not one of them was this. A captain could carry a
+Pressure Song for a whole chronicle and never see it.
+
+The four languages come straight off culture blurbs that already describe
+physical things: abyssal pressure vessels (lobed, nothing flat), ossuary bone
+(struts and sockets), weft weave (interlaced bands with daylight through them),
+tessellate facets (prisms stacked at repeating offsets).
+
+**Measured, and one wrong turn worth keeping.** The four first came out at a
+66% worst pair, ossuary against tessellate. Widening the tessellate stack to
+separate them pulled abyssal-vs-tessellate from 52% down to 43% — and pushed
+weft-vs-tessellate from 62% *up* to 70%. The worst pair got worse. Four shapes
+sharing one bounding frame trade against each other, and the number that
+matters is the worst pair and not the pair being worked on. Reverted; the final
+figure is **61%** against a 70% bar, tighter than `parts3d`'s 0.72 because four
+deliberately-unlike languages should beat seven slot silhouettes.
+
+**Two defects the checks found, both the classic one for this project.**
+
+A lit core at radius 0.10 sat inside a tessellate prism stack of radius 0.42,
+so a relic drew *pixel for pixel identical* with and without its bonus. Moved
+outside every language's widest point at 0.58 — the mark is now +311 to +496
+pixels depending on the maker.
+
+And `mesh_for` looked an object up by id and returned the **cached** mesh, so a
+relic whose fields had been changed still drew the canonical one. That is why
+the first mutation of the mark passed: the check was comparing one picture with
+itself. Handed a relic, it draws that relic; the cache is a fast path for ids.
+
+The mark check was also too weak in a way worth recording: it probed a single
+relic, and passed with the mark buried at the centre because *that* maker's
+prism stack leaks light between tiers. One shape's gaps are not evidence about
+the other three. Sweeping all four made the mutation bite — `pressure_song
+gains 0 pixels`.
+
+Four mutations run, four red: one language for everyone, one palette for
+everyone, study not reaching the bulk, and the mark back inside the form.
+
+With this, every catalogue of objects in the game is rendered — hulls,
+colonies, fittings, machines, life, worlds, stars, berths and now relics.
+Colony *works* stay words: they are upgrades that modify a colony which already
+has a picture, not standalone things.
+
 ## 2026-07-31 — SEEDFALL: the guard that had a blind spot with a name in it
 
 Finishing #26. The reachability guard already resolved calls to the module

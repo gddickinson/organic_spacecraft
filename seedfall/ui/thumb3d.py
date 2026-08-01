@@ -94,7 +94,7 @@ WORLD_LIGHT = (-0.72, -0.28, 0.36)
 
 
 class Thumb(QWidget):
-    """One catalogue portrait: a hull class, a berth, a world or a star."""
+    """One catalogue portrait: a hull, a berth, a world, a machine or a relic."""
 
     def __init__(self, kind: str, subject, height: int = 92,
                  width: int | None = None):
@@ -125,6 +125,13 @@ class Thumb(QWidget):
                                  half_fov=HALF_FOV)
         paint(painter, camera, self.kind, self.subject)
         painter.end()
+
+
+#: How a relic is held for its portrait. Turned enough off head-on that a
+#: woven lattice shows its gaps and a faceted stack shows its offsets — at
+#: zero both read as a disc.
+RELIC_SPIN = 0.7
+RELIC_TILT = -0.45
 
 
 def paint(painter, camera: render3d.Camera, kind: str, subject) -> None:
@@ -161,6 +168,16 @@ def paint(painter, camera: render3d.Camera, kind: str, subject) -> None:
             return
         render3d.draw(painter, camera, mesh, (0.0, 0.0, ROBOT_AT), 1.0, LIGHT,
                       spin=ROBOT_SPIN, tilt=ROBOT_TILT)
+    elif kind == "relic":
+        # An artefact somebody else's hands made. Held broadside and the
+        # right way up like a machine, because a relic has a top and a
+        # bottom and the four cultures differ most in profile.
+        from ..data import relics3d
+        mesh = relics3d.mesh_for(subject)
+        if mesh is None:
+            return
+        render3d.draw(painter, camera, mesh, (0.0, 0.0, ROBOT_AT), 1.0, LIGHT,
+                      spin=RELIC_SPIN, tilt=RELIC_TILT)
     elif kind == "part":
         # A fitting: the slot is the silhouette, the yard the colour, the
         # tonnage the bulk. `subject` is a Part or its id.

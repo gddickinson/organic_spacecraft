@@ -164,6 +164,7 @@ KIN = {
     "forcing": ("forcing", "control", "berthing"),
     "landing": ("setdown", "landing"),
     "interdiction": ("interdiction",),
+    "relics3d": ("relics3d",),
     "life3d": ("life3d",),
     "parts3d": ("parts3d",),
     "readiness": ("readiness",),
