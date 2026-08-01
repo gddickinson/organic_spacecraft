@@ -10202,3 +10202,69 @@ It was a workaround for this defect.
   `save_path` to the home path (all three red), stopping the harness setting
   the variable (two red), and dropping the pid from the filename so concurrent
   runs would collide again (one red — and only that one).
+
+## Wars, and the quay that strikes its colours (#115)
+
+`sim/war.py` — derived, never stored, like `anchorage`, `fleets` and `piracy`.
+`at_war(game, a, b)` is `relation <= WAR_AT`, so a war needs no start event, no
+peace treaty and no save field, and a chronicle loaded from disk agrees with the
+one that wrote it.
+
+**What was measured first, and it is the whole reason this task existed.** Over
+1,800 days across three sectors, with 15 to 18 ventures running to resolution:
+
+    system.faction changed hands            0, 2, 2 systems
+    of those, taken from another power      0, 0, 0
+    port.faction changed hands              0, 0, 0
+
+`_claimable` asked for `s.faction is None`, so annexation could only take
+*unclaimed* ground. The sector's map filled in and never changed hands, and the
+task's central image — a quay that cleared you last month now flying another
+flag — could not occur at all.
+
+`WAR_AT = -60` is set against what the matrix actually reaches, not picked
+round. Worst relation any pair reached in 1,800 days over eight sectors: -57,
+-69, -67, -81, -60, -95, -63, -78, median -68.
+
+    threshold -40   war in 8 of 8 sectors        -60   war in 6 of 8
+    threshold -50   war in 8 of 8                -70   war in 3 of 8
+                                                 -80   war in 2 of 8
+
+At -50 every sector is permanently at war somewhere and the state carries no
+information; at -70 most chronicles never see one. And wars start partway in —
+one measured sector sat at -45 for seven steps of 150 days before dropping to
+-57.
+
+The register and the berth stay two facts, deliberately: `system.faction` is
+who has it on their books, `port.faction` is who runs the quay, and
+`exchequer.holdings` reads the second and says why. They already disagree on 2
+of 63 ported systems at generation. Annexing empty ground still moves only the
+register; taking a system off somebody you are fighting moves both, because
+that is what taking it means.
+
+After: **12 wars over 10 sectors x 3,600 days, 5 quays changed hands, in 4 of
+10 sectors.**
+
+### Wrong turns worth keeping
+
+- **My first measurement said 4-6 ports changed flag. It was my own bug.** The
+  probe built its "before" map over *all* systems, scoring portless ones as
+  `None` — so a port being founded read as a flag change. Corrected to compare
+  only systems that had a port at day 0, the answer was 0, and it stayed 0
+  across every later probe.
+- **Making the spoils claimable was not enough, and the flight said so.** Wars
+  started in 6 of 8 sectors and still no quay moved. Instrumenting the
+  resolutions: of 49 annexations over ten sectors, **46 targeted a system with
+  no port at all** and 3 an enemy quay, because open ground outnumbers spoils
+  about three to one and `rng.pick` was uniform. A power at war now goes for
+  its enemy's quays; expansion into empty space is what it does the rest of the
+  time.
+- **One of my own checks passed without checking anything.** "Annexing empty
+  ground still leaves the berth where it was" searched the sector for an
+  unclaimed *ported* system, found none, and returned a green tick reading "no
+  unclaimed system carries a port in this sector". It constructs the case now.
+- **Two candidate defects were investigated and both were correct as they
+  stood**, so nothing was changed: `system.faction` vs `port.faction` is a
+  deliberate two-fact distinction documented in `exchequer.holdings`, not a
+  duplicated door; and `ventures.live()` has no lazy side effect — the same
+  chronicle observed and unobserved produced identical results on three seeds.

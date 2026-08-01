@@ -2207,6 +2207,11 @@ seedfall/
 │   ├── responses.py    provocation, the Bloom's answers, and studying a mass
 │   ├── market.py       supply shocks, and the prices you wrote down
 │   ├── ventures.py     what the powers do on their own account
+│   ├── war.py          who is at war with whom, derived from the relation
+│   │                  matrix (`WAR_AT` = -60); `spoils` is what a
+│   │                  belligerent may take. Taking a system in war
+│   │                  moves `port.faction` as well as `system.faction`;
+│   │                  annexing empty ground moves only the register.
 │   ├── exchequer.py    the public purse: income, upkeep, building,
 │   │                   retrenchment, and the stake a venture costs
 │   ├── wharfage.py     the due on the captain's own trade, and whose purse
