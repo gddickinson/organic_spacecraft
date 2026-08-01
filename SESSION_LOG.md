@@ -10518,3 +10518,45 @@ Five remain, filed in #132: `gates.TOLL_REFUSED_BELOW`,
   WELCOME_AT == -40.0` — and says why in the message: absolute brackets have to
   be re-bracketed by hand if the constant is retuned. That is deliberate. A
   bracket that follows the constant is the defect being fixed here.
+
+## Two more of the seven, and they were two different defects (#132)
+
+`gates.TOLL_REFUSED_BELOW` (-40) decides whether a ring opens for you at all.
+`approach.LOSING` (-30) decides when a power is beaten badly enough by a rival
+to want it said out loud. Both swept green at double and half; the reasons were
+not the same.
+
+**The toll was tautologically checked**, like the two before it:
+
+    test_weave.py:208   game.rep[far.faction] = TOLL_REFUSED_BELOW - 5
+
+Double the bar to -80 and the standing became -85: still under, still refused,
+still green.
+
+**`LOSING` was held by nothing at all.** No check in the suite referenced it —
+the third of the three states `tripwire.py` names, and the one it was written
+for: real, load-bearing, and unpinned.
+
+Measured through the doors before writing either. `gates.toll` opens at -40.0
+and is shut at -40.5, a strict `<`. `approach.reasons` offers nothing at
+relation -29 and a denunciation at -30, so that gate is `<=` — the boundary is
+*inside* the losing side, and a bracket written to the wrong side of it would
+have passed while testing nothing.
+
+Both bracketed with absolute values a point either side, and both now go red at
+double, half **and a 1.5-point nudge**:
+
+    TOLL_REFUSED_BELOW   ring open at -39, shut at -41
+    LOSING               silent at -29, denouncing at -30, and it names who
+
+Four of seven done. Three remain: `industry.ILLICIT_COST`, `robots3d.DRIVE_Z`,
+`voice.COLD_AT`.
+
+### Wrong turn worth keeping
+
+- **The two constants looked identical from the sweep and were not.** Both
+  reported "green at double and half", which reads as one finding with one
+  fix. The toll needed an existing check de-tautologised; `LOSING` needed a
+  check that did not exist. Treating the sweep's verdict as a diagnosis rather
+  than a symptom would have produced one edit and left the second constant
+  exactly as unprotected as before.

@@ -205,13 +205,33 @@ def run(suite: Suite) -> None:
             f"a power that thinks the world of you charges ₡{dear:,} against "
             f"₡{middling:,} for a stranger — standing barely moves the toll")
 
-        game.rep[far.faction] = TOLL_REFUSED_BELOW - 5
+        # **Absolute, deliberately not `TOLL_REFUSED_BELOW - 5`.** Derived
+        # from the constant, this moved with it — double the bar to -80 and
+        # the standing became -85, still under, still refused, still green —
+        # so the bar swept as protected while nothing held it. Where it
+        # actually sits is bracketed below.
+        game.rep[far.faction] = -100.0
         shut = gates_sim.quote(game, dest)
         assert not shut["ok"] and "not open" in shut["why"], (
             f"a power that loathes you opened the ring anyway: {shut}")
         assert not gates_sim.can_use(game, dest)[0]
         assert not gates_sim.use(game, dest)["ok"], (
             "refused by the quote and let through by the act")
+        game.rep[far.faction] = 40
+
+        # And the bar is where it says it is, bracketed a point either side
+        # with absolute standings. Measured through `gates.toll`: the ring
+        # opens at -40.0 and is shut at -40.5, so the gate is a strict `<`.
+        assert TOLL_REFUSED_BELOW == -40.0, (
+            f"the bar moved to {TOLL_REFUSED_BELOW}; the standings below "
+            "bracket -40 with absolute values and must be re-bracketed by "
+            "hand, which is the point of them")
+        game.rep[far.faction] = -39.0
+        assert gates_sim.quote(game, dest)["ok"], (
+            "standing -39 is above the bar and the ring stayed shut")
+        game.rep[far.faction] = -41.0
+        assert not gates_sim.quote(game, dest)["ok"], (
+            "standing -41 is under the bar and the ring opened anyway")
         game.rep[far.faction] = 40
 
         before_day, before_credits = game.day, game.credits

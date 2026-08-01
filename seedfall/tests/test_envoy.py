@@ -258,6 +258,44 @@ def run(suite: Suite) -> None:
             f"standing of 80 and no treaty, and they do not offer one: {live}")
         return " · ".join(made)
 
+    @check("a power denounces a rival only once it is losing to them")
+    def _():
+        # `approach.LOSING` decides when a power is beaten badly enough to want
+        # it said out loud, and **no check anywhere referenced it** — swept at
+        # double and half, the whole suite stayed green. That is the third of
+        # the three states `tests/tripwire.py` names: real, load-bearing, and
+        # held by nothing.
+        #
+        # Bracketed with absolute relations. The gate is `<=`, measured
+        # through `approach.reasons`: nothing offered at -29, a denunciation
+        # at -30.
+        assert approach.LOSING == -30.0, (
+            f"the bar moved to {approach.LOSING}; the relations below bracket "
+            "-30 with absolute values and must be re-bracketed by hand, which "
+            "is the point of them")
+        game = new_game("denounce")
+        dip.ensure(game)
+        fac, rival = "charter", "freeholds"
+        game.rep[fac] = 0.0
+        game.rep[rival] = 0.0        # above -20, so the other clause holds
+
+        def at(relation):
+            now = dip.relation(game, fac, rival)
+            dip.shift_relation(game, fac, rival, relation - now)
+            return {k for k, _r in approach.reasons(game, fac)}
+
+        assert "denounce_rival" not in at(-29.0), (
+            "a power one point short of losing is already denouncing")
+        assert "denounce_rival" in at(-30.0), (
+            "a power at exactly the bar says nothing; the gate is `<=`")
+        assert "denounce_rival" in at(-60.0), (
+            "a power thoroughly beaten says nothing at all")
+        # And it names the rival it is losing to, not just that it is losing.
+        named = [r for k, r in approach.reasons(game, fac)
+                 if k == "denounce_rival"]
+        assert named == [rival], f"denounced {named}, not {rival}"
+        return "silent at -29, denouncing at -30, and it names who"
+
     @check("the envoy screen names every power an answer moves")
     def _():
         from .test_ui import _use_offscreen
