@@ -10003,3 +10003,50 @@ driver ever had came from an interstellar jump. `_seek_trouble` now asks
   was the purse *after* 1,160 days of an unflown chronicle. Measured properly,
   all 12 legal openings start at 6,000-32,000 credits, which is 600-2,133 days
   of payroll at 10-15/day.
+
+## The orrery's labels stop printing across each other (#127)
+
+Measured through the painter rather than the code: every `drawText` the chart
+issues is caught and turned into the rectangle its glyphs will actually occupy.
+Over ten seeds, before:
+
+    83 labels drawn, 3 overlapping pairs, worst 100% of the smaller box
+
+Every one of the three was `Fleet Hub` under a hull name. The cause was a
+one-door failure: the plot had **three** label families and only traffic
+de-cluttered, against a list (`labelled`) that collected hull names and nothing
+else — so a hull could not see the quay label it was about to print across.
+
+Now one `_room_for` serves all three. Bodies and quays register their ink but
+are never refused (a planet whose name went missing is a worse chart than a
+crowded one); traffic yields to them, which is the trade the original rule
+already made — the panel below the chart names every hull anyway.
+
+After: **0 overlapping pairs over 40 seeds, 295 labels.**
+
+### Wrong turns worth keeping
+
+- **The task claimed "an unreadable cluster ~60px across" of five labels. It was
+  one pair.** That came from reading a 1560px render scaled down. Measured on
+  the actual glyph boxes, the labels near the star are a dense *stack* with
+  ~10px gaps — legible — plus one genuine 26% overlap. The defect was real and
+  the description was overstated.
+- **A point-distance rule was not enough, and the first fix shipped with that
+  flaw.** Merging the three lists but keeping the inherited thresholds (58
+  across, 11 down) left 2 overlaps in 20 seeds, both a body label under a hull
+  name: the rule compares *draw anchors* while ink runs ~110px to the right of
+  its anchor, so a neighbour just outside 58 still printed across. Replaced with
+  an exact rectangle-intersection test on the ink.
+- **"Comparing the ink is looser, so it shows more hull names" was wrong, and
+  the count said so.** Over the same ten seeds: 83 labels before, 78 with the
+  merged point rule, **71** with the exact test. Twelve names went, three of
+  which were illegible anyway. The docstring was corrected to the measurement.
+- **The quay-stacking half was unguarded and a mutation proved it.** Cutting the
+  candidate ladder to a single position left the new check green, because none
+  of the ten `orrery` seeds has two quays at one body. Seed `lab8` — the only
+  one in twenty-two that does — is now named explicitly in the check.
+
+Filed #128: `place_mark` offsets from the *planet*, so two quays at one body get
+the same point. The labels are fixed; the marker is still single, which means
+the chart shows one station where there are two and one of them cannot be
+clicked at all.

@@ -10,7 +10,8 @@ from __future__ import annotations
 import math
 
 from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
-from PyQt6.QtGui import (QColor, QFont, QPainter, QPainterPath, QPen)
+from PyQt6.QtGui import (QColor, QFont, QFontMetricsF, QPainter, QPainterPath,
+                         QPen)
 from PyQt6.QtWidgets import QVBoxLayout, QSizePolicy, QWidget
 
 from ..core.util import duration, num
@@ -153,12 +154,53 @@ class OrbitChart(QWidget):
                    Qt.AlignmentFlag.AlignHCenter,
                    f"{q['days']} d · {q['au']:.2f} AU")
 
+    #: Clear space demanded around a label's ink, in pixels.
+    #:
+    #: This replaced a pair of point-distance thresholds (58 across, 11 down)
+    #: that the traffic loop used against other traffic. Those compared *draw
+    #: anchors* while the ink runs some hundred pixels to the right of its
+    #: anchor, so a neighbour just outside 58 still printed straight across:
+    #: measured over twenty seeds, that left `III` under a hull name twice
+    #: even after the three lists were merged.
+    #:
+    #: **It costs hull names, and the count says so.** Over the same ten
+    #: seeds: 83 labels with 3 overlapping pairs before, 78 with the merged
+    #: point rule, 71 with this and none overlapping. Twelve names went, three
+    #: of which were illegible anyway. That is the trade the traffic loop
+    #: already chose when it first refused to name a crowded hull — the panel
+    #: below the chart lists every one of them.
+    LABEL_PAD = 2.0
+
+    def _ink(self, p, x: float, y: float, box: float, text: str,
+             centred: bool) -> QRectF:
+        """The rectangle a label's glyphs will actually occupy."""
+        fm = QFontMetricsF(p.font())
+        w = fm.horizontalAdvance(text)
+        return QRectF(x + (box - w) / 2 if centred else x, y, w, fm.height())
+
+    def _room_for(self, ink: QRectF) -> bool:
+        """Is this label's ink clear of everything already drawn?
+
+        **One door for every label on the plot, and it used to serve one.**
+        The rule lived inline in the traffic loop and tested against a list
+        that only ever collected hull names, so a hull could not see the quay
+        label it was about to print across. Measured over ten seeds, 83 labels
+        drawn: three pairs overlapped and every one was `Fleet Hub` under a
+        hull name, one of them covering it completely.
+        """
+        pad = self.LABEL_PAD
+        grown = ink.adjusted(-pad, -pad, pad, pad)
+        return not any(grown.intersects(other) for other in self._labels)
+
     def paintEvent(self, _ev):  # noqa: N802
         g = self.win.game
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), QColor("#060f0d"))
         s, cx, cy = self._scale()
+        #: Where a label has already been put this repaint, as (x, y) of its
+        #: ink. Rebuilt every paint because the plot is redrawn from scratch.
+        self._labels: list = []
 
         # the star
         p.setPen(Qt.PenStyle.NoPen)
@@ -183,8 +225,13 @@ class OrbitChart(QWidget):
 
             p.setFont(QFont(theme.mono_family(), 7))
             p.setPen(QColor(169, 194, 182, 190))
+            name = b.name.split()[-1]
             p.drawText(QRectF(pos.x() - 55, pos.y() + 7, 110, 13),
-                       Qt.AlignmentFlag.AlignHCenter, b.name.split()[-1])
+                       Qt.AlignmentFlag.AlignHCenter, name)
+            # A body is what the chart is *of*, so its name is never refused —
+            # it only claims the space, and the crowd yields to it.
+            self._labels.append(
+                self._ink(p, pos.x() - 55, pos.y() + 7, 110, name, True))
 
         # Quays, hubs and your own holdings. They sit at the body they orbit,
         # so they are drawn just outside its marker rather than on top of it —
@@ -215,12 +262,25 @@ class OrbitChart(QWidget):
                 p.drawEllipse(mark, 10, 10)
             p.setFont(QFont(theme.mono_family(), 7))
             p.setPen(tint)
-            p.drawText(QRectF(mark.x() + 7, mark.y() - 7, 120, 13),
+            # A quay's name cannot simply be dropped, so it is stacked clear
+            # instead. Two quays at one body get the *same* mark — `place_mark`
+            # offsets from the planet, not from the quay — so on seed "lab8"
+            # `Fleet Hub` and `Third Silence` printed exactly on top of one
+            # another. The last candidate is used regardless: a crowded label
+            # beats a quay with no name at all.
+            lx, ly = mark.x() + 7, mark.y() - 7
+            ink = self._ink(p, lx, ly, 120, place.name, False)
+            for dy in (0, 15, -15, 30, -30):
+                moved = ink.translated(0, dy)
+                if self._room_for(moved):
+                    ink = moved
+                    break
+            p.drawText(QRectF(lx, ink.y(), 120, 13),
                        Qt.AlignmentFlag.AlignLeft, place.name)
+            self._labels.append(ink)
 
         # Other hulls. The Verge looked empty in the one view where it should
         # look busiest — nothing else had a position to draw.
-        labelled: list = []
         for hull in traffic_sim.in_system(g):
             at = self._to_screen(*traffic_sim.position(g, hull))
             tint = QColor(theme.tint("warn" if hull.hostile else "lumen"))
@@ -235,12 +295,16 @@ class OrbitChart(QWidget):
                 p.drawEllipse(at, 2.6, 2.6)
                 # Traffic converges on the quay, so labels piled on top of one
                 # another and read as one illegible smear. Name a hull only
-                # where there is room; the panel below names them all.
-                room = all(abs(at.x() - x) > 58 or abs(at.y() - y) > 11
-                           for x, y in labelled)
-                if room:
-                    labelled.append((at.x(), at.y()))
-                    p.setFont(QFont(theme.mono_family(), 6))
+                # where there is room; the panel below names them all. The
+                # room is asked of `_room_for`, which knows about the bodies
+                # and the quays as well — asking a list that held only hulls
+                # is what put `Fleet Hub` under a hull name on three of ten
+                # measured seeds.
+                p.setFont(QFont(theme.mono_family(), 6))
+                ink = self._ink(p, at.x() + 5, at.y() - 6, 110,
+                                hull.name, False)
+                if self._room_for(ink):
+                    self._labels.append(ink)
                     p.setPen(QColor(169, 194, 182, 150))
                     p.drawText(QRectF(at.x() + 5, at.y() - 6, 110, 12),
                                Qt.AlignmentFlag.AlignLeft, hull.name)

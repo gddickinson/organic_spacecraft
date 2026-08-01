@@ -397,5 +397,72 @@ def run(suite) -> bool:
             render(vid)
         return f"{len(NAV)} screens clean with no crew, no cargo, no money"
 
+    @check("no two labels on the helm's orrery print across each other")
+    def _():
+        # Asked of the painter rather than of the code: every `drawText` the
+        # chart issues is caught, turned into the rectangle its glyphs will
+        # actually occupy, and tested against the others. Measured before the
+        # fix over these ten seeds: 83 labels with 3 overlapping pairs, one of
+        # them a quay name covered 100% by a hull name. Every one was a family
+        # that could not see the other — traffic de-cluttered against traffic
+        # and against nothing else — plus two quays at one body, which
+        # `place_mark` puts at the same point (see the task on that).
+        from PyQt6.QtGui import QFontMetricsF, QPainter
+        from PyQt6.QtCore import QRectF, Qt
+
+        real = QPainter.drawText
+        caught: list = []
+        on = [False]
+
+        def spy(self, *a):
+            if on[0] and a and isinstance(a[0], QRectF) \
+                    and isinstance(a[-1], str):
+                r, flag, text = a[0], a[1], a[-1]
+                fm = QFontMetricsF(self.font())
+                w = fm.horizontalAdvance(text)
+                x = r.x() + (r.width() - w) / 2 \
+                    if flag == Qt.AlignmentFlag.AlignHCenter else r.x()
+                caught.append((QRectF(x, r.y(), w, fm.height()), text))
+            return real(self, *a)
+
+        # `lab8` is named rather than left to luck: it is the only seed in
+        # twenty-two with **two quays at one body**, and `place_mark` gives
+        # both the same point, so `Fleet Hub` and `Third Silence` printed one
+        # exactly on top of the other. Without it the stacking ladder in
+        # `_label_spot`'s successor is unguarded — proved by mutation: cutting
+        # the ladder to a single candidate left this check green on the ten
+        # `orrery` seeds alone.
+        seeds = [f"orrery{i}" for i in range(10)] + ["lab8"]
+        seen = 0
+        try:
+            QPainter.drawText = spy
+            for i in seeds:
+                probe = MainWindow(new_game(i))
+                probe.resize(1360, 880)
+                probe.dialog = lambda *a, **k: None
+                probe.confirm = lambda *a, **k: False
+                probe.go("helm")
+                chart = next((w for w in probe.findChildren(object)
+                              if hasattr(w, "place_mark")), None)
+                assert chart is not None, "the helm has no orrery to check"
+                caught.clear()
+                on[0] = True
+                chart.grab()
+                on[0] = False
+                seen += len(caught)
+                for a in range(len(caught)):
+                    for b in range(a + 1, len(caught)):
+                        one, two = caught[a][0], caught[b][0]
+                        if one.intersects(two):
+                            raise AssertionError(
+                                f"seed {i}: {caught[a][1]!r} and "
+                                f"{caught[b][1]!r} print across each other")
+                probe.close()
+        finally:
+            QPainter.drawText = real
+        assert seen > 40, f"only {seen} labels drawn over ten seeds"
+        return (f"{seen} labels over {len(seeds)} seeds, none "
+                "overlapping")
+
     win.close()
     return True
