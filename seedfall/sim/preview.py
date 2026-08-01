@@ -109,6 +109,10 @@ def _copy(conn: Conn) -> Conn:
     never open, which is exactly the lie `cleared` used to tell about which
     berth it was flying to.
 
+    `ditching` is the eleventh, and carried for the same reason as `forcing`:
+    it decides which of three endings a contact with a world has, so a twin
+    without it would forecast a chosen descent as a crash.
+
     `sheered` is deliberately *not* carried, and it is the exception that
     proves the rule about `cleared`: a twin has to know what the structure
     granted, because that decides which berth it flies to — but it may not
@@ -135,7 +139,8 @@ def _copy(conn: Conn) -> Conn:
                 berth=conn.berth, boom=conn.boom,
                 cleared=conn.cleared, watch=conn.watch, told=conn.told,
                 told_for=conn.told_for, warded_for=conn.warded_for,
-                tug=conn.tug, forcing=conn.forcing, cut=conn.cut)
+                tug=conn.tug, forcing=conn.forcing, cut=conn.cut,
+                ditching=conn.ditching)
 
 def track(conn, mode: str | None = None, ticks: int = 60,
           every: int = 6) -> list:

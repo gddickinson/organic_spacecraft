@@ -262,6 +262,7 @@ def commit(game, conn) -> dict:
 
 def _tone(conn) -> str:
     return {"alongside": "good", "orbit": "good", "collision": "bad",
+            "down": "good", "ditched": "warn",
             "aground": "bad", "adrift": "warn", "dry": "warn"}.get(
                 conn.outcome, "")
 

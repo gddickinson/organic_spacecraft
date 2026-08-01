@@ -3201,6 +3201,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berthing cannot be completed. The machinery was already there —
   `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
   you — and had no way to say no.
+- **When the obvious fix would be a lie, measure first.** The body-contact
+  branch had no speed test, so every arrival on a world was a crash. The
+  obvious repair is a rate threshold — and the drive delivers 0.071 m/s²
+  against a rocky world's 10.371, so no threshold produces a landing. The
+  right change was to name three endings and let the arithmetic say which is
+  reachable where, not to invent a number that makes the nice one possible.
+- **Two fields called `kind` in the same call chain.** `Target.kind` is what a
+  thing is to an approach (`"body"`); `Body.kind` is what sort of world it is
+  (`"rocky"`). `targets.target_from_body` carries the second through as
+  `look`. Reading the wrong one reported that every world in the sector had no
+  surface, and it looked like a data fault rather than a naming one.
 - **A memory nobody weighs is a memory nobody feels.** `forcing.grievance`
   recorded a power's reaction to being broken into with kinds `approach` and
   `forced`, and moved that power's opinion by exactly 0.00 — neither kind is in

@@ -271,7 +271,12 @@ def shape(rng, game, sysm, c: Contract, faction: str, scale: float = 1.0) -> boo
         c.title = f"Deliver {c.amount:g} intact xenolith(s)"
     else:                                   # expedition
         target = _pick_target(rng, game, sysm, far=rng.chance(0.6))
-        landable = [b for b in target.bodies if b.kind not in ("gas", "star")]
+        # `landing.kind_allows`, not a second list of the kinds that are not
+        # worlds. `BODY_KINDS` has carried the flag since the generator was
+        # written; asking the question a second way here meant the day a kind
+        # was added the two answers would quietly disagree.
+        from . import landing
+        landable = [b for b in target.bodies if landing.kind_allows(b)]
         if not landable:
             return False
         body = rng.pick(landable)

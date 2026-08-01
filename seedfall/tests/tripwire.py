@@ -162,6 +162,7 @@ KIN = {
     "bays": ("bay", "berthing"),
     "control": ("control", "berthing"),
     "forcing": ("forcing", "control", "berthing"),
+    "landing": ("setdown", "landing"),
     "life3d": ("life3d",),
     "parts3d": ("parts3d",),
     "readiness": ("readiness",),

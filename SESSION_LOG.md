@@ -2,6 +2,57 @@
 
 Running progress log. Newest first.
 
+## 2026-07-31 — SEEDFALL: you cannot land, and now the game says so
+
+Went to build "force a landing on the planet" — the last piece of the
+approach-control brief — and found the game had no landing at all. The outcome
+branch for a body had **no speed test**: every contact with a world, at any
+rate, was `aground` with quadratic damage. A perfect descent and a ballistic
+arrival were the same event.
+
+The obvious fix is a rate threshold. Measuring says the obvious fix would have
+been a lie:
+
+    rocky world   3,771 km   10.371 m/s²   one 60 s tick of freefall: 622 m/s
+    the ship this game starts you with:     0.071 m/s²
+
+**A starship in this game cannot land on a world, and never could.** A hundred
+and forty times more gravity than drive. That is not a defect — it is *why*
+`sim/expedition.py` sends a party down in a lander and the ship stays in
+orbit, a decision the code made long ago and never wrote down.
+
+So three endings where there was one. `down` — the drive held the fall.
+`ditched` — the captain chose the ground and paid. `aground` — a wreck.
+
+And the answer to "or force a landing on the planet" turns out to be a number
+rather than a rule:
+
+    Loam Rise I (12.48 m/s²): 70,972 off a 336-point hull, broken up
+    Grieve Reach V (0.059):        67, and she flies again
+
+The order can be given anywhere. Where it kills you it kills you because of
+arithmetic, which is better than a rule forbidding it.
+
+Swept six sectors: **eighteen bodies can be set down on, every one an asteroid
+or a comet.** Never a world — so the lander keeps its job.
+
+Three things flying it taught:
+
+- **A landing is a single-tick event, and the tick is a minute.** The rate
+  budget is 4 m/s and one tick of freefall on the *softest* body in the sector
+  costs 3.5. Let go from 84 m a hull arrives at 7.16 and wrecks; from 34 m it
+  arrives at 3.61 and is down.
+- **Two fields called `kind`.** `Target.kind` is `"body"` — what it is to an
+  approach — while `Body.kind` is `"rocky"`. Asking the wrong one said every
+  world in the sector had no surface.
+- **Another two-door fact closed.** `BODY_KINDS` has carried a landable flag
+  since the generator was written; `sim/contracts.py` asked the same question
+  a second way as `kind not in ("gas", "star")`.
+
+`outcome.impact_at` is new and is the point of the quote: `landing.quote` tells
+you what putting her down will cost *before* you order it, from the curve that
+charges it rather than a second copy.
+
 ## 2026-07-31 — SEEDFALL: forcing a berth, and two claims that were wrong
 
 The refusal had no answer. A structure could decline to open — no boom, no

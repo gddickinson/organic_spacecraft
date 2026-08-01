@@ -22,6 +22,24 @@ from .orbits import in_orbit, semi_major_km
 ORBIT_HEIGHT_SLACK = 0.035
 
 
+def _collision(conn, speed: float) -> dict:
+    """Both sides of a contact at this speed, off the two masses."""
+    from . import impulse
+    return impulse.collide(getattr(conn, "mass_t", 24_000.0),
+                           getattr(conn, "target_mass_t", 60_000.0),
+                           float(speed))
+
+
+def impact_at(conn, speed: float) -> float:
+    """What arriving at this speed would take out of *this* hull.
+
+    The same curve `resolve` bills, reachable without billing it — so a screen
+    can quote the cost of an act before the captain orders it, from the one
+    door rather than a second copy. Writes nothing.
+    """
+    return _collision(conn, speed)["harm_a"]
+
+
 def at_wanted_height(conn) -> bool:
     """Is this the orbit that was actually asked for?
 
@@ -110,6 +128,12 @@ def resolve(conn, *, safe_closing: float, impact_base: float,
     def hurt(speed: float) -> float:
         """What this hull takes, and what it does to the other one.
 
+        A thin wrapper on `impact_at` now, which is the same curve reachable
+        from outside this function — `sim/landing.quote` has to tell a captain
+        what putting the ship down will cost *before* they order it, and a
+        forecast worked out from a second copy of the arithmetic is exactly
+        the fault this project chased out of the docking preview.
+
         **The one door for a collision.** `impact_damage` was the whole event
         — a number off the player and nothing else — so a quay could be used
         as a backstop and a hull rammed on purpose was neither moved nor
@@ -121,10 +145,7 @@ def resolve(conn, *, safe_closing: float, impact_base: float,
         ship this game ships with meeting the hub it starts beside, and it
         still costs exactly what it always did.
         """
-        from . import impulse
-        both = impulse.collide(getattr(conn, "mass_t", 24_000.0),
-                               getattr(conn, "target_mass_t", 60_000.0),
-                               speed)
+        both = _collision(conn, speed)
         conn.struck_damage = both["harm_b"]
         conn.struck_dv = both["dv_b"]
         return both["harm_a"]
@@ -152,11 +173,31 @@ def resolve(conn, *, safe_closing: float, impact_base: float,
 
     if conn.target.kind == "body":
         if r <= hull:
-            conn.outcome = "aground"
-            conn.damage = hurt(conn.speed)
-            conn.log.append(
-                f"The hull is down on {conn.target.name} at "
-                f"{conn.speed:,.0f} m/s. That was not a landing.")
+            # **Three ways to meet a world, not one.** This branch had no
+            # speed test at all: every contact with a body, at any rate, was
+            # `aground` with quadratic damage, so a perfect descent and a
+            # ballistic arrival were the same event. See `sim/landing.py` —
+            # and note that the fix is *not* simply a threshold, because a
+            # hull's drive is fifty-two times weaker than a rocky world's
+            # gravity and no flying gets it down intact.
+            from . import landing
+            how = landing.ending(conn)
+            conn.outcome = how
+            if how == "down":
+                conn.log.append(
+                    f"Down on {conn.target.name} at {conn.speed:,.1f} m/s. "
+                    "The drive held her all the way to the surface.")
+            elif how == "ditched":
+                conn.damage = hurt(conn.speed * landing.DITCH_SHARE)
+                conn.log.append(
+                    f"Put down on {conn.target.name} at "
+                    f"{conn.speed:,.0f} m/s — nose up, under power, on a "
+                    "patch somebody chose. She is not flying off it again.")
+            else:
+                conn.damage = hurt(conn.speed)
+                conn.log.append(
+                    f"The hull is down on {conn.target.name} at "
+                    f"{conn.speed:,.0f} m/s. That was not a landing.")
             return
         # `or _dry(conn)`: an orbit you cannot improve on is the orbit you
         # have. Without it a hull that spent its tank climbing to 95% of the

@@ -227,6 +227,11 @@ class Conn:
     #: hull alongside somewhere it was refused.
     forcing: bool = False
     cut: float = 0.0
+    #: The order to put the ship down on a world it cannot land on. See
+    #: `sim/landing.py`: a hull that merely flew badly is `aground`, and only
+    #: one whose captain *chose* the ground gets credited with having flown
+    #: it in.
+    ditching: bool = False
 
     @property
     def over(self) -> bool:
