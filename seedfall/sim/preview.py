@@ -101,6 +101,14 @@ def _copy(conn: Conn) -> Conn:
     walked the hull is a record of what the station did for it, and a trial
     run may not credit them with a tow that has not happened.
 
+    `forcing` and `cut` are both carried, and they are the ninth and tenth.
+    They are state and not record by the same test as `boom`: a hull half way
+    through a collar is *in* something, and the next tick behaves differently
+    because of it — the ward is still biting and the berth is still shut. A
+    twin that forgot the cut would forecast a hull as though the hatch would
+    never open, which is exactly the lie `cleared` used to tell about which
+    berth it was flying to.
+
     `sheered` is deliberately *not* carried, and it is the exception that
     proves the rule about `cleared`: a twin has to know what the structure
     granted, because that decides which berth it flies to — but it may not
@@ -127,7 +135,7 @@ def _copy(conn: Conn) -> Conn:
                 berth=conn.berth, boom=conn.boom,
                 cleared=conn.cleared, watch=conn.watch, told=conn.told,
                 told_for=conn.told_for, warded_for=conn.warded_for,
-                tug=conn.tug)
+                tug=conn.tug, forcing=conn.forcing, cut=conn.cut)
 
 def track(conn, mode: str | None = None, ticks: int = 60,
           every: int = 6) -> list:

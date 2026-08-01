@@ -221,6 +221,12 @@ class Conn:
     #: Carried out to the sector by `sim/berthing.commit` as a knock, so a
     #: station that sheered off is off station on every screen afterwards.
     sheered: float = 0.0
+    #: The order to cut into a berth that will not open, and how far through
+    #: the cut is, 0 to 1. See `sim/forcing.py`: the order is a decision the
+    #: captain makes, and the cut is the only thing in the game that gets a
+    #: hull alongside somewhere it was refused.
+    forcing: bool = False
+    cut: float = 0.0
 
     @property
     def over(self) -> bool:
@@ -531,6 +537,11 @@ def _step(conn: Conn, dt: float) -> None:
         control.sheer_step(conn, h)
         # And the other side of it: a structure that wants you sends boats.
         control.tug_step(conn, h)
+        # And a hull that was refused and stayed anyway, cutting. The ward
+        # above does not pause for it — that is the whole of what makes a
+        # well-defended dock unforcible. See `sim/forcing.py`.
+        from . import forcing as forcing_sim
+        forcing_sim.force_step(conn, h)
         # Contact anywhere along the path, not merely at the end of it — and
         # against what is *solid*, which is not the bounding radius. See
         # `sim/bays.hull_km`: a structure's furniture is what you berth

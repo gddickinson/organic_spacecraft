@@ -408,6 +408,17 @@ class ConnWindow(QDialog):
         hint = conn_sim.orbit_note(conn)
         if hint:
             self.side.addWidget(note(hint))
+        # What the structure is doing about you. Every one of these lines was
+        # written into the sim and read by nobody but the suite: a hull could
+        # be refused, shot at, stood off from, towed or half way through a
+        # collar and the conn would say only what the last burn did. A rule no
+        # screen states is a rule the captain has to reverse-engineer.
+        from ..sim import control as control_sim
+        from ..sim import forcing as forcing_sim
+        for said in (control_sim.tug_line(conn), control_sim.refusal_line(conn),
+                     forcing_sim.force_line(conn)):
+            if said:
+                self.side.addWidget(note(said))
         # Where the nose is, and what is pushing. Until the engines had
         # places and the hull had an orientation, neither of these existed.
         from ..sim import attitude as attitude_sim

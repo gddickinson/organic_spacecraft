@@ -210,6 +210,21 @@ def commit(game, conn) -> dict:
             f"alongside — {conn.sheered * 1000:,.0f} m opened, and it is not "
             "back on station yet.", "warn")
 
+    # **And what the power holding it will remember.** Until now an approach
+    # could be hailed, warned, shot at and cut open, and the sector's politics
+    # would not have heard of any of it: `control.provoked` was written the
+    # day the ladder landed and read by nobody. `forcing.grievance` is the one
+    # door, and it is deliberately quiet below being fired on — a sector where
+    # every power bore a grudge over a radio call would have no room left for
+    # the ones that matter.
+    from . import forcing as forcing_sim
+    grief = forcing_sim.grievance(conn)
+    if grief and grief.get("faction"):
+        from . import grudge as grudge_sim
+        grudge_sim.note(game, grief["faction"], grief["kind"], grief["text"],
+                        salience=grief["salience"])
+        game.add_log(grief["text"] + " It is in their books now.", "bad")
+
     moved = None
     index = _berth_index(conn)
     if index is not None and 0 <= index < len(game.system.bodies):

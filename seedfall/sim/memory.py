@@ -74,7 +74,7 @@ WEIGHT = {
     "kindness": 14.0, "trade": 5.0, "rescue": 22.0, "contract": 8.0,
     "alliance": 16.0, "gift": 10.0,
     "slight": -9.0, "theft": -18.0, "betrayal": -30.0, "kill": -34.0,
-    "smuggling": -12.0, "trespass": -11.0,
+    "smuggling": -12.0, "trespass": -11.0, "forced": -21.0,
     "news": 0.0, "prior": 0.0, "meeting": 1.0,
 }
 

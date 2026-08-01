@@ -176,7 +176,14 @@ def withheld(conn) -> bool:
     """
     if not has_control(conn):
         return False
-    return not welcome(conn)
+    if not welcome(conn):
+        from . import forcing
+        # Unless the ship opened it itself. See `sim/forcing.py`: a hatch cut
+        # open is open, and everything downstream — the boom, `at_berth`, the
+        # whole berthing — must agree, or forcing would be a progress bar that
+        # bought nothing.
+        return not forcing.forced(conn)
+    return False
 
 
 def refusal_line(conn) -> str:
@@ -342,11 +349,6 @@ def ward_bite(conn) -> float:
         return 0.0
     held = int(getattr(conn, "warded_for", 0))
     return WARD_BITE + WARD_CLIMB * held
-
-
-def provoked(conn) -> int:
-    """How far this approach pushed a structure, for the aftermath to price."""
-    return int(getattr(conn, "told", 0))
 
 
 # ── standing off ───────────────────────────────────────────────────────────
@@ -532,3 +534,4 @@ def tug_line(conn) -> str:
     station = (getattr(said, "station", "") if said else "") or "The station"
     return (f"{station}'s boats have you. Hands off the drive — they will "
             "walk you in.")
+

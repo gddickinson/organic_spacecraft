@@ -53,6 +53,13 @@ class ConnControls(QWidget):
             grid.addWidget(btn, row, col)
             self.axis_buttons[axis_id] = btn
 
+        # The one act that gets a hull alongside somewhere it was refused. It
+        # is a button rather than a mode because it is a decision: see
+        # `sim/forcing.py` — a cut that started itself would be a
+        # chronicle-ending act nobody chose.
+        self.force_btn = button("Cut in", self._force, kind="flat")
+        grid.addWidget(self.force_btn, 2, 3)
+
         self.main_btn = button("Main drive: off", self._toggle_drive,
                                kind="flat")
         grid.addWidget(self.main_btn, 0, 3)
@@ -111,6 +118,14 @@ class ConnControls(QWidget):
 
     # ── acts ───────────────────────────────────────────────────────────────
 
+    def _force(self) -> None:
+        conn = self.window.conn
+        if conn is None:
+            return
+        from ..sim import forcing as forcing_sim
+        conn.log.append(forcing_sim.force(conn))
+        self.window.refresh()
+
     def _toggle_drive(self) -> None:
         self.use_main = not self.use_main
         self.window.refresh()
@@ -164,6 +179,23 @@ class ConnControls(QWidget):
         self._sync_heights(conn, live)
         self._sync_throttle(conn, live)
         self._sync_axes(conn, live)
+        self._sync_force(conn, live)
+
+    def _sync_force(self, conn, live: bool) -> None:
+        """Label the cut with what it would take, or why it cannot be made."""
+        from ..sim import forcing as forcing_sim
+        why = forcing_sim.forcible(conn)
+        self.force_btn.setEnabled(live and not why
+                                  and not forcing_sim.forced(conn))
+        if forcing_sim.forced(conn):
+            self.force_btn.setText("Collar cut")
+        elif getattr(conn, "forcing", False):
+            self.force_btn.setText(f"Cutting {conn.cut * 100:,.0f}%")
+        elif why:
+            self.force_btn.setText("Cut in")
+        else:
+            self.force_btn.setText(
+                f"Cut in ({forcing_sim.force_seconds(conn) / 60:,.0f} min)")
 
     def _sync_heights(self, conn, live: bool) -> None:
         # The target changes when the ship is flown somewhere, so the row is

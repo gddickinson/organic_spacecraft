@@ -3201,6 +3201,19 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berthing cannot be completed. The machinery was already there —
   `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
   you — and had no way to say no.
+- **A memory nobody weighs is a memory nobody feels.** `forcing.grievance`
+  recorded a power's reaction to being broken into with kinds `approach` and
+  `forced`, and moved that power's opinion by exactly 0.00 — neither kind is in
+  `memory.WEIGHT`, which is the table that turns a note into a feeling. Same
+  shape as "declared and unconsumed", one level up: the record was written, and
+  the thing that reads records did not recognise it.
+- **State the price, not the refusal.** Two claims about forcing a capital port
+  were wrong, and flying each one said so: it *can* be cut into (half an hour,
+  243 hull), and a starting hull *does* live through it (93 of 336, on its last
+  two layers, inside a port it has just broken into). Nothing in a defence
+  system should refuse an act outright when arithmetic will do it — and the
+  arithmetic must come from one number, `control.means`, which buys the guns
+  and the time they have to fire together.
 - **Carry the state, leave the record.** The rule `preview._copy` took nine
   fields to make sayable. `boom` and `tug` are how far a structure's equipment
   has come out and decide what the next tick does, so a forecast's twin carries

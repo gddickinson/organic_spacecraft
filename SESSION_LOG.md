@@ -2,6 +2,67 @@
 
 Running progress log. Newest first.
 
+## 2026-07-31 — SEEDFALL: forcing a berth, and two claims that were wrong
+
+The refusal had no answer. A structure could decline to open — no boom, no
+hatch, no lines — and a captain determined to get in had exactly the same
+options as one who had never been refused. That made the refusal a wall rather
+than a decision, and made every defence stacked above it decoration on a wall
+that already held.
+
+`sim/forcing.py` is the answer back, and **it is not a die roll**. Forcing is
+holding station on somebody's fitting and cutting into it: ten minutes at a
+structure with nothing much to stop you, half an hour at a capital, and the
+ward does not pause while you do it.
+
+**The first claim was wrong.** I asserted a capital port could not be forced.
+Flown, the cut went through in half an hour while the hull took 243. Nothing
+in the design refuses it and nothing should — what stops you is arithmetic.
+
+**The second claim was wrong too.** I then asserted you do not survive it.
+Measured: a starting hull comes away with 93 of 336, alive, on its last two
+layers, *inside a capital port it has just broken into*. Which is worse than
+dying, and is the actual answer. So the check states the price rather than a
+refusal:
+
+    capital: 243 hull, 93 of 336 left — inside, on the last layers
+    quay:     13 hull, 323 of 336
+
+An 18× difference, and the same `means` buys the guns *and* the time they have
+to fire, so the two halves cannot drift apart into separate difficulty knobs.
+
+Three things fell out of flying it:
+
+- **The station turns.** The first draft parked a hull exactly on a fitting and
+  watched it slide off at 40% cut. Cutting is station-keeping on a moving
+  collar, and costs reaction mass on top of hull — 0.198 t for the ten-minute
+  case. That is not a defect, it is what the act is.
+- **A standoff berth cannot be forced at all.** There is nothing to cut: the
+  boom is inboard and a hull in open space has nothing to get hold of. Falls
+  out of the physics rather than being a rule, and gives a kind of dock a real
+  defensive property it did not have.
+- **A memory nobody weighs is a memory nobody feels.** The grievance went in
+  with kinds `approach` and `forced`, neither in `memory.WEIGHT`, and moved a
+  power's opinion by exactly 0.00 in both directions. `trespass` and a new
+  `forced: -21.0` fixed it: charter now goes +0.00 → −42.00 and can name the
+  day.
+
+And it closed a live orphan: **`control.provoked` was written the day the
+ladder landed and read by nobody at all.** The reachability guard missed it
+because an unrelated local variable in `sim/threat.py` is also called
+`provoked` — a bare name credits every module that has one. It has a reader
+now: `forcing.grievance`, the one door between an approach and the sector's
+memory, deliberately silent below being fired on.
+
+Also wired what was already there and invisible: the conn now shows the tug
+line, the refusal and the cut, and has a **Cut in** button that says what it
+would take. Every one of those lines had been written into the sim and read by
+nothing but the suite.
+
+`sim/control.py` hit 704 lines and split — the forcing section is its own
+module, which is the right seam anyway: control is what a dock does about you,
+forcing is what you do about a dock.
+
 ## 2026-07-31 — SEEDFALL: the boats come out for a hull that asked
 
 The other side of approach control. Everything built for it so far is what a
