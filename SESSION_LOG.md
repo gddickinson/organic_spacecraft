@@ -2,6 +2,52 @@
 
 Running progress log. Newest first.
 
+## 2026-08-01 — SEEDFALL: a fence is a distance, because it cannot be a place
+
+#118, the half of #111 that was not built. Taken because #114 and #115 are
+blocked on the clock, and **#119 is blocked the same way** — making repair a
+rate heals more per rest, which is exactly the burn-cost problem that forced
+the revert last cycle.
+
+**The obvious design is impossible, and measuring said so before I wrote it.**
+The task asks for raider presence to feed the local black market.
+`piracy.lawlessness` counts a dock as law, so a system with a port is never
+lawless enough for raiders — and a market *is* a port. Measured across six
+sectors: 28 systems carry raiders and **not one has a port**. The two are
+disjoint by construction. The local signal is flat too: every market in the
+game sits at lawlessness 0.00 to 0.06.
+
+What is not flat is the distance from a market to where hulls are actually
+being taken — 5.3 to 44.6 across three sectors, median 16.9. Stolen cargo
+travels, so `piracy.fence_pull` is a *reach*, not a reading.
+
+What it buys, measured on one sector:
+
+    pull 0.00  pays 7,800  absorbs 15.0  →  117,000 a visit
+    pull 0.47  pays 6,509  absorbs 32.5  →  211,542 a visit
+
+Seventeen per cent off the tonne, twice the tonnage, and the visit worth 1.8
+times as much — so a full hold goes in one call instead of four, and a policed
+capital pays top price for as much as it can quietly take, which is not much.
+Across six sectors: 52 markets, 30 of them part-fenced, spanning 0.00 to 0.76.
+
+Before this the quiet word was **one price everywhere**: `premium` read the
+regime and the heat and nothing about where the ship was standing, so a
+Charter capital and a Charter outpost paid identically. One power now shows
+five different prices for one good across its own berths, 7,338 to 9,256.
+
+Graded on purpose rather than gated: making the reach a switch is one of the
+three mutations, and it goes red. That is the mistake `piracy` itself made a
+few cycles back — a cliff where a slope belonged — and it is not worth making
+twice.
+
+Three mutations run, three red. And I made the same tripwire mistake as two
+cycles ago — a duplicate `customs` row where the later silently wins. The
+harness guard caught it again, which is twice it has earned its keep on my
+carelessness rather than on anybody else's code.
+
+Full suite green at 1,220 checks.
+
 ## 2026-08-01 — SEEDFALL: #117 was wrong on both counts, and the sort it doubted was unguarded
 
 Taken ahead of #114–#116 because those are blocked on the clock, and because

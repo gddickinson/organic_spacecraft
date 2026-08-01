@@ -25,6 +25,22 @@ BURNED = 1.0
 #: out or not — ended down. Laying off for a season now actually clears you.
 COOLING = 0.013
 
+#: How far a fence knocks the price down where stolen cargo is arriving.
+#:
+#: A third at the very edge of raider country, nothing out on the safe lanes.
+#: The point is that the quiet word is not one price everywhere: it used to
+#: pay identically at a Charter capital and a Charter outpost, because nothing
+#: in it knew where you were standing.
+FENCE_GLUT = 0.35
+
+#: How much more a practised fence can move, at the same place.
+#:
+#: The trade this makes: near the raiding you are paid about three quarters
+#: and can shift roughly twice as much, so a full hold goes in one visit
+#: instead of four and the total is better — while a policed capital pays top
+#: price for as much as it can quietly take, which is not much.
+FENCE_CHANNEL = 1.0
+
 
 def regime(faction: str | None):
     return REGIMES_BY_FACTION.get(faction or "")
@@ -80,7 +96,14 @@ def premium(game, faction: str | None, cid: str) -> int | None:
     if good is None:
         return None
     nerve = max(0.55, 1.0 - heat(game, faction) * 0.45)
-    return max(1, round(good.base * (1.15 + reg.zeal * 0.7) * nerve))
+    # And what is already on the wharf. A market close to where hulls are
+    # being taken is a market with somebody else's cargo in it already, and
+    # that is the half of contraband the game never had — see
+    # `piracy.fence_pull`, and note it is a *distance*, because raiders never
+    # work a system with a port and so can never supply one directly.
+    from . import piracy as piracy_sim
+    glut = 1.0 - FENCE_GLUT * piracy_sim.fence_pull(game, game.system)
+    return max(1, round(good.base * (1.15 + reg.zeal * 0.7) * nerve * glut))
 
 
 # ── who looks ──────────────────────────────────────────────────────────────
@@ -116,7 +139,13 @@ def absorbs(game, faction: str | None) -> float:
     """
     port = game.system.port
     level = port.level if port else 1
-    return round(6 + 9 * level * max(0.4, 1 - heat(game, faction) * 0.5), 1)
+    # A place used to handling stolen cargo has the people and the paperwork
+    # to move more of it, which is the other side of `FENCE_GLUT`: near the
+    # raiding you are paid less and can shift far more.
+    from . import piracy as piracy_sim
+    channel = 1.0 + FENCE_CHANNEL * piracy_sim.fence_pull(game, game.system)
+    return round(6 + 9 * level * max(0.4, 1 - heat(game, faction) * 0.5)
+                 * channel, 1)
 
 
 def value(game, faction: str | None) -> float:

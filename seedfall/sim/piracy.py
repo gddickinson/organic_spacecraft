@@ -152,6 +152,43 @@ def raider_chance(game, system) -> float:
 
 
 
+#: How far stolen cargo will travel to find a buyer, in sector units.
+#:
+#: Measured against what the sector actually offers: across three sectors the
+#: distance from a market to the nearest system raiders work runs 5.3 to 44.6
+#: with a median of 16.9. At 20 the nearest markets sit at about three
+#: quarters pull and the median one at a sixth, so a fence is a property of a
+#: few places rather than a flat discount everywhere.
+FENCE_REACH = 20.0
+
+
+def fence_pull(game, system) -> float:
+    """How much stolen cargo reaches this market, 0 (none) to 1 (a flood).
+
+    **The other half of piracy, and it cannot live where the raiders are.**
+    Measured: raiders never work a system with a port — `lawlessness` sees to
+    that — and a market is a port. The two are disjoint by construction, so
+    "raider presence feeds the local black market" describes something that
+    can never happen.
+
+    What can happen is that the cargo travels. This is a market's *distance*
+    from where hulls are actually being taken, which is a real and well-spread
+    quantity where the local one is flat: every market in the game sits at
+    lawlessness 0.00 to 0.06.
+    """
+    from . import traffic as traffic_sim
+    here = (getattr(system, "x", 0.0), getattr(system, "y", 0.0))
+    near = None
+    for other in getattr(game, "galaxy", None).systems:
+        if not traffic_sim.hostiles(game, other):
+            continue
+        gap = math.dist(here, (other.x, other.y))
+        near = gap if near is None else min(near, gap)
+    if near is None:
+        return 0.0
+    return max(0.0, min(1.0, 1.0 - near / FENCE_REACH))
+
+
 def note(game, system) -> str:
     """One line on how well kept this system is, for a screen to print."""
     loose = lawlessness(game, system)

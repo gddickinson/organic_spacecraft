@@ -3201,6 +3201,13 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berthing cannot be completed. The machinery was already there —
   `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
   you — and had no way to say no.
+- **When two things can never coincide, the link between them is a distance.**
+  #118 wanted raider presence to feed the local black market, and raiders never
+  work a system with a port while a market *is* a port — 28 raided systems
+  across six sectors, none of them docked. The signal that works is how far a
+  wharf is from where hulls are being taken (5.3 to 44.6, median 16.9), because
+  stolen cargo travels. Check whether the two populations overlap before
+  designing a local reading.
 - **Measure through the door the game uses, not the one underneath it.**
   "Founding is free" survived a whole task description because it was measured
   by calling `exchequer.found()` directly. The game never does: `_invest` pays
