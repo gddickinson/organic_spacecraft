@@ -3201,6 +3201,21 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berthing cannot be completed. The machinery was already there —
   `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
   you — and had no way to say no.
+- **A new authority should be one branch, not a second ladder.** Giving worlds
+  the right to object needed `control.welcome` to learn a single rule — *a
+  world minds the descent, not the orbit* — and every rung, the patience, the
+  ward, the grievance and the aftermath came free. The temptation was a
+  parallel `interdiction.step`, which would have been a second copy of five
+  tuned constants.
+- **Measure a threshold against the distribution it will meet.** "Somebody
+  will defend a seam worth 0.35" made 93% of the sector armed, because every
+  home system has a claimant and the median best seam is 0.72. The fix was not
+  a better number but a *gradient* — what the seam is worth decides whether
+  they shoot or only talk — checked against the generator's own quartiles.
+- **A thing that hides must hide from the readout too.** `interdiction.line`
+  warns about settled and worked worlds and says nothing about a quiet site.
+  A screen that named it would give away what the sim is keeping, which is the
+  same fault as a forecast that quotes a figure the act cannot produce.
 - **When the obvious fix would be a lie, measure first.** The body-contact
   branch had no speed test, so every arrival on a world was a crash. The
   obvious repair is a rate threshold — and the drive delivers 0.071 m/s²

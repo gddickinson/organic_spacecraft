@@ -2,6 +2,52 @@
 
 Running progress log. Newest first.
 
+## 2026-07-31 — SEEDFALL: the worlds get a say, and most of them are empty
+
+`sim/control.py` gave a structure the right to hail, warn, fire on and refuse a
+hull. **The worlds themselves had no say in any of it** — you could come down
+on somebody's colony and the only thing that ever objected was gravity.
+
+What made it cheap was refusing to write a second ladder. A world gets the
+whole of approach control — the rungs, the patience, the ward that climbs, the
+grievance that reaches the sector's memory — by answering the two questions
+that machinery already asks. **One line distinguishes the two authorities**,
+and it is the character of the whole feature:
+
+    A world does not mind you in orbit. It minds you coming down.
+
+A station's question is which berth you were given. A world has no berths and
+no opinion whatever about the sky above it, right up until a hull starts down
+through it. So `control.welcome` learned one branch and everything else was
+already built.
+
+**And most defended worlds turn out to be ones nobody lives on**, which was the
+better half of the idea and came from George mid-build: corporations and
+governments protecting seams, and secret installations. Three kinds of claim,
+asked in one order that matters — **people, then property, then secrets**:
+
+    worked/2  44%   somebody is working it; a radio call and no more
+    worked/3  29%   a seam worth a battery
+    open      24%
+    quiet/4    3%   a site nobody admits to
+
+The first draft made **93% of bodies armed**: one threshold at 0.35 against a
+generator whose median best seam is 0.72, in a sector where every home system
+already has a claimant. A sky where nearly everything shoots teaches one rule
+and then stops being read. Two figures at the quartiles fixed it, and made the
+seam's *value* decide whether you get a battery or a radio.
+
+The quiet sites are the part I like. `Claim.floor` starts one at the ward, so
+**it does not hail** — the first you hear of it is being fired on. It names no
+power, so there is nobody to bear the grudge. And `interdiction.line` says
+nothing about it, deliberately: a readout that warned would hand over exactly
+what the sim is keeping. Never on a body worth digging, because that is where
+you would *not* put one.
+
+Everything is derived — no new stored state. The same rock is the same secret
+across a reload and across five draws off the game's own luck, which is the
+discipline `sim/anchorage` uses for a quay's whole existence.
+
 ## 2026-07-31 — SEEDFALL: you cannot land, and now the game says so
 
 Went to build "force a landing on the planet" — the last piece of the

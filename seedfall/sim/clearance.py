@@ -88,8 +88,20 @@ def request(game, contact, conn=None) -> Clearance:
         return Clearance(False, "Nothing selected.")
     kind = getattr(contact, "kind", "")
     if kind in ("body", "star"):
-        return Clearance(False, f"{contact.name} is a world. You orbit it; "
-                                "there is nothing to tie up to.")
+        # **A settled world names whoever is on it**, and that is the whole of
+        # how it gets a say. `control.has_control` asks whether anybody spoke;
+        # an empty world says nothing and can be flown at as freely as it
+        # always could, while one with a settlement on it is a place with
+        # somebody in charge of the sky. What they do about it is
+        # `sim/interdiction.py`, and they do nothing at all about an orbit.
+        from . import interdiction
+        who = interdiction.claim(game, contact)
+        return Clearance(
+            False, f"{contact.name} is a world. You orbit it; "
+                   "there is nothing to tie up to."
+            + (f" {who.name} is down there and watching."
+               if who is not None else ""),
+            station=(who.name if who is not None else ""))
     if kind == "point":
         return Clearance(False, "There is nothing there to dock with.")
     if getattr(contact, "hostile", False):

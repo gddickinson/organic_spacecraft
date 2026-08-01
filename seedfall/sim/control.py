@@ -140,7 +140,21 @@ def cleared_for(conn) -> str:
 
 
 def welcome(conn) -> bool:
-    """Is this hull here with permission?"""
+    """Is this hull here with permission?
+
+    **A world does not mind you in orbit. It minds you coming down.** That is
+    the whole difference between a structure's authority and a settlement's,
+    and it falls out of what each is: a station's question is which berth you
+    were given, and a world has no berths and no opinion whatever about the
+    sky above it — right up until a hull starts down through it.
+
+    So the same ladder serves both. Nothing here is a second copy of the
+    hailing, the warning, the ward or the grievance; a settled world simply
+    stops being welcoming at the moment the order to descend is given.
+    """
+    if getattr(getattr(conn, "target", None), "kind", "") == "body":
+        from . import landing
+        return not (has_control(conn) and landing.ditching(conn))
     return not has_control(conn) or bool(cleared_for(conn))
 
 
@@ -259,6 +273,9 @@ def means(game, contact) -> int:
     in the system is warding it. A wayside quay can shout and no more.
     """
     kind = getattr(contact, "kind", "")
+    if kind == "body":
+        from . import interdiction
+        return interdiction.means(game, contact)
     if kind != "anchorage":
         return 0
     system = getattr(game, "system", None)
@@ -282,10 +299,39 @@ def post(game, contact) -> dict:
     loop in `sim/conn` can escalate without reaching for a world it has no
     handle on.
     """
-    faction = getattr(contact, "faction", None)
+    faction = getattr(contact, "faction", None) or _behind(game, contact)
     rep = float(getattr(game, "rep", {}).get(faction, 0.0)) if faction else 0.0
     return {"means": means(game, contact), "grace": max(
-        1, round(GRACE * patience_for(rep))), "faction": faction}
+        1, round(GRACE * patience_for(rep))), "faction": faction,
+        "floor": _floor(game, contact)}
+
+
+def _behind(game, contact) -> str:
+    """Which power answers for a world, for the aftermath to bill.
+
+    A `Contact` for an anchorage carries its own `faction`; one for a body
+    carries nothing, because until `sim/interdiction.py` no world answered for
+    itself. So the claim supplies it, and the whole political tail — the
+    grievance, the standing, the memory that can name the day — reaches a
+    captain who shot their way down onto somebody's workings.
+
+    Empty for a quiet site, deliberately: `Claim.who` is "" for a thing nobody
+    admits to, so there is nobody to bear the grudge. Surviving one leaves no
+    record anywhere, which is most of what makes it frightening.
+    """
+    if getattr(contact, "kind", "") != "body":
+        return ""
+    from . import interdiction
+    said = interdiction.claim(game, contact)
+    return said.who if said is not None else ""
+
+
+def _floor(game, contact) -> int:
+    """The rung this authority opens at. Zero for anything that hails first."""
+    if getattr(contact, "kind", "") != "body":
+        return 0
+    from . import interdiction
+    return interdiction.floor(game, contact)
 
 
 def haste(conn) -> float:
@@ -330,9 +376,15 @@ def step(conn, closing_in: bool) -> str:
         return ""
     conn.told_for = 0
     ceiling = int(watch.get("means", 0))
-    if conn.told >= ceiling:
+    # **Not everything hails.** A structure works up the ladder a rung at a
+    # time because it wants you to stop; a thing that would rather not be
+    # looked at opens where it means to finish. `floor` is zero for every
+    # station in the game and nonzero only for what `sim/interdiction.py`
+    # calls a quiet site — see `Claim.floor`.
+    start = max(int(conn.told), int(watch.get("floor", 0)) - 1)
+    if start >= ceiling:
         return ""
-    conn.told = min(ceiling, int(conn.told) + 1)
+    conn.told = min(ceiling, start + 1)
     said = getattr(conn, "cleared", None)
     station = (getattr(said, "station", "") if said else "") or "The station"
     return SAID.get(conn.told, "").format(station=station)
