@@ -3201,6 +3201,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berthing cannot be completed. The machinery was already there —
   `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
   you — and had no way to say no.
+- **Power the measurement before you encode it.** `ventures` measured 0.400
+  against 0.500 over sixty trials and became a check pinning that gap; at two
+  hundred trials it is 0.505 against 0.540, half a standard error. Noise
+  written into a guard is worse than no guard, because it reads as evidence
+  and the next person believes it. If a check asserts a difference, it owes a
+  standard error.
+- **A deterministic driver decides nothing about a stochastic tick.** The
+  sweep's stateless generator makes `chance(p)` a threshold that clears in
+  both runs or neither — so it flagged `approach` and `ventures` as per-call
+  when both are identical in play. Ticks that draw randomness have to be
+  judged by trials; only ticks that draw none can be judged by structure.
 - **Lazily built state records when it was first asked for.** `exchequer.purse`
   is born carrying `settled = game.day`, so any comparison that advances the
   clock before the first call starts the two runs from different stored state.

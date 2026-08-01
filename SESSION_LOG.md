@@ -2,6 +2,47 @@
 
 Running progress log. Newest first.
 
+## 2026-08-01 — SEEDFALL: the last two were never broken, and one of my guards was
+
+#116's list was two. It is nought, and not because I fixed them.
+
+**I set out to fix `approach` and `ventures` and could not make either budge.**
+Both roll a probability scaled by the span, so the obvious repair is to
+compound rather than multiply — `1 - (1 - p)**days` instead of `p * days`,
+which is distributionally identical to rolling `p` on each day. It changed
+nothing, and the arithmetic says why: at exactly thirty days the two forms
+give the same number. The measurement had to be wrong, not the code.
+
+It was. Under a **real** generator, 200 trials a side, one call of thirty days
+against thirty of one:
+
+    ventures   0.505 ± 0.045 live   against   0.540 ± 0.047   (0.5 s.e.)
+    approach   0.905 ± 0.021 sent   against   0.895 ± 0.022   (0.3 s.e.)
+
+Neither is a difference. Both were **false positives of my own sweep**, which
+drives every tick with a stateless generator so that only structure shows —
+and that turns `chance(p)` into a threshold clearing in both runs or neither,
+depending on nothing but whether `p` lands above a half.
+
+**Worse: last cycle I asserted the opposite off sixty trials.** `ventures`
+measured 0.400 against 0.500 and I wrote a check pinning that gap. At 200
+trials it is half a standard error. An under-powered measurement encoded as a
+guard is worse than no guard, because it reads as evidence — and I had already
+written the note about validating instruments twice over.
+
+So `test_ticks` now judges by structure only the five ticks that draw no
+randomness, and sends the nine that do to a trials check under a real
+generator, which asserts they **agree** within three standard errors. The
+per-call list is empty.
+
+    judged by structure   5 ticks, 0 per call
+    judged by trials      9 ticks, all agreeing
+    fixed this cycle      none — two were never broken
+
+The clock's remaining blocker is #121 alone.
+
+Full suite green at 1,230 checks.
+
 ## 2026-08-01 — SEEDFALL: the exchequer keeps a cadence, and the sweep had two blind spots
 
 #116's list was three; it is one. But the interesting part is that the guard
