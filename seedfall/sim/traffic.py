@@ -112,10 +112,22 @@ def _busyness(game, system) -> int:
     return min(6, base)
 
 
-def _errand_for(rng, system, slot: int, hostile_ok: bool) -> str:
+def _errand_for(rng, system, slot: int, raider_odds: float) -> str:
+    """What this hull is out here doing.
+
+    **How likely a raider is scales with the law**, rather than being a flat
+    chance behind a yes/no gate. The old line was `0.18 + bloom * 0.5` — and
+    the Bloom is already inside `piracy.lawlessness`, so a bloomed system was
+    counted twice for the same reason.
+
+    A cliff also placed piracy badly: gating on lawlessness alone dropped
+    raiders from 26 systems in 252 to 9, because the least policed systems are
+    the portless ones and those carry about one hull each. Scaling means the
+    worst places carry more of them and the merely quiet places carry a few,
+    which is what "where the law is not" should actually look like.
+    """
     port = getattr(system, "port", None)
-    bloom = getattr(system, "bloom", 0)
-    if hostile_ok and rng.chance(0.18 + bloom * 0.5):
+    if raider_odds > 0.0 and rng.chance(raider_odds):
         return "raider"
     if port is None:
         return "prospector"
@@ -141,15 +153,21 @@ def in_system(game, system=None) -> list:
         return []
 
     quay_body, quay_index = anchorage_sim.anchor_body(system)
-    hostile_ok = getattr(system, "port", None) is None \
-        or getattr(system, "bloom", 0) > 0.15
+    # **Whether raiders can work here is a question about the law**, and it
+    # used to be a question about `port`. See `sim/piracy.lawlessness`: a
+    # squadron on station, a dock, a claim, the distance from the nearest
+    # capital and the Bloom, in one number that `sim/encounters` reads too —
+    # so a system cannot be lawful enough to keep raiders out and dangerous
+    # enough to jump you at the same time.
+    from . import piracy as piracy_sim
+    raider_odds = piracy_sim.raider_chance(game, system)
     out = []
     taken: set = set()
     for slot in range(count):
         # Seeded on the system and the slot only, so identity is stable for
         # the life of the chronicle.
         rng = RNG(f"traffic:{system.id}:{slot}")
-        errand = _errand_for(rng, system, slot, hostile_ok)
+        errand = _errand_for(rng, system, slot, raider_odds)
 
         faction = None
         if errand == "patrol":

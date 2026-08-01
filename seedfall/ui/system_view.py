@@ -49,7 +49,9 @@ class SystemView(View):
         # out-shipped over its own holding — and until this line the game
         # computed that and showed it nowhere.
         from ..sim import fleets as fleets_sim
-        self.col.addWidget(note(fleets_sim.note(g, sys)))
+        from ..sim import piracy as piracy_sim
+        self.col.addWidget(note(fleets_sim.note(g, sys) + " "
+                                + piracy_sim.note(g, sys)))
 
         if sys.bloom > 0.02:
             p = Panel("Unlicensed growth in this system", "warn")

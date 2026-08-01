@@ -2,6 +2,64 @@
 
 Running progress log. Newest first.
 
+## 2026-08-01 — SEEDFALL: raiders where the law is not
+
+#111. Raiders already existed — `traffic` gave one in ten systems an unmarked
+hull and `encounters` made it the thing that jumps you. What did not exist was
+any reason for them to be *where they are*. **One fact, two doors, both reading
+the same field:**
+
+    traffic:    hostile_ok = system.port is None or system.bloom > 0.15
+    encounters: danger     = bloom*0.9 + (0.04 if port else 0.14) + 0.09·dark
+
+Measured across 252 systems in six sectors: raiders in 25 of 127 portless
+systems and 1 of 125 with a port. They already avoided a squadron — 17% at
+nothing on station against 0–2% elsewhere — but that correlation was an
+accident, because both questions read `port` and a fleet had nothing to do with
+either.
+
+`sim/piracy.lawlessness` is the one quantity now: a squadron on station, a
+dock, a claim, the distance from the nearest capital, and the Bloom. Both doors
+read it, so a system cannot be lawful enough to keep raiders out and dangerous
+enough to jump you at the same time.
+
+**Result: 28 systems of 252 against the old 26, and not one of them guarded or
+docked.** Piracy did not get more common; it got somewhere for a reason.
+
+**Two wrong turns, both from measuring.**
+
+*The scale piled up against its own ceiling.* At `WILD = 0.72` the quantiles
+ran p60 0.80 to p90 0.91 — thirty per cent of the sector inside a tenth of the
+range — so the number carried almost no information and the raider threshold
+had to sit at 0.92 to mean anything. At 0.45 it spreads: p25 0.03, p50 0.39,
+p75 0.58, p90 0.64.
+
+*A cliff placed piracy worse than the thing it replaced.* Gating on lawlessness
+alone dropped raiders from 26 systems to **9** — because the least policed
+systems are the portless ones and they carry about one hull each, so a yes/no
+gate over thin traffic produces almost nothing. Scaling the chance *within* the
+gate put it back to 28: the worst places carry more raiders rather than merely
+being allowed one. That also subsumed the Bloom term, which had been counted
+once in `lawlessness` and again in the raider roll.
+
+And I introduced a two-door fault of my own on the way through and had to close
+it: `traffic` compared `lawless >= piracy_gate()` while `piracy.raiders_work`
+was the same expression, with the floor and the slope in different files.
+`piracy.raider_chance` is the single door now, and `RAIDER_SHARE` lives with
+piracy rather than with traffic, because it is a fact about piracy.
+
+The dynamic that justifies connecting this to #110, measured: Amber's Wake at
+guard 1 reads 0.04, and with every holding of its power gone independent it
+reads **0.24** — a power that can no longer pay for hulls stops policing. It
+does not become a haven, because the dock and the claim still hold it down,
+which is right.
+
+Four mutations run, four red. And the reachability guard I sharpened two
+cycles ago earned its keep on my own code: it caught `piracy.raiders_work`,
+sugar over `raider_chance > 0` that nothing called. Deleted.
+
+Full suite green at 1,209 checks.
+
 ## 2026-07-31 — SEEDFALL: an order of battle, and three things the measuring found
 
 #110. The powers have real purses — income, outlay, a margin, and they found

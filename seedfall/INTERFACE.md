@@ -3201,6 +3201,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berthing cannot be completed. The machinery was already there —
   `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
   you — and had no way to say no.
+- **A gate over thin traffic produces nothing.** Replacing the raider gate
+  with a lawlessness threshold dropped piracy from 26 systems to 9 — because
+  the least policed places are the portless ones and they carry about one hull
+  each, so a yes/no test had almost nothing to act on. A *slope* inside the
+  gate put it back to 28. When a rule fires on a population, look at how big
+  that population is before deciding the rule is right.
+- **Correlation that comes from a shared input is not a relationship.**
+  Raiders already avoided squadrons — 17% at nothing on station against 0–2%
+  elsewhere — and it meant nothing: `traffic.hostile_ok` and `fleets` both read
+  `port`. Two numbers agreeing because they read the same field is the shape a
+  one-door violation makes when you look at its output instead of its source.
 - **Two constants the data can never separate are one constant.**
   `fleets.CAPITAL_WEIGHT` tripled a capital's share of a fleet, and every
   capital in the game is level 3 while no ordinary port ever is — so it and

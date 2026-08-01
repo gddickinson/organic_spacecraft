@@ -211,6 +211,16 @@ def make_enemy(rng, faction_id: str, difficulty: float = 1.0) -> dict:
     }
 
 
+#: How much of the chance of being jumped is simply how badly kept the system
+#: is. The rest is what is actually on the chart — see `roll_encounter`.
+#:
+#: Calibrated to leave a well-kept system about where it was: the old term was
+#: 0.04 with a port and 0.14 without, and lawlessness runs 0 to 1 with a
+#: quarter of systems under 0.03, so 0.20 puts a policed capital under 0.01
+#: and the far edge above 0.13 before anything on the chart is counted.
+LAW_WORTH = 0.20
+
+
 def roll_encounter(game, system, rng):
     """Does anything happen when you arrive? Returns an encounter dict or None.
 
@@ -221,8 +231,14 @@ def roll_encounter(game, system, rng):
     """
     from . import traffic as traffic_sim
 
+    from . import piracy as piracy_sim
+
     dark = traffic_sim.hostiles(game, system)
-    danger = (system.bloom * 0.9 + (0.04 if system.port else 0.14)
+    # The same law `sim/traffic` asks about before it puts an unmarked hull
+    # here at all. This used to be its own arithmetic over the same field —
+    # `0.04 if system.port else 0.14` — so the two could disagree about the
+    # same volume and nothing would notice.
+    danger = (piracy_sim.lawlessness(game, system) * LAW_WORTH
               + 0.09 * len(dark))
     if not rng.chance(min(0.7, danger)):
         return None
