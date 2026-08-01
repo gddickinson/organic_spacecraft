@@ -10951,3 +10951,29 @@ file crossing, and the `window.py` split being undone.
 - **A heredoc turned `\n` into a literal backslash-n** and `ast.parse` refused
   the file before it was written, which is the only reason nothing was
   corrupted. Parse before writing, always.
+
+## conn_window comes under the line, and the Pilot screen's last blocker goes
+
+`ui/conn_window.py` 508 → **466**, and off the ratchet. Fifteen files remain
+named.
+
+The seam is a real one rather than a convenient one: **which contact the conn
+should open on** is a policy question, and the window around it is plumbing.
+`ui/conn_targets.py` holds `default_target` and the `DEFAULT_ORDER` it reads —
+and the Pilot screen (#137) needs the same answer for what to show and what to
+offer, so this is a door two screens share rather than a private helper of one.
+`conn_window` re-exports the name, because two checks import it from there and
+moving a name is not the point of a split.
+
+### Wrong turns worth keeping
+
+- **The split broke five checks twice, for the same reason each time:** a moved
+  function needs what it reads moved with it. First `berth_sim`, which
+  `default_target` calls and the new module did not import. Then
+  `DEFAULT_ORDER`, the constant it ranks contacts by, still sitting in
+  `conn_window`. Both were invisible until the suite ran — the module imported
+  cleanly either way, because the names are only touched inside the function.
+  A split is not done when it parses.
+- The comment block above `DEFAULT_ORDER` went with it. A constant whose
+  reasoning stays behind in another file is a constant nobody will understand
+  the next time it is questioned.

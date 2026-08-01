@@ -259,7 +259,6 @@ def run(suite: Suite) -> None:
             "tests/test_industry.py": 520,
             "tests/test_orbits.py": 567,
             "tests/test_robots.py": 624,
-            "ui/conn_window.py": 508,
             "ui/map_view.py": 526,
             "ui/viewport.py": 535,
             "ui/widgets.py": 517,
