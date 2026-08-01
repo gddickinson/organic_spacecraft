@@ -10050,3 +10050,54 @@ Filed #128: `place_mark` offsets from the *planet*, so two quays at one body get
 the same point. The labels are fixed; the marker is still single, which means
 the chart shows one station where there are two and one of them cannot be
 clicked at all.
+
+## Every quay gets its own mark, and its own mark selects it (#128)
+
+`ui/orbit_chart.place_mark` offset from the **planet**, not the quay, so every
+anchorage sharing a `body_index` landed on the same point. Measured across 22
+seeds, one has it: `lab8` puts `Fleet Hub` and `Third Silence` both at body 0 of
+Marrow Fall, at exactly (517.25, 211.07) — **2 anchorages, 1 distinct mark**.
+
+It serves the painter and the hit test alike, which is the right shape, so both
+were wrong together. `mousePressEvent` takes the nearest mark under 13 px with a
+strict `d < pd`, so the second quay tied and lost every time. Measured by
+driving a real `QMouseEvent` at each quay's own mark:
+
+    clicking Fleet Hub's own mark     -> 'port-21'   OK
+    clicking Third Silence's own mark -> 'port-21'   WRONG
+
+`Third Silence` could not be selected from the chart at all.
+
+Quays now fan around their body on a fixed quarter-turn step, sorted by id.
+Seat 0 sits exactly where the single offset used to, so every body with one
+quay — nearly all of them — draws unchanged. On `lab8` the two marks are now
+**22.0 px apart against a 13 px hit radius**, and both select correctly at their
+own mark and 4 px either side of it.
+
+`QUAY_HIT = 13.0` was a bare number in the hit test and nowhere else, so nothing
+could check the fan against the very thing the fan exists to clear. It is named
+now and the check reads it.
+
+### The 500-line rule, broken by me and then fixed
+
+`ui/helm_view.py` was 471 lines before this session. **My #127 commit took it to
+535 and I did not notice**; #128 would have made it 579. Split: the chart moved
+to `ui/orbit_chart.py` (376 lines) and `helm_view.py` came back to 234, with
+fifteen now-dead imports removed. The orrery's checks moved with it into a new
+`tests/test_orrery.py`, which also brought `test_ui.py` back from 468 to 401.
+
+### Wrong turns worth keeping
+
+- **A mutation that does not parse is not a mutation.** Reversing the sort in
+  `_quay_seat` was written with an unbalanced paren; the module failed to
+  import, the optional suite was *skipped*, and the run printed nothing at all.
+  Read as "no output" rather than "green", which is the only reason it was
+  caught. Mutations are now parsed with `ast.parse` before the suite runs.
+- **Two checks did not bite when first written, and both gaps were real.**
+  Shrinking the fan to 4 px left the mark check green, because it only clicked
+  marks *exactly* — a captain clicks near one. Fixed by demanding quays at one
+  body sit at least `QUAY_HIT` apart and by clicking 4 px either side. And
+  dropping the sort entirely left it green too, because reversed seats are
+  still distinct and still clickable; the stability claim is now checked by
+  handing the same game back with `in_system` reversed and demanding the same
+  marks.

@@ -2292,7 +2292,11 @@ seedfall/
 │   ├── xeno_view.py    the xenology desk (hosted as a Research tab)
 │   ├── expedition_view.py  the landing zone: fogged map, party, field log
 │   ├── diplomacy_view.py   relations matrix and the overture desk
-│   ├── helm_view.py    orbit chart and burn planner
+│   ├── helm_view.py    the helm screen: burn planner, where to put in
+│   ├── orbit_chart.py the orrery widget — paints bodies, quays, traffic
+│   │                  and the leg you are about to fly; answers clicks.
+│   │                  One door for label placement (`_room_for`) and one
+│   │                  for a quay's mark (`place_mark`, painter + hit test)
 │   ├── minigame_view.py    docking approach and decoding bench
 │   ├── dig_view.py     the trench: the stratum you are on and how to take it
 │   ├── blackmarket_panel.py  the quiet word on the quay, and the tip-off
