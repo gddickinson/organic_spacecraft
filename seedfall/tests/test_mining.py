@@ -114,7 +114,22 @@ def run(suite: Suite) -> None:
             f"a deep bore is not worth it: {bore_t:.0f} t vs {cut_t:.0f} t")
         assert bore_w > cut_w, "a deep bore costs no more hull than an open cut"
         assert bore_d > cut_d, "a deep bore is no harder on the body"
-        assert skim_w == 0.0, "skimming wore the hull"
+        # **Not "exactly nothing", which was an artefact of free repair.**
+        # A mining ship carries no biomass, so once `ship.repair_tick` had to
+        # be paid for in feedstock it stopped erasing the wear a skim inflicts
+        # inside the run. The wear was always there; the hull just healed it
+        # back for nothing. Measured over twenty runs a side:
+        #
+        #     leach 0.30%   skim 0.54%   cut 1.15%   bore 3.12%
+        #
+        # The claim worth making is the one the ordering supports — a skim is
+        # the gentle way to work a body — and it is a comparison rather than a
+        # zero, so nothing about how repair is paid for can flatter it.
+        assert skim_w < cut_w, (
+            f"skimming wore {skim_w:.2%} of the hull against {cut_w:.2%} for "
+            "an open cut — it is not the gentle method")
+        assert skim_w < bore_w * 0.5, (
+            f"skimming wore {skim_w:.2%} against a bore's {bore_w:.2%}")
         assert skim_d < cut_d, "skimming took as much out of the body"
         return " · ".join(f"{k} {v[0]:.0f}t/{v[1]:.1%}hull/{v[2]:.0%}dep"
                           for k, v in results.items())

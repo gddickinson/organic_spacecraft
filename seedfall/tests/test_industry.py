@@ -164,12 +164,31 @@ def run(suite: Suite) -> None:
         assert now_theirs < was_theirs * 0.92, (
             f"a year of Separation Guts and alloy at their berths went "
             f"{was_theirs:,.0f} → {now_theirs:,.0f}")
-        # And it is the industry, not the whole sector drifting: the
-        # unlicensed ports are the control.
-        assert now_others > now_theirs * 1.15, (
+        # And it is the industry, not the whole sector drifting.
+        #
+        # **The control used to be a 1.15 ratio against the unlicensed ports,
+        # and that ratio was calibrated against a broken clock.** Once
+        # `core/clock.advance_days` began stepping a day at a time (#116) the
+        # market mean-reverted 365 times over this year instead of a handful,
+        # the sector drifted together more, and the gap fell to 1.13 — the
+        # check went red while the effect it tests had not moved at all.
+        #
+        # The control is now the same berths over the same year *without* the
+        # licence, which no clock tuning can shift. Measured:
+        #
+        #     licensed    theirs 173 → 142, others 160
+        #     unlicensed  theirs 173 → 169, others 160
+        control = _ready("lic-market")
+        _settle(control, 365)
+        idle = _price(control, _steady(control, list(ex.holdings(control, power)),
+                                       "alloy"), "alloy")
+        assert now_theirs < idle * 0.92, (
+            f"alloy at their berths is {now_theirs:,.0f} with a licence and "
+            f"{idle:,.0f} without — that is not an industry, that is the "
+            "sector drifting")
+        assert now_theirs < now_others, (
             f"alloy is {now_theirs:,.0f} where it is made and "
-            f"{now_others:,.0f} where it is not — that is not an industry, "
-            "that is a coincidence")
+            f"{now_others:,.0f} where it is not")
         assert abs(now_others - was_others) < was_others * 0.25, (
             f"the control moved too: {was_others:,.0f} → {now_others:,.0f}")
         return (f"alloy {was_theirs:,.0f} → {now_theirs:,.0f} across "

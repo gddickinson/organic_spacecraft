@@ -16,6 +16,14 @@ from ..world.economy import sell_price
 from ..world.galaxy import in_range
 
 
+#: Credits below which this captain stops holding cargo for a better price.
+#:
+#: Low, because selling is meant to be the thing it does when it is *stuck*
+#: rather than a strategy — the probe's value is that it plays badly and
+#: survives anyway.
+BROKE = 500
+
+
 def _bot(seed: str, years: int = 5):
     """A deliberately simple captain: survey, sell the data, refuel, move on.
 
@@ -38,6 +46,27 @@ def _bot(seed: str, years: int = 5):
                 g.credits += data * price
                 add_cargo(g.ship, "survey", -data)
                 g.adjust_rep(sysm.port.faction, min(6, data * 0.4))
+            # **A captain with a full hold and no money sells the hold.**
+            # This bot only ever sold survey data, so when the bodies in reach
+            # ran out it starved beside its own cargo: measured on "run-a" it
+            # stopped on day 1605 with 51 credits, 113 t of ore and 9 t of
+            # silicon aboard, standing at a market quoting 27 and 765. That is
+            # not the game dead-ending, which is what this probe exists to
+            # detect — it is the probe failing to take the move in front of
+            # it. Selling only when short keeps the rest of its behaviour, and
+            # the solvency it is meant to measure, unchanged.
+            if g.credits < BROKE:
+                for cid in list(g.ship.cargo):
+                    if cid in ("survey", "volatiles"):
+                        continue
+                    held = g.ship.cargo.get(cid, 0)
+                    if held <= 0:
+                        continue
+                    got = sell_price(sysm.market, cid, rep, g.ship_stats.trade)
+                    if not got:
+                        continue
+                    g.credits += held * got
+                    add_cargo(g.ship, cid, -held)
             fuel_price = (sell_price(sysm.market, "volatiles", rep, 0) or 40) * 1.35
             want = 70 - g.ship.cargo.get("volatiles", 0)
             afford = int(min(want, g.credits * 0.6 // max(1, fuel_price)))

@@ -3201,6 +3201,16 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berthing cannot be completed. The machinery was already there —
   `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
   you — and had no way to say no.
+- **A probe that fails is not the same as the thing it probes failing.**
+  `test_stranded` reported a captain stalled with 51 credits; he was at a
+  market with ten thousand credits of cargo aboard and the bot only ever sold
+  survey data. Before recalibrating a check that goes red, ask whether the
+  *measurement* took the move that was available.
+- **Advice ages between the quote and the act.** The freight desk beats
+  trading blind only while the market barely moves during the journey. Once it
+  moves honestly, a named run's margin has closed by arrival — 47,910 on your
+  own notes against 44,627 with the desk. Anything that recommends a distant
+  action has to price the delay before the action.
 - **Fix the free lunch before tuning the meal.** #116 reverted once because an
   honest clock let repair erase the cost of a hard burn. The instinct was to
   re-tune burn heat; the actual cause was that repair was *free*, and once

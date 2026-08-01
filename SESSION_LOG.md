@@ -2,6 +2,54 @@
 
 Running progress log. Newest first.
 
+## 2026-08-01 — SEEDFALL: the clock is down to one blocker, and it is a real one
+
+Fourth run at #116. The list was finite this time — four red checks — and
+three of them turned out to be the same story told four ways: **something that
+looked like a cost was being erased for free, and the honest clock stopped
+erasing it.**
+
+`test_industry` wanted alloy 1.15× dearer away from where it is made and gets
+1.13, because an honest market mean-reverts 365 times a year and the sector
+drifts together. Replaced with a control no clock can move: the same berths,
+same year, without the licence — 173→142 licensed against 173→169 not.
+
+`test_mining` asserted a skim wears the hull **exactly zero**. It never did: a
+mining ship carries no biomass, so once repair had to be paid for, the wear it
+always inflicted stopped healing back. Measured over twenty runs a side the
+ordering is intact and that is the claim worth making —
+
+    leach 0.30%   skim 0.54%   cut 1.15%   bore 3.12%
+
+`test_stranded` said a naive captain stalled on day 1605 with 51 credits. He
+had not: he was standing at a market with 113 t of ore and 9 t of silicon,
+quoted at 27 and 765 — about ten thousand credits of cargo. **The probe only
+ever sold survey data.** When the bodies in reach ran out it starved beside
+its own hold. That is the probe failing to take the move in front of it, not
+the game dead-ending, which is the thing the check exists to detect. A captain
+under 500 credits now sells what he is carrying, and all six runs finish —
+run-a from 51 credits to 18,248.
+
+**The fourth is real and it is now the only thing left.** `test_freight`
+claims following the desk beats your own notes. Under the honest clock it does
+not, and the check's own eight samples made it look like noise. Twenty-four a
+side:
+
+    on your own notes  47,910
+    with the desk      44,627
+
+Seven per cent worse. The cause is sound: the desk quotes a margin that exists
+*now*, the captain spends days flying to it, and by arrival the price has
+reverted. Under the broken clock the market barely moved during the journey,
+so stale advice stayed good. That is a feature regression rather than a
+threshold — the desk is sold to the player as worth following. Task #120.
+
+So the clock is reverted a third time, and what lands is the three fixes that
+stand on their own without it. #116 now has exactly one blocker instead of
+four, and it is written down.
+
+Full suite green at 1,224 checks.
+
 ## 2026-08-01 — SEEDFALL: the burn balance fixed itself, and the clock found two more
 
 Third run at #116, and the instruction I left myself last cycle — *measure the
