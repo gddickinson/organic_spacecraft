@@ -10611,3 +10611,42 @@ check, not an arithmetic one.
   invisible in a green run: the tautology at least executes. Any `if x is not
   None:` wrapping the substance of a check deserves an `assert x is not None`
   above it.
+
+## The last of the seven: a constant only a picture could pin (#132 closed)
+
+`robots3d.DRIVE_Z = -0.42` places a drone's thruster ring, and nothing outside
+the mesh reads it — an arithmetic assertion would only restate it.
+
+**It reaches the picture, and that was measured rather than assumed.** Doubling
+it to -0.84 and re-rendering each machine's silhouette:
+
+    lamplighter   50.0% of its silhouette survives
+    verger        61.0%
+    rigger        80.5%
+    loader       100.0%  — it walks, and is untouched
+
+So the offset is visible, and exactly on the machines that carry a ring.
+
+The check asserts the geometry with **absolute** numbers: all three flyers have
+12 vertices at -0.47 and 12 at -0.37 (the tube, 0.1 deep, centred on the
+offset), nothing below -0.60, the lowest geometry between -0.60 and -0.50 so
+the ring's own boxes are the bottom of the machine, and the head above it — a
+ring on top would satisfy a check that only asked whether one existed. No
+walker has either plane. Measured across all 20 looks: 3 fly, 17 walk.
+
+Red at -0.84, at -0.21, at a 0.05 nudge to -0.47, and at +0.42 (flipped above
+the machine).
+
+### Seven constants, four defect shapes
+
+All seven reported identically as "green at double and half". The causes were
+not the same, and treating the sweep's verdict as a diagnosis would have fixed
+one and left the rest:
+
+- **Tautologically checked** (4) — the check read the constant under test.
+- **Held by nothing** (2) — `approach.LOSING`, `voice.COLD_AT`: no reference.
+- **Never executed** (1) — `industry.ILLICIT_COST` sat under `if got is not
+  None:` where `best_buyer` always returned None, and the check still returned
+  a summary quoting the constant.
+- **Cosmetic-looking but visible** (1) — `DRIVE_Z`, which needed a rendered
+  measurement to know it mattered at all.

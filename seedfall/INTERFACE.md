@@ -2496,6 +2496,14 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   stream, and the drift is chaotic rather than convergent (measured on seed
   "a", 900 days: step 10 drifts 1,367 where step 2 drifts 11,417 and step 5
   drifts 13,306, while the player's own credits are identical at every step).
+- **A tuning constant is protected only if a check *brackets* it.** A check
+  that sets its input to a value derived from the constant under test moves
+  with it and cannot fail — `WELCOME_AT - 40`, `UNWELCOME - 10`,
+  `TOLL_REFUSED_BELOW - 5` and `RIVAL_COST + ILLICIT_COST` were all found
+  that way. Drive the sim to find where the bar flips and whether the
+  comparison is `<` or `<=`, bracket it with **absolute** values a point
+  either side, and add `assert CONSTANT == <value>` so a retune has to
+  re-bracket by hand. `tests/tripwire.py` finds the ones that are not.
 - **`sim/` never imports Qt.** It takes a `game` and returns plain data. That is
   why the simulation suite can run headless and why the whole rules layer is
   testable without a display.

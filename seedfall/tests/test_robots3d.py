@@ -172,6 +172,57 @@ def run(suite: Suite) -> None:
             f"{len(in_shop)} portraits on {len(ROBOTS)} shop cards")
         return (f"{len(on_codex)} on the codex, {len(in_shop)} in the shop")
 
+    @check("a machine that flies carries its ring under it, where it belongs")
+    def _():
+        # `robots3d.DRIVE_Z` places a drone's thruster ring and nothing outside
+        # the mesh reads it, so it swept as protected while being pinned by
+        # nothing — an arithmetic assertion would only restate it.
+        #
+        # **It reaches the picture, measured.** Doubling it to -0.84 and
+        # re-rendering: lamplighter keeps 50.0% of its silhouette, verger
+        # 61.0%, rigger 80.5% — and `loader`, which walks, is untouched at
+        # 100.0%. So the geometry below is what a viewer sees, and the numbers
+        # here are **absolute** rather than read off `DRIVE_Z`, which is the
+        # whole point.
+        from ..data.robots3d import HEAD_Z
+        flying = sorted(l for l in robots3d.BODIES
+                        if "thrusters" in robots3d.parts_of(l))
+        walking = sorted(l for l in robots3d.BODIES
+                         if "thrusters" not in robots3d.parts_of(l))
+        assert flying == ["lamplighter", "rigger", "verger"], (
+            f"the machines that fly are {flying}; the brackets below are "
+            "absolute and must be re-measured by hand if that changes")
+        assert len(walking) == 17, f"{len(walking)} walkers, not 17"
+
+        def planes(look):
+            return {round(v[2], 3) for v in robots3d.mesh_for(look)[0]}
+
+        for look in flying:
+            zs = [v[2] for v in robots3d.mesh_for(look)[0]]
+            here = planes(look)
+            # The ring is a tube 0.1 deep centred on the offset: -0.47 and
+            # -0.37 with the offset at -0.42. Move the offset and both go.
+            assert -0.47 in here and -0.37 in here, (
+                f"{look} flies and has no ring at -0.47/-0.37: "
+                f"{sorted(z for z in here if z < 0)}")
+            # And it is **under** the machine: below the head, below the
+            # midline, and the lowest thing on it. A ring on top would satisfy
+            # a check that only asked whether one existed.
+            assert min(zs) >= -0.60, (
+                f"{look} reaches {min(zs):+.3f}, below the thruster boxes")
+            assert -0.60 <= min(zs) <= -0.50, (
+                f"{look}'s lowest geometry is {min(zs):+.3f}; the ring's own "
+                "boxes should be the bottom of it")
+            assert max(zs) > HEAD_Z > -0.37, (
+                f"{look} is upside down: head at {HEAD_Z}, ring at -0.37")
+
+        for look in walking:
+            here = planes(look)
+            assert -0.47 not in here and -0.37 not in here, (
+                f"{look} walks and yet carries a thruster ring")
+        return (f"{len(flying)} fly with the ring at -0.47/-0.37 and nothing "
+                f"below -0.60; {len(walking)} walk and carry none")
+
     @check("a picture nobody drew: a new class gets a body")
     def _():
         # The whole claim of building shapes out of data rather than by hand.
