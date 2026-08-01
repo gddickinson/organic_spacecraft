@@ -26,6 +26,7 @@ it a place, a heading and a reason to be there, which is what the chart needs.
 from __future__ import annotations
 
 import math
+import zlib
 from dataclasses import dataclass
 
 from ..core.rng import RNG
@@ -218,6 +219,42 @@ def _home(game, hull, system=None):
     return game.galaxy.systems[hull.system_id]
 
 
+#: How far off a body a hull holding station actually sits, in kilometres.
+#:
+#: **A hull at a body used to be at the body**, to the metre: measured through
+#: both `traffic.position` and `track.at`, which agree, a hull sharing a body
+#: with the ship read as **0 km** away and every other body as hundreds of
+#: millions. So the system had no geometry between "on top of you" and "half a
+#: billion kilometres off", and `sim/engage` had nothing to range on — flying
+#: *toward* a contact opened the fight further away, because the only distance
+#: available was how far you had come from where you let go.
+#:
+#: The spread is set against what the conn can actually fly: `freeflight`
+#: calls ten thousand kilometres far, so a neighbourhood a few thousand across
+#: is one a pilot crosses in minutes rather than never.
+STATION_KM = 6000.0
+
+#: One AU in kilometres, for turning that spread into the plane's own units.
+KM_PER_AU = 149_597_870.7
+
+
+def _station_offset(hull) -> tuple[float, float]:
+    """Where in a body's neighbourhood this hull holds, in AU.
+
+    **Derived from the hull's id, never drawn.** `in_system` is pure in
+    `(system, day, sector state)` and says why in as many words — it must not
+    touch `game.rng()`, because that advances with the save and the *Kestrel*
+    you hailed yesterday would be somebody else. A station is the same kind of
+    fact, so it is a reading of the identity rather than a roll or a field.
+    """
+    seed = zlib.crc32(str(hull.id).encode())
+    angle = (seed % 3600) / 3600.0 * math.tau
+    # The square root spreads hulls evenly over the disc instead of crowding
+    # them at the middle, which is what a plain fraction of the radius does.
+    span = math.sqrt(((seed >> 12) % 1000) / 1000.0) * STATION_KM / KM_PER_AU
+    return (span * math.cos(angle), span * math.sin(angle))
+
+
 def position(game, hull, system=None) -> tuple[float, float]:
     """Where a hull is, in AU, right now."""
     system = _home(game, hull, system)
@@ -225,7 +262,8 @@ def position(game, hull, system=None) -> tuple[float, float]:
     start = flight.position(bodies[hull.from_body], game.day,
                             mu_of(system))
     if hull.from_body == hull.to_body:
-        return start
+        dx, dy = _station_offset(hull)
+        return (start[0] + dx, start[1] + dy)
     end = flight.position(bodies[hull.to_body], game.day,
                           mu_of(system))
     return (start[0] + (end[0] - start[0]) * hull.along,

@@ -10837,3 +10837,41 @@ body's neighbourhood — and not a projection. Left filed rather than guessed at
 Noted while working: `ui/conn_window.py` is **508 lines** at HEAD, already past
 the five-hundred rule before anything was added to it. The fire control will
 need its own module rather than making that worse.
+
+## A hull holding station has a place of its own (#136, part)
+
+**The correction that makes flying at something mean something.** `engage`
+ranged on `conn.pos` — how far the hull had come from where it let go —
+because there was nothing else to range on: measured through both
+`traffic.position` and `track.at`, which agree exactly, a hull sharing a body
+with the ship sat at that body's position to the metre, **0 km off**, and every
+other body was hundreds of millions. That was honest about something left at
+the quay and exactly backwards for something flown at — closing on a contact
+increased `conn.pos` and opened the fight *further away*.
+
+`traffic.STATION_KM = 6000` gives a station-keeping hull a place in its body's
+neighbourhood, **derived from its id and never rolled** — `in_system` is pure
+in `(system, day, sector state)` and says why: the *Kestrel* you hailed
+yesterday has to be the same *Kestrel*. A station is the same kind of fact, so
+it is a reading of the identity. Measured: two hulls holding station 4,826 and
+5,982 km off their bodies, identical when the chronicle is rebuilt.
+
+`engage.range_km` now measures ship to contact, so the flying closes it:
+
+    flown      0 km   ->  4,826 km off   Medium
+    flown  2,000 km   ->  2,912 km off   Close
+    flown  4,000 km   ->  1,293 km off   Contact
+    flown  6,000 km   ->  1,692 km off   Contact   (flown past it)
+
+### Wrong turns worth keeping
+
+- **The suite went red and the guard was right.** Moving the range onto the
+  contact left `engage.flown_km` called by nothing, and `test_reachable`
+  refused it: "1 public function nothing ever calls. Either wire it into the
+  game or delete it." Deleted. The check I would have written for that is the
+  one already there.
+- **A check of mine asserted the wrong thing about the right fact.** It
+  measured every station-keeping hull's offset from **the ship**, and one of
+  them holds station at another world half a billion kilometres away. The
+  claim is about a hull and *its own body*; measured that way it passes and
+  means something.

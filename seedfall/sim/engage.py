@@ -32,6 +32,7 @@ import math
 from . import combat as combat_sim
 from . import encounters as encounters_sim
 from . import freeflight
+from . import track as track_sim
 
 #: The range at which a fight opens at the longest band.
 #:
@@ -42,22 +43,38 @@ def reach_km() -> float:
     return float(freeflight.far_km())
 
 
-def band_for(conn) -> int:
-    """Which of `combat.BANDS` a fight opened from here would start at.
+def range_km(game, conn, contact) -> float:
+    """How far the hull is from this contact **now**, in kilometres.
 
-    0 (Contact) while still alongside, up to the last band at `reach_km`.
-    Measured against the five bands, that is a two-thousand-kilometre step
-    each: alongside is Contact, and eight thousand out is Extreme.
+    The ship's own position comes from `freeflight.where`, which is where it
+    let go plus how far it has flown; the contact's comes from `sim/track`,
+    the one door for where anything in a system is. So burning toward
+    something closes this and burning away opens it, which is the whole point
+    of flying by hand.
+
+    **The first version read `conn.pos` alone** — the distance flown from
+    where the conn was taken — because measured through both `track.at` and
+    `traffic.position`, a hull sharing a body with the ship sat at that body's
+    *exact* position, 0 km off. That was honest about a thing left behind at
+    the quay and exactly backwards for one you were flying at: closing on a
+    contact increased `conn.pos` and so opened the fight further away.
+    `sim/traffic.STATION_KM` gives a hull holding station a place of its own
+    now, so there is a range to close.
     """
-    flown = math.dist(tuple(conn.pos), (0.0, 0.0, 0.0))
+    sx, sy = freeflight.where(game, conn)
+    ax, ay = track_sim.at(game, contact, game.day)
+    return math.dist((sx, sy), (ax, ay)) * freeflight.KM_PER_AU
+
+
+def band_for(game, conn, contact) -> int:
+    """Which of `combat.BANDS` a fight opened now would start at.
+
+    0 (Contact) alongside, up to the last band at `reach_km`. Measured against
+    the five bands, that is a two-thousand-kilometre step each.
+    """
     bands = len(combat_sim.BANDS)
     step = reach_km() / bands
-    return max(0, min(bands - 1, int(flown / step)))
-
-
-def flown_km(conn) -> float:
-    """How far the hull has come from where it let go."""
-    return math.dist(tuple(conn.pos), (0.0, 0.0, 0.0))
+    return max(0, min(bands - 1, int(range_km(game, conn, contact) / step)))
 
 
 def may_engage(game, conn, contact) -> tuple[bool, str]:
@@ -107,7 +124,8 @@ def open_fire(game, conn, contact, rng):
     battle = combat_sim.start(
         game.ship, game.ship_stats, enemy,
         bonuses=game.bonuses, officers=game.officers,
-        rep=game.rep.get(faction, 0.0), band=band_for(conn),
+        rep=game.rep.get(faction, 0.0),
+        band=band_for(game, conn, contact),
         game=game, rng=rng, fleet=consorts_sim.escorts_of(game))
     return battle, ""
 
@@ -117,6 +135,7 @@ def note(game, conn, contact) -> str:
     ok, why = may_engage(game, conn, contact)
     if not ok:
         return why
-    band = band_for(conn)
+    band = band_for(game, conn, contact)
     return (f"Opening fire would begin at {combat_sim.BANDS[band].lower()} "
-            f"range — {flown_km(conn):,.0f} km from where she was let go.")
+            f"range — {range_km(game, conn, contact):,.0f} km off "
+            f"{getattr(contact, 'name', 'it')}.")

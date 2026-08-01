@@ -22,7 +22,11 @@ from __future__ import annotations
 from ..core.rng import RNG
 from ..core.state import new_game
 from ..sim import combat as combat_sim
+import math
+
 from ..sim import consorts as consort_sim
+from ..data.starclasses import mu_of
+from ..sim import flight, traffic
 from ..sim import engage, freeflight, track
 from ..sim import ship as ship_sim
 from .harness import Suite
@@ -38,54 +42,65 @@ def _flying(seed: str = "engage"):
 def run(suite: Suite) -> None:
     check = suite.check
 
-    @check("the range a fight opens at is the range the pilot flew to")
+    @check("burning toward a contact closes the range you would fight at")
     def _():
-        # The whole point of the seam. A captain still alongside fights at
-        # contact range; one who has drifted to the edge of what the
-        # free-flight screens call far opens at extreme, where `sim/firing`
-        # will tell them most of their mounts cannot reach.
-        game, conn = _flying()
-        seen = {}
-        for km in (0, 3000, 5000, 7000, 9000):
-            conn.pos = [float(km), 0.0, 0.0]
-            seen[km] = engage.band_for(conn)
-        assert seen[0] == 0, f"alongside and opening at band {seen[0]}"
-        assert seen[9000] == len(combat_sim.BANDS) - 1, (
-            f"9,000 km out and opening at band {seen[9000]}")
-        rising = sorted(seen.values())
-        assert rising == list(seen.values()), (
-            f"flying further did not open the fight further off: {seen}")
-        assert len(set(seen.values())) >= 4, (
-            f"five ranges and only {len(set(seen.values()))} bands: {seen}")
-        # And it saturates rather than running off the end of the table.
-        conn.pos = [10.0 ** 6, 0.0, 0.0]
-        assert engage.band_for(conn) == len(combat_sim.BANDS) - 1
-        return " · ".join(f"{k:,}km→{combat_sim.BANDS[v]}"
-                          for k, v in seen.items())
-
-    @check("the same hull, engaged from close and from far, is a different fight")
-    def _():
-        # The claim the task set: fly differently and the outcome differs.
-        # Same seed, same hull, same dice — only the flying changes.
+        # **The correction.** The first version ranged on `conn.pos` — how far
+        # the hull had come from where it let go — because a hull sharing a
+        # body with the ship sat at that body's exact position, 0 km off. That
+        # was backwards for anything you flew *at*: closing on it increased
+        # `conn.pos` and opened the fight further away. `sim/traffic` gives a
+        # hull holding station a place of its own now, so there is a range.
         game, conn = _flying()
         hull = next(x for x in track.contacts(game) if x.kind == "hull")
-        conn.pos = [200.0, 0.0, 0.0]
-        near, why = engage.open_fire(game, conn, hull, RNG("same"))
-        assert near is not None, why
-        game2, conn2 = _flying()
-        hull2 = next(x for x in track.contacts(game2) if x.kind == "hull")
-        conn2.pos = [9000.0, 0.0, 0.0]
-        far, why = engage.open_fire(game2, conn2, hull2, RNG("same"))
-        assert far is not None, why
-        assert near.band < far.band, (
-            f"closed to 200 km and opened at band {near.band}; drifted to "
-            f"9,000 and opened at band {far.band}")
-        assert near.range_units < far.range_units, (
-            f"the two fights start {near.range_units} and {far.range_units} "
-            "units apart, which is not a difference the pilot earned")
-        return (f"200 km → {combat_sim.BANDS[near.band]} at "
-                f"{near.range_units:.0f} units; 9,000 km → "
-                f"{combat_sim.BANDS[far.band]} at {far.range_units:.0f}")
+        seen = {}
+        for km in (0, 2000, 4000):
+            conn.pos = [float(km), 0.0, 0.0]
+            seen[km] = (engage.range_km(game, conn, hull),
+                        engage.band_for(game, conn, hull))
+        assert seen[2000][0] < seen[0][0], (
+            f"burned 2,000 km toward it and the range went {seen[0][0]:,.0f} "
+            f"-> {seen[2000][0]:,.0f} km")
+        assert seen[4000][0] < seen[2000][0], "closing further did not close"
+        assert seen[4000][1] < seen[0][1], (
+            f"closed from {seen[0][0]:,.0f} to {seen[4000][0]:,.0f} km and "
+            f"the fight still opens at band {seen[4000][1]}")
+        assert seen[4000][1] == 0, (
+            f"1,300 km off and opening at band {seen[4000][1]}")
+        return " · ".join(f"{k:,}km flown → {v[0]:,.0f}km off, "
+                          f"{combat_sim.BANDS[v[1]]}" for k, v in seen.items())
+
+    @check("a hull holding station has a place of its own, and keeps it")
+    def _():
+        # Derived from the hull's id, never rolled: `traffic.in_system` is pure
+        # in (system, day, sector state) and says why — the Kestrel you hailed
+        # yesterday has to be the same Kestrel. Measured before this existed,
+        # every hull at a body read 0 km from a ship at that body.
+        # Measured from **its own body**, not from the ship: a hull holding
+        # station at another world is half a billion kilometres off and that
+        # is not what this is about. The first draft compared against the ship
+        # and failed on exactly that.
+        game, _conn = _flying()
+        holding = [h for h in traffic.in_system(game)
+                   if h.from_body == h.to_body]
+        assert holding, "no hull in this system is holding station"
+        offs = []
+        for h in holding:
+            body = game.system.bodies[h.from_body]
+            at = flight.position(body, game.day, mu_of(game.system))
+            x, y = traffic.position(game, h)
+            offs.append(math.dist(at, (x, y)) * freeflight.KM_PER_AU)
+        assert all(o > 100.0 for o in offs), (
+            f"a hull is sitting exactly on its body: {offs}")
+        assert all(o <= traffic.STATION_KM for o in offs), (
+            f"a hull holds station {max(offs):,.0f} km out, past the "
+            f"{traffic.STATION_KM:,.0f} km neighbourhood: {offs}")
+        # And the same chronicle, built again, puts them in the same places.
+        again = new_game("engage")
+        was = {h.id: traffic.position(game, h) for h in traffic.in_system(game)}
+        now = {h.id: traffic.position(again, h) for h in traffic.in_system(again)}
+        assert was == now, "traffic moved when the chronicle was rebuilt"
+        return (f"{len(holding)} holding station, "
+                f"{min(offs):,.0f}..{max(offs):,.0f} km off, and stable")
 
     @check("a refusal says which kind of no it is")
     def _():
