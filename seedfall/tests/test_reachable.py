@@ -42,6 +42,24 @@ Anything the resolver cannot place — a call on a parameter, `ops.enemy_turn`;
 a name reached through `getattr`; a string in a table — stays in a loose bucket
 that credits every module. The check under-reports rather than crying wolf.
 
+**Except a file's own locals, and that gap had a live example.**
+`control.provoked` was written the day the approach ladder landed and read by
+nobody at all, and this file passed on it for weeks — because `sim/threat.py`
+holds a local variable spelled `provoked`, and a bare name credited every
+module with a function of that name. Reading a local is not a reference to
+somebody else's function; it is a different word that happens to be spelled
+the same.
+
+The exclusion is **per file** and not across the tree, which matters: dropping
+a name everywhere it is bound anywhere would lose genuine bare-name references,
+because a function passed as a callback in one module is often a loop variable
+in another. Measured when it was added, the loose bucket fell from 23,628 names
+to 20,894 and **not one function changed verdict** — it cost nothing and closed
+the hole. `_scan` is split out so the regression check can drive the same
+analysis over synthetic sources, and it is pinned in both directions: loosen it
+and a local credits again, tighten it further and a dispatch table stops
+counting.
+
 A function called only from a readout still passes: it is consumed, even if the
 readout is never opened.
 """
@@ -175,6 +193,57 @@ def _reexports() -> dict:
     return out
 
 
+def _bound(tree) -> set:
+    """Every name this file binds for itself: locals, parameters, loop vars.
+
+    **The hole this closes had a live example.** `control.provoked` was written
+    the day the approach ladder landed and read by nobody at all, and this
+    check passed on it for weeks — because `sim/threat.py` contains a local
+    variable that happens to be spelled `provoked`, and a bare name credited
+    *every* module with a function of that name. Reading a local is not a
+    reference to somebody else's function; it is a different thing wearing the
+    same word.
+
+    Per file rather than across the tree, which matters: excluding a name
+    everywhere it is bound *anywhere* would drop genuine bare-name references —
+    a function passed as a callback in one module while another module happens
+    to use that word for a loop variable. The question is only ever "is this
+    particular name, in this particular file, a local?".
+    """
+    out = {n.id for n in ast.walk(tree)
+           if isinstance(n, ast.Name) and isinstance(n.ctx, (ast.Store, ast.Del))}
+    out |= {a.arg for a in ast.walk(tree) if isinstance(a, ast.arg)}
+    return out
+
+
+def _scan(stem: str, tree, mine: set) -> tuple[set, set]:
+    """One file's uses, as (resolved to a module, unplaceable bare names)."""
+    mods, names = _imports(tree)
+    local = _bound(tree) - mine - set(names)
+    exact: set = set()
+    loose: set = set()
+    for node in ast.walk(tree):
+        # A *reference* is a use: a callback or a dispatch-table entry is
+        # consumed without ever being written `f()`.
+        if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+            owner = mods.get(node.value.id)
+            (exact.add((owner, node.attr)) if owner
+             else loose.add(node.attr))
+        elif isinstance(node, ast.Attribute):
+            loose.add(node.attr)
+        elif isinstance(node, ast.Name):
+            if node.id in mine:
+                exact.add((stem, node.id))   # used where it lives
+            elif node.id in names:
+                exact.add(names[node.id])
+            elif node.id not in local:
+                loose.add(node.id)
+        # `__all__` entries, getattr("name") and dispatch keys count.
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+            loose.add(node.value)
+    return exact, loose
+
+
 def _used(defined: dict) -> tuple[set, set]:
     """What is used, as (resolved to a module, unplaceable bare names).
 
@@ -186,6 +255,11 @@ def _used(defined: dict) -> tuple[set, set]:
     through `getattr`, a string in a dispatch table — goes in the loose set and
     credits **every** module with that name. The check under-reports rather
     than crying wolf.
+
+    What it no longer counts is a file's own locals: see `_bound`. Measured
+    when that was added, the loose set fell from 23,628 names to 20,894 and
+    **not one function changed verdict** — so it cost nothing and closed the
+    gap that had hidden `control.provoked`.
     """
     here: dict[str, set] = {}
     for module, name in defined:
@@ -194,28 +268,10 @@ def _used(defined: dict) -> tuple[set, set]:
     exact: set = set()
     loose: set = set()
     for path in ROOT.rglob("*.py"):
-        tree = ast.parse(path.read_text())
-        mods, names = _imports(tree)
-        mine = here.get(path.stem, set())
-        for node in ast.walk(tree):
-            # A *reference* is a use: a callback or a dispatch-table entry is
-            # consumed without ever being written `f()`.
-            if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
-                owner = mods.get(node.value.id)
-                (exact.add((owner, node.attr)) if owner
-                 else loose.add(node.attr))
-            elif isinstance(node, ast.Attribute):
-                loose.add(node.attr)
-            elif isinstance(node, ast.Name):
-                if node.id in mine:
-                    exact.add((path.stem, node.id))   # used where it lives
-                elif node.id in names:
-                    exact.add(names[node.id])
-                else:
-                    loose.add(node.id)
-            # `__all__` entries, getattr("name") and dispatch keys count.
-            elif isinstance(node, ast.Constant) and isinstance(node.value, str):
-                loose.add(node.value)
+        one, two = _scan(path.stem, ast.parse(path.read_text()),
+                         here.get(path.stem, set()))
+        exact |= one
+        loose |= two
 
     via = _reexports()
     for _ in range(4):                       # chains of re-exports are short
@@ -271,6 +327,42 @@ def run(suite: Suite) -> None:
             f"the analysis picked out {returning} rather than the one function "
             "that returns a value")
         return "picks out a value-returning public function and ignores the rest"
+
+    @check("a local variable of the same name no longer hides an orphan")
+    def _():
+        # **This is a regression check with a live example behind it.**
+        # `control.provoked` was written the day the approach ladder landed
+        # and read by nobody at all, and this file passed on it for weeks —
+        # because `sim/threat.py` holds a local variable spelled `provoked`,
+        # and a bare name credited every module with a function of that name.
+        #
+        # Synthetic, like the self-check above: any literal name written here
+        # would otherwise be found *in this file* by the very scan being
+        # tested.
+        owner = ast.parse("def widens_nothing(game):\n    return 1\n")
+        mine = {"widens_nothing"}
+        # A completely unrelated module that happens to use the word as a
+        # local. It calls nothing of anybody's.
+        stranger = ast.parse(
+            "def elsewhere(game):\n"
+            "    widens_nothing = game.count * 2\n"
+            "    return widens_nothing + 1\n")
+
+        _own_exact, own_loose = _scan("owner", owner, mine)
+        far_exact, far_loose = _scan("stranger", stranger, set())
+        assert ("owner", "widens_nothing") not in far_exact
+        assert "widens_nothing" not in far_loose, (
+            "a local variable still credits a function it has nothing to do "
+            "with — the gap that hid control.provoked is open again")
+        # And the guard is not simply blind: a genuine bare-name reference,
+        # which is what a callback or a dispatch-table entry looks like, is
+        # still counted.
+        user = ast.parse("TABLE = {'a': widens_nothing}\n")
+        _e, real_loose = _scan("user", user, set())
+        assert "widens_nothing" in real_loose, (
+            "tightening went too far and a callback stopped counting")
+        return ("a local read credits nothing; a callback still does — "
+                f"{len(own_loose)} names from the owner itself")
 
     @check("treaties are worth something at a quay")
     def _():

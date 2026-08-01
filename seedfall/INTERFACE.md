@@ -3201,6 +3201,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   berthing cannot be completed. The machinery was already there —
   `moorings.boom_step` runs the arm and `moorings.captured` asks whether it has
   you — and had no way to say no.
+- **A guard's fallback is where its blind spot lives.** `test_reachable`
+  resolved 1,319 of 1,329 calls precisely and fell back to bare-name matching
+  for the rest — and the fallback credited every module with a function of
+  that name, which is how `control.provoked` sat unread for weeks behind a
+  local variable in `sim/threat.py`. The precise part of a check is not the
+  part to audit.
+- **A rule that reports nothing new can still be wrong.** Excluding names
+  bound anywhere in the tree gave 0 new orphans, same as the correct per-file
+  rule — and would have silently stopped counting callbacks. Agreeing with the
+  right answer on today's data is not evidence; what separated them was asking
+  what each would do to a genuine bare-name reference.
 - **A new authority should be one branch, not a second ladder.** Giving worlds
   the right to object needed `control.welcome` to learn a single rule — *a
   world minds the descent, not the orbit* — and every rung, the patience, the

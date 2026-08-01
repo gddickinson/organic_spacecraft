@@ -2,6 +2,47 @@
 
 Running progress log. Newest first.
 
+## 2026-07-31 — SEEDFALL: the guard that had a blind spot with a name in it
+
+Finishing #26. The reachability guard already resolved calls to the module
+that defined them — 1,319 of 1,329 — and the remaining fallback was the
+problem: a bare name credited **every** module with a function of that name,
+and the loose bucket held 23,628 names.
+
+That is not a theoretical hole. It hid a real orphan for weeks:
+`control.provoked` was written the day the approach ladder landed, read by
+nobody at all, and this guard passed on it — because `sim/threat.py` holds a
+local variable spelled `provoked`. Reading a local is not a reference to
+somebody else's function; it is a different word that happens to be spelled
+the same.
+
+**Two wrong turns before the right rule.**
+
+First attempt: exclude any name bound *anywhere* in the tree. That drops the
+loose bucket to 18,360 — and it is wrong, because a function passed as a
+callback in one module is a loop variable in another, so genuine references
+would stop counting. It happened to report 0 new orphans today, which is
+exactly how a bad rule survives review.
+
+The right rule is **per file**: a Load of a name *this file* binds is a local
+read. Measured:
+
+    loose bucket   23,628 → 20,894 names
+    verdicts changed                0
+
+So it cost nothing and closed the gap. Zero new orphans is the honest result —
+the hole was real, and the one thing that had fallen through it was fixed
+earlier today when `forcing.grievance` gave `provoked` a reader.
+
+`_scan` is split out of `_used` so the regression check can drive the same
+analysis over synthetic sources — the existing self-check's trick, because any
+literal name written in that file would be found by the very scan being
+tested. **Pinned in both directions**: loosen it and a local credits again;
+tighten it further and a dispatch table stops counting. Both mutations were
+run and both went red.
+
+Full suite green at 1,192 checks.
+
 ## 2026-07-31 — SEEDFALL: the worlds get a say, and most of them are empty
 
 `sim/control.py` gave a structure the right to hail, warn, fire on and refuse a
