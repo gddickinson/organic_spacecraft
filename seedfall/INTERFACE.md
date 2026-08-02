@@ -137,6 +137,16 @@ key in silence. One assertion from the deleted pair was **not** a duplicate and
 only mutation found it: a ghost `KIN` entry, a row naming a module that does
 not exist, survived the deletion. It is folded into harness_guard's check now.
 
+**The sweep has two stages that differ by two orders of magnitude, and they
+are now two commands.** Measured: `piracy`'s ten constants swept in 20 seconds;
+`exchequer`'s thirteen were still going after thirty minutes. The difference is
+not the constants but the suites their entries name — `exchequer` answers in
+3.6 s, `politics` in 145.4, and handing both to one run cost 148 s a variant.
+Stage one asks one suite at a time and stops at the first objection, which
+changes no verdict and took `piracy` to 9.2 s; `--fast` skips stage two
+entirely, producing a **shortlist** rather than a verdict, and says so in those
+words, because "unprotected" is a conclusion the fast stage cannot reach.
+
 **`tests/sweepkit.py` is how to find a constant and how to change one**, split
 out of `tripwire.py` at exactly five hundred lines. It is a leaf — it reads
 nothing from the sweep and knows nothing about suites — so a one-off tool

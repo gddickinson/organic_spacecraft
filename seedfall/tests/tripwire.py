@@ -340,6 +340,22 @@ def main(argv: list) -> int:
     tree. A tool that edits source has to put it back on the way out, not
     only on the happy path.
     """
+    # **`--fast` skips stage two, and the measurement says why.** The two
+    # stages cost wildly different amounts now that the fast paths are right:
+    # `piracy`'s ten constants were all caught by their own suites and the
+    # module swept in **20 seconds**. `exchequer`'s thirteen were still going
+    # after **thirty minutes**, because every constant its own suites miss
+    # pays for the broad set — 74 suites — and so does the one calibration
+    # run before them.
+    #
+    # So sweeping everything with both stages is an overnight job, and
+    # sweeping everything with stage one alone is about a quarter of an hour.
+    # The shortlist that produces is not a verdict — it is *not caught by the
+    # suite that knows this module*, which is the right question to ask 439
+    # times and the wrong one to stop at. Confirm a shortlist with a full run
+    # of those constants alone.
+    fast = "--fast" in argv
+    argv = [a for a in argv if a != "--fast"]
     only = argv[0] if argv else ""
     found = constants(only)
     # Any bytecode left over from an earlier run may have been compiled from
@@ -349,7 +365,9 @@ def main(argv: list) -> int:
             stale.unlink(missing_ok=True)
 
     print(f"sweeping {len(found)} constants "
-          f"({'module ' + only if only else 'every module'})\n", flush=True)
+          f"({'module ' + only if only else 'every module'})"
+          + ("  — fast path only, so a survivor here is a shortlist entry "
+             "and not a verdict" if fast else "") + "\n", flush=True)
 
     import atexit
     import signal
@@ -400,18 +418,38 @@ def main(argv: list) -> int:
 
         # Stage one: every variant against the constant's own neighbourhood.
         # Two seconds a go, and it catches most of them.
+        # **One suite at a time, stopping at the first objection.** The fast
+        # path used to hand the whole tuple to a single run, so a constant
+        # paid for every suite its module names even when the first of them
+        # answered. Measured on `exchequer`, whose fast path is
+        # `("exchequer", "politics")`:
+        #
+        #     exchequer            3.6 s
+        #     politics           145.4 s
+        #     both together      148.0 s
+        #
+        # `politics` is the most expensive suite in the project — 19% of a
+        # whole run — and every one of `exchequer`'s thirteen constants was
+        # paying 148 s a variant to ask a question `exchequer` answers in
+        # under four. The set consulted is unchanged and so is every verdict;
+        # only the order and the early exit are new. Entries are written with
+        # the module's own suite first, which is both the cheapest and the
+        # likeliest to object.
         near = KIN.get(path.stem)
         caught_by = ""
         if near:
             for candidate in variants(value):
-                if try_value(candidate, near):
-                    caught, caught_by = True, ", ".join(near)
+                for one in near:
+                    if try_value(candidate, (one,)):
+                        caught, caught_by = True, one
+                        break
+                if caught:
                     break
 
         # Stage two, only for survivors: the wide set, and only the single
         # most disruptive value. Thirty-six seconds is worth paying once to
         # confirm a finding; it is not worth paying three times to reconfirm.
-        if not caught:
+        if not caught and not fast:
             caught = try_value(variants(value)[0], SUITES)
             if caught:
                 caught_by = "the wide set only"
@@ -428,7 +466,14 @@ def main(argv: list) -> int:
             # thinner thread than a check written for it.
             distant.append((path.stem, name, value))
 
-    print(f"\n{len(survived)} of {len(found)} constants are unprotected:")
+    # **The word matters.** "Unprotected" is a verdict and the fast stage
+    # cannot reach one: all it knows is that the suite which names the module
+    # did not object. Saying more than that is how a pinned constant ends up
+    # on a survivor list, which is the fault this whole apparatus was built
+    # after (`bloom.HEART_HP`, reported a survivor while `test_play` held it).
+    print(f"\n{len(survived)} of {len(found)} constants "
+          + ("were not caught by their own suites — a shortlist to confirm "
+             "with a full run:" if fast else "are unprotected:"))
     for module, name, value in survived:
         print(f"    {module}.{name} = {value!r}")
     if distant:

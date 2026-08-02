@@ -2,6 +2,57 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: the sweep's ten hours were mostly one suite
+
+#134. With the tool alive again, I set out to run a slice of the 439 and
+measure the real rate. The rate turned out to be the finding.
+
+    piracy      10 constants, 0 survivors        20 seconds
+    exchequer   13 constants                     still going after 30 minutes
+
+**The task's "seven constants per ten minutes" was measured before the fast
+paths were fixed and is meaningless now.** The cost is not per constant at all.
+Timed individually:
+
+    exchequer alone       3.6 s
+    politics alone      145.4 s     <- the most expensive suite in the project
+    both in one run     148.0 s
+
+`exchequer`'s fast path is `("exchequer", "politics")` and the stage handed
+*both* to a single run, so all thirteen of its constants paid 148 s a variant
+to ask a question `exchequer` answers in under four. The cost of sweeping a
+module is the cost of the most expensive suite its entry names, times three
+variants, whether or not the cheap one would have answered.
+
+**Two changes, both measured, neither altering a verdict.**
+
+*Stage one asks one suite at a time and stops at the first objection.* The set
+consulted is unchanged, so no constant's answer moves; only the order and the
+early exit are new. Entries are written module-suite-first, which is both the
+cheapest and the likeliest to object. `piracy` went 19.9 s to **9.2 s**, and
+the report now names the suite that actually objected — "— fence" instead of
+"— piracy, traffic, fence".
+
+*`--fast` skips stage two.* Two stages that differ by two orders of magnitude
+should not be one command. The fast sweep of everything is a shortlist; the
+broad stage confirms the shortlist. And the wording changes with it, because
+**"unprotected" is a verdict the fast stage cannot reach** — all it knows is
+that the suite naming the module did not object. Saying more is exactly how
+`bloom.HEART_HP` came to sit on a survivor list with `test_play` holding it.
+
+**The wrong turn: I expected the short-circuit to rescue `exchequer`.** It does
+not — its own suite does not catch its constants, so they fall through to
+`politics` anyway and the module still costs an hour and a half. The saving is
+real where a module's own suite answers and nil where it does not, which is
+worth stating rather than implying.
+
+Both kills of a running sweep left the tree clean — `git status` empty after
+SIGTERM — which is the restore handler doing the job it was written for.
+
+Four mutations red. The ten-hour re-run is still not done; it is now a
+fifteen-minute shortlist followed by a targeted confirmation, which is a job
+that fits somewhere.
+
 ## 2026-08-02 — SEEDFALL: the seam was easy; the sweep behind it was dead
 
 #138. `tests/tripwire.py` sat at 500 exactly — the next line anybody added to

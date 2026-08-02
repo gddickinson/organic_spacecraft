@@ -71,6 +71,93 @@ MEASURED = [
 def run(suite: Suite) -> None:
     check = suite.check
 
+    @check("the fast path stops at the first suite that objects")
+    def _():
+        # **Measured on `exchequer`**, whose fast path is
+        # `("exchequer", "politics")`: `exchequer` answers in 3.6 s,
+        # `politics` takes 145.4 s — the most expensive suite in the project —
+        # and handing both to one run cost 148.0 s a variant. The set of
+        # suites consulted is unchanged; asking them one at a time and
+        # stopping at the first objection is the whole saving.
+        from . import tripwire
+
+        asked = []
+
+        def stub(suites):
+            asked.append(tuple(suites))
+            # The first suite any module names objects. Nothing after it
+            # should ever be run.
+            return "exchequer" not in suites and "bloom" not in suites
+
+        real_run, real_clean = tripwire._run, dict(tripwire._CLEAN)
+        target = ROOT / "sim" / "exchequer.py"
+        before = target.read_text()
+        try:
+            tripwire._run = stub
+            tripwire._CLEAN.clear()
+            import contextlib
+            import io
+            with contextlib.redirect_stdout(io.StringIO()):
+                code = tripwire.main(["--fast", "exchequer"])
+        finally:
+            tripwire._run = real_run
+            tripwire._CLEAN.clear()
+            tripwire._CLEAN.update(real_clean)
+            target.write_text(before)
+
+        assert code == 0, code
+        assert asked, "the sweep never ran a suite"
+        # Every ask is a single suite, and `politics` is never among them:
+        # `exchequer` objected first and the expensive neighbour was spared.
+        assert all(len(a) == 1 for a in asked), (
+            f"the fast path still hands several suites to one run: "
+            f"{[a for a in asked if len(a) != 1][:3]}")
+        assert all("politics" not in a for a in asked), (
+            "politics was run even though exchequer had already objected")
+        return (f"{len(asked)} runs, one suite each, and the 145 s neighbour "
+                f"never asked")
+
+    @check("the fast sweep never pays for the broad set")
+    def _():
+        # `--fast` exists because the two stages cost wildly different
+        # amounts: `piracy`'s ten constants, all caught by their own suites,
+        # swept in 20 seconds; `exchequer`'s thirteen were still going after
+        # thirty minutes. What it produces is a shortlist, not a verdict, and
+        # it must say so.
+        from . import tripwire
+
+        asked = []
+        real_run, real_clean = tripwire._run, dict(tripwire._CLEAN)
+        target = ROOT / "data" / "bloom.py"
+        before = target.read_text()
+        try:
+            tripwire._run = lambda suites: asked.append(tuple(suites)) or True
+            tripwire._CLEAN.clear()
+            import contextlib
+            import io
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = tripwire.main(["--fast", "bloom"])
+        finally:
+            tripwire._run = real_run
+            tripwire._CLEAN.clear()
+            tripwire._CLEAN.update(real_clean)
+            target.write_text(before)
+
+        assert code == 0, code
+        wide = [a for a in asked if len(a) > 3]
+        assert not wide, (
+            f"--fast ran the broad set of {len(wide[0])} suites; stage two is "
+            f"exactly what it exists to skip")
+        said = out.getvalue()
+        assert "shortlist" in said, (
+            "the fast sweep called its findings something other than a "
+            f"shortlist: {said[-200:]}")
+        assert "unprotected" not in said, (
+            "the fast sweep called a constant unprotected, which is a verdict "
+            "it cannot reach — only its own suites declined to object")
+        return f"{len(asked)} runs, none of them the broad set, and it says so"
+
     @check("the sweep runs, and puts every file back exactly as it was")
     def _():
         # **`main` had no check of any kind, and it was dead at HEAD.** A local
