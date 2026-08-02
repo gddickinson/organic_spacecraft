@@ -108,6 +108,20 @@ def run(suite: Suite) -> None:
             "one, or name them as having no suite")
         stale = sorted(m for m in no_suite if m in tripwire.KIN)
         assert not stale, f"{stale} now has a fast path and is still excused"
+
+        # And every key names a module that exists. A row for something that
+        # was renamed or deleted can never be consulted and quietly makes the
+        # table look bigger than it is — `declared` sat here for cycles with
+        # no `declared` module anywhere in the package. Measured when this
+        # moved in: dropping the assertion let a ghost entry back through
+        # every other check in the project.
+        here = {path.stem
+                for folder in ("data", "sim", "core", "world", "ui")
+                for path in (pathlib.Path(tripwire.__file__).resolve()
+                             .parent.parent / folder).glob("*.py")}
+        ghosts = sorted(m for m in tripwire.KIN if m not in here)
+        assert not ghosts, (
+            f"fast paths for modules that do not exist: {ghosts}")
         # And each module appears once. A dict literal keeps the *last* value
         # for a repeated key and says nothing, so a second entry silently
         # replaces the first: six modules had two, and `stations` — three seats
@@ -228,52 +242,14 @@ def run(suite: Suite) -> None:
         return (f"{len(over_budget)} suites over budget, all excluded; "
                 f"{len(tripwire.SUITES)} left in the net")
 
-    @check("no file in the package is past five hundred lines")
-    def _():
-        # The project's own rule, and it had gone unwatched: measured when this
-        # was written, `ui/window.py` was 519 lines and `ui/conn_window.py`
-        # 508, both past it at HEAD, and nothing said so. `window.py` split
-        # along the seam its own comments already marked — the endings went to
-        # `ui/endings.py` — and came back to 475.
-        #
-        # `conn_window` is the one still over, and is named here rather than
-        # quietly tolerated: a rule with an unrecorded exception is not a rule.
-        import pathlib
-        # **Today's sizes, so the rule stops rotting further.** Splitting
-        # sixteen files is not one cycle's work, and a rule with no guard at
-        # all is how they got here: measured when this was written, sixteen
-        # files were past five hundred and nothing said so. Each is named with
-        # the length it had, so a file may shrink but never grow, and a file
-        # not on the list may never cross. See the task on working the list
-        # down — every removal from here is a real split along a real seam.
-        allowed = {
-            "data/works3d.py": 635,
-            "sim/conn.py": 612,
-            "sim/control.py": 602,
-            "sim/exchequer.py": 506,
-            "sim/flight.py": 512,
-            "sim/robots.py": 616,
-            "tests/chronicle.py": 517,
-            "tests/test_conn.py": 523,
-            "tests/test_control.py": 560,
-            "tests/test_industry.py": 520,
-            "tests/test_orbits.py": 567,
-            "tests/test_robots.py": 624,
-            "ui/map_view.py": 526,
-            "ui/viewport.py": 535,
-            "ui/widgets.py": 517,
-        }
-        root = pathlib.Path(__file__).resolve().parent.parent
-        over = []
-        for path in sorted(root.rglob("*.py")):
-            if "__pycache__" in str(path):
-                continue
-            lines = len(path.read_text().splitlines())
-            cap = allowed.get(str(path.relative_to(root)), 500)
-            if lines > cap:
-                over.append(f"{path.relative_to(root)} {lines}")
-        assert not over, (
-            "past five hundred lines, and not named as a known exception: "
-            + ", ".join(over) + " — split it along a real seam")
-        return (f"{len(allowed)} files named at their present length, "
-                "none may grow and none may join them")
+    # **The five-hundred-line rule used to be checked here too, with a debt
+    # list of its own.** `tests/test_length.py` grew a second one, and within
+    # two cycles they had drifted: this copy still carried `sim/conn.py` at
+    # 612 and `sim/control.py` at 602 after both had been split and struck off
+    # the other, and the two disagreed about `ui/viewport.py` — 535 against
+    # 533. Two lists of what is too long is the exact fault this file exists
+    # to catch, wearing a checker's coat.
+    #
+    # `tests/test_length.py` is the one door now: it holds the ceilings, and
+    # it refuses a row for a debt that has been paid, which is what would have
+    # caught the drift had there been only one list to drift from.

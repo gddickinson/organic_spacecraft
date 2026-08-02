@@ -119,11 +119,28 @@ falls to **0.515** after 100 days, **0.200** after 1,000 and is gone by 1,600
 equals a thousand told at once, because the clock steps daily in play and
 jumps in a transfer. Halved, doubled and zeroed, all six mutations go red.
 
-**And nothing had ever checked the sweep itself.** A dozen check files cite its
-verdicts and several checks exist *because* it called something unpinned, while
-`KIN` — its fast path, 133 hand-kept entries naming 226 suites — had no check
-of any kind. `tests/test_tripwire.py` is the first, and it matters because a
-wrong fast path does not fail: it makes the tool answer confidently. Measured,
+**One door for what is too long, and one for the fast paths — the hard way.**
+`tests/test_harness_guard.py` has checked both since long before the recent
+work, and two more checkers grew beside it anyway: `tests/test_length.py` with
+a second debt list, and `tests/test_tripwire.py` with a weaker copy of the
+fast-path check under a docstring claiming nothing had ever checked the tool.
+Within two cycles the two debt lists disagreed — harness_guard still carried
+`sim/conn.py` at 612 and `sim/control.py` at 602 after both were split, and the
+pair differed on `ui/viewport.py`, 535 against 533. A stale ceiling is silent,
+because a 612 cap over a 489-line file passes; only the list that *refuses*
+stale rows would ever have said so.
+
+`test_length` is the one debt list now. `test_harness_guard` keeps the
+fast-path check, being strictly stronger — it also catches a module named
+twice, which matters because a dict literal keeps the last value for a repeated
+key in silence. One assertion from the deleted pair was **not** a duplicate and
+only mutation found it: a ghost `KIN` entry, a row naming a module that does
+not exist, survived the deletion. It is folded into harness_guard's check now.
+
+**What `tests/test_tripwire.py` is actually for.** Not the table's shape —
+harness_guard owns that — but the *measured* half: which suite has been watched
+to go red when a given constant moves. A wrong fast path does not fail; it
+makes the tool answer confidently. Measured,
 `bloom.HEART_HP` halved and doubled ran `bloom` green, `tuning` green — the one
 suite that imports the module — and `play` **red**. It had been reported a
 survivor while a check sat there holding it.

@@ -2,6 +2,59 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: I had built two of everything, and measuring said so
+
+#138. I opened this cycle to split `tests/tripwire.py`, which sits at 500
+exactly and would fail the ratchet on the next line anybody added to it. While
+mapping its readers I found `tests/test_harness_guard.py` — a file that
+predates all of this work — and it already held **both** of the guards I had
+been so pleased with:
+
+    @check("the tripwire's fast paths point at suites that exist and run")
+    @check("no file in the package is past five hundred lines")
+
+So `tests/test_length.py`, which I wrote three cycles ago, was a **second debt
+list**, and `tests/test_tripwire.py`, written four cycles ago, duplicated the
+weaker half of a stronger check. Its docstring opened with "Nothing has ever
+checked the tool itself", which was simply false.
+
+**The two lists had already drifted, inside two cycles.** Measured:
+
+    harness_guard still carried   sim/conn.py    612   (split; actually 489)
+                                  sim/control.py 602   (split; actually 487)
+    the two disagreed about       ui/viewport.py 535 against 533
+
+That is the exact fault this project keeps recording — one fact, two doors —
+committed by me, in the checks whose whole job is to catch it. And it hid
+in plain sight because both lists pass: a ceiling of 612 over a 489-line file
+is green, so a stale row is silent unless something refuses stale rows, which
+only *one* of the two lists did.
+
+**Closed to one door each, keeping the better of each pair.**
+`test_length` holds the ceilings, because it also refuses a paid debt and a
+row for a file that no longer exists — the thing that would have caught the
+drift. `test_harness_guard` keeps the fast-path check, because it is strictly
+stronger than mine: it catches a module named *twice*, and a dict literal
+keeps the last value for a repeated key silently — that had once swept
+`stations` against one suite of five.
+
+**And one of the checks I deleted was not a duplicate, which measuring caught
+and reading would not have.** A ghost `KIN` entry — a row for a module that
+does not exist — survived after the deletion. My first mutation *appeared* to
+catch it, and did not: adding the row pushed `tripwire.py` from 500 to 501 and
+the **length** check fired. Re-run as a replacement rather than an insertion,
+same line count, it went straight through. The assertion is folded into
+harness_guard's fast-path check now, where the table's well-formedness already
+lives, and bites there.
+
+`test_tripwire.py` is 92 lines from 120 and holds exactly one check — the
+measured guards, which is the half that was genuinely missing.
+`test_harness_guard.py` is 241 from 279.
+
+**No file was split this cycle, and the task is no further forward.** Deleting
+a hundred and thirty lines of duplicated checking was the better use of the
+cycle, and `tests/tripwire.py` is still at 500 waiting for its seam.
+
 ## 2026-08-02 — SEEDFALL: two rules nothing was holding, and a comment that said otherwise
 
 #142. Both constants confirmed genuinely unpinned before anything was written —

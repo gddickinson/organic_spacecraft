@@ -1,10 +1,21 @@
 """The sweep that guards the constants had nothing guarding it.
 
-`tests/tripwire.py` decides which constants in this game are protected. A
-dozen check files cite its verdicts in their comments, and several checks exist
-*because* it reported something unpinned. Nothing has ever checked the tool
-itself, and its `KIN` table — the fast path, one entry per module, saying which
-suites are worth running for that module's constants — is hand-kept.
+`tests/tripwire.py` decides which constants in this game are protected, and its
+`KIN` table — the fast path, one entry per module, saying which suites are
+worth running for that module's constants — is hand-kept.
+
+**This file said "nothing has ever checked the tool itself", and that was
+wrong.** `tests/test_harness_guard` has checked the fast paths since long
+before this existed, and checks them harder: that every named suite is real,
+that every constant-holding module has an entry or is named as having no
+suite, and that no module appears twice — a dict literal keeps the last value
+for a repeated key and says nothing, which had silently swept `stations`
+against one suite of five. Two of the checks written here duplicated the
+weaker half of that and have been removed.
+
+What was genuinely missing, and is all that remains here, is the *measured*
+half: which suite has actually been watched to go red when a given constant
+moves.
 
 **A hand-kept table of what guards what goes wrong silently, and the verdict it
 produces is confident either way.** "SURVIVES" from a sweep with a wrong fast
@@ -25,13 +36,9 @@ well-formed, and the guards that *have* been measured stay named.
 
 from __future__ import annotations
 
-import pathlib
-
 from .harness import Suite
-from .suites import ALL_SUITES
 from .tripwire import KIN, SLOW, constants
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 #: Guards proved by mutation: module, constant, and the suite that went red.
 #:
@@ -55,40 +62,9 @@ MEASURED = [
 ]
 
 
-def _modules() -> set:
-    out = set()
-    for folder in ("data", "sim", "core", "world", "ui"):
-        for path in (ROOT / folder).glob("*.py"):
-            out.add(path.stem)
-    return out
-
 
 def run(suite: Suite) -> None:
     check = suite.check
-
-    @check("every fast path names suites that exist")
-    def _():
-        # A misspelt suite key does not raise — the sweep runs the ones it
-        # recognises and the entry silently protects less than it says. There
-        # is no other way to notice.
-        real = set(ALL_SUITES)
-        wrong = {mod: [s for s in named if s not in real]
-                 for mod, named in KIN.items()}
-        wrong = {m: v for m, v in wrong.items() if v}
-        assert not wrong, f"fast paths naming no such suite: {wrong}"
-        return f"{len(KIN)} fast paths, {sum(len(v) for v in KIN.values())} " \
-               f"suite names, all real"
-
-    @check("every fast path names a module that exists")
-    def _():
-        # Measured when this went in: `declared` had an entry and there is no
-        # `declared` module anywhere in the package — a row that could never
-        # be consulted, carried along as if it were doing something.
-        mods = _modules()
-        ghosts = sorted(m for m in KIN if m not in mods)
-        assert not ghosts, (
-            f"fast paths for modules that do not exist: {ghosts}")
-        return f"{len(KIN)} fast paths, every one a real module"
 
     @check("a fast path still names the suite measured to guard its constant")
     def _():
