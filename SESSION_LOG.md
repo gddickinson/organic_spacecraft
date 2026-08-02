@@ -2,6 +2,53 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: the panel stops answering a question nobody asked
+
+#141, found in a rendered picture two cycles ago and made starker by the
+autopilot: with the computer closing on a mark 1,926 km away, the ship panel
+read **"Range 3,210.4 km"** in red.
+
+`sim/instruments.readout` had two branches, orbiting and not, and "not" meant
+*berthing*. `conn.range_km` is the distance from the origin of the conn's
+frame — the target in an approach, and **where she let go** in a free flight —
+so it was printed as "Range" and judged against the 40 km at which a berthing
+is going badly. Measured, flying out to a hull:
+
+    after 300 burns      true range to the mark   2,968 km
+      Range     8,590.0 km   [warn]     <- distance flown, called a range
+      Closing    -583.2 m/s  [ok]       <- closing on the place she left
+      Relative    583.2 m/s  [warn]     <- judged against a berthing rate
+
+583 m/s is a great deal for coming alongside a quay and nothing at all for
+crossing a system, so the panel sat in amber for the whole flight. A screen
+that cries wolf teaches the pilot to ignore it — which `readout`'s own
+docstring already says, about the orbit rows, from the last time this happened.
+
+Free flight has its own three rows now: **Flown** and **Speed**, both plain,
+and no "Closing" at all, because out there nothing is being closed on. Same
+flight, after the fix:
+
+      Flown     6,490.6 km   [ok]
+      Speed       583.2 m/s  [ok]
+
+**No range-to-mark row was added, deliberately.** The mark lives on the screen
+that holds it and `ui/pilot_view` already prints its name, range and bearing;
+a second copy in the panel is how two ranges start disagreeing. That was the
+choice #141 offered and it is the one that keeps the door single.
+
+**The near-miss.** `ui/flight_window` builds its *own* Range and Closing rows
+rather than going through `readout`, so the same defect could have been sitting
+there untouched. Measured rather than assumed: opened against a live free
+flight it refuses outright — "Flight controls — nothing in reach. Take the conn
+on something first." — so its rows only ever paint for an approach, where
+"Range" is exactly right. Nothing to fix, and worth the two minutes to know it
+rather than guess.
+
+Four mutations red, including one that puts the new branch *above* the orbiting
+one incorrectly — the free-flight test alone would not have caught an orbit
+losing its Altitude row, so a second check holds the two branches that were
+already there.
+
 ## 2026-08-02 — SEEDFALL: the computer will come alongside, and refuses what it cannot fly
 
 #140, the half that was left after the guns landed. The request said it

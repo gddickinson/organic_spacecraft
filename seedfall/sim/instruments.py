@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from .conn import (ALONGSIDE_RATE, MAIN_COST, SAFE_CLOSING, Conn)
 from .orbits import ORBIT_FLOOR_KM, in_orbit, orbit_band, orbital_speed
+from .targets import is_open
 from . import pilot
 
 
@@ -26,7 +27,29 @@ def readout(conn: Conn) -> list[tuple[str, str, str]]:
     """
     orbiting = conn.target.mu > 0
     r = conn.range_km
-    if orbiting:
+    if is_open(conn.target):
+        # **A free flight is not a slow approach to the place you left.**
+        # These three rows used to be the berthing set, and every one of them
+        # was answering a question nobody had asked. `conn.range_km` is the
+        # distance from the *origin* of the conn's frame, which for an
+        # approach is the target and for a free flight is where she let go —
+        # so it was labelled "Range" and judged against the 40 km at which a
+        # berthing is going badly. Measured on a flight out to a hull: the
+        # panel read "Range 8,590.0 km" in amber while the contact the pilot
+        # was flying at was 2,968 km off, and "Relative 583.2 m/s" in amber
+        # because 583 m/s is a great deal for coming alongside a quay. It is
+        # nothing at all for crossing a system, which is what this is.
+        #
+        # There is no "Closing" row, because out here there is nothing being
+        # closed on. Range and bearing to whatever the pilot has laid a course
+        # on belong to the screen that holds the mark — `ui/pilot_view` prints
+        # them — and putting a second copy here is how two ranges start
+        # disagreeing.
+        rows = [
+            ("Flown", f"{r * 1000:,.0f} m" if r < 2 else f"{r:,.1f} km", "ok"),
+            ("Speed", f"{conn.speed:,.1f} m/s", "ok"),
+        ]
+    elif orbiting:
         want = orbital_speed(conn)
         band = orbit_band(conn)
         altitude = r - conn.target.radius_km

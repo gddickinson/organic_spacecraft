@@ -33,6 +33,90 @@ def _battered(seed: str):
 def run(suite: Suite) -> None:
     check = suite.check
 
+    @check("a free flight's panel answers a free flight's questions")
+    def _():
+        # **Three rows were answering an approach's questions.** `readout`
+        # had two branches, orbiting and not, and "not" meant berthing:
+        # `conn.range_km` is the distance from the origin of the conn's frame,
+        # which is the target in an approach and *where she let go* in a free
+        # flight — so it was printed as "Range" and marked amber past the
+        # 40 km at which a berthing is going badly. Measured on a flight out
+        # to a hull: "Range 8,590.0 km" in amber with the contact she was
+        # flying at 2,968 km off, and "Relative 583.2 m/s" in amber because
+        # 583 m/s is a lot for coming alongside a quay and nothing at all for
+        # crossing a system.
+        from ..sim import conn as conn_sim
+        from ..sim import engage as engage_sim
+        from ..sim import freeflight as free_sim
+        from ..sim import instruments as panel_sim
+        from ..sim import track as track_sim
+
+        game = new_game("panel")
+        conn, why = free_sim.begin(game)
+        assert conn is not None, why
+        hull = next(c for c in track_sim.contacts(game) if c.kind == "hull")
+        free_sim.steer(game, conn, hull)
+        for _ in range(300):
+            conn_sim.apply(conn, "forward", main=True, ticks=1)
+
+        rows = panel_sim.readout(conn)
+        names = [k for k, _v, _kind in rows]
+        assert "Flown" in names, names
+        assert "Speed" in names, names
+        # No row may claim to be a range, because the only honest range out
+        # here is to the mark, and the mark lives on the screen that holds it.
+        assert "Range" not in names, (
+            "a free flight's panel prints a Range; the number it has is the "
+            "distance from where she let go, which is not a range to anything")
+        assert "Closing" not in names, (
+            "a free flight's panel prints a Closing; there is nothing out "
+            "here being closed on")
+
+        # And nothing cries wolf. Flying fast and far is the point.
+        flown = dict((k, (v, kind)) for k, v, kind in rows)
+        assert flown["Flown"][1] == "ok", flown["Flown"]
+        assert flown["Speed"][1] == "ok", flown["Speed"]
+        assert conn.speed > 100.0, f"the fixture never got moving: {conn.speed}"
+        assert conn.range_km > 1000.0, conn.range_km
+
+        # The distance flown is not the range to the mark, and saying so is
+        # the whole point: they differ, and the panel names the one it has.
+        to_mark = engage_sim.range_km(game, conn, hull)
+        assert abs(to_mark - conn.range_km) > 1000.0, (
+            f"flown {conn.range_km:,.0f} km and the mark {to_mark:,.0f} km "
+            f"off — too close together for this check to prove anything")
+        return (f"Flown {conn.range_km:,.0f} km at {conn.speed:,.0f} m/s, "
+                f"both ok, with the mark {to_mark:,.0f} km off")
+
+    @check("an approach and an orbit keep the rows they had")
+    def _():
+        # The free-flight branch went in *above* the orbiting one, which is
+        # exactly where a mistake would silently take the other two with it.
+        from ..sim import berthing as berth_sim
+        from ..sim import instruments as panel_sim
+        from ..sim import track as track_sim
+
+        game = new_game("panel")
+        quay = next(c for c in track_sim.contacts(game)
+                    if c.kind == "anchorage")
+        conn, why = berth_sim.begin(game, quay)
+        assert conn is not None, why
+        names = [k for k, _v, _kind in panel_sim.readout(conn)]
+        for row in ("Range", "Closing", "Relative"):
+            assert row in names, (f"an approach lost its {row} row", names)
+        assert "Flown" not in names, names
+
+        body = next(c for c in track_sim.contacts(game) if c.kind == "body")
+        circling, why = berth_sim.begin(game, body)
+        assert circling is not None, why
+        assert circling.target.mu > 0, "the fixture is not a world to orbit"
+        circling.pos = [0.0, circling.target.radius_km + 400.0, 0.0]
+        names = [k for k, _v, _kind in panel_sim.readout(circling)]
+        for row in ("Altitude", "Circular here"):
+            assert row in names, (f"an orbit lost its {row} row", names)
+        assert "Flown" not in names and "Range" not in names, names
+        return "approach keeps Range/Closing/Relative; orbit keeps Altitude"
+
     @check("an instrument with nowhere to paint declines, rather than dying")
     def _():
         # **This ended a 174-suite run twice, at two different suites.**

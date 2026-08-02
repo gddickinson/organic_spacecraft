@@ -1759,6 +1759,23 @@ comparison would have found this — both numbers were internally consistent.
 The check that holds it now walks all four rungs of `pilot.THROTTLE_STEPS` and
 asserts the button and the panel say the same thing at each.
 
+**And the panel stopped answering a question nobody asked.**
+`sim/instruments.readout` had two branches, orbiting and not, and "not" meant
+*berthing*. `conn.range_km` is the distance from the origin of the conn's frame
+— the target in an approach, and **where she let go** in a free flight — so it
+was printed as "Range" and judged against the 40 km at which a berthing is
+going badly. Measured on a flight out to a hull: "Range 8,590.0 km" in amber
+with the contact she was flying at 2,968 km off, and "Relative 583.2 m/s" in
+amber, because 583 m/s is a great deal for coming alongside a quay and nothing
+at all for crossing a system. The panel sat in amber for the whole flight, and
+a screen that cries wolf teaches the pilot to ignore it.
+
+A free flight gets **Flown** and **Speed**, both plain, and no "Closing" — out
+there nothing is being closed on. No range-to-mark row was added: the mark
+lives on the screen that holds it, and `ui/pilot_view` already prints its name,
+range and bearing. A second copy in the panel is how two ranges start
+disagreeing.
+
 **The computer will come alongside, and says what it cannot do.** `sim/autopilot`
 already had `close`, and measured on a free flight it — and `orbit` — returned
 `[0, 0, 0]`, *the same answer as `null`*: `close` aims at a mooring mast through
