@@ -266,6 +266,12 @@ class PilotView(View):
         rows = self.ranged()
 
         self.feed = Viewport(self.conn, self.camera)
+        # **Ring the thing the course is laid on.** Handed a bearing from
+        # `freeflight.toward` and a name — the window looks nothing up.
+        laid = self.marked()
+        if laid is not None:
+            self.feed.mark = (free_sim.toward(self.game, self.conn, laid),
+                              laid.name)
         left.addWidget(self.feed)
         # Three to a line: six across demanded 486 px and set the left
         # column's minimum, which is 56 px more than the bridge had to give.

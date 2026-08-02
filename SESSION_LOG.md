@@ -2,6 +2,40 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: you could not see the thing you were flying at
+
+#145 continued. Measured first, and the measurement was blunt: laying a course
+on a contact rendered the viewport **byte-identical**. `Viewport._target`
+draws `conn.target`, a free flight has none, and the method says so in its own
+comment — "station keeping: there is no target, only sky". So the screen's
+whole promise, *what you can see you can go to*, came down to a row of text to
+cross-reference against a starfield of identical dots.
+
+`ui/viewport_mark` rings the marked bearing and names it. The screen hands
+down a **direction and a name**, from `freeflight.toward`, so the window looks
+nothing up: it knows how to draw a ring, not what a contact is.
+
+**Adding it to `ui/viewport.py` was not allowed, and that was the useful
+constraint.** That file is a recorded debt at 533 lines, and the ratchet does
+not care what the extra lines are for. So the drawing went in its own module
+and the projection maths — `project` and `_unit`, pure geometry with no Qt in
+it — came out into `ui/viewport_math.py`. `viewport.py` is **518**: a feature
+added and fifteen lines of debt paid at the same time.
+
+**Then the picture caught the next fault.** Rendered, the label read "H" — it
+was drawn always to the right of the ring, and a mark near the edge of the
+window lost its name to the frame. It goes on whichever side has room now, and
+"Held Breath" reads in full.
+
+**And a mutation caught me writing a test that proved nothing.** To check the
+zero-bearing guard I mutated `length` to 1.0, which sent a zero vector through
+`project` — which rejects it anyway — so the mutation survived and told me
+nothing about the guard. Deleting the guard outright is the real question, and
+that goes red: without it the division raises.
+
+Four mutations red: the ring never drawn, the window never told, a mark behind
+the camera drawn in front of it, and no guard on a zero bearing.
+
 ## 2026-08-02 — SEEDFALL: the bridge did not fit in the window
 
 Asked to keep working on the Pilot window until it works correctly, so I

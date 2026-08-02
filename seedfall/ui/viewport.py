@@ -31,7 +31,8 @@ from PyQt6.QtWidgets import QWidget
 from ..core.rng import RNG
 from ..data import models3d, surfaces, worlds3d
 from ..sim import conn as conn_sim
-from . import painting, render3d, spheres, stars3d, theme
+from . import painting, render3d, spheres, stars3d, theme, viewport_mark
+from .viewport_math import HALF_FOV, _unit, project
 
 #: Half the field of view, in radians. A wide-ish lens: enough to keep a
 #: target in frame while manoeuvring, tight enough that motion reads.
@@ -42,7 +43,6 @@ from . import painting, render3d, spheres, stars3d, theme
 #: ceiling keeps an A-type's from being a white rectangle.
 GLARE_FLOOR, GLARE_CEILING, GLARE_ROOT = 0.55, 1.45, 0.25
 
-HALF_FOV = math.radians(31.0)
 
 
 def _starfield(count: int = 260) -> list:
@@ -141,25 +141,6 @@ def _cross(a, b) -> tuple:
             a[0] * b[1] - a[1] * b[0])
 
 
-def _unit(v) -> tuple:
-    n = math.sqrt(sum(c * c for c in v)) or 1.0
-    return (v[0] / n, v[1] / n, v[2] / n)
-
-
-def project(vec, cam, width: int, height: int):
-    """A direction in the target frame to a point on screen, or None.
-
-    Returns `(x, y, distance_along_axis)`. Anything at or behind the lens is
-    not in this camera's picture at all.
-    """
-    fwd, right, up = cam
-    ahead = sum(a * b for a, b in zip(vec, fwd))
-    if ahead <= 1e-9:
-        return None
-    focal = (min(width, height) * 0.5) / math.tan(HALF_FOV)
-    x = sum(a * b for a, b in zip(vec, right)) / ahead * focal
-    y = sum(a * b for a, b in zip(vec, up)) / ahead * focal
-    return (width * 0.5 + x, height * 0.5 - y, ahead)
 
 
 def _detail(look: str, name: str):
@@ -176,6 +157,9 @@ def _detail(look: str, name: str):
 
 
 class Viewport(painting.Painted, QWidget):
+    #: `(vector, name)` a course is laid on — see `ui/viewport_mark`.
+    mark = None
+
     """One camera's picture, live off a `Conn`."""
 
     def __init__(self, conn, view_id: str = "fore", compact: bool = False):
@@ -206,6 +190,7 @@ class Viewport(painting.Painted, QWidget):
         if conn is not None:
             self._sky(p, conn, cam, w, h)
             self._target(p, conn, cam, w, h)
+        viewport_mark.draw(p, self.mark, project, cam, w, h)
         self._frame(p, label_text, w, h)
 
     # ── the picture ────────────────────────────────────────────────────────

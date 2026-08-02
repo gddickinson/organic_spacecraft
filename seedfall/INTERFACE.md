@@ -2620,6 +2620,11 @@ seedfall/
 │   │                  painter's lifetime so a paint that cannot begin (or
 │   │                  dies mid-frame) is recorded in `MISSES` rather than
 │   │                  killing the process from inside `paintEvent`
+│   ├── viewport_mark.py the ring and name on whatever the course is laid on.
+│   │                  A free flight has no `conn.target`, so the window drew
+│   │                  nothing and every contact looked alike
+│   ├── viewport_math.py where a direction lands on the screen: `project`,
+│   │                  `_unit`, `HALF_FOV`. Pure geometry, no Qt
 │   ├── pilot_panels.py the bridge's two columns and the boards in the right
 │   │                  one. The screen was 1,444 px tall in a 782 px view
 │   │                  until it was measured on a *shown* window

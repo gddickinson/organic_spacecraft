@@ -32,6 +32,84 @@ def run(suite: Suite) -> bool:
 
     check = suite.check
 
+    @check("the thing you are flying at is ringed out of the window")
+    def _():
+        # **Measured before this existed: the picture did not change at all.**
+        # A free flight has no `conn.target`, so `Viewport._target` returns at
+        # once — "station keeping: there is no target, only sky" — and laying
+        # a course rendered byte-identical. Out there everything is a point of
+        # light and they all look alike, so "fly at that one" was a row of
+        # text to cross-reference against a starfield.
+        from PyQt6.QtWidgets import QApplication
+        game, win, view = _bridge("mark")
+        app = QApplication.instance()
+        win.show()
+        for _ in range(8):
+            app.processEvents()
+        try:
+            target = next(c for c in view.in_view() if c.kind == "hull"
+                          and 100 < engage_sim.range_km(game, view.conn, c)
+                          < 200_000)
+            before = view.feed.grab().toImage()
+            view.fly_at(target)
+            view.refresh()
+            for _ in range(4):
+                app.processEvents()
+            after = view.feed.grab().toImage()
+            assert after != before, (
+                f"a course was laid on {target.name} and the view out of the "
+                f"window is pixel for pixel what it was")
+            assert view.feed.mark is not None, "the window was told nothing"
+            assert view.feed.mark[1] == target.name, view.feed.mark[1]
+
+            # Breaking off takes the ring away again.
+            view.break_off()
+            view.refresh()
+            for _ in range(4):
+                app.processEvents()
+            assert view.feed.mark is None, "the ring outlived the course"
+            assert view.feed.grab().toImage() == before, (
+                "breaking off left something drawn on the window")
+        finally:
+            win.hide()
+        return f"{target.name} ringed, and the ring goes when the course does"
+
+    @check("a mark behind the camera is not drawn in front of it")
+    def _():
+        # `project` returns None for anything at or behind the lens, and the
+        # ring must respect that or a contact astern would be painted over
+        # the stars ahead. Asked directly, because a picture cannot easily
+        # prove the *absence* of a ring in the right place.
+        from ..ui import viewport_mark
+        from ..ui.viewport_math import project
+
+        cam = ((0.0, 1.0, 0.0), (1.0, 0.0, 0.0), (0.0, 0.0, 1.0))
+        drawn = []
+
+        class Fake:
+            def setPen(self, *a): pass
+            def setBrush(self, *a): pass
+            def setFont(self, *a): pass
+            def drawEllipse(self, *a): drawn.append("ring")
+            def drawLine(self, *a): pass
+            def drawText(self, *a): drawn.append("name")
+            def fontMetrics(self):
+                class M:
+                    def horizontalAdvance(self, _t): return 60
+                return M()
+
+        assert viewport_mark.draw(Fake(), ((0.0, 5.0, 0.0), "ahead"),
+                                  project, cam, 400, 300) is True
+        assert "ring" in drawn and "name" in drawn, drawn
+        drawn.clear()
+        assert viewport_mark.draw(Fake(), ((0.0, -5.0, 0.0), "astern"),
+                                  project, cam, 400, 300) is False
+        assert not drawn, "a mark behind the camera was drawn anyway"
+        assert viewport_mark.draw(Fake(), None, project, cam, 400, 300) is False
+        assert viewport_mark.draw(Fake(), ((0.0, 0.0, 0.0), "here"),
+                                  project, cam, 400, 300) is False
+        return "ahead is ringed; astern, nothing, and a zero bearing are not"
+
     @check("the Pilot is on the rail, and it paints with the ship in hand")
     def _():
         from PyQt6.QtWidgets import QPushButton
