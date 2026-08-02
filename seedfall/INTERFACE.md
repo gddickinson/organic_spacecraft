@@ -1893,6 +1893,17 @@ a word leaves the pilot wondering. `freeflight.ALONGSIDE_KM` is 50, well inside
 `engage.reach_km` of 10,000, so running something down arrives with the guns
 able to speak.
 
+**Where the ship is, in either frame.** `conn.pos` is an offset from the
+frame's origin — where she let go in a free flight, the *target* in an
+approach — and `freeflight.where` used `flight.ship_position` for both, which
+is not rewritten until `berthing.commit`. Measured with the ship stood off
+10,164 km from a quay and then given the conn on it: `where` said 10,152.4 km
+and `conn.range_km` said 12.0. It read right on a fresh game only because the
+ship is moored *at* the quay's body. `sim/track.at` is the one door for where
+anything is, and it locates a `Target` now as well as a `Contact` — a target
+carries `at_xy` and `hull_id`, which `target_from_contact` used to drop for
+hulls entirely.
+
 **One name to a spot, and only inside the frame.** Measured: four hulls
 projected to `dx=0, dy=0` in one camera — hundreds of millions of kilometres
 off in nearly the same bearing — so four labels printed on a single pixel.

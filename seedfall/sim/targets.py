@@ -53,6 +53,14 @@ class Target:
     #: For a body, what sort of world — so the window picks a mesh with the
     #: right caps and bands rather than a grey ball with a label on it.
     look: str = ""
+    #: **What `sim/track.at` needs to find this thing again.** A `Target` had
+    #: everything but these, and for a hull it did not even keep the id, so
+    #: nothing could ask where the target actually *was* — which is why
+    #: `freeflight.where` guessed from `flight.ship_position` and was wrong
+    #: by 10,152 km in an approach begun from a stand-off. `track.at` reads
+    #: these by name, so it locates a `Target` and a `Contact` alike.
+    at_xy: tuple | None = None
+    hull_id: str = ""
     #: For a body, whether it carries a ring system. The *sky* drew rings on
     #: a ringed giant from the moment giants had them; the thing you were
     #: actually approaching did not — so a giant's rings vanished at exactly
@@ -106,11 +114,14 @@ def target_from_contact(game, contact) -> Target:
         return Target(id=contact.id, name=contact.name, kind="anchorage",
                       radius_km=radius_km(berth),
                       detail=contact.detail, berth=berth,
-                      body_index=contact.body_index)
+                      body_index=contact.body_index,
+                      at_xy=getattr(contact, "at_xy", None))
     if contact.kind == "hull":
         return Target(id=contact.id, name=contact.name, kind="hull",
                       radius_km=0.08, detail=contact.detail,
-                      errand=getattr(contact, "errand", ""))
+                      errand=getattr(contact, "errand", ""),
+                      at_xy=getattr(contact, "at_xy", None),
+                      hull_id=getattr(contact, "hull_id", ""))
     return Target(id=contact.id, name=contact.name, kind="point",
                   radius_km=0.0, detail=contact.detail)
 

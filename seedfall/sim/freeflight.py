@@ -112,7 +112,23 @@ def where(game, conn) -> tuple[float, float]:
     is the honest consequence of a 2D sector rather than a hidden one: the
     screens say what the plane is.
     """
-    sx, sy = flight.ship_position(game)
+    # **An approach measures from its target, not from the ship's last
+    # recorded place.** `conn.pos` is an offset from the frame's origin, and
+    # the origin is where she let go only in a free flight; in an approach it
+    # is the thing being approached, and `flight.ship_position` is not written
+    # again until `berthing.commit`. Measured with the ship stood off 10,164
+    # km from a quay and then given the conn on it: this said 10,152 km and
+    # `conn.range_km` — the conn's own answer — said 12.0, because
+    # `berthing.begin` opens an approach at the arrival range. One fact, two
+    # answers, and the wrong one fed `engage.range_km`.
+    #
+    # It read right on a fresh game only because the ship is moored *at* the
+    # quay's body, so the two origins coincide.
+    if is_open(conn.target):
+        sx, sy = flight.ship_position(game)
+    else:
+        from . import track as track_sim
+        sx, sy = track_sim.at(game, conn.target, game.day)
     return (sx + conn.pos[0] / KM_PER_AU, sy + conn.pos[1] / KM_PER_AU)
 
 

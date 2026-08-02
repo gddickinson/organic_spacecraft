@@ -2,6 +2,47 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: the ship had two positions, depending who asked
+
+#146, which was blocking #145's last big item. `freeflight.where` returns
+`flight.ship_position(game) + conn.pos`, and `conn.pos` is an offset from the
+frame's **origin** — which is where she let go in a free flight and the
+*target* in an approach. `flight.ship_position` is not written again until
+`berthing.commit`, so in an approach the answer was simply wrong.
+
+Constructed so the two origins could not coincide — stand off, secure, then
+take the conn:
+
+                   where -> target      the conn's own range_km
+    anchorage        10,152.4 km               12.0 km
+    hull                                       12.0 km
+    body                                    6,135.8 km
+
+and afterwards all three agree to the decimal: 12.0, 12.0, 6,135.8.
+
+It read correct on a fresh game only because the ship is moored *at* the
+quay's body, so `ship_position` and the target's position are the same point.
+That is why nothing had caught it, and why the first measurement of it last
+cycle looked fine until I forced the ship away first.
+
+**The fix is that a target can now say where it is.** `sim/track.at` is the
+one door for "where is anything", and it reads `kind`, `at_xy`, `body_index`
+and `hull_id` off whatever it is handed. A `Target` carried all but the last
+two — and `target_from_contact` **dropped `hull_id` entirely** for a hull, so
+a hull target could not be found again even in principle. It carries both now,
+and `where` asks `track.at` when the conn has a target and keeps the cheap
+`ship_position` path when it does not.
+
+**A regression I did not cause, and checked before claiming otherwise.** The
+Pilot screen's press cost read 14.0 ms and 11 traffic rebuilds against 12.3 ms
+and 6 recorded earlier, which looked like my doing. Stashed and measured HEAD:
+**11 rebuilds there too**. The increase came from last cycle's sights, which
+call `freeflight.toward` per contact; this change is free, because a free
+flight still takes the branch that never touches traffic.
+
+Four mutations red, including the two halves of the branch swapped — an
+approach measuring from the ship, and a free flight measuring from the target.
+
 ## 2026-08-02 — SEEDFALL: four names on one pixel, and labels drawn off the edge
 
 #145 continued. Rendering the newly-named sights and counting them found two
