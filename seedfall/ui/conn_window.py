@@ -416,7 +416,8 @@ class ConnWindow(QDialog):
         # screen states is a rule the captain has to reverse-engineer.
         from ..sim import control as control_sim
         from ..sim import forcing as forcing_sim
-        for said in (control_sim.tug_line(conn), control_sim.refusal_line(conn),
+        from ..sim import tug as tug_sim
+        for said in (tug_sim.tug_line(conn), control_sim.refusal_line(conn),
                      forcing_sim.force_line(conn)):
             if said:
                 self.side.addWidget(note(said))

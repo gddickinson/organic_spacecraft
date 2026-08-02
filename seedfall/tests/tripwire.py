@@ -220,6 +220,10 @@ KIN = {
     "bays": ("bay", "berthing"),
     "control": ("control", "berthing"),
     "forcing": ("forcing", "control", "berthing"),
+    # Split out of `control` (#138), constants and all. Measured: `control`
+    # catches `TUG_FROM` at half. Speed, not safety — `control` is not in
+    # `SLOW`, so the broad stage would catch it with or without this row.
+    "tug": ("control", "clearance"),
     "landing": ("setdown", "landing"),
     "interdiction": ("interdiction",),
     "relics3d": ("relics3d",),

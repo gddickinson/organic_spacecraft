@@ -2,6 +2,48 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: the tug gets its own file, and a row I was not allowed to write
+
+#138, second debt paid. `sim/control.py` was 602 and had drawn its own seam
+years ago: a banner reading "── the tug ──" at line 490, and — measured through
+`ast` before a line moved — **nothing above the banner calls anything below
+it**. Four functions, five constants, 113 lines. `sim/control.py` is 487.
+
+**The constants came with it, which is the opposite of last time and for the
+same reason.** Splitting `sim/conn` they had to stay put: `ALONGSIDE_RATE`
+alone had five other readers. Searched untruncated this time — the lesson from
+that cycle — `TUG_FROM`, `TUG_RATE`, `TUG_REACH`, `TUG_CATCH` and `TUG_SECONDS`
+are read by nothing outside the tug, so they belong with it. Nine external
+references in all, every one repointed: `sim/clearance`, `sim/conn_step`,
+`ui/conn_window`, `tests/test_control` and a docstring in `sim/conn`.
+
+**The tripwire refused a row I tried to give it, and was right.** Having moved
+constants into a new module I added a `MEASURED` entry recording that `control`
+catches `TUG_FROM` at half — which it does. The check threw it out:
+
+    FAIL 'control' is not in SLOW, so the broad stage would have caught
+         tug.TUG_FROM anyway and this row proves nothing
+
+That assertion went in last week on the grounds that such a row *would* look
+like evidence without being any, and here it was stopping its own author from
+writing exactly that. The `KIN` entry stays, because a fast path is worth
+having; the comment beside it now says plainly that it is speed and not safety.
+
+**And the length ratchet caught me twice in one cycle.** The comment explaining
+all this pushed `tests/tripwire.py` from 496 to 505:
+
+    FAIL over five hundred lines and not a recorded debt: tests/tripwire.py (505)
+
+Trimmed to three lines; the file is 500 exactly, which is passing and one line
+from not being. It is a candidate for the next split rather than the next
+exemption.
+
+Reverting the split is red, as it must be — `sim/control.py (598)` — and five
+mutations through the new module's constants all bite, so the tug's behaviour
+is held where it now lives rather than merely parsing there.
+
+Thirteen debts to twelve; 656 lines of debt left, from 758.
+
 ## 2026-08-02 — SEEDFALL: the panel stops answering a question nobody asked
 
 #141, found in a rendered picture two cycles ago and made starker by the

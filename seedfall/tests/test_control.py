@@ -34,7 +34,7 @@ import math
 from ..core.state import new_game
 from ..sim import clearance as clearance_sim
 from ..sim import conn as conn_sim
-from ..sim import control
+from ..sim import control, tug
 from ..sim import moorings
 from ..sim import targets as targets_sim
 from ..sim import track as track_sim
@@ -499,7 +499,7 @@ def run(suite: Suite) -> None:
         flown, fly_cost, fly_ticks = fly(False)
         assert towed.outcome == "alongside", towed.outcome
         assert flown.outcome == "alongside", flown.outcome
-        assert control.under_tow(towed), "the boats never got a line on"
+        assert tug.under_tow(towed), "the boats never got a line on"
         assert towed.towed > 1.0, f"towed only {towed.towed:.3f} km"
 
         # Free, and slow. Both halves matter: a tug that saved nothing would
@@ -511,7 +511,7 @@ def run(suite: Suite) -> None:
         assert tow_ticks > fly_ticks * 1.5, (
             f"the boats took {tow_ticks} ticks against {fly_ticks} — waiting "
             "has to cost something too")
-        told = control.tug_line(towed)
+        told = tug.tug_line(towed)
         assert "boats have you" in told, told
         # And the clearance says so before you commit to waiting.
         assert "boats will take you in" in clearance_sim.line(towed.cleared)
@@ -527,19 +527,19 @@ def run(suite: Suite) -> None:
         was = port.level
         try:
             port.level = 1
-            assert not control.has_tug(game, hub), "a level-1 quay has tugs"
+            assert not tug.has_tug(game, hub), "a level-1 quay has tugs"
             conn = conn_sim.start(
                 game, targets_sim.target_from_contact(game, hub))
             said = clearance_sim.request(game, hub, conn)
             assert not said.tug
             assert "boats" not in clearance_sim.line(said)
             conn.cleared = said
-            assert control.tug_step(conn, 600.0) == 0.0
-            port.level = control.TUG_FROM
-            assert control.has_tug(game, hub)
+            assert tug.tug_step(conn, 600.0) == 0.0
+            port.level = tug.TUG_FROM
+            assert tug.has_tug(game, hub)
         finally:
             port.level = was
-        return (f"level 1 keeps none; level {control.TUG_FROM} keeps boats")
+        return (f"level 1 keeps none; level {tug.TUG_FROM} keeps boats")
 
     @check("a Weave anchor has nobody in it to defy")
     def _():

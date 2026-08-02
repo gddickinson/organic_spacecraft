@@ -39,7 +39,6 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 ALLOWED = {
     "data/works3d.py": 635,
     "sim/robots.py": 616,
-    "sim/control.py": 602,
     "sim/flight.py": 512,
     "sim/exchequer.py": 506,
     "ui/viewport.py": 533,

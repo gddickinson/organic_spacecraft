@@ -32,6 +32,7 @@ from dataclasses import dataclass, field
 from ..core.save import register
 from . import bays
 from . import control
+from . import tug as tug_sim
 from . import moorings
 
 #: Standing below which a port turns you away from its quays. Well under the
@@ -156,7 +157,7 @@ def request(game, contact, conn=None) -> Clearance:
                   else float(getattr(target, "radius_km", 0.0) or 0.0)
                   * HULL_REACH),
         bore_km=(bays.bore_km(target) if kind == "anchorage" else 0.0),
-        tug=control.has_tug(game, contact),
+        tug=tug_sim.has_tug(game, contact),
         max_closing=(moorings.hold_rate(target)
                      if kind == "anchorage"
                      and moorings.sort_of(target) == "standoff"

@@ -77,6 +77,13 @@ remaining work look bigger than it is and sends the next reader to split
 something already split. Raising the limit does not get past it, because then
 every debt reads as paid and the stale-row check refuses the lot.
 
+`sim/control.py` was the second: 602 lines, with the tug — its own banner at
+line 490, four functions, five constants, and nothing above the banner calling
+anything below it — moved to `sim/tug.py`, leaving 487. Here the constants
+*came with it*, which is the opposite of the conn split and for the same
+reason: searched untruncated, `TUG_FROM` and its four siblings are read by
+nothing outside the tug, so `sim/tug` is their one door.
+
 `sim/conn.py` was the first paid off: 612 lines, with the tick integrator —
 `_substeps`, `_sweep_min`, `_step`, `_touch`, `_resolve`, one contiguous block
 with exactly one caller — moved to `sim/conn_step.py`, leaving 489. The
@@ -2330,6 +2337,11 @@ seedfall/
 │   ├── conn.py         the last ten kilometres: a local frame, thrusters and
 │   │                   the main drive, and what a contact costs. The pilot's
 │   │                   side — the console and what a burn is allowed to do
+│   ├── tug.py          the boats: whether a structure keeps them, whether they
+│   │                  have a line on you, and what a tow costs (nothing).
+│   │                  The other side of clearance — what a quay does for a
+│   │                  hull it wants, where `control` is what it does about
+│   │                  one it does not
 │   ├── conn_step.py    the other side: one tick of time, how far it carries
 │   │                   her and what she touches on the way. Only `apply`
 │   │                   calls in, and only `step`

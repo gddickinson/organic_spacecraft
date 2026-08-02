@@ -220,7 +220,7 @@ class Conn:
     warded_for: int = 0
     #: How far a tug has come out to this hull, 0 to 1, and how far it has
     #: walked it in. Only a structure that keeps boats has one; see
-    #: `sim/control.tug_step`. What it buys is reaction mass — the tug's drive
+    #: `sim/tug.tug_step`. What it buys is reaction mass — the tug's drive
     #: does the work, so a cleared hull that waits berths for nothing.
     tug: float = 0.0
     towed: float = 0.0

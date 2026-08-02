@@ -93,6 +93,7 @@ def step(conn: Conn, dt: float) -> None:
         # the hull is still closing, so checking up or opening the range stops
         # it — a warning rather than a countdown.
         from . import control
+        from . import tug as tug_sim
         said = control.step(conn, conn.closing > 0.0)
         if said:
             conn.log.append(said)
@@ -105,7 +106,7 @@ def step(conn: Conn, dt: float) -> None:
         # not because the ship is being pushed.
         control.sheer_step(conn, h)
         # And the other side of it: a structure that wants you sends boats.
-        control.tug_step(conn, h)
+        tug_sim.tug_step(conn, h)
         # And a hull that was refused and stayed anyway, cutting. The ward
         # above does not pause for it — that is the whole of what makes a
         # well-defended dock unforcible. See `sim/forcing.py`.
