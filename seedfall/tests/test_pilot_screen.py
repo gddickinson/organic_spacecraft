@@ -201,6 +201,78 @@ def run(suite: Suite) -> bool:
         return (f"{len(seen)} in view, nearest {min(ranges):,.0f} km; "
                 f"{len(hulls)} hull(s) may be engaged")
 
+    @check("a course laid on something in view actually closes the range")
+    def _():
+        # **The defect this exists for (#139).** Measured before it: a hull
+        # 5,952 km off, main drive, full throttle, 500 burns on Ahead — the
+        # range went to 22,695 km. You could see it and you could not go to
+        # it, because "Ahead" was +y for every hull in every flight for ever:
+        # `conn.apply` derives the drive's direction from the axis button
+        # rotated by `Conn.heading`, and nothing had ever written the heading.
+        from PyQt6.QtWidgets import QPushButton
+        game, _win, view = _bridge("flighttest")
+
+        labels = [b.text() for b in view.findChildren(QPushButton)]
+        offered = [t for t in labels if t.startswith("Fly at ")]
+        assert offered, f"nothing in view can be flown at: {labels}"
+
+        target = next(c for c in view.in_view() if c.kind == "hull"
+                      and 100 < engage_sim.range_km(game, view.conn, c) < 200_000)
+        assert f"Fly at {target.name}" in offered, offered
+        km0 = engage_sim.range_km(game, view.conn, target)
+
+        was_heading = view.conn.heading
+        view.fly_at(target)
+        assert view.mark == target.name, view.mark
+        assert view.conn.heading != was_heading, (
+            "a course was laid and the heading did not move")
+
+        view.use_main = True
+        best, turning = km0, 0
+        for _ in range(500):
+            said = view.burn("forward")
+            turning += bool(said.get("turning"))
+            best = min(best, engage_sim.range_km(game, view.conn, target))
+        assert best < km0 / 10.0, (
+            f"flew at {target.name} from {km0:,.0f} km and got no closer than "
+            f"{best:,.0f} km")
+        # And the turn was paid for, in ticks — `sim/attitude` prices a hard
+        # burn as turn, burn, turn again, and had never once been called.
+        assert turning > 0, (
+            "the hull came about without spending a single tick turning")
+        return (f"{km0:,.0f} km -> {best:,.0f} km closest, "
+                f"{turning} ticks spent coming about")
+
+    @check("the course keeps pointing at a contact that has moved")
+    def _():
+        # A hull holding station rides its body round the star. A course laid
+        # once and left alone stops pointing at it, so every beat lays it
+        # again — which is what makes "Ahead" mean "at that" for a whole
+        # flight rather than for the first minute.
+        from ..sim import freeflight
+        game, _win, view = _bridge("drift")
+        target = next(c for c in view.in_view() if c.kind == "hull")
+        view.fly_at(target)
+        view.hold_course()
+        # Laid, and the nose has somewhere to swing to. Not `or True`.
+        assert freeflight.off_course(game, view.conn, target) >= 0.0
+        laid = view.conn.heading
+        # Move the chronicle on a season and let the sky turn under her.
+        game.advance_days(90)
+        moved = engage_sim.range_km(game, view.conn, view.marked())
+        view.hold_course()
+        assert view.conn.heading != laid, (
+            f"ninety days passed, {target.name} moved to {moved:,.0f} km, and "
+            f"the course never followed it")
+        # Breaking off and securing both end the course.
+        view.break_off()
+        assert view.mark == "" and view.marked() is None
+        view.fly_at(target)
+        view.secure()
+        assert view.mark == "", "securing left a course laid on nothing"
+        return (f"course followed {target.name} across 90 days "
+                f"({moved:,.0f} km off), and both exits clear it")
+
     @check("flying from the bridge moves the ship on every other screen")
     def _():
         # `flight.stand_off` is the one writer of where a hull is when it is

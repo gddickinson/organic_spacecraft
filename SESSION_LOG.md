@@ -2,6 +2,68 @@
 
 Running progress log. Newest first.
 
+## 2026-08-01 — SEEDFALL: the ship could not be aimed, and nothing had ever turned her
+
+#139. Measured before writing anything: a hull 5,952 km off, main drive, full
+throttle, 500 burns on *Ahead* — and the range went to 22,695 km. You could
+see a thing and you could not go to it.
+
+**Two wrong turns, both corrected by measuring.**
+
+*The task's own premise was wrong.* It said to use `freeflight.hand_over`.
+Measured: `hand_over` **teleports**. With the hull 3,146 km away it produced an
+approach whose `conn.pos` was 12 km — the arrival range — while
+`flight.ship_position` had not moved at all. It hands the *last few kilometres*
+to the computer, which is what `berthing.can_conn` says in as many words when
+it refuses a star: "The conn is for the last few kilometres." It is not a way
+to cross 3,146 km, and using it would have been a teleport wearing a flight.
+
+*My own first fix was wrong too.* I slewed `conn.nose` straight at the contact
+through `sim/attitude.slew`. The nose came about correctly — 84.4° off to 0.00°
+in 180 s — and then four hundred burns moved the range **not one metre** while
+the tank drained from 20 t to 16 t. `conn.apply` re-derives where the drive
+should point on every tick, from the axis button *rotated by `Conn.heading`*,
+and slews the nose back onto that. Pointing the nose by hand was arguing with
+the flight computer and losing.
+
+**`Conn.heading` was the door, and nothing had ever written it.** So "Ahead"
+meant +y for every hull in every flight since the conn was written. All the
+machinery for turning was already there and correct: `apply` spends a whole
+tick swinging the hull when the nose is off, which is `sim/attitude`'s "turn,
+burn, and turn again". `sim/attitude` itself was declared and unconsumed —
+`slew`, `plan_turn`, `turned`, `heading_note` and `pointed_at` had no caller
+outside their own module. The one missing fact was *which way is ahead*.
+
+`freeflight.steer` is that fact: `rotate` takes the forward axis to
+`(-sin h, cos h)`, so laying it on the bearing is `atan2(-dx, dy)`.
+
+Flown through the screen afterwards, seed "flighttest":
+
+    Patient Ledger      5,952 km  ->  closest approach     14 km
+    (seed "aim")        3,146 km  ->  closest approach     13 km
+    ticks spent coming about: 6 and 9
+
+She flies *past* it — nothing brakes, which is the autopilot's job and #140's.
+
+The course is re-laid every beat, because a hull holding station rides its body
+round the star: measured, ninety days on, the contact had moved to 2,958 km and
+a course laid once was pointing at where it used to be.
+
+Eight mutations, all red: heading never written, wrong sign on the bearing,
+bearing taken from the origin instead of the ship, the course laid once and
+never held, no fly-at buttons, `fly_at` not laying the mark, and both exits
+failing to clear it.
+
+**And one tautology I wrote and caught myself**: `assert off_course(...) < 1e-6
+or True`. That is the exact fault this log keeps recording, written again, in a
+check about not writing it. Removed before the suite ever saw it green.
+
+Filed #141 from the picture: with a course laid on something 4,909 km away, the
+ship panel prints "Range 1,042.5 km" in red — `conn.range_km` in a free flight
+is the distance flown from the release point, because the conn's origin is the
+release point when there is no target. Both numbers are true; the label answers
+a question nobody asked.
+
 ## 2026-08-01 — SEEDFALL: a Pilot screen, and two doors I only found by looking
 
 The Conn is for a *situation* — an approach to a berth, an orbit to make. There

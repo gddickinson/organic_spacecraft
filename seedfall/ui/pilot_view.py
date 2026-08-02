@@ -59,6 +59,12 @@ class PilotView(View):
         #: the torch is what gets you across a system, and it only ever pushes
         #: along the nose — see `conn.thrust_axis`.
         self.use_main = False
+        #: The contact the course is laid on, by name, or "".
+        #:
+        #: The *name*, not the object: `sim/track` rebuilds its contacts on
+        #: every call, so holding one would be holding yesterday's position of
+        #: a thing that has since moved.
+        self.mark = ""
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.tick)
 
@@ -80,6 +86,7 @@ class PilotView(View):
         """One beat: fly, then pay for it."""
         if self.conn is None or self.conn.landed:
             return
+        self.hold_course()
         # No axis: a coast. The pilot's burns come from the console;
         # a beat with nothing pressed is a minute of drifting, which is
         # what a live view mostly is.
@@ -92,6 +99,41 @@ class PilotView(View):
             return
         self.refresh()
 
+    def marked(self):
+        """The contact the course is laid on, re-read from the sim."""
+        if not self.mark or self.conn is None:
+            return None
+        for contact in track_sim.contacts(self.game):
+            if contact.name == self.mark:
+                return contact
+        return None
+
+    def hold_course(self) -> None:
+        """Keep the course on the mark. Called every beat and every burn.
+
+        A contact is not standing still — a hull holding station rides its
+        body round the star — so a course laid once and left alone stops
+        pointing at it. Laying it again each beat is what makes "Ahead" mean
+        "at that" for the whole flight rather than for the first minute.
+        """
+        contact = self.marked()
+        if contact is not None:
+            free_sim.steer(self.game, self.conn, contact)
+
+    def fly_at(self, contact) -> None:
+        """Lay the course on something in view. The hull comes about itself."""
+        self.mark = contact.name
+        self.hold_course()
+        self.game.add_log(
+            f"Course laid on {contact.name}, "
+            f"{engage_sim.range_km(self.game, self.conn, contact):,.0f} km off.",
+            "")
+        self.refresh()
+
+    def break_off(self) -> None:
+        self.mark = ""
+        self.refresh()
+
     def burn(self, axis_id: str | None) -> dict:
         """Fire along an axis, or coast with `None`, and pay for the minute.
 
@@ -100,6 +142,7 @@ class PilotView(View):
         """
         if self.conn is None or self.conn.landed:
             return {}
+        self.hold_course()
         # At the throttle and the coast the console is showing, which is the
         # call `ui/conn_window._burn` makes and the one `pilot.quote`
         # promises. Both read `conn`, so neither can promise what the other
@@ -126,6 +169,7 @@ class PilotView(View):
         said = free_sim.secure(self.game, self.conn)
         berth_sim.commit(self.game, self.conn)
         self.game.add_log(said, "")
+        self.mark = ""
         self.conn = None
         self.win.refresh()
 
@@ -177,21 +221,43 @@ class PilotView(View):
         for key, value, kind in panel_sim.readout(self.conn):
             board.add_row(key, value, kind)
         board.add_row("Clock", "running" if self.running else "held")
+        aim = self.marked()
+        if aim is None:
+            board.add_row("Course", "none laid — the six axes fly her frame")
+        else:
+            board.add_row(
+                "Course",
+                f"{aim.name}, {engage_sim.range_km(self.game, self.conn, aim):,.0f}"
+                f" km, nose {free_sim.off_course(self.game, self.conn, aim):.0f}° off")
         self.col.addWidget(board)
 
         near = Panel("In view")
-        for contact in self.in_view()[:6]:
+        seen = self.in_view()[:6]
+        for contact in seen:
             km = engage_sim.range_km(self.game, self.conn, contact)
             ok, _why = engage_sim.may_engage(self.game, self.conn, contact)
+            marks = "  · on course" if contact.name == self.mark else ""
             near.add_row(contact.name,
-                         f"{km:,.0f} km" + ("  · may be engaged" if ok else ""))
-        if not self.in_view():
+                         f"{km:,.0f} km"
+                         + ("  · may be engaged" if ok else "") + marks)
+        if not seen:
             near.add(note("Nothing within reach of the cameras."))
         self.col.addWidget(near)
+
+        # **Fly at it.** One button per thing in view, which is the whole
+        # point of the screen: what you can see, you can go to. `steer` lays
+        # the course; `conn.apply` swings the hull onto it and pays for the
+        # swing in ticks and in mass, then the main drive closes the range.
+        if seen:
+            self.buttons(*[
+                button(f"Fly at {c.name}", lambda _=False, k=c: self.fly_at(k),
+                       kind="flat")
+                for c in seen[:4]])
 
         self.buttons(
             button("Stop clock" if self.running else "Run clock",
                    self._toggle, kind="primary"),
+            button("Break off the course", self.break_off, kind="flat"),
             button("Secure from the conn", self.secure, kind="flat"),
             button("Take the conn on something…", self._to_conn, kind="flat"))
 

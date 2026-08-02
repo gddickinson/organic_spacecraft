@@ -116,6 +116,67 @@ def where(game, conn) -> tuple[float, float]:
     return (sx + conn.pos[0] / KM_PER_AU, sy + conn.pos[1] / KM_PER_AU)
 
 
+def toward(game, conn, contact) -> list:
+    """The vector from the ship to a contact, in the conn's own km frame.
+
+    **The fact free flight was missing.** An approach knows where its target
+    is — it is the origin, so `-conn.pos` points at it, which is what
+    `attitude.heading_note` assumes when nothing is passed. A free flight has
+    no target, so there was no answer to "which way is that" for anything the
+    pilot could see, and the main drive pushed along whatever nose the hull
+    happened to start with. Measured before this existed: a hull 5,698 km off,
+    main drive, full throttle, 600 burns on *Ahead* — the range went 5,698 to
+    22,695 km. Flying at something you could see moved you away from it.
+
+    The frames are the same axes; only the units and the origin differ, which
+    is what `hand_over` relies on too. `z` is zero because the sector is a
+    plane — see `where`.
+    """
+    sx, sy = where(game, conn)
+    ax, ay = track_at(game, contact)
+    return [(ax - sx) * KM_PER_AU, (ay - sy) * KM_PER_AU, 0.0]
+
+
+def track_at(game, contact) -> tuple:
+    """Where a contact is, through the one door that knows: `sim/track`."""
+    from . import track as track_sim
+    return track_sim.at(game, contact, game.day)
+
+
+def steer(game, conn, contact) -> float:
+    """Lay the ship's course on a contact. Returns the heading set, in radians.
+
+    **`Conn.heading` is the door, and nothing had ever written it.** The first
+    attempt here slewed `conn.nose` straight at the contact and the range did
+    not move a metre over four hundred burns while the tank drained — because
+    `conn.apply` re-derives where the main drive should point on every tick,
+    from the axis button *rotated by the heading*, and slews the nose back
+    onto that. Pointing the nose by hand was arguing with the flight computer
+    and losing. The heading is what the computer reads.
+
+    So the machinery for turning was all present and correct — `apply` spends
+    a whole tick swinging the hull when the nose is off the asked-for heading,
+    which is `sim/attitude`'s "turn, burn, and turn again" — and the only
+    thing missing was any way to say *which way is ahead*. It was zero, always,
+    so "Ahead" meant +y for every hull in every flight for ever.
+
+    `rotate` takes the forward axis (0, 1, 0) to `(-sin h, cos h)`, so putting
+    that on the bearing to the contact is `atan2(-dx, dy)`.
+    """
+    dx, dy, _dz = toward(game, conn, contact)
+    if not (dx or dy):
+        return conn.heading
+    conn.heading = math.atan2(-dx, dy)
+    return conn.heading
+
+
+def off_course(game, conn, contact) -> float:
+    """Degrees between where the nose is and the contact. For a panel to say."""
+    from . import attitude as attitude_sim
+    return math.degrees(
+        attitude_sim.angle_between(conn.nose, toward(game, conn, contact)))
+
+
 def secure(game, conn) -> str:
     """Stop flying, wherever you are, and write it down. Returns one line.
 

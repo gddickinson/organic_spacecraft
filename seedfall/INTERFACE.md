@@ -1723,6 +1723,29 @@ comparison would have found this — both numbers were internally consistent.
 The check that holds it now walks all four rungs of `pilot.THROTTLE_STEPS` and
 asserts the button and the panel say the same thing at each.
 
+**Aiming, and why there was none.** For as long as the conn had existed,
+"Ahead" meant +y — `Conn.heading` was declared and **never written**, so
+`conn.apply`, which derives the drive's direction from the axis button rotated
+by the heading, rotated by zero every time. Measured: a hull 5,952 km off, main
+drive, full throttle, 500 burns on Ahead took the range to 22,695 km.
+
+`sim/attitude` was the other half of the same silence — `slew`, `plan_turn`,
+`turned`, `heading_note` and `pointed_at` had no caller outside their own
+module, so nothing in the game had ever turned a hull, and the module's own
+"turn, burn, and turn again" was a description of nothing.
+
+`freeflight.steer` is the door that closes both. `conn.rotate` takes the
+forward axis to `(-sin h, cos h)`, so laying the course on a contact is
+`atan2(-dx, dy)` — after which `apply`'s existing machinery swings the hull
+onto it, spending whole ticks and reaction mass to do it. Flown: 5,952 km to a
+**14 km** closest approach, six ticks spent coming about; 3,146 km to 13 km on
+another seed. She flies past — nothing brakes, which is #140's.
+
+A first attempt slewed `conn.nose` at the contact directly and moved the range
+**not one metre** over four hundred burns while the tank drained, because
+`apply` slews the nose back onto the heading every tick. The heading is what
+the flight computer reads; the nose is what it writes.
+
 `ui/conn_controls.py` is the console itself, split out of `ui/conn_window.py`
 when that went past five hundred lines along a seam already there — the window
 owns the cameras, the panel and the clock. The panel names the settings in m/s,
@@ -2356,7 +2379,8 @@ seedfall/
 │   │                  dies mid-frame) is recorded in `MISSES` rather than
 │   │                  killing the process from inside `paintEvent`
 │   ├── pilot_view.py   the Pilot screen: the view out, six cameras, the six
-│   │                  axes, drive and throttle — and the only screen where
+│   │                  axes, a course you can lay on anything in view, and
+│   │                  drive and throttle — the only screen where
 │   │                  the clock runs while you look at it. Holds its own
 │   │                  free flight; never an approach.
 │   ├── orbit_chart.py the orrery widget — paints bodies, quays, traffic
