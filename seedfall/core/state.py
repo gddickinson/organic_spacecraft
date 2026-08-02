@@ -99,6 +99,26 @@ class Game:
     ventures: list = field(default_factory=list)
     transit: object | None = None
     dig: object | None = None
+    #: **Who is flying her, and from where.** One `sim/conn.Conn` for the
+    #: whole ship: the Pilot screen and the Conn window are two views of it,
+    #: not two flights. Measured before this existed: 290.9 km flown and 60
+    #: minutes elapsed on the Pilot screen, and opening the Conn showed a ship
+    #: 12.0 km out with full tanks and no time passed — two independent
+    #: flights of one hull.
+    #:
+    #: It belongs here for the reason `ui/window.py` gives beside the other
+    #: such states: "an approach, an exchange and a crossing all belong to the
+    #: game rather than to the window — a save taken in the middle of one used
+    #: to lose it."
+    #: **Not saved, deliberately, and that is not a shrug.** A `Conn` holds a
+    #: `sim/targets.Target`, a clearance and a sky, none of which
+    #: `core/save.register` knows — writing it produced a save that would not
+    #: read back at all: "save refers to unknown type 'Target'". Leaving it
+    #: out keeps saving exactly as it was before the conn moved here, which is
+    #: to say a flight does not survive a save. Making it survive is a matter
+    #: of registering the chain, and is worth doing on its own.
+    conn: object | None = field(default=None, compare=False,
+                                metadata={"transient": True})
     docking: object | None = None
     decoding: object | None = None
     decoding_tech: str | None = None

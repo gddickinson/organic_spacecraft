@@ -2,6 +2,59 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: one conn, because the bridge and the Conn window flew different ships
+
+The player's report, and it was architectural rather than cosmetic.
+
+**Measured first.** Flew the Pilot screen 290.9 km over 60 minutes on the main
+drive, 20.00 t of reaction mass down to 14.57. Opened the Conn window: 12.0 km,
+0 minutes, 20.00 t. Two `Conn` objects. `ConnWindow` built one and kept it on
+the window, `PilotView` built another and kept it on the view, `MainWindow` had
+no `conn` at all.
+
+**The join.** `Game.conn` (transient), `MainWindow.conn = _on_game("conn")`,
+and both screens as properties onto it. "pilot conn is the game's: True".
+
+**Four wrong turns, all found by flying rather than reasoning.**
+
+1. Putting a plain `conn` field on `Game` **broke saving**. A `Conn` holds a
+   `Target`, which `core/save.register` has never heard of: the save was written
+   and would not read back — "save refers to unknown type 'Target'",
+   `load_game()` → `None`. Marked transient; `saved: True | loaded: True | conn
+   after load: None, day 0 credits 18,000`.
+2. `freeflight.hand_over` set `vel`, `nose`, `rcs` and `elapsed` and never set
+   `pos`, though its docstring promised it — so the hull **teleported 302.9 km**
+   (290.9 → 12.0) the moment you opened the Conn on something. Fixed from
+   `track.at`; after: 290.9 km → 290.9 km, **0.0 km moved in the world**.
+3. Securing from the bridge left the flight live: `secure` → `win.refresh()` →
+   `ensure_conn` → a fresh conn on the same breath. 30 minutes became a
+   different object at 0 minutes. `stood_down` + a "Take the conn" button.
+4. `ConnWindow.closeEvent` wrote `outcome = "broken off"` and settled, ending an
+   approach under a pilot still flying it from the bridge. Removed — `_break_off`
+   is the one door onto giving up.
+
+**Two harness mistakes worth writing down.** I edited `ui/conn_window.py` while
+the mutation harness had it checked out, and separately let a detached run stay
+alive while starting a second — between them the restore raced my edit and left
+a mutation *in the file*, and one mutant reported `SKIP: pattern not found`
+against a pattern that was plainly there. A skip is not a survival, but it is
+not a proof either: re-run alone in the foreground, it BITES. **The rule about
+never running two suites at once applies to mutation runs too**, and to editing
+any file a harness is holding.
+
+**Ten mutants, ten bites**, each run with `-B`:
+`conn window: builds its own flight again` · `pilot view: keeps its own flight
+again` · `hand_over: teleports to the arrival range again` · `hand_over: forgets
+the hours flown` · `state: the conn is saved after all` · `secure: the bridge
+hands her straight back again` · `secure: no way to take the conn back` ·
+`take_conn: does not clear the stand-down` · `close: breaks off the flight on
+the way out again` · `commit: stops charging for the mass burned`.
+
+**Filed rather than folded in:** #148 (securing refunds up to 0.005 t — the
+ledger rounds to 2 dp, the burn tracks 4; measured 2.715 t spent billed as 2.71)
+and #149 (a flight nobody ever ends is never charged for its mass, unlike the
+hours, which `charge_flown` bills as they pass).
+
 ## 2026-08-02 — SEEDFALL: the ship had two positions, depending who asked
 
 #146, which was blocking #145's last big item. `freeflight.where` returns

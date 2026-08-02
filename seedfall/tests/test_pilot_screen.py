@@ -65,6 +65,147 @@ def run(suite: Suite) -> bool:
 
     check = suite.check
 
+    @check("the Pilot screen and the Conn window fly one ship, not two")
+    def _():
+        # **The player's report, and it was architectural.** `ConnWindow`
+        # built its own `Conn` and kept it on the window; `PilotView` built
+        # its own and kept it on the view; `MainWindow` had no `conn` at all.
+        # Measured: 290.9 km flown and 60 minutes elapsed on the Pilot screen
+        # showed in the Conn window as 12.0 km, full tanks and no time passed.
+        # Two independent flights of one hull.
+        import math
+        from ..sim import engage as engage_sim
+        from ..sim import freeflight as free_sim
+        from ..ui.conn_window import open_conn
+
+        game, win, view = _bridge("one")
+        assert view.conn is game.conn, "the screen's flight is not the game's"
+        assert win.conn is game.conn, "the window has no door onto it"
+
+        view.use_main = True
+        for _ in range(60):
+            view.burn("forward")
+        hub = next(c for c in view.in_view() if c.kind == "anchorage")
+        was = (math.dist(view.conn.pos, (0.0, 0.0, 0.0)), view.conn.rcs,
+               list(view.conn.vel), view.conn.elapsed)
+        km_before = engage_sim.range_km(game, view.conn, hub)
+        where_before = free_sim.where(game, view.conn)
+        assert was[0] > 100.0, f"the fixture barely moved: {was[0]}"
+
+        window = open_conn(win)
+        try:
+            assert window.conn is view.conn, (
+                "opening the Conn started a second flight of the same ship")
+            assert window.conn.rcs == was[1], (
+                f"reaction mass went {was[1]:.2f} -> {window.conn.rcs:.2f}")
+            assert list(window.conn.vel) == was[2], (
+                f"the way she had on was lost: {was[2]} -> {window.conn.vel}")
+            assert window.conn.elapsed == was[3], (
+                f"the hours flown were forgotten: {was[3]} -> "
+                f"{window.conn.elapsed}")
+
+            # **And she did not jump.** `hand_over`'s docstring has always
+            # promised her position is taken from where she really is, and
+            # nothing set it — measured, 290.9 km off the Hub became 12.0,
+            # a 302.9 km teleport in the middle of a flight.
+            moved = math.dist(where_before, free_sim.where(game, window.conn))
+            assert moved * free_sim.KM_PER_AU < 1.0, (
+                f"handing over moved the hull "
+                f"{moved * free_sim.KM_PER_AU:,.1f} km")
+            km_after = engage_sim.range_km(game, window.conn, hub)
+            assert abs(km_after - km_before) < 1.0, (
+                f"{km_before:,.1f} km off {hub.name} became {km_after:,.1f}")
+            # It is an approach now, on the thing that was asked for.
+            assert not free_sim.is_free(window.conn), "still a free flight"
+            assert window.conn.target.name == hub.name, window.conn.target.name
+
+            # Flying from the Conn is seen by the Pilot screen, being one ship.
+            from ..sim import conn as conn_sim
+            conn_sim.apply(window.conn, "forward", main=True, ticks=1)
+            view.refresh()
+            assert view.conn is window.conn
+            assert view.conn.rcs == window.conn.rcs
+        finally:
+            window.close()
+        return (f"one flight: {was[0]:,.0f} km, {was[3] / 60:.0f} min and "
+                f"{was[1]:.2f} t carried through the hand-over, 0 km jumped")
+
+    @check("securing ends the flight; closing a window does not")
+    def _():
+        # **Securing used to do nothing you could see.** `secure` ends the
+        # flight and asks the window to redraw — and the redraw came back
+        # through `ensure_conn`, which took a fresh conn on the same breath.
+        # Measured: 30 minutes flown became a different `Conn` at 0 minutes,
+        # still live on the game. Now the pilot stands down until she asks.
+        from PyQt6.QtWidgets import QPushButton
+        from ..ui.conn_window import open_conn
+
+        game, win, view = _bridge("secure")
+        view.use_main = True
+        for _ in range(30):
+            view.burn("forward")
+        rcs = view.conn.rcs
+        assert view.conn.elapsed > 0, "the fixture is not flying"
+
+        view.secure()
+        assert game.conn is None, (
+            f"securing left a flight on the game: "
+            f"{view.conn.elapsed / 60:.0f} min elapsed")
+        assert not view.running, "the clock kept beating after securing"
+        back = [b for b in view.findChildren(QPushButton)
+                if b.text() == "Take the conn"]
+        assert back, ("the bridge secured and offers no way back: "
+                      + str([b.text() for b in view.findChildren(QPushButton)]))
+        back[0].click()
+        assert game.conn is not None, "asking for her back did not fly her"
+        # **The leg was settled, to the ledger's own two places.** `commit`
+        # charges `round(spent, 2)` while a burn tracks `conn.rcs` to four, so
+        # the hull keeps up to 0.005 t it actually burned — measured, 2.715 t
+        # spent was billed as 2.71 and 17.285 t left came back as 17.29. That
+        # gap is task #148, not this check's business; what this asserts is
+        # that the new flight reads the hull's tank and not a fresh one.
+        assert game.conn.rcs == round(rcs, 2), (
+            f"the leg was not settled: {rcs} left, tank now {game.conn.rcs}")
+        assert game.conn.rcs < 20.0, "taking her back refilled the tank"
+
+        # **Closing the Conn window is leaving the room, not stopping the
+        # ship.** Two views of one situation: the flight belongs to the game.
+        for _ in range(10):
+            view.burn("forward")
+        window = open_conn(win)
+        flying = game.conn
+        window.close()
+        assert game.conn is flying, (
+            "closing the Conn window ended a flight the pilot was still on")
+        return ("secured: no flight, mass kept; closed the Conn window: "
+                "the flight is still hers")
+
+    @check("a chronicle saved in mid-flight still opens")
+    def _():
+        # **Putting the conn on the game broke saving, and the check found
+        # it.** A `Conn` holds a `Target`, a clearance and a sky, none of
+        # which `core/save` knows: the save was written and would not read
+        # back — "save refers to unknown type 'Target'". The field is
+        # transient, so saving behaves exactly as it did before the conn moved
+        # here, and a flight does not survive a save.
+        from ..core.state import load_game
+
+        game, _win, view = _bridge("save")
+        view.use_main = True
+        for _ in range(20):
+            view.burn("forward")
+        assert game.conn is not None, "the fixture is not flying"
+        assert game.save() is True, "the chronicle would not save"
+
+        back = load_game()
+        assert back is not None, (
+            "a chronicle saved in mid-flight could not be read back")
+        assert back.conn is None, (
+            f"the conn came back as {type(back.conn).__name__}; it is "
+            f"transient and nothing rebuilds it")
+        assert back.day == game.day and back.credits == game.credits
+        return "saved mid-flight and reopened; the flight is not carried"
+
     @check("a day at the bridge costs a day, and is billed exactly once")
     def _():
         # 1,440 beats is one ship day — `conn.TICK` is 60 s against

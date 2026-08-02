@@ -239,6 +239,7 @@ class MainWindow(QMainWindow):
         return property(lambda self: getattr(self.game, name, None),
                         lambda self, value: setattr(self.game, name, value))
 
+    conn = _on_game("conn")
     transit = _on_game("transit")
     dig = _on_game("dig")
     situation = _on_game("situation")

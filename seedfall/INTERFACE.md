@@ -2009,6 +2009,88 @@ once per rebuild and handed down: **12.3 ms, 0 distances, 6 traffic rebuilds**.
 The check counts `galaxy.distance` rather than timing anything, because
 counting calls to `sites` proves nothing once it returns from a memo.
 
+### One conn: two views of one situation
+
+**The Pilot screen and the Conn window used to fly two different ships.** The
+player said so: "the conn and the pilot view and controls still appear to be
+completely separate instead of two views of the same situation." Measured, and
+it was worse than it sounded — fly 290.9 km on the Pilot screen over 60 minutes,
+burning 20.00 t of reaction mass down to 14.57, then open the Conn window: it
+read **12.0 km off, 0 minutes elapsed, 20.00 t aboard**. Not a stale display. A
+second `Conn` object, built from the ship's saved position, flying in parallel.
+
+The cause was ownership. `ConnWindow.__init__` did `self.conn, self.refused =
+berthing.begin(...)` and kept it on the window; `PilotView.ensure_conn` did
+`self.conn, why = freeflight.begin(...)` and kept it on the view; `MainWindow`
+had no `conn` at all. Two objects, no door between them.
+
+`ui/window.py`'s own comment already stated the rule this broke: *"An approach,
+an exchange and a crossing all belong to the game rather than to the window: a
+save taken in the middle of one used to lose it."* A flight is one of those.
+
+So **`core/state.Game.conn` is the flight**, `MainWindow.conn` is
+`_on_game("conn")` beside `transit`, `dig` and `docking`, and both screens are
+properties onto it:
+
+    conn = property(lambda self: self.win.conn,
+                    lambda self, value: setattr(self.win, "conn", value))
+
+Three things fell out of that, each of which had to be fixed before the join
+would hold.
+
+**1. Opening the Conn on a contact hands the flight over — it does not start
+one.** `freeflight.hand_over` has always existed for exactly this and the window
+never called it. Now: fly free, open the Conn on the Fleet Hub, and it is the
+same object, with the velocity (159.0 m/s), the nose, the reaction mass (14.57 t)
+and the 60 minutes carried across.
+
+**And `hand_over` did not do what its docstring promised.** It said the fresh
+approach is placed where the ship really is; it set `vel`, `nose`, `rcs` and
+`elapsed` and never set `pos`. A conn's `pos` is an offset from its frame's
+origin, and the frame changes under a hand-over — a free flight is measured from
+where she was let go, an approach from the target. So the new conn inherited
+`berthing.begin`'s arrival range and the hull **teleported 302.9 km**: 290.9 km
+off the Hub became 12.0. Fixed by taking the offset from `track.at`:
+
+    tx, ty = track_sim.at(game, contact, game.day)
+    fresh.pos = [(here[0] - tx) * KM_PER_AU, (here[1] - ty) * KM_PER_AU, 0.0]
+
+Measured after: before 290.9 km, after 290.9 km, **the hull moved 0.0 km in the
+world**, and the frame it is measured in is the only thing that changed.
+
+**2. Securing had to actually secure.** `PilotView.secure` ends the flight and
+asks the window to redraw — and the redraw comes back through `ensure_conn`,
+which took a fresh conn on the same breath. Measured: 30 minutes flown became a
+different `Conn` at 0 minutes, still live on the game, and the button read as
+doing nothing. Standing down is a decision, so it is remembered:
+`self.stood_down` gates `ensure_conn`, and the bridge offers **"Take the conn"**
+to undo it. It is not a second answer to "are we flying" — `game.conn` is that —
+but to "should the bridge hand her back".
+
+**3. Closing the Conn window is leaving the room, not stopping the ship.**
+`closeEvent` used to write `outcome = "broken off"` and settle on the way out,
+which was right when the window owned the flight and is wrong now the game does:
+it ended an approach under a pilot who was still flying it from the bridge.
+Giving up is what `_break_off` is for, and two doors onto one act is one too
+many.
+
+**The flight is deliberately not saved, and that is not a shrug.** The first
+attempt put a plain `conn` field on `Game` and broke saving outright: a `Conn`
+holds a `sim/targets.Target`, a clearance and a sky, none of which
+`core/save.register` knows. The save was written and would not read back at all
+— *"save refers to unknown type 'Target'"* — and `load_game()` returned `None`.
+The field is `metadata={"transient": True}`, so saving behaves exactly as it did
+before the conn moved here: measured `saved: True | loaded: True | conn after
+load: None, day 0 credits 18,000`.
+
+**Two defects fell out of the measurements and were filed rather than folded
+in** (tasks #148 and #149). `berthing.commit` charges `round(spent(conn), 2)`
+while `conn.apply` tracks `conn.rcs` to four places, so securing refunds up to
+0.005 t — measured 2.715 t burned, 2.71 t billed, 17.285 t left coming back as
+17.29 t aboard. And reaction mass comes off the hull only in `commit`, unlike
+the hours, which `charge_flown` bills as they pass — so a flight nobody ever
+ends is never charged for its mass.
+
 `ui/conn_controls.py` is the console itself, split out of `ui/conn_window.py`
 when that went past five hundred lines along a seam already there — the window
 owns the cameras, the panel and the clock. The panel names the settings in m/s,

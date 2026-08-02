@@ -52,9 +52,16 @@ class PilotView(View):
 
     heading = "Pilot"
 
+    #: **The flight belongs to the chronicle, not to this screen.** It used
+    #: to be `self.conn`, so flying here and then opening the Conn window
+    #: showed a different ship — measured, 290.9 km and 60 minutes here
+    #: against 12.0 km and full tanks there. `ui/window.conn` is the one door;
+    #: both screens are views of the same `sim/conn.Conn`.
+    conn = property(lambda self: self.win.conn,
+                    lambda self, value: setattr(self.win, "conn", value))
+
     def __init__(self, win):
         super().__init__(win)
-        self.conn = None
         self.camera = "fore"
         self.running = False
         self.feed = None
@@ -72,6 +79,9 @@ class PilotView(View):
         self.auto = ""
         #: What the last press actually did, for the screen to say.
         self.last = {}
+        #: Has the pilot secured? Not a second answer to "are we flying" —
+        #: `game.conn` is that — but to "should the bridge hand her back".
+        self.stood_down = False
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.tick)
 
@@ -83,11 +93,27 @@ class PilotView(View):
         Through `freeflight.begin`, which is the one door: the gate is
         reaction mass and nothing else, because there is nobody to clear you
         to fly around your own system.
+
+        **Unless the pilot has stood down.** `secure` ends the flight and then
+        asks the window to redraw, which comes back through here — so pressing
+        "Secure from the conn" used to write the leg down, settle the bill and
+        hand her straight back: measured, 30 minutes flown became a fresh conn
+        on the same breath, a different object at 0 minutes. The button read
+        as doing nothing. Standing down is a thing the pilot decides, so it is
+        remembered until she asks for the ship again.
         """
         if self.conn is not None and not self.conn.landed:
-            return ""
+            return ""       # already flying — the Conn window's flight, if any
+        if self.stood_down:
+            return ("You have secured from the conn. The ship holds where you "
+                    "left her.")
         self.conn, why = free_sim.begin(self.game)
         return why
+
+    def take_conn(self) -> None:
+        """The pilot asks for the ship back after standing down."""
+        self.stood_down = False
+        self.win.refresh()
 
     def tick(self) -> None:
         """One beat: fly, then pay for it."""
@@ -228,6 +254,7 @@ class PilotView(View):
         self.mark = ""
         self.auto = ""
         self.conn = None
+        self.stood_down = True
         self.win.refresh()
 
     # ── what is out there ──────────────────────────────────────────────────
@@ -254,6 +281,9 @@ class PilotView(View):
         self.head("Pilot", "The view from the bridge, and the ship in your hands.")
         if self.conn is None:
             self.col.addWidget(note(why or "The ship cannot be flown."))
+            if self.stood_down:
+                self.col.addWidget(panels.row_of(
+                    button("Take the conn", self.take_conn, kind="primary")))
             return
 
         # **Two columns, because one was 662 pixels too tall.** Measured on a

@@ -328,9 +328,26 @@ def hand_over(game, conn, contact):
         return None, why
     # The way she has on, carried across. The frames are both km on the same
     # axes — the conn's origin moves, the units do not.
+    #
+    # **And where she is, which this said it did and did not.** The docstring
+    # above has always promised "its position is taken from where it really is
+    # relative to the thing it is now approaching"; nothing set `fresh.pos`,
+    # so `berthing.begin` opened at its own arrival range and the hull jumped.
+    # Measured: 290.9 km off a Fleet Hub, handed over, and she was 12.0 km off
+    # it — **302.9 km of teleport** in the middle of a flight the pilot had
+    # just spent an hour on.
+    from . import track as track_sim
+    tx, ty = track_sim.at(game, contact, game.day)
+    fresh.pos = [(here[0] - tx) * KM_PER_AU,
+                 (here[1] - ty) * KM_PER_AU, 0.0]
     fresh.vel = list(conn.vel)
     fresh.nose = list(conn.nose)
     fresh.rcs = conn.rcs
+    # The hours too, and what has already been paid for them together — the
+    # difference is what `berthing.charge_flown` bills, so carrying both bills
+    # nothing twice and loses nothing.
+    fresh.elapsed = conn.elapsed
+    fresh.charged = getattr(conn, "charged", 0.0)
     fresh.log.append(
         f"Handed over to the computer with {math.dist(conn.vel, (0, 0, 0)):.1f}"
         " m/s on.")

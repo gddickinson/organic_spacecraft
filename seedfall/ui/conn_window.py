@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (QDialog, QHBoxLayout, QLabel, QVBoxLayout,
 
 from ..sim import autopilot as pilot_sim
 from ..sim import berthing as berth_sim
+from ..sim import freeflight as free_sim
 from ..sim import orbits
 from ..sim import pilot as console_sim
 from ..sim import conn as conn_sim
@@ -35,6 +36,10 @@ TICK_MS = 700
 
 
 class ConnWindow(QDialog):
+    #: The chronicle's flight, not this window's. See `__init__`.
+    conn = property(lambda self: self.win.conn,
+                    lambda self, value: setattr(self.win, "conn", value))
+
     """Hand-flying, in its own window so the game stays behind it."""
 
     def __init__(self, win, contact=None):
@@ -49,11 +54,33 @@ class ConnWindow(QDialog):
         if contact is None:
             contact = default_target(self.game)
         self.contact = contact
-        if contact is not None:
-            self.conn, self.refused = berth_sim.begin(self.game, contact)
-        else:
-            # Nothing alongside is not nothing to see.
-            self.conn, self.refused = conn_sim.observe(self.game), ""
+        # **One flight, whichever window you look through.** This used to
+        # build its own `Conn` and keep it here, while the Pilot screen kept
+        # another — measured, 290.9 km flown and 60 minutes elapsed on the
+        # Pilot screen showed here as 12.0 km, full tanks and no time passed.
+        # `ui/window.conn` is the chronicle's one flight now.
+        live = self.win.conn
+        self.refused = ""
+        if contact is None:
+            if live is None:
+                # Nothing alongside is not nothing to see.
+                self.win.conn = conn_sim.observe(self.game)
+        elif live is not None and not live.landed and free_sim.is_free(live):
+            # **Carry the way she has on.** `freeflight.hand_over` turns a
+            # free flight into an approach without throwing away the
+            # velocity, the nose or the mass already spent — which is the
+            # whole reason it exists. A refusal leaves the free flight alone.
+            handed, why = free_sim.hand_over(self.game, live, contact)
+            if handed is not None:
+                self.win.conn = handed
+            else:
+                self.refused = why
+        elif live is None or live.landed \
+                or getattr(live.target, "id", None) != getattr(contact, "id", None):
+            fresh, why = berth_sim.begin(self.game, contact)
+            if fresh is not None:
+                self.win.conn = fresh
+            self.refused = why
         self.main_view = "fore"
         self.running = False
         #: Which autopilot mode is flying, if any. Held rather than run to
@@ -443,15 +470,19 @@ class ConnWindow(QDialog):
 
     def closeEvent(self, event) -> None:
         self.timer.stop()
-        # Closing the window is not a way to un-burn the fuel.
-        if self.conn is not None and not self.conn.over:
-            self.conn.outcome = "broken off"
+        # **Closing this window is leaving the room, not stopping the ship.**
+        # It used to write `outcome = "broken off"` on the way out and settle,
+        # which was right when the window owned the flight and is wrong now
+        # the game does: a pilot flying from the bridge who opened the conn
+        # and closed it found the approach ended under her. Giving up is what
+        # `_break_off` is for, and two doors onto it is one too many. Nothing
+        # is flown for free — `berthing.commit` still runs when the approach
+        # resolves, on break-off, and when she secures from the bridge. (What
+        # is not yet billed is a flight nobody ever ends: task #149.)
         self._settle()
         if getattr(self.win, "conn_window", None) is self:
             self.win.conn_window = None
         super().closeEvent(event)
-
-
 
 
 def open_conn(win, contact=None) -> ConnWindow:
