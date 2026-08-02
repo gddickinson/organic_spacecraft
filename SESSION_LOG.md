@@ -2,6 +2,57 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: two rules nothing was holding, and a comment that said otherwise
+
+#142. Both constants confirmed genuinely unpinned before anything was written —
+**sixteen candidate suites between them, halved and doubled, all green.**
+
+**The measurement caught a lie in a comment.** `tests/test_tuning` says, in as
+many words, "`ODDS_PER_DAY` zeroed retires the whole approach system in
+silence. `QUIET_DAYS` zeroed turns it into a nagging inbox. Both are pinned by
+counting arrivals over a decade." It pins the first and it does **not** pin the
+second: its bounds are three to sixty envoys a decade, which is a wide enough
+door to walk a spacing rule through sideways. `tuning` was not in my earlier
+candidate list, so I tried it first this cycle precisely because the comment
+claimed it — and it ran green at half and at double.
+
+`tests/test_approach` had the other apparent guard, and it is the classic
+shape: it built its fixture with `game.day += QUIET_DAYS - 5`, so halving or
+doubling the constant moved the fixture with it. Two guards standing over a
+constant, neither able to fail.
+
+**Both are pinned now on what they govern, measured and never read.**
+
+`QUIET_DAYS` — two chronicles played a day at a time for eleven years each,
+recording the days between consecutive approaches *from the same power*:
+
+    78 repeat approaches; shortest gap 120 days, longest 608
+
+Asserted at 110..140. Halved (60), doubled (240) and zeroed all go red.
+
+`RESIST_DECAY` — what the Bloom forgets about a weapon family you have stopped
+using, from a full 0.55:
+
+    100 days   -> 0.515
+    1,000 days -> 0.200
+    1,600 days -> gone      (4.4 years)
+    1,400 days -> still resisting
+
+Asserted against those figures, plus the invariant that a thousand days told
+one at a time equals a thousand told at once — the clock steps daily in play
+and jumps in a transfer, and those must agree. Halved, doubled and zeroed all
+go red.
+
+**And the fast paths were earned, not guessed.** `tuning` is in `SLOW`, so the
+broad stage would not have caught either constant — which makes these two
+legitimate `test_tripwire.MEASURED` rows, unlike the tug row the same check
+threw out last cycle for naming a guard the broad stage runs anyway. Added to
+`KIN` by editing the two existing lines rather than adding any, because
+`tests/tripwire.py` sits at 500 exactly and the ratchet does not care why.
+
+Six mutations, six red. Two of 436 constants down; #134's full re-sweep will
+find more of these, and now there is a worked pattern for each.
+
 ## 2026-08-02 — SEEDFALL: the tug gets its own file, and a row I was not allowed to write
 
 #138, second debt paid. `sim/control.py` was 602 and had drawn its own seam

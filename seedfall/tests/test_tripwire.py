@@ -45,6 +45,13 @@ MEASURED = [
     # `envoy`, `approach`, `politics`, `play`, `sim`, `courting` and
     # `overtures` all ran green on this one.
     ("approaches", "ODDS_PER_DAY", "ticks"),
+    # Both were sweep survivors with guards that only looked like guards:
+    # `test_approach` built its fixture from `QUIET_DAYS` itself, and
+    # `test_tuning` said in a comment that it pinned it and did not. Pinned
+    # for real in `test_tuning` now, on the gap between two approaches and on
+    # what a family forgets — measured, never read.
+    ("approaches", "QUIET_DAYS", "tuning"),
+    ("bloom", "RESIST_DECAY", "tuning"),
 ]
 
 

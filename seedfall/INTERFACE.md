@@ -102,6 +102,23 @@ the worst of them, always against a figure written in the check and never
 against the constant under test — the mistake this whole apparatus exists to
 stop.
 
+**Two of the survivors are now pinned, and finding out why they had survived
+mattered as much as fixing them.** `approaches.QUIET_DAYS` had *two* apparent
+guards and neither could fail: `test_approach` built its fixture with
+`game.day += QUIET_DAYS - 5`, so the fixture moved with the constant, and
+`test_tuning` stated in a comment that it pinned it while asserting only that
+three to sixty envoys arrive a decade — a wide enough door to walk a spacing
+rule through sideways. `bloom.RESIST_DECAY` had none at all.
+
+Both are pinned on what they govern, measured through the sim and never read
+from the table. The quiet spell: two chronicles played a day at a time for
+eleven years each, 78 repeat approaches, shortest gap **120 days** and longest
+608, asserted at 110..140. The forgetting: a family at full 0.55 resistance
+falls to **0.515** after 100 days, **0.200** after 1,000 and is gone by 1,600
+(4.4 years) — with the invariant that a thousand days told one at a time
+equals a thousand told at once, because the clock steps daily in play and
+jumps in a transfer. Halved, doubled and zeroed, all six mutations go red.
+
 **And nothing had ever checked the sweep itself.** A dozen check files cite its
 verdicts and several checks exist *because* it called something unpinned, while
 `KIN` — its fast path, 133 hand-kept entries naming 226 suites — had no check

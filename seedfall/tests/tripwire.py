@@ -200,7 +200,7 @@ KIN = {
     "officials": ("counter", "officials"),
     # `ticks` caught `ODDS_PER_DAY` at double when `envoy`, `approach`,
     # `politics`, `play`, `sim`, `courting` and `overtures` all ran green.
-    "approaches": ("envoy", "approach", "ticks"),
+    "approaches": ("envoy", "approach", "ticks", "tuning"),
     "approach": ("envoy", "approach"),
     "surveys": ("surveys",), "survey": ("charting", "surveys"),
     "anchorage": ("anchorage",),
@@ -258,7 +258,7 @@ KIN = {
     # `bloom` green, `tuning` green — `tuning` is the only suite that imports
     # the module — and `play` red. A fast path written by reading the imports
     # would have missed the only suite that guards the constant.
-    "bloom": ("bloom", "play"),
+    "bloom": ("bloom", "play", "tuning"),
     "threat": ("bloom",), "ventures": ("politics",),
     "intel": ("explore",), "transit": ("transit",), "shipyard": ("design",),
 

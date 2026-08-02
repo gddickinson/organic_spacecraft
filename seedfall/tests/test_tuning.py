@@ -30,11 +30,100 @@ from .harness import Suite
 def run(suite: Suite) -> None:
     check = suite.check
 
+    @check("a power that has just been answered stays quiet for four months")
+    def _():
+        # **The gap, not the constant.** `tests/test_approach` already had a
+        # quiet-spell check and it could not fail: it built its fixture with
+        # `game.day += QUIET_DAYS - 5`, so halving or doubling the constant
+        # moved the fixture with it. The sweep found `QUIET_DAYS` unprotected
+        # with two apparent guards standing over it.
+        #
+        # This one never reads it. It plays two chronicles for eleven years,
+        # records the days between consecutive approaches *from the same
+        # power*, and asserts the shortest against figures written here.
+        # Measured: 94 repeat approaches across the two, and the smallest gap
+        # either of them ever showed was exactly 120 days.
+        seen = []
+        for seed in ("quiet-a", "quiet-b"):
+            game = new_game(seed)
+            game.credits = 200_000
+            for cid in ("ore", "volatiles", "biomass", "alloy", "silicon"):
+                game.ship.cargo[cid] = 200
+            for fid in dip.POWERS:
+                game.rep[fid] = 30.0
+            last = {}
+            for day in range(4000):
+                approach.tick(game, 1, RNG(f"{seed}{day}"))
+                envoy = getattr(game, "envoy", None)
+                if envoy is not None and not envoy.over:
+                    who = envoy.faction
+                    if who in last:
+                        seen.append(game.day - last[who])
+                    last[who] = game.day
+                    approach.answer(game, envoy, "accept")
+                game.advance_days(1)
+        assert len(seen) >= 40, (
+            f"only {len(seen)} repeat approaches in twenty-two years — the "
+            f"powers stopped coming and the gap cannot be measured")
+        shortest = min(seen)
+        assert shortest >= 110, (
+            f"a power came back after {shortest:.0f} days; answering one "
+            f"envoy is supposed to buy months of quiet, not weeks")
+        assert shortest <= 140, (
+            f"the shortest gap any power left was {shortest:.0f} days — the "
+            f"quiet spell is longer than it is meant to be, and a power with "
+            f"a live grievance is being silenced rather than paced")
+        return (f"{len(seen)} repeat approaches, shortest gap "
+                f"{shortest:.0f} days, longest {max(seen):.0f}")
+
+    @check("a weapon family you stop using is forgotten in about four years")
+    def _():
+        # `RESIST_DECAY` is the whole reason to rotate armaments: the Bloom
+        # learns what you hit it with, and unlearns what you stop hitting it
+        # with. Zeroed, everything you have ever used stays resisted for ever
+        # and rotating buys nothing. Measured against figures written here,
+        # never against the constant.
+        from ..sim import bloom as bloom_sim
+
+        def left_after(days: float, pieces: int = 1):
+            game = new_game("forget")
+            state = bloom_sim.ensure(game)
+            state.resist["grown"] = 0.55
+            for _ in range(pieces):
+                bloom_sim.decay_resistance(game, days / pieces)
+            return state.resist.get("grown", 0.0)
+
+        assert abs(left_after(100) - 0.515) < 0.002, (
+            f"a hundred days off a family left {left_after(100):.4f} "
+            f"resistance, not 0.515")
+        assert abs(left_after(1000) - 0.200) < 0.002, (
+            f"a thousand days left {left_after(1000):.4f}, not 0.200")
+        # And it goes away entirely, in about four and a bit years. A
+        # resistance that never clears is a resistance you cannot outwait.
+        assert left_after(1600) == 0.0, (
+            f"1,600 days off a family and it still resists "
+            f"{left_after(1600):.5f}")
+        assert left_after(1400) > 0.0, (
+            "the whole resistance cleared inside four years — too fast to be "
+            "a reason to keep a second armament")
+        # Told in pieces or all at once, the same. The clock steps a day at a
+        # time in play and jumps in a transfer; those must agree.
+        assert abs(left_after(1000, pieces=1000) - left_after(1000)) < 1e-9, (
+            "a thousand days of forgetting one at a time is not the same as "
+            "a thousand told at once")
+        return (f"0.55 -> {left_after(100):.3f} at 100 days, "
+                f"{left_after(1000):.3f} at 1,000, gone by 1,600 (4.4 years)")
+
     @check("envoys actually arrive, at a rate that is neither silence nor spam")
     def _():
         # `ODDS_PER_DAY` zeroed retires the whole approach system in silence.
-        # `QUIET_DAYS` zeroed turns it into a nagging inbox. Both are pinned
-        # by counting arrivals over a decade, against figures written here.
+        # **This check pins that one and does *not* pin `QUIET_DAYS`**, though
+        # it said it did until somebody measured: halved and doubled, the mean
+        # stayed inside these bounds and the suite stayed green. Three to
+        # sixty envoys a decade is a wide enough door to walk a spacing rule
+        # through sideways. The quiet spell is pinned below, on the gap
+        # between two approaches from the same power, which is the thing it
+        # actually governs.
         arrivals = []
         for seed in range(6):
             game = new_game(f"rate{seed}")
