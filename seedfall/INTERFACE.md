@@ -1893,6 +1893,16 @@ a word leaves the pilot wondering. `freeflight.ALONGSIDE_KM` is 50, well inside
 `engage.reach_km` of 10,000, so running something down arrives with the guns
 able to speak.
 
+**The screen says what a press did**, because three of the six thrust buttons
+could look dead. The main drive only pushes along the nose, so with the torch
+lit a press whose axis is not under it spends the whole tick swinging the hull
+and burns nothing — right, and documented in `sim/attitude`, and previously
+silent. Flown through the buttons: Ahead moved her, Port and Starboard and
+Astern moved her nothing at all with no word said. The ship panel now reads
+"swinging the hull round to bear — the torch did not fire" or "fired", taken
+from `conn.apply`'s own answer rather than guessed at a second time. On the
+attitude clusters every axis fires.
+
 **Aiming, and why there was none.** For as long as the conn had existed,
 "Ahead" meant +y — `Conn.heading` was declared and **never written**, so
 `conn.apply`, which derives the drive's direction from the axis button rotated

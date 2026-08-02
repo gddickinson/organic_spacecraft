@@ -69,6 +69,8 @@ class PilotView(View):
         self.mark = ""
         #: What the flight computer is doing: "", "hold" or "run".
         self.auto = ""
+        #: What the last press actually did, for the screen to say.
+        self.last = {}
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.tick)
 
@@ -95,7 +97,8 @@ class PilotView(View):
         # come from the console; a beat with nothing pressed and no autopilot
         # is a minute of drifting, which is what a live view mostly is.
         axis, main, throttle = self.computer()
-        conn_sim.apply(self.conn, axis, main=main, ticks=1, throttle=throttle)
+        self.last = conn_sim.apply(self.conn, axis, main=main, ticks=1,
+                                   throttle=throttle)
         # **Pay as we go.** The same door `berthing.commit` settles through,
         # so neither can bill a minute the other already has.
         berth_sim.charge_flown(self.game, self.conn)
@@ -183,6 +186,7 @@ class PilotView(View):
         said = conn_sim.apply(self.conn, axis_id, main=self.use_main,
                               ticks=self.conn.coast_min,
                               throttle=self.conn.throttle)
+        self.last = said
         berth_sim.charge_flown(self.game, self.conn)
         self.refresh()
         return said
@@ -276,6 +280,18 @@ class PilotView(View):
         for key, value, kind in panel_sim.readout(self.conn):
             board.add_row(key, value, kind)
         board.add_row("Clock", "running" if self.running else "held")
+        # **What the last press did**, because three of the six thrust
+        # buttons can look dead. The main drive only pushes along the nose, so
+        # a press whose axis is not under it spends the whole tick swinging
+        # the hull instead of burning — correct, documented in `sim/attitude`,
+        # and until now completely silent. Flown through the buttons: with the
+        # drive lit, Ahead moved her and Port, Starboard and Astern each moved
+        # her nothing at all with no word said.
+        if self.last.get("turning"):
+            board.add_row("Drive", "swinging the hull round to bear — the "
+                                   "torch did not fire", "warn")
+        elif self.last.get("burned"):
+            board.add_row("Drive", "fired", "")
         board.add_row("Autopilot", {
             "": "off — she flies as you fly her",
             "hold": "holding station, killing what drift there is",

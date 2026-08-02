@@ -2,6 +2,48 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: flew the Pilot screen through its own buttons
+
+Asked to fly it from the GUI and find problems, so I pressed what a player
+presses — every camera, every axis, the throttle, the drive, the clock, the
+course, the autopilot, the guns, the mark, walking away and coming back, and
+securing — and checked what the screen said afterwards.
+
+**Most of it holds.** Six cameras each draw a different picture. The throttle
+walks 10/25/50/100 and the panel agrees at every rung. The clock runs at 250 ms
+a beat and stops when you leave the bridge. A course laid on a contact
+survives walking away and coming back. The guns and the mark appear for what
+is in reach. Securing clears the course and the computer.
+
+**One real defect, and it is the one a player would hit first.** With the main
+drive lit, *three of the six thrust buttons moved the ship nowhere*:
+
+    Ahead      d-pos [0.0, 0.0, 0.0]     <- nothing
+    Astern     d-pos [0.0, 0.025, 0.0]
+    Port       d-pos [0.0, 0.0, 0.0]     <- nothing
+    Starboard  d-pos [0.0, 0.0, 0.0]     <- nothing
+
+Measured through `conn.apply`'s own return, the cause is not a bug at all:
+`burned=False, turning=True`. The torch only pushes along the nose, so a press
+whose axis is not under it spends the whole tick swinging the hull — which
+`sim/attitude` documents as the point ("a hard burn to port on a loaded
+freighter is a decision rather than a button"). **The screen said nothing.**
+A correct rule with no feedback is a dead button as far as the pilot can tell.
+
+The panel now says which it was — "swinging the hull round to bear — the torch
+did not fire", or "fired" — from `apply`'s own answer rather than a second
+guess at it. On the attitude clusters every axis fires, as it always did.
+
+**And my own check was wrong before the code was.** I asserted a turning tick
+left `conn.pos` unchanged; it does not, because the minute still passes and a
+ship already moving keeps coasting through it. The claim worth making is that
+the swing bought no *speed*, so it asserts `conn.vel`.
+
+Three mutations red. The mutation harness itself needed rewriting first — I
+built its table with nested quoting and produced a `SyntaxError`, which is the
+same string-concatenation trap this log has recorded twice before; it is
+written with `repr()` now.
+
 ## 2026-08-02 — SEEDFALL: the flag was being dropped, so nobody could be charged
 
 #144 said opening fire on a power's hull costs nothing with its friends. True,

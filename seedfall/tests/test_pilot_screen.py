@@ -402,6 +402,58 @@ def run(suite: Suite) -> bool:
         assert view.auto == "", view.auto
         return "both exits clear a run; holding station is not a course"
 
+    @check("a press that only swings the hull says so, instead of looking dead")
+    def _():
+        # **Found by flying the screen through its own buttons.** With the
+        # main drive lit, three of the six thrust buttons moved the ship
+        # nowhere: the torch only pushes along the nose, so a press whose axis
+        # is not under it spends the whole tick turning. That is right, and
+        # `sim/attitude` documents it — but the screen said nothing at all, so
+        # a pilot pressing Port got a dead button and no reason.
+        from PyQt6.QtWidgets import QLabel
+        game, _win, view = _bridge("flygui")
+        view.use_main = True
+
+        # Ahead is under the nose to begin with: it fires.
+        was = list(view.conn.pos)
+        view.burn("forward")
+        assert view.last.get("burned"), view.last
+        assert not view.last.get("turning"), view.last
+        assert view.conn.pos != was, "the drive fired and she did not move"
+        said = [l.text() for l in view.findChildren(QLabel)]
+        assert "fired" in said, "a burn that fired said nothing"
+
+        # Port is not: the tick goes into the swing, and the panel says so.
+        # **The velocity, not the position.** A turning tick still lets the
+        # minute pass, so a ship already moving keeps coasting through it —
+        # asserting `pos` was unchanged failed for that reason, and the claim
+        # worth making is that the swing bought no *speed*.
+        was = list(view.conn.vel)
+        view.burn("left")
+        assert view.last.get("turning"), (
+            f"the fixture no longer turns for an off-axis press: {view.last}")
+        assert not view.last.get("burned"), view.last
+        assert view.conn.vel == was, (
+            f"a tick spent turning still changed the velocity: {was} -> "
+            f"{view.conn.vel}")
+        said = [l.text() for l in view.findChildren(QLabel)]
+        swung = [t for t in said if "swinging" in t]
+        assert swung, (
+            "a press spent the whole tick turning and the panel said nothing "
+            "— which is a dead button as far as the pilot can tell")
+        assert "did not fire" in swung[0], swung[0]
+
+        # On the clusters there is nothing to swing: every axis fires.
+        view.use_main = False
+        for axis in ("forward", "left", "up"):
+            was = list(view.conn.vel)
+            view.burn(axis)
+            assert view.last.get("burned"), (axis, view.last)
+            assert view.conn.vel != was, (
+                f"{axis} on the clusters bought no speed at all")
+        return ("the torch fires along the nose and says so; off-axis it says "
+                "it is swinging; the clusters always fire")
+
     @check("flying from the bridge moves the ship on every other screen")
     def _():
         # `flight.stand_off` is the one writer of where a hull is when it is
