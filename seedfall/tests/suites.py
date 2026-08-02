@@ -197,6 +197,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("ui", "test_ui", "interface", True),
     SuiteSpec("orrery", "test_orrery", "orrery", True),
     SuiteSpec("pilotscreen", "test_pilot_screen", "pilot screen", True),
+    SuiteSpec("tripwire", "test_tripwire", "the sweep itself"),
 ]
 
 SUITES_BY_KEY = {s.key: s for s in SUITES}

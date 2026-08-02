@@ -198,7 +198,10 @@ LIMIT = 60
 KIN = {
     "dormancy": ("dormancy",), "lineages": ("time",), "crossings": ("time",),
     "officials": ("counter", "officials"),
-    "approaches": ("envoy", "approach"), "approach": ("envoy", "approach"),
+    # `ticks` caught `ODDS_PER_DAY` at double when `envoy`, `approach`,
+    # `politics`, `play`, `sim`, `courting` and `overtures` all ran green.
+    "approaches": ("envoy", "approach", "ticks"),
+    "approach": ("envoy", "approach"),
     "surveys": ("surveys",), "survey": ("charting", "surveys"),
     "anchorage": ("anchorage",),
     "doctrine": ("doctrine",), "firing": ("firing", "gunnery"),
@@ -245,7 +248,13 @@ KIN = {
     "loyalty": ("conviction", "crew"), "convictions": ("conviction", "crew"),
     "crew": ("conviction", "crew"),
     "lifespan": ("time",), "upkeep": ("time",), "clock": ("time", "ticks"),
-    "bloom": ("bloom",),
+    # **`play` is here because a mutation put it here, not because it reads
+    # right.** `test_play` imports nothing from `bloom`; it exercises the
+    # heart by playing the game. Measured: `HEART_HP` halved and doubled runs
+    # `bloom` green, `tuning` green — `tuning` is the only suite that imports
+    # the module — and `play` red. A fast path written by reading the imports
+    # would have missed the only suite that guards the constant.
+    "bloom": ("bloom", "play"),
     "threat": ("bloom",), "ventures": ("politics",),
     "intel": ("explore",), "transit": ("transit",), "shipyard": ("design",),
 
@@ -276,7 +285,6 @@ KIN = {
     "sky": ("cameras", "worlds"), "worlds3d": ("worlds",),
     "starclasses": ("worlds", "orbits"),
     "programmes": ("programmes",),
-    "declared": ("declared",),
     "consorts": ("combat", "screening", "company"),
     "mounts": ("thrusters", "lopsided"),
     "pilot": ("pilot", "conn", "climbs"),

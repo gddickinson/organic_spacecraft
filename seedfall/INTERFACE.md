@@ -77,6 +77,24 @@ the worst of them, always against a figure written in the check and never
 against the constant under test — the mistake this whole apparatus exists to
 stop.
 
+**And nothing had ever checked the sweep itself.** A dozen check files cite its
+verdicts and several checks exist *because* it called something unpinned, while
+`KIN` — its fast path, 133 hand-kept entries naming 226 suites — had no check
+of any kind. `tests/test_tripwire.py` is the first, and it matters because a
+wrong fast path does not fail: it makes the tool answer confidently. Measured,
+`bloom.HEART_HP` halved and doubled ran `bloom` green, `tuning` green — the one
+suite that imports the module — and `play` **red**. It had been reported a
+survivor while a check sat there holding it.
+
+**The entries cannot be got right by reading, which is the whole difficulty.**
+An imports-derived table was tried and was wrong in both directions:
+`test_play` imports nothing from `bloom` and guards its heart; `test_tuning`
+imports it and guards nothing. So every entry is earned by mutation.
+`test_tripwire.MEASURED` records the ones that have been, and a fast path can
+no longer quietly stop naming the only suite protecting a constant — a row
+whose guard is not in `SLOW` is rejected too, since such a row would prove
+nothing. It also found an entry for `declared`, a module that does not exist.
+
 **Swept again after seven cycles of new work**, module by module: wharfage,
 parley, abilities, territory, orbits, consorts, autopilot, wayhome. Nothing came
 back *unprotected* — but five constants came back "protected only by a suite that

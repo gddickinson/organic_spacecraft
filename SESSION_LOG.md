@@ -2,6 +2,56 @@
 
 Running progress log. Newest first.
 
+## 2026-08-01 — SEEDFALL: the sweep that guards the constants had nothing guarding it
+
+#134, first half. The task said the fast paths were blind and named
+`bloom.HEART_HP` as the proof. Measured, one suite at a time, the constant
+halved and doubled:
+
+    HEART_HP = 1300.0 / 5200.0
+      bloom   green      <- the fast path
+      tuning  green      <- the only suite that imports the module
+      play    RED        <- the only suite that guards it
+
+So the sweep had been reporting a pinned constant as a survivor, and "SURVIVES"
+has meant *"not caught by the suites I chose to run"* rather than
+*"unprotected"*.
+
+**The wrong turn: I tried to fix the table by reading.** I parsed every check
+file's imports to find which suites touch each constant-holding module — 46
+modules, 105 (module, slow suite) pairs, 53 distinct slow suites — and the
+answer was worse than useless. `test_play` imports **nothing** from `bloom`; it
+plays the game and the heart is on the far end of that. Static analysis pointed
+at `tuning`, the one suite that does import it and does not guard it. An
+imports-derived fast path would have been confidently wrong in both directions.
+
+So every entry has to be earned by mutation. Two were, this cycle:
+
+    bloom.HEART_HP            caught by `play`   (half)   kin was ("bloom",)
+    approaches.ODDS_PER_DAY   caught by `ticks`  (double) kin was ("envoy","approach")
+
+`approaches` was not in the task at all — `envoy`, `approach`, `politics`,
+`play`, `sim`, `courting` and `overtures` all ran green on `ODDS_PER_DAY` and
+`ticks` caught it.
+
+**And two constants are genuinely unpinned**, not blind-spot artefacts — halved
+*and* doubled against ten and eight candidate suites respectively, all green:
+`bloom.RESIST_DECAY = 0.00035` (how fast a bloom forgets a weapon you have
+shelved) and `approaches.QUIET_DAYS = 120` (how long a power leaves you alone).
+Filed as #142.
+
+**The structural finding: nothing had ever checked the tool.** A dozen suites
+cite its verdicts in their comments and several checks exist *because* it
+reported something unpinned, and `KIN` — 133 hand-kept entries, 226 suite names
+— had no check of any kind. `tests/test_tripwire.py` is the first. It found two
+faults immediately that are statically decidable: an entry for `declared`, a
+module that does not exist anywhere in the package, and it now holds the
+measured guards so a fast path cannot quietly stop naming the only suite
+protecting a constant. Five mutations, all red — including one that names a
+guard which is *not* in `SLOW`, because such a row would prove nothing.
+
+The 10-hour re-sweep is the remaining half of #134 and is untouched.
+
 ## 2026-08-01 — SEEDFALL: the ship could not be aimed, and nothing had ever turned her
 
 #139. Measured before writing anything: a hull 5,952 km off, main drive, full
