@@ -118,6 +118,13 @@ def contacts(game, system=None) -> list[Contact]:
             id=f"hull:{hull.id}", name=hull.name, kind="hull",
             tint="warn" if hull.hostile else "steel",
             detail=f"{hull.kind_name} — {hull.doing}",
+            # **The flag, which was being dropped.** `Contact.faction` is set
+            # for a quay and was never set for a hull, so `engage.open_fire`
+            # read `None` and every conn engagement fought an *unaligned*
+            # enemy — measured, a Charter freighter became "unaligned" between
+            # `traffic` and the trigger, and with it went the enemy's fit, the
+            # standing it costs to kill her, and everyone who cared.
+            faction=hull.faction,
             hull_id=hull.id, hostile=hull.hostile, errand=hull.errand))
     return out
 

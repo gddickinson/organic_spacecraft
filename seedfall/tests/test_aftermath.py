@@ -159,10 +159,21 @@ def run(suite: Suite) -> None:
         out = aftermath_sim.resolve(calm, battle, rng)
         assert not out["pleased"], f"gloating at +30 all round: {out['pleased']}"
         victim = battle.enemy_faction
-        unmoved = [p for p in POWERS if p != victim
-                   and calm.rep.get(p, 0) == before[p]]
-        assert len(unmoved) == len(POWERS) - 1, "somebody moved anyway"
-        return "a kill in a cordial sector moves only its victim"
+        # **This used to say "only the victim moves", and that claim aged.**
+        # At +30 all round every power is a *friend* of the victim, and
+        # killing a power's hull now costs you with its friends
+        # (`allegiance.charge_attack`, #144) — which is the whole point of a
+        # cordial sector being a harder place to raid. What must still hold is
+        # the thing the title claims: in a sector at peace nobody comes out of
+        # a kill *better off*.
+        moved = {p: calm.rep.get(p, 0) - before[p]
+                 for p in POWERS if p != victim
+                 and calm.rep.get(p, 0) != before[p]}
+        assert all(delta < 0 for delta in moved.values()), (
+            f"somebody profited from a kill in a cordial sector: {moved}")
+        return (f"nobody gloats; {len(moved)} friend(s) of the victim mind: "
+                + (", ".join(f"{p} {d:+.1f}" for p, d in sorted(moved.items()))
+                   or "none at these relations"))
 
     @check("everybody is in favour of one less instar")
     def _():

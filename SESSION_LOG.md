@@ -2,6 +2,60 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: the flag was being dropped, so nobody could be charged
+
+#144 said opening fire on a power's hull costs nothing with its friends. True,
+and the reason was one line deeper than the task described.
+
+**`sim/track.contacts` never copied `hull.faction`.** `Contact` has the field
+and sets it for a quay; for a hull it was left `None`. So `engage.open_fire`,
+which reads `contact.faction or "unaligned"`, fought an **unaligned** enemy
+whoever the ship belonged to — taking with it the enemy's fit from
+`encounters.make_enemy`, the standing a kill costs, and everyone who cared.
+
+The first probe made it look rarer than it is: seed "price" showed every hull
+with `faction=None` and I nearly wrote that most traffic is unaligned. Asked
+through `traffic` instead of through `track`, across twelve systems: **55 of 55
+hulls carry a flag**, 85.5% Charter. The field was wrong for all of them.
+
+**Then the gap the task named.** `aftermath._standing` drops the victim's own
+standing by `KILL_COST` and walks `allegiance.offended_by` so its *rivals* are
+pleased — and nothing walked `defenders_of`, so the people fond of it did not
+mind. `allegiance.charge_attack` is the one door for that and only
+`sim/diplomacy` had ever spent it, for denouncing. Measured:
+
+    day one, nobody fond of anybody:  charter -14.0
+    Sanhedrin warmed to 60:           charter -14.0, sanhedrin -8.6
+
+Costing nothing extra on day one is the point rather than a gap: relations
+start negative, `defenders_of` is empty for all four powers, and friendship has
+to be built before it can be spent.
+
+**And the bill is quoted before the trigger.** `engage.price` asks the same two
+doors at the same weight `aftermath` spends through, so the board says
+"Destroying her costs charter -14.0, sanhedrin -8.6" *before* the pilot
+commits. A cost discovered afterwards is the same defect as a greyed-out
+button.
+
+**The full suite went red once, and the check it broke was right to break.**
+`test_aftermath`'s "nobody gloats in a sector at peace" sets every relation to
++30 and then asserted that *only the victim* moved. At +30 all round every
+power is a **friend** of the victim, so the new rule charges them all — three
+of them, 2.9 apiece. The title's claim still holds and the second assertion
+had quietly encoded "gloating is the only way anyone can move", which was true
+when it was written and is not now. It asserts nobody comes out of a kill
+*better off*, which is what the title always meant.
+
+I saw that check fire during the mutation runs and put it down to sensitivity
+rather than looking. It cost a full 25-minute suite run to be told properly.
+
+Six mutations red. The sharpest is swapping `charge_attack` for
+`price_attack` — the report is identical and no standing moves — which the
+check catches because it compares `game.rep` before and after rather than
+reading the dictionary the sim handed back. Dropping the flag again also kills
+a *pre-existing* aftermath check, which is how a one-line omission had gone
+unnoticed for so long: nothing downstream had ever seen a flagged conn fight.
+
 ## 2026-08-02 — SEEDFALL: the captain gets his own enemies, and my harness lied
 
 #143, and the last unbuilt piece of the original Pilot request — "set targets

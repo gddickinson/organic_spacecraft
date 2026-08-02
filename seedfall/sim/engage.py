@@ -152,6 +152,27 @@ def open_fire(game, conn, contact, rng):
     return battle, ""
 
 
+def price(game, contact) -> list:
+    """What killing this hull would cost, with its flag and with its friends.
+
+    Quoted before the trigger, not discovered after it. `sim/aftermath` is
+    what actually spends this — `KILL_COST` against the victim and
+    `allegiance.charge_attack` against everyone fond of it — and this asks the
+    same two doors at the same weight, so the board cannot promise a bill the
+    fight will not send.
+    """
+    from . import aftermath as aftermath_sim
+    from . import allegiance as allegiance_sim
+    faction = getattr(contact, "faction", None)
+    if not faction or faction == "bloom":
+        return []
+    weight = aftermath_sim.KILL_COST
+    return ([(faction, -weight)]
+            + [(other, -cost) for other, cost
+               in allegiance_sim.price_attack(game, faction, weight,
+                                              {faction})])
+
+
 def note(game, conn, contact, km: float | None = None) -> str:
     """One line on what opening fire from here would mean, for a screen."""
     if km is None:
@@ -160,5 +181,10 @@ def note(game, conn, contact, km: float | None = None) -> str:
     if not ok:
         return why
     band = band_for(game, conn, contact, km)
-    return (f"Opening fire would begin at {combat_sim.BANDS[band].lower()} "
+    said = (f"Opening fire would begin at {combat_sim.BANDS[band].lower()} "
             f"range — {km:,.0f} km off {getattr(contact, 'name', 'it')}.")
+    bill = price(game, contact)
+    if bill:
+        said += ("  Destroying her costs "
+                 + ", ".join(f"{who} {cost:+.1f}" for who, cost in bill) + ".")
+    return said

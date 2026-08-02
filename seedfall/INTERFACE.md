@@ -1916,6 +1916,23 @@ A first attempt slewed `conn.nose` at the contact directly and moved the range
 `apply` slews the nose back onto the heading every tick. The heading is what
 the flight computer reads; the nose is what it writes.
 
+**What a kill costs, and who else minds.** `sim/aftermath` has always dropped
+the victim's own standing by `KILL_COST` and pleased its rivals through
+`allegiance.offended_by`; nothing walked `defenders_of`, so a captain could
+work through one power's shipping hull by hull and stay welcome with its
+friends. `allegiance.charge_attack` — the door `sim/diplomacy` already spends
+to denounce a power — is charged at the same weight now. Measured: on day one,
+with relations starting negative and `defenders_of` empty for all four powers,
+a kill costs `charter -14.0` and nothing more; with the Sanhedrin warmed to 60
+it costs `charter -14.0, sanhedrin -8.6`.
+
+None of it fired before, because **`sim/track` was dropping the flag**:
+`Contact.faction` is set for a quay and was never set for a hull, so
+`engage.open_fire` fought an *unaligned* enemy whoever the ship belonged to.
+Measured through `traffic` rather than `track`, 55 of 55 hulls across twelve
+systems carry one. `engage.price` quotes the whole bill before the trigger,
+from the same two doors at the same weight.
+
 **The guns, and how fast the screen answers.** `ui/fire_panel.py` is the button
 `sim/engage` waited for. It refuses out loud — `may_engage` returns a sentence
 so the board can print "The guns answer to the conn, and the conn is flying an

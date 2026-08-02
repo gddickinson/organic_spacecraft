@@ -42,6 +42,127 @@ def _flying(seed: str = "engage"):
 def run(suite: Suite) -> None:
     check = suite.check
 
+    @check("a hull's flag survives the trip from traffic to the trigger")
+    def _():
+        # **It did not.** `Contact.faction` is set for a quay and was never
+        # set for a hull, so `open_fire` read `None` and fought an *unaligned*
+        # enemy whoever the ship belonged to. Measured across twelve systems,
+        # every single traffic hull carries a flag — 85% Charter — so the
+        # field was wrong for all of them, not for an edge case.
+        from ..sim import traffic as traffic_sim
+        game = new_game("price")
+        hulls = traffic_sim.in_system(game)
+        assert hulls, "no traffic to check"
+        flagged = [h for h in hulls if h.faction]
+        assert flagged, "no hull here flies a flag; the check proves nothing"
+        contacts = {c.hull_id: c for c in track.contacts(game)
+                    if c.kind == "hull"}
+        for hull in flagged:
+            seen = contacts.get(hull.id)
+            assert seen is not None and seen.faction == hull.faction, (
+                f"{hull.name} flies {hull.faction!r} and the contact says "
+                f"{getattr(seen, 'faction', None)!r}")
+        # And it reaches the fight, which is the whole reason it matters.
+        conn, why = freeflight.begin(game)
+        assert conn is not None, why
+        target = contacts[flagged[0].id]
+        battle, why = engage.open_fire(game, conn, target, RNG("flag"))
+        assert battle is not None, why
+        assert battle.enemy_faction == flagged[0].faction, (
+            f"engaged a {flagged[0].faction} hull and fought a "
+            f"{battle.enemy_faction} one")
+        return (f"{len(flagged)} of {len(hulls)} hulls flagged; "
+                f"{flagged[0].name} fought as {battle.enemy_faction}")
+
+    @check("killing a power's hull is felt by everyone fond of it")
+    def _():
+        # `sim/aftermath` already dropped the victim's standing and pleased
+        # its *rivals* — `_pleased` walks `allegiance.offended_by`. Nothing
+        # walked `defenders_of`, so the people who like it did not mind, and a
+        # captain could work through one power's shipping and stay welcome.
+        from ..sim import aftermath as aftermath_sim
+        from ..sim import diplomacy as dip
+        from ..sim import allegiance as allegiance_sim
+
+        seen = {}
+        for warm in (False, True):
+            game = new_game("price")
+            if warm:
+                dip.ensure(game).relations["charter|sanhedrin"] = 60.0
+            conn, _why = freeflight.begin(game)
+            hull = next(c for c in track.contacts(game)
+                        if c.kind == "hull" and c.faction)
+            battle, why = engage.open_fire(game, conn, hull, RNG("k"))
+            assert battle is not None, why
+            fid = battle.enemy_faction
+            defenders = allegiance_sim.defenders_of(game, fid)
+            was = dict(game.rep)
+            battle.result = "destroyed"
+            said = aftermath_sim.resolve(game, battle, RNG("a"))
+            moved = dict(said["standing"])
+            assert moved.get(fid) == -aftermath_sim.KILL_COST, moved
+            seen[warm] = (defenders, moved, dict(game.rep), was)
+
+        cold_def, cold_moved, _r, _w = seen[False]
+        warm_def, warm_moved, warm_rep, warm_was = seen[True]
+        assert not cold_def, (
+            f"the fixture has friends on day one: {cold_def} — then the two "
+            f"halves are not a comparison")
+        assert set(cold_moved) == {"charter"}, (
+            f"nobody is fond of anybody yet and {cold_moved} moved")
+        # Warm: the friend is charged, and the rep really moved, not just the
+        # report. That distinction is the one this project keeps being bitten
+        # by.
+        friend = warm_def[0][0]
+        assert friend in warm_moved, (
+            f"{friend} is devoted to the victim at {warm_def[0][1]:.2f} and "
+            f"only {sorted(warm_moved)} paid")
+        assert warm_moved[friend] < 0, warm_moved
+        assert warm_rep[friend] < warm_was.get(friend, 0.0), (
+            f"{friend} was reported as charged and its standing did not move: "
+            f"{warm_was.get(friend)} -> {warm_rep[friend]}")
+        return (f"day one: {sorted(cold_moved)} · warm: "
+                + ", ".join(f"{k} {v:+.1f}" for k, v in sorted(warm_moved.items())))
+
+    @check("the bill is quoted before the trigger, not after it")
+    def _():
+        # A cost the pilot only discovers afterwards is the same defect as a
+        # greyed-out button. `engage.price` asks the two doors `aftermath`
+        # spends through, at the same weight, so the board cannot promise a
+        # bill the fight will not send.
+        from ..sim import aftermath as aftermath_sim
+        from ..sim import diplomacy as dip
+        game = new_game("price")
+        dip.ensure(game).relations["charter|sanhedrin"] = 60.0
+        conn, _why = freeflight.begin(game)
+        hull = next(c for c in track.contacts(game)
+                    if c.kind == "hull" and c.faction)
+
+        quoted = dict(engage.price(game, hull))
+        assert quoted, "nothing was quoted for a flagged hull"
+        assert quoted[hull.faction] == -aftermath_sim.KILL_COST, quoted
+        assert len(quoted) > 1, (
+            f"only the victim was quoted: {quoted} — the friends are the part "
+            f"that was missing")
+
+        # Fight it and compare the bill with what was actually taken.
+        battle, why = engage.open_fire(game, conn, hull, RNG("q"))
+        assert battle is not None, why
+        battle.result = "destroyed"
+        said = aftermath_sim.resolve(game, battle, RNG("a"))
+        spent = dict(said["standing"])
+        assert spent == quoted, (
+            f"quoted {quoted} and spent {spent}")
+
+        # A world has no flag and so no bill.
+        body = next(c for c in track.contacts(game) if c.kind == "body")
+        assert engage.price(game, body) == []
+        assert "costs" in engage.note(game, conn, hull), (
+            engage.note(game, conn, hull))
+        return "quoted " + ", ".join(f"{k} {v:+.1f}"
+                                     for k, v in sorted(quoted.items())) \
+               + " and spent exactly that"
+
     @check("burning toward a contact closes the range you would fight at")
     def _():
         # **The correction.** The first version ranged on `conn.pos` — how far

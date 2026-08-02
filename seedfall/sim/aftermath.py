@@ -93,6 +93,23 @@ def _standing(game, battle, out: dict) -> None:
             game.adjust_rep(fid, -KILL_COST)
             out["standing"].append((fid, -KILL_COST))
             out["pleased"] = _pleased(game, fid, KILL_COST)
+            # **And its friends, which nobody was charging.** `_pleased` above
+            # walks `allegiance.offended_by` so a power's *rivals* are glad of
+            # a kill; there was no matching walk of `defenders_of`, so the
+            # people who like it did not mind at all. A captain could work
+            # through one power's shipping hull by hull and stay welcome
+            # everywhere except with the victim.
+            #
+            # `allegiance.charge_attack` is the one door for that arithmetic —
+            # `sim/diplomacy` already spends it to denounce a power — and it
+            # is asked at the same weight the kill costs the victim. Measured
+            # on a chronicle where the Sanhedrin had warmed to the Charter at
+            # 60: killing a Charter hull costs the Charter 14.0 and the
+            # Sanhedrin 8.6. At day one, with nobody yet fond of anybody, it
+            # costs nothing extra — which is the point rather than a gap.
+            out["standing"].extend(
+                (other, -cost) for other, cost
+                in allegiance.charge_attack(game, fid, KILL_COST, {fid}))
             _remember(game, fid, "kill",
                       f"you destroyed the {battle.enemy_name}", 1.4)
         elif fid == "bloom":
