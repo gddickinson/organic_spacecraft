@@ -34,7 +34,7 @@ import math
 
 from ..core.state import new_game
 from ..data.starclasses import SOLAR_MU, STAR_CLASSES, mu_of
-from ..sim import autopilot, conn as conn_sim, flight, orbits
+from ..sim import autopilot, conn as conn_sim, conn_step, flight, orbits
 from ..sim import track as track_sim
 from .harness import Suite
 
@@ -377,7 +377,7 @@ def run(suite: Suite) -> None:
             # them circular velocity, and the control resolved as a perfectly
             # good orbit 227,000 km out, which it was.
             conn.vel = [0.0, -orbits.orbital_speed(conn, far) * 1.6, 0.0]
-            conn_sim._resolve(conn)
+            conn_step._resolve(conn)   # moved out of sim/conn, #138
             return conn.outcome
 
         told = place(far)

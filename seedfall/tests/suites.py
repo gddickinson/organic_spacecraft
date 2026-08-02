@@ -198,6 +198,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("orrery", "test_orrery", "orrery", True),
     SuiteSpec("pilotscreen", "test_pilot_screen", "pilot screen", True),
     SuiteSpec("tripwire", "test_tripwire", "the sweep itself"),
+    SuiteSpec("length", "test_length", "file length"),
     SuiteSpec("firecontrol", "test_firecontrol", "fire control", True),
 ]
 

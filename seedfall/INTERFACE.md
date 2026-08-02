@@ -67,6 +67,24 @@ as being alongside one, and it accepted any quay rather than one with a yard.
 `anchorage.docked_at` and `offering(game, "shipyard")`, and the screen reads
 it instead of holding its own.
 
+**And nothing had ever counted a line.** The five-hundred-line rule has been
+standing instruction since the start, and no check anywhere enforced it — which
+is why files drifted over one commit at a time until there were fourteen at
+once, 758 lines of debt between them. `tests/test_length.py` is the ratchet: a
+file not on the debt list must be under the limit, a file on it must not grow,
+and a debt that has been paid must be struck off — a stale row makes the
+remaining work look bigger than it is and sends the next reader to split
+something already split. Raising the limit does not get past it, because then
+every debt reads as paid and the stale-row check refuses the lot.
+
+`sim/conn.py` was the first paid off: 612 lines, with the tick integrator —
+`_substeps`, `_sweep_min`, `_step`, `_touch`, `_resolve`, one contiguous block
+with exactly one caller — moved to `sim/conn_step.py`, leaving 489. The
+constants stayed in `sim/conn` because eleven other modules read them;
+`ALONGSIDE_RATE` alone is read by `autopilot`, `moorings`, `clearance`,
+`instruments` and the flight window, and re-exporting them to tidy the new file
+would have been a second door.
+
 **Which numbers are actually held in place.** `tests/tripwire.py` changes
 every module-level tuning constant in the game — zero, double, half — and
 reports the ones no check notices. A survivor is dead, tautologically checked,
@@ -2269,7 +2287,11 @@ seedfall/
 │   ├── programmes.py   what the bench runs once a branch is exhausted, and
 │   │                   what a finding buys: standing, money, or nothing
 │   ├── conn.py         the last ten kilometres: a local frame, thrusters and
-│   │                   the main drive, and what a contact costs
+│   │                   the main drive, and what a contact costs. The pilot's
+│   │                   side — the console and what a burn is allowed to do
+│   ├── conn_step.py    the other side: one tick of time, how far it carries
+│   │                   her and what she touches on the way. Only `apply`
+│   │                   calls in, and only `step`
 │   ├── outcome.py      whether an approach is over — alongside, in orbit,
 │   │                   aground or adrift. An orbit is a shape rather than a
 │   │                   distance, which is why it is not decided in conn.py

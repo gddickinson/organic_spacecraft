@@ -2,6 +2,73 @@
 
 Running progress log. Newest first.
 
+## 2026-08-01 — SEEDFALL: one seam cut, and a ratchet so the rest cannot grow back
+
+#138 said fifteen files were over five hundred lines. Counted: **nine outside
+`tests/`, fourteen in all**, 758 lines of debt between them. The task was stale
+in its number and right in its substance.
+
+**The seam.** `sim/conn.py` was 612. Its own structure names the cut: the
+console, the axes, the throttle and what a burn costs are the pilot's side;
+`_substeps`, `_sweep_min`, `_step`, `_touch` and `_resolve` are the other —
+given a hull with a velocity, how far does a minute carry her and does she
+touch anything on the way. Measured before moving a line:
+
+    the block is contiguous, 472..599, and holds nothing else
+    120 lines, needing math, outcome_sim, Conn, and five constants
+    exactly one caller: apply -> _step
+    no caller anywhere outside the module
+
+`sim/conn_step.py` is those 120 lines; `sim/conn.py` is 489.
+
+**The constants stayed put, deliberately.** `ALONGSIDE_RATE` alone is read by
+`autopilot`, `moorings`, `clearance`, `instruments` and the flight window;
+`SAFE_CLOSING` by `preview`, `impulse`, `landing` and `instruments`. Moving
+them to keep the new file self-contained would have forced `sim/conn` to
+re-export them, and a re-export is a second door. So `conn_step` imports them
+from `conn`, and `apply` imports `conn_step` lazily — the way it already
+imports `sim/attitude` — which keeps the seam one-way instead of a cycle.
+
+### The real finding: nothing had ever enforced the rule
+
+The five-hundred-line rule has been standing instruction from the start and
+**no check anywhere counted a line**. That is the whole reason #138 exists as a
+task rather than as a non-event: files drift over one commit at a time, nobody
+notices until somebody counts, and then it is fifteen at once — each needing a
+real seam found, which is a cycle apiece.
+
+`tests/test_length.py` is the ratchet. A file not on the debt list must be
+under 500. A file on it must not grow. A debt that has been paid must be struck
+off, because a row for a file that no longer needs one makes the remaining work
+look bigger than it is and sends the next person to split something already
+split.
+
+**The wrong turn, and it is one I have made before in a different costume.**
+I checked for external callers of the five private functions with a grep that
+ended in `| head` — and trusted it. The tenth line of output was not the last:
+`tests/test_orbits.py:380` called `conn_sim._resolve`, and the full suite found
+it at suite 167 of 178 after twenty-odd minutes. The recorded lesson from the
+last split was "a split is not done when it parses"; the same lesson wearing a
+new hat is **a split is not done when the grep was truncated**. Searched
+properly afterwards: exactly one caller, and it is now pointed at the new home.
+
+Then the ratchet caught its own author. Fixing that test added three lines to
+`tests/test_orbits.py`, which is itself a recorded debt at 567:
+
+    FAIL already too long and grown since: tests/test_orbits.py 567 → 569
+
+The right answer to that is not a bigger number in the list. The note went onto
+the call line as a trailing comment and the file is back at 567 exactly.
+
+Five mutations, all red — including the one that matters, putting the
+integrator back into `conn.py`:
+
+    FAIL nothing new is over five hundred lines
+         over five hundred lines and not a recorded debt: sim/conn.py (618)
+
+Raising `LIMIT` to 700 instead of splitting anything does not get past it
+either: every debt then reads as paid and the stale-row check refuses the lot.
+
 ## 2026-08-01 — SEEDFALL: the guns get a button, and the click stops stuttering
 
 #136. `sim/engage` had decided who may be fired on and at what band since it
