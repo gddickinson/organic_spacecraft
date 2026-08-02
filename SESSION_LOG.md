@@ -2,6 +2,117 @@
 
 Running progress log. Newest first.
 
+## 2026-08-01 — SEEDFALL: a Pilot screen, and two doors I only found by looking
+
+The Conn is for a *situation* — an approach to a berth, an orbit to make. There
+was no screen for the general case: the ship, open space, and time passing. The
+**Pilot** screen is that (`ui/pilot_view.py`, 230 lines, rail key `p`), and the
+one thing that makes it different from every other screen in the game is that
+**the clock runs while you look at it**.
+
+Measured, one ship day at the bridge:
+
+    1,440 beats of conn.TICK   day 0 -> 1        purse ₡18,000 -> ₡17,982
+    conn.elapsed 86,400 s      conn.charged 86,400 s   (equal to the second)
+    secure() afterwards        day stayed 1      (commit re-billed nothing)
+
+That last line is the whole safety argument. `core/clock.MAX_STEP` is 1 (#116),
+so a jump of N days is N jumps of one, and `sim/berthing.charge_flown` bills
+only the minutes nobody has billed yet — so billing in pieces is *exactly*
+billing once. Before #116 landed, a live screen would have quietly drifted away
+from a played one.
+
+**Wrong turn one: six cameras and no hand on the stick.** The first draft could
+look anywhere and fly nowhere. It surfaced as `KeyError('fore')` — `conn.VIEWS`
+ids are fore/aft/port/starboard/dorsal/ventral, `conn.AXES` ids are
+forward/back/left/right/up/down — so a check written to burn along a camera id
+found the missing console instead of the typo it was hunting. The screen has
+all six axes, a coast, the main drive and the throttle now, and flying it
+spends: **196 km on 2.400 t**, and `flight.ship_position` follows.
+
+**Wrong turn two: a second door for the throttle, caught only by the picture.**
+Rendered offscreen and looked at, the button read `THROTTLE: 50%` and the ship
+panel one row below it read `Throttle 100%`. The view had kept its own
+`self.throttle` and passed it to `apply` as a keyword, while
+`instruments.readout` read `conn.throttle`, which nothing had ever written. No
+value comparison would have found this — both numbers were internally
+consistent, and only side by side were they a contradiction. The throttle lives
+on the conn; `pilot.set_throttle` is its only writer.
+
+**And two of my own checks did not bite.** Eleven mutations run with `-B`; nine
+went red immediately, two walked straight through:
+
+- `set(seen) <= THROTTLE_STEPS` was **tautological** — `set_throttle` snaps to
+  the nearest rung, so cycling over `[0.37, 0.62]` still lands on the ladder.
+  It asserts every rung is *reachable* now (`==`, not `<=`).
+- Pinning `apply(throttle=1.0)` left the button, the panel and the ladder all
+  correct while every burn went out at full power — a console showing a tenth
+  and firing the lot. **Nothing checked the setting reached the burn.** It does
+  now, in reaction mass: ten burns cost **0.1450 t at 10% against 0.9050 t at
+  100%**.
+
+Both survivors are the same fault this log keeps recording: a check that reads
+the thing it claims to test. Finding them cost one mutation run.
+
+One more lesson, from Qt rather than the game: the test's `app` was a local, so
+when the builder returned, the last Python reference to the `QApplication` died
+and Qt tore down every widget it owned — "wrapped C/C++ object of type
+PilotView has been deleted", on a view built two lines earlier. The app and its
+windows are held for the life of the module.
+
+### And the full run kept dying, in a place I had not touched
+
+Three full runs, three deaths, three different suites — gunnery once, verbs
+twice — always the same traceback, always in `ui/gauges.py`:
+
+    p.drawText(10, 16, self.reading.get("title", "").upper())
+    TypeError: first argument of unbound method must have type 'QPainter'
+
+That is PyQt's wording for a painter with no C++ instance behind it. Qt says it
+plainly one line earlier: `QPainter::begin: Paint device returned engine == 0`.
+Raised inside `paintEvent`, where Qt cannot propagate an exception, it did not
+fail the run — it **ended** it, silently, at whichever window was painting.
+Every suite after that point simply never ran, and the pipeline exit code was
+`grep`'s, so it read as 0.
+
+Pristine HEAD in a worktree ran all 174 suites with no traceback; my tree died
+twice out of two. So it was mine to fix, even though `ui/gauges.py` is nothing
+to do with a Pilot screen — one more view in every window's stack is enough to
+change when a backing store is refused.
+
+**Two fixes were not enough, and the measurement said so both times.** Asking
+`p.isActive()` before painting caught the zero-size case and nothing else: the
+next full run died *inside* `_face`, three calls after the painter had just
+said it was active. The painter can go away *during* a paint, and no question
+asked beforehand covers that. So `paintEvent` took ownership of the whole span
+— begin, check, draw, catch, end.
+
+Then the run after **that** died in `ui/viewport.py` instead, on the same line
+of the same fault. Guarding one file had only moved it. That is what made it a
+class rather than a site: `ui/painting.py` is one door now (`Painted`, and
+`MISSES`), and `Instrument` and `Viewport` both go through it. Neither owns a
+painter's lifetime any more; they implement `draw` and nothing else.
+
+Four full runs to find that, at roughly 25 minutes each. Every one of them was
+needed — the fault does not reproduce in 28 suites, only in the whole 174.
+
+A guard that catches everything is the shape of thing that turns a real
+regression green, so two checks hold it from both sides: a healthy instrument
+given room to draw must record **no** miss, and an instrument whose `draw`
+raises must be recorded and must not propagate.
+
+**And my mutation harness scored the most important mutation backwards.** With
+the try/except removed, the run *crashed* rather than failing, so there was no
+`FAIL` line to grep and the script reported "SURVIVED" — the guard called
+worthless by the exact failure it prevents. A run that never reports is not a
+run that passed; the harness treats an unfinished run as red now.
+
+Suite: `test_pilot_screen`, 5 checks, registered as `pilotscreen` — **not**
+`pilot`, which was already taken by `test_pilot` and would have been silently
+dropped from `SUITES_BY_KEY`. Three `tripwire.KIN` entries gained it by
+*merging*, not by adding rows: `freeflight`, `berthing` and `engage` already
+existed as keys, and a duplicate literal key in a dict overwrites in silence.
+
 ## 2026-08-01 — SEEDFALL: the last two were never broken, and one of my guards was
 
 #116's list was two. It is nought, and not because I fixed them.

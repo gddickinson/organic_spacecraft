@@ -33,6 +33,100 @@ def _battered(seed: str):
 def run(suite: Suite) -> None:
     check = suite.check
 
+    @check("an instrument with nowhere to paint declines, rather than dying")
+    def _():
+        # **This ended a 174-suite run twice, at two different suites.**
+        # `QPainter(widget)` fails when there is no paint device to hand out —
+        # a zero-sized instrument, or a backing store the platform refused —
+        # and PyQt then reports every call on the dead painter as "first
+        # argument of unbound method must have type 'QPainter'". Raised inside
+        # `paintEvent`, where Qt cannot propagate it, it killed the process at
+        # whichever window happened to be painting: gunnery on one run, verbs
+        # on the next two. Guarding `ui/gauges` moved it to `ui/viewport`,
+        # which is what made it a class of fault rather than a site — so the
+        # guard is one door, `ui/painting.Painted`, and both go through it.
+        from .test_ui import _use_offscreen
+        _use_offscreen()
+        from PyQt6.QtWidgets import QApplication
+        from ..ui import gauges, painting
+
+        app = QApplication.instance() or QApplication([])
+        readings = telemetry.all_readings(new_game("inst-paint"))
+        reading = next(iter(readings.values()))
+        was = len(painting.MISSES)
+        made = []
+        for cls in (gauges.Dial, gauges.Stack, gauges.Scope):
+            widget = cls(reading)
+            # Nowhere to draw: no width, and never shown, so Qt has given it
+            # no backing store at all. The *height* stays at whatever
+            # `Instrument.__init__` set as a minimum — measured, 160 for a
+            # Dial and 240 for a Scope — so zero width is the whole cause.
+            widget.resize(0, 0)
+            widget.paintEvent(None)      # must not raise
+            made.append(cls.__name__)
+        app.processEvents()
+        missed = painting.MISSES[was:]
+        assert len(missed) == len(made), (
+            f"painted {made} at zero size and only {missed} declined — an "
+            f"instrument drew on a painter that never began")
+        assert all(w == 0 or h == 0 for _n, w, h, _why in missed), missed
+
+        # **And a healthy instrument must still paint.** `paintEvent` catches
+        # what a failed paint raises, which is exactly the shape of guard that
+        # can turn a real regression green — a `draw` that threw on every
+        # single frame would look identical from outside. It does not get to:
+        # given a size and a backing store, nothing is allowed to miss.
+        mark = len(painting.MISSES)
+        for cls in (gauges.Dial, gauges.Stack, gauges.Scope):
+            widget = cls(reading)
+            widget.resize(220, 240)
+            widget.grab()
+        app.processEvents()
+        clean = painting.MISSES[mark:]
+        assert not clean, f"an instrument with room to draw still missed: {clean}"
+
+        # **A paint that fails halfway must not reach Qt.** This is the case
+        # the full runs actually hit and the one no fixture can conjure — the
+        # painter's C++ instance went away three calls into `_face`, with
+        # `isActive()` having just said yes. What can be staged is the shape
+        # of it: a draw that raises where Qt cannot catch it. It is recorded
+        # and it does not propagate.
+        class Broken(gauges.Dial):
+            def draw(self, p):
+                raise RuntimeError("the painter went away")
+
+        mark = len(painting.MISSES)
+        broken = Broken(reading)
+        broken.resize(220, 240)
+        broken.grab()                      # must not raise
+        app.processEvents()
+        caught = painting.MISSES[mark:]
+        assert len(caught) == 1, f"a failed paint was not recorded: {caught}"
+        assert "went away" in caught[0][3], caught[0]
+
+        # **And the camera view goes through the same door**, because guarding
+        # the gauges alone just moved the crash into `ui/viewport`.
+        from ..sim import freeflight
+        from ..ui.viewport import Viewport
+        assert issubclass(Viewport, painting.Painted), (
+            "the viewport paints without the guard that the gauges have")
+        conn, why = freeflight.begin(new_game("inst-view"))
+        assert conn is not None, why
+        mark = len(painting.MISSES)
+        feed = Viewport(conn, "fore")
+        feed.resize(0, 0)
+        feed.paintEvent(None)              # must not raise
+        assert len(painting.MISSES) == mark + 1, (
+            "the viewport drew on a painter that never began")
+        mark = len(painting.MISSES)
+        feed.resize(320, 200)
+        feed.grab()
+        assert len(painting.MISSES) == mark, (
+            f"a viewport with room to draw missed: {painting.MISSES[mark:]}")
+
+        return (", ".join(f"{n} {w}×{h}" for n, w, h, _why in missed)
+                + " declined to paint instead of ending the run")
+
     @check("every instrument reads, on a fresh ship and a wrecked one")
     def _():
         for seed, game in (("fresh", new_game("inst-fresh")),

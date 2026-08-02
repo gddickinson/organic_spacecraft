@@ -17,6 +17,7 @@ SCREENS = (
     ("map", "✦  Sector", "1"),
     ("system", "◉  System", "2"),
     ("helm", "◐  Helm", "3"),
+    ("pilot", "▲  Pilot", "p"),
     ("port", "⌂  Port", "4"),
     ("ship", "❖  Ship", "5"),
     ("yard", "⚙  Shipyard", "6"),

@@ -31,7 +31,7 @@ from PyQt6.QtWidgets import QWidget
 from ..core.rng import RNG
 from ..data import models3d, surfaces, worlds3d
 from ..sim import conn as conn_sim
-from . import render3d, spheres, stars3d, theme
+from . import painting, render3d, spheres, stars3d, theme
 
 #: Half the field of view, in radians. A wide-ish lens: enough to keep a
 #: target in frame while manoeuvring, tight enough that motion reads.
@@ -175,7 +175,7 @@ def _detail(look: str, name: str):
                                                        span)
 
 
-class Viewport(QWidget):
+class Viewport(painting.Painted, QWidget):
     """One camera's picture, live off a `Conn`."""
 
     def __init__(self, conn, view_id: str = "fore", compact: bool = False):
@@ -193,8 +193,7 @@ class Viewport(QWidget):
                 return row
         return conn_sim.VIEWS[0]
 
-    def paintEvent(self, _event) -> None:
-        p = QPainter(self)
+    def draw(self, p: QPainter) -> None:
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         w, h = self.width(), self.height()
         p.fillRect(0, 0, w, h, QColor("#04080b"))
@@ -208,7 +207,6 @@ class Viewport(QWidget):
             self._sky(p, conn, cam, w, h)
             self._target(p, conn, cam, w, h)
         self._frame(p, label_text, w, h)
-        p.end()
 
     # ── the picture ────────────────────────────────────────────────────────
 

@@ -1692,6 +1692,37 @@ thought to ask. `apply` has its own gate call, and a sweep caught *that* one
 separately: asking it at full power left `can_burn` correct and the burn still
 refused, with nothing to show it.
 
+`ui/pilot_view.py` is the **Pilot screen**, and the one thing that makes it
+different from every other screen in the game is that **time passes while you
+look at it**. The Conn is for a situation — an approach to a berth, an orbit to
+make. This is the general case: the ship, open space, a live camera and the
+console, always reachable from the rail (`data/screens.py`, key `p`).
+
+That is only safe because the clock is honest. `core/clock.MAX_STEP` is 1, so a
+jump of N days is N jumps of one, and billing in pieces is *exactly* billing
+once. Measured: 1,440 beats of `conn.TICK` moved the chronicle from day 0 to
+day 1 and the purse from ₡18,000 to ₡17,982 in wages, with `conn.elapsed` and
+`conn.charged` equal to the second — and securing afterwards added nothing,
+because `sim/berthing.charge_flown` is the one door either way and bills only
+the minutes nobody has billed yet.
+
+**Two wrong turns, both found by looking rather than reasoning.** The first
+draft had six cameras and no hand on the stick at all: the pilot could look
+anywhere and fly nowhere. It surfaced as `KeyError('fore')` — `conn.VIEWS` ids
+are `fore/aft/port/starboard/dorsal/ventral` and `conn.AXES` ids are
+`forward/back/left/right/up/down`, and a check that burned along a camera id
+found the missing console rather than the typo it was looking for.
+
+The second was a **second door for the throttle**, and only the rendered
+picture caught it: the button read "THROTTLE: 50%" and the ship panel one row
+below it read "Throttle 100%". The view had kept its own `self.throttle` and
+passed it to `apply` as a keyword, while `instruments.readout` read
+`conn.throttle`, which nothing had written. The throttle lives on the conn and
+`pilot.set_throttle` is its only writer; the console reads it back. No value
+comparison would have found this — both numbers were internally consistent.
+The check that holds it now walks all four rungs of `pilot.THROTTLE_STEPS` and
+asserts the button and the panel say the same thing at each.
+
 `ui/conn_controls.py` is the console itself, split out of `ui/conn_window.py`
 when that went past five hundred lines along a seam already there — the window
 owns the cameras, the panel and the clock. The panel names the settings in m/s,
@@ -2320,6 +2351,14 @@ seedfall/
 │   ├── expedition_view.py  the landing zone: fogged map, party, field log
 │   ├── diplomacy_view.py   relations matrix and the overture desk
 │   ├── helm_view.py    the helm screen: burn planner, where to put in
+│   ├── painting.py    one door for painting on a widget: `Painted` owns the
+│   │                  painter's lifetime so a paint that cannot begin (or
+│   │                  dies mid-frame) is recorded in `MISSES` rather than
+│   │                  killing the process from inside `paintEvent`
+│   ├── pilot_view.py   the Pilot screen: the view out, six cameras, the six
+│   │                  axes, drive and throttle — and the only screen where
+│   │                  the clock runs while you look at it. Holds its own
+│   │                  free flight; never an approach.
 │   ├── orbit_chart.py the orrery widget — paints bodies, quays, traffic
 │   │                  and the leg you are about to fly; answers clicks.
 │   │                  One door for label placement (`_room_for`) and one

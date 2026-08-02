@@ -20,7 +20,7 @@ from PyQt6.QtGui import (QColor, QFont, QPainter, QPainterPath, QPen,
                          QRadialGradient)
 from PyQt6.QtWidgets import QSizePolicy, QWidget
 
-from . import theme
+from . import painting, theme
 
 BAND = {"good": "#54cf7c", "watch": "#e6ac6d", "bad": "#e0685f"}
 FACE = "#08120f"
@@ -31,7 +31,7 @@ def _colour(reading: dict) -> QColor:
     return QColor(BAND.get(reading.get("band", "good"), BAND["good"]))
 
 
-class Instrument(QWidget):
+class Instrument(painting.Painted, QWidget):
     """Shared frame: a dark face, a title, and a reading that can be replaced."""
 
     def __init__(self, reading: dict, height: int = 160):
@@ -45,6 +45,10 @@ class Instrument(QWidget):
         self.reading = reading
         self.update()
 
+    #: Every paint that did not happen, shared with every other painted
+    #: widget. See `ui/painting.py` — this was a class of fault, not a site.
+    misses = painting.MISSES
+
     def _face(self, p: QPainter) -> None:
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), QColor(FACE))
@@ -56,8 +60,7 @@ class Instrument(QWidget):
 class Dial(Instrument):
     """A 240° arc with a needle. Power, heat, anything with a ceiling."""
 
-    def paintEvent(self, _event) -> None:
-        p = QPainter(self)
+    def draw(self, p: QPainter) -> None:
         self._face(p)
         reading = self.reading
         tint = _colour(reading)
@@ -105,18 +108,15 @@ class Dial(Instrument):
         p.setPen(QColor(124, 150, 137, 170))
         p.drawText(QRectF(6, height - 18, width - 12, 16),
                    Qt.AlignmentFlag.AlignHCenter, reading.get("note", ""))
-        p.end()
 
 
 class Stack(Instrument):
     """One segmented bar per layer — the hull, outermost first."""
 
-    def paintEvent(self, _event) -> None:
-        p = QPainter(self)
+    def draw(self, p: QPainter) -> None:
         self._face(p)
         rows = self.reading.get("layers") or self.reading.get("rows") or []
         if not rows:
-            p.end()
             return
         top, width = 26, self.width()
         room = max(10.0, (self.height() - top - 22) / len(rows))
@@ -147,7 +147,6 @@ class Stack(Instrument):
         p.drawText(QRectF(6, self.height() - 18, width - 12, 16),
                    Qt.AlignmentFlag.AlignHCenter,
                    self.reading.get("note", ""))
-        p.end()
 
 
 class Scope(Instrument):
@@ -161,8 +160,7 @@ class Scope(Instrument):
         self.sweep = (self.sweep + by) % (2 * math.pi)
         self.update()
 
-    def paintEvent(self, _event) -> None:
-        p = QPainter(self)
+    def draw(self, p: QPainter) -> None:
         self._face(p)
         reading = self.reading
         width, height = self.width(), self.height()
@@ -230,4 +228,3 @@ class Scope(Instrument):
         p.setPen(QColor(124, 150, 137, 170))
         p.drawText(QRectF(6, height - 16, width - 12, 14),
                    Qt.AlignmentFlag.AlignHCenter, reading.get("note", ""))
-        p.end()
