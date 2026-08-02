@@ -35,6 +35,7 @@ from ..sim import instruments as panel_sim
 from ..sim import pilot as pilot_sim
 from ..sim import track as track_sim
 from . import fire_panel
+from . import pilot_panels as panels
 from .viewport import Viewport
 from .widgets import Panel, View, button, note
 
@@ -255,109 +256,71 @@ class PilotView(View):
             self.col.addWidget(note(why or "The ship cannot be flown."))
             return
 
+        # **Two columns, because one was 662 pixels too tall.** Measured on a
+        # shown window at 1360x880: the bridge came to 1,444 px in a 782 px
+        # view, so the fire control, the autopilot and the clock were all
+        # below the fold and the pilot had to scroll past the instruments to
+        # reach a trigger. The room was sideways and nobody was using it.
+        holder, left, right = panels.two_columns()
+        self.col.addWidget(holder)
+        rows = self.ranged()
+
         self.feed = Viewport(self.conn, self.camera)
-        self.col.addWidget(self.feed)
-
-        cams = [button(row[1], lambda _=False, v=row[0]: self._look(v),
-                       kind="flat") for row in conn_sim.VIEWS]
-        self.buttons(*cams)
-
-        # The hand on the stick. Laid out the way a pilot's hand sits on it,
-        # the same order `ui/conn_controls` uses — six axes, a coast, and the
-        # torch for a long burn. Every one of them goes through `burn`, which
-        # is the same pair of calls a beat of the clock makes.
-        self.buttons(*[
+        left.addWidget(self.feed)
+        # Three to a line: six across demanded 486 px and set the left
+        # column's minimum, which is 56 px more than the bridge had to give.
+        left.addWidget(panels.stack_of([
+            button(row[1], lambda _=False, v=row[0]: self._look(v), kind="flat")
+            for row in conn_sim.VIEWS], per_row=3))
+        # The hand on the stick, in the order a pilot's hand sits on it — the
+        # same order `ui/conn_controls` uses.
+        left.addWidget(panels.row_of(*[
             button(conn_sim.AXES_BY_ID[a][1], lambda _=False, x=a: self.burn(x))
-            for a in ("left", "forward", "right", "down", "back", "up")])
-        self.buttons(
+            for a in ("left", "forward", "right", "down", "back", "up")]))
+        left.addWidget(panels.row_of(
             button("Hold (coast)", lambda: self.burn(None), kind="flat"),
             button(f"Main drive: {'on' if self.use_main else 'off'}",
                    self._toggle_main, kind="flat"),
             button(f"Throttle: {self.conn.throttle:.0%}",
-                   self._cycle_throttle, kind="flat"))
+                   self._cycle_throttle, kind="flat")))
+        left.addWidget(panels.stack_of([
+            button("Stop clock" if self.running else "Run clock",
+                   self._toggle, kind="primary"),
+            button("Secure from the conn", self.secure, kind="flat"),
+            button("Take the conn on something…", self._to_conn, kind="flat")],
+            per_row=2))
+        left.addStretch(1)
 
-        board = Panel("The ship")
-        for key, value, kind in panel_sim.readout(self.conn):
-            board.add_row(key, value, kind)
-        board.add_row("Clock", "running" if self.running else "held")
-        # **What the last press did**, because three of the six thrust
-        # buttons can look dead. The main drive only pushes along the nose, so
-        # a press whose axis is not under it spends the whole tick swinging
-        # the hull instead of burning — correct, documented in `sim/attitude`,
-        # and until now completely silent. Flown through the buttons: with the
-        # drive lit, Ahead moved her and Port, Starboard and Astern each moved
-        # her nothing at all with no word said.
-        if self.last.get("turning"):
-            board.add_row("Drive", "swinging the hull round to bear — the "
-                                   "torch did not fire", "warn")
-        elif self.last.get("burned"):
-            board.add_row("Drive", "fired", "")
-        board.add_row("Autopilot", {
-            "": "off — she flies as you fly her",
-            "hold": "holding station, killing what drift there is",
-            "run": f"running for {self.mark or 'nothing'}",
-        }[self.auto])
-        aim = self.marked()
-        if aim is None:
-            board.add_row("Course", "none laid — the six axes fly her frame")
-        else:
-            board.add_row(
-                "Course",
-                f"{aim.name}, {engage_sim.range_km(self.game, self.conn, aim):,.0f}"
-                f" km, nose {free_sim.off_course(self.game, self.conn, aim):.0f}° off")
-        self.col.addWidget(board)
-
-        rows = self.ranged()
-        near = Panel("In view")
-        seen = [c for _km, c in rows][:6]
-        for km, contact in rows[:6]:
-            ok, _why = engage_sim.may_engage(self.game, self.conn, contact, km)
-            marks = "  · on course" if contact.name == self.mark else ""
-            near.add_row(contact.name,
-                         f"{km:,.0f} km"
-                         + ("  · may be engaged" if ok else "") + marks)
-        if not seen:
-            near.add(note("Nothing within reach of the cameras."))
-        self.col.addWidget(near)
-
-        # **Fly at it.** One button per thing in view, which is the whole
-        # point of the screen: what you can see, you can go to. `steer` lays
-        # the course; `conn.apply` swings the hull onto it and pays for the
-        # swing in ticks and in mass, then the main drive closes the range.
+        right.addWidget(panels.ship_board(self))
+        right.addWidget(panels.in_view_board(self, rows))
+        seen = [c for _km, c in rows][:4]
         if seen:
-            self.buttons(*[
+            # What you can see, you can go to: the whole point of the screen.
+            right.addWidget(panels.stack_of([
                 button(f"Fly at {c.name}", lambda _=False, k=c: self.fly_at(k),
-                       kind="flat")
-                for c in seen[:4]])
-
-        # **The guns.** One door, `ui/fire_panel`, shared with any other screen
-        # that grows a fire control — the board says what firing would mean at
-        # the range the flying earned, and the button prints its refusal
-        # instead of going grey.
-        self.col.addWidget(fire_panel.board(self.game, self.conn, rows))
-        guns = fire_panel.buttons(self.win, self.game, self.conn, rows)
-        if guns:
-            self.buttons(*guns)
-        flags = fire_panel.marks(self.win, self.game, rows)
-        if flags:
-            self.buttons(*flags)
-
+                       kind="flat") for c in seen]))
         aim = self.marked()
-        self.buttons(
+        right.addWidget(panels.stack_of([
             button(("Stop holding station" if self.auto == "hold"
                     else "Hold station"),
                    lambda: self.set_auto("hold"), kind="flat"),
             *([button(("Stop running for it" if self.auto == "run"
                        else f"Run for {aim.name}"),
                       lambda: self.set_auto("run"), kind="flat")]
-              if aim is not None else []))
+              if aim is not None else []),
+            *([button("Break off the course", self.break_off, kind="flat")]
+              if aim is not None else [])]))
 
-        self.buttons(
-            button("Stop clock" if self.running else "Run clock",
-                   self._toggle, kind="primary"),
-            button("Break off the course", self.break_off, kind="flat"),
-            button("Secure from the conn", self.secure, kind="flat"),
-            button("Take the conn on something…", self._to_conn, kind="flat"))
+        # **The guns.** One door, `ui/fire_panel`, shared with any screen that
+        # grows a fire control.
+        right.addWidget(fire_panel.board(self.game, self.conn, rows))
+        guns = fire_panel.buttons(self.win, self.game, self.conn, rows)
+        if guns:
+            right.addWidget(panels.stack_of(guns))
+        flags = fire_panel.marks(self.win, self.game, rows)
+        if flags:
+            right.addWidget(panels.stack_of(flags))
+        right.addStretch(1)
 
     def _look(self, view_id: str) -> None:
         self.camera = view_id

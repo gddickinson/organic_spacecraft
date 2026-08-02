@@ -1,157 +1,232 @@
-"""Bridge checks — driving the game from outside, without a window.
+"""What the bridge looks like, and what a press of it costs.
 
-The protocol is separated from the transport precisely so most of this runs
-in-process: verbs are plain functions over a `Game`, and a socket is a detail.
-One check does open a loopback connection, because the thing that broke in the
-first draft only breaks over a real one.
+Split out of `tests/test_pilot_screen.py` when that reached 534 lines and the
+ratchet said so. The other file is about *flying* — a course closing, the
+computer handing back, a day billed once. This one is about the screen: that
+it paints, that it fits the window it is shown in, that its controls say the
+same numbers the sim does, and that a press does a bounded amount of work.
 
-What broke: `survey` returns a `Lifeform` among its results, the reply was
-merged straight into the envelope, and `json.dumps` raised *inside the
-connection thread*. The socket died silently and the caller was left reading an
-empty line. A boundary has to be total — a caller on a pipe can catch neither a
-traceback nor a hang-up.
+**Everything here is measured on a window that has been `show()`n.** An
+offscreen widget that was never shown reports a scroll range of zero and
+answers every layout question "fine" — the first probe of the fold did exactly
+that and was worthless.
 """
 
 from __future__ import annotations
 
-import json
-
-from ..bridge import describe, dispatch, snapshot
-from ..bridge.protocol import VERBS, plain
-from ..bridge.server import Bridge
 from ..core.state import new_game
+from ..data.screens import SCREENS
+from ..sim import conn as conn_sim
+from ..sim import engage as engage_sim
+from ..sim import instruments as panel_sim
 from .harness import Suite
+from .test_pilot_screen import _bridge
 
 
-def run(suite: Suite) -> None:
+def run(suite: Suite) -> bool:
+    try:
+        import PyQt6  # noqa: F401
+    except ImportError as err:
+        print(f"── bridge ───\n  skipped: PyQt6 not available ({err})\n")
+        return False
+
     check = suite.check
 
-    @check("every verb answers, and every answer serialises")
+    @check("the Pilot is on the rail, and it paints with the ship in hand")
     def _():
-        game = new_game("bridge-all")
-        calls = {
-            "state": {}, "instruments": {}, "bodies": {}, "neighbours": {},
-            "market": {}, "log": {"count": 5}, "minds": {}, "situation": {},
-            "survey": {"index": 0}, "wait": {"days": 2},
-            "extract": {"index": 0, "tonnes": 5},
-            "buy": {"commodity": "ore", "tonnes": 1},
-            "sell": {"commodity": "ore", "tonnes": 1},
-            "jump": {"system_id": game.location_id},
-            "speak": {"key": "port:z", "persona": "harbourmaster",
-                      "name": "Vell"},
-            "remember": {"key": "captain:z", "kind": "trade",
-                         "text": "a cargo of ore", "name": "Z"},
-            "answer": {"index": 0},
-        }
-        missing = set(VERBS) - set(calls)
-        assert not missing, f"verbs nothing here calls: {sorted(missing)}"
-        for name, args in calls.items():
-            reply = dispatch(game, {"verb": name, "args": args})
-            assert isinstance(reply, dict) and "ok" in reply, (name, reply)
-            try:
-                json.dumps(reply)
-            except (TypeError, ValueError) as err:
-                raise AssertionError(
-                    f"{name} answered with something no pipe can carry: {err}")
-        return f"{len(calls)} verbs, every reply JSON-safe"
+        from PyQt6.QtWidgets import QPushButton
+        ids = [sid for sid, _label, _key in SCREENS]
+        assert "pilot" in ids, f"the rail offers {ids}"
+        keys = [key for _sid, _label, key in SCREENS]
+        assert len(set(keys)) == len(keys), f"two screens share a key: {keys}"
 
-    @check("the boundary never raises, whatever it is handed")
+        game, _win, view = _bridge()
+        assert view.conn is not None, "the Pilot screen opened with no conn"
+        assert view.conn.target.kind == "open", (
+            "the Pilot screen opened on a destination; it never has one")
+        view.grab()
+        labels = [b.text() for b in view.findChildren(QPushButton)]
+        for camera in ("Fore", "Aft"):
+            assert camera in labels, f"no {camera} camera: {labels}"
+        assert any("clock" in t.lower() for t in labels), labels
+        assert any("Secure" in t for t in labels), labels
+        # **Six cameras and no hand on the stick** is what the first draft
+        # was: the pilot could look anywhere and fly nowhere. Every axis
+        # `conn.AXES` offers has a button, and the drive and throttle the
+        # console has taken since it was written are reachable.
+        for _aid, axis_label, _vec in conn_sim.AXES:
+            assert axis_label in labels, f"no {axis_label!r} thrust: {labels}"
+        assert any("Main drive" in t for t in labels), labels
+        assert any("Throttle" in t for t in labels), labels
+        assert any("coast" in t.lower() for t in labels), labels
+        return (f"{len(labels)} controls: six cameras, "
+                f"{len(conn_sim.AXES)} axes, drive and throttle")
+
+
+    @check("the console and the ship panel agree about the throttle")
     def _():
-        game = new_game("bridge-junk")
-        rubbish = [
-            None, [], "state", 42,
-            {"verb": "nope"},
-            {"verb": "survey"},                       # missing argument
-            {"verb": "survey", "args": {"index": 9999}},
-            {"verb": "survey", "args": {"index": "boom"}},
-            {"verb": "buy", "args": {"commodity": "ore", "tonnes": "lots"}},
-            {"verb": "jump", "args": {"system_id": -4}},
-            {"verb": "state", "args": {"unknown": 1}},
-        ]
-        for command in rubbish:
-            reply = dispatch(game, command)
-            assert isinstance(reply, dict), (command, reply)
-            assert reply.get("ok") is not None
-            json.dumps(reply)
-        assert not game.dead, "junk commands hurt the game"
-        return f"{len(rubbish)} malformed commands, every one answered politely"
+        # **Found by rendering the screen and looking at it.** The button read
+        # "THROTTLE: 50%" and the panel one row below it read "Throttle 100%",
+        # because the view kept its own copy and passed it to `apply` as a
+        # keyword while `instruments.readout` read `conn.throttle`, which
+        # nothing had written. Same fact, two answers.
+        from PyQt6.QtWidgets import QPushButton
+        from ..sim import pilot as pilot_sim
+        _game, _win, view = _bridge()
+        seen = []
+        for _ in range(len(pilot_sim.THROTTLE_STEPS)):
+            view._cycle_throttle()
+            labels = [b.text() for b in view.findChildren(QPushButton)]
+            button_says = next(t for t in labels if t.startswith("Throttle"))
+            panel_says = next(v for k, v, _kind
+                              in panel_sim.readout(view.conn)
+                              if k == "Throttle")
+            shown = f"{view.conn.throttle:.0%}"
+            assert shown in button_says, (button_says, shown)
+            assert panel_says.startswith(shown), (
+                f"the button says {button_says!r} and the panel says "
+                f"{panel_says!r}")
+            seen.append(view.conn.throttle)
+        # **`set(seen) <= THROTTLE_STEPS` was worthless** and a mutation said
+        # so: `set_throttle` snaps to the nearest rung, so a cycle over
+        # nonsense values still lands on the ladder and the assertion cannot
+        # fail. Every rung must be *reachable*, which is what a pilot needs
+        # and what snapping cannot fake.
+        assert set(seen) == set(pilot_sim.THROTTLE_STEPS), (
+            f"cycling visits {sorted(seen)} of "
+            f"{sorted(pilot_sim.THROTTLE_STEPS)}")
 
-    @check("anything can be made safe to send")
+        # And the setting has to reach the burn. **A second mutation walked
+        # straight through this check**: pinning `apply(throttle=1.0)` left
+        # the button, the panel and the ladder all correct while every burn
+        # went out at full power — a console that shows a tenth and fires the
+        # lot. Reaction mass is the witness `sim/pilot.burn_cost` spends.
+        spent = {}
+        for rung in (min(seen), max(seen)):
+            _g, _w, fresh = _bridge()
+            pilot_sim.set_throttle(fresh.conn, rung)
+            was = fresh.conn.rcs
+            fresh.use_main = True
+            for _ in range(10):
+                fresh.burn("forward")
+            spent[rung] = was - fresh.conn.rcs
+        assert spent[min(seen)] < spent[max(seen)], (
+            f"ten burns cost {spent[min(seen)]:,.4f} t at {min(seen):.0%} and "
+            f"{spent[max(seen)]:,.4f} t at {max(seen):.0%} — the throttle the "
+            f"console shows is not the throttle that fires")
+        return ("console and panel agree at "
+                + ", ".join(f"{v:.0%}" for v in seen)
+                + f"; ten burns cost {spent[min(seen)]:,.4f} t at "
+                f"{min(seen):.0%} against {spent[max(seen)]:,.4f} t at "
+                f"{max(seen):.0%}")
+
+
+    @check("a button press rebuilds the sky a bounded number of times")
     def _():
-        # The specific failure: a sim result carrying a live object.
-        from ..sim import actions as action_sim
-        game = new_game("bridge-plain")
-        raw = action_sim.survey(game, 0)
-        objects = [v for v in raw.values()
-                   if not isinstance(v, (str, int, float, bool, type(None),
-                                         list, dict, tuple))]
-        assert objects, ("survey no longer returns an object, so this check "
-                         "is no longer testing what it was written for")
-        json.dumps(plain(raw))
-        assert plain(objects[0]) != "", "an object flattened to nothing"
+        # **The lag the pilot could feel.** Profiled, one press of Ahead took
+        # 48.7 ms and ran `world.galaxy.distance` 151,728 times: every range
+        # on the screen was measured on demand, each measurement walked
+        # `track.at` -> `traffic.in_system`, and that rebuilt the Weave from
+        # scratch — `weave.sites` is a farthest-point sample over the whole
+        # sector and is pure in the galaxy alone.
+        #
+        # A stopwatch is not a check; it measures the machine. Counting the
+        # work is. `traffic.in_system` is the rebuild, and one press must not
+        # need many of them.
+        from ..sim import traffic as traffic_sim
+        from ..sim import weave as weave_sim
+        from ..world import galaxy as galaxy_mod
+        game, _win, view = _bridge("lag")
+        view.burn("forward")                       # warm every one-off cache
 
-        class Awkward:
-            def __init__(self):
-                self.loop = self
-        json.dumps(plain({"a": Awkward(), "b": {1: {2: {3: Awkward()}}}}))
-        return f"{len(objects)} live object(s) in one survey, all made sendable"
-
-    @check("a real connection carries a whole session")
-    def _():
-        game = new_game("bridge-live")
-        bridge = Bridge(game).start()
+        # **Counting calls to `sites` proved nothing** — the memo makes it
+        # return early, so it is called just as often and costs nothing. What
+        # has to be counted is the work it used to do: `galaxy.distance`, the
+        # O(sites x systems) sweep, 151,728 of them per press before the fix.
+        real_in_system = traffic_sim.in_system
+        real_distance = galaxy_mod.distance
+        real_weave_distance = weave_sim.distance
+        tally = {"traffic": 0, "distance": 0}
         try:
-            from ..bridge.client import Client
-            where = bridge.address()
-            with Client(where["host"], where["port"], where["token"]) as line:
-                assert line.send("verbs")["ok"]
-                # The command that used to kill the socket.
-                assert line.send("survey", index=0)["ok"], "survey hung up"
-                after = line.send("state")
-                assert after["ok"], "the connection died after a survey"
-                assert line.send("wait", days=10)["to"] > after["day"]
-                seats = line.send("seat", name="second-captain",
-                                  by="agent")["seats"]
-                assert "second-captain" in seats
-                assert line.send("seat", name="second-captain",
-                                 release=True)["seats"] == {}
-                snap = line.send("snapshot")
-                assert set(snap["snapshot"]) == set(snapshot(game))
+            def counted_traffic(*a, **k):
+                tally["traffic"] += 1
+                return real_in_system(*a, **k)
 
-            refused = Client(where["host"], where["port"], "not-the-token")
-            assert not refused.send("state")["ok"], "a bad token got in"
-            refused.close()
+            def counted_distance(*a, **k):
+                tally["distance"] += 1
+                return real_distance(*a, **k)
+
+            traffic_sim.in_system = counted_traffic
+            galaxy_mod.distance = counted_distance
+            weave_sim.distance = counted_distance
+            view.burn("forward")
         finally:
-            bridge.stop()
-        return f"a full session over 127.0.0.1:{where['port']}, bad token refused"
+            traffic_sim.in_system = real_in_system
+            galaxy_mod.distance = real_distance
+            weave_sim.distance = real_weave_distance
 
-    @check("the bridge has a way in, and it stays on this machine")
+        # Measured after the fix: 13 traffic rebuilds a press, from 27, and
+        # the sector shape is never resampled at all. The bounds are loose
+        # enough to survive a new panel and tight enough that going back to
+        # measuring per widget fails.
+        assert tally["traffic"] <= 20, (
+            f"one button press rebuilt the system's traffic "
+            f"{tally['traffic']} times")
+        assert tally["distance"] < 2000, (
+            f"one button press ran galaxy.distance {tally['distance']:,} "
+            f"times; the sector shape is pure in the galaxy and is sampled "
+            f"once, not on every question about where a hull is")
+        return (f"{tally['traffic']} traffic rebuilds and "
+                f"{tally['distance']:,} galaxy distances per press "
+                f"(was 27 and 151,728)")
+
+
+    @check("the bridge fits the window it is shown in")
     def _():
-        # `serve()` is the documented entry point behind `python -m
-        # seedfall.bridge`, so something has to exercise it — and the thing
-        # worth asserting about it is where it binds.
-        from ..bridge.server import HOST, serve
-        assert HOST == "127.0.0.1", f"the default bind is {HOST}"
-        bridge = serve(new_game("bridge-cli"))
+        # **Measured on a *shown* window, because an offscreen widget that was
+        # never shown reports a scroll range of zero and every layout question
+        # answers "fine".** Shown at 1360x880 the bridge was 1,444 px tall in
+        # a 782 px view — 662 px, 46% of it, below the fold — so the fire
+        # control, the autopilot and the clock were all out of sight and the
+        # pilot scrolled past the instruments to reach a trigger.
+        #
+        # Two columns fixed the height and broke the width: a row of four
+        # "Fly at <name>" buttons wanted 660 px and a fire-control row
+        # carrying the whole of `engage.note` wanted 802, so the content came
+        # to 1,348 px inside an 891 px viewport and every reading in the
+        # right-hand column was clipped mid-number.
+        from PyQt6.QtWidgets import QApplication, QPushButton
+        game, win, view = _bridge("look")
+        app = QApplication.instance()
+        win.show()
+        for _ in range(10):
+            app.processEvents()
         try:
-            where = bridge.address()
-            assert where["host"] == "127.0.0.1", "the bridge left the machine"
-            assert where["port"] > 0
-            assert len(where["token"]) >= 16, "the token is too short to matter"
-            json.dumps(where)
-            assert not bridge.handle({"verb": "state"})["ok"], (
-                "a command with no token was served")
-        finally:
-            bridge.stop()
-        return (f"binds {where['host']} only, {len(where['token'])}-character "
-                f"token required, untokenised commands refused")
+            wide = view.widget().width()
+            room = view.viewport().width()
+            assert wide <= room, (
+                f"the bridge is {wide} px wide in a {room} px view — "
+                f"{wide - room} px of every right-hand reading is cut off")
 
-    @check("the protocol describes itself")
-    def _():
-        described = describe()
-        assert len(described) == len(VERBS)
-        for entry in described:
-            assert entry["doc"], f"{entry['verb']} is undocumented"
-            assert entry["verb"] in VERBS
-            assert "game" not in entry["args"]
-        return f"{len(described)} verbs, each with its arguments and a line"
+            fold = view.verticalScrollBar().maximum()
+            assert fold < 400, (
+                f"{fold} px of the bridge is below the fold; the guns and the "
+                f"clock are meant to be within a short scroll, not a long one")
+
+            # And the controls are actually reachable without hunting.
+            btns = view.findChildren(QPushButton)
+            here = [b for b in btns
+                    if b.visibleRegion().boundingRect().height() > 0]
+            assert len(here) >= 20, (
+                f"only {len(here)} of {len(btns)} controls are on screen")
+            assert any("Run clock" in b.text() or "Stop clock" in b.text()
+                       for b in here), "the clock is not reachable"
+            assert any(b.text().startswith("Fly at") for b in here), (
+                "nothing can be flown at without scrolling")
+        finally:
+            win.hide()
+        return (f"{wide} px in {room}, {fold} px below the fold (was 662), "
+                f"{len(here)} of {len(btns)} controls on screen")
+
+
+    return True

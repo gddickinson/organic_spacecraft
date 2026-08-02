@@ -2,6 +2,54 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: the bridge did not fit in the window
+
+Asked to keep working on the Pilot window until it works correctly, so I
+measured it rather than glanced at it. **An offscreen widget that has never
+been shown reports a scroll range of zero and answers every layout question
+"fine"** — the first probe said so and was worthless. Shown at 1360x880:
+
+    the bridge is 1,444 px tall in a 782 px view — 662 px below the fold
+
+46% of the screen was out of sight. Everything after the instrument table —
+what is in view, the fly-at buttons, the fire control, the guns, the marks,
+the autopilot, the clock — needed a scroll past the readouts to reach. A
+`View` gives one column and the screen used it for everything, stacking a
+260-px window onto a nine-row table onto four rows of buttons, while the
+window was 1360 wide and nobody was using the room sideways.
+
+**Two columns: the view and the hands on the left, the boards on the right.**
+662 px below the fold became 170.
+
+**And that broke the width, which the picture showed and the numbers named.**
+Rendered, every reading in the right-hand column was cut off mid-number —
+"0" for "0 m", "0.0 m" for "0.0 m/s". Measured: the content was **1,348 px
+wide inside an 891 px viewport**. Two culprits, each found by asking which
+widget demanded the most:
+
+    the fire-control rows, each carrying the whole of `engage.note`   802 px
+    four "Fly at <name>" buttons in a row that cannot wrap            660 px
+
+A `Panel` row does not wrap and a `QHBoxLayout` of buttons does not either.
+The fire rows are short now — "close range · 3,405 km" — with the refusal
+sentence underneath as a `note`, which does wrap; the button rows are a grid
+two wide; the six cameras are three wide, because six across wanted 486 px and
+that was the last 56.
+
+    1,348 px wide -> 891 in a 891 px viewport, overflow 0
+    662 px below the fold -> 199
+    23 of 27 controls reachable without scrolling
+
+**The check is measured on a shown window**, and bites on all four faults: one
+column again, the fly-at row unwrapped, the cameras six across, and the whole
+sentence back in a fire row.
+
+Re-flown through its own buttons afterwards, everything still works. The
+flight harness still reports three "dead" thrust buttons, and it is wrong
+rather than the screen: with the torch lit an off-axis press spends its tick
+turning, which the ship panel now says out loud. The harness reads positions
+and not `view.last`.
+
 ## 2026-08-02 — SEEDFALL: the law of telepresence gets its own file
 
 #138, third debt paid. `sim/robots.py` was 616 with four banners of its own,

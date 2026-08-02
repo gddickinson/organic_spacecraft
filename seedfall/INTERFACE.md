@@ -2620,6 +2620,9 @@ seedfall/
 │   │                  painter's lifetime so a paint that cannot begin (or
 │   │                  dies mid-frame) is recorded in `MISSES` rather than
 │   │                  killing the process from inside `paintEvent`
+│   ├── pilot_panels.py the bridge's two columns and the boards in the right
+│   │                  one. The screen was 1,444 px tall in a 782 px view
+│   │                  until it was measured on a *shown* window
 │   ├── pilot_view.py   the Pilot screen: the view out, six cameras, the six
 │   │                  axes, a course you can lay on anything in view, and
 │   │                  drive and throttle — the only screen where

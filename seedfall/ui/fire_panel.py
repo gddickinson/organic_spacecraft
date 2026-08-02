@@ -28,6 +28,7 @@ answer those three.
 
 from __future__ import annotations
 
+from ..sim import combat as combat_sim
 from ..sim import engage as engage_sim
 from ..sim import hostiles as hostiles_sim
 from .widgets import Panel, button, note
@@ -87,15 +88,29 @@ def board(game, conn, rows) -> Panel:
                f"guns will reach." if beyond else
                " There is nothing out there to open fire on.")))
         return panel
+    # **Short in the row, long underneath.** Measured on a shown window: a row
+    # carrying the whole of `engage.note` — "Opening fire would begin at
+    # medium range — 5,091 km off Held Breath." — forced this panel to a
+    # minimum width of **802 px**, which dragged the bridge's content to
+    # 1,348 px inside an 891 px viewport and clipped every reading in the
+    # right-hand column. A `Panel` row does not wrap; a `note` does.
     km_of = {id(c): km for km, c in rows}
     for contact in seen:
         km = km_of.get(id(contact))
-        ok, _why = engage_sim.may_engage(game, conn, contact, km)
+        if km is None:
+            km = engage_sim.range_km(game, conn, contact)
+        ok, why = engage_sim.may_engage(game, conn, contact, km)
         flag = " ✕ marked" if hostiles_sim.is_marked(
             game, getattr(contact, "hull_id", "")) else ""
-        panel.add_row(contact.name + flag,
-                      engage_sim.note(game, conn, contact, km),
+        if ok:
+            band = combat_sim.BANDS[engage_sim.band_for(game, conn, contact, km)]
+            said = f"{band.lower()} range · {km:,.0f} km"
+        else:
+            said = f"{km:,.0f} km"
+        panel.add_row(contact.name + flag, said,
                       "warn" if not ok or flag else "")
+        if not ok:
+            panel.add(note(why))
     if beyond:
         panel.add(note(f"{beyond} more hull(s) in the system, all beyond the "
                        f"{engage_sim.reach_km():,.0f} km the guns reach."))
