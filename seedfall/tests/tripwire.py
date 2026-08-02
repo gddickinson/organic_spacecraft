@@ -76,7 +76,7 @@ SLOW = {
     "lopsided", "manual", "mining", "notes",
     "officials", "options", "orbits", "orders",
     "orrery", "parley", "picture", "pilot",
-    "pilotscreen", "firecontrol", "bridge2",
+    "pilotscreen", "firecontrol", "bridge2", "sights",
     "plans", "play", "politics", "postings",
     "programmes", "provisional", "public", "reachable",
     "readiness", "research", "resume", "reticle",

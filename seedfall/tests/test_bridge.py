@@ -21,6 +21,7 @@ from ..sim import engage as engage_sim
 from ..sim import instruments as panel_sim
 from .harness import Suite
 from .test_pilot_screen import _bridge
+from .test_sights import _Blind
 
 
 def run(suite: Suite) -> bool:
@@ -31,21 +32,6 @@ def run(suite: Suite) -> bool:
         return False
 
     check = suite.check
-
-    class _Blind:
-        """A painter that records nothing: what is under test is the count."""
-
-        def setPen(self, *a): pass
-        def setBrush(self, *a): pass
-        def setFont(self, *a): pass
-        def drawEllipse(self, *a): pass
-        def drawLine(self, *a): pass
-        def drawText(self, *a): pass
-
-        def fontMetrics(self):
-            class M:
-                def horizontalAdvance(self, _t): return 40
-            return M()
 
     @check("the quays and hulls out there are named, as the conn names its own")
     def _():
@@ -231,42 +217,6 @@ def run(suite: Suite) -> bool:
         finally:
             win.hide()
         return f"{target.name} ringed, and the ring goes when the course does"
-
-    @check("a mark behind the camera is not drawn in front of it")
-    def _():
-        # `project` returns None for anything at or behind the lens, and the
-        # ring must respect that or a contact astern would be painted over
-        # the stars ahead. Asked directly, because a picture cannot easily
-        # prove the *absence* of a ring in the right place.
-        from ..ui import viewport_mark
-        from ..ui.viewport_math import project
-
-        cam = ((0.0, 1.0, 0.0), (1.0, 0.0, 0.0), (0.0, 0.0, 1.0))
-        drawn = []
-
-        class Fake:
-            def setPen(self, *a): pass
-            def setBrush(self, *a): pass
-            def setFont(self, *a): pass
-            def drawEllipse(self, *a): drawn.append("ring")
-            def drawLine(self, *a): pass
-            def drawText(self, *a): drawn.append("name")
-            def fontMetrics(self):
-                class M:
-                    def horizontalAdvance(self, _t): return 60
-                return M()
-
-        assert viewport_mark.draw(Fake(), ((0.0, 5.0, 0.0), "ahead"),
-                                  project, cam, 400, 300) is True
-        assert "ring" in drawn and "name" in drawn, drawn
-        drawn.clear()
-        assert viewport_mark.draw(Fake(), ((0.0, -5.0, 0.0), "astern"),
-                                  project, cam, 400, 300) is False
-        assert not drawn, "a mark behind the camera was drawn anyway"
-        assert viewport_mark.draw(Fake(), None, project, cam, 400, 300) is False
-        assert viewport_mark.draw(Fake(), ((0.0, 0.0, 0.0), "here"),
-                                  project, cam, 400, 300) is False
-        return "ahead is ringed; astern, nothing, and a zero bearing are not"
 
     @check("the Pilot is on the rail, and it paints with the ship in hand")
     def _():

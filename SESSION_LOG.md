@@ -2,6 +2,47 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: four names on one pixel, and labels drawn off the edge
+
+#145 continued. Rendering the newly-named sights and counting them found two
+faults that the eye had only hinted at.
+
+**Four hulls projected to exactly the same pixel.** Measured across the six
+cameras: Second Signature, Margin Call, Long Consent and Quiet Increment came
+out at `dx=0, dy=0` in the fore view — they are hundreds of millions of
+kilometres away in almost the same bearing, so four names printed on one spot.
+Nothing is lost by dropping three of them: the "In view" board lists every
+contact with its range. `sights` arrives nearest first, so the one kept is
+always the nearer.
+
+**And the count was lying.** After that fix the fore camera reported *one*
+sight drawn and the picture showed none. `project` returns a point for
+anything with a positive component along the view axis, so a contact eighty
+degrees off the nose comes back at x=2,000 in a 464-pixel window — drawn past
+the edge of the pixmap and counted as drawn. `_screen` bounds it to the frame
+now, and the honest total is **3 of 6 sights landing in any camera**, with the
+aft view reading "Fleet Hub" and "Patient Ledger" side by side.
+
+**A bigger defect turned up and was deliberately not fixed.** Wiring the same
+sights into the Conn window needs a bearing that is right in an approach
+frame, and `freeflight.where` is not. Constructed: stand off 10,164 km from a
+quay, secure, take the conn on it —
+
+    conn.range_km       12.0 km      ← the conn's own answer
+    freeflight.where    10,152.4 km  ← what `engage.range_km` would use
+
+`conn.pos` is an offset from the frame's origin, and the origin is where she
+let go only in a free flight; in an approach it is the target. It reads
+correct on a fresh game only because the ship is moored *at* the quay's body.
+I began the fix, found that `conn.target` is a `Target` and not a `Contact` so
+`track.at` will not take it, and that doing it properly needs a position for
+every target kind on a hot path — reverted, and filed as #146 with the
+measurement. Half a one-door fix is worse than a clear boundary.
+
+Four mutations red. Two checks moved to `tests/test_sights.py` when
+`test_bridge` hit 529 lines, along a real seam: the bridge is the screen, the
+sights are the drawing rules, and the rules need no window shown at all.
+
 ## 2026-08-02 — SEEDFALL: two player reports, one real and one not
 
 Both measured before touching anything, and they came out differently.

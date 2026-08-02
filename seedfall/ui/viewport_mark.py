@@ -28,6 +28,17 @@ from . import theme
 RING = 13.0
 TICK = 6.0
 
+#: How far outside the frame a sight may still be worth drawing, in pixels.
+#: A little slack, so a marker on the very edge is not lost to rounding.
+EDGE = 8.0
+
+#: How close two sights may be drawn before the further one is dropped.
+#:
+#: A label is about seven pixels tall and a name runs to sixty or more, so a
+#: pair inside this box would overprint each other rather than read as two
+#: things.
+CLEAR = 46.0
+
 
 def draw_sights(p, sights, project, cam, w: int, h: int) -> int:
     """Name the quays and hulls out there. Returns how many were drawn.
@@ -47,12 +58,25 @@ def draw_sights(p, sights, project, cam, w: int, h: int) -> int:
     Quays and hulls are named; worlds are not, because `_sky` already draws
     those as lit discs and nobody loses a planet.
     """
+    # **Nearest first, and nothing drawn on top of anything.** Measured on one
+    # scene: four hulls — Second Signature, Margin Call, Long Consent, Quiet
+    # Increment — projected to *exactly the same pixel*, dx=0 dy=0, because
+    # they are hundreds of millions of kilometres off in almost the same
+    # bearing. Four labels stacked on one spot is worse than three of them
+    # missing, and nothing is lost: the "In view" board lists every one with
+    # its range. `sights` arrives nearest first, so the one that is skipped is
+    # always the further away.
+    placed: list = []
     drawn = 0
     for vec, name, near in sights:
         at = _screen(vec, project, cam, w, h)
         if at is None:
             continue
         x, y = at
+        if any(abs(x - px) < CLEAR and abs(y - py) < CLEAR
+               for px, py in placed):
+            continue
+        placed.append((x, y))
         tint = QColor(theme.tint("lumen" if near else "steel"))
         p.setPen(QPen(tint, 1.0))
         p.setBrush(Qt.BrushStyle.NoBrush)
@@ -73,7 +97,17 @@ def _screen(vec, project, cam, w: int, h: int):
     if length <= 1e-9:
         return None
     at = project([c / length for c in vec], cam, w, h)
-    return None if at is None else (at[0], at[1])
+    if at is None:
+        return None             # behind the lens
+    # **In the picture, not merely in front of the camera.** `project` returns
+    # a point for anything with a positive component along the view axis, so a
+    # contact eighty degrees off the nose comes back at x=2,000 in a 464-pixel
+    # window — drawn off the edge of the pixmap and counted as drawn.
+    # Measured: the fore camera reported one sight and showed none.
+    x, y = at[0], at[1]
+    if not (-EDGE <= x <= w + EDGE and -EDGE <= y <= h + EDGE):
+        return None
+    return (x, y)
 
 
 def draw(p, mark, project, cam, w: int, h: int) -> bool:

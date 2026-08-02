@@ -1893,6 +1893,15 @@ a word leaves the pilot wondering. `freeflight.ALONGSIDE_KM` is 50, well inside
 `engage.reach_km` of 10,000, so running something down arrives with the guns
 able to speak.
 
+**One name to a spot, and only inside the frame.** Measured: four hulls
+projected to `dx=0, dy=0` in one camera — hundreds of millions of kilometres
+off in nearly the same bearing — so four labels printed on a single pixel.
+Nearest wins and the rest are dropped, which loses nothing because the "In
+view" board lists them all with ranges. And `project` returns a point for
+anything merely *ahead*, so a contact eighty degrees off the nose came back at
+x=2,000 in a 464-pixel window and was counted as drawn; `viewport_mark._screen`
+bounds it to the frame.
+
 **The window names what is out there.** A player reported that the Conn shows
 the Fleet Hub and the Pilot screen does not, and they were right: `_target`
 gives `conn.target` its true angular size, a free flight has no target, so the
