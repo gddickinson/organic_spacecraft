@@ -204,11 +204,18 @@ def in_system(game, system=None) -> list:
         phase = ((game.day / LEG_DAYS) + offset) % 1.0
         along = phase * 2 if phase < 0.5 else (1 - phase) * 2
 
+        # **The errand's answer, or the captain's.** `sim/hostiles` keeps the
+        # hulls the captain has marked; the two meet here and nowhere else, so
+        # the cross on the orrery, the readiness board, the mesh count and
+        # `hostiles()` all follow without knowing a mark exists.
+        from . import hostiles as hostiles_sim
+        hull_id = f"{system.id}:{slot}"
         out.append(Hull(
-            id=f"{system.id}:{slot}", system_id=system.id,
+            id=hull_id, system_id=system.id,
             name=name, faction=faction,
             errand=errand, from_body=here, to_body=there,
-            along=along, hostile=ERRANDS[errand][2]))
+            along=along,
+            hostile=ERRANDS[errand][2] or hostiles_sim.is_marked(game, hull_id)))
     return out
 
 

@@ -77,6 +77,41 @@ def run(suite: Suite) -> bool:
         return (f"{len(offered)} of {len(every)} hulls offered a gun; "
                 f"{len(far)} beyond {reach:,.0f} km refused")
 
+    @check("the pilot can mark a hull an enemy, and unmark it")
+    def _():
+        # The last piece of the original request: "set targets as enemies to
+        # be targeted". The button is on the shared fire control, so any
+        # screen that grows one gets it.
+        from PyQt6.QtWidgets import QPushButton
+        from ..sim import hostiles as hostiles_sim
+        from ..ui import fire_panel
+        game, win, view = _bridge("hostile")
+
+        hull = fire_panel.targets(view.ranged())[0]
+        labels = [b.text() for b in view.findChildren(QPushButton)]
+        assert f"Mark {hull.name} hostile" in labels, labels
+        assert not any("Clear the mark" in t for t in labels), labels
+
+        fire_panel._flip(win, game, hull)
+        assert hostiles_sim.is_marked(game, hull.hull_id)
+        labels = [b.text() for b in view.findChildren(QPushButton)]
+        assert f"Clear the mark on {hull.name}" in labels, (
+            "the button still offers to mark a hull already marked")
+        # The board says so too, in the row rather than only in the button.
+        rows = view.ranged()
+        panel = fire_panel.board(game, view.conn, rows)
+        painted = panel.grab()
+        assert painted.width() > 0
+        # And the screen wrote it down, because the pilot pressed something.
+        assert any("marked an enemy" in str(r) for r in game.log[-3:]), (
+            "marking said nothing in the log")
+
+        fire_panel._flip(win, game, hull)
+        assert not hostiles_sim.is_marked(game, hull.hull_id)
+        labels = [b.text() for b in view.findChildren(QPushButton)]
+        assert f"Mark {hull.name} hostile" in labels, labels
+        return f"{hull.name} marked from the bridge, and unmarked"
+
     @check("a refusal is printed with its reason, never greyed away")
     def _():
         from ..ui import fire_panel

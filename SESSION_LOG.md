@@ -2,6 +2,58 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: the captain gets his own enemies, and my harness lied
+
+#143, and the last unbuilt piece of the original Pilot request — "set targets
+as enemies to be targeted".
+
+**Hostility was derived and only derived.** `sim/traffic` builds every hull
+with `hostile=ERRANDS[errand][2]` — a raider is hostile, a freighter is not —
+and `sim/track` copies that onto the `Contact` a screen draws. The game had an
+opinion about who your enemies were and the captain had none.
+
+**Measured before building: a mark is worth something.** `hostile` is read by
+`traffic.hostiles`, `present_factions` (a hostile hull's flag stops counting as
+present for encounter rolls), the readiness board (hostiles sort to the top),
+`ui/orbit_chart` (a warn-tinted cross with no label), `traffic_panel` and
+`mesh_panel`. So one stored fact lights up six readers.
+
+**It could not live on the contact.** `Contact` and `Hull` are both rebuilt from
+nothing on every call — that is what makes the Kestrel you hailed yesterday the
+same Kestrel today — so `hostile = True` would last until the next redraw.
+`sim/hostiles.Grudges` is on the chronicle and registered with `core/save`.
+
+**The two answers meet in exactly one place**, `traffic.in_system`, where
+`hostile` is computed: `ERRANDS[errand][2] or hostiles.is_marked(...)`. Flown,
+one mark and every reader follows — `tint` goes to warn, `traffic.hostiles`
+names her, the readiness board puts her top — without any of them knowing the
+module exists. Saved and reloaded, she is still marked; a chronicle with no
+such state opens clean.
+
+**Marking costs nothing and tells nobody**, and that is checked: no standing
+moves, no credits, no time, and `sim/hostiles` writes nothing to the log —
+the screen that pressed the button says so, because a sim door that also
+narrates is two doors. `allegiance.price_attack` is what a *denunciation*
+spends.
+
+### And the mutation harness reported seven survivors that were not
+
+Every one of the seven mutations came back `*** SURVIVED ***`. They had all
+applied; the harness was running **only the `tripwire` suite**, because the
+suite name sat inside a multi-line call and my edit to it had silently matched
+nothing. A check that passes without checking — the exact fault I keep finding
+in the game — in the tool I use to prove checks bite.
+
+The suite list is a named constant at the top now, and the runner raises if the
+child prints nothing at all. Re-run properly: seven mutations, seven red, and
+one of them — dropping the errand from the expression — also killed a
+*pre-existing* traffic check, which is the evidence that the derived answer
+still carries its own weight.
+
+**Left undone deliberately**: opening fire on a faction's hull costs nothing
+with its friends. `allegiance.price_attack` exists and only `diplomacy` spends
+it. Filed rather than folded in.
+
 ## 2026-08-02 — SEEDFALL: measuring the guards one constant at a time
 
 #134, its own named next step: `exchequer` and `ventures` name `politics` —

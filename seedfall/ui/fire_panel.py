@@ -29,6 +29,7 @@ answer those three.
 from __future__ import annotations
 
 from ..sim import engage as engage_sim
+from ..sim import hostiles as hostiles_sim
 from .widgets import Panel, button, note
 
 
@@ -90,9 +91,11 @@ def board(game, conn, rows) -> Panel:
     for contact in seen:
         km = km_of.get(id(contact))
         ok, _why = engage_sim.may_engage(game, conn, contact, km)
-        panel.add_row(contact.name,
+        flag = " ✕ marked" if hostiles_sim.is_marked(
+            game, getattr(contact, "hull_id", "")) else ""
+        panel.add_row(contact.name + flag,
                       engage_sim.note(game, conn, contact, km),
-                      "warn" if not ok else "")
+                      "warn" if not ok or flag else "")
     if beyond:
         panel.add(note(f"{beyond} more hull(s) in the system, all beyond the "
                        f"{engage_sim.reach_km():,.0f} km the guns reach."))
@@ -105,6 +108,39 @@ def buttons(win, game, conn, rows) -> list:
                    lambda _=False, k=c: open_fire(win, game, conn, k),
                    kind="flat")
             for c in targets(rows, limit=4)]
+
+
+def marks(win, game, rows, after=None) -> list:
+    """A mark to set or take off, per hull in range.
+
+    Marking is free and tells nobody — see `sim/hostiles`. What it buys is
+    that every chart and board in the sector reads her as an enemy, because
+    `sim/traffic` is where the captain's mark and the errand's answer meet.
+    """
+    out = []
+    for contact in targets(rows, limit=4):
+        hull_id = getattr(contact, "hull_id", "")
+        on = hostiles_sim.is_marked(game, hull_id)
+        out.append(button(
+            (f"Clear the mark on {contact.name}" if on
+             else f"Mark {contact.name} hostile"),
+            lambda _=False, k=contact: _flip(win, game, k, after),
+            kind="flat"))
+    return out
+
+
+def _flip(win, game, contact, after=None) -> None:
+    hull_id = getattr(contact, "hull_id", "")
+    if hostiles_sim.is_marked(game, hull_id):
+        hostiles_sim.clear(game, hull_id)
+        game.add_log(f"The mark is off {contact.name}.", "")
+    else:
+        hostiles_sim.mark(game, hull_id)
+        game.add_log(f"{contact.name} is marked an enemy. It costs nothing "
+                     f"and tells nobody.", "warn")
+    if after is not None:
+        after()
+    win.refresh()
 
 
 def open_fire(win, game, conn, contact) -> bool:

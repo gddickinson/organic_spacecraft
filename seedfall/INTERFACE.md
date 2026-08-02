@@ -2423,6 +2423,10 @@ seedfall/
 │   ├── conn.py         the last ten kilometres: a local frame, thrusters and
 │   │                   the main drive, and what a contact costs. The pilot's
 │   │                   side — the console and what a burn is allowed to do
+│   ├── hostiles.py     the hulls the captain has called enemies. Stored,
+│   │                  because a Contact is rebuilt every call; read in one
+│   │                  place, `traffic.in_system`, where the errand's answer
+│   │                  and the captain's mark meet
 │   ├── tug.py          the boats: whether a structure keeps them, whether they
 │   │                  have a line on you, and what a tow costs (nothing).
 │   │                  The other side of clearance — what a quay does for a

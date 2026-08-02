@@ -200,6 +200,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("tripwire", "test_tripwire", "the sweep itself"),
     SuiteSpec("length", "test_length", "file length"),
     SuiteSpec("firecontrol", "test_firecontrol", "fire control", True),
+    SuiteSpec("hostiles", "test_hostiles", "the captain's enemies"),
 ]
 
 SUITES_BY_KEY = {s.key: s for s in SUITES}

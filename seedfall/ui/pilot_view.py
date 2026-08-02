@@ -322,6 +322,9 @@ class PilotView(View):
         guns = fire_panel.buttons(self.win, self.game, self.conn, rows)
         if guns:
             self.buttons(*guns)
+        flags = fire_panel.marks(self.win, self.game, rows)
+        if flags:
+            self.buttons(*flags)
 
         aim = self.marked()
         self.buttons(

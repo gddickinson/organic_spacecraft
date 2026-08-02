@@ -165,6 +165,8 @@ class Game:
     #: the gates *are* is derived from the galaxy's seed, like anchorages.
     weave: object | None = None
     bloom_state: object | None = None
+    #: Hulls the captain has marked as enemies. See `sim/hostiles`.
+    hostiles_state: object | None = None
     bloom_clock: float = 0.0
     bloom_total: float = 0.0
     victory: str | None = None
