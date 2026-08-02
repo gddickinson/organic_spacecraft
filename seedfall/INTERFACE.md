@@ -137,6 +137,26 @@ key in silence. One assertion from the deleted pair was **not** a duplicate and
 only mutation found it: a ghost `KIN` entry, a row naming a module that does
 not exist, survived the deletion. It is folded into harness_guard's check now.
 
+**`tests/sweepkit.py` is how to find a constant and how to change one**, split
+out of `tripwire.py` at exactly five hundred lines. It is a leaf — it reads
+nothing from the sweep and knows nothing about suites — so a one-off tool
+hunting a single constant's guard can use it instead of reimplementing
+`rewrite` by hand, which is one transcription error away from a mutation that
+never restores.
+
+**The sweep itself was dead at HEAD and nobody knew**, because `main` had no
+check: a local `noticed = False` shadowed the module-level `noticed()` for the
+whole function including its closure, so the first constant tried called
+`False(suites)`. #134 had been waiting on a tool that could not start. It runs
+now — `tripwire tug` reports 5 constants, 0 unprotected — and `main` is
+exercised by a check with the suites stubbed out, so the loop and the restore
+are held even though running the real thing takes ten hours.
+
+**And the sweep restores from its own snapshot, not from `rewrite`'s word.**
+Found by breaking `rewrite` on purpose to prove a check bit: the undo came from
+the same call, so breaking the rewriter broke the undo, and `data/gates.py` was
+left on disk holding `TOLL_REFUSED_BELOW = 0`.
+
 **What `tests/test_tripwire.py` is actually for.** Not the table's shape —
 harness_guard owns that — but the *measured* half: which suite has been watched
 to go red when a given constant moves. A wrong fast path does not fail; it

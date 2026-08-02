@@ -2,6 +2,60 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: the seam was easy; the sweep behind it was dead
+
+#138. `tests/tripwire.py` sat at 500 exactly — the next line anybody added to
+it would have failed the ratchet — and the seam was measured before anything
+moved: `SKIP`, `ROOT`, `constants`, `variants`, `rewrite` are lines 105..175,
+**contiguous, containing nothing else, and reading nothing from the rest of
+the file**. They are now `tests/sweepkit.py`: how to find a tuning constant and
+how to change one on disk, knowing nothing about suites. `tripwire.py` is 428.
+
+The alternative seam — the suite table, `SLOW`/`SUITES`/`KIN`/`LIMIT`, 153
+lines — is the bigger cut and also needs nothing from the rest, but it is *not*
+contiguous: five blocks with the mutation machinery interleaved. Contiguity
+won.
+
+### Then I ran the tool I had just split, and it died
+
+    TypeError: 'bool' object is not callable
+
+`main` assigns `noticed = False`, which shadows the module-level `noticed()`
+for the whole function **including its closure**, so the first constant it
+tried called `False(suites)`. Checked against HEAD by stashing: **pre-existing,
+and dead at HEAD.** #134 — re-sweep all 436 constants — has been waiting on a
+tool that could not start. `main` had no check of any kind, which is exactly
+how it stayed broken. Renamed the local to `caught`; the sweep runs:
+
+    python3 -m seedfall.tests.tripwire tug
+    5 constants, 0 unprotected — control, clearance
+
+which is also the first independent confirmation that last cycle's `tug` fast
+path does its job.
+
+### And proving a check bites left real damage on disk
+
+Mutating `rewrite` so it does not restore made my new round-trip check go red,
+correctly — and left `data/gates.py` holding `TOLL_REFUSED_BELOW = 0` and
+`sim/tug.py` holding zeroed constants, because **both my check's cleanup and
+the sweep's own restore took their undo from `rewrite`'s return value**. Break
+the rewriter and you break the undo with it. A check that cleans up through
+the thing it is testing has no cleanup.
+
+Both now snapshot the text themselves and restore from that. Re-run, the same
+mutation goes red and the tree stays clean — which is the difference.
+
+One mutation **survives and should**: swapping the restore back to `rewrite`'s
+word is invisible while `rewrite` works, because the two are then equal. It is
+defence against a broken rewriter, and no check can prove defence-in-depth
+without first breaking the thing it defends against. Said here rather than
+dressed up in a contrived assertion.
+
+Five mutations red: the shadowing local, no restore at all, negatives made
+invisible again, `rewrite` not restoring, `rewrite` not changing anything.
+
+Twelve debts still; this split was of a file that was never on the list.
+
 ## 2026-08-02 — SEEDFALL: I had built two of everything, and measuring said so
 
 #138. I opened this cycle to split `tests/tripwire.py`, which sits at 500

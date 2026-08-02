@@ -31,7 +31,6 @@ It reports only what survives, because that is the list worth acting on.
 
 from __future__ import annotations
 
-import ast
 import os
 import pathlib
 import subprocess
@@ -100,79 +99,10 @@ def _suites() -> list:
 
 SUITES = _suites()
 
-#: Constants that are deliberately structural rather than tuning — changing
-#: them is a different kind of edit and the sweep only adds noise.
-SKIP = {"MASK", "SAVE_VERSION", "KEEP", "MAX_BAND", "ARENA"}
-
-ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
-
-
-def constants(only: str = "") -> list:
-    """Every module-level numeric constant, as (path, name, value)."""
-    out = []
-    for folder in ("data", "sim", "core"):
-        for path in sorted((ROOT / "seedfall" / folder).glob("*.py")):
-            if only and only not in path.stem:
-                continue
-            tree = ast.parse(path.read_text())
-            for node in tree.body:
-                if not isinstance(node, ast.Assign) or len(node.targets) != 1:
-                    continue
-                target = node.targets[0]
-                if not isinstance(target, ast.Name) or not target.id.isupper():
-                    continue
-                if target.id in SKIP:
-                    continue
-                value = node.value
-                # **A negative literal is not an `ast.Constant`.** `-60.0`
-                # parses as `UnaryOp(op=USub, operand=Constant(60.0))`, so for
-                # as long as this matched only `ast.Constant` every negative
-                # constant in the codebase was skipped in silence. Measured
-                # when it was found: 422 swept, **14 invisible**, among them
-                # `clearance.WELCOME_AT` (whether a quay opens a hatch to
-                # you), `grudge.COLD_SHOULDER` and `allegiance.IMPLACABLE`
-                # (whether a power will deal with you at all) and
-                # `war.WAR_AT` (whether two powers are fighting). Task #60 is
-                # titled "all 153 tuning constants measured, none
-                # unprotected"; that was true only of the ones this could see.
-                sign = 1
-                if isinstance(value, ast.UnaryOp) and \
-                        isinstance(value.op, ast.USub):
-                    sign, value = -1, value.operand
-                if isinstance(value, ast.Constant) and \
-                        isinstance(value.value, (int, float)) and \
-                        not isinstance(value.value, bool):
-                    out.append((path, target.id, sign * value.value))
-    return out
-
-
-def variants(value):
-    """Degenerate values worth trying, most disruptive first."""
-    tries = []
-    if value != 0:
-        tries.append(0 if isinstance(value, int) else 0.0)
-    tries.append(value * 2 if value else 1)
-    if value:
-        tries.append(value / 2 if isinstance(value, float) else max(1, value // 2))
-    return tries
-
-
-def rewrite(path: pathlib.Path, name: str, new) -> str:
-    """Set a constant, returning the original text for restoring."""
-    original = path.read_text()
-    out, done = [], False
-    for line in original.splitlines(keepends=True):
-        stripped = line.lstrip()
-        if not done and stripped.startswith(f"{name} ") and "=" in line:
-            indent = line[:len(line) - len(stripped)]
-            out.append(f"{indent}{name} = {new!r}\n")
-            done = True
-        else:
-            out.append(line)
-    if not done:
-        return ""
-    path.write_text("".join(out))
-    return original
+# **How to find a constant and how to change it lives in `sweepkit`**, split
+# out when this file hit five hundred lines exactly. This file is the other
+# half: which suites speak for which module, and what a sweep concluded.
+from .sweepkit import ROOT, constants, rewrite, variants  # noqa: E402
 
 
 #: A clean run of the subset takes about ten seconds. Sixty is generous, and
@@ -437,14 +367,27 @@ def main(argv: list) -> int:
     survived, distant = [], []
     for index, (path, name, value) in enumerate(found, 1):
         print(f".. [{index:3d}/{len(found)}] {path.stem}.{name}", flush=True)
-        noticed = False
+        # **Not `noticed`.** A local of that name shadows the module-level
+        # `noticed()` for the whole of `main`, including the closure below —
+        # so `try_value` called `False(suites)` and the sweep died on its
+        # first constant with "'bool' object is not callable". It had been
+        # dead at HEAD, which is why #134's re-run never started.
+        caught = False
 
         def try_value(candidate, suites) -> bool:
             """Set the constant, run those suites, always put it back."""
+            # **Snapshot first, and restore from the snapshot.** The undo
+            # used to be `rewrite`'s own return value, which means the sweep
+            # cleaned up through the very thing it would be blamed for: break
+            # `rewrite` and you break the restore with it, and the run leaves
+            # mutated constants sitting on disk. Found by mutating `rewrite`
+            # on purpose and watching `data/gates.py` come out of it holding
+            # `TOLL_REFUSED_BELOW = 0`.
+            before = path.read_text()
             original = rewrite(path, name, candidate)
             if not original:
                 return False
-            holding[str(path)] = original
+            holding[str(path)] = before
             try:
                 # Through `noticed`, the one door for "did anything object".
                 # This carried its own copy of the try/except, and no check
@@ -452,7 +395,7 @@ def main(argv: list) -> int:
                 # loud notice" here left the whole suite green.
                 return noticed(suites)
             finally:
-                path.write_text(original)
+                path.write_text(before)
                 holding.pop(str(path), None)
 
         # Stage one: every variant against the constant's own neighbourhood.
@@ -462,22 +405,22 @@ def main(argv: list) -> int:
         if near:
             for candidate in variants(value):
                 if try_value(candidate, near):
-                    noticed, caught_by = True, ", ".join(near)
+                    caught, caught_by = True, ", ".join(near)
                     break
 
         # Stage two, only for survivors: the wide set, and only the single
         # most disruptive value. Thirty-six seconds is worth paying once to
         # confirm a finding; it is not worth paying three times to reconfirm.
-        if not noticed:
-            noticed = try_value(variants(value)[0], SUITES)
-            if noticed:
+        if not caught:
+            caught = try_value(variants(value)[0], SUITES)
+            if caught:
                 caught_by = "the wide set only"
 
-        flag = "  " if noticed else "??"
+        flag = "  " if caught else "??"
         print(f"{flag} [{index:3d}/{len(found)}] {path.stem}.{name} = {value!r}"
-              + (f"   — {caught_by}" if noticed else "   — nothing noticed"),
+              + (f"   — {caught_by}" if caught else "   — nothing noticed"),
               flush=True)
-        if not noticed:
+        if not caught:
             survived.append((path.stem, name, value))
         elif not near or caught_by == "the wide set only":
             # Protected, but by nothing that names its subject. Worth knowing:

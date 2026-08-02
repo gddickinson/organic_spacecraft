@@ -100,7 +100,9 @@ def run(suite: Suite) -> None:
         # it has to be a decision, not an omission.
         no_suite = {"llm", "loading", "responses", "telemetry", "voice",
                     "xenotech"}
-        holding = {path.stem for path, _name, _value in tripwire.constants()}
+        from . import sweepkit
+        holding = {path.stem
+                   for path, _n, _v in sweepkit.constants()}
         adrift = sorted(m for m in holding
                         if m not in tripwire.KIN and m not in no_suite)
         assert not adrift, (
