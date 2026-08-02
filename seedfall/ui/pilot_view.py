@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from PyQt6.QtCore import QTimer
 
+from ..sim import autopilot as auto_sim
 from ..sim import berthing as berth_sim
 from ..sim import conn as conn_sim
 from ..sim import engage as engage_sim
@@ -66,6 +67,8 @@ class PilotView(View):
         #: every call, so holding one would be holding yesterday's position of
         #: a thing that has since moved.
         self.mark = ""
+        #: What the flight computer is doing: "", "hold" or "run".
+        self.auto = ""
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.tick)
 
@@ -88,10 +91,11 @@ class PilotView(View):
         if self.conn is None or self.conn.landed:
             return
         self.hold_course()
-        # No axis: a coast. The pilot's burns come from the console;
-        # a beat with nothing pressed is a minute of drifting, which is
-        # what a live view mostly is.
-        conn_sim.apply(self.conn, None, ticks=1)
+        # A coast, unless the computer has the conn. The pilot's own burns
+        # come from the console; a beat with nothing pressed and no autopilot
+        # is a minute of drifting, which is what a live view mostly is.
+        axis, main, throttle = self.computer()
+        conn_sim.apply(self.conn, axis, main=main, ticks=1, throttle=throttle)
         # **Pay as we go.** The same door `berthing.commit` settles through,
         # so neither can bill a minute the other already has.
         berth_sim.charge_flown(self.game, self.conn)
@@ -121,6 +125,32 @@ class PilotView(View):
         if contact is not None:
             free_sim.steer(self.game, self.conn, contact)
 
+    def computer(self) -> tuple:
+        """What the flight computer would do this beat.
+
+        `(axis, main, throttle)`, exactly what `sim/autopilot` returns,
+        because it is what `sim/autopilot` returned. The screen decides
+        *whether* the computer has the conn; it never decides what flying is.
+        """
+        if not self.auto or self.conn is None:
+            return None, False, 1.0
+        if self.auto == "run":
+            aim = self.marked()
+            if aim is None:
+                return None, False, 1.0
+            if free_sim.alongside(self.game, self.conn, aim):
+                # Arrived. Say so once and give the conn back.
+                self.auto = "hold"
+                self.game.add_log(f"Alongside {aim.name}, "
+                                  f"{free_sim.ALONGSIDE_KM:,.0f} km off.", "")
+                return auto_sim.autopilot(self.conn, "null")
+            return free_sim.run_for(self.game, self.conn, aim)
+        return auto_sim.autopilot(self.conn, "null")
+
+    def set_auto(self, mode: str) -> None:
+        self.auto = "" if self.auto == mode else mode
+        self.refresh()
+
     def fly_at(self, contact) -> None:
         """Lay the course on something in view. The hull comes about itself."""
         self.mark = contact.name
@@ -133,6 +163,8 @@ class PilotView(View):
 
     def break_off(self) -> None:
         self.mark = ""
+        if self.auto == "run":
+            self.auto = ""
         self.refresh()
 
     def burn(self, axis_id: str | None) -> dict:
@@ -189,6 +221,7 @@ class PilotView(View):
         berth_sim.commit(self.game, self.conn)
         self.game.add_log(said, "")
         self.mark = ""
+        self.auto = ""
         self.conn = None
         self.win.refresh()
 
@@ -243,6 +276,11 @@ class PilotView(View):
         for key, value, kind in panel_sim.readout(self.conn):
             board.add_row(key, value, kind)
         board.add_row("Clock", "running" if self.running else "held")
+        board.add_row("Autopilot", {
+            "": "off — she flies as you fly her",
+            "hold": "holding station, killing what drift there is",
+            "run": f"running for {self.mark or 'nothing'}",
+        }[self.auto])
         aim = self.marked()
         if aim is None:
             board.add_row("Course", "none laid — the six axes fly her frame")
@@ -284,6 +322,16 @@ class PilotView(View):
         guns = fire_panel.buttons(self.win, self.game, self.conn, rows)
         if guns:
             self.buttons(*guns)
+
+        aim = self.marked()
+        self.buttons(
+            button(("Stop holding station" if self.auto == "hold"
+                    else "Hold station"),
+                   lambda: self.set_auto("hold"), kind="flat"),
+            *([button(("Stop running for it" if self.auto == "run"
+                       else f"Run for {aim.name}"),
+                      lambda: self.set_auto("run"), kind="flat")]
+              if aim is not None else []))
 
         self.buttons(
             button("Stop clock" if self.running else "Run clock",

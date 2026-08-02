@@ -177,6 +177,48 @@ def off_course(game, conn, contact) -> float:
         attitude_sim.angle_between(conn.nose, toward(game, conn, contact)))
 
 
+#: How close "alongside" is, out in open space, in kilometres.
+#:
+#: There is no berth to touch and no structure to stop against, so this is the
+#: distance at which the computer stops closing and simply holds. Well inside
+#: `engage.reach_km` (10,000 km), so a pilot who runs for a hull arrives with
+#: the guns able to speak.
+ALONGSIDE_KM = 50.0
+
+
+def run_for(game, conn, contact) -> tuple:
+    """What the computer would do this tick to come alongside a contact.
+
+    Returns `(axis_id, main, throttle)` — the same shape `sim/autopilot`
+    returns, because it *is* `sim/autopilot`: the closing rate comes from
+    `autopilot.rate_for` and the burn from `autopilot.hold`, which is the one
+    place in this game that turns "the velocity should be this" into a burn.
+    Nothing new is decided here.
+
+    **The mode `autopilot` already had does not fit.** `close` aims at a
+    mooring mast through `sim/moorings` and measures its room against a
+    structure's radius and a hold point; out here there is neither, and
+    measured on a free flight it returned `[0, 0, 0]` — the same answer as
+    `null`, so it would have stopped the ship and called it an approach. It
+    refuses in open space now, and this is the mode that belongs there.
+    """
+    from . import autopilot as auto_sim
+    toward_it = toward(game, conn, contact)
+    span = math.dist(toward_it, (0.0, 0.0, 0.0))
+    if span <= ALONGSIDE_KM:
+        # Alongside: stop, and stay stopped.
+        return auto_sim.hold(conn, [0.0, 0.0, 0.0])
+    rate = auto_sim.rate_for(span - ALONGSIDE_KM, conn.rcs_dv)
+    want = [c / span * rate for c in toward_it]
+    return auto_sim.hold(conn, want)
+
+
+def alongside(game, conn, contact) -> bool:
+    """Has she arrived? Within `ALONGSIDE_KM` and not still running past."""
+    return (math.dist(toward(game, conn, contact), (0.0, 0.0, 0.0))
+            <= ALONGSIDE_KM)
+
+
 def secure(game, conn) -> str:
     """Stop flying, wherever you are, and write it down. Returns one line.
 

@@ -1759,6 +1759,30 @@ comparison would have found this — both numbers were internally consistent.
 The check that holds it now walks all four rungs of `pilot.THROTTLE_STEPS` and
 asserts the button and the panel say the same thing at each.
 
+**The computer will come alongside, and says what it cannot do.** `sim/autopilot`
+already had `close`, and measured on a free flight it — and `orbit` — returned
+`[0, 0, 0]`, *the same answer as `null`*: `close` aims at a mooring mast through
+`sim/moorings` and measures its room against a structure's radius and a hold
+point, and open space has neither. A console offering "Close and berth" out
+there would have stopped the ship and called it an approach. Both refuse now,
+through `targets.is_open`.
+
+`sim/freeflight.run_for(game, conn, contact)` is the mode that belongs there,
+and it decides nothing new. The braking arithmetic lives in
+`autopilot.rate_for(room_km, dv)` — pulled out of `safe_rate`, so an approach
+and a free flight cannot disagree about what is stoppable — and the burn comes
+from `autopilot.hold(conn, want)`, which is the whole flight computer in one
+place: every mode is a statement about what the velocity ought to be, and the
+act is always cancelling the difference.
+
+Flown to alongside from a standing start: 5,137 km in 18.3 hours arriving at
+0.35 m/s on 18.26 t; 5,952 km in 17.6 h at 0.05 m/s. Through the screen with
+the clock beating, 962 beats and 16.0 hours, after which the computer hands the
+conn back to station-keeping and writes a line — a computer that stops without
+a word leaves the pilot wondering. `freeflight.ALONGSIDE_KM` is 50, well inside
+`engage.reach_km` of 10,000, so running something down arrives with the guns
+able to speak.
+
 **Aiming, and why there was none.** For as long as the conn had existed,
 "Ahead" meant +y — `Conn.heading` was declared and **never written**, so
 `conn.apply`, which derives the drive's direction from the axis button rotated

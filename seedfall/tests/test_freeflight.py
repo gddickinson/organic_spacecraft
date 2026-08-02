@@ -34,10 +34,12 @@ from __future__ import annotations
 import math
 
 from ..core.state import new_game
+from ..sim import autopilot as auto_sim
 from ..sim import berthing as berth_sim
 from ..sim import conn as conn_sim
 from ..sim import flight
 from ..sim import freeflight as free_sim
+from ..sim import engage as engage_sim
 from ..sim import track as track_sim
 from .harness import Suite
 
@@ -66,6 +68,99 @@ def _flying(seed: str = "free"):
 
 def run(suite: Suite) -> None:
     check = suite.check
+
+    @check("the computer brings her alongside something she can see, and stops")
+    def _():
+        # The request said it plainly: fly to the asteroid, "or also engage
+        # the auto-pilot to come alongside" it. `sim/autopilot`'s own `close`
+        # cannot — it aims at a mooring mast through `sim/moorings` and
+        # measures its room against a structure's radius. Out here there is
+        # neither. `run_for` is the mode that belongs in open space, and it
+        # decides nothing new: the rate is `autopilot.rate_for`, the burn is
+        # `autopilot.hold`.
+        seen = {}
+        for seed in ("auto", "flighttest"):
+            game = new_game(seed)
+            conn, why = free_sim.begin(game)
+            assert conn is not None, why
+            hulls = sorted((engage_sim.range_km(game, conn, c), c)
+                           for c in track_sim.contacts(game)
+                           if c.kind == "hull")
+            km0, hull = hulls[0]
+            assert km0 > free_sim.ALONGSIDE_KM * 10, (
+                f"{hull.name} is already there, at {km0:,.0f} km")
+            ticks = None
+            for beat in range(3000):
+                axis, main, throttle = free_sim.run_for(game, conn, hull)
+                conn_sim.apply(conn, axis, main=main, ticks=1,
+                               throttle=throttle)
+                if free_sim.alongside(game, conn, hull):
+                    ticks = beat + 1
+                    break
+            assert ticks, (
+                f"ran for {hull.name} for 3,000 ticks and got to "
+                f"{engage_sim.range_km(game, conn, hull):,.0f} km")
+            speed = math.dist(conn.vel, (0.0, 0.0, 0.0))
+            assert speed < 2.0, (
+                f"arrived alongside {hull.name} still doing {speed:,.1f} m/s")
+            # Alongside means the guns can speak — 50 km is well inside the
+            # 10,000 km `engage.reach_km`, and that is the point of arriving.
+            ok, said = engage_sim.may_engage(game, conn, hull)
+            assert ok, said
+            seen[seed] = (km0, ticks, speed)
+        return " · ".join(
+            f"{seed}: {km:,.0f} km in {t/60:.1f} h at {sp:.2f} m/s"
+            for seed, (km, t, sp) in seen.items())
+
+    @check("a mode that needs a berth refuses in open space, rather than pretending")
+    def _():
+        # **Measured before this was fixed:** on a free flight `close` and
+        # `orbit` both returned [0, 0, 0] — the same answer as `null` — so a
+        # console offering "Close and berth" out here would have stopped the
+        # ship and called it an approach.
+        game = new_game("open-modes")
+        conn, why = free_sim.begin(game)
+        assert conn is not None, why
+        for mode in ("close", "orbit"):
+            assert auto_sim.target_velocity(conn, mode) is None, (
+                f"{mode!r} claimed a velocity with nothing to fly to")
+            assert auto_sim.autopilot(conn, mode) == (None, False, 0.0), (
+                f"{mode!r} burned with nothing to fly to")
+        # `null` is meaningful anywhere: stop drifting. It has to still work.
+        for _ in range(30):
+            conn_sim.apply(conn, "forward", main=True, ticks=1)
+        was = math.dist(conn.vel, (0.0, 0.0, 0.0))
+        assert was > 5.0, f"the fixture never got moving: {was}"
+        for _ in range(400):
+            axis, main, throttle = auto_sim.autopilot(conn, "null")
+            conn_sim.apply(conn, axis, main=main, ticks=1, throttle=throttle)
+            if math.dist(conn.vel, (0.0, 0.0, 0.0)) < 0.05:
+                break
+        now = math.dist(conn.vel, (0.0, 0.0, 0.0))
+        assert now < 0.05, f"null left her doing {now:.3f} m/s"
+        return f"close and orbit refuse; null killed {was:.1f} m/s to {now:.3f}"
+
+    @check("how fast she may close is one answer, not two")
+    def _():
+        # `safe_rate` works out the room an approach has — the structure, the
+        # hold point, the corridor — and `run_for` has none of that, only the
+        # range to the thing it is running at. Both hand their room to
+        # `rate_for`, so a berth and an asteroid cannot end up with different
+        # ideas of what is stoppable.
+        game = new_game("rates")
+        conn, _why = free_sim.begin(game)
+        for room, dv in ((10.0, 0.4), (100.0, 0.4), (10.0, 12.0)):
+            longhand = math.sqrt(2.0 * dv * room * 1000.0 / conn_sim.TICK) * 0.66
+            assert abs(auto_sim.rate_for(room, dv) - longhand) < 1e-9, (
+                f"rate_for({room}, {dv}) is not the braking arithmetic")
+        assert auto_sim.rate_for(0.0, 0.4) == 0.0
+        assert auto_sim.rate_for(-5.0, 0.4) == 0.0, "negative room is not speed"
+        # Four times the room is twice the rate: it is a square root, and a
+        # linear cap here is exactly the bug that drove a hull into a quay.
+        assert abs(auto_sim.rate_for(40.0, 0.4)
+                   - 2.0 * auto_sim.rate_for(10.0, 0.4)) < 1e-9
+        return (f"10 km at 0.4 m/s/tick -> {auto_sim.rate_for(10.0, 0.4):.2f} "
+                f"m/s; 40 km -> {auto_sim.rate_for(40.0, 0.4):.2f}")
 
     @check("a captain can take the conn with nothing to approach")
     def _():

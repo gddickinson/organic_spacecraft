@@ -332,6 +332,76 @@ def run(suite: Suite) -> bool:
                 f"{tally['distance']:,} galaxy distances per press "
                 f"(was 27 and 151,728)")
 
+    @check("the computer can be given the conn, and hands it back on arrival")
+    def _():
+        # The request: "Toggle auto-pilot and watch the view … then engage
+        # the auto-pilot to come alongside the asteroid." The screen decides
+        # only *whether* the computer has the conn; what flying is stays in
+        # `sim/autopilot` and `sim/freeflight.run_for`.
+        from PyQt6.QtWidgets import QPushButton
+        from ..sim import freeflight
+        game, _win, view = _bridge("auto")
+
+        labels = [b.text() for b in view.findChildren(QPushButton)]
+        assert any("Hold station" in t for t in labels), labels
+        assert not any(t.startswith("Run for") for t in labels), (
+            "offered to run for something with no course laid")
+
+        hull = next(c for c in view.in_view() if c.kind == "hull"
+                    and 100 < engage_sim.range_km(game, view.conn, c) < 200_000)
+        view.fly_at(hull)
+        labels = [b.text() for b in view.findChildren(QPushButton)]
+        assert f"Run for {hull.name}" in labels, labels
+
+        km0 = engage_sim.range_km(game, view.conn, hull)
+        view.set_auto("run")
+        assert view.auto == "run"
+        beats = None
+        for beat in range(2500):
+            view.tick()
+            if view.auto != "run":
+                beats = beat + 1
+                break
+        assert beats, (
+            f"ran for {beats} beats and is still "
+            f"{engage_sim.range_km(game, view.conn, hull):,.0f} km off")
+        km = engage_sim.range_km(game, view.conn, hull)
+        assert km <= freeflight.ALONGSIDE_KM + 1.0, f"{km:,.0f} km off"
+        # Handed back, and said so — a computer that stops without a word
+        # leaves the pilot watching a still picture wondering.
+        assert view.auto == "hold", view.auto
+        assert any("Alongside" in str(row) for row in game.log[-4:]), (
+            "arrived without a word in the log")
+        return (f"{km0:,.0f} km -> {km:,.0f} km in {beats} beats "
+                f"({beats / 60:.1f} h), then holding station")
+
+    @check("letting go of the course or the conn stops the computer too")
+    def _():
+        # A computer left running for a mark that is no longer laid would
+        # burn on toward wherever the pilot last looked.
+        game, _win, view = _bridge("auto")
+        hull = next(c for c in view.in_view() if c.kind == "hull")
+        view.fly_at(hull)
+        view.set_auto("run")
+        view.break_off()
+        assert view.auto == "" and view.mark == "", (view.auto, view.mark)
+
+        view.fly_at(hull)
+        view.set_auto("run")
+        view.secure()
+        assert view.auto == "" and view.mark == "", (view.auto, view.mark)
+
+        # Holding station survives breaking off, because it is about the ship
+        # and not about the mark.
+        game, _win, view = _bridge("auto")
+        view.set_auto("hold")
+        view.break_off()
+        assert view.auto == "hold", view.auto
+        # And the toggle is a toggle.
+        view.set_auto("hold")
+        assert view.auto == "", view.auto
+        return "both exits clear a run; holding station is not a course"
+
     @check("flying from the bridge moves the ship on every other screen")
     def _():
         # `flight.stand_off` is the one writer of where a hull is when it is

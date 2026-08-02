@@ -2,6 +2,59 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: the computer will come alongside, and refuses what it cannot fly
+
+#140, the half that was left after the guns landed. The request said it
+plainly: fly to the asteroid, "or also engage the auto-pilot to come alongside"
+it.
+
+**`sim/autopilot` already had a `close` mode, and it does not fit.** Measured on
+a free flight, `close` and `orbit` both returned `[0, 0, 0]` — *the same answer
+as `null`* — because `close` aims at a mooring mast through `sim/moorings` and
+measures its room against a structure's radius and a hold point, and out in
+open space there is neither. A console offering "Close and berth" there would
+have quietly stopped the ship and called it an approach. Both refuse now.
+
+**Two doors closed rather than a third opened.** The braking arithmetic came
+out of `safe_rate` into `autopilot.rate_for(room_km, dv)`, so an approach
+(which works out its room from the structure, the hold point and the corridor)
+and a free flight (which has only the range to what it is running at) cannot
+end up with different ideas of what is stoppable. And "cancel the difference
+between the velocity you want and the one you have" — the whole flight computer
+— came out into `autopilot.hold(conn, want)`. `freeflight.run_for` decides
+nothing: it works out the velocity it wants and hands it to `hold`.
+
+Flown, three seeds, from a standing start to alongside:
+
+    auto        Held Breath      5,137 km -> 50 km  1,098 ticks (18.3 h)  0.35 m/s  18.26 t
+    fire        Held Breath      5,091 km -> 50 km  1,036 ticks (17.3 h)  0.43 m/s  17.80 t
+    flighttest  Patient Ledger   5,952 km -> 50 km  1,059 ticks (17.6 h)  0.05 m/s  17.67 t
+
+Through the screen, with the clock beating: 5,137 km to 50 km in 962 beats,
+16.0 hours, arriving at 0.17 m/s. It hands the conn back at that point — sets
+itself to holding station and writes "Alongside Held Breath, 50 km off." A
+computer that stops without a word leaves the pilot watching a still picture
+wondering whether it is still working.
+
+`ALONGSIDE_KM` is 50 out here, well inside `engage.reach_km` of 10,000, so a
+pilot who runs something down arrives with the guns able to speak — measured,
+`may_engage` answers True on arrival.
+
+Nine mutations, all red, including a flat 20 m/s closing rate (the exact bug
+`safe_rate` records driving a hull into a quay at 70 m/s) and `rate_for` made
+linear in the room rather than a square root.
+
+**No wrong turn worth the name this cycle** — the measurement was taken before
+anything was written and it changed the plan once, which is the process
+working rather than a mistake: the task said to use the autopilot modes
+`ui/conn_controls` already drives, and two of the three turned out to be
+meaningless where this screen flies.
+
+The picture did find something, and it is #141 again, now much starker: with
+the computer closing on a mark 1,926 km away, the ship panel reads **"Range
+3,210.4 km"** in red. Both true, different questions, and the red one is the
+distance flown from where she let go.
+
 ## 2026-08-01 — SEEDFALL: one seam cut, and a ratchet so the rest cannot grow back
 
 #138 said fifteen files were over five hundred lines. Counted: **nine outside

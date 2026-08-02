@@ -62,6 +62,13 @@ def target_velocity(conn: Conn, mode: str) -> list | None:
     """
     if mode == "null":
         return [0.0, 0.0, 0.0]
+    # **`close` and `orbit` need something to be close to.** Measured on a
+    # free flight, both returned [0, 0, 0] — the same answer as `null` — so a
+    # console offering "Close and berth" out in open space would quietly stop
+    # the ship and call it an approach. There is no berth; say so.
+    from .targets import is_open
+    if is_open(conn.target):
+        return None
     if mode == "close":
         # Toward the **berth**, at the fastest rate the room left can still
         # absorb. Lateral drift needs no special case: it is simply velocity
@@ -205,6 +212,19 @@ def autopilot(conn: Conn, mode: str) -> tuple[str | None, bool, float]:
     want = target_velocity(conn, mode)
     if want is None:
         return None, False, 0.0
+    return hold(conn, want)
+
+
+def hold(conn: Conn, want) -> tuple[str | None, bool, float]:
+    """Burn to make the velocity `want`. The whole flight computer, once.
+
+    Every mode above is a statement about what the velocity ought to be, and
+    the act is always this one: cancel the difference. It is public because a
+    free flight has modes of its own — running for a contact it can see — and
+    a second copy of "cancel the difference" is how a computer that flies a
+    berth and one that flies at an asteroid start disagreeing about the same
+    hull.
+    """
     error = [w - v for w, v in zip(want, conn.vel)]
     need = math.dist(error, (0.0, 0.0, 0.0))
     # A deadband, so the hull is not for ever chasing a drift smaller than one
@@ -247,6 +267,19 @@ def safe_rate(conn: Conn, dv: float | None = None) -> float:
     if any(aim):
         to_aim = math.dist(conn.pos, aim) * 1000.0
         room = min(room, to_aim) if room > 0.0 else to_aim
+    return rate_for(room / 1000.0, dv)
+
+
+def rate_for(room_km: float, dv: float) -> float:
+    """The fastest closing rate that can still be stopped in `room_km`.
+
+    The arithmetic on its own, so an approach and a free flight cannot end up
+    with two answers to "how fast may I close". `safe_rate` works out the room
+    an approach has — the structure's radius, the hold point, the corridor —
+    and hands it here; a free flight has no corridor and no berth, only the
+    range to the thing it is running at, so it hands that.
+    """
+    room = max(0.0, room_km) * 1000.0
     return max(0.0, math.sqrt(2.0 * dv * room / TICK) * 0.66)
 
 
