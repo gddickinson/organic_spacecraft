@@ -102,7 +102,7 @@ SUITES = _suites()
 # **How to find a constant and how to change it lives in `sweepkit`**, split
 # out when this file hit five hundred lines exactly. This file is the other
 # half: which suites speak for which module, and what a sweep concluded.
-from .sweepkit import ROOT, constants, rewrite, variants  # noqa: E402
+from .sweepkit import ROOT, constants, put, rewrite, variants  # noqa: E402
 
 
 #: A clean run of the subset takes about ten seconds. Sixty is generous, and
@@ -168,7 +168,10 @@ KIN = {
     "parley": ("parley", "combat"),
     "stations": ("routing", "orderplan", "seatwork", "turnplan", "gunnery"),
     "damage": ("thermal_doors", "combat"), "contraband": ("customs",),
-    "customs": ("customs", "fence"), "diplomacy": ("politics",),
+    "customs": ("customs", "fence"),
+    # `courtship` first: it is the real guard for the COURTSHIP_* family and
+    # costs 1.4 s against `politics`'s 145.4 (#134).
+    "diplomacy": ("courtship", "politics"),
     "grudge": ("grudges",), "colonies": ("works", "founding"),
     "works": ("works",), "mining": ("mining",), "research": ("bench",),
     "inquiry": ("evidence", "bench"), "flight": ("helm", "flight", "burns"),
@@ -176,7 +179,8 @@ KIN = {
     "chains": ("missions",),
     "expedition": ("landing", "ground", "wayhome"), "weather": ("ground",),
     "territory": ("territory", "levy"), "allegiance": ("allegiance",),
-    "charts": ("charting", "charts"), "notes": ("notes",),
+    "charts": ("provenance", "charting", "charts"),
+    "notes": ("notes",),
     "freight": ("freight",),
     "market": ("trade",), "economy": ("trade",), "commodities": ("trade",),
     "loyalty": ("conviction", "crew"), "convictions": ("conviction", "crew"),
@@ -375,7 +379,7 @@ def main(argv: list) -> int:
 
     def restore(*_args):
         for where, text in list(holding.items()):
-            pathlib.Path(where).write_text(text)
+            put(pathlib.Path(where), text)
         holding.clear()
 
     atexit.register(restore)
@@ -413,7 +417,7 @@ def main(argv: list) -> int:
                 # loud notice" here left the whole suite green.
                 return noticed(suites)
             finally:
-                path.write_text(before)
+                put(path, before)
                 holding.pop(str(path), None)
 
         # Stage one: every variant against the constant's own neighbourhood.

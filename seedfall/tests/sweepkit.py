@@ -27,7 +27,9 @@ does not restore.
 from __future__ import annotations
 
 import ast
+import os
 import pathlib
+import tempfile
 
 
 #: Constants that are deliberately structural rather than tuning — changing
@@ -101,5 +103,29 @@ def rewrite(path: pathlib.Path, name: str, new) -> str:
             out.append(line)
     if not done:
         return ""
-    path.write_text("".join(out))
+    put(path, "".join(out))
     return original
+
+
+def put(path: pathlib.Path, text: str) -> None:
+    """Replace a file's contents in one step, or not at all.
+
+    **`write_text` truncates and then writes**, so a process killed between
+    the two leaves the file short — or empty. That is not hypothetical here:
+    a probe once left `data/industry.py` at zero bytes, and while this module
+    was being worked on a hard `SIGKILL` timeout caught a sweep mid-write and
+    left `data/diplomacy.py` **168 lines shorter than it started**, taking the
+    whole courtship curve with it.
+
+    The sweep's own `SIGTERM` handler cannot help: it never runs. Writing to a
+    sibling temp file and renaming does, because `os.replace` is atomic — the
+    path either names the old contents or the new one, and never a half.
+    """
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), suffix=".swp")
+    try:
+        with os.fdopen(fd, "w") as handle:
+            handle.write(text)
+        os.replace(tmp, path)
+    except BaseException:
+        pathlib.Path(tmp).unlink(missing_ok=True)
+        raise

@@ -137,6 +137,20 @@ key in silence. One assertion from the deleted pair was **not** a duplicate and
 only mutation found it: a ghost `KIN` entry, a row naming a module that does
 not exist, survived the deletion. It is folded into harness_guard's check now.
 
+**A fast path that misses its guard makes the sweep lie, not merely dawdle.**
+Measured: 19 constants swept, four on the shortlist, **all four already
+guarded** — `charts.KNOWN_WORTH` by `provenance` (0.3 s), the whole COURTSHIP_*
+family by `courtship` (1.4 s), and neither suite named by the entry. `charts`
+and `diplomacy` name them now, cheapest first. `test_tripwire.MEASURED` records
+nine such pairs; it used to demand the guard be in `SLOW`, and that rule would
+have barred the four rows that matter, so it is gone.
+
+**`sweepkit.put` replaces a file atomically**, because the alternative cost a
+real one: a SIGKILL timeout caught a sweep inside `write_text` — which
+truncates before it writes — and left `data/diplomacy.py` 168 lines shorter,
+with the SIGTERM restore handler never getting to run. A temp file and
+`os.replace` cannot leave a half.
+
 **The sweep has two stages that differ by two orders of magnitude, and they
 are now two commands.** Measured: `piracy`'s ten constants swept in 20 seconds;
 `exchequer`'s thirteen were still going after thirty minutes. The difference is

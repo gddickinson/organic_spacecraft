@@ -64,12 +64,65 @@ MEASURED = [
     # what a family forgets — measured, never read.
     ("approaches", "QUIET_DAYS", "tuning"),
     ("bloom", "RESIST_DECAY", "tuning"),
+    # All four came off a fast sweep's shortlist and **all four were already
+    # guarded** — by suites their fast paths did not name. `charts` named
+    # `charting` and `charts`; `diplomacy` named only `politics`, the dearest
+    # suite in the project, while `courtship` held three of its constants for
+    # 1.4 s.
+    ("charts", "KNOWN_WORTH", "provenance"),
+    ("diplomacy", "COURTSHIP_KNEE", "courtship"),
+    ("diplomacy", "COURTSHIP_FLOOR", "courtship"),
+    ("diplomacy", "COURTSHIP_FALLOFF", "courtship"),
+    # Moved out of `sim/control` with the tug (#138); `control` catches
+    # `TUG_FROM` at half.
+    ("tug", "TUG_FROM", "control"),
 ]
 
 
 
 def run(suite: Suite) -> None:
     check = suite.check
+
+    @check("a file is replaced in one step, or not at all")
+    def _():
+        # **This cost a real file.** A hard SIGKILL timeout caught a sweep
+        # inside `write_text`, which truncates before it writes, and left
+        # `data/diplomacy.py` **168 lines shorter than it started** — the whole
+        # courtship curve gone. The sweep's own SIGTERM handler is no help
+        # against SIGKILL: it never runs. `os.replace` is atomic, so the path
+        # names the old contents or the new one and never a half.
+        import os
+        from . import sweepkit
+
+        scratch = ROOT / "tests" / "_atomic_probe.txt"
+        # **The delta, not the directory.** Counting every `.swp` beside it
+        # made this check fail on litter a *previous* run had left — proving
+        # the mutation had bitten, then failing every run after it. A check
+        # that inherits the last run's mess reports the mess, not the code.
+        was = set(scratch.parent.glob("*.swp"))
+        try:
+            sweepkit.put(scratch, "first\n")
+            assert scratch.read_text() == "first\n"
+            # No stray temp files left beside it.
+            sweepkit.put(scratch, "second\n" * 400)
+            assert scratch.read_text() == "second\n" * 400
+            litter = sorted(q.name for q in scratch.parent.glob("*.swp")
+                            if q not in was)
+            assert not litter, f"temp files left behind: {litter}"
+        finally:
+            scratch.unlink(missing_ok=True)
+
+        # And `rewrite` goes through it, so no caller has to remember.
+        src = (ROOT / "tests" / "sweepkit.py").read_text()
+        assert "path.write_text(" not in src, (
+            "sweepkit writes a source file with write_text somewhere; that "
+            "truncates first and a kill in between destroys the file")
+        assert "os.replace" in src, "nothing in sweepkit renames atomically"
+        # The sweep restores through the same door.
+        sweep = (ROOT / "tests" / "tripwire.py").read_text()
+        assert "write_text(" not in sweep, (
+            "the sweep still puts a file back with write_text")
+        return "put() replaces atomically; rewrite and the sweep both use it"
 
     @check("the fast path stops at the first suite that objects")
     def _():
@@ -254,9 +307,17 @@ def run(suite: Suite) -> None:
                 f"{module}.{name} is guarded by the {guard!r} suite, measured, "
                 f"and its fast path is {named} — a sweep would report it "
                 f"unprotected while a check sits there holding it")
-            assert guard in SLOW, (
-                f"{guard!r} is not in SLOW, so the broad stage would have "
-                f"caught {module}.{name} anyway and this row proves nothing")
+            # **This used to demand the guard be in `SLOW`**, on the grounds
+            # that otherwise the broad stage would catch the constant anyway
+            # and the row proved nothing about the fast path. A sweep
+            # overturned it: nineteen constants swept, four on the shortlist,
+            # and **all four were guarded** — `charts.KNOWN_WORTH` by
+            # `provenance` (0.3 s), the COURTSHIP_* family by `courtship`
+            # (1.4 s), none of them in `SLOW`, none of them named. What a fast
+            # path that misses the guard produces is not a slow answer but a
+            # **false one**, and a shortlist of false ones is worse than no
+            # shortlist. Naming the guard is the point whether it is dear or
+            # cheap.
             held[f"{module}.{name}"] = guard
         # And the constants are still there to be guarded.
         have = {(p.stem, n) for p, n, _v in constants()}

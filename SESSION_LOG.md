@@ -2,6 +2,63 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: the shortlist was all false, and a hard kill ate a file
+
+#134. Ran the fast sweep over everything. It is **not** the fifteen minutes I
+estimated last cycle: 19 constants in fourteen minutes, so 439 is an overnight
+job, not a cycle. The reason is the same one as before, unfixed — 27 constants
+sit behind `politics` at 145.4 s a run, and `diplomacy`'s fast path named
+*only* `politics`.
+
+**Four candidates came off those 19, and all four were false.** Every one was
+already guarded, by a suite its fast path did not name:
+
+    charts.KNOWN_WORTH          provenance   0.3 s     kin was (charting, charts)
+    diplomacy.COURTSHIP_KNEE    courtship    1.4 s     kin was (politics,)
+    diplomacy.COURTSHIP_FLOOR   courtship
+    diplomacy.COURTSHIP_FALLOFF courtship
+
+A hundred per cent false-positive rate on the sample. Both entries now name
+their real guard, cheapest first: `charts` re-swept reports **0 of 4** with
+`KNOWN_WORTH — provenance`.
+
+**And the measurement overturned a rule I wrote a week ago.** `MEASURED` rows
+had to name a guard in `SLOW`, on the reasoning that otherwise the broad stage
+would catch the constant anyway and the row proved nothing. Neither
+`provenance` nor `courtship` is slow — and the rule would have barred exactly
+the four rows that stop a false shortlist. What a fast path that misses its
+guard produces is not a slow answer but a **wrong** one. The rule is gone, the
+tug row it rejected last cycle is back, and `MEASURED` holds nine.
+
+### A hard kill ate 168 lines of a source file
+
+A ten-minute foreground timeout sent SIGKILL to a running sweep. The tool's
+SIGTERM restore handler never ran, `write_text` had truncated
+`data/diplomacy.py` and not yet finished writing it, and the file came out
+**168 lines shorter than it started** — the whole courtship curve gone. Its
+own module docstring had warned of this exact thing happening once to
+`data/industry.py`, and the fix had never been applied to the tool itself.
+
+`sweepkit.put` writes a sibling temp file and `os.replace`s it, which is
+atomic: the path names the old contents or the new one and never a half.
+`rewrite` and both of the sweep's restore paths go through it. Restored from
+git; nothing lost.
+
+**And the check I wrote for it failed its own second run.** It counted every
+`.swp` beside the probe file, so litter left by the *previous* mutation — the
+one that proved the check bit — failed every run after. It measures the delta
+now. A check that inherits the last run's mess reports the mess.
+
+And the mess is not small: the mutation that stops `put` renaming leaves one
+temp file per write, so proving that check bit scattered **212 `.swp` files**
+through `data/` and `sim/`. Untracked, so nothing was lost and `git status`
+told the whole story — but a mutation that disables a cleanup leaves mess in
+proportion to how much work it was cleaning up, and the harness should be run
+knowing that.
+
+Five mutations red. The sweep still has not been run to completion; what this
+cycle bought is that its shortlist can be believed.
+
 ## 2026-08-02 — SEEDFALL: the sweep's ten hours were mostly one suite
 
 #134. With the tool alive again, I set out to run a slice of the 439 and
