@@ -69,6 +69,44 @@ def _flying(seed: str = "free"):
 def run(suite: Suite) -> None:
     check = suite.check
 
+    @check("closing is measured on the mark, not on the place she left")
+    def _():
+        # **`Conn.closing` is the wrong number out here.** It is measured
+        # against the conn's origin, which in a free flight is where she was
+        # let go — so a ship braking hard onto a contact reads as *opening* on
+        # the place she came from, which is true and useless.
+        game = new_game("closing")
+        conn, why = free_sim.begin(game)
+        assert conn is not None, why
+        hull = next(c for c in track_sim.contacts(game) if c.kind == "hull")
+
+        assert abs(free_sim.closing_on(game, conn, hull)) < 1e-6, (
+            "a ship at rest is closing on something")
+
+        # Burn at it and the rate is positive; burn away and it is negative,
+        # and `conn.closing` disagrees because it is answering a different
+        # question.
+        free_sim.steer(game, conn, hull)
+        for _ in range(40):
+            conn_sim.apply(conn, "forward", main=True, ticks=1)
+        toward_it = free_sim.closing_on(game, conn, hull)
+        assert toward_it > 1.0, f"burned at it and closing reads {toward_it}"
+
+        for _ in range(120):
+            conn_sim.apply(conn, "back", main=True, ticks=1)
+        away = free_sim.closing_on(game, conn, hull)
+        assert away < -1.0, f"burned away and closing reads {away}"
+
+        # And the range agrees with the sign, which `conn.closing` need not.
+        was = engage_sim.range_km(game, conn, hull)
+        for _ in range(30):
+            conn_sim.apply(conn, None, ticks=1)
+        now = engage_sim.range_km(game, conn, hull)
+        assert now > was, (f"closing said {away:,.1f} m/s (opening) and the "
+                           f"range went {was:,.0f} -> {now:,.0f} km")
+        return (f"at rest 0, burning at it {toward_it:+,.0f} m/s, "
+                f"burning away {away:+,.0f}")
+
     @check("the computer brings her alongside something she can see, and stops")
     def _():
         # The request said it plainly: fly to the asteroid, "or also engage

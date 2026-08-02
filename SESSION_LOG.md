@@ -2,6 +2,113 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: two player reports, one real and one not
+
+Both measured before touching anything, and they came out differently.
+
+**"The engine is on full thrust and the velocity stays the same."** It does
+not. Pressed through the screen's own button with the main drive lit:
+
+    press 1  2.7 m/s   press 2  5.3   press 3  8.0
+    press 4 10.6       press 5 13.3   press 6 15.9
+
+and `conn.speed` is exactly `|vel|` — 172.30 against 172.30 at forty presses.
+Thrust accumulates and the row is honest. What can make it *look* flat is
+already on the screen now: with the drive **off** a press is 0.45 m/s rather
+than 2.65; an off-axis press with the torch lit spends its whole tick swinging
+the hull and says so in the Drive row; and the autopilot brakes, which the
+Autopilot row now spells out. I could not reproduce a case where it genuinely
+stalls.
+
+**"The Pilot view doesn't show the Fleet Hub or other ships and stations."**
+Entirely right, and the cause was not the data. Rendered side by side at the
+same quay:
+
+    the conn  — "Fleet Hub · 12.0 km" inside a dashed reticle
+    the pilot — nothing at all
+
+`Viewport._target` gives a target its true angular size, and a free flight has
+no target, so the Hub fell through to `_sky` as a **1.6-pixel speck**.
+Measured: the free flight's sky holds *more* than the approach's — ten entries
+against nine, **including the anchorages the approach leaves out**. The
+drawing was the only thing missing.
+
+`viewport_mark.draw_sights` names the quays and hulls out there, brighter
+inside `engage.reach_km`. Worlds are left alone: `_sky` draws those as lit
+discs and nobody loses a planet. Flown 651 km off the quay, the aft camera
+reads "Fleet Hub" and "Patient Ledger".
+
+**And moored, a quay is at exactly the ship's position** — the bearing is
+literally `(0, 0, 0)`, there is no direction to draw, and the zero guard
+returns None. That is right rather than a gap, and the check says so.
+
+**Three checks of mine proved nothing, and the same lesson each time: do not
+compare two grabs of a widget.** The first compared the view with sights and
+without; the images differed either way, so deleting the drawing left it
+green. The second asked `draw_sights` directly — which tests the drawing and
+not the wiring, so deleting the *call* left it green too. The third was the
+mark check written last cycle: standalone it passed, and inside the full run,
+after other checks had shown windows of their own, the same two grabs came out
+identical and it went **red on correct code**. Stubbing the drawing and asserting the window *asked* was better and still
+not right: `painting.Painted` declines to draw at all when the platform
+refuses a backing store — the very flakiness that module was written for — so
+a check that depends on a successful paint went red on correct code in the
+full run and green on its own. The wiring is read out of the source now:
+`Viewport.draw` must name `viewport_mark.draw` and hand it `self.mark`.
+Exact, order-independent, needs no paint device, and every deletion still goes
+red.
+
+**Two checks of mine proved nothing and a mutation said so, twice.** The first
+compared two grabs of the same widget, with sights and without; the images
+differed either way, so deleting the drawing left it green. The second asked
+`draw_sights` directly — which tests the drawing and not the wiring, so
+deleting the *call* from `Viewport.draw` left it green too. It now stubs
+`draw_sights` and asserts the window asks for it, with something in hand.
+
+## 2026-08-02 — SEEDFALL: the computer was flying her and not saying how
+
+#145 continued. Measured before writing: one run to a contact 5,137 km off,
+printing what the computer intended against what the screen showed.
+
+    beats     range      the computer intends        the screen said
+        0   5,137 km   forward, torch, 100%    "running for Held Breath"
+      200   3,493 km   back, thrusters         "running for Held Breath"
+      600     208 km   None (coasting)         "running for Held Breath"
+
+Accelerating, braking and arriving, and six identical words for all three. A
+pilot watching the window could not tell which was happening.
+
+**And the one number that would have told them did not exist.** `Conn.closing`
+is measured against the conn's origin, which in a free flight is *where she
+was let go* — so a ship braking hard onto a contact reads as opening on the
+place she came from. True, and useless. `freeflight.closing_on` is the
+component of the velocity along the bearing to the mark:
+
+    at rest              0 m/s
+    burning at it      +95 m/s
+    burning away      -207 m/s
+
+The board now says what the computer is doing — "ahead on the torch at 100%",
+then "astern on thrusters", then "coasting", then it hands back — and a
+Closing row with the range's own clock on it: "146 m/s — about 6.3 h to go".
+
+**The layout check caught me widening the bridge.** The first phrasing
+repeated the target's name in the autopilot row and cost **29 px** of width
+the screen did not have — overflow 0 became 29, which is the check written
+last cycle doing exactly its job on its own author. The name is on the Course
+row a line below; the autopilot row says "running her in — astern on
+thrusters at 100%" and the overflow is 0 again.
+
+Four mutations red: one fixed phrase again, the wrong axis named, closing
+measured on the release point, and the closing sign flipped.
+
+**One item on #145 was wrongly premised and is struck.** I had listed
+"berthing and orbiting still need the Conn" as a gap. Re-reading the original
+request: *"This will leave the Conn for specific situations (docking,
+orbiting) and this will be a general purpose way of directly driving the ship
+in any situation."* The Conn keeping docking and orbiting is what was asked
+for, not a shortfall.
+
 ## 2026-08-02 — SEEDFALL: you could not see the thing you were flying at
 
 #145 continued. Measured first, and the measurement was blunt: laying a course

@@ -23,6 +23,7 @@ from __future__ import annotations
 from PyQt6.QtWidgets import (QGridLayout, QHBoxLayout, QVBoxLayout,
                              QWidget)
 
+from ..sim import conn as conn_sim
 from ..sim import engage as engage_sim
 from ..sim import freeflight as free_sim
 from ..sim import instruments as panel_sim
@@ -100,21 +101,55 @@ def ship_board(view) -> Panel:
                                "did not fire", "warn")
     elif view.last.get("burned"):
         board.add_row("Drive", "fired", "")
-    board.add_row("Autopilot", {
-        "": "off — she flies as you fly her",
-        "hold": "holding station, killing what drift there is",
-        "run": f"running for {view.mark or 'nothing'}",
-    }[view.auto])
+    board.add_row("Autopilot", _computer_says(view))
     aim = view.marked()
     if aim is None:
         board.add_row("Course", "none laid — the six axes fly her frame")
+        return board
+    km = engage_sim.range_km(view.game, view.conn, aim)
+    board.add_row("Course", f"{aim.name}, {km:,.0f} km, nose "
+                            f"{free_sim.off_course(view.game, view.conn, aim):.0f}° off")
+    # **Closing on the mark, not on the place she left.** `conn.closing` is
+    # measured against the conn's origin, which out here is where she was let
+    # go — so a ship braking onto a contact reads as opening, which is true
+    # and useless.
+    rate = free_sim.closing_on(view.game, view.conn, aim)
+    if rate > 0.1:
+        minutes = km * 1000.0 / rate / 60.0
+        board.add_row("Closing", f"{rate:,.0f} m/s — about "
+                                 + (f"{minutes / 60:,.1f} h" if minutes > 90
+                                    else f"{minutes:,.0f} min") + " to go")
+    elif rate < -0.1:
+        board.add_row("Closing", f"opening at {-rate:,.0f} m/s", "warn")
     else:
-        board.add_row(
-            "Course",
-            f"{aim.name}, "
-            f"{engage_sim.range_km(view.game, view.conn, aim):,.0f} km, nose "
-            f"{free_sim.off_course(view.game, view.conn, aim):.0f}° off")
+        board.add_row("Closing", "holding the range")
     return board
+
+
+def _computer_says(view) -> str:
+    """What the flight computer is doing, in the words a pilot would use.
+
+    **It used to say six words the whole way in.** Measured on one run to a
+    contact 5,137 km off: the computer went `forward` on the torch, then
+    `back` on the thrusters to brake, then `None` to coast the last stretch —
+    and the screen read "running for Held Breath" at every one of those, so a
+    pilot could not tell accelerating from braking from arriving.
+    """
+    if view.auto == "":
+        return "off — she flies as you fly her"
+    if view.auto == "hold":
+        return "holding station, killing what drift there is"
+    aim = view.marked()
+    if aim is None:
+        return "running for nothing"
+    # **The name is on the Course row already.** Repeating it here cost 29 px
+    # of width the bridge did not have, and the layout check said so.
+    axis, main, throttle = free_sim.run_for(view.game, view.conn, aim)
+    if axis is None:
+        return "running her in — coasting"
+    which = conn_sim.AXES_BY_ID[axis][1].lower()
+    return (f"running her in — {which} on "
+            f"{'the torch' if main else 'thrusters'} at {throttle:.0%}")
 
 
 def in_view_board(view, rows) -> Panel:

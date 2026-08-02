@@ -1893,6 +1893,28 @@ a word leaves the pilot wondering. `freeflight.ALONGSIDE_KM` is 50, well inside
 `engage.reach_km` of 10,000, so running something down arrives with the guns
 able to speak.
 
+**The window names what is out there.** A player reported that the Conn shows
+the Fleet Hub and the Pilot screen does not, and they were right: `_target`
+gives `conn.target` its true angular size, a free flight has no target, so the
+same Hub was a 1.6-pixel speck in `_sky`. The data was never missing —
+measured, a free flight's sky holds ten entries against an approach's nine,
+*including* the anchorages the approach leaves out. `viewport_mark.draw_sights`
+names quays and hulls, brighter inside `engage.reach_km`; worlds are left to
+`_sky`, which draws them as lit discs. Moored, a quay is at exactly the ship's
+position and the bearing is `(0, 0, 0)` — nothing to draw, and correct.
+
+**The computer says what it is doing.** Measured on one run to a contact
+5,137 km off, `run_for` went forward on the torch, then astern on the
+thrusters to brake, then coasted — and the screen read "running for Held
+Breath" at every one of them. The autopilot row now names the axis, the drive
+and the throttle it is actually asking for, from `run_for`'s own answer.
+
+Beside it, `freeflight.closing_on`: the component of the velocity along the
+bearing to the mark, because `Conn.closing` is measured against the conn's
+origin — *where she was let go* — so a ship braking onto a contact read as
+opening on the place she came from. At rest 0, burning at it +95 m/s, burning
+away −207.
+
 **The screen says what a press did**, because three of the six thrust buttons
 could look dead. The main drive only pushes along the nose, so with the torch
 lit a press whose axis is not under it spends the whole tick swinging the hull

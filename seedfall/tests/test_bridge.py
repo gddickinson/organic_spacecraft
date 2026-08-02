@@ -32,6 +32,143 @@ def run(suite: Suite) -> bool:
 
     check = suite.check
 
+    class _Blind:
+        """A painter that records nothing: what is under test is the count."""
+
+        def setPen(self, *a): pass
+        def setBrush(self, *a): pass
+        def setFont(self, *a): pass
+        def drawEllipse(self, *a): pass
+        def drawLine(self, *a): pass
+        def drawText(self, *a): pass
+
+        def fontMetrics(self):
+            class M:
+                def horizontalAdvance(self, _t): return 40
+            return M()
+
+    @check("the quays and hulls out there are named, as the conn names its own")
+    def _():
+        # **A player reported this**: standing off the Fleet Hub, the conn
+        # draws it inside a dashed reticle reading "Fleet Hub · 12.0 km", and
+        # the Pilot window showed nothing at all. The sky data was never
+        # missing — measured, a free flight's `sky` holds *more* than an
+        # approach's, ten entries against nine, including the anchorages the
+        # approach leaves out. `Viewport._target` gives a target its real size
+        # and a free flight has no target, so the Hub was one 1.6-pixel speck
+        # among the stars.
+        from PyQt6.QtWidgets import QApplication
+        from ..sim import track as track_sim
+        game, win, view = _bridge("cmp")
+        app = QApplication.instance()
+
+        # Moored, a quay is at *exactly* the ship's position — there is no
+        # bearing to it and nothing to draw. That is right, not a gap.
+        view.refresh()
+        hub = next(c for c in view.in_view() if c.kind == "anchorage")
+        assert any(n == hub.name for _v, n, _near in view.feed.sights), (
+            "the window was not told about the quay at all")
+        assert engage_sim.range_km(game, view.conn, hub) < 1.0, (
+            "the fixture is not moored; the zero-bearing case is untested")
+
+        # Fly out, and it must become something you can find.
+        view.use_main = True
+        for _ in range(90):
+            view.burn("forward")
+        view.refresh()
+        for _ in range(3):
+            app.processEvents()
+        km = engage_sim.range_km(game, view.conn, hub)
+        assert km > 100.0, f"the fixture never left: {km:,.0f} km"
+
+        named = {n for _v, n, _near in view.feed.sights}
+        assert hub.name in named, named
+        assert any(c.kind == "hull" and c.name in named
+                   for c in track_sim.contacts(game)), (
+            f"no hull is named out of the window: {named}")
+        # Worlds are not named: `_sky` draws those as lit discs and nobody
+        # loses a planet.
+        worlds = {c.name for c in track_sim.contacts(game) if c.kind == "body"}
+        assert not (named & worlds), f"worlds are being labelled too: {named & worlds}"
+
+        # **And the window actually paints them.** Comparing two grabs of the
+        # same widget — one with sights, one without — proved nothing: the
+        # images differed either way, so the check passed with the drawing
+        # deleted. Ask the drawing itself instead, through the same `project`
+        # and camera the window uses.
+        from ..ui import viewport_mark
+        from ..ui.viewport import basis
+        from ..ui.viewport_math import project
+
+        drew = 0
+        for _vid, _label, vec in conn_sim.VIEWS:
+            cam = basis(vec, view.conn)
+            drew += viewport_mark.draw_sights(
+                _Blind(), view.feed.sights, project, cam, 460, 260)
+        assert drew, (
+            "the window is told what is out there and paints none of it, in "
+            "any of the six cameras")
+
+        # **And the window calls it.** Asking the drawing directly proved only
+        # that the drawing works — deleting the call from `Viewport.draw` left
+        # this check green, because it was never testing the wiring.
+        # Read the wiring rather than paint it: `Painted` declines to draw at
+        # all when the platform refuses a backing store, and a check that
+        # depends on a successful paint goes red on correct code.
+        import inspect
+        body = inspect.getsource(view.feed.draw)
+        assert "viewport_mark.draw_sights(" in body, (
+            "Viewport.draw never asks for the sights to be drawn")
+        assert "self.sights" in body, (
+            "it asks for sights to be drawn without handing them over")
+        return (f"{len(named)} named at {km:,.0f} km off the quay, "
+                f"{drew} of them landing in one of the six cameras")
+
+    @check("the computer says what it is doing, and it changes as it does it")
+    def _():
+        # **It used to say six words the whole way in.** Measured on one run
+        # to a contact 5,137 km off, the computer went `forward` on the torch,
+        # then `back` on the thrusters to brake, then `None` to coast — and
+        # the screen read "running for Held Breath" at every one of them, so a
+        # pilot could not tell accelerating from braking from arriving.
+        from ..sim import freeflight as free_sim
+        from ..ui import pilot_panels as panels
+        game, _win, view = _bridge("auto")
+        target = next(c for c in view.in_view() if c.kind == "hull"
+                      and 100 < engage_sim.range_km(game, view.conn, c)
+                      < 200_000)
+        assert panels._computer_says(view) == "off — she flies as you fly her"
+
+        view.fly_at(target)
+        view.set_auto("run")
+        said = []
+        for beats in (0, 200, 400, 600):
+            for _ in range(beats):
+                view.tick()
+            said.append(panels._computer_says(view))
+
+        # The words have to move with the flying. Not a fixed phrase.
+        assert len(set(said)) > 1, (
+            f"the computer said the same thing the whole way in: {said[0]!r}")
+        # It burns to begin with and brakes before it arrives — the axis it
+        # names is the axis `run_for` asked for.
+        assert "ahead" in said[0], said[0]
+        assert any("astern" in t for t in said[1:]), (
+            f"it never said it was braking: {said}")
+        for phrase in said[:-1]:
+            assert "running her in" in phrase, phrase
+        # Arrived: it hands the conn back and says that instead.
+        assert view.auto == "hold", view.auto
+        assert "holding station" in said[-1], said[-1]
+
+        # Holding station is not a course, and says its own thing.
+        view.break_off()
+        assert "holding station" in panels._computer_says(view)
+        view.set_auto("hold")
+        assert panels._computer_says(view).startswith("off"), (
+            panels._computer_says(view))
+        return " → ".join(t.split(" — ")[-1] for t in said)
+
     @check("the thing you are flying at is ringed out of the window")
     def _():
         # **Measured before this existed: the picture did not change at all.**
@@ -50,17 +187,40 @@ def run(suite: Suite) -> bool:
             target = next(c for c in view.in_view() if c.kind == "hull"
                           and 100 < engage_sim.range_km(game, view.conn, c)
                           < 200_000)
-            before = view.feed.grab().toImage()
+            # **Not by comparing two grabs.** Twice this cycle an image diff
+            # of the same widget proved nothing — it differed with the
+            # drawing deleted, and it matched with the drawing present when
+            # other checks had run first. What the window is *told*, and
+            # whether it *asks* for the ring, are both exact.
+            from ..ui import viewport_mark
+            assert view.feed.mark is None, "a ring before any course was laid"
+
             view.fly_at(target)
             view.refresh()
             for _ in range(4):
                 app.processEvents()
-            after = view.feed.grab().toImage()
-            assert after != before, (
-                f"a course was laid on {target.name} and the view out of the "
-                f"window is pixel for pixel what it was")
             assert view.feed.mark is not None, "the window was told nothing"
             assert view.feed.mark[1] == target.name, view.feed.mark[1]
+
+            # **And the window asks for it.** Not by painting: `Painted`
+            # returns early when the platform refuses a backing store, so a
+            # grab-based check goes red on correct code late in a long run —
+            # it did, once. The wiring is in the source and can be read.
+            import inspect
+            body = inspect.getsource(view.feed.draw)
+            assert "viewport_mark.draw(" in body, (
+                "Viewport.draw never asks for the ring to be drawn")
+            assert "self.mark" in body, (
+                "Viewport.draw asks for a ring without handing it the mark")
+
+            # And it lands somewhere in the picture, in some camera.
+            from ..ui.viewport import basis
+            from ..ui.viewport_math import project
+            drawn = sum(1 for _v, _l, vec in conn_sim.VIEWS
+                        if viewport_mark.draw(_Blind(), view.feed.mark,
+                                              project, basis(vec, view.conn),
+                                              460, 260))
+            assert drawn, f"{target.name} is ringed in none of the six cameras"
 
             # Breaking off takes the ring away again.
             view.break_off()
@@ -68,8 +228,6 @@ def run(suite: Suite) -> bool:
             for _ in range(4):
                 app.processEvents()
             assert view.feed.mark is None, "the ring outlived the course"
-            assert view.feed.grab().toImage() == before, (
-                "breaking off left something drawn on the window")
         finally:
             win.hide()
         return f"{target.name} ringed, and the ring goes when the course does"

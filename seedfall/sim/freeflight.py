@@ -170,6 +170,22 @@ def steer(game, conn, contact) -> float:
     return conn.heading
 
 
+def closing_on(game, conn, contact) -> float:
+    """How fast the range to a contact is shrinking, in m/s. Negative opens.
+
+    **`Conn.closing` is the wrong number out here.** It is measured against
+    the conn's origin, which in a free flight is where she was let go — so a
+    ship braking hard onto a contact reads as *opening* on the place she came
+    from, which is true and useless. This is the component of the velocity
+    along the bearing to the thing the course is laid on.
+    """
+    vec = toward(game, conn, contact)
+    span = math.dist(vec, (0.0, 0.0, 0.0))
+    if span <= 1e-9:
+        return 0.0
+    return sum(v * c / span for v, c in zip(conn.vel, vec))
+
+
 def off_course(game, conn, contact) -> float:
     """Degrees between where the nose is and the contact. For a panel to say."""
     from . import attitude as attitude_sim

@@ -272,6 +272,16 @@ class PilotView(View):
         if laid is not None:
             self.feed.mark = (free_sim.toward(self.game, self.conn, laid),
                               laid.name)
+        # **Name the quays and the hulls out there.** The Conn draws its
+        # target inside a reticle reading "Fleet Hub · 12.0 km"; a free flight
+        # has no target, so the same Hub was a 1.6-pixel speck among the
+        # stars. The sky data was never missing — measured, a free flight's
+        # `sky` holds *more* than an approach's — only the drawing was.
+        self.feed.sights = [
+            (free_sim.toward(self.game, self.conn, c), c.name,
+             km <= engage_sim.reach_km())
+            for km, c in rows[:8]
+            if c.kind in ("anchorage", "hull")]
         left.addWidget(self.feed)
         # Three to a line: six across demanded 486 px and set the left
         # column's minimum, which is 56 px more than the bridge had to give.

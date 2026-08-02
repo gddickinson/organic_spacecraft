@@ -159,6 +159,8 @@ def _detail(look: str, name: str):
 class Viewport(painting.Painted, QWidget):
     #: `(vector, name)` a course is laid on — see `ui/viewport_mark`.
     mark = None
+    #: `(vector, name, near)` for quays and hulls worth naming out there.
+    sights = ()
 
     """One camera's picture, live off a `Conn`."""
 
@@ -190,6 +192,7 @@ class Viewport(painting.Painted, QWidget):
         if conn is not None:
             self._sky(p, conn, cam, w, h)
             self._target(p, conn, cam, w, h)
+        viewport_mark.draw_sights(p, self.sights, project, cam, w, h)
         viewport_mark.draw(p, self.mark, project, cam, w, h)
         self._frame(p, label_text, w, h)
 
