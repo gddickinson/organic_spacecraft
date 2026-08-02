@@ -2450,6 +2450,11 @@ seedfall/
 │   ├── conn.py         the last ten kilometres: a local frame, thrusters and
 │   │                   the main drive, and what a contact costs. The pilot's
 │   │                   side — the console and what a burn is allowed to do
+│   ├── telepresence.py the law of the delay: how far a machine is (`gap_au`),
+│   │                  how much of its level survives the round trip
+│   │                  (`grip`), the two multiplied (`effective`), and what a
+│   │                  posted machine wards. A leaf — it takes the roster
+│   │                  lazily, so `sim/robots` imports it and not the reverse
 │   ├── hostiles.py     the hulls the captain has called enemies. Stored,
 │   │                  because a Contact is rebuilt every call; read in one
 │   │                  place, `traffic.in_system`, where the errand's answer

@@ -2,6 +2,48 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: the law of telepresence gets its own file
+
+#138, third debt paid. `sim/robots.py` was 616 with four banners of its own,
+and the first one — "── the law ──", lines 145..276 — is a single idea: how far
+away a machine is and how much of it survives the delay. 132 lines,
+contiguous, nothing else inside. `sim/robots.py` is 435.
+
+**It was not the clean leaf it looked like.** Measured through `ast` before
+moving anything: the law needs `owned` from the roster (in `ward_from`) *and*
+the roster needs `effective` from the law (in `standing`, `aboard_effects`,
+`working`). A two-way dependency, so a plain move is a cycle.
+
+The resolution is the one `sim/conn_step` already uses in reverse: the new
+module is the leaf and takes its two roster references *inside* the functions
+that need them — `ABOARD`/`STOWED` in `gap_au`, `owned` in `ward_from` — so
+`sim/robots` can import it at module level and the seam runs one way.
+
+**Five constants moved and two stayed, decided by counting readers.**
+`HALF_LIFE_S`, `STANDING`, `LIGHT_S_PER_AU`, `AU_PER_LY` and `ALONGSIDE_AU`
+are read only by the law. `ABOARD` and `STOWED` are read by eight functions in
+the roster, so they stayed — the same rule that kept `ALONGSIDE_RATE` in
+`sim/conn` and let `TUG_*` travel with the tug.
+
+**And I very nearly left a re-export behind.** The first wiring had
+`sim/robots` importing all five law functions so its old callers kept working
+— which is a second door, the thing this project keeps closing. `robots`
+imports only `effective`, which it actually uses; `ui/machineshop`,
+`ui/robots_panel`, `sim/colony`, `test_robots` and `test_swarm` were repointed
+at `sim/telepresence` on their existing import lines, so `test_robots` stayed
+at exactly its recorded 624.
+
+**The wrong turn, and it is the recorded one wearing another hat.** I checked
+who *called* the moved functions and not who *imported the moved constants*.
+Four checks went red — the autonomy ladder, the light-year holding, light-lag
+at gunfight range, and which machines count as guards — because `test_robots`
+and `test_swarm` read `HALF_LIFE_S`, `LIGHT_S_PER_AU` and `GUARD_DUTY` through
+`robots`. A split is not done when it parses, and it is not done when the
+function callers are found either.
+
+Five mutations red, including putting the paid debt back on the length list.
+Twelve debts to eleven; 540 lines of debt left.
+
 ## 2026-08-02 — SEEDFALL: flew the Pilot screen through its own buttons
 
 Asked to fly it from the GUI and find problems, so I pressed what a player

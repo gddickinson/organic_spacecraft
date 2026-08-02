@@ -20,7 +20,7 @@ from PyQt6.QtWidgets import QHBoxLayout, QWidget
 
 from ..data.robots import (ROBOTS_BY_ID, autonomy_name, autonomy_note,
                            autonomy_tint)
-from ..sim import robots as robots_sim
+from ..sim import robots as robots_sim, telepresence as tele_sim
 from .widgets import Panel, Pill, label, note, spacer
 
 #: Below this share of its rated level, a machine is doing nothing useful and
@@ -43,7 +43,7 @@ def where_line(game, robot) -> str:
 
 def lag_line(game, robot) -> str:
     """The round trip to it, said the way the distance deserves."""
-    seconds = robots_sim.lag_seconds(game, robot)
+    seconds = tele_sim.lag_seconds(game, robot)
     if seconds < 1.0:
         return "no delay worth the name"
     if seconds < 120:
@@ -88,7 +88,7 @@ def build(game) -> Panel:
 
     for robot in mine:
         klass = ROBOTS_BY_ID[robot.class_id]
-        got = robots_sim.effective(game, robot)
+        got = tele_sim.effective(game, robot)
         share = got / klass.level if klass.level else 0.0
         row = QWidget()
         line = QHBoxLayout(row)

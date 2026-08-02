@@ -9,7 +9,7 @@ rather than about whether a data table has twenty rows in it.
 The curve is the ECSS ladder against real light time: a lunar round trip is
 three to five seconds and is already at the edge of hand-flying; Mars is eight
 to forty minutes, which is why nobody drives a rover with a joystick. Those two
-figures are what `sim/robots.HALF_LIFE_S` is set from, and the first check
+figures are what `sim/telepresence.HALF_LIFE_S` is set from, and the first check
 holds them there.
 
 The claims:
@@ -36,7 +36,7 @@ import math
 from ..core.state import new_game
 from ..data.robots import ROBOTS, ROBOTS_BY_ID
 from ..sim import colony as colony_sim
-from ..sim import robots as robots_sim
+from ..sim import robots as robots_sim, telepresence as tele_sim
 from ..sim import works as works_sim
 from .harness import Suite
 
@@ -79,24 +79,24 @@ def run(suite: Suite) -> None:
         # Alongside, everything works. The rungs only separate at range, and
         # they separate at the ranges the real figures say they should.
         for level in (1, 2, 3, 4):
-            assert robots_sim.grip(level, 0.0) == 1.0, level
-        moon = robots_sim.grip(1, MOON_ROUND_TRIP_S)
+            assert tele_sim.grip(level, 0.0) == 1.0, level
+        moon = tele_sim.grip(1, MOON_ROUND_TRIP_S)
         assert 0.45 < moon < 0.55, (
             f"a teleoperated hand at the Moon works at {moon:.2f}; the whole "
             "point of that figure is that it is the halfway house")
-        mars = robots_sim.grip(2, MARS_ROUND_TRIP_S)
+        mars = tele_sim.grip(2, MARS_ROUND_TRIP_S)
         assert mars < 0.4, f"preplanned at Mars range is {mars:.2f}"
-        far = 2 * 1.0 * robots_sim.LIGHT_S_PER_AU
-        assert robots_sim.grip(1, far) < 0.01, "teleoperation survives an AU"
-        assert robots_sim.grip(4, far) > 0.99, "a goal-directed hand felt an AU"
+        far = 2 * 1.0 * tele_sim.LIGHT_S_PER_AU
+        assert tele_sim.grip(1, far) < 0.01, "teleoperation survives an AU"
+        assert tele_sim.grip(4, far) > 0.99, "a goal-directed hand felt an AU"
         # Monotone in autonomy at every range that matters, or the ladder is
         # not a ladder.
         for lag in (10.0, 600.0, 3600.0, 40_000.0):
-            got = [robots_sim.grip(a, lag) for a in (1, 2, 3, 4)]
+            got = [tele_sim.grip(a, lag) for a in (1, 2, 3, 4)]
             assert got == sorted(got), (lag, got)
         return (f"Moon {moon:.0%} for E1 · Mars {mars:.0%} for E2 · at 1 AU "
-                f"E1 {robots_sim.grip(1, far):.1%} against E4 "
-                f"{robots_sim.grip(4, far):.1%}")
+                f"E1 {tele_sim.grip(1, far):.1%} against E4 "
+                f"{tele_sim.grip(4, far):.1%}")
 
     @check("the same holding, two machines, an order of magnitude apart")
     def _():
@@ -109,16 +109,16 @@ def run(suite: Suite) -> None:
         for robot in (rigger, verger):
             ok, why = robots_sim.post(game, robot, f"colony:{colony.id}")
             assert ok, why
-        gap = robots_sim.gap_au(game, rigger)
+        gap = tele_sim.gap_au(game, rigger)
         assert gap > 0.2, f"the holding is only {gap:.3f} AU off; move the test"
-        assert abs(gap - robots_sim.gap_au(game, verger)) < 1e-9
-        weak = robots_sim.effective(game, rigger)
-        strong = robots_sim.effective(game, verger)
+        assert abs(gap - tele_sim.gap_au(game, verger)) < 1e-9
+        weak = tele_sim.effective(game, rigger)
+        strong = tele_sim.effective(game, verger)
         assert strong > weak * 10, (
             f"level 4 teleoperated {weak:.3f} against level 3 adaptive "
             f"{strong:.3f} at {gap:.2f} AU — the rung is not being felt")
         assert weak < 0.1, f"a hand-flown frame at {gap:.2f} AU works at {weak:.2f}"
-        return (f"{gap:.2f} AU · {robots_sim.lag_seconds(game, rigger) / 60:.0f} "
+        return (f"{gap:.2f} AU · {tele_sim.lag_seconds(game, rigger) / 60:.0f} "
                 f"min round trip · rigger {weak:.3f} against verger {strong:.2f}")
 
     @check("a machine on the bridge is a hand the bridge already reads")
@@ -236,7 +236,7 @@ def run(suite: Suite) -> None:
         # A broken machine holds no station and costs nothing to keep.
         stopped = robots_sim.build(game, "precentor")
         stopped.condition = 0.0
-        assert robots_sim.effective(game, stopped) == 0.0
+        assert tele_sim.effective(game, stopped) == 0.0
         assert not any(h.role_name == "Precentor"
                        for h in robots_sim.standing(game))
         # Put down, the living one comes back and the welded one does not.
@@ -290,7 +290,7 @@ def run(suite: Suite) -> None:
         colony = _holding(game)
         rigger = robots_sim.build(game, "rigger")
         robots_sim.post(game, rigger, f"colony:{colony.id}")
-        got = robots_sim.effective(game, rigger)
+        got = tele_sim.effective(game, rigger)
         rated = ROBOTS_BY_ID["rigger"].level
         assert got < rated * robots_panel.USEFUL, (got, rated)
         where = robots_panel.where_line(game, rigger)
@@ -298,7 +298,7 @@ def run(suite: Suite) -> None:
         said = robots_panel.lag_line(game, rigger)
         assert "round trip" in said, said
         # The minutes on the screen are the minutes in the sim.
-        minutes = robots_sim.lag_seconds(game, rigger) / 60.0
+        minutes = tele_sim.lag_seconds(game, rigger) / 60.0
         assert f"{minutes:.0f} min" in said, (said, minutes)
 
         # And through the panel itself, not through its helpers. Swept, and
@@ -417,7 +417,7 @@ def run(suite: Suite) -> None:
         robot = robots_sim.owned(game)[0]
         assert robot.posting.startswith("colony:"), robot.posting
         # The quote and the act agree.
-        got = robots_sim.effective(game, robot)
+        got = tele_sim.effective(game, robot)
         assert f"{got:.2f}" in quoted, (quoted, got)
 
         # Scrapping gives materials back and takes it off the roster.
@@ -590,8 +590,8 @@ def run(suite: Suite) -> None:
         anchorite = robots_sim.build(game, "anchorite")
         for robot in (verger, anchorite):
             robots_sim.post(game, robot, f"colony:{colony.id}")
-        near = (robots_sim.effective(game, verger),
-                robots_sim.effective(game, anchorite))
+        near = (tele_sim.effective(game, verger),
+                tele_sim.effective(game, anchorite))
         # Sail away. The holding does not move; the ship does.
         from ..world import galaxy
         here = game.system
@@ -602,10 +602,10 @@ def run(suite: Suite) -> None:
                     key=lambda s: galaxy.distance(here, s))
         light_years = galaxy.distance(here, other)
         game.location_id = other.id
-        far_au = robots_sim.gap_au(game, verger)
+        far_au = tele_sim.gap_au(game, verger)
         assert far_au > 10_000, f"{far_au:,.0f} AU is not another system"
-        away = (robots_sim.effective(game, verger),
-                robots_sim.effective(game, anchorite))
+        away = (tele_sim.effective(game, verger),
+                tele_sim.effective(game, anchorite))
         # Out of contact, each rung falls to exactly what it can do by
         # itself — which for an adaptive machine is a quarter and for a
         # goal-directed one is most of it, because executing the mission
@@ -617,7 +617,7 @@ def run(suite: Suite) -> None:
             f"a goal-directed machine kept only {away[1]:.3f} of "
             f"{near[1]:.3f} — it is bought to be left behind")
         assert away[1] > away[0] * 2.0, away
-        years = far_au * robots_sim.LIGHT_S_PER_AU * 2 / (86400 * 365.25)
+        years = far_au * tele_sim.LIGHT_S_PER_AU * 2 / (86400 * 365.25)
         assert years > 1.0, years
         return (f"{light_years:.1f} ly · {years:.1f} years of round trip · "
                 f"verger {near[0]:.2f} → {away[0]:.4f}, anchorite "

@@ -50,7 +50,7 @@ from ..data.robots import ROBOTS_BY_ID
 from ..sim import colony as colony_sim
 from ..sim import flight
 from ..sim import interdiction as idn
-from ..sim import robots as robots_sim
+from ..sim import robots as robots_sim, telepresence as tele_sim
 from ..sim import settlement as settlement_sim
 from ..sim import track as track_sim
 from .harness import Suite
@@ -92,10 +92,10 @@ def run(suite: Suite) -> None:
         for units in (tactical.BAND_UNITS, arena):
             # Read as kilometres, which is generous — the arena is abstract.
             lag = 2.0 * units / 299_792.458
-            kept = robots_sim.grip(1, lag)
+            kept = tele_sim.grip(1, lag)
             assert kept > 0.99, (
                 f"a teleoperated hand at {units:,.0f} km keeps {kept:.1%}")
-        half = robots_sim.HALF_LIFE_S[1] * 299_792.458 / 2.0
+        half = tele_sim.HALF_LIFE_S[1] * 299_792.458 / 2.0
         assert half > arena * 100, (
             f"halving a teleoperated hand takes {half:,.0f} km against an "
             f"arena {arena:,.0f} across — light-lag might reach a battle "
@@ -116,7 +116,7 @@ def run(suite: Suite) -> None:
 
         # A machine with no ground duty is not a guard, however good it is.
         spare = next(r for r in ROBOTS_BY_ID.values()
-                     if robots_sim.GUARD_DUTY not in r.duties)
+                     if tele_sim.GUARD_DUTY not in r.duties)
         _post(game, spare.id)
         assert colony_sim.ward_at(game, game.system.id) == 0.0, (
             f"{spare.id} has duties {spare.duties} and is standing guard")

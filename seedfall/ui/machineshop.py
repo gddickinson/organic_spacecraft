@@ -25,7 +25,7 @@ from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QWidget
 from ..data.chassis import FAMILY_LABEL, FAMILY_ORDER, FAMILY_TINT
 from ..data.robots import (DUTIES, ROBOTS, ROBOTS_BY_ID, autonomy_name,
                            autonomy_note, autonomy_tint, by_family)
-from ..sim import robots as robots_sim
+from ..sim import robots as robots_sim, telepresence as tele_sim
 from .robots_panel import lag_line, where_line
 from .thumb3d import Thumb
 from .widgets import Card, Panel, Pill, button, label, note, spacer
@@ -64,7 +64,7 @@ def worth_at(game, robot, posting: str) -> float:
     was = robot.posting
     try:
         robot.posting = posting
-        return robots_sim.effective(game, robot)
+        return tele_sim.effective(game, robot)
     finally:
         robot.posting = was
 

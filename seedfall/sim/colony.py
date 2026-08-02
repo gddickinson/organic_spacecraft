@@ -370,11 +370,11 @@ def ward_at(game, system_id: int) -> float:
     standing, which is the one place in this game where `robots.grip` decides
     something a power can feel: see `sim/robots.ward_from`.
     """
-    from . import robots as robots_sim
+    from . import telepresence as tele_sim
     built = sum(works.effects_of(c).get("ward", 0.0)
                 for c in game.colonies
                 if c.online and c.system_id == system_id)
-    return min(0.9, built + robots_sim.ward_from(game, system_id))
+    return min(0.9, built + tele_sim.ward_from(game, system_id))
 
 
 #: How much of an attack a megastructure simply shrugs off.

@@ -146,6 +146,9 @@ KIN = {
     "berths3d": ("standoff", "silhouettes"),
     "works3d": ("works3d",),
     "robots": ("robots",),
+    # Split out of `robots` (#138). Earned: `robots` catches HALF_LIFE_S,
+    # LIGHT_S_PER_AU and AU_PER_LY; `swarm` catches GUARD_DUTY.
+    "telepresence": ("robots", "swarm"),
     "robots3d": ("robots3d",),
     "bays": ("bay", "berthing"),
     "control": ("control", "berthing"),
