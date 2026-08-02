@@ -72,12 +72,39 @@ def ensure(game) -> WeaveState:
 
 # ── where they are ─────────────────────────────────────────────────────────
 
+#: `sites`, `ancient_links` and `lit_at_dawn` by galaxy seed. See `sites`.
+_SHAPE: dict = {}
+
+
+def _key(galaxy) -> tuple:
+    """What a galaxy's shape depends on: its seed, and nothing else.
+
+    A `Galaxy` is generated deterministically from its seed and is never added
+    to afterwards — the one `systems.append` in `world/galaxy.py` runs while it
+    is being built. The system count rides along as a cheap guard against a
+    galaxy assembled some other way.
+    """
+    return (galaxy.seed, len(galaxy.systems))
+
+
 def sites(galaxy) -> list[int]:
     """The ancient anchor systems, spread across the sector.
 
     Farthest-point sampling, which is deterministic and needs no luck at all
     beyond the tie-break: the same galaxy always grows the same Weave.
+
+    **And it is answered once per galaxy, because it was costing the game its
+    responsiveness.** This is O(sites x systems) with a `min` over the chosen
+    set inside the loop, and every question about where a hull is walks
+    `track.at` -> `traffic.in_system` -> `_busyness` -> `weave.gate_at` ->
+    `gates` -> here. Profiled on the Pilot screen, one button press ran
+    `world.galaxy.distance` **151,728 times** and took 48.7 ms — a visible
+    stutter on every click. Nothing about the answer can change inside a
+    chronicle, so it is computed once and kept.
     """
+    hit = _SHAPE.get(("sites", _key(galaxy)))
+    if hit is not None:
+        return hit
     systems = galaxy.systems
     if len(systems) <= 2:
         return [s.id for s in systems]
@@ -97,6 +124,7 @@ def sites(galaxy) -> list[int]:
         if far is None:
             break
         chosen.append(far)
+    _SHAPE[("sites", _key(galaxy))] = chosen
     return chosen
 
 
@@ -111,6 +139,9 @@ def _ring_order(galaxy, ids: list[int]) -> list[int]:
 
 def ancient_links(galaxy) -> dict:
     """The ancient rings: system id -> the system ids it is paired with."""
+    hit = _SHAPE.get(("links", _key(galaxy)))
+    if hit is not None:
+        return hit
     ids = sites(galaxy)
     if len(ids) < 2:
         return {i: () for i in ids}
@@ -132,7 +163,9 @@ def ancient_links(galaxy) -> dict:
                 pairs[a].add(b)
                 pairs[b].add(a)
                 break
-    return {i: tuple(sorted(v)) for i, v in pairs.items()}
+    out = {i: tuple(sorted(v)) for i, v in pairs.items()}
+    _SHAPE[("links", _key(galaxy))] = out
+    return out
 
 
 def lit_at_dawn(galaxy) -> list[int]:

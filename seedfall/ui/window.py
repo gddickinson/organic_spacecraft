@@ -288,7 +288,17 @@ class MainWindow(QMainWindow):
             self.toast("A party is on the ground. Bring them up first.", "warn")
             view_id = "ground"
         if self.current is not None:
-            self.views[self.current].hide()
+            going = self.views[self.current]
+            # **A screen is told when it is being left.** `hideEvent` looks
+            # like the door and is not: `hide()` on a widget that was never
+            # actually shown — a window still building, or one minimised —
+            # posts no event at all, so a screen with a live timer would keep
+            # beating after the pilot walked away. This fires on every route
+            # out, including the ones nobody remembered to write a callback
+            # for.
+            if hasattr(going, "leaving"):
+                going.leaving()
+            going.hide()
         self.current = view_id
         # The tutorial watches state, not clicks — but "you looked at the
         # plans" is only observable here, so the window reports what it opened.

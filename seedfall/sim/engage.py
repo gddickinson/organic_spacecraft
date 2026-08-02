@@ -66,7 +66,7 @@ def range_km(game, conn, contact) -> float:
     return math.dist((sx, sy), (ax, ay)) * freeflight.KM_PER_AU
 
 
-def band_for(game, conn, contact) -> int:
+def band_for(game, conn, contact, km: float | None = None) -> int:
     """Which of `combat.BANDS` a fight opened now would start at.
 
     0 (Contact) alongside, up to the last band at `reach_km`. Measured against
@@ -74,10 +74,12 @@ def band_for(game, conn, contact) -> int:
     """
     bands = len(combat_sim.BANDS)
     step = reach_km() / bands
-    return max(0, min(bands - 1, int(range_km(game, conn, contact) / step)))
+    if km is None:
+        km = range_km(game, conn, contact)
+    return max(0, min(bands - 1, int(km / step)))
 
 
-def may_engage(game, conn, contact) -> tuple[bool, str]:
+def may_engage(game, conn, contact, km: float | None = None) -> tuple[bool, str]:
     """Whether the pilot may open fire on this contact, and why not.
 
     A refusal is an answer with a reason in it, the way `sim/clearance`
@@ -96,6 +98,26 @@ def may_engage(game, conn, contact) -> tuple[bool, str]:
                        "Opening fire on it is not a thing the board will do.")
     if not any(getattr(w, "wpn", None) for w in game.ship_stats.weapons):
         return False, "Nothing aboard is a weapon. There is nothing to fire."
+    # **There was no range gate at all, and the picture found it.** Rendered,
+    # the fire control offered to open fire on a hull 1,293,058,866 km away
+    # and called it extreme range — because `band_for` clamps to the last
+    # band, so everything past `reach_km` reads as merely far rather than as
+    # out of the question. Measured on seed "fire": four of the five hulls in
+    # the system were engageable, the worst of them 129,306 times past reach.
+    #
+    # `reach_km` is `freeflight.far_km()`, 10,000 km — the distance the
+    # free-flight screens already call far from where she was let go. Past
+    # that there is no fight to open, only a plot to lay.
+    # `km` is the range if the caller has already measured it. **Not a second
+    # door** — it is this one's own answer, handed back in. A screen listing
+    # six contacts asked `range_km` three times per row (here, `band_for`, and
+    # the sentence), and every ask rebuilds the system's traffic.
+    if km is None:
+        km = range_km(game, conn, contact)
+    if km > reach_km():
+        return False, (
+            f"{getattr(contact, 'name', 'It')} is {km:,.0f} km off. The guns "
+            f"reach {reach_km():,.0f}. Close the range first.")
     return True, ""
 
 
@@ -130,12 +152,13 @@ def open_fire(game, conn, contact, rng):
     return battle, ""
 
 
-def note(game, conn, contact) -> str:
+def note(game, conn, contact, km: float | None = None) -> str:
     """One line on what opening fire from here would mean, for a screen."""
-    ok, why = may_engage(game, conn, contact)
+    if km is None:
+        km = range_km(game, conn, contact)
+    ok, why = may_engage(game, conn, contact, km)
     if not ok:
         return why
-    band = band_for(game, conn, contact)
+    band = band_for(game, conn, contact, km)
     return (f"Opening fire would begin at {combat_sim.BANDS[band].lower()} "
-            f"range — {range_km(game, conn, contact):,.0f} km off "
-            f"{getattr(contact, 'name', 'it')}.")
+            f"range — {km:,.0f} km off {getattr(contact, 'name', 'it')}.")

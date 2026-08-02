@@ -1764,6 +1764,30 @@ A first attempt slewed `conn.nose` at the contact directly and moved the range
 `apply` slews the nose back onto the heading every tick. The heading is what
 the flight computer reads; the nose is what it writes.
 
+**The guns, and how fast the screen answers.** `ui/fire_panel.py` is the button
+`sim/engage` waited for. It refuses out loud — `may_engage` returns a sentence
+so the board can print "The guns answer to the conn, and the conn is flying an
+approach" instead of going grey — and it hands over the `Battle` that
+`engage.open_fire` built rather than letting `ui/battle_view.begin` construct a
+second one with no band. Measured, the same hull at two distances: 5,091 km
+opens at Medium, 3,405 km at Close, and the window carries that band.
+
+Rendering it found the gap nothing else would have: the first draft offered to
+open fire on a hull **1,293,058,866 km** away and called it extreme range,
+because `band_for` clamps to the last band so everything past `reach_km`
+(10,000 km) reads as far rather than as impossible. `may_engage` gates on range
+now.
+
+**And the Pilot screen used to stutter.** One press of Ahead took 48.7 ms and
+ran `world.galaxy.distance` **151,728 times**, because `weave.sites` — a
+farthest-point sample over the whole sector, pure in the galaxy alone — sits on
+the path of every question about where a hull is, and the screen asked for
+every range thirty-two times a click. The sector shape is memoised per galaxy
+seed (a `Galaxy` never grows after it is built) and the ranges are measured
+once per rebuild and handed down: **12.3 ms, 0 distances, 6 traffic rebuilds**.
+The check counts `galaxy.distance` rather than timing anything, because
+counting calls to `sites` proves nothing once it returns from a memo.
+
 `ui/conn_controls.py` is the console itself, split out of `ui/conn_window.py`
 when that went past five hundred lines along a seam already there — the window
 owns the cameras, the panel and the clock. The panel names the settings in m/s,
@@ -2392,6 +2416,9 @@ seedfall/
 │   ├── expedition_view.py  the landing zone: fogged map, party, field log
 │   ├── diplomacy_view.py   relations matrix and the overture desk
 │   ├── helm_view.py    the helm screen: burn planner, where to put in
+│   ├── fire_panel.py  the fire control: what is in reach, what firing would
+│   │                  mean at that range, and the trigger. Refusals print;
+│   │                  the battle `engage` built is handed over, not rebuilt
 │   ├── painting.py    one door for painting on a widget: `Painted` owns the
 │   │                  painter's lifetime so a paint that cannot begin (or
 │   │                  dies mid-frame) is recorded in `MISSES` rather than

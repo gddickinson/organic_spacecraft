@@ -33,6 +33,7 @@ from ..sim import freeflight as free_sim
 from ..sim import instruments as panel_sim
 from ..sim import pilot as pilot_sim
 from ..sim import track as track_sim
+from . import fire_panel
 from .viewport import Viewport
 from .widgets import Panel, View, button, note
 
@@ -154,6 +155,24 @@ class PilotView(View):
         self.refresh()
         return said
 
+    def leaving(self) -> None:
+        """Walking off the bridge stops the clock, however you left.
+
+        **Not a callback passed by whoever navigated away.** The first version
+        had `fire_panel` take an `after` hook so opening fire could stop the
+        beat, and a mutation showed exactly what that is worth: the guarantee
+        held only for the one button that remembered to pass it. Time not
+        passing while you are being shot at is a rule about the game, not
+        about a button — and the same goes for walking to the Shipyard with
+        the clock running.
+
+        `hideEvent` was the second attempt and is not the door either: Qt
+        posts no hide event for a widget that was never really shown, so it
+        held in a played window and not in a built one. `ui/window.go` calls
+        this on every route out.
+        """
+        self.set_running(False)
+
     def set_running(self, on: bool) -> None:
         self.running = bool(on) and self.conn is not None
         if self.running:
@@ -175,17 +194,20 @@ class PilotView(View):
 
     # ── what is out there ──────────────────────────────────────────────────
 
-    def in_view(self) -> list:
-        """Contacts worth naming, nearest first."""
+    def ranged(self) -> list:
+        """`(km, contact)` for everything but the star, nearest first.
+
+        Measured once and handed down. Asking per widget cost 27 rebuilds of
+        the system's traffic per button press — see `ui/fire_panel.ranged`.
+        """
         if self.conn is None:
             return []
-        out = []
-        for contact in track_sim.contacts(self.game):
-            if contact.kind == "star":
-                continue
-            out.append((engage_sim.range_km(self.game, self.conn, contact),
-                        contact))
-        return [c for _km, c in sorted(out, key=lambda row: row[0])]
+        here = [c for c in track_sim.contacts(self.game) if c.kind != "star"]
+        return fire_panel.ranged(self.game, self.conn, here)
+
+    def in_view(self) -> list:
+        """Contacts worth naming, nearest first."""
+        return [c for _km, c in self.ranged()]
 
     # ── painting ───────────────────────────────────────────────────────────
 
@@ -231,11 +253,11 @@ class PilotView(View):
                 f" km, nose {free_sim.off_course(self.game, self.conn, aim):.0f}° off")
         self.col.addWidget(board)
 
+        rows = self.ranged()
         near = Panel("In view")
-        seen = self.in_view()[:6]
-        for contact in seen:
-            km = engage_sim.range_km(self.game, self.conn, contact)
-            ok, _why = engage_sim.may_engage(self.game, self.conn, contact)
+        seen = [c for _km, c in rows][:6]
+        for km, contact in rows[:6]:
+            ok, _why = engage_sim.may_engage(self.game, self.conn, contact, km)
             marks = "  · on course" if contact.name == self.mark else ""
             near.add_row(contact.name,
                          f"{km:,.0f} km"
@@ -253,6 +275,15 @@ class PilotView(View):
                 button(f"Fly at {c.name}", lambda _=False, k=c: self.fly_at(k),
                        kind="flat")
                 for c in seen[:4]])
+
+        # **The guns.** One door, `ui/fire_panel`, shared with any other screen
+        # that grows a fire control — the board says what firing would mean at
+        # the range the flying earned, and the button prints its refusal
+        # instead of going grey.
+        self.col.addWidget(fire_panel.board(self.game, self.conn, rows))
+        guns = fire_panel.buttons(self.win, self.game, self.conn, rows)
+        if guns:
+            self.buttons(*guns)
 
         self.buttons(
             button("Stop clock" if self.running else "Run clock",

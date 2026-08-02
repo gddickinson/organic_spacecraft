@@ -62,6 +62,54 @@ def _rich(seed: str):
 def run(suite: Suite) -> None:
     check = suite.check
 
+    @check("the sector's shape is remembered per galaxy, not shared between them")
+    def _():
+        # `weave.sites` is a farthest-point sample over the whole sector, pure
+        # in the galaxy and nothing else, and it sat on the path of every
+        # question about where a hull is: `track.at` -> `traffic.in_system` ->
+        # `_busyness` -> `gate_at` -> `gates` -> here. Profiled through the
+        # Pilot screen, one button press ran `galaxy.distance` 151,728 times.
+        # It is answered once per galaxy now — which is only safe if the memo
+        # cannot hand one chronicle another one's sector.
+        from ..sim import weave as weave_sim
+        from ..world import galaxy as galaxy_mod
+
+        a, b = new_game("weave-a"), new_game("weave-b")
+        assert a.galaxy.seed != b.galaxy.seed, "the fixture built one galaxy"
+        first_a = weave_sim.sites(a.galaxy)
+        first_b = weave_sim.sites(b.galaxy)
+        assert first_a != first_b, (
+            f"two different sectors sampled to the same anchors: {first_a}")
+
+        # Asked again, each gets its own answer back — and does no work to
+        # produce it. A cache that ignored the seed would fail the first
+        # assertion; one that recomputed would fail the second.
+        real = galaxy_mod.distance
+        count = {"n": 0}
+        try:
+            def counted(*args, **kwargs):
+                count["n"] += 1
+                return real(*args, **kwargs)
+            galaxy_mod.distance = counted
+            weave_sim.distance = counted
+            again_a = weave_sim.sites(a.galaxy)
+            again_b = weave_sim.sites(b.galaxy)
+        finally:
+            galaxy_mod.distance = real
+            weave_sim.distance = real
+        assert again_a == first_a and again_b == first_b, (
+            "a galaxy was handed the wrong sector back")
+        assert count["n"] == 0, (
+            f"the sector was resampled {count['n']} distances after it was "
+            f"already known")
+
+        # And a chronicle rebuilt from the same seed grows the same Weave,
+        # which is what the memo must not be allowed to fake: this is a fresh
+        # Galaxy object with the same seed.
+        assert weave_sim.sites(new_game("weave-a").galaxy) == first_a
+        return (f"{len(first_a)} anchors for weave-a, {len(first_b)} for "
+                f"weave-b, remembered with 0 further distances")
+
     @check("the same sector always grows the same Weave")
     def _():
         # Derived, like anchorages and traffic: nothing about where the

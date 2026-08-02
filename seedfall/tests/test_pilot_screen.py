@@ -273,6 +273,65 @@ def run(suite: Suite) -> bool:
         return (f"course followed {target.name} across 90 days "
                 f"({moved:,.0f} km off), and both exits clear it")
 
+    @check("a button press rebuilds the sky a bounded number of times")
+    def _():
+        # **The lag the pilot could feel.** Profiled, one press of Ahead took
+        # 48.7 ms and ran `world.galaxy.distance` 151,728 times: every range
+        # on the screen was measured on demand, each measurement walked
+        # `track.at` -> `traffic.in_system`, and that rebuilt the Weave from
+        # scratch — `weave.sites` is a farthest-point sample over the whole
+        # sector and is pure in the galaxy alone.
+        #
+        # A stopwatch is not a check; it measures the machine. Counting the
+        # work is. `traffic.in_system` is the rebuild, and one press must not
+        # need many of them.
+        from ..sim import traffic as traffic_sim
+        from ..sim import weave as weave_sim
+        from ..world import galaxy as galaxy_mod
+        game, _win, view = _bridge("lag")
+        view.burn("forward")                       # warm every one-off cache
+
+        # **Counting calls to `sites` proved nothing** — the memo makes it
+        # return early, so it is called just as often and costs nothing. What
+        # has to be counted is the work it used to do: `galaxy.distance`, the
+        # O(sites x systems) sweep, 151,728 of them per press before the fix.
+        real_in_system = traffic_sim.in_system
+        real_distance = galaxy_mod.distance
+        real_weave_distance = weave_sim.distance
+        tally = {"traffic": 0, "distance": 0}
+        try:
+            def counted_traffic(*a, **k):
+                tally["traffic"] += 1
+                return real_in_system(*a, **k)
+
+            def counted_distance(*a, **k):
+                tally["distance"] += 1
+                return real_distance(*a, **k)
+
+            traffic_sim.in_system = counted_traffic
+            galaxy_mod.distance = counted_distance
+            weave_sim.distance = counted_distance
+            view.burn("forward")
+        finally:
+            traffic_sim.in_system = real_in_system
+            galaxy_mod.distance = real_distance
+            weave_sim.distance = real_weave_distance
+
+        # Measured after the fix: 13 traffic rebuilds a press, from 27, and
+        # the sector shape is never resampled at all. The bounds are loose
+        # enough to survive a new panel and tight enough that going back to
+        # measuring per widget fails.
+        assert tally["traffic"] <= 20, (
+            f"one button press rebuilt the system's traffic "
+            f"{tally['traffic']} times")
+        assert tally["distance"] < 2000, (
+            f"one button press ran galaxy.distance {tally['distance']:,} "
+            f"times; the sector shape is pure in the galaxy and is sampled "
+            f"once, not on every question about where a hull is")
+        return (f"{tally['traffic']} traffic rebuilds and "
+                f"{tally['distance']:,} galaxy distances per press "
+                f"(was 27 and 151,728)")
+
     @check("flying from the bridge moves the ship on every other screen")
     def _():
         # `flight.stand_off` is the one writer of where a hull is when it is

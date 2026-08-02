@@ -2,6 +2,73 @@
 
 Running progress log. Newest first.
 
+## 2026-08-01 — SEEDFALL: the guns get a button, and the click stops stuttering
+
+#136. `sim/engage` had decided who may be fired on and at what band since it
+landed, and nothing in `ui/` could reach it. `ui/fire_panel.py` is the button —
+one door, taking `(win, game, conn)` rather than a window, because the Pilot
+screen holds its own free flight while the conn window keeps one on the game.
+
+**The two-door risk was real and is closed.** `ui/battle_view.begin` builds its
+own `Battle` from an encounter dict with no band, so routing a conn engagement
+through it would have thrown away the range the pilot flew for. Measured, the
+same hull from two distances:
+
+    at rest,  5,091 km  ->  Medium
+    150 burns, 3,405 km ->  Close
+
+and the window's battle carries that band, because `engage.open_fire`'s battle
+is handed over rather than rebuilt.
+
+**The picture found a defect nothing else would have.** Rendered, the fire
+control offered to open fire on a hull **1,293,058,866 km** away and called it
+extreme range — `band_for` clamps to the last band, so everything past
+`reach_km` (10,000 km) reads as merely far rather than as out of the question.
+Four of the five hulls on seed "fire" were like that, the worst 129,306 times
+past reach. `may_engage` had no range gate at all; it has one now, and the
+board offers one gun instead of four and counts the rest.
+
+**A mutation caught a tautology of mine.** The check asserted `not view.running`
+after firing — and the clock had never been started, so it read False either
+way. Started properly, it went red, and it was right to: the clock only stopped
+because the *button* passed an `after` hook. Two attempts to fix that:
+`hideEvent` looked like the door and is not — Qt posts no hide event for a
+widget that was never really shown, so it held in a played window and not in a
+built one. `ui/window.go` calls `leaving()` on every route out now, so walking
+to the Shipyard stops the beat too.
+
+### And the pilot could feel the lag, so I measured it
+
+    one press of Ahead        48.7 ms
+    world.galaxy.distance     151,728 calls per press
+    traffic.in_system          27 rebuilds per press
+
+`weave.sites` is a farthest-point sample over the whole sector, **pure in the
+galaxy and nothing else**, and it sat on the path of every question about where
+a hull is: `track.at` -> `traffic.in_system` -> `_busyness` -> `gate_at` ->
+`gates` -> `sites`. A `Galaxy` is generated deterministically from its seed and
+never added to afterwards — the one `systems.append` runs while it is being
+built — so it is answered once per seed now.
+
+The other half was mine: `build()` measured every range on demand and the
+demand was thirty-two times a click, because `in_view`, the rows, the fly-at
+buttons, the board and the triggers each asked again, and `may_engage`,
+`band_for` and `note` each measured a third time inside one row. Measured once
+and handed down.
+
+    one press of Ahead        48.7 ms  ->  12.3 ms
+    galaxy.distance           151,728  ->  0
+    traffic.in_system              27  ->  6
+
+**Counting calls to `sites` proved nothing** — the memo makes it return early,
+so it is called exactly as often and costs nothing. The check counts
+`galaxy.distance`, which is the work that used to happen. A stopwatch would
+have measured the machine; this measures the program.
+
+Eleven mutations red across the two suites. The memo mutation that ignores the
+seed breaks two *pre-existing* weave checks as well as the new one, which is
+the evidence that caching a sector is correctness-critical and not merely fast.
+
 ## 2026-08-01 — SEEDFALL: the sweep that guards the constants had nothing guarding it
 
 #134, first half. The task said the fast paths were blind and named
