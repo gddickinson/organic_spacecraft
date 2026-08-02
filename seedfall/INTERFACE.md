@@ -137,6 +137,14 @@ key in silence. One assertion from the deleted pair was **not** a duplicate and
 only mutation found it: a ghost `KIN` entry, a row naming a module that does
 not exist, survived the deletion. It is folded into harness_guard's check now.
 
+**Fast paths are ordered cheapest-first, and the order is checked.** Timed:
+`politics` 145.4 s against `exchequer` 3.5, `industry` 7.5, `armada` 0.1.
+Measured constant by constant, seven of `exchequer`'s thirteen are held by
+`exchequer` and two more by `industry`, so its entry reads
+`("exchequer", "industry", "politics")` and the dear suite is reached only by
+what the cheap ones miss. Putting `politics` first fails a check, not merely
+the clock.
+
 **A fast path that misses its guard makes the sweep lie, not merely dawdle.**
 Measured: 19 constants swept, four on the shortlist, **all four already
 guarded** — `charts.KNOWN_WORTH` by `provenance` (0.3 s), the whole COURTSHIP_*

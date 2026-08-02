@@ -2,6 +2,49 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: measuring the guards one constant at a time
+
+#134, its own named next step: `exchequer` and `ventures` name `politics` —
+145.4 s a run, the dearest suite in the project — with nothing cheaper in front,
+so every constant those modules hold pays it. Timed the alternatives first:
+
+    armada 0.1 · accord 2.0 · fleets 2.7 · exchequer 3.5 · ticks 3.6
+    industry 7.5 · geography 11.4 · levy 11.9 · territory 14.7 · orders 29.9
+    politics 145.4
+
+Every one of them is cheaper, `orders` at 30 s by a factor of five.
+
+**Measured constant by constant**, mutating each and asking the cheap suites in
+turn, ten of `exchequer`'s thirteen resolved:
+
+    YIELD_PER_LEVEL  UPKEEP_COEFF  CAPITAL_BONUS  SHORTAGE_YIELD
+    FOUND_COST  RESERVE  RICH_APPETITE          -> exchequer   (3.5 s)
+    INDUSTRY_YIELD  WAR_CHEST                   -> industry    (7.5 s)
+    VENTURE_STAKE                               -> none of the cheap ones
+
+So `exchequer` names `("exchequer", "industry", "politics")` now — cheapest
+first — and two constants that used to cost 145 s a variant cost 7.5.
+
+**The run did not finish.** `SETTLE_DAYS`, the eleventh, sat for half an hour:
+set to 0 it sends some suite into a very slow path, which is exactly what
+`tripwire`'s own `LIMIT = 60` exists to bound and what my scratchpad probe,
+with a 400-second timeout and no signal handler, did not. `ventures` was never
+reached.
+
+**And the probe left `SETTLE_DAYS = 0` on disk** when I killed it, because
+unlike `tripwire.main` it registers no SIGTERM restore. Restored from git —
+and worth noting what did *not* happen: the file was intact but for that one
+line. Last cycle's atomic `put` held, where the week before the same situation
+truncated `data/diplomacy.py` by 168 lines.
+
+Two mutations red, one of them a surprise: putting `politics` *first* in the
+entry fails the ordering check as well as costing time, so cheapest-first is
+held rather than merely intended.
+
+Eleven measured guards recorded now. Two constants are still open —
+`exchequer.VENTURE_STAKE` and `exchequer.SETTLE_DAYS` — and `ventures`'s six
+are unmeasured.
+
 ## 2026-08-02 — SEEDFALL: the shortlist was all false, and a hard kill ate a file
 
 #134. Ran the fast sweep over everything. It is **not** the fifteen minutes I

@@ -229,8 +229,12 @@ KIN = {
     "gunnery": ("volley", "gunboard", "gunnery"),
     "battle3d": ("gunfire",),
     "burnplan": ("thrusters", "helm"),
-    "exchequer": ("exchequer", "politics"),
+    "exchequer": ("exchequer", "industry", "politics"),
     "industry": ("industry", "exchequer"),
+    # Measured constant by constant (#134): `exchequer` catches seven of its
+    # thirteen in 3.5 s and `industry` catches two more in 7.5 — INDUSTRY_YIELD
+    # and WAR_CHEST — which used to fall through to `politics` at 145.4 s a
+    # variant. Cheapest first, dearest last.
     "rumours": ("provenance", "explore", "missions"),
     "memory": ("provenance", "grudges"),
     "options": ("options",),

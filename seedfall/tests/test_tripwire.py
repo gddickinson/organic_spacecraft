@@ -76,6 +76,10 @@ MEASURED = [
     # Moved out of `sim/control` with the tug (#138); `control` catches
     # `TUG_FROM` at half.
     ("tug", "TUG_FROM", "control"),
+    # `exchequer` names `politics` at 145.4 s as its fallback. Measured
+    # constant by constant, `industry` holds these two for 7.5 s.
+    ("exchequer", "INDUSTRY_YIELD", "industry"),
+    ("exchequer", "WAR_CHEST", "industry"),
 ]
 
 
