@@ -12557,3 +12557,21 @@ four private copies of the armed state. What was done, in one session:
   three windows, objectNames on every flight control.
 - **`sim/flight.py`'s length debt paid** — `sim/path.py` took the arc, the
   heat and the risk. `tests/test_flightdeck.py` (9 checks) pins the lot.
+
+## The second pass: the deck's own backlog (2026-08-03)
+
+- **Transit parity** — `transit.finish` applies the arrival heat and rolls
+  the risk the helm quoted (stored at commit; a recompute at arrival prices
+  a zero-length leg). The orrery walks the hull along the leg by watches
+  stood instead of parking it at the origin.
+- **Bays flown** — `bays.approach_aim`: mouth-axis hold point, corridor as
+  the phase test (not a distance race that flip-flopped a 40 t tank dry),
+  and a go-around when the chord would cut the core. 0/6 → 16/16 alongside
+  at a gestation shell/drum, on 1–2 t. `close` on a hull refused honestly.
+- **The descent order** — Put her down / Belay the descent on the conn
+  console; `sim/landing.py` finally reachable in play.
+- **Conn panel sync** — `ui/conn_panel.py`, 18–21 ms a beat down to 2.8.
+- **`engage.REACH_KM`** decoupled from `freeflight.far_km()`.
+- **The two masses documented as two laws** (handling vs registry; up to
+  six orders of magnitude apart across the fleet) rather than "fixed" into
+  one number that would break either flying or ramming.

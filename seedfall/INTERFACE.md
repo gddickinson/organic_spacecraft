@@ -2691,6 +2691,59 @@ bound in the class body. `tests/test_flightdeck.py` pins the lot: nine
 checks, from "one beat is one minute however many windows watch" to "a
 structure's patience runs on the tick".
 
+### The second pass: what the deck's own backlog measured out to
+
+**The forecast is true through both doors now.** `flight.travel_to` has
+applied arrival heat and rolled the quoted risk since the burn board was
+built; `transit.finish` applied **neither**, so the same leg on the same
+profile arrived at 42/50 heat flown instantly and stone cold flown watch by
+watch. The transit stores the risk the helm quoted when it was committed —
+recomputing at arrival would price a leg of zero length — and rolls it
+through the same `_incident` door. And the orrery walks the hull along the
+leg by watches stood, dashing what is still to fly: the recorded position is
+the departure body until arrival, so the one thing guaranteed to be moving
+was the one thing that never moved on the chart.
+
+**The computer can fly into a bay.** Measured before: six of six `close`
+approaches to a gestation shell ended in a **collision**, and a drum managed
+three of six — `moorings.aim`'s hold point sits on the *berth's* line, and a
+bay's berth is deliberately deep inside, so the corridor ran through the
+shell. `bays.approach_aim` is the corridor law now: the hold point is on the
+**mouth's axis** (the same hole `in_corridor` protects and the window
+draws), the phase test is the corridor itself rather than a distance race —
+the first draft handed over on nearing the hold point, and since point and
+berth sit on different lines, closing on one opened the other and a 40 t
+tank went dry shuttling between them — and a run that would chord the core
+stands out to the bisector first. Measured after: **16 of 16 alongside from
+every bearing on 1.0–2.1 t**, against 15–40 t and a mixed bag before.
+`close` on another *hull* is refused with the reason (there is no fitting to
+fly to); coming alongside a hull is hand-flying.
+
+**The ground is an order a captain can give.** `sim/landing.py` has told
+down, ditched and aground apart since it was written, and the order that
+makes "ditched" possible was reachable only from a check. The conn console
+carries **Put her down / Belay the descent** on body approaches, greyed with
+`why_not` where there is no surface, quoted through `landing.quote` — which
+is honest to the point of cruelty about arriving at orbital speed.
+
+**The conn window stopped churning.** Its side panel was torn down and
+rebuilt — every row, every label — on each beat; `ui/conn_panel.py` gives it
+the Pilot screen's medicine (#150): `content` is the one door for the words,
+`apply` updates labels in place on a beat and rebuilds only when the *set*
+of things said changes. Measured: 18–21 ms a refresh down to **2.8 ms**.
+
+**Two numbers that merely looked like one bug.** `engage.reach_km` was
+literally defined as `freeflight.far_km()` — flying *advice* and gunnery
+*reach*, coupled so a pacing retune silently rebanded every weapon; it owns
+its number now, equal today, moved deliberately or not at all. And the two
+ship masses are a **documented split, not a defect**: `thrusters.mass_tonnes`
+is the handling mass the drives push, `impulse.ship_mass` the registry mass
+a collision weighs, and across the fleet they differ by up to six orders of
+magnitude (a LEVIATHAN is twelve billion tonnes in the registry and 8,500
+in the hand) — fly the registry mass and the big hulls never move; collide
+the handling mass and ramming means nothing. The same shape as `radius_km`
+against `bays.hull_km`, made on purpose where it used to be an accident.
+
 ## Running
 
 ```
@@ -3067,6 +3120,9 @@ seedfall/
 │   │                  fly_beat and beat_refresh, bound as MainWindow methods
 │   ├── conn_moves.py  the acts that swap the conn's flight — retarget,
 │   │                  reopen, fly free — each billing the flight it replaces
+│   ├── conn_panel.py  the conn's side panel: `content` says what it shows,
+│   │                  `apply` updates in place and rebuilds only when the
+│   │                  set of things said changes
 │   ├── orbit_chart.py the orrery widget — paints bodies, quays, traffic
 │   │                  and the leg you are about to fly; answers clicks.
 │   │                  One door for label placement (`_room_for`) and one

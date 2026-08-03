@@ -373,8 +373,26 @@ class OrbitChart(QWidget):
 
         self._draw_course(p, g, s, cx, cy)
 
-        # the ship
+        # the ship — walked along the leg while a crossing is being stood.
+        # The recorded position is the departure body until `transit.finish`
+        # writes the arrival, so the hull used to sit parked at its origin
+        # for the whole crossing and then teleport: over a 46-day leg the
+        # one thing guaranteed to be moving was the one thing that never
+        # moved. The chart interpolates by watches stood, and dashes what is
+        # still to fly.
         sx, sy = flight.ship_position(g)
+        transit = getattr(g, "transit", None)
+        if transit is not None and not transit.over \
+                and 0 <= transit.body_index < len(g.system.bodies):
+            tx, ty = flight.position(g.system.bodies[transit.body_index],
+                                     g.day, mu_of(g.system))
+            share = max(0.0, min(1.0, transit.progress))
+            ex, ey = sx + (tx - sx) * share, sy + (ty - sy) * share
+            pen = QPen(QColor(theme.tint("lumen")), 1.0,
+                       Qt.PenStyle.DashLine)
+            p.setPen(pen)
+            p.drawLine(self._to_screen(ex, ey), self._to_screen(tx, ty))
+            sx, sy = ex, ey
         sp = self._to_screen(sx, sy)
         p.setPen(QPen(QColor(theme.tint("lumen")), 1.6))
         p.setBrush(Qt.BrushStyle.NoBrush)

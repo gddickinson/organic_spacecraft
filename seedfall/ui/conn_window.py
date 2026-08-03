@@ -14,7 +14,7 @@ so what the panel promises is what the burn does. The console itself is
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (QDialog, QHBoxLayout, QLabel, QVBoxLayout,
+from PyQt6.QtWidgets import (QDialog, QHBoxLayout, QVBoxLayout,
                              QWidget)
 
 from ..sim import autopilot as pilot_sim
@@ -23,11 +23,10 @@ from ..sim import freeflight as free_sim
 from ..sim import orbits
 from ..sim import pilot as console_sim
 from ..sim import conn as conn_sim
-from ..sim import instruments as panel_sim
 from ..sim import track as track_sim
 from .conn_targets import default_target  # re-exported: two checks import it here
 from . import fire_panel, sights, theme
-from . import conn_moves
+from . import conn_moves, conn_panel
 from .conn_controls import ConnControls
 from .viewport import Viewport
 from .widgets import button, label, note
@@ -393,72 +392,11 @@ class ConnWindow(QDialog):
         self.screen.sights = sights.out_there(
             self.game, conn, fire_panel.ranged(self.game, conn, self.contacts))
 
-        while self.side.count():
-            item = self.side.takeAt(0)
-            if item.widget():
-                # Now, not when the event loop next idles: a deferred delete
-                # leaves the old readout painted under the new one.
-                item.widget().setParent(None)
-        for name, value, kind in panel_sim.readout(conn):
-            row = QWidget()
-            line = QHBoxLayout(row)
-            line.setContentsMargins(0, 0, 0, 0)
-            left = QLabel(name)
-            left.setStyleSheet(f"color: {theme.INK3}; font-size: 12px;")
-            right = QLabel(value)
-            right.setStyleSheet(
-                f"color: {theme.tint(kind) if kind in theme.TINTS else theme.INK};"
-                f"font-family: '{theme.mono_family()}'; font-size: 12.5px;")
-            line.addWidget(left)
-            line.addStretch(1)
-            line.addWidget(right)
-            self.side.addWidget(row)
-        hint = conn_sim.orbit_note(conn)
-        if hint:
-            self.side.addWidget(note(hint))
-        # What the structure is doing about you. Every one of these lines was
-        # written into the sim and read by nobody but the suite: a hull could
-        # be refused, shot at, stood off from, towed or half way through a
-        # collar and the conn would say only what the last burn did. A rule no
-        # screen states is a rule the captain has to reverse-engineer.
-        from ..sim import control as control_sim
-        from ..sim import forcing as forcing_sim
-        from ..sim import tug as tug_sim
-        for said in (tug_sim.tug_line(conn), control_sim.refusal_line(conn),
-                     control_sim.sheer_line(conn),
-                     forcing_sim.force_line(conn),
-                     self.refused):
-            if said:
-                self.side.addWidget(note(said))
-        # A tick the drive spent swinging rather than burning. The bridge and
-        # the flight panel both said so; this window read the clock move, the
-        # mass drop and the speed hold still, and explained none of it.
-        if conn.fired_turning:
-            self.side.addWidget(note(
-                "Swinging the hull round — the drive only pushes along the "
-                "nose, so this tick is spent turning."))
-        # Where the nose is, and what is pushing. Until the engines had
-        # places and the hull had an orientation, neither of these existed.
-        #
-        # **Only on an approach.** `heading_note`'s default bearing is
-        # `-conn.pos` — the target, which in a free flight is *where she was
-        # let go*: measured, nose exactly on the mark and this line read
-        # "Nose 180° off — pointing away from the target" while the bridge
-        # read 0° off. Out there the bearing that means anything is to the
-        # mark, if one is laid.
-        from ..sim import attitude as attitude_sim
-        from ..sim import thrusters
-        if not free_sim.is_free(conn):
-            self.side.addWidget(note(attitude_sim.heading_note(conn)))
-        else:
-            aim = free_sim.marked(self.game, conn)
-            if aim is not None:
-                self.side.addWidget(note(attitude_sim.heading_note(
-                    conn, free_sim.toward(self.game, conn, aim))))
-        self.side.addWidget(label("Engines", "h3"))
-        for what, howmuch, where in thrusters.board(self.game.ship):
-            self.side.addWidget(note(f"{what} — {howmuch}, {where}"))
-        self.side.addStretch(1)
+        # The side panel — `ui/conn_panel.py`: updated in place on a beat,
+        # rebuilt only when the set of things it says changes. This window
+        # tore the whole column down four times a second, the same churn the
+        # Pilot screen was fixed for (#150).
+        conn_panel.apply(self, conn)
 
         if conn.over:
             self.status.setText(f"{conn.outcome.upper()} — "

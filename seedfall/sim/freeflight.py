@@ -324,6 +324,12 @@ def can_arm(game, conn, mode: str) -> tuple[bool, str]:
         return False, ("Nothing to " + ("berth at" if mode == "close"
                        else "orbit") + " out here — lay a course and run, "
                        "or take the conn on something.")
+    if mode == "close" and getattr(conn.target, "kind", "") == "hull":
+        # `moorings.aim` has no fitting to fly to on another ship, so the
+        # computer would close on its *centre* — which is a collision worn
+        # as a mode. Coming alongside a hull is hand-flying.
+        return False, ("Another hull keeps no mast for you. The computer "
+                       "will not fly it — take her alongside by hand.")
     return True, ""
 
 

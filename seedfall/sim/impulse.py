@@ -220,7 +220,13 @@ def hull_mass(game, hull_id=None) -> float:
 
 
 def ship_mass(game) -> float:
-    """The player's hull, in tonnes, off the chassis it was built on."""
+    """The player's hull, in tonnes, off the chassis it was built on.
+
+    The **registry mass** — what the hull weighs in a collision — as against
+    `thrusters.mass_tonnes`, the handling mass the drives push. See the note
+    there: the two differ by up to six orders of magnitude across the fleet
+    and serve two different laws on purpose.
+    """
     from ..data.chassis import CHASSIS_BY_ID
     if game is None:
         return 24_000.0

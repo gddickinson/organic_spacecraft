@@ -34,13 +34,20 @@ from . import encounters as encounters_sim
 from . import freeflight
 from . import track as track_sim
 
-#: The range at which a fight opens at the longest band.
+#: The range at which a fight opens at the longest band, in km.
 #:
-#: `freeflight.far_km()` — the distance the free-flight screens already call
-#: "far from where she was let go" — rather than a second number meaning the
-#: same thing. One door: move that and this moves with it.
+#: **Its own number now.** It was defined as `freeflight.far_km()` — the
+#: range past which the conn is the slow way to travel — on a "one door"
+#: argument. But those are two different facts that happened to share a
+#: value: one is *advice about flying*, the other is *how far a gun
+#: engagement reaches*, and retuning the advice (`freeflight.FAR_SHARE`)
+#: silently rebanded every weapon in the game. They start equal and are
+#: equal today; moving either is now a decision about the thing it governs.
+REACH_KM = 10_000.0
+
+
 def reach_km() -> float:
-    return float(freeflight.far_km())
+    return REACH_KM
 
 
 def range_km(game, conn, contact) -> float:

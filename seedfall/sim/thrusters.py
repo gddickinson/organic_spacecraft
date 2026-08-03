@@ -44,7 +44,18 @@ METRES_PER_HULL = 0.11
 #: make a ship handle worse, which is a thing a captain can feel and plan
 #: around.
 def mass_tonnes(ship) -> float:
-    """Everything that has to be accelerated, in tonnes."""
+    """The **handling mass**: what the drives push against, in tonnes.
+
+    Deliberately *not* `chassis.mass_t`, and the two must not be unified.
+    That figure is the registry's — what the hull weighs in the fiction and
+    what a collision weighs in `impulse.ship_mass` — and across the fleet it
+    runs from a tenth of this number (a SPORE) to 1.4 million times it (a
+    LEVIATHAN, whose grown bulk is twelve *billion* tonnes). Fly the
+    registry mass and the big hulls never move; collide the handling mass
+    and ramming means nothing. Two laws, two masses — the same split as
+    `radius_km` (how big it is drawn) against `bays.hull_km` (what you can
+    strike), made on purpose where it used to be an accident.
+    """
     from ..data.armaments import ARMAMENTS
     from ..data.modules import MODULES
 

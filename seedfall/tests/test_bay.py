@@ -228,3 +228,36 @@ def run(suite: Suite) -> None:
             "a Free Port has no aperture and something found one")
         return (f"{target.name}: drawn at {target.radius_km:.2f} km, solid to "
                 f"{solid:.2f}, and a world still solid to its own radius")
+
+    @check("the computer can be given a bay, and flies the way in")
+    def _():
+        # `close` used to hold at the *berth's* line, which for a bay runs
+        # through the shell: measured, six of six computer approaches to a
+        # gestation shell ended in a collision, and a drum managed three of
+        # six — the structure issued a procedure the flight computer could
+        # not fly. The corridor is the mouth's axis now, with a go-around
+        # when the straight run to it would cut the core.
+        import math
+        from ..sim import autopilot as auto_sim
+        flown, spend = [], []
+        for look in ("arca_drum", "gravid_nursery"):
+            for bearing in (0, 2, 5):        # mouth side, abeam, far side
+                game, target = _at(look, seed=f"in-{bearing}")
+                conn = conn_sim.start(game, target)
+                a = bearing * math.pi / 4
+                conn.pos = [math.cos(a) * conn.range_km,
+                            math.sin(a) * conn.range_km, 0.0]
+                conn.rcs = 40.0
+                for _ in range(8000):
+                    axis, main, throttle = auto_sim.autopilot(conn, "close")
+                    conn_sim.apply(conn, axis, main=main, throttle=throttle)
+                    if conn.over:
+                        break
+                assert conn.outcome == "alongside", (
+                    f"{look} from bearing {bearing}: {conn.outcome!r}")
+                flown.append((look, bearing))
+                spend.append(40.0 - conn.rcs)
+        assert max(spend) < 5.0, (
+            f"an approach spent {max(spend):.1f} t — the aim is hunting")
+        return (f"{len(flown)} computer approaches into both bay sorts, all "
+                f"alongside on {max(spend):.1f} t or less")

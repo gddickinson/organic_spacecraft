@@ -73,6 +73,15 @@ class ConnControls(QWidget):
         self.force_btn = button("Cut in", self._force, kind="flat")
         grid.addWidget(self.force_btn, 2, 3)
 
+        # The other captain's-decision button: putting the ship down on a
+        # world that will not give it back. `sim/landing.py` has told the
+        # three endings apart — down, ditched, aground — since it was
+        # written, and the order that makes "ditched" possible had no button:
+        # the whole file was reachable only from a check.
+        self.ditch_btn = button("Put her down", self._ditch, kind="flat")
+        self.ditch_btn.setObjectName("ditch")
+        grid.addWidget(self.ditch_btn, 2, 7)
+
         self.main_btn = button("Main drive: off", self._toggle_drive,
                                kind="flat")
         grid.addWidget(self.main_btn, 0, 3)
@@ -142,6 +151,20 @@ class ConnControls(QWidget):
         conn.log.append(forcing_sim.force(conn))
         self.window.refresh()
 
+    def _ditch(self) -> None:
+        """Order the descent, or belay it. The quote is the toast."""
+        conn = self.window.conn
+        if conn is None:
+            return
+        from ..sim import landing as landing_sim
+        if landing_sim.ditching(conn):
+            conn.ditching = False
+            self.window.win.toast("The descent order is belayed.")
+        else:
+            said = landing_sim.ditch(conn)
+            self.window.win.toast(said, "warn" if conn.ditching else "")
+        self.window.refresh()
+
     def _toggle_drive(self) -> None:
         self.use_main = not self.use_main
         self.window.refresh()
@@ -205,6 +228,23 @@ class ConnControls(QWidget):
         self._sync_throttle(conn, live)
         self._sync_axes(conn, live)
         self._sync_force(conn, live)
+        self._sync_ditch(conn, live)
+
+    def _sync_ditch(self, conn, live: bool) -> None:
+        """Only a world offers the ground, and the price is on the tooltip."""
+        from ..sim import landing as landing_sim
+        body = getattr(conn.target, "kind", "") == "body"
+        self.ditch_btn.setVisible(body)
+        if not body:
+            return
+        why = landing_sim.why_not(conn)
+        surface = "no surface" not in why and "not a world" not in why
+        self.ditch_btn.setEnabled(live and surface)
+        down = landing_sim.ditching(conn)
+        self.ditch_btn.setText("Belay the descent" if down else "Put her down")
+        light(self.ditch_btn, down, "warn")
+        self.ditch_btn.setToolTip(
+            landing_sim.quote(conn) if surface else why)
 
     def _sync_force(self, conn, live: bool) -> None:
         """Label the cut with what it would take, or why it cannot be made."""

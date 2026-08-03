@@ -342,6 +342,13 @@ def aim(conn) -> tuple:
     if out < 1e-9:
         return at
     hold = corridor_km(conn.target)
+    from . import bays
+    if bays.is_bay(getattr(conn.target, "berth", "") or ""):
+        # A bay is flown through its mouth, not at its berth — the corridor
+        # law lives with the corridor, `bays.approach_aim`; None means she
+        # is inside the way in and the berth itself is the aim.
+        way_in = bays.approach_aim(conn, hold, spin_of(conn))
+        return at if way_in is None else way_in
     point = tuple(c * hold / out for c in at)
     if math.dist(conn.pos, point) > reach_km(conn.target):
         return point

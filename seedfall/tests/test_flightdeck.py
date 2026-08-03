@@ -266,4 +266,30 @@ def run(suite: Suite) -> bool:
             f"the ladder ran {len(told)} times in one tick")
         return "one tick, one rung of patience"
 
+    @check("the descent order is a button, and it can be belayed")
+    def _():
+        # `sim/landing.py` decides down vs ditched vs aground, and the order
+        # that makes "ditched" possible was reachable only from a check —
+        # no screen offered it.
+        _qt()
+        from ..ui.conn_window import ConnWindow
+        game = new_game("deck-j")
+        game.orbit_body = game.system.bodies[1].id
+        body = next(c for c in track_sim.contacts(game)
+                    if c.kind == "body"
+                    and berth_sim.can_conn(game, c)[0])
+        win = _window(game)
+        window = ConnWindow(win, body)
+        conn = win.conn
+        assert conn is not None and conn.target.kind == "body"
+        btn = window.controls.ditch_btn
+        assert btn.isVisibleTo(window), "no descent order on a world"
+        window.controls._ditch()
+        assert conn.ditching, "the order did not reach the flight"
+        assert "Belay" in btn.text(), btn.text()
+        window.controls._ditch()
+        assert not conn.ditching, "the order cannot be taken back"
+        window.close()
+        return "ordered, said out loud, and belayed"
+
     return True

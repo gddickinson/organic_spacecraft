@@ -171,6 +171,64 @@ def in_corridor(conn, spin: float = 0.0) -> bool:
     return off <= bore
 
 
+def _chord_km(a, b) -> float:
+    """The nearest the straight run from `a` to `b` comes to the centre.
+
+    The same arithmetic as `conn_step._sweep_min`, asked before the flying
+    instead of after it: whether a leg *would* cut the solid part.
+    """
+    ax, ay, az = a
+    dx, dy, dz = b[0] - ax, b[1] - ay, b[2] - az
+    span = dx * dx + dy * dy + dz * dz
+    if span < 1e-18:
+        return math.dist(a, (0.0, 0.0, 0.0))
+    t = max(0.0, min(1.0, -(ax * dx + ay * dy + az * dz) / span))
+    return math.dist((ax + dx * t, ay + dy * t, az + dz * t),
+                     (0.0, 0.0, 0.0))
+
+
+def approach_aim(conn, hold_km: float, spin: float):
+    """Where the computer should fly to get *into* this structure, or None.
+
+    None means the hull is already inside the way in and the berth itself is
+    the aim — the caller (`moorings.aim`) owns that half. Everything else is
+    the corridor law:
+
+    **The corridor is the mouth's axis, not the berth's line.** A bay's berth
+    is deliberately deep inside, so a hold point on *its* line runs the
+    approach through the shell — measured with the computer, six of six
+    approaches to a gestation shell ended in a collision, and a drum managed
+    three of six. The hold point sits outside the aperture, mouth side, on
+    the same axis `in_corridor` protects and the window draws.
+
+    **The phase test is the corridor itself, not a distance race.** The first
+    draft handed over on nearing the hold point, and since the point and the
+    berth sit on different lines out here, closing on one opened the other:
+    the aim flip-flopped and a 40 t tank went dry shuttling between the two.
+
+    **And the shell is rounded, not crossed.** From the far side the straight
+    run to the mouth sweeps inside the solid middle — measured, one of six
+    bearings at a drum ended in a collision on the way to its own way in.
+    When the chord would cut the core, stand out to the bisector of "where
+    she is" and "where the mouth is" at corridor radius; as she rounds, the
+    direct line clears and the next ask is the mouth itself.
+    """
+    if in_corridor(conn, spin):
+        return None                   # inside the way in: fly to the berth
+    way = axis(conn.target, spin)
+    point = tuple(c * hold_km for c in way)
+    if _chord_km(conn.pos, point) < hull_km(conn.target) * 1.15:
+        posdir = tuple(c / (math.dist(conn.pos, (0, 0, 0)) or 1.0)
+                       for c in conn.pos)
+        mid = [a + b for a, b in zip(posdir, way)]
+        span = math.dist(mid, (0.0, 0.0, 0.0))
+        if span < 1e-6:               # dead astern of the mouth: any beam
+            mid = [-way[1], way[0], 0.0]
+            span = math.dist(mid, (0.0, 0.0, 0.0)) or 1.0
+        return tuple(c / span * hold_km for c in mid)
+    return point
+
+
 def berths_inside(target) -> list:
     """The berths of this structure that sit within its solid part.
 

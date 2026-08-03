@@ -18,7 +18,7 @@ from ..core.save import register
 from . import crew as crew_sim
 from ..data.watches import EVENT_CHANCE, WATCHES, WATCHES_BY_ID, watches_for
 from . import flight
-from .ship import add_cargo, add_heat, apply_damage
+from .ship import add_cargo, add_heat, apply_damage, cook
 
 _uid = itertools.count(1)
 
@@ -40,6 +40,12 @@ class Transit:
     log: list = field(default_factory=list)
     over: bool = False
     outcome: str = ""
+    #: The risk the helm quoted when the crossing was committed. Stored,
+    #: because the quote is from where the ship *was* — recomputing it at
+    #: arrival would price a leg of zero length. Rolled in `finish`, exactly
+    #: as `flight.travel_to` rolls it, so the figure on the burn board is
+    #: true whichever way the crossing is flown.
+    risk: float = 0.0
 
     @property
     def progress(self) -> float:
@@ -81,7 +87,8 @@ def begin(game, body_index: int, burn_id: str) -> dict:
 
     transit = Transit(id=next(_uid), body_index=body_index, body_name=body.name,
                       burn=burn_id, watches=watches_for(quote["days"]),
-                      days_planned=quote["days"], fuel_planned=quote["fuel"])
+                      days_planned=quote["days"], fuel_planned=quote["fuel"],
+                      risk=float(quote.get("risk", 0.0)))
     say(transit, f"{quote['burn'].name} to {body.name}: "
                  f"{quote['days']} days planned, {quote['fuel']} t of mass.",
         "")
@@ -213,14 +220,36 @@ def abort(game, transit: Transit) -> dict:
 
 
 def finish(game, transit: Transit) -> dict:
+    """Arrive — with the heat and the risk the helm's forecast quoted.
+
+    `flight.travel_to` has applied both since the burn board was built, and
+    this path applied **neither**: the same leg on the same profile arrived
+    at 42/50 heat flown instantly and stone cold flown watch by watch, and
+    the "risk 15%" on the button was never rolled. A forecast that is true
+    for one of two doors is a forecast that lies at one of them.
+    """
     transit.over = True
     transit.outcome = "arrived"
     body = game.system.bodies[transit.body_index]
     flight.hold_at(game, body)
+    burn = flight.BURNS_BY_ID.get(transit.burn, flight.BURNS_BY_ID["standard"])
+    burnt = flight.burn_heat(burn, game.ship_stats)
+    if burnt:
+        add_heat(game.ship, burnt, game.ship_stats.heat_cap)
+        cook(game.ship, game.ship_stats.heat_cap)
+        say(transit, f"The braking burn leaves {burnt:,.0f} of heat in the "
+                     "hull.", "warn" if game.ship.heat
+                     > game.ship_stats.heat_cap else "dim")
+    incident = None
+    r = game.rng("burn")
+    if transit.risk and r.chance(transit.risk):
+        incident = flight._incident(game, r, burn)
+        say(transit, f"{incident['name']}: {incident['detail']}", "bad")
     say(transit, f"Alongside {body.name}.", "good")
     game.add_log(f"Arrived at {body.name}: {transit.days_spent} days, "
                  f"{round(transit.fuel_spent)} t of reaction mass.", "good")
-    return {"ok": True, "arrived": True, "body": body}
+    return {"ok": True, "arrived": True, "body": body, "heat": round(burnt, 1),
+            "incident": incident}
 
 
 def summary(transit: Transit) -> dict:

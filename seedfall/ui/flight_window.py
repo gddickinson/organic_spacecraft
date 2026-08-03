@@ -428,7 +428,14 @@ class FlightWindow(QDialog):
             said = quote_sim.quote(conn, axis_id, main=self.use_main)
             toward = helps.get(axis_id, 0.0)
             arrow = "▲" if toward > 0.25 else ("▼" if toward < -0.25 else "·")
-            btn.setText(f"{arrow} {name}\n{said['dv']:.2f} m/s")
+            # The coast on the button, because a press is **one minute of
+            # thrust and up to fifteen of clock**: `apply` fires once and
+            # then lets time run. With Coast 15 the burn light, the elapsed
+            # jump and the range all implied a fifteen-minute burn; the
+            # engine gave one fifteenth of that.
+            coast = (f" · {conn.coast_min} min"
+                     if conn.coast_min > 1 else "")
+            btn.setText(f"{arrow} {name}\n{said['dv']:.2f} m/s{coast}")
             # **Lit when it is the one firing**, so a pilot watching the
             # computer work can see which thruster it is using. Off
             # `conn.fired_axis`, which is what the ship *did* rather than what
