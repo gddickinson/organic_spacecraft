@@ -87,6 +87,15 @@ class ConnControls(QWidget):
         self.ditch_btn.setObjectName("ditch")
         grid.addWidget(self.ditch_btn, 2, 7)
 
+        # **Contact is allowed; it has to be meant.** With these on the
+        # computer will not fly her into anything it can still stop for and a
+        # hand-burn that makes an unstoppable closure worse is refused. Off,
+        # nothing brakes and nothing is refused — which is how a captain rams
+        # a hull, or takes a hull down onto a world, on purpose.
+        self.safe_btn = button("Safeties: on", self._safeties, kind="flat")
+        self.safe_btn.setObjectName("safeties")
+        grid.addWidget(self.safe_btn, 3, 7)
+
         self.main_btn = button("Main drive: off", self._toggle_drive,
                                kind="flat")
         grid.addWidget(self.main_btn, 0, 3)
@@ -175,6 +184,16 @@ class ConnControls(QWidget):
         conn.log.append(forcing_sim.force(conn))
         self.window.refresh()
 
+    def _safeties(self) -> None:
+        conn = self.window.conn
+        if conn is None:
+            return
+        conn.safeties = not getattr(conn, "safeties", True)
+        self.window.win.toast(
+            "Safeties off — nothing will brake for you." if not conn.safeties
+            else "Safeties on.", "bad" if not conn.safeties else "")
+        self.window.refresh()
+
     def _cycle_scale(self) -> None:
         from . import flight_clock
         flight_clock.cycle_scale(self.window.win)
@@ -256,6 +275,9 @@ class ConnControls(QWidget):
         for mode, (btn, _text) in self.mode_buttons.items():
             light(btn, self.window.mode == mode)
         light(self.manual_btn, self.window.mode is None, "warn")
+        safe = getattr(conn, "safeties", True)
+        self.safe_btn.setText("Safeties: on" if safe else "SAFETIES OFF")
+        light(self.safe_btn, not safe, "bad")
 
         self._sync_heights(conn, live)
         self._sync_throttle(conn, live)

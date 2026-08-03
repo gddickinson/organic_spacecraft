@@ -44,9 +44,18 @@ def _rel(conn, at) -> list:
 def points(conn, cam, w: int, h: int) -> dict:
     """Everything the HUD would draw, as screen points. The testable half."""
     out = {"path": [], "prograde": None, "retrograde": None,
-           "aim": None, "mouth": []}
+           "aim": None, "mouth": [], "threat": None}
     if conn is None or conn.landed:
         return out
+    # What is in the way, from the one door that answers it.
+    from ..sim import collision
+    hazard = collision.scan(None, conn)
+    if hazard is not None:
+        vec = collision._bearing(conn, hazard)
+        spot = project(vec, cam, w, h)
+        if spot is not None:
+            out["threat"] = (spot, hazard.level,
+                             f"{hazard.name} · {hazard.seconds:,.0f}s")
     # The path: a twin flown under whatever has the conn. `preview.track`
     # coasts for modes it cannot fly ("run" needs the game), which is still
     # the honest ballistic answer.
@@ -143,6 +152,19 @@ def draw(p, conn, cam, w: int, h: int) -> None:
         for dx, dy in ((-6, 0), (6, 0), (0, -6), (0, 6)):
             p.drawLine(QPointF(x + dx, y + dy),
                        QPointF(x + dx * 0.4, y + dy * 0.4))
+    threat = got.get("threat")
+    if threat is not None and threat[0] is not None:
+        # **The thing in the way, ringed and named, out of the window.** A
+        # collision warning a pilot has to find on a panel is a warning they
+        # find afterwards.
+        (x, y, _d), level, text = threat
+        ink = QColor(theme.tint("bad" if level == "imminent" else "warn"))
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.setPen(QPen(ink, 2.0 if level == "imminent" else 1.4))
+        p.drawRect(int(x - 14), int(y - 14), 28, 28)
+        p.drawLine(QPointF(x - 20, y), QPointF(x - 14, y))
+        p.drawLine(QPointF(x + 14, y), QPointF(x + 20, y))
+        p.drawText(int(x + 18), int(y - 16), text)
     if len(got["mouth"]) >= 3:
         pen = QPen(QColor(theme.tint("lumen")), 1.2, Qt.PenStyle.DashLine)
         p.setPen(pen)

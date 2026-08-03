@@ -56,25 +56,20 @@ MAIN_COST = 0.12
 #: Alongside: near enough to pass lines across, slow enough to survive it.
 ALONGSIDE_KM = 0.25
 ALONGSIDE_RATE = 1.5
-
 #: Faster than this into something solid and it is a collision, not a berth.
 SAFE_CLOSING = 4.0
 
-#: What an impact at exactly `SAFE_CLOSING` takes off the hull.
-#:
-#: Impact damage goes as the *square* of the speed, because that is where the
-#: energy is. Linear and capped, a five-km/s arrival on a world cost sixty of
-#: three hundred and thirty-six and a captain could aim at a planet as a
-#: shortcut. Now four m/s is a scrape and thirty ends a starting hull.
+#: What an impact at exactly `SAFE_CLOSING` takes off the hull. Damage goes
+#: as the *square* of the speed: linear and capped, a five-km/s arrival cost
+#: sixty of 336 and a captain could aim at a planet as a shortcut. Now four
+#: m/s is a scrape and thirty ends a starting hull.
 IMPACT_BASE = 6.0
 
-#: One tick of the conn, in seconds. A minute is long enough that a pulse
-#: visibly moves the ship and short enough to correct inside a hundred metres.
+#: One tick of the conn, in seconds: long enough that a pulse visibly moves
+#: her, short enough to correct inside a hundred metres.
 TICK = 60.0
-
-#: How far past where you started counts as having lost the approach. Scaled
-#: to the approach, because 400 km is a long way off a quay and inside the
-#: crust of a planet.
+#: How far past the opening range counts as having lost the approach — scaled,
+#: because 400 km is a long way off a quay and inside a planet's crust.
 ADRIFT_MULTIPLE = 4.0
 
 @dataclass
@@ -126,17 +121,22 @@ class Conn:
     rcs: float = 40.0
     #: Seconds since the approach began.
     elapsed: float = 0.0
-    #: Seconds of that the chronicle has already been charged for.
-    #:
-    #: An approach tells the clock once, at the end. A screen that flies with
-    #: the clock running has to tell it as it goes, and the two must not both
-    #: charge the same minute — see `berthing.charge_flown`, which is the one
-    #: door either way.
+    #: Seconds the chronicle has already been charged for. An approach tells
+    #: the clock once at the end; a screen that flies with the clock running
+    #: tells it as it goes, and `berthing.charge_flown` is the one door so
+    #: neither can bill the same minute twice.
     charged: float = 0.0
     #: `charged`'s twin for the tonnes: billed as burned (#149), exact (#148).
     charged_rcs: float = 0.0
     #: Opened already in a sound orbit: a state, not an outcome (`start`).
     opened_orbiting: bool = False
+    #: **The flight envelope guard** (`sim/collision.py`): on, the computer
+    #: will not fly her into what it could still stop for and a hand-burn
+    #: that worsens an unstoppable closure is refused; off, nothing brakes
+    #: and nothing is refused, which is how a captain rams on purpose.
+    #: `avoiding` is what it has already announced, so it says so once.
+    safeties: bool = True
+    avoiding: str = ""
     #: The range the approach opened at, which is what "adrift" is measured
     #: against — a fixed distance cannot serve both a quay and a gas giant.
     start_km: float = 12.0

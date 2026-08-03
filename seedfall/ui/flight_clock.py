@@ -128,6 +128,25 @@ def fly_beat(win) -> None:
     win.beat_refresh()
 
 
+def guarded(win, axis) -> bool:
+    """Whether the pilot's own burn is allowed. The safety guard's one door.
+
+    Narrow on purpose — `collision.allow_burn` refuses only a burn that
+    drives her harder into something she can no longer stop for, and refuses
+    nothing at all with the safeties off. Everything else about flying by
+    hand stays as dangerous as the pilot wants it.
+    """
+    from ..sim import collision
+    conn = win.conn
+    if conn is None:
+        return True
+    ok, why = collision.allow_burn(conn, axis, conn.arm_main,
+                                   collision.scan(win.game, conn))
+    if not ok:
+        win.toast(why, "bad")
+    return ok
+
+
 def start_burn(win, axis: str) -> None:
     """A hand comes down on a thruster: a standing order the beat consumes.
 
@@ -138,6 +157,8 @@ def start_burn(win, axis: str) -> None:
     clock held, nothing flies until release, and `end_burn` keeps the old
     precise press.
     """
+    if not guarded(win, axis):
+        return
     win.burn_order = axis
     win.burn_fired = False
 

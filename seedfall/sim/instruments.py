@@ -102,6 +102,18 @@ def readout(conn: Conn) -> list[tuple[str, str, str]]:
     # finally say it — before, the mode was a widget attribute and the sim
     # could not report what it could not see.
     rows.append(("Computer", computer_note(conn), "ok"))
+    # **What is in the way**, above everything else a pilot might read. Only
+    # when there is something to say: a row that is always "clear" is a row
+    # the eye stops going to, which is the fault this panel was rebuilt for.
+    from . import collision
+    threat = collision.scan(None, conn)
+    if threat is not None:
+        rows.append(("Collision", f"{threat.name} · "
+                                  f"{threat.seconds:,.0f} s · "
+                                  f"{threat.closing:,.1f} m/s",
+                     collision.tint(threat)))
+    if not getattr(conn, "safeties", True):
+        rows.append(("Safeties", "OFF — nothing will brake for you", "bad"))
 
     # And it reads "ok", not "warn". `test_conn.py` caught the first draft
     # marking it amber on fourteen approaches that *succeeded* — which is the

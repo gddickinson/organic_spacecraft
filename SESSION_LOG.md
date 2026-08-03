@@ -12652,3 +12652,20 @@ never pressed a control in a *pop-out*. `test_flightops` sweeps all six.
   approach view's painter died mid-frame and the TypeError escaped
   `paintEvent`. `painting.alive` (never began) + `@painting.safe_paint`
   (dies part-way) now cover all thirteen.
+
+## The seventh pass: collision guard (2026-08-03)
+
+- **`sim/collision.py`** — scan the target *and the sky*, measure room to the
+  solid part, and answer "can she still be stopped" (`v²/2a`). Levels:
+  clear · watch · brake · imminent. Measured at 60/30/20 km on a 40 m/s
+  approach: clear, watch, imminent.
+- **The computer brakes** — `flightdeck.computer` overrides whatever mode is
+  armed when the room is running out (measured: burns −0.97 along the hazard
+  bearing instead of the mode's own burn).
+- **`Conn.safeties`** — one flag, a button on the conn console and the flight
+  panel. Off: nothing brakes, nothing is refused. Deliberate orders (ditch,
+  cut, a bay corridor) are silent without touching it.
+- **The hand keeps its rope** — only a burn that worsens an *unstoppable*
+  closure is refused, with the reason and the switch named.
+- Warnings: a `Collision` panel row, a ringed box in the camera view, a log
+  line. `tests/test_collision.py`, 5 checks.

@@ -2930,6 +2930,48 @@ that dies part-way. All thirteen raw painters carry them. A picture that did
 not happen belongs in `MISSES`, where the checks that care can read it, and
 nowhere near the process exit.
 
+### The seventh pass: contact is allowed, and it has to be meant
+
+**"Have the auto-pilot attempt to prevent collisions when it can."** It could
+not: the only thing in the game that knew about contact was `sim/outcome`,
+which decides it *after* it has happened. A captain could fly a hundred
+metres a second at a Fleet Hub with every screen reading calmly and learn
+about it from the wreck, and the computer — armed and flying — would help.
+
+`sim/collision.py` is the one door for "are we going to hit that", and it
+asks three questions in the order a pilot does. **What is in the way**: not
+only the target — `Conn.sky` carries every world, quay and hull placed in the
+approach's own frame, and a ship crossing a system passes plenty of things it
+is not approaching. **How long have we got**: range to the *solid* part
+(`bays.hull_km`, not the bounding sphere) over the closing rate. And the one
+that matters — **can we still stop**: `v²/2a` against the room left, on the
+thrust the hull actually has, because that answer goes from yes to no while
+every other number still looks calm.
+
+Measured on a hull running for a mark with something in the path: at 60 km
+**clear** and nothing is said; at 30 km **watch** — a warning, though the
+brakes would cope; at 20 km **imminent**, and there the armed computer burns
+*away* from the hazard (−0.97 along the bearing) instead of the burn its mode
+wanted. That is the whole of "calculate the braking so it does not drive you
+into something", and it works under every mode because it sits in
+`flightdeck.computer` above all of them.
+
+**None of it stands in the way of a captain who means it.** `Conn.safeties`
+is one flag, off by a button on the conn console and the flight panel, and
+with it off the computer flies its mode into whatever it likes. The
+deliberate orders speak for themselves without touching it: an ordered
+descent (`landing.ditching`), a cut into a berth (`forcing`), and a hull
+inside a bay's corridor are contact by invitation, and the guard is silent
+through all three. Flying by hand stays as dangerous as the pilot wants —
+the one thing refused, and only with the safeties on, is a burn that drives
+her *harder* into something she can no longer stop for, and the refusal says
+so in words and names the switch.
+
+The warning is where a pilot is actually looking: a `Collision` row on the
+instrument panel every console reads, a ringed and named box in the camera
+view (`viewport_hud`), and a line in the log the first time the computer
+takes over. `tests/test_collision.py` holds the five claims.
+
 ## Running
 
 ```
@@ -3149,6 +3191,9 @@ seedfall/
 │   ├── orbits.py       what counts as an orbit, its size and roundness, and
 │   │                   the ladder of heights you can ask to hold
 │   ├── autopilot.py    the flight computer: one control law, three modes
+│   ├── collision.py    what is in the way, how long there is, and whether
+│   │                   she can still be stopped — the guard the computer
+│   │                   and the hand both read
 │   ├── flightdeck.py   the computer's one front door: `computer` (the
 │   │                   dispatcher every beat asks) and `can_arm` (the gate
 │   │                   every autopilot button greys on)

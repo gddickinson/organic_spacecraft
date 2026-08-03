@@ -122,6 +122,20 @@ def computer(game, conn) -> tuple:
     tutorial_watch.deed(game, "computer_flew")   # the computer has her
     if tug_sim.under_tow(conn):
         return None, False, 1.0
+    # **The computer does not fly her into things.** Whatever mode is armed,
+    # if something is in the way and the room is running out, the burn this
+    # tick is the one that sheds the excess — the whole of "calculate the
+    # braking so it does not drive you into something". A pilot who *means*
+    # to hit it turns the safeties off, and then this says nothing.
+    if getattr(conn, "safeties", True):
+        from . import collision
+        threat = collision.scan(game, conn)
+        if threat is not None and threat.must_brake:
+            if conn.avoiding != threat.name:
+                conn.avoiding = threat.name
+                game.add_log(collision.line(threat), collision.tint(threat))
+            return auto_sim.hold(conn, collision.brake_velocity(conn, threat))
+        conn.avoiding = ""
     if mode == "run":
         aim = marked(game, conn)
         if aim is None:

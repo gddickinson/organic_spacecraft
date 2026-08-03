@@ -1,28 +1,20 @@
 """The flight controls, in a window a pilot can actually berth from.
 
-The conn has a console, and it is a console: a compact row of buttons under a
-3D view, built to be *watched*. This is the other thing — a panel to be
-*flown*, with the instruments a docking pilot reads and nothing else on the
-screen competing for the space.
+The conn has a console built to be *watched*. This is the other thing — a
+panel to be *flown*, with the instruments a docking pilot reads and nothing
+else competing for the space.
 
 What a berthing actually needs, and what the conn never spelled out:
 
-- **Closing rate and lateral rate as separate numbers.** Together they are the
-  whole velocity, and a pilot has to null both. Closing gets you there;
-  lateral is the one that slides you past the mast at a metre a second while
-  every other reading says you are on profile. `sim/autopilot.lateral` has
-  taken that reading since the computer was written and no screen showed it.
-- **Which berth, and how far off it.** `sim/moorings.py` knows; the pilot is
-  flying to a mast, not to a bounding sphere.
-- **The gate, in the units the readouts are in** — a berthing is under so
-  many metres and under so many metres a second, and those two numbers were
-  in `sim/conn.py` where nobody flying could see them.
-- **What each press will do before it is pressed**, off `sim/pilot.quote` —
-  the same door the console uses, so the promise and the act are one thing.
+- **Closing and lateral rate as separate numbers** — together they are the
+  whole velocity and a pilot must null both; lateral is the one that slides
+  you past the mast while every other reading says you are on profile.
+- **Which berth, and how far off it** — a mast, not a bounding sphere.
+- **The gate, in the units the readouts are in.**
+- **What each press will do before it is pressed**, off `sim/pilot.quote`.
 
-The window owns no rules. Every button is `conn.apply` and every figure is a
-sim reading, so this and the conn cannot disagree about the ship: they are
-laid out differently on purpose and answer to the same model.
+The window owns no rules: every button is `conn.apply` and every figure a sim
+reading, so this and the conn answer to the same model.
 """
 
 from __future__ import annotations
@@ -180,6 +172,9 @@ class FlightWindow(QDialog):
         row.addWidget(self.run_btn)
         self.scale_btn = button("Time ×1", self._cycle_scale, kind="flat")
         row.addWidget(self.scale_btn)
+        self.safe_btn = button("Safeties: on", self._safeties, kind="flat")
+        self.safe_btn.setObjectName("safeties")
+        row.addWidget(self.safe_btn)
         row.addWidget(button("Kill relative motion", self._null, kind="flat"))
         row.addWidget(button("Conn…", self._conn, kind="flat"))
         row.addWidget(button("Approach view…", self._approach, kind="flat"))
@@ -259,6 +254,16 @@ class FlightWindow(QDialog):
         self.win.set_conn_clock(not self.running)
         self.refresh()
 
+    def _safeties(self) -> None:
+        conn = self.conn
+        if conn is None:
+            return
+        conn.safeties = not getattr(conn, "safeties", True)
+        self.win.toast("Safeties off — nothing will brake for you."
+                       if not conn.safeties else "Safeties on.",
+                       "bad" if not conn.safeties else "")
+        self.refresh()   # the row and the light both read the flag
+
     def _cycle_scale(self) -> None:
         from . import flight_clock
         flight_clock.cycle_scale(self.win)
@@ -319,6 +324,9 @@ class FlightWindow(QDialog):
         self.run_btn.setText("Stop clock" if self.running else "Run clock")
         self.scale_btn.setText(
             f"Time ×{int(getattr(self.win, 'time_scale', 1))}")
+        safe = getattr(conn, "safeties", True) if conn is not None else True
+        self.safe_btn.setText("Safeties: on" if safe else "SAFETIES OFF")
+        light(self.safe_btn, not safe, "bad")
         # The set rung wears the conn console's own `▶` mark.
         for share, btn in self.throttle_buttons.items():
             chosen = (conn is not None

@@ -199,6 +199,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("pilotscreen", "test_pilot_screen", "pilot screen", True),
     SuiteSpec("flightdeck", "test_flightdeck", "one flight deck", True),
     SuiteSpec("flightops", "test_flightops", "flying the operations", True),
+    SuiteSpec("collision", "test_collision", "collision guard", True),
     SuiteSpec("bridge2", "test_bridge", "the bridge", True),
     SuiteSpec("sights", "test_sights", "sights", True),
     SuiteSpec("tripwire", "test_tripwire", "the sweep itself"),

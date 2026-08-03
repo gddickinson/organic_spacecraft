@@ -113,10 +113,8 @@ LIMIT = 60
 
 
 #: Suites named after a module, so a constant is tried against its own
-#: neighbourhood first. Two stages, because the broad set costs thirty-six
-#: seconds and most constants are caught by their own suite in two: run the
-#: cheap one, and only pay for the wide one on the survivors. A single-stage
-#: sweep of everything is three hours and finds the same answer.
+#: neighbourhood first. Two stages: the cheap one, then the wide one only on
+#: the survivors. A single-stage sweep of everything is three hours.
 #: One entry per module, and **exactly** one: six modules had two, and in a
 #: dict literal the later wins silently. `stations` was the costly one — its
 #: broad entry (routing, orderplan, seatwork) sat above a second entry reading
@@ -179,6 +177,7 @@ KIN = {
     "works": ("works",), "mining": ("mining",), "research": ("bench",),
     "inquiry": ("evidence", "bench"), "flight": ("helm", "flight", "burns"),
     "path": ("helm", "flight", "burns"),   # split from `flight`, same pins
+    "collision": ("collision", "byhand", "conn"),
     "contracts": ("postings", "missions", "cargo"), "chains": ("missions",),
     "expedition": ("landing", "ground", "wayhome"), "weather": ("ground",),
     "territory": ("territory", "levy"), "allegiance": ("allegiance",),
