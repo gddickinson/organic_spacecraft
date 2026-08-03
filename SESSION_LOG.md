@@ -2,6 +2,50 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: the Conn window had the player's complaint too
+
+#145 item 1, unblocked by #146.
+
+**Measured first.** 130.3 km off the Fleet Hub, Ashkeep Gate I at the same
+range, a hull 4,726 km out: the Conn's main screen had `sights == ()` and
+`mark is None`. Rendered it — a starfield, the system star, an unnamed
+crosshair. The player's report about the Pilot screen, wearing the other
+window's hat. Now five contacts named.
+
+**One door.** `ui/sights.out_there(game, conn, rows, skip=())`, called by both
+`pilot_panels.aim_feed` and `ConnWindow.refresh`; a check reads that from the
+source with `inspect.getsource` rather than from a picture.
+
+**Two things only the rendering caught.**
+
+1. **A false alarm I nearly filed as a bug.** After wiring, the *fore* camera
+   still drew no names. Measured: Fleet Hub at `ahead = -130.3` (behind the
+   lens after 40 forward burns), Quiet Increment ahead but outside the 62° FOV.
+   `project` returns None for both, correctly. The aft camera showed the labels.
+2. **A real one.** The target was named twice — `Viewport._target` already draws
+   "Fleet Hub · 130.3 km" and the sight printed "Fleet Hub" a pixel away.
+   `out_there` now drops whatever the window names for itself, and the Pilot
+   screen hands over its laid mark the same way.
+
+**Also fixed, and it was mine**: #147 put the `conn` property above
+`ConnWindow`'s docstring, which demoted the docstring to a no-op string
+expression — the class had none at all. `ConnWindow.__doc__` reads again.
+
+**Five mutants, five bites**, under `-B`: the Conn sets no sights again · sights
+name the target the reticle already names · the laid mark is named twice again ·
+the Pilot screen chooses its own sights again · the thumbnails get labels they
+have no room for.
+
+**Lengths**: `ui/conn_window.py` went 498 → 508 with the change and was trimmed
+back to 499, paying for itself out of its own prose.
+
+**Not fixed, deliberately, with the evidence recorded on #145**: sight labels
+still collide — "Held Breath II" at x=315 against the reticle at x=391, dx=76
+clearing a 46 px box for a 68 px label. Fixing it means replacing `CLEAR` with
+extent-based constants, which touches the machinery #134 sweeps, and
+`_Blind.fontMetrics` returns a fixed 40 for every string, so it cannot model a
+width-aware rule until that stub is fixed first.
+
 ## 2026-08-02 — SEEDFALL: the beat was eating the button under your finger
 
 Player report: "the lag between pressing a button and any response. When the

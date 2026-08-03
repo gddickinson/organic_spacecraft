@@ -26,7 +26,7 @@ from ..sim import conn as conn_sim
 from ..sim import instruments as panel_sim
 from ..sim import track as track_sim
 from .conn_targets import default_target  # re-exported: two checks import it here
-from . import theme
+from . import fire_panel, sights, theme
 from .conn_controls import ConnControls
 from .viewport import Viewport
 from .widgets import button, label, note
@@ -36,11 +36,11 @@ TICK_MS = 700
 
 
 class ConnWindow(QDialog):
+    """Hand-flying, in its own window so the game stays behind it."""
+
     #: The chronicle's flight, not this window's. See `__init__`.
     conn = property(lambda self: self.win.conn,
                     lambda self, value: setattr(self.win, "conn", value))
-
-    """Hand-flying, in its own window so the game stays behind it."""
 
     def __init__(self, win, contact=None):
         super().__init__(win)
@@ -54,11 +54,9 @@ class ConnWindow(QDialog):
         if contact is None:
             contact = default_target(self.game)
         self.contact = contact
-        # **One flight, whichever window you look through.** This used to
-        # build its own `Conn` and keep it here, while the Pilot screen kept
-        # another — measured, 290.9 km flown and 60 minutes elapsed on the
-        # Pilot screen showed here as 12.0 km, full tanks and no time passed.
-        # `ui/window.conn` is the chronicle's one flight now.
+        # **One flight, whichever window you look through.** This built its
+        # own `Conn` while the Pilot screen kept another: measured, 290.9 km
+        # and 60 minutes there showed as 12.0 km and full tanks here.
         live = self.win.conn
         self.refused = ""
         if contact is None:
@@ -412,6 +410,12 @@ class ConnWindow(QDialog):
                 f"Conn — {conn.target.name}" if conn.outcome != "watching"
                 else f"Conn — station keeping at {self.game.system.name}")
         self.controls.sync(conn)
+        # **Name what is out there.** Measured at 130.3 km off the Fleet Hub:
+        # `sights` was `()`, a starfield and an unnamed crosshair — the
+        # player's report wearing the other window's hat. The thumbnails stay
+        # bare on purpose; 120 px has no room for a name.
+        self.screen.sights = sights.out_there(
+            self.game, conn, fire_panel.ranged(self.game, conn, self.contacts))
 
         while self.side.count():
             item = self.side.takeAt(0)
@@ -471,14 +475,11 @@ class ConnWindow(QDialog):
     def closeEvent(self, event) -> None:
         self.timer.stop()
         # **Closing this window is leaving the room, not stopping the ship.**
-        # It used to write `outcome = "broken off"` on the way out and settle,
-        # which was right when the window owned the flight and is wrong now
-        # the game does: a pilot flying from the bridge who opened the conn
-        # and closed it found the approach ended under her. Giving up is what
-        # `_break_off` is for, and two doors onto it is one too many. Nothing
-        # is flown for free — `berthing.commit` still runs when the approach
-        # resolves, on break-off, and when she secures from the bridge. (What
-        # is not yet billed is a flight nobody ever ends: task #149.)
+        # It used to write `outcome = "broken off"` and settle on the way out,
+        # ending an approach under a pilot still flying it from the bridge.
+        # `_break_off` is the one door onto giving up. Nothing is flown for
+        # free: `berthing.commit` still runs when the approach resolves, on
+        # break-off, and when she secures. (A flight nobody ends: task #149.)
         self._settle()
         if getattr(self.win, "conn_window", None) is self:
             self.win.conn_window = None

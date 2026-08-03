@@ -39,6 +39,68 @@ def run(suite: Suite) -> bool:
 
     check = suite.check
 
+    @check("the Conn window names what is out there, and names it once")
+    def _():
+        # **The player's report, in the other window.** `ui/viewport_mark`
+        # gave the Pilot screen its names; measured afterwards on the Conn,
+        # 130.3 km off the Fleet Hub with a gate at the same range and a hull
+        # 4,726 km out, `screen.sights` was `()` — a starfield, the system
+        # star and an unnamed crosshair.
+        from ..ui.conn_window import open_conn
+        from .test_pilot_screen import _bridge
+
+        _game, win, view = _bridge("connsights")
+        view.use_main = True
+        for _ in range(40):
+            view.burn("forward")
+        window = open_conn(win)
+        try:
+            named = [n for _v, n, _near in window.screen.sights]
+            assert named, "the Conn's main screen names nothing at all"
+
+            # **And the target is not named twice.** `Viewport._target` draws
+            # its own reticle reading "Fleet Hub · 130.3 km"; the first draft
+            # printed "Fleet Hub" as a sight on top of it, a pixel apart.
+            aim = window.conn.target.name
+            assert aim not in named, (
+                f"{aim} is named by the reticle and again as a sight: {named}")
+
+            # The compact feeds are 120 px wide. A name on one is not
+            # readable, so they are left bare on purpose.
+            assert all(f.sights == () for f in window.feeds.values()), (
+                "the thumbnail feeds were given labels they have no room for")
+        finally:
+            window.close()
+        return f"the Conn names {len(named)} contacts, none of them its target"
+
+    @check("both windows ask one door what gets a name")
+    def _():
+        # Read from the source, not from a picture: the two screens disagreeing
+        # about the same scene is what started all of this, and a re-implemented
+        # rule in one of them is how it would come back.
+        import inspect
+        from ..ui import conn_window, pilot_panels, sights as sights_mod
+
+        for where in (inspect.getsource(pilot_panels.aim_feed),
+                      inspect.getsource(conn_window.ConnWindow.refresh)):
+            assert "out_there" in where, (
+                "a screen is choosing its own sights instead of asking "
+                "ui/sights")
+        # And the mark is handed over as already-named, so a laid course does
+        # not wear its name twice either.
+        assert "skip=" in inspect.getsource(pilot_panels.aim_feed), (
+            "the Pilot screen does not tell ui/sights what it already names")
+
+        # The rule itself: what the window draws for itself is dropped.
+        from .test_pilot_screen import _bridge
+        game, _win, view = _bridge("skipmark")
+        view.fly_at(view.in_view()[0])
+        rows, aim = view.ranged(), view.marked()
+        out = sights_mod.out_there(game, view.conn, rows, skip=(aim,))
+        assert aim is not None and aim.name not in [n for _v, n, _k in out], (
+            f"the laid course is drawn as a ring and named again: {aim}")
+        return "one door, and what a window draws itself it does not repeat"
+
     @check("two things on the same bearing do not print over each other")
     def _():
         # **Measured on one scene**: four hulls — Second Signature, Margin

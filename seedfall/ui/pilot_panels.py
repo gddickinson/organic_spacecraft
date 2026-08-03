@@ -27,6 +27,7 @@ from ..sim import conn as conn_sim
 from ..sim import engage as engage_sim
 from ..sim import freeflight as free_sim
 from ..sim import instruments as panel_sim
+from . import sights
 from .widgets import Panel, note
 
 #: How the width is split. The view wants room to be a view; the boards are
@@ -118,16 +119,12 @@ def aim_feed(view, rows) -> None:
     laid = view.marked()
     view.feed.mark = ((free_sim.toward(view.game, view.conn, laid), laid.name)
                       if laid is not None else None)
-    # **Name the quays and the hulls out there.** The Conn draws its target
-    # inside a reticle reading "Fleet Hub · 12.0 km"; a free flight has no
-    # target, so the same Hub was a 1.6-pixel speck among the stars. The sky
-    # data was never missing — measured, a free flight's `sky` holds *more*
-    # than an approach's — only the drawing was.
-    view.feed.sights = [
-        (free_sim.toward(view.game, view.conn, c), c.name,
-         km <= engage_sim.reach_km())
-        for km, c in rows[:8]
-        if c.kind in ("anchorage", "hull")]
+    # **Name the quays and the hulls out there**, through `ui/sights`, which
+    # the Conn window asks the same question of. The mark is passed as already
+    # named: it is drawn as a ring with its name on it, and a sight label
+    # beside that is the same word twice.
+    view.feed.sights = sights.out_there(view.game, view.conn, rows,
+                                        skip=(laid,))
 
 
 def ship_board(view) -> Panel:

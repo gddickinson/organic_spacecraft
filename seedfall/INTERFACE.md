@@ -2157,6 +2157,50 @@ delivering the click that dismissed it — and **had no check of its own** until
 now: the mutation that makes `park` drop the widget immediately survived the
 whole suite. It does not any more.
 
+### The other window had the same complaint
+
+`ui/sights.py` answers one question — **which contacts get a name in a window,
+and the bearing to each** — because two windows ask it.
+
+The player's original report was that the Pilot screen showed nothing of what
+was out there while the Conn drew its target properly. `viewport_mark.draw_sights`
+fixed the Pilot half. Measured afterwards on the Conn, standing 130.3 km off the
+Fleet Hub with Ashkeep Gate I at the same range and a hull 4,726 km out:
+`screen.sights` was `()` and `screen.mark` was `None`. Rendered, that is a
+starfield, the system star and an unnamed crosshair — **the same complaint, in
+the other window.** It now names five.
+
+The choosing lives in `ui/sights` and the drawing in `ui/viewport_mark`, so a
+screen that wants names asks for them rather than working out its own rules,
+which is how the two came to disagree in the first place. `ui/pilot_panels.aim_feed`
+and `ConnWindow.refresh` both call `sights.out_there`, and a check reads that
+from the source rather than from a picture.
+
+**Nothing the window already names is named again.** The first draft printed
+"Fleet Hub" as a sight directly on top of `Viewport._target`'s reticle, which
+reads "Fleet Hub · 130.3 km" (viewport.py:427) — one thing wearing its name
+twice, a pixel apart. `out_there` drops the conn's target itself, and takes a
+`skip` for whatever else the caller draws: today the contact a course is laid
+on, which `viewport_mark.draw` already rings with its name.
+
+**A false alarm worth keeping.** With the sights wired, the Conn's *fore* camera
+still drew nothing and looked broken. Measured rather than assumed: the Fleet
+Hub was at `ahead = -130.3` — behind the lens, forty forward burns having taken
+her past it — and Quiet Increment was ahead but outside the 62° field of view.
+`viewport_math.project` returns `None` for anything at or behind the lens, which
+is correct. Point a camera at the thing before calling the drawing wrong.
+
+The thumbnail feeds are left bare on purpose: they are 120 px wide and a name on
+one is not readable. That is asserted, so a later hand does not "fix" it.
+
+**Still crooked, and measured**: sight labels can collide. On the Conn's aft
+camera "Held Breath II" is drawn at x=315 and the reticle at x=391 — dx=76
+clears `draw_sights`'s fixed `CLEAR` box of 46 px, but the label is about 68 px
+wide, so they touch. Two rules are wrong at once: the overlap test compares
+centre-to-centre against a fixed box rather than the label's real extent, and
+sights know nothing about the reticle at all. Left for its own cycle; see #145,
+which records why.
+
 `ui/conn_controls.py` is the console itself, split out of `ui/conn_window.py`
 when that went past five hundred lines along a seam already there — the window
 owns the cameras, the panel and the clock. The panel names the settings in m/s,
