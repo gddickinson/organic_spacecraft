@@ -367,6 +367,87 @@ def run(suite: Suite) -> bool:
                 f"(was 27 and 151,728)")
 
 
+    @check("a beat does not take the button out from under the pilot")
+    def _():
+        # **The player's report: "when the clock is running the buttons do not
+        # act immediately, and often don't respond at all."** The beat used to
+        # be `View.refresh` — the screen taken apart and built again, four
+        # times a second. Measured before the fix: **0 of 25 buttons survived
+        # one beat**, and a press spanning one was swallowed whole — a
+        # QPushButton emits `clicked` only if the release reaches the object
+        # that took the press.
+        from PyQt6.QtCore import Qt
+        from PyQt6.QtTest import QTest
+        from PyQt6.QtWidgets import QPushButton
+
+        _game, _win, view = _bridge("beat")
+        live = lambda: [b for b in view.findChildren(QPushButton)
+                        if b.parent() is not None]
+        was = {id(b) for b in live()}
+        assert len(was) > 10, f"the fixture has almost no controls: {len(was)}"
+        view.tick()
+        now = {id(b) for b in live()}
+        assert now == was, (
+            f"a beat replaced the controls: {len(was - now)} of {len(was)} "
+            f"buttons went away")
+
+        # And the press survives with them. A player lets go over the button
+        # they aimed at — found by its label, not by a stale reference.
+        fired = []
+        real, view.burn = view.burn, lambda a: fired.append(a)
+        try:
+            def ahead():
+                return next(b for b in live() if b.text() == "Ahead")
+            took = ahead()
+            QTest.mousePress(took, Qt.MouseButton.LeftButton,
+                             Qt.KeyboardModifier.NoModifier,
+                             took.rect().center())
+            view.tick()
+            let_go = ahead()
+            assert let_go is took, "the button under the finger was replaced"
+            QTest.mouseRelease(let_go, Qt.MouseButton.LeftButton,
+                               Qt.KeyboardModifier.NoModifier,
+                               let_go.rect().center())
+            assert fired, "a press held across a beat never reached the ship"
+        finally:
+            view.burn = real
+        return (f"{len(was)} controls, all still there after a beat, and a "
+                f"click held across one still burns")
+
+    @check("a beat still moves the readings, and a new situation still rebuilds")
+    def _():
+        # The other half: never rebuilding is worse than rebuilding too much.
+        from PyQt6.QtWidgets import QLabel, QPushButton
+
+        _game, _win, view = _bridge("shape")
+        view.use_main = True
+        live = lambda: [b for b in view.findChildren(QPushButton)
+                        if b.parent() is not None]
+
+        def board():
+            return " ".join(l.text() for l
+                            in view._boards["ship"].findChildren(QLabel))
+
+        before, ids = board(), {id(b) for b in live()}
+        for _ in range(5):
+            view.tick()
+        assert board() != before, "five beats, and the readout is unchanged"
+        assert {id(b) for b in live()} == ids, "the readings moved the controls"
+
+        # A course laid is a change of situation, not of reading.
+        was = {b.text() for b in live()}
+        view.fly_at(view.in_view()[0])
+        fresh = {b.text() for b in live()} - was
+        assert any(t.startswith("Run for") for t in fresh), (
+            f"laying a course grew no autopilot button: {sorted(fresh)}")
+
+        # So is securing: it takes the controls away entirely.
+        view.secure()
+        assert [b.text() for b in live()] == ["Take the conn"], (
+            f"securing left {[b.text() for b in live()]}")
+        return (f"readings move, controls hold, and a course laid grew "
+                f"{len(fresh)} new controls")
+
     @check("the bridge fits the window it is shown in")
     def _():
         # **Measured on a *shown* window, because an offscreen widget that was

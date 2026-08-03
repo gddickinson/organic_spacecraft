@@ -87,6 +87,49 @@ def stack_of(btns, per_row: int = 2) -> QWidget:
     return holder
 
 
+# ── the labels that change while the clock runs ────────────────────────────
+#
+# **One door each, because a beat no longer rebuilds these buttons.** They are
+# built once and their text is updated in place, so `build` and the beat both
+# have to say the same thing — and #137 already caught the version of this bug
+# where two places formatted the throttle and the button read 50% above a panel
+# reading 100%. Formatting lives here; both callers ask.
+
+
+def main_label(view) -> str:
+    return f"Main drive: {'on' if view.use_main else 'off'}"
+
+
+def throttle_label(view) -> str:
+    return f"Throttle: {view.conn.throttle:.0%}"
+
+
+def clock_label(view) -> str:
+    return "Stop clock" if view.running else "Run clock"
+
+
+def aim_feed(view, rows) -> None:
+    """Point the viewport, and name what is out there.
+
+    Ringing the mark and labelling the traffic are two facts the screen hands
+    the viewport; the beat has to refresh them without rebuilding the feed, so
+    they live in one place that `build` and the beat both call.
+    """
+    laid = view.marked()
+    view.feed.mark = ((free_sim.toward(view.game, view.conn, laid), laid.name)
+                      if laid is not None else None)
+    # **Name the quays and the hulls out there.** The Conn draws its target
+    # inside a reticle reading "Fleet Hub · 12.0 km"; a free flight has no
+    # target, so the same Hub was a 1.6-pixel speck among the stars. The sky
+    # data was never missing — measured, a free flight's `sky` holds *more*
+    # than an approach's — only the drawing was.
+    view.feed.sights = [
+        (free_sim.toward(view.game, view.conn, c), c.name,
+         km <= engage_sim.reach_km())
+        for km, c in rows[:8]
+        if c.kind in ("anchorage", "hull")]
+
+
 def ship_board(view) -> Panel:
     """What the instruments say, plus what the last press and the computer did."""
     board = Panel("The ship")

@@ -42,7 +42,7 @@ ALLOWED = {
     "sim/exchequer.py": 506,
     "ui/viewport.py": 533,
     "ui/map_view.py": 526,
-    "ui/widgets.py": 517,
+    "ui/widgets.py": 516,
     "tests/test_robots.py": 624,
     "tests/test_orbits.py": 567,
     "tests/test_control.py": 560,

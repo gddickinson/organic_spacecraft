@@ -117,12 +117,30 @@ def board(game, conn, rows) -> Panel:
     return panel
 
 
+#: How many hulls the fire control offers at once. One door: `buttons`,
+#: `marks` and `shape` must agree about which contacts have a control, or a
+#: screen asking "did the buttons change?" gets a different list from the one
+#: it drew.
+ARMED = 4
+
+
+def shape(game, rows) -> tuple:
+    """What decides *which* fire-control buttons exist, not what they read.
+
+    For a screen whose clock is running: it can tell a beat that changed only
+    the ranges from one that put a new hull in reach, and rebuild only for the
+    second. See `ui/pilot_view.refresh`.
+    """
+    return tuple((c.name, hostiles_sim.is_marked(game, getattr(c, "hull_id", "")))
+                 for c in targets(rows, limit=ARMED))
+
+
 def buttons(win, game, conn, rows) -> list:
     """One Open fire button per hull in range. Always live; never greyed."""
     return [button(f"Open fire on {c.name}",
                    lambda _=False, k=c: open_fire(win, game, conn, k),
                    kind="flat")
-            for c in targets(rows, limit=4)]
+            for c in targets(rows, limit=ARMED)]
 
 
 def marks(win, game, rows, after=None) -> list:
@@ -133,7 +151,7 @@ def marks(win, game, rows, after=None) -> list:
     `sim/traffic` is where the captain's mark and the errand's answer meet.
     """
     out = []
-    for contact in targets(rows, limit=4):
+    for contact in targets(rows, limit=ARMED):
         hull_id = getattr(contact, "hull_id", "")
         on = hostiles_sim.is_marked(game, hull_id)
         out.append(button(

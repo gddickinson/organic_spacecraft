@@ -2091,6 +2091,72 @@ while `conn.apply` tracks `conn.rcs` to four places, so securing refunds up to
 the hours, which `charge_flown` bills as they pass — so a flight nobody ever
 ends is never charged for its mass.
 
+### The beat that ate the button under your finger
+
+**The player: "the lag between pressing a button and any response. When the
+clock is running the buttons do not act immediately, and often don't respond at
+all."**
+
+`PilotView.tick` ended in `self.refresh()`, and `View.refresh` takes every
+widget out of the column and reparents it to `None`. At `BEAT_MS` 250 that is
+the whole screen — viewport, six cameras, six axes, throttle, clock, both
+boards, the fly-at buttons, the guns — **built again four times a second.**
+Measured: **0 of 25 buttons survived one beat.**
+
+A `QPushButton` emits `clicked` only if the release reaches the object that
+took the press, and a click is held down 80-150 ms. So a beat landing inside
+that window swallowed the press whole. Measured through the buttons: press
+"Ahead", one beat, let go over "Ahead" — **the burn did not happen**; with no
+beat in between, it did.
+
+**The first reading of this was wrong, and the measurement said so.** The guess
+was that ~60-90 styled widgets plus a fresh `Viewport` four times a second was
+simply too much work. It is not: a whole beat cost **13.4 ms against a 250 ms
+budget** — 12.4 of it the rebuild, 0.6 the flying, a 5% duty cycle. The screen
+was never failing to keep up. It was throwing away the control the pilot was
+aiming at. The fix had to be about *identity*, not speed.
+
+**The other screen already had the answer.** `ConnWindow.refresh` keeps its
+title, its viewports and its console — `self.controls.sync(conn)` — and rebuilds
+only the label panel, so its clock has never eaten a press.
+
+So the bridge does the same. `PilotView.refresh` asks `PilotView.shape` whether
+the *situation* changed, as against the readings:
+
+    return (self.conn is None, self.stood_down, self.mark, self.auto,
+            self.marked() is not None,
+            tuple(c.name for _km, c in rows[:4]),
+            fire_panel.shape(self.game, rows))
+
+Same shape → `sync`, which updates the viewport, three button labels and the
+three readout panels in place. Different shape → the full rebuild, because a
+contact leaving the list or a hull coming into reach really is a different set
+of controls.
+
+| | before | after |
+|---|---|---|
+| buttons surviving a beat | 0 of 25 | 25 of 25 |
+| a click held across a beat | swallowed | fires |
+| `view.refresh()` | 12.4 ms | 4.1 ms |
+| a whole beat | 13.4 ms | 4.6 ms |
+
+**Two doors closed on the way.** Every label that changes while the clock runs
+— `panels.main_label`, `throttle_label`, `clock_label` — is formatted in one
+place that `build` and `sync` both call, because #137 already caught the version
+of this where two places formatted the throttle and the button read 50% above a
+panel reading 100%. And `fire_panel.ARMED` now backs `buttons`, `marks` and the
+new `fire_panel.shape`, so the screen asking "did the fire control change?"
+cannot get a different list from the one it drew.
+
+**`View.park` came out of `View.refresh`** so a screen can retire a single
+readout under the same rule the whole column obeys: the outgoing widget is held
+on the view and released on the next turn of the event loop, because a signal
+handler must not destroy the widget that emitted it. That rule had killed the
+process three times — a `Card`, a `QLineEdit` mid-keystroke, a `QComboBox` still
+delivering the click that dismissed it — and **had no check of its own** until
+now: the mutation that makes `park` drop the widget immediately survived the
+whole suite. It does not any more.
+
 `ui/conn_controls.py` is the console itself, split out of `ui/conn_window.py`
 when that went past five hundred lines along a seam already there — the window
 owns the cameras, the panel and the clock. The panel names the settings in m/s,

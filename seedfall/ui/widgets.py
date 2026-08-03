@@ -399,39 +399,38 @@ class View(QScrollArea):
         through a `QComboBox` whose popup was still delivering the click that
         dismissed it.
 
-        Each of those was fixed at its call site with `defer`, one at a time,
-        as players found them. This closes the class instead: the outgoing
-        widgets are parked and released on the *next* turn of the event loop,
-        so whatever emitted is guaranteed to outlive the event it emitted
-        during, whether or not the call site remembered to defer.
+        Each was fixed at its call site with `defer`, one at a time, as players
+        found them. This closes the class instead: every outgoing widget goes
+        through `park`, whether or not the call site remembered.
         """
-        doomed = []
         while self.col.count():
             item = self.col.takeAt(0)
-            w = item.widget()
-            if w is not None:
-                w.setParent(None)
-                w.hide()
-                doomed.append(w)
-        if doomed:
-            # Held on the view, not in a local: a local dies with this frame
-            # and takes the C++ objects with it, which is the whole bug.
-            # *Extended*, not replaced — two rebuilds inside one event (a
-            # handler that refreshes and then navigates) would otherwise drop
-            # the first batch synchronously, which is the same bug wearing a
-            # rarer hat.
-            held = getattr(self, "_doomed", None)
-            if held is None:
-                self._doomed = doomed
-                defer(self._release)
-            else:
-                held.extend(doomed)
+            if item.widget() is not None:
+                self.park(item.widget())
         self.build()
         self.col.addStretch(1)
         # Rebuilding the column does not on its own tell the scroll area that
         # its contents changed size, so a screen taller than the viewport was
         # silently squashed instead of scrolling. Ask for the recalculation.
         self._sync_scroll()
+
+    def park(self, w) -> None:
+        """Take one widget off the screen without freeing it mid-event.
+
+        The rule `refresh` explains, for one widget — used by it for the whole
+        column, and by a screen swapping one readout for a fresher one while
+        the pilot holds a button down elsewhere. Held on the view, not in a
+        local: a local dies with the calling frame and takes the C++ object
+        with it, which is the whole bug. *Appended*, never replaced — two
+        rebuilds in one event would otherwise drop the first batch, the same
+        bug in a rarer hat.
+        """
+        w.setParent(None)
+        w.hide()
+        if getattr(self, "_doomed", None) is None:
+            self._doomed = []
+            defer(self._release)
+        self._doomed.append(w)
 
     def _release(self) -> None:
         """Let the previous screen's widgets go, now the event has finished."""

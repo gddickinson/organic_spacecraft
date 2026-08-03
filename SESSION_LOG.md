@@ -2,6 +2,74 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: the beat was eating the button under your finger
+
+Player report: "the lag between pressing a button and any response. When the
+clock is running the buttons do not act immediately, and often don't respond at
+all."
+
+**Measured, and the first explanation was wrong.** The guess was cost: ~60-90
+styled widgets and a fresh `Viewport` rebuilt four times a second. Timed, a
+whole beat is **13.4 ms against a 250 ms budget** — a 5% duty cycle. Not slow.
+
+The real number: `View.refresh` unparents every widget, `PilotView.tick` called
+it every beat, and **0 of 25 buttons survived one**. A `QPushButton` emits
+`clicked` only when the release reaches the object that took the press, and a
+click is held 80-150 ms — so a beat in the middle ate it.
+
+**Reproduced through the buttons**: press "Ahead", one beat, release over
+"Ahead" — no burn. Without the beat — burn.
+
+**A wrong turn worth recording.** The first probe reported "handler fired?
+True" and nearly had me calling the report unreproducible. It drove Qt by
+object reference: `QTest.mousePress(btn)` … `QTest.mouseRelease(btn)` with the
+same Python `btn`. `park` only *unparents* the old widgets — they stay alive on
+`view._doomed` — so the release found the very object that took the press. A
+player aims at a place, not an object. Re-finding the button by its label
+turned the same probe red.
+
+**The fix**: controls built once and kept; `PilotView.sync` updates readings in
+place; `PilotView.shape` decides when the situation (not the reading) changed
+and a real rebuild is owed.
+
+  buttons surviving a beat   0 of 25  ->  25 of 25
+  click held across a beat   swallowed -> fires
+  view.refresh()             12.4 ms  ->  4.1 ms
+  whole beat                 13.4 ms  ->  4.6 ms
+
+Readings still move (asserted), and laying a course still grows "Run for …"
+and "Break off the course" (asserted). Rendered the bridge after 20 beats and
+looked at it: 50.4 km flown, 32 min elapsed, course laid, "opening at 32 m/s"
+agreeing with the nose 180° off.
+
+**Six mutants, six bites**, all under `-B`: the beat rebuilds everything again ·
+shape never notices a new situation · the beat stops moving the readings · the
+throttle button stops following the throttle · park drops the widget · park
+never releases what it holds.
+
+**The fifth survived at first.** Nothing had ever checked `View.park`'s
+guarantee — the defence against the segfault that killed the process three
+times. Pre-existing gap, inherited by extracting `park` out of `refresh`;
+closed rather than left.
+
+**Ratchet**: `ui/widgets.py` came 517 → 516 and the debt row moved with it.
+`tests/test_bridge.py` needed three separate trims to land at 499.
+
+**One red run that was not a regression.** The first full run of this work
+came back **EXIT=139 — SIGSEGV** after 38 suites, on "QPaintDevice: Cannot
+destroy paint device that is being painted". It was not this change: `moorings`,
+the suite that was running, passes alone; the same first 42 suites in the same
+order re-ran green; and `bridge`, `pilotscreen` and `ui` are none of them in the
+first 42, so none of this had executed. The same Qt message appears in green
+runs. The re-run went 180 suites, EXIT=0. Filed as **#152** — and it means a
+single red full run is not on its own evidence of a regression here.
+
+**Filed rather than folded in: #151.** A `Game.__setattr__` spy caught
+`PilotView.ensure_conn` replacing a live 2,700 s approach with a fresh flight at
+0 s — called from `build()`, so taking command of the ship is a side effect of
+drawing the bridge. Harmless when each screen owned its own conn; harmful since
+#147 made them one.
+
 ## 2026-08-02 — SEEDFALL: one conn, because the bridge and the Conn window flew different ships
 
 The player's report, and it was architectural rather than cosmetic.

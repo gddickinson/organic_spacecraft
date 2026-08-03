@@ -67,6 +67,37 @@ def run(suite) -> bool:
         w.grab()                    # force a real paint pass
         return w
 
+    @check("a widget taken off the screen outlives the event that took it")
+    def _():
+        # **`View.park` is the whole defence against a class of segfault**:
+        # a signal handler must not destroy the widget that emitted the
+        # signal, and almost every handler here rebuilds its own screen. The
+        # outgoing widgets are held on the view and let go on the next turn of
+        # the event loop, so Qt returns from the emit into something alive.
+        #
+        # It killed the process three times before it was a rule — through a
+        # `Card`, through a `QLineEdit` mid-keystroke, and through a
+        # `QComboBox` still delivering the click that dismissed it — and it
+        # had no check of its own until `ui/pilot_view` began parking single
+        # readouts through the same door.
+        from PyQt6.QtWidgets import QApplication, QPushButton
+        from .test_pilot_screen import _bridge
+
+        _game, _win, view = _bridge("park")
+        app = QApplication.instance()
+        doomed = next(b for b in view.findChildren(QPushButton)
+                      if b.parent() is not None)
+        view.park(doomed)
+        assert doomed.parent() is None, "park left it on the screen"
+        assert view._doomed and any(w is doomed for w in view._doomed), (
+            "park let the widget go inside the event that took it — this is "
+            "the use-after-free")
+        assert doomed.text() is not None      # still alive to be asked
+
+        app.processEvents()                   # the next turn of the loop
+        assert view._doomed is None, "the parked widgets are never released"
+        return "parked, held through the event, released on the next turn"
+
     @check("window builds with hud, nav rail and log")
     def _():
         assert len(win.nav_buttons) == len(NAV), "nav rail is incomplete"

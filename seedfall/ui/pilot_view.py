@@ -82,6 +82,9 @@ class PilotView(View):
         #: Has the pilot secured? Not a second answer to "are we flying" —
         #: `game.conn` is that — but to "should the bridge hand her back".
         self.stood_down = False
+        #: What the controls on screen were built for; None until they are.
+        self._shape = None
+        self._boards: dict = {}
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.tick)
 
@@ -276,6 +279,78 @@ class PilotView(View):
 
     # ── painting ───────────────────────────────────────────────────────────
 
+    # ── the beat ───────────────────────────────────────────────────────────
+
+    def shape(self, rows) -> tuple:
+        """What decides *which* controls exist, as against what they read.
+
+        Not a second copy of `build`'s rules: every entry is asked of the same
+        door `build` asks — `ranged`, `marked`, `fire_panel.shape`.
+        """
+        return (self.conn is None, self.stood_down, self.mark, self.auto,
+                self.marked() is not None,
+                tuple(c.name for _km, c in rows[:4]),
+                fire_panel.shape(self.game, rows))
+
+    def refresh(self) -> None:
+        """A beat changes readings. Only a change of situation changes controls.
+
+        **The player's report: "when the clock is running the buttons do not
+        act immediately, and often don't respond at all."** This used to be
+        `View.refresh` — the whole screen taken apart and built again, four
+        times a second at `BEAT_MS` 250. Measured: **0 of 25 buttons survived
+        one beat.** A `QPushButton` emits `clicked` only if the release reaches
+        the object that took the press, and a click is held down 80-150 ms, so
+        a beat landing in the middle swallowed it whole. Measured through the
+        buttons: press "Ahead", one beat, let go over "Ahead" — *the burn did
+        not happen*; with no beat in between, it did.
+
+        **It was never about speed**, which is where the first guess went. A
+        whole beat costs 13.4 ms against a 250 ms budget — 12.4 of it the
+        rebuild, 0.6 the flying. The screen was not too slow to keep up; it
+        was throwing away the button under the pilot's finger.
+
+        So the controls are built once and stay built. `sync` updates what a
+        beat actually changes, and a full rebuild happens only when `shape`
+        says the situation itself changed — a contact in or out of the list, a
+        course laid, a hull come into reach.
+        """
+        if self.conn is None or self._shape is None:
+            self._shape = None
+            super().refresh()
+            return
+        rows = self.ranged()
+        if self.shape(rows) != self._shape:
+            super().refresh()
+            return
+        self.sync(rows)
+
+    def sync(self, rows) -> None:
+        """Update the readings in place, touching no control."""
+        self.feed.conn = self.conn
+        self.feed.view_id = self.camera
+        panels.aim_feed(self, rows)
+        self.feed.update()
+        self._btn_main.setText(panels.main_label(self))
+        self._btn_throttle.setText(panels.throttle_label(self))
+        self._btn_clock.setText(panels.clock_label(self))
+        self._swap("ship", panels.ship_board(self))
+        self._swap("view", panels.in_view_board(self, rows))
+        self._swap("fire", fire_panel.board(self.game, self.conn, rows))
+
+    def _swap(self, key: str, fresh) -> None:
+        """Put a newer readout where the old one stood.
+
+        Through `View.park`, so the outgoing widget outlives the event we may
+        be inside — the same rule `View.refresh` keeps, for one widget.
+        """
+        old = self._boards[key]
+        at = self._right.indexOf(old)
+        self._right.removeWidget(old)
+        self.park(old)
+        self._right.insertWidget(at, fresh)
+        self._boards[key] = fresh
+
     def build(self) -> None:
         why = self.ensure_conn()
         self.head("Pilot", "The view from the bridge, and the ship in your hands.")
@@ -296,22 +371,11 @@ class PilotView(View):
         rows = self.ranged()
 
         self.feed = Viewport(self.conn, self.camera)
-        # **Ring the thing the course is laid on.** Handed a bearing from
-        # `freeflight.toward` and a name — the window looks nothing up.
-        laid = self.marked()
-        if laid is not None:
-            self.feed.mark = (free_sim.toward(self.game, self.conn, laid),
-                              laid.name)
-        # **Name the quays and the hulls out there.** The Conn draws its
-        # target inside a reticle reading "Fleet Hub · 12.0 km"; a free flight
-        # has no target, so the same Hub was a 1.6-pixel speck among the
-        # stars. The sky data was never missing — measured, a free flight's
-        # `sky` holds *more* than an approach's — only the drawing was.
-        self.feed.sights = [
-            (free_sim.toward(self.game, self.conn, c), c.name,
-             km <= engage_sim.reach_km())
-            for km, c in rows[:8]
-            if c.kind in ("anchorage", "hull")]
+        # **Ring the thing the course is laid on, and name the traffic.** One
+        # door, shared with the beat, which refreshes both without rebuilding
+        # the feed. Handed bearings from `freeflight.toward` — the window
+        # looks nothing up itself.
+        panels.aim_feed(self, rows)
         left.addWidget(self.feed)
         # Three to a line: six across demanded 486 px and set the left
         # column's minimum, which is 56 px more than the bridge had to give.
@@ -323,22 +387,30 @@ class PilotView(View):
         left.addWidget(panels.row_of(*[
             button(conn_sim.AXES_BY_ID[a][1], lambda _=False, x=a: self.burn(x))
             for a in ("left", "forward", "right", "down", "back", "up")]))
+        # Held, because a beat updates their text rather than replacing them.
+        self._btn_main = button(panels.main_label(self), self._toggle_main,
+                                kind="flat")
+        self._btn_throttle = button(panels.throttle_label(self),
+                                    self._cycle_throttle, kind="flat")
+        self._btn_clock = button(panels.clock_label(self), self._toggle,
+                                 kind="primary")
         left.addWidget(panels.row_of(
             button("Hold (coast)", lambda: self.burn(None), kind="flat"),
-            button(f"Main drive: {'on' if self.use_main else 'off'}",
-                   self._toggle_main, kind="flat"),
-            button(f"Throttle: {self.conn.throttle:.0%}",
-                   self._cycle_throttle, kind="flat")))
+            self._btn_main, self._btn_throttle))
         left.addWidget(panels.stack_of([
-            button("Stop clock" if self.running else "Run clock",
-                   self._toggle, kind="primary"),
+            self._btn_clock,
             button("Secure from the conn", self.secure, kind="flat"),
             button("Take the conn on something…", self._to_conn, kind="flat")],
             per_row=2))
         left.addStretch(1)
 
-        right.addWidget(panels.ship_board(self))
-        right.addWidget(panels.in_view_board(self, rows))
+        # The right column's readouts are swapped whole on a beat: they are
+        # labels, so nothing the pilot can be pressing lives in them.
+        self._right = right
+        self._boards = {"ship": panels.ship_board(self),
+                        "view": panels.in_view_board(self, rows)}
+        right.addWidget(self._boards["ship"])
+        right.addWidget(self._boards["view"])
         seen = [c for _km, c in rows][:4]
         if seen:
             # What you can see, you can go to: the whole point of the screen.
@@ -359,7 +431,8 @@ class PilotView(View):
 
         # **The guns.** One door, `ui/fire_panel`, shared with any screen that
         # grows a fire control.
-        right.addWidget(fire_panel.board(self.game, self.conn, rows))
+        self._boards["fire"] = fire_panel.board(self.game, self.conn, rows)
+        right.addWidget(self._boards["fire"])
         guns = fire_panel.buttons(self.win, self.game, self.conn, rows)
         if guns:
             right.addWidget(panels.stack_of(guns))
@@ -367,6 +440,7 @@ class PilotView(View):
         if flags:
             right.addWidget(panels.stack_of(flags))
         right.addStretch(1)
+        self._shape = self.shape(rows)
 
     def _look(self, view_id: str) -> None:
         self.camera = view_id
