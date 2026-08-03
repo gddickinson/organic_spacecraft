@@ -43,11 +43,8 @@ class SystemView(View):
                   f"{sys.star_name} · {len(sys.bodies)} bodies · "
                   f"{fac.name if fac else 'unclaimed'}")
 
-        # Whose hulls are actually here, which is not the same as whose flag
-        # flies over the port. See `sim/fleets`: a power fields what its
-        # margin sustains once its ports are paid for, so a power can be
-        # out-shipped over its own holding — and until this line the game
-        # computed that and showed it nowhere.
+        # Whose hulls are actually here — not the same as whose flag flies
+        # over the port (`sim/fleets`), and it was shown nowhere.
         from ..sim import fleets as fleets_sim
         from ..sim import piracy as piracy_sim
         self.col.addWidget(note(fleets_sim.note(g, sys) + " "
@@ -126,11 +123,17 @@ class SystemView(View):
                 getattr(self, "mining_method", mining.DEFAULT_METHOD)))
 
         if sys.port:
+            from . import autopilot_bar as ap_bar
+            quay = ap_bar.dockable(g)
             self.buttons(
                 button(f"Fly the approach to {sys.port.name}", self._dock,
                        kind="primary",
                        tip="Line the hull up yourself. A clean approach earns "
                            "standing; a botched one costs a tug fee."),
+                *([button("Hand it to the flight computer",
+                          lambda _=False, c=quay: ap_bar.dock(self.win, c),
+                          tip="The same computer that flies every approach.")]
+                  if quay is not None else []),
                 button("Let the harbourmaster bring you in",
                        lambda: self.win.go("port"),
                        tip="Skip the approach and dock directly."),
@@ -183,8 +186,7 @@ class SystemView(View):
 
         panel = Panel(b.name)
         panel.add(note(b.summary))
-        # Whose people are on it. The sector had 161 bodies and nobody living on
-        # any of them until `sim/settlement.py`.
+        # Whose people are on it — nobody, until `sim/settlement.py`.
         living = settlement_sim.on_body(g, sys.id, b.id)
         if living is not None:
             panel.add_row("Settled", settlement_sim.note(g, living), "lumen")

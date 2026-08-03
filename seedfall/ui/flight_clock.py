@@ -37,7 +37,7 @@ def fly_beat(win) -> None:
     """One beat of the flight: steer, fly, pay, and tell every window.
 
     The whole of what the three per-window tick handlers used to do, once.
-    The computer is `freeflight.computer` — the single dispatcher over
+    The computer is `flightdeck.computer` — the single dispatcher over
     `Conn.auto` — and the bill is `berthing.charge_flown`, which the bridge
     paid and the other two windows never did: measured, an hour flown from
     the Conn window left the stardate untouched.
@@ -53,6 +53,7 @@ def fly_beat(win) -> None:
     """
     from ..sim import berthing as berth_sim
     from ..sim import conn as conn_sim
+    from ..sim import flightdeck as deck_sim
     from ..sim import freeflight as free_sim
     conn = win.conn
     if conn is None or conn.landed:
@@ -82,7 +83,7 @@ def fly_beat(win) -> None:
                                   throttle=conn.throttle)
             win.burn_fired = True
         else:
-            axis, main, throttle = free_sim.computer(win.game, conn)
+            axis, main, throttle = deck_sim.computer(win.game, conn)
             last = conn_sim.apply(conn, axis, main=main, ticks=1,
                                   throttle=throttle)
         if conn.over:
@@ -137,6 +138,33 @@ def end_burn(win) -> None:
     if pilot is not None:
         pilot.last = last
     berth_sim.charge_flown(win.game, conn)
+    win.beat_refresh()
+
+
+def arm_mode(win, mode: str | None) -> None:
+    """Arm a computer mode, press the lit one to let go, or None for manual.
+
+    **The one door for every autopilot button in the game.** Each flying
+    screen used to hold its own arming logic, which is how the bridge came
+    to offer two of the five modes and the approach window none. The gate is
+    `flightdeck.can_arm` (refusals are toasted with the reason), arming
+    starts the one clock, and the toggle is the toggle everywhere.
+    """
+    from ..sim import flightdeck as deck_sim
+    conn = win.conn
+    if conn is None or conn.over or conn.landed:
+        return
+    mode = mode or ""
+    if not mode or (conn.auto or "") == mode:
+        conn.auto = ""
+    else:
+        ok, why = deck_sim.can_arm(win.game, conn, mode)
+        if not ok:
+            win.toast(why, "warn")
+            return
+        conn.auto = mode
+        if not conn.clock_on:
+            win.set_conn_clock(True)
     win.beat_refresh()
 
 

@@ -163,12 +163,15 @@ class FlightWindow(QDialog):
         for mode, text in (("close", "Close and berth"),
                            ("null", "Hold station"),
                            ("orbit", "Make orbit"),
-                           ("brake", "Brake to zero")):
+                           ("brake", "Brake to zero"),
+                           ("depart", "Move away")):
             btn = button(text, lambda m=mode: self._auto(m), kind="flat")
             btn.setObjectName(f"auto_{mode}")
             row.addWidget(btn)
             self.auto_buttons[mode] = btn
-        self.off_btn = button("Autopilot off", lambda: self._auto(None))
+        # "Manual" — the same word every screen's bar uses for the same act.
+        self.off_btn = button("Manual", lambda: self._auto(None))
+        self.off_btn.setObjectName("auto_off")
         row.addWidget(self.off_btn)
         column.addLayout(row)
 
@@ -231,21 +234,8 @@ class FlightWindow(QDialog):
         already running turns it off, and so does *Autopilot off*, so there
         is no way to be uncertain whether it is on.
         """
-        conn = self.conn
-        if conn is None or conn.over:
-            return
-        if mode is not None and (conn.auto or None) == mode:
-            mode = None
-        if mode is not None:
-            from ..sim import freeflight as free_sim
-            ok, why = free_sim.can_arm(self.win.game, conn, mode)
-            if not ok:
-                self.win.toast(why, "warn")
-                self.refresh()
-                return
-        conn.auto = mode or ""
-        if mode is not None and not self.running:
-            self.win.set_conn_clock(True)
+        from . import flight_clock
+        flight_clock.arm_mode(self.win, mode)
         self.refresh()
 
     @property

@@ -233,6 +233,19 @@ class ApproachWindow(QDialog):
         row.addWidget(button("Flight controls…", self._flying, kind="flat"))
         column.addLayout(row)
 
+        # **The one autopilot bar.** This window could show the computer's
+        # course and offered no way to give it the conn — the only flying
+        # screen with no autopilot at all. Same modes, same Manual, same
+        # door (`flight_clock.arm_mode`) as everywhere else; `refresh`
+        # relights it from the flight.
+        from . import autopilot_bar
+        self._auto_btns = autopilot_bar.buttons(self.win)
+        if self._auto_btns:
+            bar_row = QHBoxLayout()
+            for btn in self._auto_btns:
+                bar_row.addWidget(btn)
+            column.addLayout(bar_row)
+
     # ── the camera ─────────────────────────────────────────────────────────
 
     def span_km(self) -> float:
@@ -324,6 +337,8 @@ class ApproachWindow(QDialog):
         conn = self.conn
         self.predict_btn.setText(
             f"Predicted course: {'on' if self.predict else 'off'}")
+        from . import autopilot_bar
+        autopilot_bar.sync(self.win, getattr(self, "_auto_btns", []))
         if conn is None:
             self.title.setText("Approach — nothing in reach")
             self.readout.setText("")

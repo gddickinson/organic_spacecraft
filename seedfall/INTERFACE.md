@@ -2785,6 +2785,44 @@ tutorial lesson, "Take the ship's wheel", watched through `game.conn_seconds`
 — billed conn time, bumped in `berthing.charge_flown`, so a screen merely
 opened counts nothing.
 
+### The fourth pass: one computer, wearing the same bar everywhere
+
+**"It isn't easy to turn the auto-pilot on from every flight-related
+screen."** Measured, the player was being kind: the bridge offered two of
+the five modes, the helm only a docking shortcut, and the approach window
+none at all — each screen with its own private arming logic. And behind
+that, the deeper split they named next: docking, berthing, moving away,
+destination flying and orbiting spread across different controllers.
+
+**`sim/flightdeck.py` is the one front door now.** `can_arm` is the gate
+every autopilot button in the game greys on and `computer` the dispatcher
+every beat asks; the *law* stays in `sim/autopilot`, the free-flight
+mechanics in `sim/freeflight`, and no screen owns a private computer.
+`flight_clock.arm_mode` is the one arming door in the UI — toggle, gate,
+clock-start, refusal toasted with the reason — and `ui/autopilot_bar.py`
+is the one bar: **Hold station · Brake to zero · Close and berth · Make
+orbit · Move away · Run for <mark> · Manual**, the same labels, the same
+`▶`, the same objectNames, on the Pilot screen, the Helm, the Conn window,
+the Flight controls and the Approach window. Manual is always lit when
+nothing is armed, so "is the computer flying" has one obvious answer and
+one obvious exit — and a held thruster outranks the computer anyway.
+
+**"Depart" closes the verb the system never had**: moving away was manual
+or it was a transfer. The same computer flies her out past the corridor and
+the arrival range, stops, says "Standing clear", and hands the conn back.
+Docking wears three doors on the system screen — fly the approach yourself
+(the mini-game, for standing), hand it to the flight computer (the same
+`close` the bar arms, via `autopilot_bar.dock`), or let the harbourmaster
+skip it — and the computer path is the same one the helm's "Dock at
+<quay>" button uses.
+
+**And destination flying has one executor.** The plotting board's *Engage*
+called `flight.travel_to` — the instant transfer — while the helm flew
+`transit`: two interplanetary autopilots, chosen by which window you
+pressed. The board hands its course to the same watched crossing now;
+`travel_to` remains the programmatic door (`ensure_at`, local work), with
+the same quote, heat and risk since the second pass.
+
 ## Running
 
 ```
@@ -2995,6 +3033,9 @@ seedfall/
 │   ├── orbits.py       what counts as an orbit, its size and roundness, and
 │   │                   the ladder of heights you can ask to hold
 │   ├── autopilot.py    the flight computer: one control law, three modes
+│   ├── flightdeck.py   the computer's one front door: `computer` (the
+│   │                   dispatcher every beat asks) and `can_arm` (the gate
+│   │                   every autopilot button greys on)
 │   ├── attitude.py     pointing the hull, and what the swing costs
 │   ├── thrusters.py    mass, thrust and slew rate from what is actually fitted
 │   ├── burnplan.py     a transfer as a sequence of burns
@@ -3166,6 +3207,8 @@ seedfall/
 │   │                  set of things said changes
 │   ├── flying_keys.py the six axes on keys (W/A/S/D, R/F), through the same
 │   │                  hold-to-burn doors the buttons wire
+│   ├── autopilot_bar.py the one autopilot bar every flying screen shows:
+│   │                  the modes, Manual, and the computer-dock button
 │   ├── viewport_hud.py heads-up aids in every camera: the predicted path,
 │   │                  prograde/retrograde, the aim point, a bay's mouth
 │   ├── orbit_chart.py the orrery widget — paints bodies, quays, traffic

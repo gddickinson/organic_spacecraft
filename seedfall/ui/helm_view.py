@@ -75,7 +75,8 @@ class HelmView(View):
         # button under the finger (#150).
         conn = self.win.conn
         self._clock_btn = None      # a rebuild with no flight must not leave
-        if conn is not None and not conn.landed:    # a stale widget behind
+        self._auto_btns = []        # a stale widget behind
+        if conn is not None and not conn.landed:
             self._clock_btn = button(
                 "Stop clock" if conn.clock_on else "Run clock",
                 self._toggle_clock, kind="primary")
@@ -90,9 +91,15 @@ class HelmView(View):
                                    tip="Open the conn on the quay and hand "
                                        "it to the flight computer.")]
                            if quay is not None else []))
+            # The one autopilot bar — the same modes, labels and Manual as
+            # every other flying screen, through `flight_clock.arm_mode`.
+            from . import autopilot_bar
+            self._auto_btns = autopilot_bar.buttons(self.win)
+            if self._auto_btns:
+                self.buttons(*self._auto_btns)
 
     def beat_sync(self) -> None:
-        """What a beat changes on this screen: the two clock labels."""
+        """What a beat changes on this screen: the clock and the bar."""
         conn = self.win.conn
         if conn is None or getattr(self, "_clock_btn", None) is None:
             return
@@ -100,6 +107,8 @@ class HelmView(View):
                                 else "Run clock")
         self._scale_btn.setText(
             f"Time ×{int(getattr(self.win, 'time_scale', 1))}")
+        from . import autopilot_bar
+        autopilot_bar.sync(self.win, getattr(self, "_auto_btns", []))
 
     def _toggle_clock(self) -> None:
         conn = self.win.conn
@@ -112,19 +121,13 @@ class HelmView(View):
         self.beat_sync()
 
     def _dockable(self, g):
-        """The quay the computer could take her into from here, if any."""
-        from ..sim import berthing as berth_sim
-        from ..sim import track as track_sim
-        for c in track_sim.contacts(g):
-            if c.kind == "anchorage" and berth_sim.can_conn(g, c)[0]:
-                return c
-        return None
+        from . import autopilot_bar
+        return autopilot_bar.dockable(g)
 
     def _dock(self, contact) -> None:
         """One button: the conn on the quay, the computer on the conn."""
-        from .conn_window import open_conn
-        window = open_conn(self.win, contact)
-        window._auto("close")
+        from . import autopilot_bar
+        autopilot_bar.dock(self.win, contact)
 
     def _plotting_board(self) -> None:
         """The system in its own window, with time and a zoom on it."""

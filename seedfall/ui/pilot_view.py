@@ -146,30 +146,18 @@ class PilotView(View):
         """
         if self.conn is None:
             return None, False, 1.0
-        return free_sim.computer(self.game, self.conn)
+        from ..sim import flightdeck as deck_sim
+        return deck_sim.computer(self.game, self.conn)
 
     def set_auto(self, mode: str) -> None:
         """Arm a computer mode, or press the lit one to let go.
 
-        The pilot's "hold station" is the computer's `null` — one law,
-        `autopilot.hold(conn, 0)` — so that is the name that goes on the
-        flight. **Arming starts the clock**: a computer told to hold with the
-        clock stopped read "holding station" while nothing whatsoever
-        happened, and nothing said so.
+        Through `flight_clock.arm_mode` — the one door every autopilot
+        button in the game goes through. The pilot's "hold station" is the
+        computer's `null`; arming starts the clock.
         """
-        mode = "null" if mode == "hold" else mode
-        if self.conn is None:
-            return
-        if self.auto == mode:
-            self.auto = ""
-        else:
-            ok, why = free_sim.can_arm(self.game, self.conn, mode)
-            if not ok:
-                self.win.toast(why, "warn")
-            else:
-                self.auto = mode
-                if not self.running:
-                    self.set_running(True)
+        from . import flight_clock
+        flight_clock.arm_mode(self.win, "null" if mode == "hold" else mode)
         self.refresh()
 
     def fly_at(self, contact) -> None:
@@ -276,6 +264,7 @@ class PilotView(View):
         """
         return (self.conn is None, self.stood_down, self.mark, self.auto,
                 self.marked() is not None,
+                getattr(getattr(self.conn, "target", None), "kind", ""),
                 tuple(c.name for _km, c in rows[:4]),
                 fire_panel.shape(self.game, rows))
 
@@ -428,21 +417,15 @@ class PilotView(View):
             right.addWidget(panels.stack_of([
                 button(f"Fly at {c.name}", lambda _=False, k=c: self.fly_at(k),
                        kind="flat") for c in seen]))
+        # **The one autopilot bar** — every mode, and Manual, the same as on
+        # the helm, the conn and the approach window. The bridge used to
+        # offer two of the five modes.
+        from . import autopilot_bar
         aim = self.marked()
-        right.addWidget(panels.stack_of([
-            button(("Stop holding station" if self.auto == "null"
-                    else "Hold station"),
-                   lambda: self.set_auto("hold"), kind="flat"),
-            button(("Stop braking" if self.auto == "brake"
-                    else "Brake to zero"),
-                   lambda: self.set_auto("brake"), kind="flat",
-                   tip="Kill the way she has on, then hand the conn back."),
-            *([button(("Stop running for it" if self.auto == "run"
-                       else f"Run for {aim.name}"),
-                      lambda: self.set_auto("run"), kind="flat")]
-              if aim is not None else []),
-            *([button("Break off the course", self.break_off, kind="flat")]
-              if aim is not None else [])]))
+        right.addWidget(panels.stack_of(
+            autopilot_bar.buttons(self.win)
+            + ([button("Break off the course", self.break_off, kind="flat")]
+               if aim is not None else []), per_row=3))
 
         # **The guns.** One door, `ui/fire_panel`, shared with any screen that
         # grows a fire control.

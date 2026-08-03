@@ -130,4 +130,6 @@ def computer_note(conn: Conn) -> str:
         return f"running for {mark}" if mark else "running for nothing"
     if mode == "brake":
         return "braking to zero, then handing back"
+    if mode == "depart":
+        return "standing away to clear space"
     return mode

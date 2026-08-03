@@ -239,10 +239,19 @@ class PlotWindow(QDialog):
                 f"{contact.name} is not somewhere the ship can be laid up. "
                 "Plot it, then take the conn.", "warn")
             return
-        result = flight.travel_to(self.game, contact.body_index, self.burn_id)
-        self.win.toast(result.get("text") or f"Under way for {contact.name}.",
-                       "good" if result.get("ok", True) else "bad")
-        self.win.refresh()
+        # Through `transit.begin` — the same crossing the helm flies, watch
+        # by watch. This used to call `flight.travel_to`, the *instant*
+        # executor, so the game had two interplanetary autopilots depending
+        # on which window you pressed; destination flying is one system now.
+        from ..sim import transit as transit_sim
+        res = transit_sim.begin(self.game, contact.body_index, self.burn_id)
+        if not res.get("ok"):
+            self.win.toast(res.get("why", "That course cannot be flown."),
+                           "warn")
+            return
+        self.win.transit = res["transit"]
+        self.win.toast(f"Under way for {contact.name}.", "good")
+        self.win.go("transit")
         self.refresh()
 
     def _conn(self) -> None:

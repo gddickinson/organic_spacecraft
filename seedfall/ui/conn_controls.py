@@ -119,16 +119,25 @@ class ConnControls(QWidget):
 
         self.run_btn = button("Run clock", win._toggle_clock, kind="primary")
         grid.addWidget(self.run_btn, 1, 5)
-        # Brake-to-zero: null with a hand-back — see `freeflight.computer`.
+        # Brake-to-zero and Move away: the same computer's other two verbs.
         brake = button("Brake to zero", lambda: win._auto("brake"),
                        kind="flat")
         brake.setObjectName("auto_brake")
         grid.addWidget(brake, 2, 8)
         self.mode_buttons["brake"] = (brake, "Brake to zero")
+        away = button("Move away", lambda: win._auto("depart"), kind="flat")
+        away.setObjectName("auto_depart")
+        grid.addWidget(away, 3, 6)
+        self.mode_buttons["depart"] = (away, "Move away")
         self.scale_btn = button("Time ×1", self._cycle_scale, kind="flat",
                                 tip="How many minutes of flight one beat "
                                     "runs.")
         grid.addWidget(self.scale_btn, 3, 5)
+        # One obvious exit from every mode, as on every other flying screen.
+        self.manual_btn = button("Manual", lambda: win._auto(None),
+                                 kind="flat")
+        self.manual_btn.setObjectName("auto_off")
+        grid.addWidget(self.manual_btn, 3, 4)
         grid.addWidget(button("New approach…", win._pick_target, kind="flat"),
                        0, 6)
         # One button for *stop what you are doing*, and it says which. Giving
@@ -230,7 +239,8 @@ class ConnControls(QWidget):
             # armed on a free flight, `close` and `orbit` used to stay lit
             # and coast for ever, the clock running with nothing at the
             # controls.
-            ok, why = free_sim.can_arm(self.window.game, conn, mode)
+            from ..sim import flightdeck as deck_sim
+            ok, why = deck_sim.can_arm(self.window.game, conn, mode)
             btn.setEnabled(ok or self.window.mode == mode)
             btn.setToolTip(why if not ok else "")
 
@@ -245,6 +255,7 @@ class ConnControls(QWidget):
         light(self.main_btn, bool(conn.fired_axis) and conn.fired_main)
         for mode, (btn, _text) in self.mode_buttons.items():
             light(btn, self.window.mode == mode)
+        light(self.manual_btn, self.window.mode is None, "warn")
 
         self._sync_heights(conn, live)
         self._sync_throttle(conn, live)

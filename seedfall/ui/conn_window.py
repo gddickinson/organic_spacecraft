@@ -288,22 +288,8 @@ class ConnWindow(QDialog):
         clock, so a berthing takes the forty minutes it takes and can be
         watched, corrected or called off half-way — from any window.
         """
-        if self.conn is None or self.conn.over:
-            return
-        if mode is not None and self.mode == mode:
-            self.mode = None                 # pressing it again lets go
-            self.refresh()
-            return
-        if mode is not None:
-            from ..sim import freeflight as free_sim
-            ok, why = free_sim.can_arm(self.game, self.conn, mode)
-            if not ok:
-                self.win.toast(why, "warn")
-                self.refresh()
-                return
-        self.mode = mode
-        if mode is not None and not self.running:
-            self.win.set_conn_clock(True)
+        from . import flight_clock
+        flight_clock.arm_mode(self.win, mode)
         self.refresh()
 
     def _toggle_clock(self) -> None:

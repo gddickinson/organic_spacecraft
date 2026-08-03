@@ -12591,3 +12591,20 @@ four private copies of the armed state. What was done, in one session:
   the bridge mark carries the engagement band.
 - Brake-to-zero; helm one-button computer docking; ninth tutorial lesson
   ("Take the ship's wheel", watched through billed `game.conn_seconds`).
+
+## The fourth pass: one computer, the same bar everywhere (2026-08-03)
+
+- **`sim/flightdeck.py`** — the computer's one front door (`computer`,
+  `can_arm`), cut out of `freeflight` (which had also quietly doubled three
+  functions from a backwards slice — deduplicated). The law stays in
+  `sim/autopilot`.
+- **`ui/autopilot_bar.py`** — Hold station · Brake to zero · Close and
+  berth · Make orbit · Move away · Run for <mark> · Manual, identical on
+  the Pilot, Helm, Conn, Flight-controls and Approach screens, all through
+  `flight_clock.arm_mode`. Manual lit when nothing is armed.
+- **"Depart" mode** — the same computer moves her away past the corridor,
+  stops, and hands back. The system screen offers computer docking beside
+  the hand-flown mini-game; the helm's dock button is the same door.
+- **One transfer executor** — the plotting board's Engage flies the same
+  watched crossing as the helm (was `travel_to`, the instant one).
+- test_flightdeck grew to 14 checks; full suite green.

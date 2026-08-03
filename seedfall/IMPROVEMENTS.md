@@ -58,6 +58,19 @@ across pilot, helm and flight control.
 - Brake-to-zero mode; one-button computer docking from the helm; a ninth
   tutorial lesson teaching the conn (watched through billed conn time).
 
+## Done — the fourth pass (2026-08-03): one computer, the same bar everywhere
+
+- `sim/flightdeck.py`: the flight computer's one front door (`computer`,
+  `can_arm`); no screen owns a private dispatcher.
+- `ui/autopilot_bar.py` on Pilot, Helm, Conn, Flight controls and Approach:
+  all modes + Manual, same labels, same toggle, through
+  `flight_clock.arm_mode`.
+- "Depart" mode — moving away is a verb of the same computer.
+- Computer docking beside the hand-flown mini-game on the system screen;
+  the helm's dock button is the same door.
+- One interplanetary executor: the plotting board flies the helm's watched
+  crossing instead of the instant `travel_to`.
+
 ## Open — defects and debts, in rough value order
 
 1. **Tuning constants without a guard.** The tripwire's last clean sweep

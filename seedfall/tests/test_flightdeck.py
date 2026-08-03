@@ -322,4 +322,73 @@ def run(suite: Suite) -> bool:
         return (f"{len(got['path'])} path dots, prograde, aim, and a "
                 f"{len(ring)}-point mouth on a drum")
 
+    @check("the same computer moves her away, and hands back when clear")
+    def _():
+        # "Depart" is a verb of the one flight computer — leaving used to be
+        # manual or a transfer, the one operation with no mode.
+        _qt()
+        game, quay = _moored("deck-l")
+        assert game is not None
+        win = _window(game)
+        contact = next(c for c in track_sim.contacts(game)
+                       if c.name == quay.name)
+        conn, why = berth_sim.begin(game, contact)
+        assert conn is not None, why
+        win.conn = conn
+        from ..ui import flight_clock
+        flight_clock.arm_mode(win, "depart")
+        assert conn.auto == "depart" and conn.clock_on
+        opened = conn.range_km
+        for _ in range(600):
+            if conn.auto != "depart":
+                break
+            win.fly_beat()
+        assert conn.auto == "", "the computer never handed back"
+        assert conn.range_km > opened, (
+            f"never moved away: {opened:.1f} -> {conn.range_km:.1f} km")
+        assert conn.speed < 1.0, f"handed back still moving {conn.speed:.1f}"
+        return (f"{opened:.1f} -> {conn.range_km:.1f} km, stopped, "
+                "conn handed back")
+
+    @check("the autopilot bar is on every flying screen, with one Manual")
+    def _():
+        _qt()
+        from PyQt6.QtWidgets import QPushButton
+        from ..ui.approach_window import ApproachWindow
+        from ..ui.flight_window import FlightWindow
+        game, quay = _moored("deck-m")
+        assert game is not None
+        win = _window(game)
+        contact = next(c for c in track_sim.contacts(game)
+                       if c.name == quay.name)
+        conn, why = berth_sim.begin(game, contact)
+        win.conn = conn
+        win.go("pilot")
+        win.go("helm")
+        surfaces = {"pilot": win.views["pilot"], "helm": win.views["helm"],
+                    "flight": FlightWindow(win), "approach":
+                    ApproachWindow(win)}
+        for name, widget in surfaces.items():
+            names = {b.objectName() for b in
+                     widget.findChildren(QPushButton)}
+            assert "auto_off" in names, f"{name} has no Manual"
+            assert "auto_close" in names, f"{name} cannot arm close"
+        surfaces["flight"].close()
+        surfaces["approach"].close()
+        return f"{len(surfaces)} surfaces, each with the bar and a Manual"
+
+    @check("destination flying has one executor: the watched crossing")
+    def _():
+        # The plotting board's Engage used to call `flight.travel_to`, the
+        # *instant* transfer — two interplanetary autopilots, picked by
+        # which window you pressed. The wiring is in the source and can be
+        # read (the same rule `test_bridge` uses).
+        import inspect
+        from ..ui import plot3d_window
+        body = inspect.getsource(plot3d_window.PlotWindow._engage)
+        assert "transit_sim.begin" in body, "the board no longer flies transit"
+        assert "travel_to(" not in body, (
+            "the board still has its own instant executor")
+        return "the board hands its course to the same crossing the helm flies"
+
     return True
