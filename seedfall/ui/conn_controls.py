@@ -188,10 +188,9 @@ class ConnControls(QWidget):
         conn = self.window.conn
         if conn is None:
             return
-        conn.safeties = not getattr(conn, "safeties", True)
+        from ..sim import collision
         self.window.win.toast(
-            "Safeties off — nothing will brake for you." if not conn.safeties
-            else "Safeties on.", "bad" if not conn.safeties else "")
+            *collision.toggle_safeties(self.window.game, conn))
         self.window.refresh()
 
     def _cycle_scale(self) -> None:

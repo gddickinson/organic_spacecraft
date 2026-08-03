@@ -181,6 +181,32 @@ def _instruments(game) -> list:
     return lines
 
 
+@fact("detection")
+def _detection(game) -> list:
+    """How far *this* hull sees, against what is hiding — from the array
+    actually fitted, so the answer changes when the captain buys a better
+    one and cannot go stale in the prose."""
+    from ..data import countermeasures as cm
+    from . import detection
+    array = detection.sensor_of(game)
+    lines = [f"Your array reads {array:.1f} ly. Against a hull, that is:"]
+    for hiding in cm.ALL:
+        lines.append(f"  {hiding.name} — "
+                     f"{detection.SENSOR_KM * array * hiding.share:,.0f} km")
+    lines.append("Stars, worlds and quays are seen at any range: they are "
+                 "enormous, lit, or squawking because being found is the job.")
+    # **The range only means something against the stopping distance.** Seen
+    # with less room than it takes to stop is seen too late, so quote both or
+    # the table above is trivia. From the drive actually fitted.
+    from . import thrusters
+    accel = max(1e-6, float(thrusters.summary(game.ship)["main_accel"]))
+    for speed in (100.0, 300.0):
+        lines.append(f"  at {speed:,.0f} m/s you need "
+                     f"{speed * speed / (2.0 * accel) / 1000.0:,.0f} km to "
+                     f"stop")
+    return lines
+
+
 @fact("keys")
 def _keys(game) -> list:
     from ..data.screens import NAV_KEYS

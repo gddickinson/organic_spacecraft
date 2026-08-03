@@ -177,7 +177,9 @@ KIN = {
     "works": ("works",), "mining": ("mining",), "research": ("bench",),
     "inquiry": ("evidence", "bench"), "flight": ("helm", "flight", "burns"),
     "path": ("helm", "flight", "burns"),   # split from `flight`, same pins
-    "collision": ("collision", "byhand", "conn"),
+    "collision": ("collision", "detection", "byhand", "conn"),
+    "detection": ("detection", "collision"),
+    "countermeasures": ("detection", "collision"),
     "contracts": ("postings", "missions", "cargo"), "chains": ("missions",),
     "expedition": ("landing", "ground", "wayhome"), "weather": ("ground",),
     "territory": ("territory", "levy"), "allegiance": ("allegiance",),
@@ -357,10 +359,8 @@ def main(argv: list) -> int:
     # module swept in **20 seconds**. `exchequer`'s thirteen were still going
     # after **thirty minutes**, because every constant its own suites miss
     # pays for the broad set — 74 suites — and so does the one calibration
-    # run before them.
-    #
-    # So sweeping everything with both stages is an overnight job, and
-    # sweeping everything with stage one alone is about a quarter of an hour.
+    # run before them. So both stages over everything is an overnight job,
+    # and stage one alone is about a quarter of an hour.
     # The shortlist that produces is not a verdict — it is *not caught by the
     # suite that knows this module*, which is the right question to ask 439
     # times and the wrong one to stop at. Confirm a shortlist with a full run

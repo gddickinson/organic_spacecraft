@@ -10,17 +10,17 @@ This is that last ten kilometres. A local frame centred on whatever you are
 approaching, the ship's position and velocity relative to it, and two ways to
 change them:
 
-* **Reaction control.** Small, precise, cheap: `RCS_DV` a pulse. This is what
-  you berth on, and a careful pilot can do everything with it given time.
-* **The main drive.** `MAIN_DV` a burn, thirty times the shove for about six
-  times the mass. It closes distance. It is a poor tool for the last hundred
-  metres and the damage model says so.
+* **Reaction control.** Small, precise, cheap: `RCS_DV` a pulse. What you
+  berth on, and a careful pilot can do everything with it given time.
+* **The main drive.** `MAIN_DV` a burn — thirty times the shove for about six
+  times the mass. It closes distance, and it is a poor tool for the last
+  hundred metres; the damage model says so.
 
 Three things make this more than a joystick. Closing speed is not free: arrive
 fast and contact is a collision, scaled by how fast. A planet pulls, with a
 `mu` from its own `radius_km` and `gravity`. And the main drive only pushes
-along the nose — see `sim/attitude.py` — so a burn in a new direction is a
-turn first, and the turn takes the time this hull's clusters need.
+along the nose (`sim/attitude.py`), so a burn in a new direction is a turn
+first, and the turn takes the time this hull's clusters need.
 
 Nothing here writes to the chronicle. `apply` returns what the manoeuvre did
 and the caller decides what it costs; the sim layer must not touch Qt and this
@@ -109,13 +109,12 @@ class Conn:
     clock_on: bool = False
     mark: str = ""
     #: How far the main drive can be opened and still be held straight, 0..1.
-    #:
     #: Three places in the tables promised this and none was true: a hull on
-    #: one engine of two flew as straight as one on two, only slower. What
-    #: decides the cap is off-axis thrust against attitude authority — a
-    #: NAVIS on one of two holds 0.62, and a LEVIATHAN under a Fusion Torch
-    #: only 0.20, so the liability is a big engine on a hull with few
-    #: stations. See `thrusters.yaw_torque` and `holdable_throttle`.
+    #: one engine of two flew as straight as one on two, only slower. The cap
+    #: is off-axis thrust against attitude authority — a NAVIS on one of two
+    #: holds 0.62, a LEVIATHAN under a Fusion Torch only 0.20 — so the
+    #: liability is a big engine on a hull with few stations. See
+    #: `thrusters.yaw_torque` and `holdable_throttle`.
     hold: float = 1.0
     #: Reaction mass left for close work, and what the hull started with.
     rcs: float = 40.0
@@ -144,9 +143,9 @@ class Conn:
     #: the difference to the ship; nothing here spends anything real.
     opening_rcs: float = 40.0
     #: Which way the starlight travels, in this frame. The star sits at the
-    #: system's centre and the target somewhere out from it, so light falls
-    #: along the target's own position vector — which is what gives a world
-    #: a terminator on the correct side.
+    #: system's centre and the target out from it, so light falls along the
+    #: target's own position vector — which puts a world's terminator on the
+    #: correct side.
     star_dir: list = field(default_factory=lambda: [0.0, 1.0, 0.0])
     #: How bright this system's star is, against the Sun. A *fact* about the
     #: star; how many stops of it a screen can show is the window's business.
@@ -158,6 +157,12 @@ class Conn:
     #: the approach opens — bodies move on a scale of months and an approach
     #: is over in hours.
     sky: list = field(default_factory=list)
+    #: The array this hull looks through, in ly (`Stats.sensor`), stamped
+    #: when the approach opens — nobody refits a sensor in flight. It lives
+    #: here because `instruments.readout` holds a Conn and no Game: a panel
+    #: guessing at a default array while the computer used the real one is
+    #: the two-screens-disagree fault this deck was rebuilt to end.
+    array: float = 2.0
     #: The radius from the target's centre, in km, that the pilot has asked
     #: to hold. Zero means "wherever we are" — which is what every orbit in
     #: the game used to be, because `autopilot` circularised at the current
@@ -272,98 +277,18 @@ class Conn:
         return -sum(p * v for p, v in zip(self.pos, self.vel)) / r
 
 
-def observe(game) -> Conn:
-    """The view from where the ship is standing, with nothing to approach.
+def __getattr__(name):
+    """`observe` and `start` live in `sim/conn_open.py`.
 
-    A captain with nothing in reach was shown an empty rectangle: the windows
-    drew the approach target and a fixed field of stars, and with no target
-    there was nothing but the field. There is always something to see — at
-    0.40 AU the system's own star is 1.34° across — so the conn opens anyway
-    and simply says it has no approach running.
+    Lazily, and here rather than at the top of the file, because `conn_open`
+    imports this module for `Conn` — importing it up top would be a cycle.
+    Every caller that reaches for `conn.start` still finds it (PEP 562).
     """
-    from . import sky as sky_sim
-    watching = Target(id="watch", name="Station keeping", kind="point",
-                      radius_km=0.0, detail="Nothing within reach to close.")
-    conn = Conn(target=watching, pos=[0.0, 0.0, 0.0], vel=[0.0, 0.0, 0.0],
-                start_km=1.0, rcs=float(game.ship.cargo.get("volatiles", 0)),
-                opening_rcs=float(game.ship.cargo.get("volatiles", 0)))
-    conn.outcome = "watching"
-    conn.landed = True                      # nothing to charge for looking
-    conn.sky = sky_sim.build(game, None)
-    conn.star_lum = star_class(game.system).luminosity
-    conn.log.append("Nothing within reach. The watch is kept.")
-    return conn
+    if name in ("observe", "start"):
+        from . import conn_open
+        return getattr(conn_open, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
-
-def start(game, contact, range_km: float | None = None,
-          drift: float = 2.0) -> Conn:
-    """Begin an approach, arriving off the target with way on.
-
-    You do not arrive stopped. The drift is what the transfer left you with,
-    and killing it is the first thing a pilot does.
-
-    At a world the transfer has already spent the kilometres a second, so the
-    ship arrives *nearly* circular and a little out — which is the manoeuvre
-    a conn is for. Trimming fifty metres a second is a few minutes' work;
-    building five thousand from rest is not something a thruster does.
-    """
-    target = target_from_contact(game, contact)
-    r = approach_range(target) if range_km is None else abs(range_km)
-    # The tank is the ship's own. The first draft invented one from the hull's
-    # speed rating — a captain with 20 t of volatiles aboard took the conn
-    # with 36.8, and spent it without the ship noticing.
-    aboard = float(game.ship.cargo.get("volatiles", 0))
-    # What this hull can actually push with. A Fusion Torch on a SPORE is a
-    # rocket and on a LEVIATHAN is a nudge; until the engines had places and
-    # masses, both read as "speed +0.58" and flew identically.
-    from . import attitude as attitude_sim
-    from . import thrusters
-    kit = thrusters.summary(game.ship)
-    from . import impulse
-    conn = Conn(target=target, pos=[0.0, -r, 0.0], vel=[0.0, abs(drift), 0.0],
-                start_km=r, rcs=aboard, opening_rcs=aboard,
-                mass_t=impulse.ship_mass(game),
-                target_mass_t=impulse.mass_of(game, target),
-                main_dv=kit["main_accel"] * TICK,
-                hold=kit["hold"],
-                rcs_dv=kit["rcs_accel"] * TICK,
-                slew_rate=kit["slew_rate"],
-                turn_rate_cost=attitude_sim.turn_cost(game.ship, 6.283185))
-    # Pointing at the target — except on a free flight, where the ship *is*
-    # the origin and there is nothing to point at. `unit` of a zero vector has
-    # no answer, so the nose keeps the heading the frame is built on and the
-    # pilot turns it wherever they like.
-    conn.nose = (list(attitude_sim.unit([-p for p in conn.pos]))
-                 if r > 1e-9 else [0.0, 1.0, 0.0])
-    conn.star_dir = list(starlight(game, contact))
-    conn.star_lum = star_class(game.system).luminosity
-    from . import sky as sky_sim
-    # A free flight has no contact behind its target, and `sky.build` has
-    # always known how to draw the view from wherever the ship is standing.
-    conn.sky = sky_sim.build(game, None if is_open(target) else contact)
-    if target.mu > 0:
-        # Across the line of sight at circular speed, less the error the
-        # transfer left. Radially inward a little, so it is falling: an
-        # approach you can ignore is not an approach.
-        want = orbital_speed(conn)
-        short = orbit_band(conn) * 3.5
-        conn.vel = [want - short, -drift, 0.0]
-        # **Was she already in one when the conn opened?** Measured, **8 of
-        # 11 body approaches opened already finished**: `outcome.resolve`
-        # wrote "orbit" on the first tick, so the pad and every mode were
-        # dead before a control could be touched. An outcome is what a
-        # flight achieves, not the state it began in — see `outcome.resolve`.
-        conn.opened_orbiting = in_orbit(conn)
-        conn.log.append(
-            f"Closing {target.name} at {r - target.radius_km:,.0f} km, "
-            f"{short:,.0f} m/s under circular and falling."
-            if not conn.opened_orbiting else
-            f"On station in orbit of {target.name}, "
-            f"{r - target.radius_km:,.0f} km up. She is yours.")
-        return conn
-    conn.log.append(f"Approach begun on {target.name}, "
-                    f"{r:.1f} km off, {drift:.1f} m/s of way on.")
-    return conn
 
 
 def rotate(vec, heading: float) -> tuple:
@@ -451,14 +376,13 @@ def apply(conn: Conn, axis_id: str | None, main: bool = False,
                 turning = conn.fired_turning = True
                 ok = False
         if ok:
-            # The main drive throttles. It is the difference between an engine
-            # and a firework, and without it a bigger drive made every hull
-            # *worse*: one tick of a fusion torch on a SPORE is 124 m/s, so the
-            # computer lit it to trim ten, overshot, corrected the overshoot,
-            # and never converged. Attitude clusters are pulsed, not throttled.
-            # The clamp, the lopsided-hull cap and the trim surcharge all live
-            # in `pilot`, because the console has to quote them before the pilot
-            # commits, and a second copy here is how a forecast starts lying.
+            # The main drive throttles — the difference between an engine and
+            # a firework. Without it a bigger drive made every hull *worse*:
+            # one tick of a fusion torch on a SPORE is 124 m/s, so the
+            # computer lit it to trim ten and never converged. Clusters are
+            # pulsed, not throttled. The clamp, the lopsided cap and the trim
+            # surcharge live in `pilot` — the console quotes them before the
+            # pilot commits, and a second copy here is how a forecast lies.
             from . import pilot
             part = pilot.usable_throttle(conn, main, throttle)
             dv = (conn.main_dv if main else conn.rcs_dv) * part

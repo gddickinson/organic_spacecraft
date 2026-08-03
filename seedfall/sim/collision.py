@@ -58,6 +58,9 @@ class Threat:
         self.room_km = room_km        # to the solid part
         self.stop_km = stop_km        # what stopping would take
         self.seconds = seconds        # to contact at this rate
+        #: The instruments' own fix on it, or None for the target, which is
+        #: the thing the approach is *about* and never in doubt.
+        self.track = None
 
     @property
     def slack(self) -> float:
@@ -96,8 +99,14 @@ def _stopping_km(conn, closing: float) -> float:
     return (closing * closing) / (2.0 * _accel(conn)) / 1000.0
 
 
-def _measure(conn, name, kind, at, radius_km) -> Threat | None:
-    """One object: how close, how fast, how much room, how long."""
+def _measure(conn, name, kind, at, radius_km, track=None) -> Threat | None:
+    """One object: how close, how fast, how much room, how long.
+
+    **A poor track is read at the worse end of its error bar.** An uncertain
+    closing rate is inflated and the room shrunk, so a bad array warns early
+    and loudly rather than late and precisely — see `sim/detection`, which
+    says how good the fix is.
+    """
     toward = [a - p for a, p in zip(at, conn.pos)]
     km = math.dist(toward, (0.0, 0.0, 0.0))
     if km < 1e-9:
@@ -106,10 +115,33 @@ def _measure(conn, name, kind, at, radius_km) -> Threat | None:
     closing = sum(v * u for v, u in zip(conn.vel, unit))
     if closing <= 0.0:
         return None                      # opening, or holding: nothing to say
-    room = max(0.0, km - max(0.0, radius_km))
+    noise = track.noise if track is not None else 0.0
+    closing *= 1.0 + noise
+    room = max(0.0, km - max(0.0, radius_km)) * (1.0 - noise * 0.5)
     seconds = room * 1000.0 / closing if closing > 0 else float("inf")
-    return Threat(name, kind, km, closing, room, _stopping_km(conn, closing),
-                  seconds)
+    threat = Threat(name, kind, km, closing, room, _stopping_km(conn, closing),
+                    seconds)
+    threat.track = track
+    return threat
+
+
+def toggle_safeties(game, conn) -> tuple:
+    """Flip the envelope guard, and hand back the words to say about it.
+
+    One door, because there are two switches — the conn console and the
+    flight panel — and they had a copy of the sentence each. Two copies of a
+    sentence is how one screen ends up calling it something else, which is
+    the whole complaint this flight deck was rebuilt over.
+    """
+    if conn is None:
+        return "", ""
+    conn.safeties = not getattr(conn, "safeties", True)
+    if game is not None:
+        from .tutorial_watch import deed
+        deed(game, "safeties")
+    if conn.safeties:
+        return "Safeties on.", ""
+    return "Safeties off — nothing will brake for you.", "bad"
 
 
 def scan(game, conn) -> Threat | None:
@@ -124,6 +156,12 @@ def scan(game, conn) -> Threat | None:
     found = []
     # The target, unless the pilot has said they mean it, or she is inside
     # the way in — a bay's corridor is somewhere she was invited.
+    #
+    # **Never filtered through `detection`, deliberately.** The thing you
+    # chose to approach is on your plot by definition: you have a lock on it,
+    # you are flying an approach to it, and a guard that lost your own berth
+    # to a sensor range would be worse than no guard. Detection decides what
+    # *else* is out there — see the loop below.
     target = getattr(conn, "target", None)
     if target is not None and not is_open(target):
         deliberate = (getattr(conn, "ditching", False)
@@ -138,13 +176,23 @@ def scan(game, conn) -> Threat | None:
     # And everything else placed in this frame. A ship crossing a system
     # passes plenty of things it is not approaching, and none of them were
     # ever asked about.
+    # **Only what the instruments actually hold.** A hull running dark is not
+    # on the plot until it is close, and a cloaked one barely then — which is
+    # what a cloak is *for*, and why flying fast through a busy system in a
+    # cheap hull is now a real risk rather than a free one.
+    from . import detection
     for sight in getattr(conn, "sky", ()) or ():
         kind = getattr(sight, "kind", "")
         if kind not in ("body", "anchorage", "hull"):
             continue
-        got = _measure(conn, getattr(sight, "name", "?"), kind,
+        fix = detection.track(game, conn, getattr(sight, "name", "?"), kind,
+                              getattr(sight, "at", (0.0, 0.0, 0.0)),
+                              getattr(sight, "look", ""))
+        if fix is None:
+            continue                     # nothing on it: no warning to give
+        got = _measure(conn, fix.name, kind,
                        getattr(sight, "at", (0.0, 0.0, 0.0)),
-                       float(getattr(sight, "radius_km", 0.0) or 0.0))
+                       float(getattr(sight, "radius_km", 0.0) or 0.0), fix)
         if got is not None:
             found.append(got)
     if not found:
@@ -231,6 +279,10 @@ def line(threat) -> str:
         return ""
     when = (f"{threat.seconds:,.0f} s" if threat.seconds < 600
             else f"{threat.seconds / 60:,.0f} min")
+    fix = getattr(threat, "track", None)
+    if fix is not None and (fix.estimated or fix.hiding.share < 1.0):
+        when += " (estimated"
+        when += (f", {fix.hiding.name})" if fix.hiding.share < 1.0 else ")")
     if threat.level == "imminent":
         return (f"COLLISION — {threat.name} in {when} at "
                 f"{threat.closing:,.1f} m/s, and she cannot be stopped in the "

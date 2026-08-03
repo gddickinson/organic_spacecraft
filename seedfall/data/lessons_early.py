@@ -70,6 +70,27 @@ EARLY = [
            "for as long as your hand is down.",
            chapter="the-wheel"),
 
+    Lesson("guard", "Find out what is in the way",
+           "While you have the conn, find the Safeties button and press it "
+           "twice — off, and back on. Read what the panel says each time.",
+           "pilot", "took_the_guard_off",
+           "The computer will not fly you into something it could still stop "
+           "for. It watches everything on the plot, not only what you are "
+           "approaching, and the number it cares about is not the range but "
+           "whether you can still stop: at 300 m/s a starting hull needs "
+           "about six hundred kilometres. When it warns, the panel names the "
+           "thing and the seconds. Contact is allowed — ramming, a forced "
+           "berth, an ordered descent — but you have to mean it, and that is "
+           "what the switch is for. With the safeties off nothing brakes and "
+           "nothing is refused.\n\nOne more thing worth knowing: not "
+           "everything out there wants to be seen. Your array reaches a long "
+           "way against a hull that is transponding and barely at all "
+           "against one that is not, so a raider running dark is close "
+           "before it exists and a cloaked hull is closer still. The manual "
+           "page \u201cWhat you can see, and what can hide\u201d quotes "
+           "your own numbers.",
+           chapter="the-wheel", skip_if="have_guarded"),
+
     Lesson("berth", "Get alongside something",
            "Take the conn on a quay and let the computer close and berth — "
            "or fly her in by hand if you would rather.",

@@ -2972,6 +2972,59 @@ instrument panel every console reads, a ringed and named box in the camera
 view (`viewport_hud`), and a line in the log the first time the computer
 takes over. `tests/test_collision.py` holds the five claims.
 
+### The eighth pass: the guard was omniscient, and a cloak fixes that
+
+The guard shipped reading `Conn.sky` directly — a perfect, noiseless list of
+everything in the system. So a hull with the cheapest array got exactly the
+warnings a VESPER Organ got, and a raider that `sim/traffic` has described as
+an "Unmarked hull — no transponder" since the day it was written was tracked
+as precisely as a lit quay. The game had a sensor rating doing real work at
+sector scale and nothing at all at the scale where a collision happens.
+
+**A signature is one number, and everything downstream is a multiplication.**
+`data/countermeasures.py` states what a thing puts out as a share of a lit,
+transponding hull: `LOUD` 1.00, `DARK` 0.28 (no transponder, cold hull — the
+raider's trade, and it costs nothing but the squawk), `SHROUDED` 0.10 (chaff
+and a plasma shroud; costs power and mass, so it is a decision about a
+voyage), `CLOAKED` 0.035 (alien work — nothing in the Concordat's catalogues
+does it). Which one a hull is running comes from its errand and a stable hash
+of its id, so the same raider is the same raider every time you look, and two
+screens asking the same question get one answer.
+
+`sim/detection.py` turns that into kilometres against the looking ship's own
+array: `SENSOR_KM = 4,000` km per light year of rating. It answers two
+questions, and they are different. **Is it seen at all** — a world, a star
+and a quay are not detection problems (a planet subtends degrees; a quay
+squawks because being found is its job), so `always_seen` gives them infinite
+range and a guard that could lose a planet is one nobody would believe about
+a raider. **How well is it seen** — a contact at the edge of the envelope is
+a smear, and `Track.quality` falls off as `1 − (km/reach)²`.
+
+**Poor tracks are read pessimistically.** The guard inflates a closing rate
+it cannot trust and shaves the room it thinks it has, so a bad array warns
+early and loudly rather than late and precisely. Measured: the same rock at
+400 km reads 200.0 m/s on a superb array and 257.9 m/s on one barely holding
+it, and the board says *estimated* next to the number.
+
+The number that decides whether any of this matters is not the range but the
+**stopping distance**. On the opening hull's 4.2 ly array a transponding hull
+shows at 16,800 km, running dark at 4,704, shrouded at 1,680 and cloaked at
+588 — and at 300 m/s she needs 1,019 km to stop. So *a cloak beats your
+brakes before it beats your eyes*: everything else is seen with room to
+spare, and the cloaked contact is the one that is on you. That is the whole
+point of a cloak, and it is now a fact of the flight model rather than
+flavour text. `tests/test_detection.py` holds the seven claims.
+
+One of them exists because *playing* the game found what the suite could not.
+The roll that decides which raider carries which countermeasure was keyed off
+the builtin `hash`, and Python salts that per process: the same hull came up
+cloaked in one session and dark in the next, so a reloaded chronicle was a
+different sky. Nothing inside a single run can see that, which is why the
+check spawns three interpreters and compares. It rolls off `core/rng.hash_seed`
+now — the generator that exists precisely so "a saved seed always grows the
+same sky" — and the roll itself moved out of `data/countermeasures.py` and
+into `sim/detection.py`, because a table states odds and a rule applies them.
+
 ## Running
 
 ```
@@ -3023,6 +3076,8 @@ seedfall/
 │   └── state.py        the Game object, advance_days(), new_game(), load_game()
 ├── data/               static content tables — pure data, no logic
 │   ├── commodities.py  14 tradeable goods
+│   ├── countermeasures.py  how loud a thing is to somebody else's sensors:
+│   │                   transponding, running dark, shrouded, cloaked
 │   ├── beginnings.py   stocks, origins and postings — who you are before day one
 │   ├── personas.py     voices: register, tics, and offline sentence frames
 │   ├── screens.py      the rail and the key for each screen — read by both layers
@@ -3168,6 +3223,10 @@ seedfall/
 │   ├── conn.py         the last ten kilometres: a local frame, thrusters and
 │   │                   the main drive, and what a contact costs. The pilot's
 │   │                   side — the console and what a burn is allowed to do
+│   ├── conn_open.py    opening one: `start` and `observe`, the only places
+│   │                   that read the whole game — cargo for the tank, engines
+│   │                   for the thrust, star for the light, system for the
+│   │                   sky — and hand back a flight. Re-exported from conn.py
 │   ├── telepresence.py the law of the delay: how far a machine is (`gap_au`),
 │   │                  how much of its level survives the round trip
 │   │                  (`grip`), the two multiplied (`effective`), and what a
@@ -3194,6 +3253,9 @@ seedfall/
 │   ├── collision.py    what is in the way, how long there is, and whether
 │   │                   she can still be stopped — the guard the computer
 │   │                   and the hand both read
+│   ├── detection.py    how far this array sees, and how well: worlds are
+│   │                   unmissable, hulls are not, and a poor fix is read
+│   │                   pessimistically rather than trusted
 │   ├── flightdeck.py   the computer's one front door: `computer` (the
 │   │                   dispatcher every beat asks) and `can_arm` (the gate
 │   │                   every autopilot button greys on)

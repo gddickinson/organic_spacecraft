@@ -186,6 +186,29 @@ TOPICS = [
            "before you commit."),
           facts=("powers",), see=("contracts", "empire")),
 
+    Topic("detection", "What you can see, and what can hide", "conn",
+          ("Your sensor rating is a range in kilometres, and everything is "
+           "measured against a hull that is transponding, warm and lit. "
+           "Worlds, stars and quays you always see — a planet is enormous "
+           "and a quay squawks because being found is what it is for.",
+           "A hull is the question. Dropping the transponder and going cold "
+           "costs nothing and takes about three quarters of the range off "
+           "anyone looking, which is why every raider does it. A shroud "
+           "costs power and mass. A cloak is alien work, and a hull that has "
+           "one is inside your gun range before your board admits it exists.",
+           "A contact at the edge of your envelope is a smear, and the "
+           "collision guard reads a poor fix pessimistically — it inflates a "
+           "closing rate it cannot trust, so a cheap array warns you early "
+           "and vaguely rather than late and precisely. The panel says "
+           "'estimated' when that is what it is doing.",
+           "The number that decides whether any of this matters is not the "
+           "range but your stopping distance. Anything you see with less "
+           "room than that is something you cannot do anything about — so a "
+           "cloak beats your brakes long before it beats your eyes, and "
+           "flying fast through busy traffic in a cheap hull is a real risk "
+           "rather than a free one."),
+          facts=("detection",), see=("instruments", "moving", "shipyard")),
+
     Topic("instruments", "The instrument windows", "",
           ("Six pop-out windows — power, heat, integrity, hold, crew and a "
            "scope — that stay on top and re-read the live game. They are "

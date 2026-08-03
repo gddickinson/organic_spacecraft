@@ -1,0 +1,56 @@
+# Session log
+
+Chronology only. **Why** each pass exists and what it measured is in
+`IMPROVEMENTS.md`; how the code is laid out is in `INTERFACE.md`. This file
+answers "what happened, in what order, and where did it land".
+
+## The flight-deck campaign, 2026-08-02 → 2026-08-03
+
+Opened with: the pilot window, flight control, conn and gunnery were not
+integrated, were sluggish, contradicted each other, and the autopilot's
+actions were not what the screens showed.
+
+| # | Pass | Commit | What landed |
+|---|------|--------|-------------|
+| 0 | The screen, not the harness | `7811ef2` and two before it | #145's four items: the guns below the fold, a label sized by its own width, a window that told the truth |
+| 1 | One flight deck | `a6393aa` | The armed state moved off the windows and onto the flight (`Conn.auto`); #148, #149, #153 |
+| 2 | The deck's backlog | `c9335eb`, `d81eba7` | Bays flown, forecasts made true, the ground orderable; the backlog gets `IMPROVEMENTS.md` |
+| 3 | Held engines, one clock | `84a0a00` | Hold-to-burn physics, a deck-aware universal clock, keyboard flying |
+| 4 | The window shows the flying | `304941d` | Predicted path, prograde/retrograde, the aim chevron, the bay mouth |
+| 5 | One computer | `4c66be4` | `sim/flightdeck.py` — one dispatcher, one bar on five surfaces |
+| 6 | Flown rigorously | `c7242f7` | Three defects found by flying; the flying and non-flying halves meet |
+| 7 | A curriculum | `874eb83` | Ten chapters, twenty-nine lessons; and a process-killing paint bug that only a full run could find |
+| 8 | Contact is meant | `9dd0d50` | `sim/collision.py`: the guard, the safeties switch, braking that works under every mode |
+| 9 | What the instruments see | *this pass* | `data/countermeasures.py`, `sim/detection.py`: range, quality, and things that hide |
+
+## This pass, in one paragraph
+
+The collision guard read `Conn.sky` — a perfect list — so every hull had a
+perfect sensor and a raider running dark was tracked like a lit quay.
+Detection is now a range (`SENSOR_KM` × array × signature) and a quality that
+falls off toward the edge, poor fixes are read pessimistically rather than
+trusted, and the array was stamped onto `Conn` so the instrument panel (which
+holds a Conn and no Game) cannot read a different sky from the computer. The
+rule it produces: **a cloak beats your brakes before it beats your eyes** —
+lit contacts show at 16,800 km against 1,019 km of stopping distance, and a
+cloaked one at 588.
+
+The tutorial grew a thirtieth lesson to teach it, and the safeties switch —
+which two windows were flipping themselves, with a copy of the wording each —
+became one sim door. Two more things came off the back of it: `sim/conn.py` went over the 500-line
+ceiling and was split at a real seam (`sim/conn_open.py` — opening a flight
+reads the whole game; flying one does not), and the manual grew a topic that
+quotes your own ranges off your own array.
+
+## Standing facts about working here
+
+- `python -m seedfall.tests` runs the lot (~20 min, 184 suites); one suite by
+  name for a cycle. A suite that reports must `return True` from `run()`.
+- **500 lines is the ceiling**, held by `tests/test_length.py`. The `ALLOWED`
+  debt list may shrink and never grow — pay it by finding the seam, not by
+  recording a new debt.
+- New `Conn` fields must be carried into `sim/preview._copy` or explicitly
+  excused in `tests/test_conn.py`; the guard there will say so.
+- `sim/` never imports Qt. `data → world → sim → ui`, one direction.
+- A function written and never called is a defect the suite catches
+  (`test_reachable`) — wire it or delete it.

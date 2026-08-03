@@ -129,7 +129,7 @@ def _copy(conn: Conn) -> Conn:
                 heading=conn.heading, rcs=conn.rcs, elapsed=conn.elapsed,
                 start_km=conn.start_km, opening_rcs=conn.opening_rcs,
                 nose=list(conn.nose), star_dir=list(conn.star_dir),
-                sky=conn.sky, main_dv=conn.main_dv,
+                sky=conn.sky, array=conn.array, main_dv=conn.main_dv,
                 rcs_dv=conn.rcs_dv, slew_rate=conn.slew_rate,
                 turn_rate_cost=conn.turn_rate_cost,
                 hold=conn.hold, star_lum=conn.star_lum,

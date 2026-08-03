@@ -258,10 +258,8 @@ class FlightWindow(QDialog):
         conn = self.conn
         if conn is None:
             return
-        conn.safeties = not getattr(conn, "safeties", True)
-        self.win.toast("Safeties off — nothing will brake for you."
-                       if not conn.safeties else "Safeties on.",
-                       "bad" if not conn.safeties else "")
+        from ..sim import collision
+        self.win.toast(*collision.toggle_safeties(win_game(self.win), conn))
         self.refresh()   # the row and the light both read the flag
 
     def _cycle_scale(self) -> None:

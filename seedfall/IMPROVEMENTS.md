@@ -110,6 +110,70 @@ the teaching layer the game was missing.
   flight clock is held off the flight deck (and says so) so shopping cannot
   quietly cost days.
 
+## Done — the eighth pass (2026-08-03): what the instruments actually see
+
+**"How far are ship systems able to detect objects?"** — the honest answer
+was *infinitely far, perfectly*, and that was a defect. The collision guard
+read `Conn.sky` straight: a noiseless list of everything in the system, so
+the cheapest array got a VESPER Organ's warnings and a raider running dark
+was tracked as precisely as a lit quay.
+
+- **`data/countermeasures.py`** — a signature is a share of a lit hull:
+  transponding 1.00, running dark 0.28, shrouded 0.10, cloaked 0.035. Which
+  one a hull runs comes from its errand and a stable hash of its id, so it
+  never drifts from the traffic that generates it and two screens agree.
+- **`sim/detection.py`** — 4,000 km of reach per light year of array. Worlds,
+  stars and quays are unmissable by construction; hulls are the question.
+  `Track.quality` falls off as `1 − (km/reach)²`, and past the edge the
+  contact is simply *not on the plot*.
+- **A poor fix is read pessimistically.** The guard inflates a closing rate
+  it cannot trust and shaves the room it thinks it has — 200.0 m/s on a
+  superb array reads 257.9 m/s on one barely holding the contact — so a bad
+  sensor warns early rather than late, and the board says *estimated*.
+- **The emergent rule: a cloak beats your brakes before it beats your eyes.**
+  On the opening hull, lit contacts show at 16,800 km and cloaked at 588,
+  against 1,019 km of stopping distance at 300 m/s. Everything else is seen
+  with room to spare; the cloaked one is on you.
+- **The array is stamped on the flight** (`Conn.array`), not read from the
+  game. `sim/instruments.readout` holds a Conn and no Game, so a guard that
+  asked the Game would have had the panel using a default 2.0 ly array while
+  the computer used the ship's real one — two screens disagreeing about what
+  is out there, which is the fault this whole campaign was about.
+- The `Collision` row names what is hiding and whether the fix is a guess; a
+  `Contacts` row appears when something out there is not squawking; and a
+  manual topic ("What you can see, and what can hide") quotes *your* ranges
+  from *your* array. `tests/test_detection.py` holds the six claims.
+- **Found by playing: the sky was different every session.** The first draft
+  rolled a raider's countermeasure off the builtin `hash`, which Python salts
+  per process — so a hull came up cloaked in one session and dark in the
+  next, and a reloaded chronicle was a different sky. Invisible inside a
+  single run, which is why the claim that catches it spawns three
+  interpreters. It rolls off `core/rng.hash_seed` now, the same way
+  `sim/traffic` already keyed its own hulls, and the roll moved from `data/`
+  to `sim/` where deciding belongs. Measured across five galaxies: 417 hulls,
+  25 raiders, 4 of them cloaked — meeting one is an event.
+- **The curriculum learned the last two passes.** A new lesson in *The
+  wheel* — "Find out what is in the way" — has the captain throw the
+  safeties switch off and back on, and explains in one place what the guard
+  does, that contact is allowed when you mean it, and that a hull running
+  dark is close before it exists. Thirty lessons now.
+- **One door for the safeties switch.** The conn console and the flight panel
+  each flipped `conn.safeties` themselves and each carried its own copy of
+  the sentence to say about it. `collision.toggle_safeties` is the one door;
+  it also records the deed, which is what the new lesson watches.
+- **A length debt paid, not recorded**: `sim/conn.py` went over the ceiling,
+  so the two flight builders moved to `sim/conn_open.py` (424 + 113 lines).
+  The seam is real — opening a flight reads the whole game, flying one does
+  not — and PEP 562 keeps `conn.start` working for every caller.
+  `tests/test_tutorial.py` went the same way for the same reason: how a
+  lesson is *performed* moved to `tests/tutorial_acts.py`, leaving the suite
+  to hold the claims (402 + 122 lines).
+
+**Known limitation, unchanged by this pass**: `Conn.sky` is a snapshot taken
+when the approach opens, so a hull sits where it was then. A dark raider
+cannot yet *close* on you during a flight — it can only be somewhere you did
+not see. Giving a sighting a persistent, ageing position is item 3 below.
+
 ## Open — defects and debts, in rough value order
 
 1. **Tuning constants without a guard.** The tripwire's last clean sweep
@@ -151,6 +215,17 @@ lesson, time compression, brake-to-zero — shipped in the third pass.)
 - **A combat HUD in the battle screen's own viewport** — the band ring and
   arcs are on the tactical plot; the first-person cameras go dark in a
   fight today.
+- **Let the captain hide too.** `data/countermeasures.py` describes the
+  signature of *anything*, and only the sky reads it — the player's hull is
+  always loud. A "run dark" switch (drop the transponder, bank the drive)
+  that lowered piracy's encounter odds and raised customs' suspicion, with a
+  shroud as a fitting you buy, would put the same table on both sides of the
+  glass. The sim reads it already; what it needs is the cost side.
+- **Sightings that age.** `Conn.sky` is a snapshot taken when the approach
+  opens, so a dark raider can only be somewhere you did not look — it cannot
+  *close* on you during a flight. This is the same missing piece as "other
+  ships are not plotted on the helm chart" (defect 3): a sighting needs a
+  home, a position and a staleness before either can be built.
 - **The height picker's refusal could say which gate refused it.** A rung
   can be unsold because the tank is too small *or* because `orbits.quotable`
   says the price cannot be believed on these thrusters; the tooltip blames

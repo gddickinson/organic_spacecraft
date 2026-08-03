@@ -170,6 +170,17 @@ def _computer_flew(game, mark) -> bool:
     return _fresh_deed(game, mark, "computer_flew")
 
 
+@watcher("took_the_guard_off")
+def _took_the_guard_off(game, mark) -> bool:
+    """Touched the safeties switch since the lesson opened.
+
+    The flag is written by `collision.toggle_safeties`, which is the only
+    thing that flips it — so this is the switch genuinely thrown, not a
+    screen opened or a button that refused.
+    """
+    return _fresh_deed(game, mark, "safeties")
+
+
 @watcher("berthed")
 def _berthed(game, mark) -> bool:
     """Come alongside *since the lesson opened*.
@@ -320,6 +331,18 @@ def _have_played(game) -> bool:
     return (bool(game.register)
             and any(b.surveyed for s in game.galaxy.systems for b in s.bodies)
             and len(game.discovered.get("systems", ())) > 1)
+
+
+@skipper("have_guarded")
+def _have_guarded(game) -> bool:
+    """Already thrown the safeties switch, ever.
+
+    Without this the lesson would be a trap: `_fresh_deed` wants the deed
+    done *since the lesson opened*, and the flag is never cleared, so a
+    captain who had touched the switch before reaching this lesson could
+    never satisfy it however many times they pressed it.
+    """
+    return did(game, "safeties")
 
 
 @skipper("have_berthed")

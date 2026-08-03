@@ -108,10 +108,22 @@ def readout(conn: Conn) -> list[tuple[str, str, str]]:
     from . import collision
     threat = collision.scan(None, conn)
     if threat is not None:
+        fix = getattr(threat, "track", None)
+        how = ("" if fix is None or fix.hiding.share >= 1.0
+               else f" · {fix.hiding.name}")
+        rough = " · estimated" if fix is not None and fix.estimated else ""
         rows.append(("Collision", f"{threat.name} · "
                                   f"{threat.seconds:,.0f} s · "
-                                  f"{threat.closing:,.1f} m/s",
+                                  f"{threat.closing:,.1f} m/s{how}{rough}",
                      collision.tint(threat)))
+    # **Something out there is not squawking.** Only then: a plot of honest
+    # traffic is the normal case and needs no row, but a hull that has chosen
+    # not to be seen is a fact a pilot should have before it matters — and it
+    # is also the one hint that the guard above may be reading a thin sky.
+    from . import detection
+    tracks = detection.seen(None, conn)
+    if any(t.hiding.share < 1.0 for t in tracks):
+        rows.append(("Contacts", detection.line(None, conn, tracks), "warn"))
     if not getattr(conn, "safeties", True):
         rows.append(("Safeties", "OFF — nothing will brake for you", "bad"))
 

@@ -26,98 +26,7 @@ from ..sim.actions import survey
 from .harness import Suite
 
 
-def _do(game, watch: str) -> None:
-    """Actually perform the thing lesson `watch` is waiting for."""
-    if watch == "surveyed_one":
-        # The starting system can be as small as two bodies, so find one
-        # that is still unsurveyed rather than assuming there is one here.
-        index = next((i for i, b in enumerate(game.system.bodies)
-                      if not b.surveyed), None)
-        if index is None:
-            elsewhere = next(s for s in game.galaxy.systems
-                             if any(not b.surveyed for b in s.bodies))
-            game.location_id = elsewhere.id
-            index = next(i for i, b in enumerate(elsewhere.bodies)
-                         if not b.surveyed)
-        survey(game, index)
-    elif watch == "saw_market":
-        market_sim.note_prices(game, game.system, 0, 0)
-    elif watch == "sold_something":
-        # Sell what is already aboard. Adding cargo and then selling it puts
-        # the hold back where the mark was, so the watcher — which wants
-        # credits up *and* the hold lighter — correctly saw nothing.
-        held = next((c for c, t in game.ship.cargo.items()
-                     if c != "volatiles" and t > 0), None)
-        assert held, "nothing aboard to sell"
-        trade_sim.sell(game, held, game.ship.cargo[held])
-    elif watch == "bought_fuel":
-        trade_sim.buy(game, "volatiles", 10)
-    elif watch.startswith("saw_") and watch != "saw_market":
-        # "open this screen" lessons: the screen is the watcher's own name.
-        tutorial_sim.saw(game, {"saw_manual": "help",
-                                "saw_plans": "ship:plans"}.get(
-                                    watch, watch[4:]))
-    elif watch == "computer_flew":
-        from ..sim import flightdeck as deck_sim, freeflight
-        conn, _why = freeflight.begin(game)
-        conn.auto = "null"
-        deck_sim.computer(game, conn)
-    elif watch == "berthed":            # standing at a quay: derived state
-        from ..sim import anchorage as anchorage_sim
-        places = anchorage_sim.in_system(game)
-        assert places, "no quay in this system to berth at"
-        game.orbit_body = game.system.bodies[places[0].body_index].id
-    elif watch == "set_project":
-        from ..data import tech as tech_data
-        from ..sim import research as research_sim
-        game.research.points = 4000
-        opts = tech_data.researchable(game.research.unlocked)
-        research_sim.set_project(game.research, opts[0].id)
-    elif watch == "unlocked_tech":
-        from ..data import tech as tech_data
-        game.research.unlocked.append(
-            tech_data.researchable(game.research.unlocked)[0].id)  # one more
-    elif watch == "jumped":
-        seen = list(game.discovered.get("systems", ()))
-        game.discovered.setdefault("systems", []).append(
-            next(s.id for s in game.galaxy.systems if s.id not in seen))
-    elif watch in ("mined", "dug", "landed", "fought", "stood_watch"):
-        from ..sim import tutorial_watch
-        tutorial_watch.deed(game, watch)
-    elif watch == "marked_hostile":
-        from ..sim import hostiles as h_sim
-        h_sim.mark(game, "a-hull")
-    elif watch == "planted":
-        from ..sim.colony import Colony
-        game.colonies.append(Colony(
-            id=len(game.colonies) + 1, class_id="radix_mine", name="Taught",
-            system_id=game.system.id, body_id=game.system.bodies[0].id,
-            need=0, online=True))   # the watcher is a count; this is one
-    elif watch == "courted":
-        from ..data.factions import FACTIONS as F
-        game.rep[F[0].id] = game.rep.get(F[0].id, 0) + 5
-    elif watch == "refitted":
-        game.ship.fitted.append(game.ship.fitted[0] if game.ship.fitted else "hold")
-    elif watch == "flew_conn":
-        from ..sim import berthing as berth_sim
-        from ..sim import conn as conn_sim
-        from ..sim import freeflight
-        conn, why = freeflight.begin(game)
-        assert conn is not None, why
-        game.conn = conn
-        for _ in range(6):
-            conn_sim.apply(conn, "forward", ticks=1)
-        berth_sim.charge_flown(game, conn)
-        berth_sim.commit(game, conn)
-        game.conn = None
-    elif watch == "moved":
-        game.orbit_body = "1"
-    elif watch == "took_contract":
-        offered = contract_sim.generate(RNG("tut"), game, game.system)
-        contract_sim.accept(game, offered[0])
-    else:
-        raise AssertionError(f"the check does not know how to do {watch!r}")
-
+from .tutorial_acts import _do  # how each lesson is performed
 
 def _at_a_port(seed: str):
     game = new_game(seed)
@@ -211,14 +120,11 @@ def run(suite: Suite) -> None:
 
     @check("a veteran restarting it is not made to do it all again")
     def _():
-        # **The other half of the check above, and the reason `skip_if` existed.**
-        # The tutorial can be started from the Help screen at any time, so a
-        # captain two years in was being told to "survey one of the bodies here"
-        # with thirty surveys behind them, and had to go and do another. Every
-        # step demanded a fresh action for something long since learned.
-        #
-        # `Lesson.skip_if` was declared for exactly this from the day lessons were
-        # written, set on **no lesson at all**, and read by nothing.
+        # **The other half of the check above, and why `skip_if` exists.** The
+        # tutorial opens from Help at any time, so a captain two years in was
+        # told to "survey one of the bodies here" with thirty surveys behind
+        # them. `Lesson.skip_if` was declared for exactly this from the day
+        # lessons were written, set on no lesson at all, and read by nothing.
         from ..sim import market as market_sim
 
         game = _at_a_port("tut-veteran")
@@ -264,14 +170,11 @@ def run(suite: Suite) -> None:
 
     @check("the settling-in month is a month, not a moratorium")
     def _():
-        # The check above stands at day 700 and the one above that inside the
-        # first weeks, so between them they say the gate exists — but not
-        # *where*. Set `SETTLED_IN_DAYS` to two months and both still pass, and
-        # a captain a season in would be sent to survey a body again.
-        #
-        # So this one brackets it from both sides with the same captain: a week
-        # in, everything is taught; six weeks in, what the chronicle can show is
-        # stepped over. Whatever the number is, it lies between them.
+        # The checks above stand at day 700 and inside the first weeks, so
+        # between them they say the gate exists but not *where*: set
+        # `SETTLED_IN_DAYS` to two months and both still pass. This one
+        # brackets it with one captain — a week in everything is taught, six
+        # weeks in what the chronicle can show is stepped over.
         made = []
         for day in (7, 45):
             game = _at_a_port(f"tut-month-{day}")
@@ -300,10 +203,14 @@ def run(suite: Suite) -> None:
         # would be the tail wagging the dog.
         named = {lesson.id: lesson.skip_if for lesson in LESSONS
                  if lesson.skip_if}
-        # Eight of twenty-nine: the orientation three (a demonstrable
-        # career), and the five whose deed leaves state behind — a survey, a
-        # noted market, a star crossed, a contract taken, a quay stood at.
-        assert len(named) == 8, named
+        # Nine of thirty: the orientation three (a demonstrable career), the
+        # five whose deed leaves state behind — a survey, a noted market, a
+        # star crossed, a contract taken, a quay stood at — and the safeties
+        # switch, which leaves a flag. That last one *must* carry a skip or
+        # it is a trap: `_fresh_deed` wants the deed done since the lesson
+        # opened, and nothing ever clears the flag, so a captain who had
+        # already thrown the switch could never satisfy it.
+        assert len(named) == 9, named
         for lesson in LESSONS:
             if lesson.skip_if:
                 assert lesson.skip_if in tutorial_sim.SKIPS, (
@@ -339,15 +246,12 @@ def run(suite: Suite) -> None:
 
     @check("a chronicle can be opened with a lesson already running")
     def _():
-        # **Which is the reload case, and it crashed.** `MainWindow.__init__`
-        # builds the tutorial bar, the bar refreshes on construction, and it asks
-        # `win.current` to decide whether to offer "Take me there" — while
-        # `self.current` was assigned forty lines further down. So opening a
-        # chronicle that already had a tutorial running died with
-        # `'MainWindow' object has no attribute 'current'`.
-        #
-        # Every check here built the window first and started the tutorial after,
-        # so not one of them ever went through this door.
+        # **The reload case, and it crashed.** `MainWindow.__init__` builds
+        # the tutorial bar, which refreshes on construction and asks
+        # `win.current` whether to offer "Take me there" — while `current` was
+        # assigned forty lines further down. Opening a chronicle that already
+        # had a tutorial running died on it, and every check here built the
+        # window first and started the tutorial after, so none went this way.
         try:
             from .test_ui import _use_offscreen
             _use_offscreen()
