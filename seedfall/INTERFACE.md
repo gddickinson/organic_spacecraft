@@ -1,7 +1,8 @@
 # INTERFACE.md — SEEDFALL navigation map
 
 The top-level map of the game. Read this before opening any source file in
-`seedfall/`.
+`seedfall/`. The live backlog — what is done, what is open, what would make
+it more fun — is `IMPROVEMENTS.md`.
 
 ## What this is
 
