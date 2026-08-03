@@ -2279,6 +2279,31 @@ boards on the first tick — `indexOf` returns -1 on the wrong layout and
 column, beating five times and asserting it has not moved, because the mutation
 survives a check that only looks at a freshly built screen.
 
+### One name, one control
+
+**Two buttons on the bridge say "Port" and two say "Starboard".** Measured on
+seed "dup": 27 controls, and the labels that appear more than once are exactly
+`{'Port': 2, 'Starboard': 2}` —
+
+    camera labels  (conn.VIEWS): Fore, Aft, Port, Starboard, Dorsal, Ventral
+    thruster labels (conn.AXES): Port, Ahead, Starboard, Down, Astern, Up
+
+so "Port" is both *look to port* and *thrust to port*, a few pixels apart in the
+same column. The Conn window carries the same pair.
+
+**This is why every probe that finds a button by its text has been lying.**
+`scratchpad/flygui.py` reported "pressing 'Port' moved the ship nowhere", and a
+fresh re-measurement — one new fixture per button, to rule out ordering —
+reproduced it and added "Starboard" and made it look like two dead thrusters.
+Both were clicking the *camera*. Addressed properly, the thruster burns:
+`burned=True`, 0.451 m/s. Nothing was ever wrong with the thrusters.
+
+The lesson generalises past this screen: **a check that finds a control by its
+visible text is one duplicate label away from testing the wrong widget**, and it
+fails silently and confidently. Recorded as task #153 with both halves — the
+player-facing naming, and object names so a probe can address exactly one
+control.
+
 `ui/conn_controls.py` is the console itself, split out of `ui/conn_window.py`
 when that went past five hundred lines along a seam already there — the window
 owns the cameras, the panel and the clock. The panel names the settings in m/s,

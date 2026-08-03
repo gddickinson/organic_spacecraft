@@ -2,6 +2,41 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: the harness was not lying, the screen was
+
+#145 item 3 said `scratchpad/flygui.py` "lies about three buttons" and asked for
+the harness to be fixed. **The premise does not survive measurement**, twice
+over, and both corrections are worth more than the task was.
+
+**First: the harness is not part of the project.** `git ls-files` has never had
+it; there is no `scratchpad/` in the repo. It is a throwaway probe from an
+earlier cycle in this session. Fixing it ships nothing, and its one substantive
+claim — that a press which only swings the hull is not a dead button — is
+already guarded, and better, by `tests/test_pilot_screen`'s "a press that only
+swings the hull says so, instead of looking dead", which asserts `view.last`
+and the rendered panel text rather than a position delta.
+
+**Second, and this is the real find: the screen has duplicate labels.** Sweeping
+all six thrust buttons, Port and Starboard appeared to do nothing at all — no
+burn, no turn, no velocity, no mass — in both drive modes, reproducible with a
+fresh fixture per button. **I wrote that up as two dead controls, and it was
+wrong.** Every sim-level gate measured identical for left, right and up
+(`can_burn` True, `pointed_at` False, `thrust_axis` returning a proper
+`[-1,0,0]`), which is what said the fault could not be where I was looking.
+
+The bridge has 27 controls and `{'Port': 2, 'Starboard': 2}` duplicate labels:
+`conn.VIEWS` names a camera "Port" and `conn.AXES` names a thruster "Port". My
+probe — and `flygui.py` before it — was clicking the camera. Addressed
+unambiguously the thruster burns: `burned=True`, dv 0.451 m/s.
+
+So: item 3 is closed as wrongly premised, and the defect underneath it is task
+#153, with the measurement and both halves of the fix written down. The
+generalisable lesson is on #145's checking list — **a check that finds a control
+by its visible text is one duplicate label away from testing the wrong widget**,
+and it fails silently and confidently.
+
+No code changed this cycle. The finding did.
+
 ## 2026-08-02 — SEEDFALL: what was below the fold was the guns
 
 #145 item 2. The figure predated the two-column bridge and the beat rewrite, so
