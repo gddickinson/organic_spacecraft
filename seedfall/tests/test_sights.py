@@ -25,9 +25,25 @@ class _Blind:
     def drawText(self, *a): pass
 
     def fontMetrics(self):
-        class M:
-            def horizontalAdvance(self, _t): return 40
-        return M()
+        return _Metrics()
+
+
+class _Metrics:
+    """The mono font at 6 pt, close enough to reason about.
+
+    **The old stub returned 40 for every string**, which made it structurally
+    incapable of showing the bug it was guarding: a rule that is wrong only
+    for long names cannot fail against a font where every name is the same
+    width. Measured on the real font — "A" 5 px, "Fleet Hub" 43, "Held Breath
+    II" 67, "Second Signature" 77, height 9, ascent 7 — that is about 4.8 px a
+    character, so 5 is honest and errs wide.
+    """
+
+    PER_CHAR = 5
+
+    def horizontalAdvance(self, text): return len(text) * self.PER_CHAR
+    def height(self): return 9
+    def ascent(self): return 7
 
 
 def run(suite: Suite) -> bool:
@@ -101,6 +117,79 @@ def run(suite: Suite) -> bool:
             f"the laid course is drawn as a ring and named again: {aim}")
         return "one door, and what a window draws itself it does not repeat"
 
+    @check("a label is kept clear by its own width, not by a fixed box")
+    def _():
+        # **The rule used to be one 46-pixel box compared centre to centre**,
+        # and measured against the real font it was wrong both ways. A label
+        # is 9 px tall, so vertically it over-rejected by five times; and a
+        # label reaches `8 + width` from its dot — 85 px for "Second
+        # Signature" at 77 — so horizontally it under-rejected by up to 39.
+        # Rendered, "Held Breath II" ran into the target reticle.
+        from ..ui import viewport_mark
+        from ..ui.viewport_math import project
+
+        cam = ((0.0, 1.0, 0.0), (1.0, 0.0, 0.0), (0.0, 0.0, 1.0))
+        # 50 px apart on screen: comfortably outside the old 46 px box, so the
+        # old rule drew both whatever they were called.
+        far = ((23.1, 100.0, 0.0), "B", False)
+        short = [((0.0, 100.0, 0.0), "A", True), far]
+        long_ = [((0.0, 100.0, 0.0), "Second Signature", True), far]
+        assert viewport_mark.draw_sights(
+            _Blind(), short, project, cam, 464, 260) == 2, (
+            "two short names 50 px apart do not touch and must both be drawn")
+        assert viewport_mark.draw_sights(
+            _Blind(), long_, project, cam, 464, 260) == 1, (
+            "a 16-character name reaches 88 px and must not be drawn over "
+            "the sight 50 px to its right")
+
+        # And the other way: 21.6 px apart vertically is clear for a 9 px
+        # label, and the old box threw one of them away.
+        stacked = [((0.0, 100.0, 0.0), "A", True),
+                   ((0.0, 100.0, 10.0), "B", False)]
+        assert viewport_mark.draw_sights(
+            _Blind(), stacked, project, cam, 464, 260) == 2, (
+            "two names a clear 21 px apart vertically were merged")
+        return ("50 px apart: two short names drawn, one long one; 21 px "
+                "apart vertically both drawn")
+
+    @check("a sight is not drawn on the reticle that already names the target")
+    def _():
+        # Rendered on the Conn's aft camera at 130.3 km: `Viewport._target`
+        # draws a dashed bracket labelled "Fleet Hub · 130.3 km", and a sight
+        # label landed across it. `_target` hands back the box it used and
+        # `draw_sights` keeps off it.
+        import inspect
+        from ..ui import viewport, viewport_mark
+        from ..ui.viewport_math import project
+
+        cam = ((0.0, 1.0, 0.0), (1.0, 0.0, 0.0), (0.0, 0.0, 1.0))
+        one = [((0.0, 100.0, 0.0), "Held Breath II", True)]
+        assert viewport_mark.draw_sights(
+            _Blind(), one, project, cam, 464, 260) == 1, "nothing drawn at all"
+        # The same sight, with the reticle sitting where it would land.
+        assert viewport_mark.draw_sights(
+            _Blind(), one, project, cam, 464, 260,
+            [(200.0, 100.0, 320.0, 160.0)]) == 0, (
+            "a sight was drawn across the target's own bracket")
+
+        # **And the window really does hand the box over.** Read the call
+        # itself, not the word: the first draft asserted `"taken" in src`,
+        # which stays true when the argument is dropped from the call and the
+        # local left behind. That mutation survived.
+        import ast as _ast
+        import textwrap
+        tree = _ast.parse(textwrap.dedent(
+            inspect.getsource(viewport.Viewport.draw)))
+        calls = [n for n in _ast.walk(tree) if isinstance(n, _ast.Call)
+                 and getattr(n.func, "attr", "") == "draw_sights"]
+        assert calls, "the viewport never draws sights at all"
+        assert len(calls[0].args) == 7, (
+            f"draw_sights is called with {len(calls[0].args)} arguments — the "
+            f"reticle's box is not among them")
+        assert "return (sx - box" in inspect.getsource(viewport.Viewport._target), (
+            "_target does not report the pixels its reticle took")
+        return "a sight that would land on the reticle is dropped"
+
     @check("two things on the same bearing do not print over each other")
     def _():
         # **Measured on one scene**: four hulls — Second Signature, Margin
@@ -120,9 +209,11 @@ def run(suite: Suite) -> bool:
         assert drew == 1, (
             f"three contacts on one bearing drew {drew} labels on one pixel")
 
-        # Far enough apart and both are drawn. `CLEAR` is the rule.
+        # Far enough apart and both are drawn. (160 puts the second one off
+        # the frame entirely at this focal length — `_screen` drops it and the
+        # check passes for the wrong reason. 40 lands it at x=319 of 464.)
         apart = [((0.0, 100.0, 0.0), "Alpha", True),
-                 ((viewport_mark.CLEAR * 2, 100.0, 0.0), "Beta", False)]
+                 ((40.0, 100.0, 0.0), "Beta", False)]
         assert viewport_mark.draw_sights(
             _Blind(), apart, project, cam, 464, 260) == 2, (
             "two contacts well apart were merged into one")

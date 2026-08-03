@@ -2201,6 +2201,42 @@ centre-to-centre against a fixed box rather than the label's real extent, and
 sights know nothing about the reticle at all. Left for its own cycle; see #145,
 which records why.
 
+### A label is kept clear by its own width
+
+`viewport_mark.draw_sights` used to decide whether two names would collide by
+comparing their dots **centre to centre against one fixed 46-pixel box**.
+Measured against the font it actually draws with — the mono face at 6 pt — that
+number was wrong in both directions at once:
+
+| | the box said | measured |
+|---|---|---|
+| how tall a label is | 46 px | **9 px** (ascent 7) |
+| how far one reaches from its dot | 46 px | **up to 85 px** — 8 + 77 for "Second Signature" |
+
+So vertically it over-rejected by five times, throwing away names that would
+have read perfectly twenty pixels apart; and horizontally it under-rejected by
+up to thirty-nine, which is how "Held Breath II" at x=315 came to be drawn
+across the target reticle at x=391 on the Conn's aft camera.
+
+`_label_box` now returns **every pixel a sight will use** — its dot and its
+name, at the place the name will actually be drawn — and `_overlaps` is a plain
+rectangle test. It returns `left` as well, so the label is painted exactly where
+it was measured; working that out twice is how a label comes to be tested in one
+spot and drawn in another.
+
+**And the reticle is not a place a sight may go.** `Viewport._target` draws a
+dashed bracket labelled "Fleet Hub · 130.3 km" (viewport.py:427) and now hands
+back the box it used; `Viewport.draw` passes it to `draw_sights` as `taken`.
+Sights are dropped rather than shifted, which is the rule that was already
+there: nothing is drawn on top of anything, and nothing is lost because the "In
+view" board lists every contact with its range.
+
+**The checking stub was the reason this could not have been caught.**
+`tests/test_sights._Blind.fontMetrics` returned **40 for every string** — a font
+where every name is the same width cannot fail a rule that is only wrong for
+long ones. It models the measured face now: 5 px a character against a real 4.8,
+height 9, ascent 7. That had to be fixed before the rule could be.
+
 `ui/conn_controls.py` is the console itself, split out of `ui/conn_window.py`
 when that went past five hundred lines along a seam already there — the window
 owns the cameras, the panel and the clock. The panel names the settings in m/s,

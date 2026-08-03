@@ -2,6 +2,45 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: a label is kept clear by its own width, not a fixed box
+
+#145 item 4, the collision filmed last cycle.
+
+**Measured against the real font**, and the single 46 px box was wrong both ways:
+
+  how tall a label is            46 px  ->  9 px measured (ascent 7)
+  how far one reaches from a dot 46 px  ->  up to 85 px ("Second Signature" 77)
+
+Vertically it over-rejected five times over and dropped names that would read
+fine 21 px apart; horizontally it under-rejected by up to 39 px, which is
+"Held Breath II" at x=315 drawn across the reticle at x=391.
+
+**The fix**: `_label_box` returns every pixel a sight uses — dot and name, at
+the place the name is actually drawn — and `_overlaps` is a rectangle test. It
+hands back `left` too, so the label is painted where it was measured.
+`Viewport._target` reports the box its bracket and label took and `Viewport.draw`
+passes it as `taken`, so a sight is never drawn across the reticle.
+
+**The stub was the blocker, exactly as recorded.** `_Blind.fontMetrics` returned
+40 for every string — structurally unable to fail a rule that is only wrong for
+long names. It models the measured face now (5 px a character against a real
+4.8, height 9, ascent 7). Fixing the checker had to come first.
+
+**Two wrong turns.**
+
+1. My "far enough apart" fixture used a bearing that put the second sight *off
+   the frame*: at this focal length 160 lands it at x=578 in a 464 px window, so
+   `_screen` dropped it and the check passed for the wrong reason. Recomputed —
+   40 lands it at x=319 — it passes for the right one.
+2. **A mutant survived.** I had asserted `"taken" in src`, which stays true when
+   the argument is dropped from the *call* and the local is left behind. The
+   check now parses `Viewport.draw` with `ast` and asserts `draw_sights` is
+   called with seven arguments. Five mutants, five bites after that.
+
+Rendered the aft camera again to look: the reticle reads clean.
+
+`ui/viewport.py` 521 -> 531 against its recorded cap of 533.
+
 ## 2026-08-02 — SEEDFALL: the Conn window had the player's complaint too
 
 #145 item 1, unblocked by #146.

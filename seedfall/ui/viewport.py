@@ -189,10 +189,13 @@ class Viewport(painting.Painted, QWidget):
         cam = basis(vec, conn)
 
         self._stars(p, cam, w, h)
+        taken = []
         if conn is not None:
             self._sky(p, conn, cam, w, h)
-            self._target(p, conn, cam, w, h)
-        viewport_mark.draw_sights(p, self.sights, project, cam, w, h)
+            spot = self._target(p, conn, cam, w, h)
+            if spot is not None:
+                taken.append(spot)
+        viewport_mark.draw_sights(p, self.sights, project, cam, w, h, taken)
         viewport_mark.draw(p, self.mark, project, cam, w, h)
         self._frame(p, label_text, w, h)
 
@@ -331,8 +334,10 @@ class Viewport(painting.Painted, QWidget):
             shown = models3d.present("anchorage", "gate", conn.elapsed)
         return shown["mesh"], shown["spin"], shown["tilt"]
 
-    def _target(self, p: QPainter, conn, cam, w: int, h: int) -> None:
+    def _target(self, p: QPainter, conn, cam, w: int, h: int):
         """The thing being approached, as a lit solid at its real size.
+
+        Returns the box its reticle and label took, or None if it drew none.
 
         It used to be a flat disc with a gradient behind it, which reads as a
         distant object at twelve kilometres and as a flat disc at six hundred
@@ -423,8 +428,13 @@ class Viewport(painting.Painted, QWidget):
         p.setPen(QColor(theme.INK2))
         p.setFont(QFont(theme.mono_family(), 9))
         span = (f"{r_km * 1000:,.0f} m" if r_km < 2 else f"{r_km:,.1f} km")
-        p.drawText(QPointF(sx - box, sy - box - 6),
-                   f"{conn.target.name} · {span}")
+        said = f"{conn.target.name} · {span}"
+        p.drawText(QPointF(sx - box, sy - box - 6), said)
+        # The pixels this has used, so `draw_sights` can keep off them: a sight
+        # label ran into this bracket at 130.3 km, measured on the aft camera.
+        room = p.fontMetrics().horizontalAdvance(said)
+        return (sx - box, sy - box - 6 - p.fontMetrics().ascent(),
+                max(sx + box, sx - box + room), sy + box)
 
     def _boom(self, p: QPainter, camera, conn) -> None:
         """The arm coming out to take the ship, at a standoff berth.

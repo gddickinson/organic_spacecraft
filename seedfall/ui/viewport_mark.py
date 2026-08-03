@@ -32,15 +32,26 @@ TICK = 6.0
 #: A little slack, so a marker on the very edge is not lost to rounding.
 EDGE = 8.0
 
-#: How close two sights may be drawn before the further one is dropped.
+#: The circle drawn on a sight, in pixels. The name starts `DOT + 4` to its
+#: right, which is where it has always been drawn.
+DOT = 4.0
+
+#: Breathing room around a label. **Not** a guess at how wide a name is —
+#: that is measured from the font — only enough that two readings do not touch.
 #:
-#: A label is about seven pixels tall and a name runs to sixty or more, so a
-#: pair inside this box would overprint each other rather than read as two
-#: things.
-CLEAR = 46.0
+#: What it replaced was a single 46-pixel box compared centre to centre, and
+#: measured against the real font it was wrong in both directions at once. A
+#: label is **9 px tall**, so vertically the box over-rejected by five times
+#: and dropped names that would have read perfectly ten pixels apart. And a
+#: label reaches `8 + width` from its dot — up to **85 px** for "Second
+#: Signature" at 77 px — so horizontally it under-rejected by up to 39 px, and
+#: rendered on the Conn's aft camera "Held Breath II" at x=315 ran straight
+#: into the target reticle at x=391. Extents are cheap to ask for and a guess
+#: about them is a picture nobody checked.
+PAD = 3.0
 
 
-def draw_sights(p, sights, project, cam, w: int, h: int) -> int:
+def draw_sights(p, sights, project, cam, w: int, h: int, taken=()) -> int:
     """Name the quays and hulls out there. Returns how many were drawn.
 
     **The Conn and the Pilot window showed the same scene differently, and a
@@ -57,6 +68,10 @@ def draw_sights(p, sights, project, cam, w: int, h: int) -> int:
 
     Quays and hulls are named; worlds are not, because `_sky` already draws
     those as lit discs and nobody loses a planet.
+
+    `taken` is boxes the window has already used and this must keep off —
+    today the target's reticle, which `Viewport._target` draws with its own
+    name and range on it.
     """
     # **Nearest first, and nothing drawn on top of anything.** Measured on one
     # scene: four hulls — Second Signature, Margin Call, Long Consent, Quiet
@@ -66,29 +81,49 @@ def draw_sights(p, sights, project, cam, w: int, h: int) -> int:
     # missing, and nothing is lost: the "In view" board lists every one with
     # its range. `sights` arrives nearest first, so the one that is skipped is
     # always the further away.
-    placed: list = []
+    placed = [tuple(r) for r in taken]
     drawn = 0
+    p.setFont(QFont(theme.mono_family(), 6))
+    fm = p.fontMetrics()
     for vec, name, near in sights:
         at = _screen(vec, project, cam, w, h)
         if at is None:
             continue
         x, y = at
-        if any(abs(x - px) < CLEAR and abs(y - py) < CLEAR
-               for px, py in placed):
+        left, box = _label_box(x, y, name, fm, w)
+        if any(_overlaps(box, seen) for seen in placed):
             continue
-        placed.append((x, y))
+        placed.append(box)
         tint = QColor(theme.tint("lumen" if near else "steel"))
         p.setPen(QPen(tint, 1.0))
         p.setBrush(Qt.BrushStyle.NoBrush)
-        p.drawEllipse(QPointF(x, y), 4.0, 4.0)
-        p.setFont(QFont(theme.mono_family(), 6))
-        room = p.fontMetrics().horizontalAdvance(name)
-        left = x + 8
-        if left + room > w - 4:
-            left = max(4.0, x - 8 - room)
+        p.drawEllipse(QPointF(x, y), DOT, DOT)
         p.drawText(QPointF(left, y + 3), name)
         drawn += 1
     return drawn
+
+
+def _label_box(x, y, name, fm, w: int):
+    """`(left, box)` — where the name starts, and every pixel the sight uses.
+
+    One door: `draw_sights` decides whether there is room and then draws in
+    exactly the place it measured. Working `left` out twice is how a label
+    comes to be tested in one spot and painted in another.
+    """
+    room = fm.horizontalAdvance(name)
+    # **Whichever side has room.** Always to the right and a sight near the
+    # edge loses its name to the frame.
+    left = x + DOT + 4
+    if left + room > w - 4:
+        left = max(4.0, x - DOT - 4 - room)
+    top = y + 3 - fm.ascent()
+    return left, (min(x - DOT, left) - PAD, top - PAD,
+                  max(x + DOT, left + room) + PAD, top + fm.height() + PAD)
+
+
+def _overlaps(a, b) -> bool:
+    """Do two `(x0, y0, x1, y1)` boxes share any pixel?"""
+    return not (a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1])
 
 
 def _screen(vec, project, cam, w: int, h: int):
