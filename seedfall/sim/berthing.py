@@ -213,6 +213,9 @@ def charge_flown(game, conn) -> float:
     if owed <= 0.0:
         return 0.0
     conn.charged = float(conn.elapsed)
+    # A running total of time at the conn, for the tutorial's "fly her for
+    # five minutes" — billed time, so a screen merely opened counts nothing.
+    game.conn_seconds = float(getattr(game, "conn_seconds", 0.0)) + owed
     game.advance_days(owed / DAY_SECONDS)
     return owed
 

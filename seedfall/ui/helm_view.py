@@ -67,6 +67,64 @@ class HelmView(View):
             button("Take the conn…", self._take_conn),
             button("Tactical…", self._tactical),
             button("Flight controls…", self._flying))
+        # **The one clock, from this screen too.** The flight keeps running
+        # while the captain reads the burn board — walking here no longer
+        # stops it — so the helm carries the same Run/Stop and time-scale
+        # controls as the bridge, reading `Conn.clock_on` like everything.
+        # `beat_sync` keeps their labels honest without a rebuild eating the
+        # button under the finger (#150).
+        conn = self.win.conn
+        self._clock_btn = None      # a rebuild with no flight must not leave
+        if conn is not None and not conn.landed:    # a stale widget behind
+            self._clock_btn = button(
+                "Stop clock" if conn.clock_on else "Run clock",
+                self._toggle_clock, kind="primary")
+            self._scale_btn = button(
+                f"Time ×{int(getattr(self.win, 'time_scale', 1))}",
+                self._cycle_scale, kind="flat")
+            quay = self._dockable(g)
+            self.buttons(self._clock_btn, self._scale_btn,
+                         *([button(f"Dock at {quay.name} — computer",
+                                   lambda _=False, c=quay: self._dock(c),
+                                   kind="flat",
+                                   tip="Open the conn on the quay and hand "
+                                       "it to the flight computer.")]
+                           if quay is not None else []))
+
+    def beat_sync(self) -> None:
+        """What a beat changes on this screen: the two clock labels."""
+        conn = self.win.conn
+        if conn is None or getattr(self, "_clock_btn", None) is None:
+            return
+        self._clock_btn.setText("Stop clock" if conn.clock_on
+                                else "Run clock")
+        self._scale_btn.setText(
+            f"Time ×{int(getattr(self.win, 'time_scale', 1))}")
+
+    def _toggle_clock(self) -> None:
+        conn = self.win.conn
+        self.win.set_conn_clock(not (conn is not None and conn.clock_on))
+        self.beat_sync()
+
+    def _cycle_scale(self) -> None:
+        from . import flight_clock
+        flight_clock.cycle_scale(self.win)
+        self.beat_sync()
+
+    def _dockable(self, g):
+        """The quay the computer could take her into from here, if any."""
+        from ..sim import berthing as berth_sim
+        from ..sim import track as track_sim
+        for c in track_sim.contacts(g):
+            if c.kind == "anchorage" and berth_sim.can_conn(g, c)[0]:
+                return c
+        return None
+
+    def _dock(self, contact) -> None:
+        """One button: the conn on the quay, the computer on the conn."""
+        from .conn_window import open_conn
+        window = open_conn(self.win, contact)
+        window._auto("close")
 
     def _plotting_board(self) -> None:
         """The system in its own window, with time and a zoom on it."""

@@ -128,4 +128,6 @@ def computer_note(conn: Conn) -> str:
     if mode == "run":
         mark = getattr(conn, "mark", "")
         return f"running for {mark}" if mark else "running for nothing"
+    if mode == "brake":
+        return "braking to zero, then handing back"
     return mode

@@ -212,31 +212,12 @@ class PilotView(View):
         self.win.beat_refresh()
         return said
 
-    def leaving(self) -> None:
-        """Walking off the bridge stops the clock, however you left.
-
-        **Not a callback passed by whoever navigated away.** The first version
-        had `fire_panel` take an `after` hook so opening fire could stop the
-        beat, and a mutation showed exactly what that is worth: the guarantee
-        held only for the one button that remembered to pass it. Time not
-        passing while you are being shot at is a rule about the game, not
-        about a button — and the same goes for walking to the Shipyard with
-        the clock running.
-
-        `hideEvent` was the second attempt and is not the door either: Qt
-        posts no hide event for a widget that was never really shown, so it
-        held in a played window and not in a built one. `ui/window.go` calls
-        this on every route out.
-
-        **Unless another flying window is watching.** The clock is the
-        flight's now, and a pilot flying from the Conn window who glances at
-        the Shipyard has not asked for time to stop. Being shot at still
-        stops it for everyone: `fly_beat` refuses to beat under a battle.
-        """
-        for name in ("conn_window", "flight_window", "approach_window"):
-            if getattr(self.win, name, None) is not None:
-                return
-        self.set_running(False)
+    # There is deliberately no `leaving()` any more. Walking off the bridge
+    # used to stop the clock; the clock is the *flight's* now, universal
+    # across the pilot, the helm and the flying windows — a pilot glancing
+    # at the Helm has not asked for time to stop, and the HUD chip shows it
+    # running from every screen. An engagement stops it the moment it
+    # begins (`window.begin_combat`), and so does securing.
 
     def set_running(self, on: bool) -> None:
         """Through the one clock. `MainWindow.set_conn_clock` owns the timer."""
@@ -340,6 +321,7 @@ class PilotView(View):
         self._btn_main.setText(panels.main_label(self))
         self._btn_throttle.setText(panels.throttle_label(self))
         self._btn_clock.setText(panels.clock_label(self))
+        self._btn_scale.setText(panels.scale_label(self))
         self._swap("ship", panels.ship_board(self))
         self._swap("view", panels.in_view_board(self, rows))
         self._swap("fire", fire_panel.board(self.game, self.conn, rows))
@@ -403,11 +385,16 @@ class PilotView(View):
                                     self._cycle_throttle, kind="flat")
         self._btn_clock = button(panels.clock_label(self), self._toggle,
                                  kind="primary")
+        self._btn_scale = button(panels.scale_label(self), self._cycle_scale,
+                                 kind="flat",
+                                 tip="How many minutes of flight one beat "
+                                     "runs. The burn, the computer and the "
+                                     "bill all scale with it.")
         left.addWidget(panels.row_of(
             button("Hold (coast)", lambda: self.burn(None), kind="flat"),
             self._btn_main, self._btn_throttle))
         left.addWidget(panels.stack_of([
-            self._btn_clock,
+            self._btn_clock, self._btn_scale,
             button("Secure from the conn", self.secure, kind="flat"),
             button("Take the conn on something…", self._to_conn, kind="flat")],
             per_row=2))
@@ -446,6 +433,10 @@ class PilotView(View):
             button(("Stop holding station" if self.auto == "null"
                     else "Hold station"),
                    lambda: self.set_auto("hold"), kind="flat"),
+            button(("Stop braking" if self.auto == "brake"
+                    else "Brake to zero"),
+                   lambda: self.set_auto("brake"), kind="flat",
+                   tip="Kill the way she has on, then hand the conn back."),
             *([button(("Stop running for it" if self.auto == "run"
                        else f"Run for {aim.name}"),
                       lambda: self.set_auto("run"), kind="flat")]
@@ -484,6 +475,11 @@ class PilotView(View):
 
     def _toggle(self) -> None:
         self.set_running(not self.running)
+        self.refresh()
+
+    def _cycle_scale(self) -> None:
+        from . import flight_clock
+        flight_clock.cycle_scale(self.win)
         self.refresh()
 
     def _to_conn(self) -> None:

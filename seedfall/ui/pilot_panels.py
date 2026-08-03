@@ -75,13 +75,21 @@ def camera_row(view) -> QWidget:
 
 def axis_pad(view) -> QWidget:
     """The six thrust buttons, in the order a pilot's hand sits on them —
-    the same order `ui/conn_controls` uses."""
+    the same order `ui/conn_controls` uses.
+
+    **Held, not clicked.** A click was one instantaneous impulse — the
+    engines worked in steps, with the speed jumping between frames. Pressed
+    and released wire through `flight_clock.hold_wire`: hold a thruster
+    with the clock running and the burn *builds*, minute after minute,
+    until the hand comes off; a quick press is still one precise tick.
+    """
+    from . import flight_clock
     from .widgets import button
     pad = []
     for axis in ("left", "forward", "right", "down", "back", "up"):
-        btn = button(conn_sim.AXES_BY_ID[axis][1],
-                     lambda _=False, x=axis: view.burn(x))
+        btn = button(conn_sim.AXES_BY_ID[axis][1], None)
         btn.setObjectName(f"thr_{axis}")
+        flight_clock.hold_wire(view.win, btn, axis)
         pad.append(btn)
     return row_of(*pad)
 
@@ -141,6 +149,10 @@ def throttle_label(view) -> str:
 
 def clock_label(view) -> str:
     return "Stop clock" if view.running else "Run clock"
+
+
+def scale_label(view) -> str:
+    return f"Time ×{int(getattr(view.win, 'time_scale', 1))}"
 
 
 def aim_feed(view, rows) -> None:

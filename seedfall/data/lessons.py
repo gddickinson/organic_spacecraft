@@ -66,6 +66,18 @@ LESSONS = [
            "the mining rig, anywhere, for free but slowly — which is why an "
            "empty tank is never the end of a chronicle, only a delay."),
 
+    Lesson("conn", "Take the ship's wheel",
+           "Open the Pilot screen, press Run clock, and fly her for five "
+           "minutes — hold a thruster button (or the W/A/S/D, R/F keys), or "
+           "lay a course with Fly at and let the computer run for it.",
+           "pilot", "flew_conn",
+           "That was the conn — the same ship every flying window shows. "
+           "The clock is universal: the HUD chip says it is running from "
+           "any screen, and time compression is on the Time button. A held "
+           "thruster burns minute after minute; the computer will hold "
+           "station, brake to zero, run for a mark or close and berth; and "
+           "every tonne and minute was billed as it was flown."),
+
     Lesson("helm", "Go somewhere",
            "Open the Helm and fly to another body, or jump from the Sector "
            "chart to another star.",

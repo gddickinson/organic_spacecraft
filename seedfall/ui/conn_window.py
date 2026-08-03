@@ -408,6 +408,16 @@ class ConnWindow(QDialog):
             feed.update()
         self.screen.update()
 
+    def keyPressEvent(self, event) -> None:      # noqa: N802
+        from . import flying_keys
+        if not flying_keys.press(self.win, event):
+            super().keyPressEvent(event)
+
+    def keyReleaseEvent(self, event) -> None:    # noqa: N802
+        from . import flying_keys
+        if not flying_keys.release(self.win, event):
+            super().keyReleaseEvent(event)
+
     def closeEvent(self, event) -> None:
         # **Closing this window is leaving the room, not stopping the ship.**
         # It used to write `outcome = "broken off"` and settle on the way out,

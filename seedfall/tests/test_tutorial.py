@@ -52,6 +52,18 @@ def _do(game, watch: str) -> None:
         trade_sim.sell(game, held, game.ship.cargo[held])
     elif watch == "bought_fuel":
         trade_sim.buy(game, "volatiles", 10)
+    elif watch == "flew_conn":
+        from ..sim import berthing as berth_sim
+        from ..sim import conn as conn_sim
+        from ..sim import freeflight
+        conn, why = freeflight.begin(game)
+        assert conn is not None, why
+        game.conn = conn
+        for _ in range(6):
+            conn_sim.apply(conn, "forward", ticks=1)
+        berth_sim.charge_flown(game, conn)
+        berth_sim.commit(game, conn)
+        game.conn = None
     elif watch == "moved":
         game.orbit_body = "1"
     elif watch == "took_contract":

@@ -26,13 +26,10 @@ class MainWindow(QMainWindow):
         self.game = game
         self.battle = None
         self._return_to = "system"
-        # **Before anything that can refresh.** `TutorialBar` is built forty lines
-        # below and refreshes itself on construction, and it asks `win.current` to
-        # decide whether to offer "Take me there" — so opening a chronicle that
-        # already has a tutorial running died with `'MainWindow' object has no
-        # attribute 'current'`. Which is the reload case: a saved game mid-lesson.
-        # Every check had built the window first and started the tutorial after,
-        # so none of them ever hit it.
+        # **Before anything that can refresh.** `TutorialBar` refreshes on
+        # construction and asks `win.current` — so a chronicle reloaded
+        # mid-lesson died on the attribute. Anything a child widget asks
+        # about during construction has to exist before the child does.
         self.current = None
         self.views: dict[str, object] = {}
         # One clock for the one flight — see `ui/flight_clock.py`.
@@ -291,15 +288,16 @@ class MainWindow(QMainWindow):
               and view_id not in ("ground", "battle")):
             self.toast("A party is on the ground. Bring them up first.", "warn")
             view_id = "ground"
+        if view_id == "battle":
+            # No time passes while you are being shot at — whichever door
+            # the fight came through (`begin_combat`, or `fire_panel` handing
+            # a battle straight over).
+            self.set_conn_clock(False)
         if self.current is not None:
             going = self.views[self.current]
-            # **A screen is told when it is being left.** `hideEvent` looks
-            # like the door and is not: `hide()` on a widget that was never
-            # actually shown — a window still building, or one minimised —
-            # posts no event at all, so a screen with a live timer would keep
-            # beating after the pilot walked away. This fires on every route
-            # out, including the ones nobody remembered to write a callback
-            # for.
+            # **A screen is told when it is being left.** `hideEvent` is not
+            # the door: `hide()` on a widget never really shown posts no
+            # event at all. This fires on every route out.
             if hasattr(going, "leaving"):
                 going.leaving()
             going.hide()
@@ -324,27 +322,14 @@ class MainWindow(QMainWindow):
         self._refresh_log()
         if self.current:
             self.views[self.current].refresh()
-        # The gunner's board is a second seat on the same engagement, so it is
-        # redrawn with everything else rather than on a timer of its own.
-        gunner = getattr(self, "gunner_window", None)
-        if gunner is not None:
-            gunner.refresh()
-        # The tactical station likewise: it is open whether or not there is a
-        # fight, so its readiness board has to follow the ship — a hull that
-        # was two AU off when the window opened is not two AU off after a
-        # transfer, and a board that says it is would be worse than no board.
-        tactical = getattr(self, "tactical_window", None)
-        if tactical is not None:
-            tactical.refresh()
-        # The flight controls are a second pair of hands on the *same*
-        # approach, so they redraw whenever anything else does — a pilot
-        # flying from there and glancing at the conn must see one ship.
-        flying = getattr(self, "flight_window", None)
-        if flying is not None:
-            flying.refresh()
-        approach = getattr(self, "approach_window", None)
-        if approach is not None:
-            approach.refresh()
+        # The pop-out windows are other seats on the same ship, so they all
+        # redraw whenever anything else does — a board that kept a stale
+        # range after a transfer would be worse than no board.
+        for name in ("gunner_window", "tactical_window", "flight_window",
+                     "approach_window"):
+            other = getattr(self, name, None)
+            if other is not None:
+                other.refresh()
         from ..sim import tutorial as tutorial_sim
         if tutorial_sim.check(self.game):
             self.tutorial_bar.refresh()
@@ -369,14 +354,24 @@ class MainWindow(QMainWindow):
     fly_beat = flight_clock.fly_beat
     beat_refresh = flight_clock.beat_refresh
 
+    def keyPressEvent(self, event) -> None:      # noqa: N802
+        from . import flying_keys
+        if self.current == "pilot" and flying_keys.press(self, event):
+            return
+        super().keyPressEvent(event)
+
+    def keyReleaseEvent(self, event) -> None:    # noqa: N802
+        from . import flying_keys
+        if self.current == "pilot" and flying_keys.release(self, event):
+            return
+        super().keyReleaseEvent(event)
+
     def battle_act(self, action: dict) -> None:
         """Run one turn of the engagement.
 
-        **The one door**, because there are two seats now. `battle_view._act`
-        used to hold this and the gunner's window would have needed its own
-        copy — including the `b.player.st = self.game.ship_stats` line, which is
-        the sort of thing that gets left out of the second copy and then takes a
-        cycle to find.
+        **The one door**, because there are two seats: `battle_view._act`
+        held this, and the gunner's window would have needed its own copy —
+        `b.player.st = ...` included, the line a second copy always drops.
         """
         from ..sim import combat as combat_sim
         b = self.battle
@@ -470,6 +465,9 @@ class MainWindow(QMainWindow):
     # ── combat ─────────────────────────────────────────────────────────────
 
     def begin_combat(self, encounter: dict, return_to: str = "system") -> None:
+        # No time passes while you are being shot at: stop the flight clock
+        # the moment the engagement begins, not on its next beat.
+        self.set_conn_clock(False)
         self._return_to = return_to
         self.views["battle"].begin(encounter)
         self.go("battle")

@@ -252,8 +252,7 @@ def alongside(game, conn, contact) -> bool:
 
 
 #: What a run really costs over the up-and-down of the ideal, measured by
-#: flying one: 4,784 km quoted 15.7 t of thrust ideal and burned 19.8 —
-#: re-corrections, the deadband, and holding the rate as the room shrinks.
+#: flying one: 4,784 km quoted 15.7 t ideal and burned 19.8 — corrections.
 RUN_MARGIN = 1.3
 
 
@@ -365,6 +364,14 @@ def computer(game, conn) -> tuple:
                          f"{ALONGSIDE_KM:,.0f} km off.", "")
             return auto_sim.autopilot(conn, "null")
         return run_for(game, conn, aim)
+    if mode == "brake":
+        # Null with a hand-back: kill the way on; when still, say so and
+        # give the conn back — was three presses for the commonest manoeuvre.
+        if conn.speed <= conn.rcs_dv * 0.75:
+            conn.auto = ""
+            game.add_log("All stopped. The conn is yours.", "")
+            return None, False, 1.0
+        return auto_sim.hold(conn, [0.0, 0.0, 0.0])
     return auto_sim.autopilot(conn, mode)
 
 

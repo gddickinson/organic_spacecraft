@@ -392,25 +392,25 @@ def run(suite: Suite) -> bool:
             f"buttons went away")
 
         # The press survives too: a player lets go over the button they
-        # aimed at, found by label rather than by a stale reference.
-        fired = []
-        real, view.burn = view.burn, lambda a: fired.append(a)
-        try:
-            def ahead():
-                return next(b for b in live() if b.text() == "Ahead")
-            took = ahead()
-            QTest.mousePress(took, Qt.MouseButton.LeftButton,
-                             Qt.KeyboardModifier.NoModifier,
-                             took.rect().center())
-            view.tick()
-            let_go = ahead()
-            assert let_go is took, "the button under the finger was replaced"
-            QTest.mouseRelease(let_go, Qt.MouseButton.LeftButton,
-                               Qt.KeyboardModifier.NoModifier,
-                               let_go.rect().center())
-            assert fired, "a press held across a beat never reached the ship"
-        finally:
-            view.burn = real
+        # aimed at, found by label rather than by a stale reference. The pad
+        # is press-and-hold now: the observation is the ship itself — the
+        # beat consumes the order, and the release must not fire a second.
+        def ahead():
+            return next(b for b in live() if b.text() == "Ahead")
+        took = ahead()
+        QTest.mousePress(took, Qt.MouseButton.LeftButton,
+                         Qt.KeyboardModifier.NoModifier,
+                         took.rect().center())
+        view.tick()
+        burned = view.conn.fired_axis
+        let_go = ahead()
+        assert let_go is took, "the button under the finger was replaced"
+        QTest.mouseRelease(let_go, Qt.MouseButton.LeftButton,
+                           Qt.KeyboardModifier.NoModifier,
+                           let_go.rect().center())
+        assert burned == "forward", (
+            "a press held across a beat never reached the ship")
+        assert _win.burn_order is None, "the order outlived the finger"
         return (f"{len(was)} controls, all still there after a beat, and a "
                 f"click held across one still burns")
 

@@ -59,10 +59,15 @@ class ConnControls(QWidget):
         order = [("left", 0, 0), ("forward", 0, 1), ("right", 0, 2),
                  ("down", 1, 0), ("back", 1, 1), ("up", 1, 2)]
         self.axis_buttons = {}
+        from . import flight_clock
         for axis_id, row, col in order:
             _aid, axis_label, _vec = conn_sim.AXES_BY_ID[axis_id]
-            btn = button(axis_label, lambda a=axis_id: win._burn(a))
+            # Held, not clicked — `flight_clock.hold_wire`, the same pair of
+            # doors as the bridge pad, so a held burn builds and a press is
+            # one tick. `win._burn` remains the programmatic door.
+            btn = button(axis_label, None)
             btn.setObjectName(f"thr_{axis_id}")
+            flight_clock.hold_wire(win.win, btn, axis_id)
             grid.addWidget(btn, row, col)
             self.axis_buttons[axis_id] = btn
 
@@ -114,6 +119,16 @@ class ConnControls(QWidget):
 
         self.run_btn = button("Run clock", win._toggle_clock, kind="primary")
         grid.addWidget(self.run_btn, 1, 5)
+        # Brake-to-zero: null with a hand-back — see `freeflight.computer`.
+        brake = button("Brake to zero", lambda: win._auto("brake"),
+                       kind="flat")
+        brake.setObjectName("auto_brake")
+        grid.addWidget(brake, 2, 8)
+        self.mode_buttons["brake"] = (brake, "Brake to zero")
+        self.scale_btn = button("Time ×1", self._cycle_scale, kind="flat",
+                                tip="How many minutes of flight one beat "
+                                    "runs.")
+        grid.addWidget(self.scale_btn, 3, 5)
         grid.addWidget(button("New approach…", win._pick_target, kind="flat"),
                        0, 6)
         # One button for *stop what you are doing*, and it says which. Giving
@@ -149,6 +164,11 @@ class ConnControls(QWidget):
             return
         from ..sim import forcing as forcing_sim
         conn.log.append(forcing_sim.force(conn))
+        self.window.refresh()
+
+    def _cycle_scale(self) -> None:
+        from . import flight_clock
+        flight_clock.cycle_scale(self.window.win)
         self.window.refresh()
 
     def _ditch(self) -> None:
@@ -194,6 +214,8 @@ class ConnControls(QWidget):
             f"Main drive: {'armed' if self.use_main else 'off'}")
         self.run_btn.setText(
             "Stop clock" if self.window.running else "Run clock")
+        self.scale_btn.setText(
+            f"Time ×{int(getattr(self.window.win, 'time_scale', 1))}")
         # The one button that changes what it *is*: with an approach running it
         # gives that approach up, and on a free flight it stops flying and
         # writes down where the ship ended up. Reading the approach rather

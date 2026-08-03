@@ -70,6 +70,12 @@ def build(win) -> QWidget:
     win.breach_pill = Pill("breached", "warn")
     win.breach_pill.hide()
     h.addWidget(win.breach_pill)
+    # The flight clock, on the one bar every screen shows: the clock is
+    # universal now — walking to the Helm no longer stops it — so its state
+    # has to be readable from wherever the captain is standing.
+    win.clock_pill = Pill("under way", "chloro")
+    win.clock_pill.hide()
+    h.addWidget(win.clock_pill)
     # Instruments pop out into their own windows, so a player can watch
     # heat or the scope while flying rather than switching to a tab.
     h.addWidget(button("▣ Instruments", win.instruments, kind="flat"))
@@ -103,4 +109,11 @@ def refresh(win) -> None:
         cap.setText(f"{key.title()} · {text}")
         bar.set_value(frac, tintname)
     win.breach_pill.setVisible(is_breached(g.ship))
+    conn = getattr(win, "conn", None)
+    running = conn is not None and getattr(conn, "clock_on", False)
+    if running:
+        scale = int(getattr(win, "time_scale", 1))
+        win.clock_pill.setText(("clock running"
+                                + (f" ×{scale}" if scale > 1 else "")).upper())
+    win.clock_pill.setVisible(bool(running))
 

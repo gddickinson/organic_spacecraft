@@ -69,6 +69,7 @@ def mark_of(game) -> dict:
         "contracts": len([c for c in game.contracts if c.accepted]),
         "register": len(game.register),
         "fitted": len(game.ship.fitted),
+        "flown": round(float(getattr(game, "conn_seconds", 0.0)), 1),
         "seen": list(_seen(game)),
     }
 
@@ -113,6 +114,18 @@ def _sold(game, mark) -> bool:
 @watcher("bought_fuel")
 def _bought_fuel(game, mark) -> bool:
     return round(game.ship.cargo.get("volatiles", 0), 1) > mark["volatiles"]
+
+
+@watcher("flew_conn")
+def _flew_conn(game, mark) -> bool:
+    # Five minutes at the conn since the lesson opened. `game.conn_seconds`
+    # is bumped by `berthing.charge_flown` — the one door every flying
+    # screen bills time through — so this is time genuinely flown, not a
+    # screen merely opened. The counter is ephemeral (the `Conn` itself is
+    # transient), which only means a reload mid-lesson starts the five
+    # minutes over.
+    return (float(getattr(game, "conn_seconds", 0.0))
+            >= float(mark.get("flown", 0.0)) + 300.0)
 
 
 @watcher("moved")

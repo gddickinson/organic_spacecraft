@@ -68,10 +68,8 @@ class FlightWindow(QDialog):
         self.refresh()
 
     #: The drive selection and the clock, read off the flight — `Conn` holds
-    #: both now, so this panel, the conn and the bridge cannot disagree. This
-    #: window's own `running` used to sit False while the conn window's clock
-    #: flew the ship: the button read "Run clock" over a hull already under
-    #: way, and pressing it armed a *second* timer at double time.
+    #: both, so this panel, the conn and the bridge cannot disagree the way
+    #: the per-window copies used to (a second timer at double time).
     @property
     def use_main(self) -> bool:
         return bool(getattr(self.conn, "arm_main", False))
@@ -128,10 +126,13 @@ class FlightWindow(QDialog):
         pad.setHorizontalSpacing(6)
         pad.setVerticalSpacing(4)
         self.axis_buttons = {}
+        from . import flight_clock
         for axis_id, row, col in PAD:
             _aid, name, _vec = conn_sim.AXES_BY_ID[axis_id]
-            btn = button(name, lambda a=axis_id: self._burn(a))
+            # Held, not clicked — `flight_clock.hold_wire`.
+            btn = button(name, None)
             btn.setObjectName(f"thr_{axis_id}")
+            flight_clock.hold_wire(self.win, btn, axis_id)
             pad.addWidget(btn, row, col)
             self.axis_buttons[axis_id] = btn
         self.main_btn = button("Main drive: off", self._toggle_main,
@@ -161,7 +162,8 @@ class FlightWindow(QDialog):
         # and "Hold station", which reads as three different computers.
         for mode, text in (("close", "Close and berth"),
                            ("null", "Hold station"),
-                           ("orbit", "Make orbit")):
+                           ("orbit", "Make orbit"),
+                           ("brake", "Brake to zero")):
             btn = button(text, lambda m=mode: self._auto(m), kind="flat")
             btn.setObjectName(f"auto_{mode}")
             row.addWidget(btn)
@@ -173,6 +175,8 @@ class FlightWindow(QDialog):
         row = QHBoxLayout()
         self.run_btn = button("Run clock", self._toggle_clock, kind="primary")
         row.addWidget(self.run_btn)
+        self.scale_btn = button("Time ×1", self._cycle_scale, kind="flat")
+        row.addWidget(self.scale_btn)
         row.addWidget(button("Kill relative motion", self._null, kind="flat"))
         row.addWidget(button("Conn…", self._conn, kind="flat"))
         row.addWidget(button("Approach view…", self._approach, kind="flat"))
@@ -265,6 +269,11 @@ class FlightWindow(QDialog):
         self.win.set_conn_clock(not self.running)
         self.refresh()
 
+    def _cycle_scale(self) -> None:
+        from . import flight_clock
+        flight_clock.cycle_scale(self.win)
+        self.refresh()
+
     def _tick(self) -> None:
         """One beat — `MainWindow.fly_beat`, the one clock. Kept as the name
         the checks drive a beat by hand through."""
@@ -318,8 +327,9 @@ class FlightWindow(QDialog):
             f"Main drive: FIRING {conn.fired_share:.0%}" if firing else
             f"Main drive: {'armed' if self.use_main else 'off'}")
         self.run_btn.setText("Stop clock" if self.running else "Run clock")
-        # The set rung wears the mark, the same `▶` the conn's console uses —
-        # this row used to be four identical buttons whatever was set.
+        self.scale_btn.setText(
+            f"Time ×{int(getattr(self.win, 'time_scale', 1))}")
+        # The set rung wears the conn console's own `▶` mark.
         for share, btn in self.throttle_buttons.items():
             chosen = (conn is not None
                       and abs(conn.throttle - share) < 1e-9)
@@ -428,11 +438,9 @@ class FlightWindow(QDialog):
             said = quote_sim.quote(conn, axis_id, main=self.use_main)
             toward = helps.get(axis_id, 0.0)
             arrow = "▲" if toward > 0.25 else ("▼" if toward < -0.25 else "·")
-            # The coast on the button, because a press is **one minute of
-            # thrust and up to fifteen of clock**: `apply` fires once and
-            # then lets time run. With Coast 15 the burn light, the elapsed
-            # jump and the range all implied a fifteen-minute burn; the
-            # engine gave one fifteenth of that.
+            # The coast on the button: a press is one minute of thrust and
+            # up to fifteen of clock, and the label used to imply the burn
+            # lasted the lot.
             coast = (f" · {conn.coast_min} min"
                      if conn.coast_min > 1 else "")
             btn.setText(f"{arrow} {name}\n{said['dv']:.2f} m/s{coast}")
@@ -462,6 +470,16 @@ class FlightWindow(QDialog):
             self.dial_box.addWidget(note(
                 "Swinging the hull round — the drive only pushes along the "
                 "nose, so this tick is spent turning."))
+
+    def keyPressEvent(self, event) -> None:      # noqa: N802
+        from . import flying_keys
+        if not flying_keys.press(self.win, event):
+            super().keyPressEvent(event)
+
+    def keyReleaseEvent(self, event) -> None:    # noqa: N802
+        from . import flying_keys
+        if not flying_keys.release(self.win, event):
+            super().keyReleaseEvent(event)
 
     def closeEvent(self, event) -> None:      # noqa: N802
         if getattr(self.win, "flight_window", None) is self:
