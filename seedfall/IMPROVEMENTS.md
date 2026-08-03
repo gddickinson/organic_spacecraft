@@ -71,6 +71,24 @@ across pilot, helm and flight control.
 - One interplanetary executor: the plotting board flies the helm's watched
   crossing instead of the instant `travel_to`.
 
+## Done — the fifth pass (2026-08-03): flown rigorously
+
+Played every goal from every window, by hand and by computer. Three real
+defects, all hidden by one coverage gap — no suite had ever pressed a
+control in a *pop-out* window.
+
+- **A body conn opened already finished** (8 of 11 seeds): the pad and every
+  mode dead before a control could be touched. `Conn.opened_orbiting` +
+  `outcome.resolve`; `autopilot.fly` writes the mode it flies.
+- **"Move away" flew the ship into the planet**: a radial demand in a
+  gravity well cancels the orbit. Departing a world climbs the ladder now,
+  or refuses with the reason.
+- **A held burn could outlive the hand holding it** (rebuild, screen change,
+  window close): every door closes the order via `end_burn(quiet=True)`.
+- `tests/test_flightops.py`: every control in all six flying windows, on a
+  flight of every kind — plus the goal checks (body conn, depart, descent
+  order, heads-up aids).
+
 ## Open — defects and debts, in rough value order
 
 1. **Tuning constants without a guard.** The tripwire's last clean sweep
@@ -112,3 +130,9 @@ lesson, time compression, brake-to-zero — shipped in the third pass.)
 - **A combat HUD in the battle screen's own viewport** — the band ring and
   arcs are on the tactical plot; the first-person cameras go dark in a
   fight today.
+- **The height picker's refusal could say which gate refused it.** A rung
+  can be unsold because the tank is too small *or* because `orbits.quotable`
+  says the price cannot be believed on these thrusters; the tooltip blames
+  the tank either way, and `flightdeck.can_arm` has to point at the picker
+  rather than repeat the gate. One reason string, asked of `orbits`, would
+  let both screens say the true one.

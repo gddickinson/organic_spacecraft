@@ -411,6 +411,15 @@ def ensure_at(game, body_index: int) -> dict:
     Actions call this so a player who never opens the helm still gets a
     coherent transit, and the helm remains the place to choose a better one.
     """
+    # **Local work is not done from the conn.** Every caller of this spends
+    # days on the far side of it — a survey, a dig, an extraction, a landing
+    # — and a captain cannot be hand-flying and running a nine-day deep
+    # survey at the same time. The flight is secured and billed first
+    # (through the one door), whether or not the ship has to move: measured,
+    # a survey with a live free flight left the conn open with its own
+    # elapsed while the world advanced three days around it.
+    from . import berthing as berth_sim
+    berth_sim.secure_underway(game)
     body = game.system.bodies[body_index]
     if game.orbit_body == body.id:
         return {"ok": True, "already": True, "days": 0, "fuel": 0}

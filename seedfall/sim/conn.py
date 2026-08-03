@@ -63,11 +63,9 @@ SAFE_CLOSING = 4.0
 #: What an impact at exactly `SAFE_CLOSING` takes off the hull.
 #:
 #: Impact damage goes as the *square* of the speed, because that is where the
-#: energy is. Both curves here used to be linear and capped — `min(60, 6 +
-#: speed * 1.5)` — so putting the hull down on a world at five kilometres a
-#: second cost sixty points of three hundred and thirty-six, and a captain
-#: could aim at a planet as a shortcut. Now four metres a second is a scrape,
-#: twenty is serious, and thirty ends a starting hull.
+#: energy is. Linear and capped, a five-km/s arrival on a world cost sixty of
+#: three hundred and thirty-six and a captain could aim at a planet as a
+#: shortcut. Now four m/s is a scrape and thirty ends a starting hull.
 IMPACT_BASE = 6.0
 
 #: One tick of the conn, in seconds. A minute is long enough that a pulse
@@ -117,17 +115,12 @@ class Conn:
     mark: str = ""
     #: How far the main drive can be opened and still be held straight, 0..1.
     #:
-    #: `data/mounts.py` has said since it was written that a two-slot hull
-    #: "carries them either side of the centreline, so losing one leaves the
-    #: thrust off-axis", and `thrusters.offset` computed exactly how far off,
-    #: claiming "the flight computer has to trim against" it. Nothing computed
-    #: the torque and nothing trimmed anything: a hull on one engine flew as
-    #: straight as one on two, only slower.
-    #:
-    #: A NAVIS running one of two engines holds 0.62 — three fifths of the
-    #: engine it has left. A LEVIATHAN shrugs a missing engine off entirely,
-    #: because its inertia beats the torque; the penalty falls hardest on the
-    #: hulls light enough to be turned by their own drive.
+    #: Three places in the tables promised this and none was true: a hull on
+    #: one engine of two flew as straight as one on two, only slower. What
+    #: decides the cap is off-axis thrust against attitude authority — a
+    #: NAVIS on one of two holds 0.62, and a LEVIATHAN under a Fusion Torch
+    #: only 0.20, so the liability is a big engine on a hull with few
+    #: stations. See `thrusters.yaw_torque` and `holdable_throttle`.
     hold: float = 1.0
     #: Reaction mass left for close work, and what the hull started with.
     rcs: float = 40.0
@@ -142,6 +135,8 @@ class Conn:
     charged: float = 0.0
     #: `charged`'s twin for the tonnes: billed as burned (#149), exact (#148).
     charged_rcs: float = 0.0
+    #: Opened already in a sound orbit: a state, not an outcome (`start`).
+    opened_orbiting: bool = False
     #: The range the approach opened at, which is what "adrift" is measured
     #: against — a fixed distance cannot serve both a quay and a gas giant.
     start_km: float = 12.0
@@ -193,18 +188,14 @@ class Conn:
     #: two of them.
     berth: str = ""
     #: **What the ship actually fired last tick**, so a screen can light the
-    #: control that was used. Recorded by `apply` rather than asked of the
-    #: autopilot again: what a pilot needs to see is the burn that happened,
-    #: and a second call to the computer would be a fresh forecast, which is
-    #: not the same thing and would disagree the moment anything moved.
-    #: `fired_axis` is None on a tick that coasted; `fired_main` says whether
-    #: it was the drive or the clusters; `fired_share` is how far the throttle
-    #: was actually opened, which is not always what was asked for.
+    #: control used. Recorded by `apply`, never re-asked of the computer: a
+    #: second call is a fresh forecast and disagrees the moment anything
+    #: moves. `fired_axis` is None on a coast; `fired_share` is how far the
+    #: throttle really opened, which is not always what was asked for.
     fired_axis: str | None = None
     fired_main: bool = False
     fired_share: float = 0.0
-    #: True on a tick spent swinging the hull round instead of burning. The
-    #: console has always had this in `apply`'s return and thrown it away.
+    #: True on a tick spent swinging the hull round instead of burning.
     fired_turning: bool = False
     #: What the structure said when it was asked. `sim/clearance.py` issues
     #: it; the approach carries it so every screen quotes the same words, and
@@ -357,9 +348,18 @@ def start(game, contact, range_km: float | None = None,
         want = orbital_speed(conn)
         short = orbit_band(conn) * 3.5
         conn.vel = [want - short, -drift, 0.0]
+        # **Was she already in one when the conn opened?** Measured, **8 of
+        # 11 body approaches opened already finished**: `outcome.resolve`
+        # wrote "orbit" on the first tick, so the pad and every mode were
+        # dead before a control could be touched. An outcome is what a
+        # flight achieves, not the state it began in — see `outcome.resolve`.
+        conn.opened_orbiting = in_orbit(conn)
         conn.log.append(
             f"Closing {target.name} at {r - target.radius_km:,.0f} km, "
-            f"{short:,.0f} m/s under circular and falling.")
+            f"{short:,.0f} m/s under circular and falling."
+            if not conn.opened_orbiting else
+            f"On station in orbit of {target.name}, "
+            f"{r - target.radius_km:,.0f} km up. She is yours.")
         return conn
     conn.log.append(f"Approach begun on {target.name}, "
                     f"{r:.1f} km off, {drift:.1f} m/s of way on.")

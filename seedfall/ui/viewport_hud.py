@@ -51,7 +51,14 @@ def points(conn, cam, w: int, h: int) -> dict:
     # coasts for modes it cannot fly ("run" needs the game), which is still
     # the honest ballistic answer.
     from ..sim import preview
-    for _s, at, _km, _v in preview.track(conn, conn.auto or None,
+    # `preview.track` flies a twin under `sim/autopilot`'s modes; the deck's
+    # other verbs need the game, which a dry run has not got. `brake` is
+    # `null` under another name, so it is flown honestly; `run` and `depart`
+    # fall through to a coast, which is the true "if nothing changes" line.
+    mode = {"brake": "null"}.get(conn.auto, conn.auto)
+    if mode in ("run", "depart"):
+        mode = None
+    for _s, at, _km, _v in preview.track(conn, mode or None,
                                          ticks=PATH_TICKS, every=PATH_EVERY):
         vec = _rel(conn, at)
         if math.dist(vec, (0.0, 0.0, 0.0)) < 1e-6:

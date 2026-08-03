@@ -405,6 +405,8 @@ class ConnWindow(QDialog):
             super().keyReleaseEvent(event)
 
     def closeEvent(self, event) -> None:
+        from . import flight_clock
+        flight_clock.end_burn(self.win, quiet=True)   # no release is coming
         # **Closing this window is leaving the room, not stopping the ship.**
         # It used to write `outcome = "broken off"` and settle on the way out,
         # ending an approach under a pilot still flying it from the bridge.

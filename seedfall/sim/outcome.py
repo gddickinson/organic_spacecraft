@@ -204,7 +204,19 @@ def resolve(conn, *, safe_closing: float, impact_base: float,
         # height asked for went on ordering refused burns for the rest of the
         # flight and the approach never ended — measured, eighteen thousand
         # ticks of a computer working and nothing changing.
-        if in_orbit(conn) and (at_wanted_height(conn) or _dry(conn)):
+        # **The orbit she arrived in is not an orbit she achieved.** A hull
+        # parked in orbit that takes the conn opens *in* one, and this branch
+        # ended the flight on its first tick: measured, 8 of 11 body
+        # approaches were over before a control could be touched. While that
+        # opening orbit still holds and nobody has asked for a height or
+        # armed the computer for one, there is nothing to report — and the
+        # moment she is out of it, the flag clears and the ending re-arms.
+        if conn.opened_orbiting and not in_orbit(conn):
+            conn.opened_orbiting = False
+        settled = (conn.opened_orbiting and conn.orbit_want_km <= 0
+                   and conn.auto != "orbit")
+        if not settled and in_orbit(conn) and (at_wanted_height(conn)
+                                               or _dry(conn)):
             conn.outcome = "orbit"
             axis = semi_major_km(conn)
             want = conn.orbit_want_km

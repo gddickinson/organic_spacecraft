@@ -425,7 +425,13 @@ def fly(conn: Conn, mode: str, ticks: int = 240) -> Conn:
 
     This is what the *Engage* button does, and what a check drives to find out
     whether the mode actually works.
+
+    The mode is written onto the flight for the run, because that is what
+    "hand the conn to the computer" means — and because `Conn.auto` is what
+    every screen and `sim/outcome` read to know who is flying. A batch run
+    that left it unset was a computer nothing could see.
     """
+    conn.auto = mode or ""
     for _ in range(ticks):
         if conn.over:
             break

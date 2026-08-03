@@ -12608,3 +12608,24 @@ four private copies of the armed state. What was done, in one session:
 - **One transfer executor** — the plotting board's Engage flies the same
   watched crossing as the helm (was `travel_to`, the instant one).
 - test_flightdeck grew to 14 checks; full suite green.
+
+## The fifth pass: flown rigorously, three defects (2026-08-03)
+
+Played every goal from every window, by hand and by computer. The coverage
+gap that hid all three: `test_verbs` sweeps the 13 standing screens and had
+never pressed a control in a *pop-out*. `test_flightops` sweeps all six.
+
+- **A body conn opened already finished** — 8 of 11 seeds. `Conn.opened_orbiting`
+  + `outcome.resolve`: an outcome is what a flight achieves, not its start.
+  `autopilot.fly` writes the mode it flies onto `Conn.auto`.
+- **"Move away" flew into the planet** — a radial demand in a gravity well
+  asks the drive to cancel 2,779 m/s of orbit. Depart now climbs the ladder
+  (or refuses with the reason and points at the picker/helm).
+- **A held burn could outlive the hand** — no `released` reaches a destroyed
+  widget. Rebuild, screen change and window close all call
+  `flight_clock.end_burn(quiet=True)`.
+- Verified sound: computer berthing from 5 surfaces, hand berthing from 3
+  pads, orbit + rungs, run-alongside, depart from a structure, crossings
+  from helm and plotting board (with arrival heat), berth→port disembark,
+  landing once surveyed, engage from the bridge with the clock stopping and
+  the gunner/tactical stations painting through the fight.

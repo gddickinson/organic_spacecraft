@@ -131,5 +131,7 @@ def computer_note(conn: Conn) -> str:
     if mode == "brake":
         return "braking to zero, then handing back"
     if mode == "depart":
-        return "standing away to clear space"
+        return ("climbing away to a higher orbit"
+                if getattr(conn.target, "mu", 0) > 0 else
+                "standing away to clear space")
     return mode

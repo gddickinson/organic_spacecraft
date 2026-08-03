@@ -333,6 +333,12 @@ class PilotView(View):
         self._boards[key] = fresh
 
     def build(self) -> None:
+        # **A rebuild destroys the button under the finger**, and Qt sends no
+        # `released` to a widget that is gone — so a held thruster became a
+        # burn nobody could stop. The order is closed out first, honouring
+        # the press if no beat has taken it yet.
+        from . import flight_clock
+        flight_clock.end_burn(self.win, quiet=True)
         why = self.ensure_conn()
         self.head("Pilot", "The view from the bridge, and the ship in your hands.")
         if self.conn is None:

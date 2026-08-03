@@ -110,10 +110,15 @@ def refresh(win) -> None:
         bar.set_value(frac, tintname)
     win.breach_pill.setVisible(is_breached(g.ship))
     conn = getattr(win, "conn", None)
-    running = conn is not None and getattr(conn, "clock_on", False)
-    if running:
+    wanted = conn is not None and getattr(conn, "clock_on", False)
+    if wanted:
+        from .flight_clock import on_deck
         scale = int(getattr(win, "time_scale", 1))
-        win.clock_pill.setText(("clock running"
-                                + (f" ×{scale}" if scale > 1 else "")).upper())
-    win.clock_pill.setVisible(bool(running))
+        beating = on_deck(win)
+        # Held rather than stopped: the pilot's intent survives a walk to the
+        # market, and stepping back onto the deck picks it up again.
+        win.clock_pill.setText(
+            (("clock running" + (f" ×{scale}" if scale > 1 else ""))
+             if beating else "clock held — off the deck").upper())
+    win.clock_pill.setVisible(bool(wanted))
 

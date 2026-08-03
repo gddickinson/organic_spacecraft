@@ -15,6 +15,24 @@ is driving exactly what the timer fires.
 from __future__ import annotations
 
 
+#: The screens the flight deck is *on*. Anywhere else, a running clock is
+#: held: time passing while a captain browses a market or a tech tree is
+#: not flying, it is a surprise — measured, a beat is a minute, so ten real
+#: minutes of shopping would quietly cost a day and a half. The pilot's
+#: intent (`Conn.clock_on`) is kept, so stepping back onto the deck picks
+#: up where it left off without another press.
+DECK_SCREENS = ("pilot", "helm")
+
+
+def on_deck(win) -> bool:
+    """Is anybody watching the flight? A deck screen, or a flying window."""
+    if win.current in DECK_SCREENS:
+        return True
+    return any(getattr(win, name, None) is not None
+               for name in ("conn_window", "flight_window",
+                            "approach_window"))
+
+
 def set_conn_clock(win, on: bool) -> None:
     """Run or hold the one beat that flies `game.conn`.
 
@@ -26,7 +44,19 @@ def set_conn_clock(win, on: bool) -> None:
     on = bool(on) and conn is not None and not conn.landed
     if conn is not None:
         conn.clock_on = on
-    if on:
+    sync_clock(win)
+
+
+def sync_clock(win) -> None:
+    """Start or stop the timer from the intent and who is watching.
+
+    Called on every screen change as well as every Run/Stop, so walking off
+    the flight deck holds the beat and walking back resumes it.
+    """
+    conn = win.conn
+    want = (conn is not None and not conn.landed
+            and bool(getattr(conn, "clock_on", False)) and on_deck(win))
+    if want:
         from .pilot_view import BEAT_MS
         win.flight_timer.start(BEAT_MS)
     else:
@@ -112,13 +142,21 @@ def start_burn(win, axis: str) -> None:
     win.burn_fired = False
 
 
-def end_burn(win) -> None:
+def end_burn(win, quiet: bool = False) -> None:
     """The hand comes off. If no beat consumed the order, press once.
 
     A quick click inside one beat (a click is 80–150 ms against a 250 ms
     beat) would otherwise burn nothing and read as a dead control — and
     with the clock *held*, this is the whole act: one press, at the coast
     and throttle the console shows, exactly what `pilot.quote` promises.
+
+    **`quiet` is for a hand that was taken off the control by something
+    other than the player** — a rebuild that destroys the button, a screen
+    change, a window closing. Qt delivers no `released` to a widget that no
+    longer exists, so the order used to stand for ever and *the ship burned
+    with nobody holding it*: measured, one rebuild mid-hold and the thrust
+    never stopped. The press is still honoured (it happened), and the
+    redraw is skipped because the caller is already inside one.
     """
     from ..sim import berthing as berth_sim
     from ..sim import conn as conn_sim
@@ -126,6 +164,7 @@ def end_burn(win) -> None:
     axis = getattr(win, "burn_order", None)
     fired = getattr(win, "burn_fired", False)
     win.burn_order = None
+    win.burn_fired = False
     conn = win.conn
     if not axis or fired or conn is None or conn.over or conn.landed:
         return
@@ -138,7 +177,8 @@ def end_burn(win) -> None:
     if pilot is not None:
         pilot.last = last
     berth_sim.charge_flown(win.game, conn)
-    win.beat_refresh()
+    if not quiet:
+        win.beat_refresh()
 
 
 def arm_mode(win, mode: str | None) -> None:

@@ -472,6 +472,8 @@ class FlightWindow(QDialog):
             super().keyReleaseEvent(event)
 
     def closeEvent(self, event) -> None:      # noqa: N802
+        from . import flight_clock
+        flight_clock.end_burn(self.win, quiet=True)   # no release is coming
         if getattr(self.win, "flight_window", None) is self:
             self.win.flight_window = None
         super().closeEvent(event)

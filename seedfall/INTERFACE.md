@@ -2823,6 +2823,55 @@ pressed. The board hands its course to the same watched crossing now;
 `travel_to` remains the programmatic door (`ensure_at`, local work), with
 the same quote, heat and risk since the second pass.
 
+### The fifth pass: flown rigorously, and three things fell out
+
+The brief was to *play* it — every goal, from every window, by hand and by
+computer, and to find what breaks. Three real defects came out, none of
+which any suite could have caught, because no suite had ever pressed a
+control in a pop-out window: `tests/test_verbs` sweeps the thirteen
+standing screens and had never touched the conn, the flight panel, the
+approach view, the plotting board, the tactical station or the gunner's
+seat. `test_flightops` sweeps all six now, on a flight of every kind.
+
+**Taking the conn on a world you were orbiting was not a flight at all.**
+Measured across seeds, **8 of 11 body approaches opened already finished**:
+`outcome.resolve` saw a hull in a sound orbit on the first tick and wrote
+"orbit", so the pad was dead, every mode was dead, and there was no way to
+change height, descend or depart. An outcome is what a flight *achieves*,
+not the state it began in — `Conn.opened_orbiting` records the orbit she
+arrived in and `resolve` clears it the moment she is out of one, so a real
+manoeuvre re-arms the ending. Flying *into* orbit resolves exactly as it
+always did, and `autopilot.fly` now writes the mode it is flying onto
+`Conn.auto`, because a computer nothing can see is how this drifted.
+
+**"Move away" flew the ship into the planet.** The mode demanded a radial
+velocity, which in a gravity well asks the drive to cancel the entire
+orbital velocity — measured at a world, **2,779 m/s of it** — so the hull
+decayed and went `aground`. In a gravity well, moving away is *climbing*:
+`depart` picks the lowest rung the ladder will sell above where she is and
+flies the orbit law that `test_climbs` holds, and where the ladder sells
+nothing it refuses with the reason and points at the height picker and the
+helm. Measured after: no departure grounds, and a climb under way is not
+re-asked of the ladder every tick (that abandoned the climb halfway up).
+
+**A held thruster could outlive the hand holding it.** Qt sends no
+`released` to a widget that no longer exists, so a rebuild mid-hold — or
+walking off the bridge with a key down, or closing the window — left a
+standing burn order and *the ship burned with nobody holding it*. Every
+door that can take the control away now closes the order through
+`flight_clock.end_burn(quiet=True)`, which still honours the press if no
+beat has taken it.
+
+What the sweep found *sound*, and now checks: berthing at a quay under the
+computer from all five surfaces and by hand from all three pads; orbit
+mode and the height rungs; running alongside another hull (and `close`
+refusing one, with the reason); departing a structure; a crossing flown
+watch by watch from the helm and from the plotting board, arriving with
+its heat; berthing then disembarking to the port; landing a party once a
+body is surveyed; opening fire from the bridge, the clock stopping the
+instant the fight begins, and the gunner's and tactical stations painting
+through it.
+
 ## Running
 
 ```

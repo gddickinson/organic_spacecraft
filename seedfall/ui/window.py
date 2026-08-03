@@ -288,6 +288,8 @@ class MainWindow(QMainWindow):
               and view_id not in ("ground", "battle")):
             self.toast("A party is on the ground. Bring them up first.", "warn")
             view_id = "ground"
+        # A held key's release will never arrive on the screen being left.
+        flight_clock.end_burn(self, quiet=True)
         if view_id == "battle":
             # No time passes while you are being shot at — whichever door
             # the fight came through (`begin_combat`, or `fire_panel` handing
@@ -311,6 +313,9 @@ class MainWindow(QMainWindow):
             tutorial_sim.saw(self.game, f"{view_id}:{tab}")
         view = self.views[view_id]
         view.show()
+        # The beat follows the captain: held off the flight deck, resumed on
+        # stepping back onto it. See `flight_clock.DECK_SCREENS`.
+        self.sync_clock()
         for vid, b in self.nav_buttons.items():
             b.setChecked(vid == view_id)
         self.refresh()
@@ -351,6 +356,7 @@ class MainWindow(QMainWindow):
 
     # The flight clock — `ui/flight_clock.py`, bound as methods.
     set_conn_clock = flight_clock.set_conn_clock
+    sync_clock = flight_clock.sync_clock
     fly_beat = flight_clock.fly_beat
     beat_refresh = flight_clock.beat_refresh
 
