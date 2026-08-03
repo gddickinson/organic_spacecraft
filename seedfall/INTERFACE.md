@@ -2237,6 +2237,48 @@ where every name is the same width cannot fail a rule that is only wrong for
 long ones. It models the measured face now: 5 px a character against a real 4.8,
 height 9, ascent 7. That had to be fixed before the rule could be.
 
+### The guns go with the hands
+
+The bridge's fold came down from 662 px to 199 when it became two columns, and
+there it stopped. Measured on a shown window at 1360x880, what was still under
+the fold was not a bit of everything — it was **exactly the fire control**:
+`Open fire on Patient Ledger` and `Mark Patient Ledger hostile`, the two things
+a pilot in a fight reaches for.
+
+The cause was not that the screen was tall. Measured column by column:
+
+| | content |
+|---|---|
+| left — the view and what flies her | **173 px** |
+| right — the boards | **777 px** |
+
+The two columns are laid out side by side, so the taller one sets the height on
+its own, and the left was mostly stretched `Viewport`. The right column was
+carrying the ship board (316), the in-view board (208), the fly-at buttons, the
+autopilot row, and the whole fire control (166) on top.
+
+`ui/pilot_panels`'s own docstring already had the rule: the left column is **the
+view and the hands that fly her**, the right is **the boards that tell you what
+is out there**. A trigger is a hand. Moving the fire board and its buttons to
+the left settles both halves at once —
+
+| seed | content | fold | controls on screen |
+|---|---|---|---|
+| `fold` | 968 → **785 px** | 186 → **3 px** | 23/25 → **25/25** |
+| `look` | — → **812 px** | 199 → **30 px** | 23/27 → **27/27** |
+
+— and the width is unchanged at 891 px in an 891 px viewport, so nothing is
+clipped sideways to buy it.
+
+**A board no longer knows which column it is in, and must not think it does.**
+`PilotView._swap` replaces a readout in place on every beat; it now asks the
+outgoing widget for its own layout (`old.parentWidget().layout()`) rather than
+holding `self._right`. A remembered column walks the fire control across to the
+boards on the first tick — `indexOf` returns -1 on the wrong layout and
+`insertWidget(-1, ...)` appends. That is checked by capturing the fire control's
+column, beating five times and asserting it has not moved, because the mutation
+survives a check that only looks at a freshly built screen.
+
 `ui/conn_controls.py` is the console itself, split out of `ui/conn_window.py`
 when that went past five hundred lines along a seam already there — the window
 owns the cameras, the panel and the clock. The panel names the settings in m/s,

@@ -370,12 +370,11 @@ def run(suite: Suite) -> bool:
     @check("a beat does not take the button out from under the pilot")
     def _():
         # **The player's report: "when the clock is running the buttons do not
-        # act immediately, and often don't respond at all."** The beat used to
-        # be `View.refresh` — the screen taken apart and built again, four
-        # times a second. Measured before the fix: **0 of 25 buttons survived
-        # one beat**, and a press spanning one was swallowed whole — a
-        # QPushButton emits `clicked` only if the release reaches the object
-        # that took the press.
+        # act immediately, and often don't respond at all."** The beat was
+        # `View.refresh` — the screen rebuilt four times a second. Measured:
+        # **0 of 25 buttons survived one beat**, and a press spanning one was
+        # swallowed whole, a QPushButton emitting `clicked` only if the
+        # release reaches the object that took the press.
         from PyQt6.QtCore import Qt
         from PyQt6.QtTest import QTest
         from PyQt6.QtWidgets import QPushButton
@@ -391,8 +390,8 @@ def run(suite: Suite) -> bool:
             f"a beat replaced the controls: {len(was - now)} of {len(was)} "
             f"buttons went away")
 
-        # And the press survives with them. A player lets go over the button
-        # they aimed at — found by its label, not by a stale reference.
+        # The press survives too: a player lets go over the button they
+        # aimed at, found by label rather than by a stale reference.
         fired = []
         real, view.burn = view.burn, lambda a: fired.append(a)
         try:
@@ -416,7 +415,6 @@ def run(suite: Suite) -> bool:
 
     @check("a beat still moves the readings, and a new situation still rebuilds")
     def _():
-        # The other half: never rebuilding is worse than rebuilding too much.
         from PyQt6.QtWidgets import QLabel, QPushButton
 
         _game, _win, view = _bridge("shape")
@@ -429,19 +427,23 @@ def run(suite: Suite) -> bool:
                             in view._boards["ship"].findChildren(QLabel))
 
         before, ids = board(), {id(b) for b in live()}
+        # A beat swaps the readouts whole and must put each back where it
+        # came from: a `_swap` remembering one column walks the fire control
+        # across to the boards on the first tick.
+        column = view._boards["fire"].parentWidget()
         for _ in range(5):
             view.tick()
+        assert view._boards["fire"].parentWidget() is column, (
+            "a beat moved the fire control into the other column")
         assert board() != before, "five beats, and the readout is unchanged"
         assert {id(b) for b in live()} == ids, "the readings moved the controls"
 
-        # A course laid is a change of situation, not of reading.
         was = {b.text() for b in live()}
         view.fly_at(view.in_view()[0])
         fresh = {b.text() for b in live()} - was
         assert any(t.startswith("Run for") for t in fresh), (
             f"laying a course grew no autopilot button: {sorted(fresh)}")
 
-        # So is securing: it takes the controls away entirely.
         view.secure()
         assert [b.text() for b in live()] == ["Take the conn"], (
             f"securing left {[b.text() for b in live()]}")
@@ -450,18 +452,15 @@ def run(suite: Suite) -> bool:
 
     @check("the bridge fits the window it is shown in")
     def _():
-        # **Measured on a *shown* window, because an offscreen widget that was
-        # never shown reports a scroll range of zero and every layout question
-        # answers "fine".** Shown at 1360x880 the bridge was 1,444 px tall in
-        # a 782 px view — 662 px, 46% of it, below the fold — so the fire
-        # control, the autopilot and the clock were all out of sight and the
-        # pilot scrolled past the instruments to reach a trigger.
+        # **Measured on a *shown* window: one never shown reports a scroll
+        # range of zero and answers every layout question "fine".** At
+        # 1360x880 the bridge was 1,444 px in a 782 px view — 662 px, 46%,
+        # below the fold, hiding the fire control, autopilot and clock.
         #
-        # Two columns fixed the height and broke the width: a row of four
-        # "Fly at <name>" buttons wanted 660 px and a fire-control row
-        # carrying the whole of `engage.note` wanted 802, so the content came
-        # to 1,348 px inside an 891 px viewport and every reading in the
-        # right-hand column was clipped mid-number.
+        # Two columns fixed the height and broke the width: four "Fly at"
+        # buttons wanted 660 px and a fire-control row carrying `engage.note`
+        # wanted 802, so content came to 1,348 px in an 891 px viewport and
+        # every right-hand reading was clipped mid-number.
         from PyQt6.QtWidgets import QApplication, QPushButton
         game, win, view = _bridge("look")
         app = QApplication.instance()
@@ -475,25 +474,26 @@ def run(suite: Suite) -> bool:
                 f"the bridge is {wide} px wide in a {room} px view — "
                 f"{wide - room} px of every right-hand reading is cut off")
 
+            # **Every control, not most.** At a 199 px fold the two still
+            # under it were "Open fire on Patient Ledger" and "Mark Patient
+            # Ledger hostile" — a pilot scrolling to reach the trigger,
+            # because the left column carried 173 px and the right 777.
             fold = view.verticalScrollBar().maximum()
-            assert fold < 400, (
-                f"{fold} px of the bridge is below the fold; the guns and the "
-                f"clock are meant to be within a short scroll, not a long one")
-
-            # And the controls are actually reachable without hunting.
             btns = view.findChildren(QPushButton)
-            here = [b for b in btns
-                    if b.visibleRegion().boundingRect().height() > 0]
-            assert len(here) >= 20, (
-                f"only {len(here)} of {len(btns)} controls are on screen")
-            assert any("Run clock" in b.text() or "Stop clock" in b.text()
-                       for b in here), "the clock is not reachable"
-            assert any(b.text().startswith("Fly at") for b in here), (
-                "nothing can be flown at without scrolling")
+            off = [b.text() for b in btns
+                   if b.visibleRegion().boundingRect().height() == 0]
+            assert not off, f"{fold} px below the fold, and under it: {off}"
+
+            at = lambda w: w.mapTo(view.widget(), w.rect().topLeft()).x()
+            gun = next((b for b in btns if b.text().startswith("Open fire")),
+                       None)
+            if gun is not None:
+                assert at(gun) < at(view._boards["ship"]), (
+                    "the fire control is over with the boards again")
         finally:
             win.hide()
-        return (f"{wide} px in {room}, {fold} px below the fold (was 662), "
-                f"{len(here)} of {len(btns)} controls on screen")
+        return (f"{wide} px in {room}, {fold} px below the fold (was 662, "
+                f"then 199), all {len(btns)} controls on screen")
 
 
     return True

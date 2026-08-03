@@ -2,6 +2,47 @@
 
 Running progress log. Newest first.
 
+## 2026-08-02 — SEEDFALL: what was below the fold was the guns
+
+#145 item 2. The figure predated the two-column bridge and the beat rewrite, so
+it was re-measured first rather than trusted.
+
+**Still 199 px, and the measurement named the culprit.** Shown at 1360x880:
+968 px of content in a 782 px view, and the two controls under the fold were
+`Open fire on Patient Ledger` and `Mark Patient Ledger hostile`. A pilot in a
+fight had to scroll to shoot.
+
+**The cause, per column**: left 173 px of controls, right 777. Side by side, the
+taller sets the height alone; the left was mostly stretched viewport. So this
+was never "the screen is tall", it was "everything is in one column".
+
+`ui/pilot_panels` already said the left column is the view and the hands that
+fly her and the right is the boards. A trigger is a hand.
+
+  seed 'fold'   968 px -> 785 px content, fold 186 -> 3 px,  23/25 -> 25/25 on screen
+  seed 'look'          -> 812 px content, fold 199 -> 30 px, 23/27 -> 27/27 on screen
+
+Width unchanged at 891 in 891 — nothing clipped sideways to pay for it.
+
+**Two defects I introduced, both found by flying it rather than reading it.**
+
+1. `KeyError: 'fire'` on the first beat. The fire control is built into the left
+   column, which happens before the right — and `self._boards = {...}` further
+   down threw the entry away. `_boards` is emptied once, up front, before either
+   column fills it.
+2. **A mutant survived**: `_swap` remembering one column instead of asking the
+   widget. It only bites *after* a beat — `indexOf` returns -1 on the wrong
+   layout and `insertWidget(-1, ...)` appends, walking the fire control across —
+   and my fold check ran on a freshly built screen. The claim moved to the beat
+   check, which captures the fire control's column, ticks five times and asserts
+   it has not moved. Three mutants, three bites after that.
+
+Rendered the bridge flying with a course laid and looked at it: fire control
+under the flight controls, both "Open fire" buttons and both "Mark ... hostile"
+buttons on screen.
+
+`tests/test_bridge.py` took five separate trims to land back at 499.
+
 ## 2026-08-02 — SEEDFALL: a label is kept clear by its own width, not a fixed box
 
 #145 item 4, the collision filmed last cycle.

@@ -345,10 +345,14 @@ class PilotView(View):
         be inside — the same rule `View.refresh` keeps, for one widget.
         """
         old = self._boards[key]
-        at = self._right.indexOf(old)
-        self._right.removeWidget(old)
+        # Its own column, asked of the widget: the boards no longer all live
+        # in one, and a remembered layout would put the fire control back in
+        # the column it was moved out of.
+        box = old.parentWidget().layout()
+        at = box.indexOf(old)
+        box.removeWidget(old)
         self.park(old)
-        self._right.insertWidget(at, fresh)
+        box.insertWidget(at, fresh)
         self._boards[key] = fresh
 
     def build(self) -> None:
@@ -369,6 +373,11 @@ class PilotView(View):
         holder, left, right = panels.two_columns()
         self.col.addWidget(holder)
         rows = self.ranged()
+        # **Emptied here, before either column fills it.** The fire control is
+        # built into the left column, which happens first; a `self._boards =
+        # {...}` further down then threw that entry away and the next beat
+        # died on `KeyError: 'fire'`. Found by flying it.
+        self._boards = {}
 
         self.feed = Viewport(self.conn, self.camera)
         # **Ring the thing the course is laid on, and name the traffic.** One
@@ -402,13 +411,28 @@ class PilotView(View):
             button("Secure from the conn", self.secure, kind="flat"),
             button("Take the conn on something…", self._to_conn, kind="flat")],
             per_row=2))
+        # **The guns go with the hands, not with the boards.** This file's own
+        # rule is that the left column is the view and what flies her and the
+        # right is what tells you where you are — and a trigger is a hand.
+        # Measured shown at 1360x880: the left column carried 173 px of
+        # controls and the right 777, so the right alone set the height, and
+        # the two controls pushed off the bottom were "Open fire on Patient
+        # Ledger" and "Mark Patient Ledger hostile". A pilot in a fight had to
+        # scroll to shoot.
+        self._boards["fire"] = fire_panel.board(self.game, self.conn, rows)
+        left.addWidget(self._boards["fire"])
+        guns = fire_panel.buttons(self.win, self.game, self.conn, rows)
+        if guns:
+            left.addWidget(panels.stack_of(guns))
+        flags = fire_panel.marks(self.win, self.game, rows)
+        if flags:
+            left.addWidget(panels.stack_of(flags))
         left.addStretch(1)
 
-        # The right column's readouts are swapped whole on a beat: they are
-        # labels, so nothing the pilot can be pressing lives in them.
-        self._right = right
-        self._boards = {"ship": panels.ship_board(self),
-                        "view": panels.in_view_board(self, rows)}
+        # The readouts are swapped whole on a beat: they are labels, so
+        # nothing the pilot can be pressing lives in them.
+        self._boards["ship"] = panels.ship_board(self)
+        self._boards["view"] = panels.in_view_board(self, rows)
         right.addWidget(self._boards["ship"])
         right.addWidget(self._boards["view"])
         seen = [c for _km, c in rows][:4]
@@ -431,14 +455,6 @@ class PilotView(View):
 
         # **The guns.** One door, `ui/fire_panel`, shared with any screen that
         # grows a fire control.
-        self._boards["fire"] = fire_panel.board(self.game, self.conn, rows)
-        right.addWidget(self._boards["fire"])
-        guns = fire_panel.buttons(self.win, self.game, self.conn, rows)
-        if guns:
-            right.addWidget(panels.stack_of(guns))
-        flags = fire_panel.marks(self.win, self.game, rows)
-        if flags:
-            right.addWidget(panels.stack_of(flags))
         right.addStretch(1)
         self._shape = self.shape(rows)
 
