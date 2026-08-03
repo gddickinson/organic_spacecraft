@@ -2745,6 +2745,46 @@ in the hand) — fly the registry mass and the big hulls never move; collide
 the handling mass and ramming means nothing. The same shape as `radius_km`
 against `bays.hull_km`, made on purpose where it used to be an accident.
 
+### The third pass: the engines are held, the clock is everywhere
+
+**"The engines seem to work in steps, with instantaneous responses."** They
+did: a press was one impulse — `apply` adds the whole burn's Δv between two
+frames, then coasts. The pads are **press-and-hold** now, through one pair of
+doors (`flight_clock.start_burn` / `end_burn`, `hold_wire` on every pad): a
+held button or key (W/A/S/D, R/F — `ui/flying_keys.py`) is a standing order
+the beat consumes minute after minute, so velocity *builds* and the plume
+stays lit on the flight-control diagram for the burn's true duration. A quick
+click is still one precise tick; with the clock held it keeps the old
+coast-and-quote exactly, which is why every promise-is-the-act check passes
+unchanged. The order outranks the armed computer for the beats it stands —
+a hand on the stick is a hand on the stick.
+
+**The clock is universal.** Walking to the Helm no longer stops it (the old
+`PilotView.leaving` stop is gone); the HUD wears a "CLOCK RUNNING ×N" chip
+readable from every screen; the helm carries Run/Stop and the time scale
+(`SCALES` ×1/×4/×16 — one multiplier, in the one beat, so the burn, the
+computer and the bill scale together); and an engagement stops it the moment
+it begins, whichever door the fight came through (`begin_combat` and the
+`go("battle")` route both).
+
+**And the window finally shows the flying** (`ui/viewport_hud.py`, drawn in
+every camera): the predicted path under the current control state — the same
+`preview.track` dry run the approach window plots, as dots shrinking with
+time; **prograde and retrograde** marks, because the nose is not the
+velocity; the **aim point** the approach is actually flying next
+(`moorings.aim`); and a bay's **mouth as the ring it is**, on the axis
+`in_corridor` protects — missing the ring is hitting the rim. The mark on
+the bridge carries the engagement band when the guns could speak, off the
+same `engage` doors the trigger uses. `points`/`draw` are split so checks
+ask where everything landed without reading pixels.
+
+The rest of the pass: brake-to-zero (a `"brake"` mode in
+`freeflight.computer` that hands the conn back when she is still), one-button
+computer docking from the helm (`Dock at <quay> — computer`), and a ninth
+tutorial lesson, "Take the ship's wheel", watched through `game.conn_seconds`
+— billed conn time, bumped in `berthing.charge_flown`, so a screen merely
+opened counts nothing.
+
 ## Running
 
 ```
@@ -3124,6 +3164,10 @@ seedfall/
 │   ├── conn_panel.py  the conn's side panel: `content` says what it shows,
 │   │                  `apply` updates in place and rebuilds only when the
 │   │                  set of things said changes
+│   ├── flying_keys.py the six axes on keys (W/A/S/D, R/F), through the same
+│   │                  hold-to-burn doors the buttons wire
+│   ├── viewport_hud.py heads-up aids in every camera: the predicted path,
+│   │                  prograde/retrograde, the aim point, a bay's mouth
 │   ├── orbit_chart.py the orrery widget — paints bodies, quays, traffic
 │   │                  and the leg you are about to fly; answers clicks.
 │   │                  One door for label placement (`_room_for`) and one

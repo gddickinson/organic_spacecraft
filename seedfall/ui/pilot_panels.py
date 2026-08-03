@@ -163,8 +163,20 @@ def aim_feed(view, rows) -> None:
     they live in one place that `build` and the beat both call.
     """
     laid = view.marked()
-    view.feed.mark = ((free_sim.toward(view.game, view.conn, laid), laid.name)
-                      if laid is not None else None)
+    tag = None
+    if laid is not None:
+        name = laid.name
+        # **The band on the mark** — the combat fact a pilot closing on a
+        # hull actually needs: whether the guns can speak, and at which band
+        # this range opens. Off `engage`, the same doors the trigger uses.
+        km = next((k for k, c in rows if c.name == laid.name), None)
+        if km is not None and engage_sim.may_engage(
+                view.game, view.conn, laid, km)[0]:
+            from ..sim import combat as combat_sim
+            band = engage_sim.band_for(view.game, view.conn, laid)
+            name += f" · {combat_sim.BANDS[band]} band"
+        tag = (free_sim.toward(view.game, view.conn, laid), name)
+    view.feed.mark = tag
     # **Name the quays and the hulls out there**, through `ui/sights`, which
     # the Conn window asks the same question of. The mark is passed as already
     # named: it is drawn as a ring with its name on it, and a sight label

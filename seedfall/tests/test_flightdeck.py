@@ -292,4 +292,34 @@ def run(suite: Suite) -> bool:
         window.close()
         return "ordered, said out loud, and belayed"
 
+    @check("the window shows the path, the way she is going, and the way in")
+    def _():
+        # The heads-up aids — `ui/viewport_hud.points`, the computing half
+        # of what every camera draws, asked directly so no pixel-reading is
+        # needed. A moving approach shows a predicted path, a prograde mark
+        # and the aim point; a bay shows the ring of its mouth.
+        _qt()
+        from ..ui import viewport_hud
+        from ..ui.viewport import basis
+        game, quay = _moored("deck-k")
+        assert game is not None
+        contact = next(c for c in track_sim.contacts(game)
+                       if c.name == quay.name)
+        conn, why = berth_sim.begin(game, contact)
+        assert conn is not None, why
+        conn.vel = [0.0, 4.0, 0.0]
+        cam = basis((0.0, 1.0, 0.0), conn)
+        got = viewport_hud.points(conn, cam, 464, 320)
+        assert len(got["path"]) >= 4, "no predicted path in the window"
+        assert got["prograde"] is not None, "no prograde mark"
+        assert got["aim"] is not None, "the aim point is not shown"
+        from .test_bay import _at
+        game2, target = _at("arca_drum", seed="deck-k2")
+        conn2 = conn_sim.start(game2, target)
+        cam2 = basis((0.0, 1.0, 0.0), conn2)
+        ring = viewport_hud.points(conn2, cam2, 464, 320)["mouth"]
+        assert len(ring) >= 6, f"the way in drew {len(ring)} points"
+        return (f"{len(got['path'])} path dots, prograde, aim, and a "
+                f"{len(ring)}-point mouth on a drum")
+
     return True

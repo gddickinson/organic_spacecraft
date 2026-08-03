@@ -38,6 +38,26 @@ autopilot disjointed and wrongly displayed.
 - The two ship masses documented as two deliberate laws (handling vs
   registry, up to 10⁶ apart) — **do not unify**; see `thrusters.mass_tonnes`.
 
+## Done — the third pass (2026-08-03): held engines, one clock, the HUD
+
+The player's report: manual engine control worked in steps with
+instantaneous responses; burns should build velocity over time, be visible
+on the flight-control visualization, and the clock should be universal
+across pilot, helm and flight control.
+
+- **Hold-to-burn** — the pads and the new keys (W/A/S/D, R/F) are
+  press-and-hold through `flight_clock.start_burn`/`end_burn`: a standing
+  order the beat consumes, so speed ramps and the plumes stay lit for the
+  burn's real duration; a quick click keeps the precise one-tick press.
+- **Universal clock** — screen changes no longer stop it; HUD chip on every
+  screen; helm Run/Stop; battle stops it at once; time compression
+  ×1/×4/×16 in the one beat.
+- **Heads-up aids in every camera** (`ui/viewport_hud.py`) — predicted path
+  under the current control state, prograde/retrograde, the approach's aim
+  point, a bay's mouth ring; the bridge mark carries the engagement band.
+- Brake-to-zero mode; one-button computer docking from the helm; a ninth
+  tutorial lesson teaching the conn (watched through billed conn time).
+
 ## Open — defects and debts, in rough value order
 
 1. **Tuning constants without a guard.** The tripwire's last clean sweep
@@ -68,18 +88,14 @@ autopilot disjointed and wrongly displayed.
 
 ## Ideas — not defects; would make it more fun or easier to pick up
 
-- **"Dock for me" on the helm/anchorage panel**: one button that takes the
-  conn on the quay and arms `close`, for the player who never opens the
-  pilot screen. All the pieces exist (`open_conn(win, contact)` + `_auto`).
-- **Keyboard flying**: the six axes on keys (and the throttle on digits) on
-  the Pilot screen; the pad is mouse-only today.
-- **A tutorial lesson for the conn**: the tutorial watches real acts; none
-  of its eight steps teaches taking the conn, laying a course, or running
-  the clock — the systems this campaign fixed are the ones a new player
-  meets blind.
-- **Time compression on the beat** (×1/×4/×16): a long run for a distant
-  mark is minutes of real time watching the range fall; the one-clock
-  design makes a multiplier safe to add in exactly one place
-  (`flight_clock.fly_beat` ticks per beat).
-- **A "brake to zero" convenience** beside the fly-at buttons (arm `null`,
-  stop when still, disarm) — the pieces exist; it is three presses today.
+(The first five ideas — dock-for-me, keyboard flying, the conn tutorial
+lesson, time compression, brake-to-zero — shipped in the third pass.)
+
+- **More HUD, now the layer exists** (`viewport_hud`): a ladder of tick
+  marks on the predicted path (time-to labels), the corridor hold point
+  drawn as a gate rather than a chevron, closing-rate colour on the mark,
+  weapon-arc cones in the tactical plot's first-person view.
+- **Throttle on the digit keys** beside the six axis keys.
+- **A combat HUD in the battle screen's own viewport** — the band ring and
+  arcs are on the tactical plot; the first-person cameras go dark in a
+  fight today.

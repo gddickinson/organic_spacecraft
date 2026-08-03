@@ -31,7 +31,8 @@ from PyQt6.QtWidgets import QWidget
 from ..core.rng import RNG
 from ..data import models3d, surfaces, worlds3d
 from ..sim import conn as conn_sim
-from . import painting, render3d, spheres, stars3d, theme, viewport_mark
+from . import (painting, render3d, spheres, stars3d, theme, viewport_hud,
+               viewport_mark)
 from .viewport_math import HALF_FOV, _unit, project
 
 #: Half the field of view, in radians. A wide-ish lens: enough to keep a
@@ -192,6 +193,7 @@ class Viewport(painting.Painted, QWidget):
         taken = []
         if conn is not None:
             self._sky(p, conn, cam, w, h)
+            viewport_hud.draw(p, conn, cam, w, h)
             spot = self._target(p, conn, cam, w, h)
             if spot is not None:
                 taken.append(spot)

@@ -12575,3 +12575,19 @@ four private copies of the armed state. What was done, in one session:
 - **The two masses documented as two laws** (handling vs registry; up to
   six orders of magnitude apart across the fleet) rather than "fixed" into
   one number that would break either flying or ramming.
+
+## The third pass: held engines, one clock, the HUD (2026-08-03)
+
+- **Hold-to-burn** — a press was one instantaneous impulse; the pads and
+  the new W/A/S/D, R/F keys are press-and-hold through one pair of doors
+  (`flight_clock.start_burn`/`end_burn`), a standing order the beat
+  consumes minute after minute. Speed builds; plumes stay lit; a quick
+  click keeps the precise one-tick press and its quote.
+- **Universal clock** — leaving a screen no longer stops it; HUD chip
+  everywhere; helm Run/Stop; battle stops it immediately through both
+  doors; time compression ×1/×4/×16 inside the one beat.
+- **`ui/viewport_hud.py`** — predicted path (the approach window's dry run,
+  in first person), prograde/retrograde, the aim point, a bay's mouth ring;
+  the bridge mark carries the engagement band.
+- Brake-to-zero; helm one-button computer docking; ninth tutorial lesson
+  ("Take the ship's wheel", watched through billed `game.conn_seconds`).

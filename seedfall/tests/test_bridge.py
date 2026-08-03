@@ -126,8 +126,7 @@ def run(suite: Suite) -> bool:
         view.fly_at(target)
         view.set_auto("run")
         said = []
-        # The row reads `conn.fired_*` — the burn that *happened*, not a
-        # forecast — so read after the swing (3 ticks on a NAVIS) has burned.
+        # `conn.fired_*` is the burn that happened — read after the swing.
         for beats in (5, 200, 400, 600):
             for _ in range(beats):
                 view.tick()
@@ -186,7 +185,9 @@ def run(suite: Suite) -> bool:
             for _ in range(4):
                 app.processEvents()
             assert view.feed.mark is not None, "the window was told nothing"
-            assert view.feed.mark[1] == target.name, view.feed.mark[1]
+            # "wears the name": the mark may carry the engagement band.
+            assert view.feed.mark[1].startswith(target.name), \
+                view.feed.mark[1]
 
             # **And the window asks for it.** Not by painting: `Painted`
             # returns early when the platform refuses a backing store, so a
@@ -392,9 +393,8 @@ def run(suite: Suite) -> bool:
             f"buttons went away")
 
         # The press survives too: a player lets go over the button they
-        # aimed at, found by label rather than by a stale reference. The pad
-        # is press-and-hold now: the observation is the ship itself — the
-        # beat consumes the order, and the release must not fire a second.
+        # aimed at, by label. The pad is press-and-hold: the beat consumes
+        # the order, and the release must not fire a second one.
         def ahead():
             return next(b for b in live() if b.text() == "Ahead")
         took = ahead()
