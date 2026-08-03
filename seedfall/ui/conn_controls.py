@@ -29,9 +29,21 @@ class ConnControls(QWidget):
     def __init__(self, window):
         super().__init__(window)
         self.window = window
-        #: Whether the main drive is selected rather than the clusters.
-        self.use_main = False
         self._build()
+
+    #: Whether the main drive is selected rather than the clusters — the
+    #: *flight's* selection, `Conn.arm_main`. This console, the bridge and
+    #: the flight panel each held their own copy: measured, the drive armed
+    #: on the bridge while this console read "off", and a burn from here then
+    #: fired the clusters. One fact, one field.
+    @property
+    def use_main(self) -> bool:
+        return bool(getattr(self.window.conn, "arm_main", False))
+
+    @use_main.setter
+    def use_main(self, value) -> None:
+        if self.window.conn is not None:
+            self.window.conn.arm_main = bool(value)
 
     # ── layout ─────────────────────────────────────────────────────────────
 
@@ -50,6 +62,7 @@ class ConnControls(QWidget):
         for axis_id, row, col in order:
             _aid, axis_label, _vec = conn_sim.AXES_BY_ID[axis_id]
             btn = button(axis_label, lambda a=axis_id: win._burn(a))
+            btn.setObjectName(f"thr_{axis_id}")
             grid.addWidget(btn, row, col)
             self.axis_buttons[axis_id] = btn
 
@@ -66,11 +79,14 @@ class ConnControls(QWidget):
         grid.addWidget(button("Hold (coast)", lambda: win._burn(None)), 1, 3)
 
         self.mode_buttons = {}
+        # "Hold station", in the same words as the bridge and the flight
+        # panel — one mode wore three names across the three windows.
         for index, (mode, text) in enumerate(
-                (("null", "Kill relative motion"),
+                (("null", "Hold station"),
                  ("close", "Close and berth"),
                  ("orbit", "Make orbit"))):
             btn = button(text, lambda m=mode: win._auto(m), kind="flat")
+            btn.setObjectName(f"auto_{mode}")
             grid.addWidget(btn, index // 2, 4 + index % 2)
             self.mode_buttons[mode] = (btn, text)
 
@@ -149,8 +165,10 @@ class ConnControls(QWidget):
     def sync(self, conn) -> None:
         """Relabel every control from the live approach."""
         live = not conn.over
+        # "armed", in the same words as the bridge and the flight panel — the
+        # three said ON / on / armed for one fact, which reads as three facts.
         self.main_btn.setText(
-            f"Main drive: {'ON' if self.use_main else 'off'}")
+            f"Main drive: {'armed' if self.use_main else 'off'}")
         self.run_btn.setText(
             "Stop clock" if self.window.running else "Run clock")
         # The one button that changes what it *is*: with an approach running it
@@ -163,6 +181,13 @@ class ConnControls(QWidget):
         self.free_btn.setText("Secure from the conn" if free else "Break off")
         for mode, (btn, text) in self.mode_buttons.items():
             btn.setText(f"▶ {text}" if self.window.mode == mode else text)
+            # A mode the computer would refuse is greyed with the reason —
+            # armed on a free flight, `close` and `orbit` used to stay lit
+            # and coast for ever, the clock running with nothing at the
+            # controls.
+            ok, why = free_sim.can_arm(self.window.game, conn, mode)
+            btn.setEnabled(ok or self.window.mode == mode)
+            btn.setToolTip(why if not ok else "")
 
         # **Lit where the ship is actually firing.** The computer flies this
         # console as much as the pilot does, and until now a captain watching

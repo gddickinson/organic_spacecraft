@@ -158,13 +158,12 @@ def run(suite: Suite) -> bool:
                       + str([b.text() for b in view.findChildren(QPushButton)]))
         back[0].click()
         assert game.conn is not None, "asking for her back did not fly her"
-        # **The leg was settled, to the ledger's own two places.** `commit`
-        # charges `round(spent, 2)` while a burn tracks `conn.rcs` to four, so
-        # the hull keeps up to 0.005 t it actually burned — measured, 2.715 t
-        # spent was billed as 2.71 and 17.285 t left came back as 17.29. That
-        # gap is task #148, not this check's business; what this asserts is
-        # that the new flight reads the hull's tank and not a fresh one.
-        assert game.conn.rcs == round(rcs, 2), (
+        # **The leg was settled, exactly.** This used to allow the ledger's
+        # two places — `commit` charged `round(spent, 2)`, so the hull kept
+        # up to 0.005 t it actually burned (task #148). The mass is billed
+        # through `charged_rcs` now, as it is flown and exactly, so the fresh
+        # flight's tank is the old one's remainder to the gram.
+        assert abs(game.conn.rcs - rcs) < 1e-9, (
             f"the leg was not settled: {rcs} left, tank now {game.conn.rcs}")
         assert game.conn.rcs < 20.0, "taking her back refilled the tank"
 
@@ -363,8 +362,10 @@ def run(suite: Suite) -> bool:
         km = engage_sim.range_km(game, view.conn, hull)
         assert km <= freeflight.ALONGSIDE_KM + 1.0, f"{km:,.0f} km off"
         # Handed back, and said so — a computer that stops without a word
-        # leaves the pilot watching a still picture wondering.
-        assert view.auto == "hold", view.auto
+        # leaves the pilot watching a still picture wondering. The armed mode
+        # lives on the flight now (`Conn.auto`), where the pilot's "hold
+        # station" is the computer's one name for it: "null".
+        assert view.auto == "null", view.auto
         assert any("Alongside" in str(row) for row in game.log[-4:]), (
             "arrived without a word in the log")
         return (f"{km0:,.0f} km -> {km:,.0f} km in {beats} beats "
@@ -391,7 +392,9 @@ def run(suite: Suite) -> bool:
         game, _win, view = _bridge("auto")
         view.set_auto("hold")
         view.break_off()
-        assert view.auto == "hold", view.auto
+        # "hold" is the button's word; on the flight the mode is the
+        # computer's "null" — one field, `Conn.auto`, every window.
+        assert view.auto == "null", view.auto
         # And the toggle is a toggle.
         view.set_auto("hold")
         assert view.auto == "", view.auto

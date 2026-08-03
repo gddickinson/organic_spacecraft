@@ -135,6 +135,7 @@ def _copy(conn: Conn) -> Conn:
                 hold=conn.hold, star_lum=conn.star_lum,
                 orbit_want_km=conn.orbit_want_km,
                 throttle=conn.throttle, coast_min=conn.coast_min,
+                auto=conn.auto, arm_main=conn.arm_main, mark=conn.mark,
                 mass_t=conn.mass_t, target_mass_t=conn.target_mass_t,
                 berth=conn.berth, boom=conn.boom,
                 cleared=conn.cleared, watch=conn.watch, told=conn.told,

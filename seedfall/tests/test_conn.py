@@ -256,15 +256,15 @@ def run(suite: Suite) -> None:
                      "run may not credit a station with a tow it has not "
                      "made, for the same reason it may not bill one for a "
                      "collision that has not happened",
-            "charged": "seconds of the flight the *chronicle* has already "
-                       "been billed for. A ledger fact, not a flying one: a "
-                       "trial run bills nobody, and a twin that carried it "
-                       "could let a forecast decide the ship had already "
-                       "paid for time it has not yet flown",
+            "charged": "seconds the *chronicle* has been billed for — a "
+                       "ledger fact, not a flying one: a trial run bills "
+                       "nobody, and a twin carrying it could read as paid",
             "sheered": "how far the structure has worked itself away from "
                        "the *ship*. A trial run may not bill a station for "
                        "standing off, for the same reason it may not bill it "
                        "for a collision that has not happened",
+            "charged_rcs": "`charged`'s mass twin — a trial run bills nobody",
+            "clock_on": "the screens' beat — a twin is flown by its forecast",
         }
         body = inspect.getsource(preview_sim._copy)
         carried = set(re.findall(r"(\w+)=(?:conn\.|list\(conn\.)", body))

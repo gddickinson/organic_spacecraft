@@ -112,11 +112,9 @@ def run(suite: Suite) -> bool:
 
     @check("the computer says what it is doing, and it changes as it does it")
     def _():
-        # **It used to say six words the whole way in.** Measured on one run
-        # to a contact 5,137 km off, the computer went `forward` on the torch,
-        # then `back` on the thrusters to brake, then `None` to coast — and
-        # the screen read "running for Held Breath" at every one of them, so a
-        # pilot could not tell accelerating from braking from arriving.
+        # **It used to say six words the whole way in** — "running for Held
+        # Breath" while the computer torched, braked and coasted in turn, so
+        # a pilot could not tell accelerating from braking from arriving.
         from ..sim import freeflight as free_sim
         from ..ui import pilot_panels as panels
         game, _win, view = _bridge("auto")
@@ -128,7 +126,9 @@ def run(suite: Suite) -> bool:
         view.fly_at(target)
         view.set_auto("run")
         said = []
-        for beats in (0, 200, 400, 600):
+        # The row reads `conn.fired_*` — the burn that *happened*, not a
+        # forecast — so read after the swing (3 ticks on a NAVIS) has burned.
+        for beats in (5, 200, 400, 600):
             for _ in range(beats):
                 view.tick()
             said.append(panels._computer_says(view))
@@ -143,8 +143,8 @@ def run(suite: Suite) -> bool:
             f"it never said it was braking: {said}")
         for phrase in said[:-1]:
             assert "running her in" in phrase, phrase
-        # Arrived: it hands the conn back and says that instead.
-        assert view.auto == "hold", view.auto
+        # Arrived: it hands back — the flight's one name for holding, "null".
+        assert view.auto == "null", view.auto
         assert "holding station" in said[-1], said[-1]
 
         # Holding station is not a course, and says its own thing.
@@ -232,7 +232,8 @@ def run(suite: Suite) -> bool:
             "the Pilot screen opened on a destination; it never has one")
         view.grab()
         labels = [b.text() for b in view.findChildren(QPushButton)]
-        for camera in ("Fore", "Aft"):
+        # "Look fore", not "Fore" (#153): cameras and thrusters shared names.
+        for camera in ("Look fore", "Look aft"):
             assert camera in labels, f"no {camera} camera: {labels}"
         assert any("clock" in t.lower() for t in labels), labels
         assert any("Secure" in t for t in labels), labels

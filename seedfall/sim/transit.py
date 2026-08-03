@@ -57,10 +57,21 @@ def say(transit: Transit, text: str, kind: str = "") -> None:
 
 
 def begin(game, body_index: int, burn_id: str) -> dict:
-    """Commit to a crossing. Returns the transit, or why not."""
+    """Commit to a crossing. Returns the transit, or why not.
+
+    **A live conn is settled first, not abandoned.** A transfer teleports the
+    hull across the system; a flight left on `game.conn` would carry its
+    frame, its spend and its elapsed hours across that jump, and the conn
+    window would re-apply the old offset on top of the new position. The
+    flight is broken off and billed through `berthing.commit` — the same
+    door every other exit uses — so nothing is flown for free and nothing
+    teleports.
+    """
     body = game.system.bodies[body_index]
     if game.orbit_body == body.id:
         return {"ok": False, "why": "You are already there."}
+    from . import berthing as berth_sim
+    berth_sim.secure_underway(game)
     quote = flight.quote(game, body, burn_id)
     held = game.ship.cargo.get("volatiles", 0)
     if held < quote["fuel"]:

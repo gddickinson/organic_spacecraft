@@ -97,6 +97,11 @@ def readout(conn: Conn) -> list[tuple[str, str, str]]:
     rows.append(("Throttle", f"{conn.throttle * 100:,.0f}% — "
                              f"{pilot.dv_of(conn, True):,.2f} m/s", "ok"))
     rows.append(("Coast", f"{conn.coast_min} min", "ok"))
+    # **What has the conn**, on the panel and not only in a button's tint.
+    # The armed mode lives on the flight now (`Conn.auto`), so the panel can
+    # finally say it — before, the mode was a widget attribute and the sim
+    # could not report what it could not see.
+    rows.append(("Computer", computer_note(conn), "ok"))
 
     # And it reads "ok", not "warn". `test_conn.py` caught the first draft
     # marking it amber on fourteen approaches that *succeeded* — which is the
@@ -107,3 +112,20 @@ def readout(conn: Conn) -> list[tuple[str, str, str]]:
         rows.append(("Drive trim", f"{conn.hold * 100:,.0f}% usable", "ok"))
     rows.append(("Elapsed", f"{conn.elapsed / 60:,.0f} min", "ok"))
     return rows
+
+
+def computer_note(conn: Conn) -> str:
+    """One phrase for what the flight computer has been asked to do."""
+    mode = getattr(conn, "auto", "")
+    if not mode:
+        return "off — she flies as you fly her"
+    if mode == "null":
+        return "holding — killing what drift there is"
+    if mode == "close":
+        return "closing to berth"
+    if mode == "orbit":
+        return "making orbit"
+    if mode == "run":
+        mark = getattr(conn, "mark", "")
+        return f"running for {mark}" if mark else "running for nothing"
+    return mode

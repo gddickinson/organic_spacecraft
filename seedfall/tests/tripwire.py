@@ -178,8 +178,8 @@ KIN = {
     "grudge": ("grudges",), "colonies": ("works", "founding"),
     "works": ("works",), "mining": ("mining",), "research": ("bench",),
     "inquiry": ("evidence", "bench"), "flight": ("helm", "flight", "burns"),
-    "contracts": ("postings", "missions", "cargo"),
-    "chains": ("missions",),
+    "path": ("helm", "flight", "burns"),   # split from `flight`, same pins
+    "contracts": ("postings", "missions", "cargo"), "chains": ("missions",),
     "expedition": ("landing", "ground", "wayhome"), "weather": ("ground",),
     "territory": ("territory", "levy"), "allegiance": ("allegiance",),
     "charts": ("provenance", "charting", "charts"),

@@ -70,9 +70,15 @@ def run(suite: Suite) -> None:
         assert conn.outcome == "alongside", conn.outcome
         out = berth_sim.commit(game, conn)
         assert out["fuel"] > 0, "an approach that burned nothing"
-        assert game.ship.cargo["volatiles"] == before[0] - out["fuel"], (
-            f"spent {out['fuel']} t and the hold went "
+        # The hold pays the *exact* spend now (#148) — `out['fuel']` is the
+        # ledger's two-place display of the same figure, so the tank lands
+        # within half a rounding grain of it and never above.
+        drop = before[0] - game.ship.cargo["volatiles"]
+        assert abs(drop - berth_sim.spent(conn)) < 1e-9, (
+            f"spent {berth_sim.spent(conn)} t and the hold went "
             f"{before[0]} → {game.ship.cargo['volatiles']}")
+        assert abs(drop - out["fuel"]) <= 0.005 + 1e-9, (
+            f"the ledger says {out['fuel']} t against {drop} taken")
         assert game._part_day > 0 or game.day > 0, (
             "the approach took hours and no time passed")
         assert berth_sim.commit(game, conn)["already"], (

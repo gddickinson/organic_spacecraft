@@ -74,6 +74,22 @@ def step(conn: Conn, dt: float) -> None:
     """
     subs = _substeps(conn, dt)
     h = dt / subs
+    # **The ladder runs on the tick, not the substep.** `_substeps` exists to
+    # keep the *integrator* honest and cuts a minute into up to 120 slices
+    # near a body — and the structure's patience and its point defence used
+    # to run once per slice, so a warded approach to a world was bitten a
+    # hundred and twenty times the damage of the same minute at a quay, and
+    # the hail→warn→ward ladder climbed through its grace in half a tick.
+    # Patience is about minutes, and it is spent out here where a minute is a
+    # minute.
+    from . import control
+    said = control.step(conn, conn.closing > 0.0)
+    if said:
+        conn.log.append(said)
+    bite = control.ward_bite(conn)
+    if bite > 0.0:
+        conn.warded_for += 1
+        conn.damage = round(conn.damage + bite, 1)
     for _ in range(subs):
         was = list(conn.pos)
         r = conn.range_km
@@ -89,18 +105,7 @@ def step(conn: Conn, dt: float) -> None:
         # holds station off it, and back in the moment it does not.
         from . import moorings
         moorings.boom_step(conn, h)
-        # A structure's patience, one tick of it. The ladder climbs only while
-        # the hull is still closing, so checking up or opening the range stops
-        # it — a warning rather than a countdown.
-        from . import control
         from . import tug as tug_sim
-        said = control.step(conn, conn.closing > 0.0)
-        if said:
-            conn.log.append(said)
-        bite = control.ward_bite(conn)
-        if bite > 0.0:
-            conn.warded_for += 1
-            conn.damage = round(conn.damage + bite, 1)
         # And a structure with somebody aboard simply leaves. See
         # `control.sheer_step`: the range opens because the berth is going,
         # not because the ship is being pushed.

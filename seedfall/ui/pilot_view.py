@@ -24,20 +24,16 @@ fired on is `sim/engage`, and what is worth looking at is `ui/conn_targets`.
 
 from __future__ import annotations
 
-from PyQt6.QtCore import QTimer
-
-from ..sim import autopilot as auto_sim
 from ..sim import berthing as berth_sim
 from ..sim import conn as conn_sim
 from ..sim import engage as engage_sim
 from ..sim import freeflight as free_sim
-from ..sim import instruments as panel_sim
 from ..sim import pilot as pilot_sim
 from ..sim import track as track_sim
 from . import fire_panel
 from . import pilot_panels as panels
 from .viewport import Viewport
-from .widgets import Panel, View, button, note
+from .widgets import View, button, note
 
 #: Real milliseconds between ticks while the clock is running.
 #:
@@ -63,20 +59,7 @@ class PilotView(View):
     def __init__(self, win):
         super().__init__(win)
         self.camera = "fore"
-        self.running = False
         self.feed = None
-        #: The main drive rather than the attitude clusters. The clusters trim;
-        #: the torch is what gets you across a system, and it only ever pushes
-        #: along the nose — see `conn.thrust_axis`.
-        self.use_main = False
-        #: The contact the course is laid on, by name, or "".
-        #:
-        #: The *name*, not the object: `sim/track` rebuilds its contacts on
-        #: every call, so holding one would be holding yesterday's position of
-        #: a thing that has since moved.
-        self.mark = ""
-        #: What the flight computer is doing: "", "hold" or "run".
-        self.auto = ""
         #: What the last press actually did, for the screen to say.
         self.last = {}
         #: Has the pilot secured? Not a second answer to "are we flying" —
@@ -85,8 +68,29 @@ class PilotView(View):
         #: What the controls on screen were built for; None until they are.
         self._shape = None
         self._boards: dict = {}
-        self._timer = QTimer(self)
-        self._timer.timeout.connect(self.tick)
+
+    # **The armed state is the flight's (`sim/conn.Conn`), not this screen's**
+    # — three windows held three answers about one ship. Each is a property
+    # onto the one field, exactly as `conn` itself is; the names stay because
+    # half the screen and its checks read them.
+    def _on_conn(name, missing):
+        def read(self):
+            return getattr(self.conn, name, missing) if self.conn is not None \
+                else missing
+        def write(self, value):
+            if self.conn is not None:
+                setattr(self.conn, name, value)
+        return property(read, write)
+
+    auto = _on_conn("auto", "")
+    mark = _on_conn("mark", "")
+    use_main = _on_conn("arm_main", False)
+    del _on_conn
+
+    #: Read-only: start and stop the clock through `set_running`, never by
+    #: assignment — a flag written without the timer is a flag lying about it.
+    running = property(lambda self: bool(getattr(self.conn, "clock_on", False))
+                       if self.conn is not None else False)
 
     # ── the flight ─────────────────────────────────────────────────────────
 
@@ -119,69 +123,53 @@ class PilotView(View):
         self.win.refresh()
 
     def tick(self) -> None:
-        """One beat: fly, then pay for it."""
-        if self.conn is None or self.conn.landed:
-            return
-        self.hold_course()
-        # A coast, unless the computer has the conn. The pilot's own burns
-        # come from the console; a beat with nothing pressed and no autopilot
-        # is a minute of drifting, which is what a live view mostly is.
-        axis, main, throttle = self.computer()
-        self.last = conn_sim.apply(self.conn, axis, main=main, ticks=1,
-                                   throttle=throttle)
-        # **Pay as we go.** The same door `berthing.commit` settles through,
-        # so neither can bill a minute the other already has.
-        berth_sim.charge_flown(self.game, self.conn)
-        if self.win.check_ending():
-            self.set_running(False)
-            return
-        self.refresh()
+        """One beat — `MainWindow.fly_beat`, the one clock. Kept as the name
+        the checks drive a beat by hand through."""
+        self.win.fly_beat()
 
     def marked(self):
         """The contact the course is laid on, re-read from the sim."""
-        if not self.mark or self.conn is None:
+        if self.conn is None:
             return None
-        for contact in track_sim.contacts(self.game):
-            if contact.name == self.mark:
-                return contact
-        return None
+        return free_sim.marked(self.game, self.conn)
 
     def hold_course(self) -> None:
-        """Keep the course on the mark. Called every beat and every burn.
-
-        A contact is not standing still — a hull holding station rides its
-        body round the star — so a course laid once and left alone stops
-        pointing at it. Laying it again each beat is what makes "Ahead" mean
-        "at that" for the whole flight rather than for the first minute.
-        """
-        contact = self.marked()
-        if contact is not None:
-            free_sim.steer(self.game, self.conn, contact)
+        """Keep the course on the mark. Called every beat and every burn."""
+        if self.conn is not None:
+            free_sim.hold_course(self.game, self.conn)
 
     def computer(self) -> tuple:
-        """What the flight computer would do this beat.
+        """What the one flight computer does this beat — `freeflight.computer`.
 
-        `(axis, main, throttle)`, exactly what `sim/autopilot` returns,
-        because it is what `sim/autopilot` returned. The screen decides
-        *whether* the computer has the conn; it never decides what flying is.
+        The screen decides *whether* the computer has the conn (`conn.auto`);
+        it never decides what flying is.
         """
-        if not self.auto or self.conn is None:
+        if self.conn is None:
             return None, False, 1.0
-        if self.auto == "run":
-            aim = self.marked()
-            if aim is None:
-                return None, False, 1.0
-            if free_sim.alongside(self.game, self.conn, aim):
-                # Arrived. Say so once and give the conn back.
-                self.auto = "hold"
-                self.game.add_log(f"Alongside {aim.name}, "
-                                  f"{free_sim.ALONGSIDE_KM:,.0f} km off.", "")
-                return auto_sim.autopilot(self.conn, "null")
-            return free_sim.run_for(self.game, self.conn, aim)
-        return auto_sim.autopilot(self.conn, "null")
+        return free_sim.computer(self.game, self.conn)
 
     def set_auto(self, mode: str) -> None:
-        self.auto = "" if self.auto == mode else mode
+        """Arm a computer mode, or press the lit one to let go.
+
+        The pilot's "hold station" is the computer's `null` — one law,
+        `autopilot.hold(conn, 0)` — so that is the name that goes on the
+        flight. **Arming starts the clock**: a computer told to hold with the
+        clock stopped read "holding station" while nothing whatsoever
+        happened, and nothing said so.
+        """
+        mode = "null" if mode == "hold" else mode
+        if self.conn is None:
+            return
+        if self.auto == mode:
+            self.auto = ""
+        else:
+            ok, why = free_sim.can_arm(self.game, self.conn, mode)
+            if not ok:
+                self.win.toast(why, "warn")
+            else:
+                self.auto = mode
+                if not self.running:
+                    self.set_running(True)
         self.refresh()
 
     def fly_at(self, contact) -> None:
@@ -218,7 +206,10 @@ class PilotView(View):
                               throttle=self.conn.throttle)
         self.last = said
         berth_sim.charge_flown(self.game, self.conn)
-        self.refresh()
+        # Through the beat's redraw, which includes the HUD: the minutes this
+        # press billed move the stardate, and the bar has to say so — 600
+        # beats of billed flight used to leave "Y1 D001" on screen.
+        self.win.beat_refresh()
         return said
 
     def leaving(self) -> None:
@@ -236,26 +227,41 @@ class PilotView(View):
         posts no hide event for a widget that was never really shown, so it
         held in a played window and not in a built one. `ui/window.go` calls
         this on every route out.
+
+        **Unless another flying window is watching.** The clock is the
+        flight's now, and a pilot flying from the Conn window who glances at
+        the Shipyard has not asked for time to stop. Being shot at still
+        stops it for everyone: `fly_beat` refuses to beat under a battle.
         """
+        for name in ("conn_window", "flight_window", "approach_window"):
+            if getattr(self.win, name, None) is not None:
+                return
         self.set_running(False)
 
     def set_running(self, on: bool) -> None:
-        self.running = bool(on) and self.conn is not None
-        if self.running:
-            self._timer.start(BEAT_MS)
-        else:
-            self._timer.stop()
+        """Through the one clock. `MainWindow.set_conn_clock` owns the timer."""
+        self.win.set_conn_clock(on)
 
     def secure(self) -> None:
-        """Stop flying and write down where the ship ended up."""
+        """Stop flying and write down where the ship ended up.
+
+        Two acts, told apart by what is being flown — the Conn window's
+        "Break off" split. A free flight secures where it stands; an
+        *approach* is given up, because `freeflight.secure` would have stood
+        the hull off a berth it never reached.
+        """
         self.set_running(False)
         if self.conn is None:
             return
-        said = free_sim.secure(self.game, self.conn)
-        berth_sim.commit(self.game, self.conn)
-        self.game.add_log(said, "")
-        self.mark = ""
-        self.auto = ""
+        if free_sim.is_free(self.conn):
+            said = free_sim.secure(self.game, self.conn)
+            berth_sim.commit(self.game, self.conn)
+            self.game.add_log(said, "")
+        else:
+            if not self.conn.over:
+                self.conn.outcome = "broken off"
+                self.conn.log.append("Approach broken off from the bridge.")
+            berth_sim.commit(self.game, self.conn)
         self.conn = None
         self.stood_down = True
         self.win.refresh()
@@ -386,16 +392,10 @@ class PilotView(View):
         # looks nothing up itself.
         panels.aim_feed(self, rows)
         left.addWidget(self.feed)
-        # Three to a line: six across demanded 486 px and set the left
-        # column's minimum, which is 56 px more than the bridge had to give.
-        left.addWidget(panels.stack_of([
-            button(row[1], lambda _=False, v=row[0]: self._look(v), kind="flat")
-            for row in conn_sim.VIEWS], per_row=3))
-        # The hand on the stick, in the order a pilot's hand sits on it — the
-        # same order `ui/conn_controls` uses.
-        left.addWidget(panels.row_of(*[
-            button(conn_sim.AXES_BY_ID[a][1], lambda _=False, x=a: self.burn(x))
-            for a in ("left", "forward", "right", "down", "back", "up")]))
+        # The camera row and the thruster pad — `panels`, because they are
+        # furniture; the naming rule (#153) is recorded there.
+        left.addWidget(panels.camera_row(self))
+        left.addWidget(panels.axis_pad(self))
         # Held, because a beat updates their text rather than replacing them.
         self._btn_main = button(panels.main_label(self), self._toggle_main,
                                 kind="flat")
@@ -443,7 +443,7 @@ class PilotView(View):
                        kind="flat") for c in seen]))
         aim = self.marked()
         right.addWidget(panels.stack_of([
-            button(("Stop holding station" if self.auto == "hold"
+            button(("Stop holding station" if self.auto == "null"
                     else "Hold station"),
                    lambda: self.set_auto("hold"), kind="flat"),
             *([button(("Stop running for it" if self.auto == "run"

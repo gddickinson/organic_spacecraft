@@ -17,6 +17,7 @@ from pathlib import Path
 from ..core.state import new_game
 from ..data.starclasses import mu_of
 from ..sim import flight
+from ..sim import path as path_sim
 from .harness import Suite
 
 
@@ -106,7 +107,7 @@ def run(suite: Suite) -> None:
                     legs, (tx, ty) = q["legs"], q["aim"]
                     clear = min(flight.HOT_RADIUS, math.hypot(sx, sy),
                                 math.hypot(tx, ty))
-                    near = min(flight._closest_approach(ax, ay, bx, by)
+                    near = min(path_sim._closest_approach(ax, ay, bx, by)
                                for (ax, ay), (bx, by) in zip(legs, legs[1:]))
                     ratio = near / clear if clear else 1.0
                     if worst is None or ratio < worst_ratio:

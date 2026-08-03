@@ -13,7 +13,7 @@ so what the panel promises is what the burn does. The console itself is
 
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QDialog, QHBoxLayout, QLabel, QVBoxLayout,
                              QWidget)
 
@@ -27,12 +27,14 @@ from ..sim import instruments as panel_sim
 from ..sim import track as track_sim
 from .conn_targets import default_target  # re-exported: two checks import it here
 from . import fire_panel, sights, theme
+from . import conn_moves
 from .conn_controls import ConnControls
 from .viewport import Viewport
 from .widgets import button, label, note
 
-#: How often the window re-reads the approach while the clock is running.
-TICK_MS = 700
+#: The window no longer keeps a clock of its own: `MainWindow.flight_timer`
+#: is the one beat, at `pilot_view.BEAT_MS`, and `Conn.clock_on` is the one
+#: answer to whether it is running.
 
 
 class ConnWindow(QDialog):
@@ -51,13 +53,42 @@ class ConnWindow(QDialog):
         self.setStyleSheet(theme.stylesheet())
         self.resize(1080, 760)
 
+        live = self.win.conn
+        # **The default target is measured from where she actually is.** A
+        # free flight has flown somewhere; `default_target` ranks from the
+        # ship's *recorded* position, which is wherever she was let go —
+        # measured, a pilot who ran 4,800 km to stand alongside a hull
+        # opened this window and was handed the Fleet Hub they had left.
+        # Nearest first, out there; nothing in reach keeps the flight free.
+        flying_free = (live is not None and not live.landed
+                       and free_sim.is_free(live))
         if contact is None:
-            contact = default_target(self.game)
+            if flying_free:
+                import math as _math
+                # Clearance to the *skin*, not range to the centre: a ship
+                # in orbit of a world reads 290 km from a centre 6,000 km
+                # deep, and the thing you are standing at is not a
+                # manoeuvre — the `default_target` lesson, at altitude.
+                near = []
+                for c in track_sim.contacts(self.game):
+                    if c.kind == "star" \
+                            or not berth_sim.can_conn(self.game, c)[0]:
+                        continue
+                    km = _math.dist(free_sim.toward(self.game, live, c),
+                                    (0.0, 0.0, 0.0))
+                    from ..sim import targets as targets_sim
+                    skin = targets_sim.target_from_contact(
+                        self.game, c).radius_km or 0.0
+                    if km > skin + conn_sim.ALONGSIDE_KM:
+                        near.append((km - skin, c))
+                near.sort(key=lambda row: row[0])
+                contact = near[0][1] if near else None
+            else:
+                contact = default_target(self.game)
         self.contact = contact
         # **One flight, whichever window you look through.** This built its
         # own `Conn` while the Pilot screen kept another: measured, 290.9 km
         # and 60 minutes there showed as 12.0 km and full tanks here.
-        live = self.win.conn
         self.refused = ""
         if contact is None:
             if live is None:
@@ -80,19 +111,25 @@ class ConnWindow(QDialog):
                 self.win.conn = fresh
             self.refused = why
         self.main_view = "fore"
-        self.running = False
-        #: Which autopilot mode is flying, if any. Held rather than run to
-        #: completion inside a click.
-        self.mode = None
         #: Where the ship was when this approach opened, so the window can
         #: notice it being flown somewhere else.
         self.opened_at = (self.game.location_id,
                           getattr(self.game, "orbit_body", None))
-
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self._tick)
         self._build()
         self.refresh()
+
+    #: **The armed mode and the clock are the flight's, not this window's.**
+    #: `Conn.auto` and `Conn.clock_on` — the same one-authority rule as `conn`
+    #: itself, because this window holding its own `mode` is exactly how the
+    #: bridge and the console came to give different answers about one ship.
+    #: `mode` reads as None when nothing is armed, which is what its callers
+    #: and checks have always expected.
+    mode = property(
+        lambda self: (getattr(self.conn, "auto", "") or None),
+        lambda self, value: setattr(self.conn, "auto", value or "")
+        if self.conn is not None else None)
+    running = property(
+        lambda self: bool(getattr(self.conn, "clock_on", False)))
 
     @property
     def contacts(self) -> list:
@@ -129,9 +166,14 @@ class ConnWindow(QDialog):
             feed.mousePressEvent = (
                 lambda _e, v=view_id: self._show_view(v))
             box.addWidget(feed)
-            box.addWidget(button(view_label,
-                                 lambda v=view_id: self._show_view(v),
-                                 kind="flat"))
+            # "Look port", not "Port" (#153): the console's thruster row says
+            # Port and Starboard too, and one word wearing two controls is
+            # how a probe — or a finger — presses the wrong one.
+            look = button(f"Look {view_label.lower()}",
+                          lambda v=view_id: self._show_view(v),
+                          kind="flat")
+            look.setObjectName(f"cam_{view_id}")
+            box.addWidget(look)
             self.feeds[view_id] = feed
             strip.addWidget(cell, 1)
         column.addLayout(strip)
@@ -190,7 +232,15 @@ class ConnWindow(QDialog):
                 self.conn.orbit_want_km = radius
                 up = radius - self.conn.target.radius_km
                 self.win.toast(f"{label} orbit: {up:,.0f} km up.")
-                self._auto("orbit")
+                # **Armed, not toggled.** Through `_auto` this disarmed the
+                # computer whenever the mode was already `orbit` — so picking
+                # a second rung mid-climb switched the autopilot off while
+                # the rung picker put `▶` on the new height: the screen said
+                # "climbing to High" and nothing was at the controls.
+                self.mode = "orbit"
+                if not self.running:
+                    self.win.set_conn_clock(True)
+                self.refresh()
                 return
 
     def _toggle_drive(self) -> None:
@@ -223,8 +273,11 @@ class ConnWindow(QDialog):
         self.conn.apply_result = conn_sim.apply(
             self.conn, axis_id, main=self.controls.use_main,
             ticks=self.conn.coast_min, throttle=self.conn.throttle)
+        # Pay as we go — the bridge always did, and a burn from this window
+        # used to leave the stardate and the hold untouched until settling.
+        berth_sim.charge_flown(self.game, self.conn)
         self._settle()
-        self.refresh()
+        self.win.beat_refresh()
 
     def _auto(self, mode: str) -> None:
         """Hand the conn to the flight computer, and let it fly on the clock.
@@ -232,130 +285,43 @@ class ConnWindow(QDialog):
         It used to run four hundred ticks inside the click — so pressing
         *Close and berth* teleported the hull to the target and reported the
         result, which is exactly what the conn exists not to do. The mode is
-        held now and one tick is flown per beat of the same clock the coast
-        button uses, so a berthing takes the forty minutes it takes and can
-        be watched, corrected or called off half-way.
+        held on the flight now and one tick is flown per beat of the one
+        clock, so a berthing takes the forty minutes it takes and can be
+        watched, corrected or called off half-way — from any window.
         """
         if self.conn is None or self.conn.over:
             return
-        if self.mode == mode:
+        if mode is not None and self.mode == mode:
             self.mode = None                 # pressing it again lets go
             self.refresh()
             return
+        if mode is not None:
+            from ..sim import freeflight as free_sim
+            ok, why = free_sim.can_arm(self.game, self.conn, mode)
+            if not ok:
+                self.win.toast(why, "warn")
+                self.refresh()
+                return
         self.mode = mode
-        if not self.running:
-            self._toggle_clock()
-        else:
-            self.refresh()
-
-    def _fly_one(self) -> bool:
-        """One tick under the computer. False when it has nothing to add."""
-        axis, main, throttle = pilot_sim.autopilot(self.conn, self.mode)
-        if axis is None and self.mode == "null":
-            return False
-        conn_sim.apply(self.conn, axis, main=main, throttle=throttle)
-        return True
+        if mode is not None and not self.running:
+            self.win.set_conn_clock(True)
+        self.refresh()
 
     def _toggle_clock(self) -> None:
-        self.running = not self.running
-        if self.running:
-            self.timer.start(TICK_MS)
-        else:
-            self.timer.stop()
+        self.win.set_conn_clock(not self.running)
         self.refresh()
 
     def _tick(self) -> None:
-        if self.conn is None or self.conn.over:
-            self.running = False
-            self.timer.stop()
-        elif self.mode:
-            if not self._fly_one():
-                self.mode = None
-                self.win.toast("The computer has nothing to add.", "warn")
-        else:
-            conn_sim.apply(self.conn, None)
-        self._settle()
-        self.refresh()
+        """One beat — `MainWindow.fly_beat`, the one clock. Kept as the name
+        the checks drive a beat by hand through."""
+        self.win.fly_beat()
 
-    def _reopen(self) -> None:
-        """Rebuild the approach after the ship has been flown somewhere."""
-        self._settle()
-        self.mode = None
-        self.running = False
-        self.timer.stop()
-        contact = default_target(self.game)
-        self.contact = contact
-        if contact is None:
-            self.conn, self.refused = conn_sim.observe(self.game), ""
-        else:
-            self.conn, self.refused = berth_sim.begin(self.game, contact)
-            if self.conn is None:
-                self.conn = conn_sim.observe(self.game)
-        for feed in self.feeds.values():
-            feed.conn = self.conn
-        self.screen.conn = self.conn
+    # ── swapping the flight — `ui/conn_moves.py`, bound as methods ─────────
 
-    def _pick_target(self) -> None:
-        """Only what the ship is actually alongside. Everything else is a burn.
-
-        The list used to offer every contact in the system, so a captain could
-        open the conn on a hull eight AU away and fly the last ten kilometres
-        of a journey they had not made.
-        """
-        self._settle()
-        near = [c for c in self.contacts if berth_sim.can_conn(self.game, c)[0]]
-        # **Flying for its own sake is one of the choices.** With nothing in
-        # reach this used to be a dead end — "plot a transfer first" — which
-        # is true about *berthing* and was being said about *flying*. A
-        # captain may take the conn whenever they like; there is nobody to
-        # ask permission of to move your own ship.
-        rows = [f"{c.name} — {c.detail}" for c in near[:12]]
-        picked = self.win.dialog(
-            "Approach which?",
-            (["The conn is the last few kilometres. These are what the ship "
-              "is already alongside."] if near else
-             ["Nothing is within reach of the thrusters — but the ship is "
-              "yours to fly."]) + rows,
-            [(c.name, index) for index, c in enumerate(near[:6])]
-            + [("Fly free — no destination", "free"), ("Cancel", None)])
-        if picked is None:
-            return
-        if picked == "free":
-            self._free_flight()
-            return
-        self.contact = near[picked]
-        self.mode = None
-        self.conn, self.refused = berth_sim.begin(self.game, self.contact)
-        for feed in self.feeds.values():
-            feed.conn = self.conn
-        self.screen.conn = self.conn
-        self.refresh()
-
-    def _free_flight(self) -> None:
-        """Take the conn on open space: fly the ship because you want to.
-
-        The same pad, the same cameras, the same tank — with no target and
-        nothing to arrive at. It ends when the pilot secures.
-        """
-        from ..sim import freeflight as free_sim
-        self._settle()
-        conn, why = free_sim.begin(self.game)
-        if conn is None:
-            self.win.toast(why, "warn")
-            return
-        self.contact = None
-        self.mode = None
-        self.conn, self.refused = conn, ""
-        # The window watches for the ship being moved out from under it; a
-        # free flight *is* the ship being moved, so what it opened at has to
-        # be brought up to date or the next refresh throws the flight away.
-        self.opened_at = (self.game.location_id,
-                          getattr(self.game, "orbit_body", None))
-        for feed in self.feeds.values():
-            feed.conn = self.conn
-        self.screen.conn = self.conn
-        self.win.toast("The conn is yours. No destination set.")
-        self.refresh()
+    _leave_flight = conn_moves._leave_flight
+    _reopen = conn_moves._reopen
+    _pick_target = conn_moves._pick_target
+    _free_flight = conn_moves._free_flight
 
     def _break_off(self) -> None:
         """Stop. Give up an approach, or secure from a free flight.
@@ -368,8 +334,7 @@ class ConnWindow(QDialog):
         from ..sim import freeflight as free_sim
         if self.conn is not None and free_sim.is_free(self.conn):
             said = free_sim.secure(self.game, self.conn)
-            self.running = False
-            self.timer.stop()
+            self.win.set_conn_clock(False)
             self._settle()
             self.win.toast(said)
             self._reopen()
@@ -378,8 +343,7 @@ class ConnWindow(QDialog):
         if self.conn is not None and not self.conn.over:
             self.conn.outcome = "broken off"
             self.conn.log.append("Approach broken off.")
-        self.running = False
-        self.timer.stop()
+        self.win.set_conn_clock(False)
         self._settle()
         self.refresh()
 
@@ -396,8 +360,20 @@ class ConnWindow(QDialog):
             self._reopen()
 
         conn = self.conn
+        # **The cameras follow the live flight, including to None.** Securing
+        # from the bridge nulls `game.conn`; the feeds used to keep painting
+        # the destroyed object because nothing re-pointed them, and the early
+        # return below never reached the update loop at the bottom.
+        for feed in self.feeds.values():
+            feed.conn = conn
+        self.screen.conn = conn
         if conn is None:
-            self.title.setText("Nothing in range to approach")
+            self.title.setText("Nothing is being flown")
+            self.status.setText(self.refused
+                                or "Take the conn with New approach…")
+            for feed in self.feeds.values():
+                feed.update()
+            self.screen.update()
             return
         from ..sim import freeflight as free_sim
         if free_sim.is_free(conn):
@@ -449,14 +425,36 @@ class ConnWindow(QDialog):
         from ..sim import forcing as forcing_sim
         from ..sim import tug as tug_sim
         for said in (tug_sim.tug_line(conn), control_sim.refusal_line(conn),
-                     forcing_sim.force_line(conn)):
+                     control_sim.sheer_line(conn),
+                     forcing_sim.force_line(conn),
+                     self.refused):
             if said:
                 self.side.addWidget(note(said))
+        # A tick the drive spent swinging rather than burning. The bridge and
+        # the flight panel both said so; this window read the clock move, the
+        # mass drop and the speed hold still, and explained none of it.
+        if conn.fired_turning:
+            self.side.addWidget(note(
+                "Swinging the hull round — the drive only pushes along the "
+                "nose, so this tick is spent turning."))
         # Where the nose is, and what is pushing. Until the engines had
         # places and the hull had an orientation, neither of these existed.
+        #
+        # **Only on an approach.** `heading_note`'s default bearing is
+        # `-conn.pos` — the target, which in a free flight is *where she was
+        # let go*: measured, nose exactly on the mark and this line read
+        # "Nose 180° off — pointing away from the target" while the bridge
+        # read 0° off. Out there the bearing that means anything is to the
+        # mark, if one is laid.
         from ..sim import attitude as attitude_sim
         from ..sim import thrusters
-        self.side.addWidget(note(attitude_sim.heading_note(conn)))
+        if not free_sim.is_free(conn):
+            self.side.addWidget(note(attitude_sim.heading_note(conn)))
+        else:
+            aim = free_sim.marked(self.game, conn)
+            if aim is not None:
+                self.side.addWidget(note(attitude_sim.heading_note(
+                    conn, free_sim.toward(self.game, conn, aim))))
         self.side.addWidget(label("Engines", "h3"))
         for what, howmuch, where in thrusters.board(self.game.ship):
             self.side.addWidget(note(f"{what} — {howmuch}, {where}"))
@@ -473,7 +471,6 @@ class ConnWindow(QDialog):
         self.screen.update()
 
     def closeEvent(self, event) -> None:
-        self.timer.stop()
         # **Closing this window is leaving the room, not stopping the ship.**
         # It used to write `outcome = "broken off"` and settle on the way out,
         # ending an approach under a pilot still flying it from the bridge.

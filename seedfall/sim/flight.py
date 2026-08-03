@@ -113,8 +113,13 @@ def separation(a, b, day: int, star_mu: float) -> float:
 #: made the early game knife-edge.
 ARRIVAL_RADIUS = R_OUTER * 0.45
 
-#: Inside this radius a leg is running through the star's heat, in AU.
-HOT_RADIUS = 1.2
+#: The line a leg takes and what standing on it costs live in `sim/path.py`,
+#: split out when this file was a recorded length debt. They are imported for
+#: this module's own quoting — `intercept` prices the route and the heat, and
+#: `path_note` explains them — which is why the names stay reachable here for
+#: the screens and checks that have always read them through `flight`.
+from .path import (HOT_RADIUS, LONG_ENOUGH, LONG_LEG_CAP, PER_AU,  # noqa: E402
+                   WORTH_SAYING, _heat_risk, burn_heat, hot_risk, route)
 
 
 def ship_position(game) -> tuple[float, float]:
@@ -260,103 +265,6 @@ def quote(game, body, burn_id: str = "standard") -> dict:
     return out
 
 
-def _closest_approach(sx: float, sy: float, tx: float, ty: float) -> float:
-    """How near the star the straight leg passes, in AU."""
-    dx, dy = tx - sx, ty - sy
-    span = dx * dx + dy * dy
-    if span <= 1e-9:
-        return math.hypot(sx, sy)
-    t = max(0.0, min(1.0, -(sx * dx + sy * dy) / span))
-    return math.hypot(sx + dx * t, sy + dy * t)
-
-
-def route(sx: float, sy: float, tx: float, ty: float) -> tuple[list, float]:
-    """The legs actually flown, and their total length in AU.
-
-    You cannot fly through a star. When the direct line would pass inside the
-    hot radius — which it does for any target on the far side of the system —
-    the helm bends the course around it, and the detour is what an opposite
-    conjunction costs you. Reaching a body that genuinely lives down there is
-    still allowed: the clearance never closes tighter than the destination.
-    """
-    clear = min(HOT_RADIUS, math.hypot(sx, sy), math.hypot(tx, ty))
-    near = _closest_approach(sx, sy, tx, ty)
-    direct = math.hypot(tx - sx, ty - sy)
-    # The tolerance is not decoration. The innermost orbit slot sits at
-    # exactly `R_INNER`, so for a body there the clearance *is* the target's
-    # own distance and the closest point of the leg is the target itself —
-    # `near` and `clear` are the same number computed two ways, and they
-    # differ by about 1e-16. Without the slack that sends the course down the
-    # bend path, where the waypoint is the closest point pushed out to a
-    # radius it is already at: a three-leg route whose detour is exactly zero,
-    # which is a course reported as bent around the star while going straight
-    # through where it always went.
-    if near >= clear - 1e-9 or clear <= 1e-6:
-        return [(sx, sy), (tx, ty)], direct
-
-    # Push the tightest point of the leg out to the clearance radius. If it
-    # runs dead through the star there is no side to favour, so take the
-    # perpendicular and go around the short way.
-    mx, my = _closest_point(sx, sy, tx, ty)
-    length = math.hypot(mx, my)
-    if length < 1e-6:
-        mx, my = -(ty - sy), (tx - sx)
-        length = math.hypot(mx, my) or 1.0
-    wx, wy = mx / length * clear, my / length * clear
-    legs = [(sx, sy), (wx, wy), (tx, ty)]
-    total = math.hypot(wx - sx, wy - sy) + math.hypot(tx - wx, ty - wy)
-    return legs, total
-
-
-def _closest_point(sx: float, sy: float, tx: float, ty: float) -> tuple[float, float]:
-    dx, dy = tx - sx, ty - sy
-    span = dx * dx + dy * dy
-    if span <= 1e-9:
-        return sx, sy
-    t = max(0.0, min(1.0, -(sx * dx + sy * dy) / span))
-    return sx + dx * t, sy + dy * t
-
-
-def burn_heat(burn, stats) -> float:
-    """Heat a profile leaves in the hull, as a share of what it can hold."""
-    return burn.heat * stats.heat_cap
-
-
-#: How much a hull already running hot adds to the risk of a burn.
-HOT_RISK = 0.28
-
-#: Below this share of the cap, the heat you are carrying adds so little risk
-#: that saying so would be noise on every screen in the game.
-WORTH_SAYING = 0.25
-
-#: How much risk a long leg adds per AU, and the most it can add. A longer arc
-#: is more time for something to go wrong.
-PER_AU = 0.012
-LONG_LEG_CAP = 0.10
-
-#: Below this the distance surcharge is not worth a line on the screen.
-LONG_ENOUGH = 0.03
-
-
-def hot_risk(game) -> float:
-    """A hull with heat still in it is a worse thing to burn hard in.
-
-    This is what makes the profiles a decision. Without it a hard burn saved
-    nineteen days for three hundred credits of reaction mass and 1.2% of a
-    hull that heals itself, and nobody would ever have coasted.
-    """
-    cap = getattr(game.ship_stats, "heat_cap", 0) or 1
-    return HOT_RISK * min(1.0, max(0.0, game.ship.heat / cap))
-
-
-def _heat_risk(sx: float, sy: float, tx: float, ty: float) -> float:
-    """Working close to the star is hot however carefully you route."""
-    deep = min(math.hypot(sx, sy), math.hypot(tx, ty))
-    if deep >= HOT_RADIUS:
-        return 0.0
-    return min(0.18, (HOT_RADIUS - deep) * 0.16)
-
-
 def path_note(game, body, burn_id: str = "standard") -> str | None:
     """A warning about the leg itself, if it deserves one."""
     q = intercept(game, body, burn_id)
@@ -420,6 +328,11 @@ def travel_to(game, body_index: int, burn_id: str = "standard") -> dict:
     body = game.system.bodies[body_index]
     if game.orbit_body == body.id:
         return {"ok": True, "already": True, "days": 0, "fuel": 0, "body": body}
+
+    # A live conn is settled before the hull is moved out from under it —
+    # `berthing.secure_underway`, the same door `transit.begin` knocks on.
+    from . import berthing as berth_sim
+    berth_sim.secure_underway(game)
 
     q = quote(game, body, burn_id)
     have = game.ship.cargo.get("volatiles", 0)

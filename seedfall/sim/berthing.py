@@ -131,6 +131,31 @@ def spent(conn) -> float:
     return max(0.0, conn.opening_rcs - conn.rcs)
 
 
+def secure_underway(game) -> None:
+    """Settle a live conn before the hull is moved out from under it.
+
+    **The one door for every transfer.** `transit.begin` and
+    `flight.travel_to` both teleport the hull across the system; a flight
+    left on `game.conn` would carry its frame, its spend and its unbilled
+    hours across the jump, and a conn window would re-apply the old offset
+    on top of the new position. A free flight secures where it stands — the
+    drift is real, and `flight.stand_off` writes it down before the transfer
+    departs from there; an approach is broken off. Either way `commit` bills
+    it, so nothing is flown for free.
+    """
+    conn = getattr(game, "conn", None)
+    if conn is None or conn.landed:
+        return
+    from . import freeflight as free_sim
+    if free_sim.is_free(conn):
+        game.add_log(free_sim.secure(game, conn), "")
+    elif not conn.over:
+        conn.outcome = "broken off"
+        conn.log.append("Secured for transfer.")
+    commit(game, conn)
+    game.conn = None
+
+
 def preview(game, conn) -> dict:
     """What committing now would cost, in the terms the panel shows.
 
@@ -174,6 +199,16 @@ def charge_flown(game, conn) -> float:
 
     Returns the seconds actually billed.
     """
+    # **The mass too, as it burns (#149).** Reaction mass used to come off the
+    # hull only in `commit`, unlike the hours — so a flight nobody ever ended
+    # was never charged for its tonnes, and every screen reading the hold
+    # while the clock ran showed a tank the flying had not touched.
+    # `conn.charged_rcs` is the tonnes already taken, the same shape as
+    # `charged` is for the seconds, so neither door can bill twice.
+    owed_rcs = spent(conn) - float(getattr(conn, "charged_rcs", 0.0))
+    if owed_rcs > 0.0:
+        conn.charged_rcs = float(getattr(conn, "charged_rcs", 0.0)) + owed_rcs
+        add_cargo(game.ship, "volatiles", -owed_rcs)
     owed = float(conn.elapsed) - float(getattr(conn, "charged", 0.0))
     if owed <= 0.0:
         return 0.0
@@ -193,12 +228,18 @@ def commit(game, conn) -> dict:
         return {"ok": False, "already": True}
     conn.landed = True
 
-    # Round *before* charging, so the figure in the ledger is the figure
-    # taken out of the hold. `flight._incident` learned this the same way:
-    # "report what was actually taken, not what was rolled".
+    # **Exact, and only what nobody has billed yet (#148, #149).** This used
+    # to charge `round(spent, 2)`, which *refunded* up to 0.005 t on securing
+    # — measured, 2.715 t burned came back as 17.29 t aboard from 17.285. The
+    # hold pays the exact figure now, through the same `charged_rcs` meter
+    # `charge_flown` uses, so a screen that bills as it flies and a commit at
+    # the end cannot take the same gram twice. The ledger line still reads to
+    # two places, because that is a display of the charge and not the charge.
     fuel = round(spent(conn), 2)
-    if fuel > 0:
-        add_cargo(game.ship, "volatiles", -fuel)
+    owed_rcs = spent(conn) - float(getattr(conn, "charged_rcs", 0.0))
+    if owed_rcs > 0:
+        conn.charged_rcs = float(getattr(conn, "charged_rcs", 0.0)) + owed_rcs
+        add_cargo(game.ship, "volatiles", -owed_rcs)
     hurt = 0.0
     if conn.damage:
         hurt = apply_damage(game.ship, conn.damage)

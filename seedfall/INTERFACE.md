@@ -2600,6 +2600,97 @@ hull refuses a fusion lance, a Yards hull refuses an intima, a hybrid takes
 either, and a synthetic frame takes fabricated and Dry Choir work but nothing
 alive.
 
+### One flight deck: the armed state moved onto the flight
+
+**The player's report, again, and it was structural:** "the pilot window,
+flight control, conn and gunnery systems were not properly integrated …
+contradictory displays in the different viewers … the autopilot systems were
+disjointed and their actions not always correctly displayed." #147 moved the
+`Conn` onto the game; the *armed state* never moved with it. Which autopilot
+mode was flying was `ConnWindow.mode`; the bridge kept a different vocabulary
+in `PilotView.auto`; the main-drive selection existed three times (`use_main`
+on the bridge, the console and the flight panel); and each window ran its own
+QTimer with its own `running` flag on the one shared `Conn`.
+
+Measured, that came to: the drive armed on the bridge reading "off" on the
+conn console — and a burn from the flight panel then firing the *clusters*;
+"Stop clock" on one window beside "Run clock" on another, and pressing the
+second arming a **second timer at double time**; the Pilot screen's autopilot
+row calling the computer again for a fresh forecast one beat ahead of the
+ship; and the approach plot saying *"coasting — the computer has not got it"*
+while a Pilot-screen "Run for X" was burning.
+
+**The armed state is four fields on `Conn` now** — `auto` ("" | "null" |
+"close" | "orbit" | "run"), `arm_main`, `clock_on`, `mark` — and every window
+reads them through properties, exactly as `conn` itself is read.
+`freeflight.computer` is the one dispatcher a beat asks (it also keeps its
+hands off under a tug, which used to be fought every tick), `freeflight.can_arm`
+is the gate every mode button greys on (so `close`/`orbit` can no longer be
+armed against open space and coast forever, lit), and `instruments.readout`
+finally has a "Computer" row, because the sim can now see the mode it flies.
+
+**One clock: `MainWindow.flight_timer`,** in `ui/flight_clock.py`, at the
+bridge's 250 ms beat. Every Run/Stop button calls `set_conn_clock`; `fly_beat`
+steers, flies one tick, bills through `berthing.charge_flown`, and refuses to
+beat under a live battle — which the per-window clocks never did. All three
+windows' manual burns bill as they fly now; before, an hour flown from the
+Conn window left the stardate untouched. And the beat redraws through
+`beat_refresh` (HUD + flying windows), not `MainWindow.refresh` — which
+matters because of what the autosave gate turned out to be doing.
+
+**Five defects fell out of the same measurements:**
+
+- **The whole sector was saved to disk on every repaint.** With the default
+  `autosave_days` of 0, `since >= every` read `0 >= 0` — true on a calendar
+  that had not moved. Measured: five refreshes, five full saves, ~30 ms
+  apiece, under every button in the game. That was most of the "sluggish".
+- **The Flight-controls window was blind unless the Conn window was open.**
+  It read `win.conn_window.conn` with a fallback (`win._flight_conn`) that
+  nothing in the repo ever wrote. It reads `win.conn` now, like everything.
+- **A hand-over from alongside opened *inside* the structure.** A moored
+  hull's position is its structure's, so the offset arithmetic in
+  `freeflight.hand_over` came out 0.000 km and the first press logged
+  "Struck Fleet Hub coming in". Inside the radius plus the alongside margin
+  it keeps `begin`'s opening range — casting off, not materialising.
+- **Retargeting refunded the flight.** `_pick_target`, `_free_flight` and
+  `_reopen` replaced `game.conn` after a `_settle()` that returns early for
+  a live approach, so the mass already burned went back into the tank; a
+  clearance refusal even wrote the `None` straight over a live flight and
+  filed the reason in `self.refused`, which nothing read. `conn_moves.py`
+  holds the rule now: every swap bills first, a refusal keeps the old
+  flight flying and says why, and a live free flight is *handed over*.
+- **Point defence bit 120× harder at a world than at a quay.** The
+  approach-control ladder and `ward_bite` ran once per *substep*, and
+  `_substeps` cuts a minute into up to 120 slices near a body. They run on
+  the tick now, where a minute is a minute.
+
+**And the ledger is exact (#148, #149 closed).** Reaction mass is billed as
+it burns — `charge_flown` keeps `conn.charged_rcs`, the mass twin of
+`charged` — and `commit` takes only the remainder, exactly: securing used to
+charge `round(spent, 2)` and refund up to 0.005 t, and a flight nobody ended
+was never charged its tonnes at all. Transfers close the last door:
+`berthing.secure_underway` is called by both `transit.begin` and
+`flight.travel_to`, so a leg flown mid-flight secures and bills the conn
+instead of teleporting the hull out from under it.
+
+**Naming (#153 closed):** the camera rows say "Look fore" … "Look to port"
+was the shape of the fault — "Port" was both *look to port* and *thrust to
+port*, pixels apart, which is why every probe that found a button by its text
+had been lying. Cameras say "Look …" now, one autopilot mode wears one name
+in all three windows ("Hold station"), the main drive is "armed"/"off"
+everywhere, and every flight control carries an `objectName`
+(`cam_*`/`thr_*`/`auto_*`) so a check can address exactly one control.
+
+Paying for the room: `sim/flight.py`'s recorded debt is off the ledger —
+`sim/path.py` took the arc, the star's heat on it and the risk (`route`,
+`hot_risk`, `_heat_risk`, `burn_heat` and their constants; `flight` imports
+them for its own quoting, so the names stay reachable where their readers
+are) — and the conn window's flight-swapping acts moved to `ui/conn_moves.py`
+under the same rule as `ui/flight_clock.py`: methods in module clothing,
+bound in the class body. `tests/test_flightdeck.py` pins the lot: nine
+checks, from "one beat is one minute however many windows watch" to "a
+structure's patience runs on the tick".
+
 ## Running
 
 ```
@@ -2901,6 +2992,9 @@ seedfall/
 │   ├── flight.py       the helm: orbits, intercepts, routing, transfer burns;
 │   │                   `ship_position` is the one door for where the hull is,
 │   │                   `hold_at` and `stand_off` the only two writers
+│   ├── path.py         where a leg actually runs: the arc bent round the
+│   │                   star, the heat of working close in, and the risk —
+│   │                   split from `flight`, which imports it to quote
 │   ├── survey.py       what a way of looking costs, finds, and is blind to
 │   ├── approach.py     a power's envoy: caused, costed, and answerable;
 │   │                   a treaty signed here costs what one you propose costs
@@ -2967,9 +3061,12 @@ seedfall/
 │   │                  until it was measured on a *shown* window
 │   ├── pilot_view.py   the Pilot screen: the view out, six cameras, the six
 │   │                  axes, a course you can lay on anything in view, and
-│   │                  drive and throttle — the only screen where
-│   │                  the clock runs while you look at it. Holds its own
-│   │                  free flight; never an approach.
+│   │                  drive and throttle. The armed state it shows is the
+│   │                  flight's own (`Conn.auto`/`arm_main`/`clock_on`).
+│   ├── flight_clock.py the one clock that flies `game.conn`: set_conn_clock,
+│   │                  fly_beat and beat_refresh, bound as MainWindow methods
+│   ├── conn_moves.py  the acts that swap the conn's flight — retarget,
+│   │                  reopen, fly free — each billing the flight it replaces
 │   ├── orbit_chart.py the orrery widget — paints bodies, quays, traffic
 │   │                  and the leg you are about to fly; answers clicks.
 │   │                  One door for label placement (`_room_for`) and one
@@ -3117,6 +3214,9 @@ seedfall/
     ├── test_reachable.py 4 reachability checks — nothing written and uncalled
     ├── test_verbs.py   10 verb checks — every control in the game, clicked
     ├── test_flight.py  5 helm checks — determinism, intercepts, routing
+    ├── test_flightdeck.py 9 checks — one armed state, one clock, one bill:
+    │                   every window reads the flight, and no path replaces
+    │                   a live conn without paying for it
     └── test_ui.py      24 interface checks, rendered on Qt's offscreen platform
 ```
 

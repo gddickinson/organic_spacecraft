@@ -3,7 +3,7 @@ ship's log. Also the host for dialogs and the combat hand-off."""
 
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QMainWindow,
                              QVBoxLayout, QWidget)
 
@@ -11,7 +11,7 @@ from ..core import state as state_mod
 from ..core.util import stardate
 from ..data.screens import KEY_FOR, NAV as SCREENS_NAV
 from ..data.lore import TITLE
-from . import theme
+from . import flight_clock, theme
 from .widgets import (button, label, mono_label,
                       hrule)
 
@@ -35,6 +35,9 @@ class MainWindow(QMainWindow):
         # so none of them ever hit it.
         self.current = None
         self.views: dict[str, object] = {}
+        # One clock for the one flight — see `ui/flight_clock.py`.
+        self.flight_timer = QTimer(self)
+        self.flight_timer.timeout.connect(self.fly_beat)
         self.setWindowTitle(f"{TITLE} — a GESTALT Programme Chronicle")
         self.resize(1360, 880)
         self.setMinimumSize(1040, 680)
@@ -354,9 +357,17 @@ class MainWindow(QMainWindow):
         from ..sim import options as options_sim
         every = options_sim.get(self.game, "autosave_days") or 0
         since = self.game.day - getattr(self, "_saved_day", -10 ** 9)
-        if since >= every:
+        # `since > 0` as well: at the default cadence of zero, `0 >= 0` was
+        # true on an unmoved calendar, so the whole sector was written to
+        # disk on **every repaint** — measured, 30 ms under every button.
+        if since >= every and since > 0:
             self._saved_day = self.game.day
             self.game.save()
+
+    # The flight clock — `ui/flight_clock.py`, bound as methods.
+    set_conn_clock = flight_clock.set_conn_clock
+    fly_beat = flight_clock.fly_beat
+    beat_refresh = flight_clock.beat_refresh
 
     def battle_act(self, action: dict) -> None:
         """Run one turn of the engagement.

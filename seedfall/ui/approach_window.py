@@ -184,14 +184,13 @@ class ApproachWindow(QDialog):
 
     @property
     def conn(self):
-        """The one approach — the conn window's, if it is open."""
-        window = getattr(self.win, "conn_window", None)
-        return getattr(window, "conn", None) if window is not None else None
+        """The chronicle's flight — `game.conn`, not any one window's copy."""
+        return self.win.conn
 
     @property
     def mode(self):
-        window = getattr(self.win, "conn_window", None)
-        return getattr(window, "mode", None)
+        """The armed computer mode — the flight's own, `Conn.auto`."""
+        return getattr(self.win.conn, "auto", "") or None
 
     def _build(self) -> None:
         column = QVBoxLayout(self)
@@ -339,11 +338,23 @@ class ApproachWindow(QDialog):
         rows = self.track()
         if rows and len(rows) > 1:
             seconds, _at, range_km, speed = rows[-1]
+            # "run" is the free-flight mode and needs the game to fly, which
+            # a dry run has not got — so the plotted line is ballistic and
+            # the caption must not claim the computer flew it. Before the
+            # mode lived on the flight, a Pilot-screen "Run for X" showed
+            # here as "coasting — the computer has not got it" while the
+            # computer was in fact burning.
+            if self.mode == "run":
+                tail = (f", under the computer, running for "
+                        f"{getattr(conn, 'mark', '') or 'the mark'} — the "
+                        "plotted line is the coast alone.")
+            elif self.mode:
+                tail = f", under the computer on {self.mode}."
+            else:
+                tail = ", coasting — the computer has not got it."
             self.said.setText(
                 f"On this course: {range_km * 1000:,.0f} m at "
-                f"{speed:.2f} m/s in {seconds / 60:.0f} minutes"
-                + (f", under the computer on {self.mode}." if self.mode
-                   else ", coasting — the computer has not got it."))
+                f"{speed:.2f} m/s in {seconds / 60:.0f} minutes" + tail)
         else:
             self.said.setText("No course predicted.")
         self.view.update()

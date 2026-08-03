@@ -106,6 +106,15 @@ class Conn:
     #: How many minutes an action lets the clock run afterwards. `apply` fires
     #: once and *then* steps time, so this is a coast and not a burn length.
     coast_min: int = 1
+    #: **The armed state is the flight's, not any window's** — as private
+    #: window attributes, the drive armed on the bridge read "off" on the
+    #: conn, and two windows' clocks flew one hull at double time.
+    #: `auto`: "" | "null" | "close" | "orbit" | "run" (which needs `mark`,
+    #: a contact *name*); `clock_on` is written only by `set_conn_clock`.
+    auto: str = ""
+    arm_main: bool = False
+    clock_on: bool = False
+    mark: str = ""
     #: How far the main drive can be opened and still be held straight, 0..1.
     #:
     #: `data/mounts.py` has said since it was written that a two-slot hull
@@ -131,6 +140,8 @@ class Conn:
     #: charge the same minute — see `berthing.charge_flown`, which is the one
     #: door either way.
     charged: float = 0.0
+    #: `charged`'s twin for the tonnes: billed as burned (#149), exact (#148).
+    charged_rcs: float = 0.0
     #: The range the approach opened at, which is what "adrift" is measured
     #: against — a fixed distance cannot serve both a quay and a gas giant.
     start_km: float = 12.0

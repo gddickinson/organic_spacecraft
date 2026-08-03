@@ -160,7 +160,10 @@ def run(suite: Suite) -> bool:
             # firing stopped it. Start it, then no time may pass while she is
             # being shot at.
             view.set_running(True)
-            assert view.running and view._timer.isActive(), "the clock will not run"
+            # The one beat is the main window's now (`win.flight_timer`);
+            # the view's `running` reads `Conn.clock_on` through it.
+            assert view.running and win.flight_timer.isActive(), (
+                "the clock will not run")
             assert fire_panel.open_fire(win, game, view.conn, hull), "refused"
             assert win.battle is not None, "no fight began"
             assert win.battle.band == want, (
@@ -170,7 +173,7 @@ def run(suite: Suite) -> bool:
             assert win.battle.enemy_name == hull.name, win.battle.enemy_name
             assert win.current == "battle", win.current
             assert not view.running, "the clock ran on while under fire"
-            assert not view._timer.isActive(), (
+            assert not win.flight_timer.isActive(), (
                 "the beat timer is still live during an engagement")
             seen[burns] = (km, want)
         # And the band is not a constant wearing a measurement: flying changed

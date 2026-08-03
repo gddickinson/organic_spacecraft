@@ -12526,3 +12526,34 @@ moving a name is not the point of a split.
 - The comment block above `DEFAULT_ORDER` went with it. A constant whose
   reasoning stays behind in another file is a constant nobody will understand
   the next time it is questioned.
+
+## One flight deck: the armed state moved onto the flight (2026-08-02)
+
+The player's report was structural and it measured true: the pilot window,
+the flight controls, the conn and the approach plot were four views holding
+four private copies of the armed state. What was done, in one session:
+
+- **`Conn.auto` / `arm_main` / `clock_on` / `mark`** — the armed mode, the
+  drive selection, the clock and the laid course live on the flight now;
+  every window reads them through properties, as `game.conn` itself is read.
+- **One clock** — `ui/flight_clock.py`, `MainWindow.flight_timer` at 250 ms;
+  `fly_beat` steers, flies, bills (`charge_flown`) and refuses to beat under
+  a battle. Two open windows used to fly the ship at double time.
+- **The autosave gate** was saving the whole sector on *every repaint*
+  (`0 >= 0` at the default cadence) — ~30 ms under every button. Most of
+  the reported sluggishness.
+- **`win._flight_conn`** was read and never written: the Flight-controls
+  window was blind unless the Conn window happened to be open.
+- **`hand_over` at 0.000 km** — a moored hull's hand-over opened inside the
+  structure and the first press "struck" it. It keeps the opening range
+  inside radius + alongside.
+- **Retargeting refunded the flight** — every swap now bills first
+  (`ui/conn_moves.py`); a refusal keeps the old flight and says why.
+- **#148/#149 closed** — mass billed as it burns (`charged_rcs`), commit
+  exact; `berthing.secure_underway` settles a live conn before any transfer.
+- **The control ladder ran per substep** — point defence bit up to 120x
+  harder at a world than a quay. Per tick now.
+- **#153 closed** — cameras say "Look …", one mode name per mode across the
+  three windows, objectNames on every flight control.
+- **`sim/flight.py`'s length debt paid** — `sim/path.py` took the arc, the
+  heat and the risk. `tests/test_flightdeck.py` (9 checks) pins the lot.

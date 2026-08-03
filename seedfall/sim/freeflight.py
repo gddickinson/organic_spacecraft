@@ -251,6 +251,117 @@ def alongside(game, conn, contact) -> bool:
             <= ALONGSIDE_KM)
 
 
+#: What a run really costs over the up-and-down of the ideal, measured by
+#: flying one: 4,784 km quoted 15.7 t of thrust ideal and burned 19.8 —
+#: re-corrections, the deadband, and holding the rate as the room shrinks.
+RUN_MARGIN = 1.3
+
+
+def run_quote(game, conn, contact) -> dict:
+    """The rough bill for running for a contact, before the pilot commits.
+
+    Found by playing: "Run for Quiet Increment" — 4,834 km, well inside
+    reach — quietly burned 19.8 of 20 t, and the first the pilot heard of it
+    was an approach ending *dry*. The shape is the climb rungs' rule: a run
+    is a fuel decision, and a screen that says nothing hides the decision.
+    Work up to the safe rate and kill it again, priced the way `pilot.mass_for`
+    prices everything, with the measured margin on top.
+    """
+    from . import autopilot as auto_sim
+    from . import pilot as pilot_sim
+    span = math.dist(toward(game, conn, contact), (0.0, 0.0, 0.0))
+    room = max(0.0, span - ALONGSIDE_KM)
+    if room <= 0.0:
+        return {"km": span, "dv": 0.0, "mass": 0.0, "tank": conn.rcs,
+                "afford": True}
+    rate = auto_sim.rate_for(room, conn.rcs_dv)
+    dv = 2.0 * rate
+    mass = pilot_sim.mass_for(conn, dv) * RUN_MARGIN
+    return {"km": span, "dv": dv, "mass": mass, "tank": conn.rcs,
+            "afford": mass <= conn.rcs}
+
+
+def marked(game, conn):
+    """The contact the course is laid on, re-read from the sim, or None."""
+    if not getattr(conn, "mark", ""):
+        return None
+    from . import track as track_sim
+    for contact in track_sim.contacts(game):
+        if contact.name == conn.mark:
+            return contact
+    return None
+
+
+def hold_course(game, conn) -> None:
+    """Keep the course on the mark, if one is laid. Called every beat.
+
+    A contact rides its body round the star, so a course laid once stops
+    pointing at it; laying it again each beat is what makes "Ahead" mean "at
+    that" for the whole flight.
+    """
+    contact = marked(game, conn)
+    if contact is not None:
+        steer(game, conn, contact)
+
+
+def can_arm(game, conn, mode: str) -> tuple[bool, str]:
+    """May this mode be armed on this flight? The gate every console greys on.
+
+    `close` and `orbit` on an open-space target used to arm, stay lit, and
+    coast for ever — `autopilot.target_velocity` refuses them (correctly),
+    the window read the refusal as "still flying", and the clock ran with
+    nothing at the controls. Refuse at the *button*, with the reason.
+    """
+    if conn is None or conn.over:
+        return False, "Nothing is being flown."
+    if not mode:
+        return True, ""
+    if mode == "run":
+        if marked(game, conn) is None:
+            return False, "Lay a course on something first."
+        return True, ""
+    if mode in ("close", "orbit") and is_open(conn.target):
+        return False, ("Nothing to " + ("berth at" if mode == "close"
+                       else "orbit") + " out here — lay a course and run, "
+                       "or take the conn on something.")
+    return True, ""
+
+
+def computer(game, conn) -> tuple:
+    """What the one flight computer does this beat, under `conn.auto`.
+
+    `(axis, main, throttle)` — the shape `sim/autopilot` returns, because
+    every branch is `sim/autopilot`. This is the single dispatcher every
+    window's beat asks, so the bridge, the conn and the flight panel cannot
+    fly three different computers at one hull.
+
+    **The tug outranks it.** `tug_step` walks the hull in and zeroes the
+    velocity every substep, and an armed mode reading that stillness as error
+    burned against the boats each tick — spending the mass the tug exists to
+    save, under a console printing "Hands off the drive". The computer keeps
+    its hands off.
+    """
+    from . import autopilot as auto_sim
+    from . import tug as tug_sim
+    mode = getattr(conn, "auto", "")
+    if not mode or conn is None or conn.over:
+        return None, False, 1.0
+    if tug_sim.under_tow(conn):
+        return None, False, 1.0
+    if mode == "run":
+        aim = marked(game, conn)
+        if aim is None:
+            return None, False, 1.0
+        if alongside(game, conn, aim):
+            # Arrived. Say so once and hold station.
+            conn.auto = "null"
+            game.add_log(f"Alongside {aim.name}, "
+                         f"{ALONGSIDE_KM:,.0f} km off.", "")
+            return auto_sim.autopilot(conn, "null")
+        return run_for(game, conn, aim)
+    return auto_sim.autopilot(conn, mode)
+
+
 def secure(game, conn) -> str:
     """Stop flying, wherever you are, and write it down. Returns one line.
 
@@ -337,17 +448,39 @@ def hand_over(game, conn, contact):
     # it — **302.9 km of teleport** in the middle of a flight the pilot had
     # just spent an hour on.
     from . import track as track_sim
+    from .conn import ALONGSIDE_KM as alongside_km
     tx, ty = track_sim.at(game, contact, game.day)
-    fresh.pos = [(here[0] - tx) * KM_PER_AU,
-                 (here[1] - ty) * KM_PER_AU, 0.0]
+    offset = [(here[0] - tx) * KM_PER_AU,
+              (here[1] - ty) * KM_PER_AU, 0.0]
+    # **Only when the offset is a real place to fly from.** A moored hull's
+    # position *is* its structure's — the subtraction comes out 0.000 km, and
+    # an approach opened there put the ship inside the skin: measured, one
+    # press of "Ahead" and the log read "Struck Fleet Hub coming in". Inside
+    # the structure's own radius plus the alongside margin, the hand-over
+    # keeps `berthing.begin`'s opening range instead — casting off, not
+    # materialising in the middle of the thing.
+    floor_km = getattr(fresh.target, "radius_km", 0.0) + alongside_km
+    if math.dist(offset, (0.0, 0.0, 0.0)) > floor_km:
+        fresh.pos = offset
+        # **And the range "adrift" is judged against.** `start_km` stayed at
+        # `begin`'s arrival range, so a hand-over from 4,783 km out on a
+        # 12 km opening was declared adrift — four times `start_km` — on the
+        # very first beat, and the computer never got a tick in.
+        fresh.start_km = max(fresh.start_km, fresh.range_km)
     fresh.vel = list(conn.vel)
     fresh.nose = list(conn.nose)
     fresh.rcs = conn.rcs
     # The hours too, and what has already been paid for them together — the
     # difference is what `berthing.charge_flown` bills, so carrying both bills
-    # nothing twice and loses nothing.
+    # nothing twice and loses nothing. `charged_rcs` is the same meter for the
+    # tonnes and travels for the same reason.
     fresh.elapsed = conn.elapsed
     fresh.charged = getattr(conn, "charged", 0.0)
+    fresh.charged_rcs = getattr(conn, "charged_rcs", 0.0)
+    # The console the pilot set, and whether time was running: a hand-over is
+    # the same flight wearing a target, not a fresh ship.
+    fresh.arm_main = getattr(conn, "arm_main", False)
+    fresh.clock_on = getattr(conn, "clock_on", False)
     fresh.log.append(
         f"Handed over to the computer with {math.dist(conn.vel, (0, 0, 0)):.1f}"
         " m/s on.")

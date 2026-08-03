@@ -52,6 +52,40 @@ def two_columns() -> tuple:
     return holder, made[0], made[1]
 
 
+def camera_row(view) -> QWidget:
+    """The six "Look …" buttons, three to a line.
+
+    Three to a line because six across demanded 486 px and set the left
+    column's minimum — 56 px more than the bridge had to give. **"Look
+    port", not "Port"** (#153): the camera row and the thruster row both
+    said Port and Starboard, a few pixels apart, so a probe finding a
+    control by its text clicked the camera and reported two dead thrusters
+    — and a pilot could do the same with a finger. Every control wears an
+    objectName, so a check can address exactly one.
+    """
+    from .widgets import button
+    looks = []
+    for view_id, view_label, _vec in conn_sim.VIEWS:
+        btn = button(f"Look {view_label.lower()}",
+                     lambda _=False, v=view_id: view._look(v), kind="flat")
+        btn.setObjectName(f"cam_{view_id}")
+        looks.append(btn)
+    return stack_of(looks, per_row=3)
+
+
+def axis_pad(view) -> QWidget:
+    """The six thrust buttons, in the order a pilot's hand sits on them —
+    the same order `ui/conn_controls` uses."""
+    from .widgets import button
+    pad = []
+    for axis in ("left", "forward", "right", "down", "back", "up"):
+        btn = button(conn_sim.AXES_BY_ID[axis][1],
+                     lambda _=False, x=axis: view.burn(x))
+        btn.setObjectName(f"thr_{axis}")
+        pad.append(btn)
+    return row_of(*pad)
+
+
 def row_of(*btns) -> QWidget:
     """A line of buttons that can go into either column.
 
@@ -98,7 +132,7 @@ def stack_of(btns, per_row: int = 2) -> QWidget:
 
 
 def main_label(view) -> str:
-    return f"Main drive: {'on' if view.use_main else 'off'}"
+    return f"Main drive: {'armed' if view.use_main else 'off'}"
 
 
 def throttle_label(view) -> str:
@@ -149,6 +183,16 @@ def ship_board(view) -> Panel:
     km = engage_sim.range_km(view.game, view.conn, aim)
     board.add_row("Course", f"{aim.name}, {km:,.0f} km, nose "
                             f"{free_sim.off_course(view.game, view.conn, aim):.0f}° off")
+    # **What the run would cost, before it is flown.** Found by playing:
+    # "Run for" a contact 4,834 km off — well inside reach — quietly burned
+    # 19.8 of 20 t, and the first the pilot heard of it was arriving *dry*.
+    # A run is a fuel decision, the same rule as the climb rungs, and it is
+    # on the board every beat because the price falls as the range does.
+    bill = free_sim.run_quote(view.game, view.conn, aim)
+    if bill["dv"] > 0:
+        board.add_row("Run bill",
+                      f"~{bill['mass']:.1f} t of {bill['tank']:.1f} aboard",
+                      "" if bill["afford"] else "warn")
     # **Closing on the mark, not on the place she left.** `conn.closing` is
     # measured against the conn's origin, which out here is where she was let
     # go — so a ship braking onto a contact reads as opening, which is true
@@ -177,19 +221,29 @@ def _computer_says(view) -> str:
     """
     if view.auto == "":
         return "off — she flies as you fly her"
-    if view.auto == "hold":
+    if view.auto == "null":
         return "holding station, killing what drift there is"
+    if view.auto in ("close", "orbit"):
+        from ..sim import instruments as panel_sim
+        return panel_sim.computer_note(view.conn)
     aim = view.marked()
     if aim is None:
         return "running for nothing"
-    # **The name is on the Course row already.** Repeating it here cost 29 px
-    # of width the bridge did not have, and the layout check said so.
-    axis, main, throttle = free_sim.run_for(view.game, view.conn, aim)
-    if axis is None:
+    # **The burn that happened, off `conn.fired_*`.** This used to re-call
+    # `freeflight.run_for`, which is a fresh ask of the computer — a forecast
+    # of the *next* tick, one beat ahead of the ship, and exactly the
+    # anti-pattern `conn.fired_axis` was recorded to stop. Every other flying
+    # screen reads the record; now this one does.
+    conn = view.conn
+    if conn.fired_turning:
+        return "running her in — coming about to burn"
+    if conn.fired_axis is None:
         return "running her in — coasting"
-    which = conn_sim.AXES_BY_ID[axis][1].lower()
+    which = conn_sim.AXES_BY_ID[conn.fired_axis][1].lower()
+    share = (f" at {conn.fired_share:.0%}"
+             if conn.fired_main and conn.fired_share < 0.999 else "")
     return (f"running her in — {which} on "
-            f"{'the torch' if main else 'thrusters'} at {throttle:.0%}")
+            f"{'the torch' if conn.fired_main else 'thrusters'}{share}")
 
 
 def in_view_board(view, rows) -> Panel:
