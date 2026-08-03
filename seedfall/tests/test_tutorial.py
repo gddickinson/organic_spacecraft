@@ -52,6 +52,52 @@ def _do(game, watch: str) -> None:
         trade_sim.sell(game, held, game.ship.cargo[held])
     elif watch == "bought_fuel":
         trade_sim.buy(game, "volatiles", 10)
+    elif watch.startswith("saw_") and watch != "saw_market":
+        # "open this screen" lessons: the screen is the watcher's own name.
+        tutorial_sim.saw(game, {"saw_manual": "help",
+                                "saw_plans": "ship:plans"}.get(
+                                    watch, watch[4:]))
+    elif watch == "computer_flew":
+        from ..sim import flightdeck as deck_sim, freeflight
+        conn, _why = freeflight.begin(game)
+        conn.auto = "null"
+        deck_sim.computer(game, conn)
+    elif watch == "berthed":            # standing at a quay: derived state
+        from ..sim import anchorage as anchorage_sim
+        places = anchorage_sim.in_system(game)
+        assert places, "no quay in this system to berth at"
+        game.orbit_body = game.system.bodies[places[0].body_index].id
+    elif watch == "set_project":
+        from ..data import tech as tech_data
+        from ..sim import research as research_sim
+        game.research.points = 4000
+        opts = tech_data.researchable(game.research.unlocked)
+        research_sim.set_project(game.research, opts[0].id)
+    elif watch == "unlocked_tech":
+        from ..data import tech as tech_data
+        game.research.unlocked.append(
+            tech_data.researchable(game.research.unlocked)[0].id)  # one more
+    elif watch == "jumped":
+        seen = list(game.discovered.get("systems", ()))
+        game.discovered.setdefault("systems", []).append(
+            next(s.id for s in game.galaxy.systems if s.id not in seen))
+    elif watch in ("mined", "dug", "landed", "fought", "stood_watch"):
+        from ..sim import tutorial_watch
+        tutorial_watch.deed(game, watch)
+    elif watch == "marked_hostile":
+        from ..sim import hostiles as h_sim
+        h_sim.mark(game, "a-hull")
+    elif watch == "planted":
+        from ..sim.colony import Colony
+        game.colonies.append(Colony(
+            id=len(game.colonies) + 1, class_id="radix_mine", name="Taught",
+            system_id=game.system.id, body_id=game.system.bodies[0].id,
+            need=0, online=True))   # the watcher is a count; this is one
+    elif watch == "courted":
+        from ..data.factions import FACTIONS as F
+        game.rep[F[0].id] = game.rep.get(F[0].id, 0) + 5
+    elif watch == "refitted":
+        game.ship.fitted.append(game.ship.fitted[0] if game.ship.fitted else "hold")
     elif watch == "flew_conn":
         from ..sim import berthing as berth_sim
         from ..sim import conn as conn_sim
@@ -69,10 +115,6 @@ def _do(game, watch: str) -> None:
     elif watch == "took_contract":
         offered = contract_sim.generate(RNG("tut"), game, game.system)
         contract_sim.accept(game, offered[0])
-    elif watch == "saw_plans":
-        tutorial_sim.saw(game, "ship:plans")
-    elif watch == "saw_diplomacy":
-        tutorial_sim.saw(game, "diplomacy")
     else:
         raise AssertionError(f"the check does not know how to do {watch!r}")
 
@@ -83,6 +125,10 @@ def _at_a_port(seed: str):
         port = next(s for s in game.galaxy.systems if s.port and s.market)
         game.location_id = port.id
     game.credits = 60_000
+    # Standing off, not already at a quay: "get alongside something" is a
+    # thing to *do*, and a fixture that starts docked would satisfy it
+    # before the lesson opened.
+    game.orbit_body = None
     return game
 
 
@@ -152,6 +198,11 @@ def run(suite: Suite) -> None:
         survey(game, 0)
         survey(game, 1)
         tutorial_sim.begin(game)
+        # Straight to the course that lesson is in: the curriculum is
+        # chaptered, and this is a claim about the *mark*, not about where
+        # surveying sits in the running order.
+        tutorial_sim.jump_to(game, "looking-closely")
+        assert tutorial_sim.current(game).watch == "surveyed_one"
         assert not tutorial_sim.check(game), (
             "an earlier survey satisfied the lesson")
         _do(game, "surveyed_one")
@@ -180,11 +231,15 @@ def run(suite: Suite) -> None:
         tutorial_sim.begin(game)
         told = tutorial_sim.state(game)
         assert told["running"], told
-        assert told["known"] == 2, (
-            f"{told['known']} steps stepped over; surveying and a noted market "
-            "are both demonstrably done")
-        assert told["lesson"].id == "sell", told["lesson"].id
-        assert told["step"] == 3, told["step"]
+        # Chaptered, what a veteran steps over is the orientation course —
+        # three "open this screen" lessons, skipped on `have_played`, which
+        # asks for a career: prices noted, ground surveyed *and* a second
+        # star reached. The invariant is unchanged.
+        assert told["known"] >= 3, (
+            f"{told['known']} steps stepped over; a captain with prices, a "
+            "survey and two stars behind them knows where the screens are")
+        assert told["lesson"].chapter != "first-light", told["lesson"].id
+        assert told["step"] == told["known"] + 1, told["step"]
 
         # And the rest is still taught, including the ones the chronicle cannot
         # vouch for. `helm` goes when its turn comes, because `_past_known` runs
@@ -201,10 +256,11 @@ def run(suite: Suite) -> None:
         assert "helm" not in taught, (
             f"the helm lesson was taught to a captain who has been to another "
             f"system: {taught}")
-        assert {"sell", "fuel", "ship", "powers"} <= set(taught), taught
-        assert tutorial_sim.held(game).known == 3, tutorial_sim.held(game).known
-        return (f"opened at step 3 of {len(LESSONS)} with 2 already done, "
-                f"taught {', '.join(taught)}, stepped over 3 in all")
+        assert {"sell", "fuel", "research", "codex"} <= set(taught), taught
+        known = tutorial_sim.held(game).known
+        assert known >= 3, known
+        return (f"opened past {known} earned lessons of {len(LESSONS)}, "
+                f"then taught {len(taught)} more")
 
     @check("the settling-in month is a month, not a moratorium")
     def _():
@@ -222,6 +278,9 @@ def run(suite: Suite) -> None:
             survey(game, 0)
             game.day = day
             tutorial_sim.begin(game)
+            # At the course the survey lesson opens, so the bracket is about
+            # the month rather than about where the lesson sits.
+            tutorial_sim.jump_to(game, "looking-closely")
             made.append(tutorial_sim.state(game)["known"])
         early, settled = made
         assert early == 0, (
@@ -241,7 +300,10 @@ def run(suite: Suite) -> None:
         # would be the tail wagging the dog.
         named = {lesson.id: lesson.skip_if for lesson in LESSONS
                  if lesson.skip_if}
-        assert len(named) == 4, named
+        # Eight of twenty-nine: the orientation three (a demonstrable
+        # career), and the five whose deed leaves state behind — a survey, a
+        # noted market, a star crossed, a contract taken, a quay stood at.
+        assert len(named) == 8, named
         for lesson in LESSONS:
             if lesson.skip_if:
                 assert lesson.skip_if in tutorial_sim.SKIPS, (
@@ -264,8 +326,14 @@ def run(suite: Suite) -> None:
         game.discovered["systems"].append(
             next(s.id for s in game.galaxy.systems if s.id != game.location_id))
         fired = [name for name, fn in tutorial_sim.SKIPS.items() if fn(game)]
-        assert set(fired) == {"have_surveyed", "have_prices", "have_travelled"}, \
-            fired
+        # `have_played` wants all three together, so it fires here too — and
+        # `have_berthed` does not, because nothing has been alongside.
+        # `have_played` wants all three together, so it fires here too.
+        # `have_berthed` may or may not: flying out to survey a body can
+        # leave her standing at a quay that orbits it, which is exactly the
+        # state it asks about.
+        assert {"have_surveyed", "have_prices", "have_travelled",
+                "have_played"} <= set(fired), fired
         return (f"{len(named)} of {len(LESSONS)} lessons carry a skip; "
                 f"{len(fired)} fired once the things were done")
 
@@ -351,10 +419,12 @@ def run(suite: Suite) -> None:
 
         game = _at_a_port("tut-save")
         tutorial_sim.begin(game)
+        tutorial_sim.jump_to(game, "looking-closely")
+        first_step = back_step = tutorial_sim.held(game).step
         _do(game, "surveyed_one")
         tutorial_sim.check(game)
         tutorial_sim.acknowledge(game)
-        _do(game, "saw_market")
+        _do(game, tutorial_sim.current(game).watch)
         tutorial_sim.check(game)              # part-way: explaining lesson two
         assert tutorial_sim.state(game)["explaining"]
 
@@ -362,11 +432,11 @@ def run(suite: Suite) -> None:
         back = load_game()
         assert back is not None
         assert tutorial_sim.running(back), "the tutorial was lost"
-        assert back.tutorial.step == 1
+        assert back.tutorial.step == first_step + 1
         assert tutorial_sim.state(back)["explaining"], (
             "it forgot it was mid-explanation")
         assert tutorial_sim.acknowledge(back)
-        assert tutorial_sim.current(back).id == LESSONS[2].id
+        assert tutorial_sim.current(back).id == LESSONS[first_step + 2].id
         return "reloaded mid-explanation on lesson two and carried on"
 
     @check("skipping is final until it is started again")

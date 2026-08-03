@@ -31,6 +31,7 @@ from ..sim import moorings
 from ..sim import preview as preview_sim
 from . import render3d, theme
 from .widgets import button, label, mono_label, note
+from . import painting
 
 #: How far ahead the track is flown, in ticks of the conn's own minute, and
 #: how often a point is kept. Sixty minutes is about what a berthing takes
@@ -58,8 +59,11 @@ class ApproachView(QWidget):
         self.setSizePolicy(QSizePolicy.Policy.Expanding,
                            QSizePolicy.Policy.Expanding)
 
+    @painting.safe_paint
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
+        if not painting.alive(self, painter):
+            return
         try:
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
             w, h = self.width(), self.height()

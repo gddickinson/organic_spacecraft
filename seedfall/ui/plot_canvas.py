@@ -29,6 +29,7 @@ from PyQt6.QtWidgets import QWidget
 from ..sim import flight
 from ..sim import track as track_sim
 from . import theme
+from . import painting
 
 #: Zoom limits, in pixels per AU.
 MIN_SCALE, MAX_SCALE = 3.0, 900.0
@@ -163,8 +164,11 @@ class PlotCanvas(QWidget):
 
     # ── painting ───────────────────────────────────────────────────────────
 
+    @painting.safe_paint
     def paintEvent(self, _event) -> None:
         p = QPainter(self)
+        if not painting.alive(self, p):
+            return
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), QColor("#050d0b"))
         self._hits = []

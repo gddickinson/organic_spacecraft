@@ -27,6 +27,7 @@ from PyQt6.QtWidgets import QSizePolicy, QWidget
 
 from ..data import berths3d, hulls3d, models3d, surfaces, worlds3d
 from . import render3d, spheres, stars3d
+from . import painting
 
 #: How the portrait is framed. A hull is authored at half-length 1, so it is
 #: two units end to end plus its furniture, and the first framing at 3.4 cut
@@ -115,8 +116,11 @@ class Thumb(QWidget):
     def sizeHint(self) -> QSize:
         return QSize(self._height * 2, self._height)
 
+    @painting.safe_paint
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
+        if not painting.alive(self, painter):
+            return
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         w, h = self.width(), self.height()
         painter.fillRect(0, 0, w, h, QColor(VOID))

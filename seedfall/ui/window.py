@@ -313,9 +313,7 @@ class MainWindow(QMainWindow):
             tutorial_sim.saw(self.game, f"{view_id}:{tab}")
         view = self.views[view_id]
         view.show()
-        # The beat follows the captain: held off the flight deck, resumed on
-        # stepping back onto it. See `flight_clock.DECK_SCREENS`.
-        self.sync_clock()
+        self.sync_clock()      # held off the flight deck; see flight_clock
         for vid, b in self.nav_buttons.items():
             b.setChecked(vid == view_id)
         self.refresh()
@@ -362,15 +360,13 @@ class MainWindow(QMainWindow):
 
     def keyPressEvent(self, event) -> None:      # noqa: N802
         from . import flying_keys
-        if self.current == "pilot" and flying_keys.press(self, event):
-            return
-        super().keyPressEvent(event)
+        if not (self.current == "pilot" and flying_keys.press(self, event)):
+            super().keyPressEvent(event)
 
     def keyReleaseEvent(self, event) -> None:    # noqa: N802
         from . import flying_keys
-        if self.current == "pilot" and flying_keys.release(self, event):
-            return
-        super().keyReleaseEvent(event)
+        if not (self.current == "pilot" and flying_keys.release(self, event)):
+            super().keyReleaseEvent(event)
 
     def battle_act(self, action: dict) -> None:
         """Run one turn of the engagement.

@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import QSizePolicy, QWidget
 
 from ..sim import firing
 from . import theme
+from . import painting
 
 #: How much of the widget the arc's outer edge uses.
 REACH = 0.86
@@ -57,8 +58,11 @@ class MountSight(QWidget):
 
     # ── painting ───────────────────────────────────────────────────────────
 
+    @painting.safe_paint
     def paintEvent(self, _event) -> None:      # noqa: N802
         p = QPainter(self)
+        if not painting.alive(self, p):
+            return
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         w, h = self.width(), self.height()
         p.fillRect(0, 0, w, h, QColor(theme.PANEL2))

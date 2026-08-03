@@ -12629,3 +12629,26 @@ never pressed a control in a *pop-out*. `test_flightops` sweeps all six.
   from helm and plotting board (with arrival heat), berth→port disembark,
   landing once surveyed, engage from the bridge with the clock stopping and
   the gunner/tactical stations painting through the fight.
+
+## The sixth pass: the tutorial becomes a curriculum (2026-08-03)
+
+- **29 lessons in 10 chapters** (`data/lesson_types.py`, `lessons_early.py`,
+  `lessons_late.py`, assembled by `lessons.py`), each course a scenario.
+- **`sim/tutorial_watch.py`** — the mark, every watcher, and `deed`: the six
+  acts that leave no state (computer flew, watch stood, seam worked, trench
+  opened, party landed, fire opened) are recorded by the *sim function that
+  performs them*, never by a button.
+- **`ui/academy_panel.py`** — the Academy tab under Help: every course, what
+  it teaches, progress, and "Teach me this" (`tutorial.jump_to`, which steps
+  over what you can already fly).
+- **Four manual pages on playing well**: your first hour, making money,
+  flying her well, fighting and not fighting.
+- Broad play-test also fixed: local work (survey/extract/dig/land) now
+  secures a live hand-flight first, and the flight clock is held off the
+  flight deck so shopping does not quietly cost days.
+
+- **The crash only a full run could find**: exit 134, zero failures. Thirteen
+  widgets build a raw `QPainter` and never had `ui/painting.py`'s guard; the
+  approach view's painter died mid-frame and the TypeError escaped
+  `paintEvent`. `painting.alive` (never began) + `@painting.safe_paint`
+  (dies part-way) now cover all thirteen.

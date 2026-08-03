@@ -117,6 +117,8 @@ def stand(game, transit: Transit, rng) -> dict:
     if transit.event:
         return {"ok": False, "why": "The watch is waiting on an answer."}
 
+    from . import tutorial_watch
+    tutorial_watch.deed(game, "stood_watch")
     share = max(1, round(transit.days_planned / transit.watches))
     fuel = transit.fuel_planned / transit.watches
     _spend(game, transit, days=share, fuel=fuel)

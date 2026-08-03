@@ -118,6 +118,8 @@ def computer(game, conn) -> tuple:
     mode = getattr(conn, "auto", "")
     if not mode or conn is None or conn.over:
         return None, False, 1.0
+    from . import tutorial_watch
+    tutorial_watch.deed(game, "computer_flew")   # the computer has her
     if tug_sim.under_tow(conn):
         return None, False, 1.0
     if mode == "run":

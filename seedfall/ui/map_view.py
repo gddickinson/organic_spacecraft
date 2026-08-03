@@ -21,6 +21,7 @@ from ..sim.actions import distress_call, is_stranded, jump_quote, jump_to
 from ..world.galaxy import distance
 from . import theme
 from .widgets import Panel, View, button, label, mono_label, note, spacer
+from . import painting
 
 FACTION_COLOUR = {k: theme.tint(v) for k, v in theme.FACTION_TINT.items()}
 
@@ -89,9 +90,12 @@ class StarChart(QWidget):
 
     # painting -------------------------------------------------------------
 
+    @painting.safe_paint
     def paintEvent(self, _ev):  # noqa: N802
         g = self.win.game
         p = QPainter(self)
+        if not painting.alive(self, p):
+            return
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), QColor("#060f0d"))
 
@@ -392,12 +396,8 @@ class MapView(View):
 
         panel = Panel(sys.name + ("   ·   you are here" if here else ""))
         rank = intel_sim.level(g, sys)
-        # **The body count is fogged too.** `LEVELS[0]` says a registry entry is
-        # "a body count the registry will not stand behind" and `LEVELS[1]`, which
-        # is what a chart buys, promises "the bodies are real" — and this line
-        # printed `len(sys.bodies)` at every rank, so the bottom two rungs of the
-        # fog differed by a faction name and the shade of a dot. `intel.body_count`
-        # is the door.
+        # **The body count is fogged too**: printing `len(sys.bodies)` at
+        # every rank left the bottom two rungs differing by a dot's shade.
         count = intel_sim.body_count(g, sys)
         panel.add(note(f"{sys.star_name} · "
                        + (f"{count} catalogued bodies" if count is not None

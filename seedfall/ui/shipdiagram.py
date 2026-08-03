@@ -27,6 +27,7 @@ from ..data import hulls3d
 from ..data.chassis import CHASSIS_BY_ID
 from ..sim import thrusters
 from . import render3d, theme
+from . import painting
 
 #: How far back the camera sits, in hull half-lengths. The hull is authored at
 #: half-length 1, so this frames it with room for the plumes at the ends.
@@ -76,8 +77,11 @@ class ShipDiagram(QWidget):
         main = bool(getattr(conn, "fired_main", False)) if conn else False
         return thrusters.firing(ship, axis, main)
 
+    @painting.safe_paint
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
+        if not painting.alive(self, painter):
+            return
         try:
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
             w, h = self.width(), self.height()

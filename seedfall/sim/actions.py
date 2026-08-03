@@ -174,6 +174,8 @@ def survey(game, body_index: int) -> dict:
 def extract(game, body_index: int, days: int,
             method_id: str = mining.DEFAULT_METHOD) -> dict:
     """Work a body for a spell. How you work it is most of the decision."""
+    from . import tutorial_watch
+    tutorial_watch.deed(game, "mined")
     body = game.system.bodies[body_index]
     st = game.ship_stats
     # Everything that can refuse the working is checked before the ship flies

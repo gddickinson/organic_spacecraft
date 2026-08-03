@@ -27,6 +27,7 @@ from PyQt6.QtWidgets import QSizePolicy, QWidget
 
 from ..sim import minigames as mg
 from . import theme
+from . import painting
 
 #: Units of error that fill the plot from centre to edge.
 SPAN = 52.0
@@ -51,9 +52,12 @@ class ApproachPlot(QWidget):
         return QPointF(half + error.get("attitude", 0) * scale,
                        half + error.get("range", 0) * scale)
 
+    @painting.safe_paint
     def paintEvent(self, _ev):  # noqa: N802
         d = self.d
         p = QPainter(self)
+        if not painting.alive(self, p):
+            return
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), QColor("#060f0d"))
         half = self.SIZE / 2

@@ -68,6 +68,8 @@ def say(dig: Dig, text: str, kind: str = "") -> None:
 
 
 def begin(game, body_index: int) -> dict:
+    from . import tutorial_watch
+    tutorial_watch.deed(game, "dug")
     body = game.system.bodies[body_index]
     if not body.relic or not body.relic_found:
         return {"ok": False, "why": "Nothing here has been found worth digging."}

@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel,
                              QVBoxLayout, QWidget)
 
 from . import theme
+from . import painting
 
 ALIGN_L = Qt.AlignmentFlag.AlignLeft
 ALIGN_R = Qt.AlignmentFlag.AlignRight
@@ -33,20 +34,12 @@ def title(text: str, tint: str = "") -> QLabel:
 
 #: Whether inline explanations are drawn at all.
 #:
-#: **Module state, pushed in by `MainWindow.apply_options`**, which is the
-#: function whose docstring says it exists to "push settings into the parts of
-#: the window that hold their own" — the same arrangement `core/llm.py` uses for
-#: the speech settings, and for the same reason: `note` is a free function called
-#: from two hundred and seventy places, most of them inside panel builders that
-#: have no view and no `Game` to ask.
-#:
-#: It had to become real. `View.hint` was the only gate on the setting and is
-#: called **ten** times against `note`'s **270**, so "Inline hints" — described
-#: on the options page as "the short explanations under panel headings", which is
-#: exactly what `note` draws — was turning off under four per cent of them.
-#: Measured on the port screen: 89 labels with hints on, 89 with them off. An
-#: option that changes almost nothing is the same lie as one that changes
-#: nothing, and `sim/options.py` opens by forbidding it.
+#: **Module state, pushed in by `MainWindow.apply_options`** — `note` is a
+#: free function called from 270 places, most inside panel builders with no
+#: view and no `Game` to ask. `View.hint` was the only gate and is called
+#: **10** times against those 270, so "Inline hints" turned off under four per
+#: cent of them: measured on the port screen, 89 labels either way. An option
+#: that changes almost nothing is the lie `sim/options.py` opens by forbidding.
 HINTS = True
 
 
@@ -159,8 +152,11 @@ class Bar(QWidget):
             self._tint = tint
         self.update()
 
+    @painting.safe_paint
     def paintEvent(self, _ev):  # noqa: N802
         p = QPainter(self)
+        if not painting.alive(self, p):
+            return
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         r = self.rect()
         radius = r.height() / 2

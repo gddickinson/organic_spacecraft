@@ -165,6 +165,8 @@ def seize_notes(game, faction_id: str, rng) -> dict | None:
 def launch_expedition(game, body_index: int, officer_ids: list[int],
                       load: int = 1) -> dict:
     """Put a landing party down. Costs biomass for supplies and time to descend."""
+    from . import tutorial_watch
+    tutorial_watch.deed(game, "landed")
     from . import expedition as exp_sim
     flight.ensure_at(game, body_index)
     body = game.system.bodies[body_index]

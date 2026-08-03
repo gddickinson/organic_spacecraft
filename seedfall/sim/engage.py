@@ -136,6 +136,8 @@ def open_fire(game, conn, contact, rng):
     door for what a hull of a given flag is carrying — inventing a second
     would let a conn engagement and an encounter disagree about the same ship.
     """
+    from . import tutorial_watch
+    tutorial_watch.deed(game, "fought")
     ok, why = may_engage(game, conn, contact)
     if not ok:
         return None, why

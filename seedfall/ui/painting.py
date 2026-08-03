@@ -37,6 +37,53 @@ from PyQt6.QtGui import QPainter
 MISSES: list = []
 
 
+def alive(widget, p: QPainter) -> bool:
+    """Whether this painter began. **The guard for a widget that is not a
+    `Painted`**, and there are thirteen of them.
+
+    `Painted` was written for this and only the widgets that inherit it were
+    protected; the rest construct `QPainter(self)` and draw. Measured, that
+    is not academic: late in a long run `QPainter::begin` failed on the
+    approach view, every later call on the dead painter raised inside
+    `paintEvent`, and **Qt took the whole process down** — exit 134, after
+    170 suites had passed, with the failure printed as an argument-overload
+    error a hundred lines from the cause.
+
+    Two lines at the top of a raw `paintEvent` retire that: the miss is
+    recorded where the others are, and the frame is simply skipped.
+    """
+    if p.isActive():
+        return True
+    MISSES.append((type(widget).__name__, widget.width(), widget.height(),
+                   "the painter never began"))
+    return False
+
+
+def safe_paint(fn):
+    """Wrap a raw `paintEvent` so a frame that dies is recorded, not fatal.
+
+    The other half of what `Painted` does, for the thirteen widgets that
+    build their own `QPainter`. `alive` above catches the painter that never
+    began; this catches the one that **dies mid-frame** — measured, the
+    approach view's painter was live at the top of the frame and invalid by
+    the time it drew a label, and the `TypeError` PyQt raises for a dead
+    receiver escaped `paintEvent` and **took the process down**: exit 134
+    with every one of 171 suites passing and nothing failing.
+
+    A miss is a picture that did not happen. It belongs in `MISSES`, where
+    the checks that care can read it, and nowhere near the process exit.
+    """
+    def wrapper(self, event):
+        try:
+            return fn(self, event)
+        except (RuntimeError, TypeError) as err:
+            MISSES.append((type(self).__name__, self.width(), self.height(),
+                           repr(err)[:120]))
+    wrapper.__name__ = getattr(fn, "__name__", "paintEvent")
+    wrapper.__doc__ = fn.__doc__
+    return wrapper
+
+
 class Painted:
     """Mix in before the QWidget base. Implement `draw(p)`, not `paintEvent`."""
 

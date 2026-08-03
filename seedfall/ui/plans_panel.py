@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import QSizePolicy, QWidget
 from ..core import solid as solid_mod
 from ..data.hullforms import LIVING, ROCK, STRUCT, SYSTEM, VOID, WARM
 from . import theme
+from . import painting
 
 #: The material vocabulary of `models3d/`: green living, cyan engineered,
 #: amber structure, warm radiator, grey rock.
@@ -210,8 +211,11 @@ class ShipPlan(QWidget):
         glow.setColorAt(1.0, QColor(*BACKDROP))
         p.fillRect(rect, glow)
 
+    @painting.safe_paint
     def paintEvent(self, _event) -> None:
         p = QPainter(self)
+        if not painting.alive(self, p):
+            return
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         self._backdrop(p)
 

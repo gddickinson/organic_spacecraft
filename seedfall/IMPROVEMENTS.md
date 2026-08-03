@@ -89,6 +89,27 @@ control in a *pop-out* window.
   flight of every kind — plus the goal checks (body conn, depart, descent
   order, heads-up aids).
 
+## Done — the sixth pass (2026-08-03): the tutorial becomes a curriculum
+
+Play-tested the non-flying half and the seams between the halves, then built
+the teaching layer the game was missing.
+
+- **29 lessons in 10 courses** — each course a scenario a beginner can take
+  on its own (`data/lessons_early.py`, `lessons_late.py`).
+- **`sim/tutorial_watch.py`** — every watcher reads the world against a mark;
+  the six acts that leave no state behind are recorded by the sim function
+  that performs them (`deed`), never by a button.
+- **`ui/academy_panel.py`** — the Academy tab: courses, progress, and
+  "Teach me this", which steps over what you can already fly.
+- **Four manual pages on playing well** — first hour, money, flying,
+  fighting.
+- **A process-killing paint bug**: thirteen widgets painted without
+  `ui/painting.py`'s guard, and one of them aborted the suite (exit 134, zero
+  failures). `painting.alive` + `@painting.safe_paint` now cover them all.
+- **Integration fixes**: local work secures a live hand-flight first; the
+  flight clock is held off the flight deck (and says so) so shopping cannot
+  quietly cost days.
+
 ## Open — defects and debts, in rough value order
 
 1. **Tuning constants without a guard.** The tripwire's last clean sweep

@@ -14,6 +14,7 @@ from ..sim import wayhome as wayhome_sim
 from ..sim import weather as weather_sim
 from ..sim.fieldwork import conclude_expedition
 from . import theme
+from . import painting
 from .widgets import (Bar, Panel, Pill, View, button, label, mono_label, note,
                       spacer)
 
@@ -38,11 +39,14 @@ class ZoneMap(QWidget):
         if 0 <= x < exp_sim.W and 0 <= y < exp_sim.H:
             self.picked.emit(x, y)
 
+    @painting.safe_paint
     def paintEvent(self, _ev):  # noqa: N802
         exp = self.win.game.expedition
         if exp is None:
             return
         p = QPainter(self)
+        if not painting.alive(self, p):
+            return
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), QColor("#060f0d"))
 

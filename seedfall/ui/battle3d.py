@@ -29,6 +29,7 @@ from ..sim import gunfire
 from ..sim import tactical as tac
 from . import render3d, theme
 from .viewport import STARS
+from . import painting
 
 #: Half the field of view. Tighter than the conn's, because an engagement is
 #: something you watch rather than fly.
@@ -134,8 +135,11 @@ class Battle3D(QWidget):
 
     # ── painting ───────────────────────────────────────────────────────────
 
+    @painting.safe_paint
     def paintEvent(self, _event) -> None:
         p = QPainter(self)
+        if not painting.alive(self, p):
+            return
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         w, h = self.width(), self.height()
         p.fillRect(0, 0, w, h, QColor("#04080b"))

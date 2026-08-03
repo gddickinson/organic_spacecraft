@@ -202,6 +202,74 @@ TOPICS = [
            "badly and be followed by another."),
           facts=("endings",), see=("first",)),
 
+    # ── playing it well ───────────────────────────────────────────────────
+    #
+    # The manual above says what each system *is*. These four say what to do
+    # with them, which is a different question and the one a new captain
+    # actually has. The Academy tab beside this one walks the same ground
+    # with your hands on the controls; this is the reading.
+
+    Topic("first-hour", "Your first hour, in order", "",
+          ("Survey the bodies where you start — the sweep is free and it "
+           "costs three days. Take the data to the port and sell it. Buy "
+           "volatiles until the tank is comfortable, sixty tonnes or so. "
+           "Look at the contract board before you leave: work that pays for "
+           "a journey you were making anyway is the cheapest money there is.",
+           "Then pick a direction and go. Nothing in the Verge is on a "
+           "timer that punishes exploring, and the second system you see "
+           "teaches you more than the first one twice.",
+           "If you do only one thing well in the first hour, make it "
+           "surveying. It pays, it feeds the research bench, and it is how "
+           "you learn to read a system at a glance."),
+          see=("survey", "trade", "first")),
+
+    Topic("money", "Making money, and what it is for", "port",
+          ("Three reliable trades, roughly in the order they open to you: "
+           "survey data, which regenerates every time you look at something "
+           "new; freight, which the desk ranks by what the voyage clears "
+           "rather than by the spread; and mining, which is slow, free, and "
+           "never runs out.",
+           "Buying low and selling high works, but prices drift toward each "
+           "port's own equilibrium — so a run stays profitable for a while "
+           "and then quietly stops being. Your register remembers what you "
+           "saw and where; check it before you commit a hold.",
+           "Money is for three things: reaction mass, a better hull, and "
+           "holdings. Holdings are the only one that pays you back while you "
+           "are somewhere else, and a badly chosen one loses money for years "
+           "before it turns."),
+          see=("trade", "contracts", "empire")),
+
+    Topic("flying-well", "Flying her well", "pilot",
+          ("Hold a thruster rather than tapping it: a held burn builds speed "
+           "for as long as your hand is down, and the plumes on the diagram "
+           "show exactly what is firing. The clock runs at a minute a beat, "
+           "and the Time button compresses it when a run is long.",
+           "Watch two numbers on an approach: the closing rate, and the rate "
+           "you are *allowed*. The second is what the computer holds to, and "
+           "flying inside it is the whole of a clean berthing. Alongside "
+           "means at a berth, slowly — arrive fast and both hulls pay.",
+           "The computer will do any of it: hold station, brake to zero, "
+           "close and berth, make orbit, move away, or run for a mark. It is "
+           "the same bar on every flying screen and Manual always takes her "
+           "back — and a held thruster outranks it while your hand is down. "
+           "Use it for the long dull parts and fly the interesting ones."),
+          see=("moving", "instruments", "ship")),
+
+    Topic("fighting-well", "Fighting, and not fighting", "battle",
+          ("The band a fight opens at is the range you flew to, so the "
+           "flying decides the fight before a shot. Close if your guns are "
+           "short-ranged; stay out if they are not. Every mount has an arc, "
+           "and turning to bring one to bear is a real decision.",
+           "You sit in one seat a turn. Directed gunnery shoots markedly "
+           "better than automatic, engineering routes power and patches the "
+           "outermost breach, and the helm decides what will bear next turn "
+           "— so the seat you take is the thing you are best at that turn.",
+           "Heat is the ceiling on everything: guns make it, and a hull over "
+           "its cap cooks. And you do not have to fight. Breaking off and "
+           "talking has real odds, which the screen states before you try; a "
+           "weaponless hull can win on resolve alone."),
+          see=("combat", "crew", "ship")),
+
     Topic("saving", "Saving, keys and the rest", "",
           ("The chronicle saves itself whenever the calendar moves. There is "
            "one save; there is no scumming a bad roll.",

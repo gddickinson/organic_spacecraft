@@ -33,12 +33,18 @@ class HelpView(View):
     def build(self) -> None:
         self.head("Help", "How the Verge works, and what you can change "
                           "about how it is shown to you.")
-        tabs = TabBar([("manual", "Manual"), ("options", "Options"),
-                       ("keys", "Keys")], self.tab)
+        tabs = TabBar([("manual", "Manual"), ("academy", "Academy"),
+                       ("options", "Options"), ("keys", "Keys")], self.tab)
         tabs.changed.connect(self._switch)
         self.col.addWidget(tabs)
         {"options": self._options, "keys": self._keys,
+         "academy": self._academy,
          "manual": self._manual}[self.tab]()
+
+    def _academy(self) -> None:
+        """The curriculum, and a way into any course — `ui/academy_panel`."""
+        from .academy_panel import build as academy
+        academy(self)
 
     def _switch(self, tid: str) -> None:
         self.tab = tid

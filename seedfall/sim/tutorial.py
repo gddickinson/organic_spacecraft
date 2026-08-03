@@ -20,166 +20,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..core.save import register
-from ..data.lessons import LESSONS, LESSONS_BY_ID
-
-WATCHERS = {}
-
-#: Watchers of a different kind: *is this already true?* rather than *has it
-#: happened since the step opened?*
-#:
-#: **The tutorial can be started from the Help screen at any time**, which is what
-#: makes the distinction matter. `WATCHERS` all compare against a `mark` taken
-#: when the step opened, so a captain who has surveyed thirty bodies and starts
-#: the tutorial in year two is told to "survey one of the bodies here" and has to
-#: go and survey another. Every step demanded a fresh action for something long
-#: since learned. `Lesson.skip_if` was declared for this from the day lessons were
-#: written, was set on **no lesson at all**, and was read by nothing.
-#:
-#: These take only the game: "already true" is not relative to anything.
-SKIPS = {}
-
-
-def watcher(name: str):
-    def keep(fn):
-        WATCHERS[name] = fn
-        return fn
-    return keep
-
-
-def skipper(name: str):
-    def keep(fn):
-        SKIPS[name] = fn
-        return fn
-    return keep
-
-
-# ── the mark: what the world looked like when this lesson opened ───────────
-
-def mark_of(game) -> dict:
-    """A snapshot of everything any watcher compares against."""
-    return {
-        "surveyed": sum(1 for s in game.galaxy.systems
-                        for b in s.bodies if b.surveyed),
-        "credits": round(game.credits),
-        "volatiles": round(game.ship.cargo.get("volatiles", 0), 1),
-        "cargo": round(sum(game.ship.cargo.values()), 1),
-        "location": game.location_id,
-        "orbit": game.orbit_body or "",
-        "day": game.day,
-        "contracts": len([c for c in game.contracts if c.accepted]),
-        "register": len(game.register),
-        "fitted": len(game.ship.fitted),
-        "flown": round(float(getattr(game, "conn_seconds", 0.0)), 1),
-        "seen": list(_seen(game)),
-    }
-
-
-def _seen(game) -> set:
-    """Screens the player has opened since the tutorial began."""
-    if getattr(game, "tutorial", None) is None:
-        return set()
-    return set(game.tutorial.seen)
-
-
-def saw(game, screen: str) -> None:
-    """Called by the window whenever a screen is opened."""
-    lesson = held(game)
-    if lesson is None or lesson.over:
-        return
-    if screen not in lesson.seen:
-        lesson.seen.append(screen)
-
-
-# ── watchers ───────────────────────────────────────────────────────────────
-
-@watcher("surveyed_one")
-def _surveyed(game, mark) -> bool:
-    return sum(1 for s in game.galaxy.systems
-               for b in s.bodies if b.surveyed) > mark["surveyed"]
-
-
-@watcher("saw_market")
-def _saw_market(game, mark) -> bool:
-    # Opening a port writes its prices into the register, so this is state
-    # rather than a claim about which button was pressed.
-    return len(game.register) > mark["register"] or "port" in _seen(game)
-
-
-@watcher("sold_something")
-def _sold(game, mark) -> bool:
-    return (round(game.credits) > mark["credits"]
-            and round(sum(game.ship.cargo.values()), 1) < mark["cargo"])
-
-
-@watcher("bought_fuel")
-def _bought_fuel(game, mark) -> bool:
-    return round(game.ship.cargo.get("volatiles", 0), 1) > mark["volatiles"]
-
-
-@watcher("flew_conn")
-def _flew_conn(game, mark) -> bool:
-    # Five minutes at the conn since the lesson opened. `game.conn_seconds`
-    # is bumped by `berthing.charge_flown` — the one door every flying
-    # screen bills time through — so this is time genuinely flown, not a
-    # screen merely opened. The counter is ephemeral (the `Conn` itself is
-    # transient), which only means a reload mid-lesson starts the five
-    # minutes over.
-    return (float(getattr(game, "conn_seconds", 0.0))
-            >= float(mark.get("flown", 0.0)) + 300.0)
-
-
-@watcher("moved")
-def _moved(game, mark) -> bool:
-    return (game.location_id != mark["location"]
-            or (game.orbit_body or "") != mark["orbit"])
-
-
-@watcher("took_contract")
-def _took_contract(game, mark) -> bool:
-    return len([c for c in game.contracts if c.accepted]) > mark["contracts"]
-
-
-@watcher("saw_plans")
-def _saw_plans(game, mark) -> bool:
-    return "ship:plans" in _seen(game)
-
-
-@watcher("saw_diplomacy")
-def _saw_diplomacy(game, mark) -> bool:
-    return "diplomacy" in _seen(game)
-
-
-# ── already true ───────────────────────────────────────────────────────────
-#
-# Four of the eight lessons, and **only four**, because the chronicle keeps
-# *state* and these questions are about *history*. It records that a body is
-# surveyed, that a port's prices are in the register, which systems have been
-# visited and which contracts are accepted — so those four can be asked. It keeps
-# no record that cargo was ever sold, that volatiles were ever bought rather than
-# mined, or that the Ship and Diplomacy screens were ever opened, and inventing
-# one to feed a tutorial would be the tail wagging the dog. Those four steps ask
-# again, which for a step that takes one click is a fair price.
-
-@skipper("have_surveyed")
-def _have_surveyed(game) -> bool:
-    return any(b.surveyed for s in game.galaxy.systems for b in s.bodies)
-
-
-@skipper("have_prices")
-def _have_prices(game) -> bool:
-    """Prices written down somewhere. Standing in a market is what does it."""
-    return bool(game.register)
-
-
-@skipper("have_travelled")
-def _have_travelled(game) -> bool:
-    return len(game.discovered.get("systems", ())) > 1
-
-
-@skipper("have_worked")
-def _have_worked(game) -> bool:
-    return any(c.accepted for c in game.contracts)
-
+from ..data.lessons import (CHAPTERS, CHAPTERS_BY_ID, LESSONS,
+                            LESSONS_BY_ID, first_step_of, lessons_in)
+# The watchers and the mark live next door; re-exported because eight
+# checks and the Academy page read them through this module.
+from .tutorial_watch import (SKIPS, WATCHERS, deed, did,  # noqa: F401
+                            mark_of, skipper, watcher)
 
 # ── the thing on the Game ──────────────────────────────────────────────────
 
@@ -198,6 +44,20 @@ class Tutorial:
     #: `state` so the bar can say so — a tutorial that silently started at step
     #: five would look broken.
     known: int = 0
+
+
+def saw(game, screen: str) -> None:
+    """Called by the window whenever a screen is opened.
+
+    The only thing the tutorial learns from a *click* rather than from the
+    world, and it is deliberately weak: it records that a screen was opened,
+    which is all a "go and look at this" lesson asks for.
+    """
+    lesson = held(game)
+    if lesson is None or lesson.over:
+        return
+    if screen not in lesson.seen:
+        lesson.seen.append(screen)
 
 
 def held(game):
@@ -311,6 +171,56 @@ def acknowledge(game) -> bool:
         return True
     _past_known(game)
     return True
+
+
+def jump_to(game, chapter_id: str) -> bool:
+    """Start the tutorial at a course, or move a running one to it.
+
+    What the Academy's "teach me this" button does. A captain who wants to
+    learn one thing — how a crossing works, how a fight opens — should not
+    have to walk twenty lessons to reach it, and a curriculum you can only
+    take from the beginning is one most players abandon at lesson three.
+    """
+    if chapter_id not in CHAPTERS_BY_ID:
+        return False
+    lesson = held(game)
+    if lesson is None or lesson.over:
+        begin(game)
+        lesson = held(game)
+    lesson.step = first_step_of(chapter_id)
+    lesson.over = False
+    lesson.skipped = False
+    lesson.explaining = False
+    lesson.known = 0
+    lesson.mark = mark_of(game)
+    # And step over anything already earned at the new place, exactly as
+    # opening the tutorial does — a course you can demonstrably already fly
+    # should not be re-taught because you jumped to it.
+    _past_known(game)
+    return True
+
+
+def progress(game) -> list[dict]:
+    """The whole curriculum with what has been done, for the Academy page.
+
+    One row per chapter: its lessons, and how many of them lie behind the
+    step the captain has reached. A tutorial you cannot see the shape of is
+    one you cannot choose your way around.
+    """
+    lesson = held(game)
+    at = lesson.step if lesson is not None else 0
+    done_all = bool(lesson is not None and lesson.over and not lesson.skipped)
+    out = []
+    for chapter in CHAPTERS:
+        rows = lessons_in(chapter.id)
+        first = first_step_of(chapter.id)
+        done = len(rows) if done_all else max(
+            0, min(len(rows), at - first))
+        out.append({
+            "chapter": chapter, "lessons": rows, "done": done,
+            "of": len(rows), "here": bool(rows) and first <= at < first + len(rows),
+        })
+    return out
 
 
 def state(game) -> dict:

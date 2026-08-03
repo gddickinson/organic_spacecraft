@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import QSizePolicy, QWidget
 
 from ..sim import firing, tactical as tac
 from . import theme
+from . import painting
 
 
 class TacticalPlot(QWidget):
@@ -48,9 +49,12 @@ class TacticalPlot(QWidget):
         return QPointF(self.SIZE / 2 + (body.x - origin.x) * s,
                        self.SIZE / 2 + (body.y - origin.y) * s)
 
+    @painting.safe_paint
     def paintEvent(self, _ev):  # noqa: N802
         b = self.b
         p = QPainter(self)
+        if not painting.alive(self, p):
+            return
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), QColor("#060f0d"))
         s = self._scale()

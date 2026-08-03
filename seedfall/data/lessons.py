@@ -1,4 +1,4 @@
-"""The tutorial, as a sequence of things to actually do.
+"""The tutorial, as a curriculum: ten chapters, twenty-nine things to do.
 
 Not a wall of text and not a script that assumes you complied. Each lesson
 names one thing, and `sim/tutorial.py` watches the game until that thing has
@@ -9,114 +9,81 @@ Each lesson carries what to do, where to do it, and — the part a tutorial
 usually skips — **what just happened and why it matters**, shown after rather
 than before, when there is something to point at.
 
-Every `watch` here must have a matching watcher in `sim/tutorial.py`, and a
-check fails if one does not.
+**Chapters are scenarios.** A captain who wants to learn one thing — how to
+get alongside, how a crossing works, how a fight opens — can take that course
+on its own from the Academy tab under Help, rather than starting at lesson
+one. The order here is the order a new captain meets the game, and running it
+straight through is a guided first career.
+
+Every `watch` here must have a matching watcher in `sim/tutorial_watch.py`,
+and a check fails if one does not. The lists live in `lessons_early.py` and
+`lessons_late.py`; this assembles them, the way `data/chassis.py` assembles
+the hull tables.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from .lesson_types import Chapter, Lesson  # noqa: F401  (re-exported)
+from .lessons_early import EARLY
+from .lessons_late import LATE
 
-
-@dataclass(frozen=True)
-class Lesson:
-    id: str
-    title: str
-    ask: str                 # the thing to do
-    screen: str              # where it is done
-    watch: str               # which watcher decides it has happened
-    then: str                # what just happened, and why it matters
-    skip_if: str = ""        # a watcher that means this is already true
-
-
-LESSONS = [
-    Lesson("survey", "Look at something",
-           "Open the System screen and survey one of the bodies here.",
-           "system", "surveyed_one",
-           "That is the loop the whole game hangs off. A survey tells you what "
-           "is on a body — ore, ice, biomes, lifeforms, anomalies, sometimes a "
-           "buried alien site — and it puts evidence on the research bench at "
-           "the same time. Surveying every body in a system completes a chart, "
-           "which is a thing you can sell.",
-           skip_if="have_surveyed"),
-
-    Lesson("port", "Find out what things are worth",
-           "Open the Port screen. You do not have to buy anything yet.",
-           "port", "saw_market",
-           "Prices drift daily toward each port's own equilibrium, so a "
-           "profitable run stays profitable for a while and then quietly stops "
-           "being. Every price you look at is written into your register, and "
-           "the freight desk on that screen ranks runs using it — by what the "
-           "voyage clears, not by the spread.",
-           skip_if="have_prices"),
-
-    Lesson("sell", "Sell what you have learned",
-           "Sell your survey data at the port. It is the first money most "
-           "captains make.",
-           "port", "sold_something",
-           "Survey data is a commodity like any other and it regenerates every "
-           "time you look at something new. A completed chart is worth more "
-           "than the sum of its bodies, and different powers pay for different "
-           "things — the Codex says which."),
-
-    Lesson("fuel", "Buy reaction mass",
-           "Buy volatiles at the port. Sixty tonnes is a comfortable tank.",
-           "port", "bought_fuel",
-           "Volatiles are reaction mass. You can also cut them out of ice with "
-           "the mining rig, anywhere, for free but slowly — which is why an "
-           "empty tank is never the end of a chronicle, only a delay."),
-
-    Lesson("conn", "Take the ship's wheel",
-           "Open the Pilot screen, press Run clock, and fly her for five "
-           "minutes — hold a thruster button (or the W/A/S/D, R/F keys), or "
-           "lay a course with Fly at and let the computer run for it.",
-           "pilot", "flew_conn",
-           "That was the conn — the same ship every flying window shows. "
-           "The clock is universal: the HUD chip says it is running from "
-           "any screen, and time compression is on the Time button. A held "
-           "thruster burns minute after minute; the computer will hold "
-           "station, brake to zero, run for a mark or close and berth; and "
-           "every tonne and minute was billed as it was flown."),
-
-    Lesson("helm", "Go somewhere",
-           "Open the Helm and fly to another body, or jump from the Sector "
-           "chart to another star.",
-           "helm", "moved",
-           "A jump drops you at the system edge, not alongside anything, and "
-           "bodies keep moving on their orbits while you fly. Four burn "
-           "profiles trade reaction mass against days, and coasting is always "
-           "free. A hard burn arrives hot, and over the cap the hull cooks.",
-           skip_if="have_travelled"),
-
-    Lesson("work", "Take on some work",
-           "Accept a contract from the board on the Port screen.",
-           "port", "took_contract",
-           "Contracts complete the moment their terms are met rather than when "
-           "you remember to hand them in. Taking a power's work is a position, "
-           "not an errand: finishing it costs you standing with everyone that "
-           "power is at odds with, in proportion to how bad the rift is.",
-           skip_if="have_worked"),
-
-    Lesson("ship", "Look at what you are flying",
-           "Open the Ship screen and switch to the Plans tab.",
-           "ship", "saw_plans",
-           "The model is the fitted list — refit and it changes. Click any "
-           "piece to read it. The hull has six layers and damage lands "
-           "outermost first; the one marked critical is the pressure vessel, "
-           "and below it there is only crew."),
-
-    Lesson("powers", "See who is who",
-           "Open the Diplomacy screen.",
-           "diplomacy", "saw_diplomacy",
-           "Two axes, not one: your standing with each power, and how the "
-           "powers regard each other. Tribute and relief move the first; only "
-           "brokering moves the second, and brokering needs both parties to "
-           "think well of you already. Every overture says what it will move "
-           "before you commit."),
+#: The ten courses, in the order a career meets them.
+CHAPTERS = [
+    Chapter("first-light", "First light",
+            "The screens, the ship, and where to look things up.",
+            "Find anything; read a hull; open the manual at the right page."),
+    Chapter("the-wheel", "The wheel",
+            "Flying her yourself, and handing her to the computer.",
+            "Fly by hand or by computer, and get alongside a quay."),
+    Chapter("bread-and-salt", "Bread and salt",
+            "Prices, cargo, and the first money most captains make.",
+            "Read a market, sell what you know, and keep a tank full."),
+    Chapter("looking-closely", "Looking closely",
+            "Four ways of looking, and the bench that turns them into work.",
+            "Choose a survey method on purpose and finish a technology."),
+    Chapter("the-long-crossing", "The long crossing",
+            "Burns, watches, and the two clocks a crossing runs on.",
+            "Plot a transfer, stand its watches, and jump to a new star."),
+    Chapter("rock-and-ice", "Rock and ice",
+            "Taking things out of a system: seams, trenches, and the ground.",
+            "Mine a seam, work a dig, and bring a landing party home."),
+    Chapter("iron", "Iron",
+            "What a fight is, and how not to have one.",
+            "Open a fight at a band you chose, and know when to talk."),
+    Chapter("roots", "Roots",
+            "Holdings: the only thing that pays you while you are away.",
+            "Plant a colony and read what it yields against what it costs."),
+    Chapter("powers", "Powers",
+            "Six powers, two axes of opinion, and what standing buys.",
+            "Move a power's opinion of you, and know what it costs elsewhere."),
+    Chapter("the-long-game", "The long game",
+            "Yards, refits, contracts, and the five ways this ends.",
+            "Design and change a hull, take work, and read the record."),
 ]
+
+CHAPTERS_BY_ID = {c.id: c for c in CHAPTERS}
+
+#: Every lesson, in teaching order.
+LESSONS = list(EARLY) + list(LATE)
+
 LESSONS_BY_ID = {lesson.id: lesson for lesson in LESSONS}
 
-#: What the bar says when there is nothing left to teach.
-DONE = ("That is the whole of it. Everything else the game does is explained "
-        "on the screen that does it, and the Help screen has the rest — press "
-        "the Help key from anywhere and it opens at wherever you are.")
+
+def lessons_in(chapter_id: str) -> list:
+    """The lessons of one course, in order."""
+    return [l for l in LESSONS if l.chapter == chapter_id]
+
+
+def first_step_of(chapter_id: str) -> int:
+    """Where a chapter starts, as an index into `LESSONS`.
+
+    What the Academy's "teach me this" button jumps the tutorial to.
+    """
+    for index, lesson in enumerate(LESSONS):
+        if lesson.chapter == chapter_id:
+            return index
+    return 0
+
+
+def chapter_of(lesson) -> Chapter | None:
+    return CHAPTERS_BY_ID.get(getattr(lesson, "chapter", ""))

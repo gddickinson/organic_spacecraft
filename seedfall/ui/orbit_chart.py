@@ -32,6 +32,7 @@ from ..sim import flight
 from ..sim import traffic as traffic_sim
 from ..world.planets import BODY_KINDS
 from . import theme
+from . import painting
 
 
 #: How far a quay's mark sits from the body it orbits, in pixels.
@@ -254,9 +255,12 @@ class OrbitChart(QWidget):
         grown = ink.adjusted(-pad, -pad, pad, pad)
         return not any(grown.intersects(other) for other in self._labels)
 
+    @painting.safe_paint
     def paintEvent(self, _ev):  # noqa: N802
         g = self.win.game
         p = QPainter(self)
+        if not painting.alive(self, p):
+            return
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), QColor("#060f0d"))
         s, cx, cy = self._scale()

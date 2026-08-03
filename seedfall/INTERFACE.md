@@ -2872,6 +2872,64 @@ body is surveyed; opening fire from the bridge, the clock stopping the
 instant the fight begins, and the gunner's and tactical stations painting
 through it.
 
+### The sixth pass: a curriculum, not a nag bar
+
+The tutorial was nine lessons in a flat list — enough to stop a new captain
+drowning, not enough to teach the game. It is **twenty-nine lessons in ten
+courses** now, and the courses are scenarios: *First light* (the screens and
+the ship), *The wheel* (flying by hand and by computer, and getting
+alongside), *Bread and salt* (prices, selling, fuel), *Looking closely* (the
+four ways of surveying, and the bench), *The long crossing* (burns, watches,
+a jump), *Rock and ice* (a seam, a trench, a landing party), *Iron* (marking
+a hull, and opening a fight at a band you chose), *Roots* (a colony, and
+reading what it costs), *Powers* (the two axes of opinion), and *The long
+game* (a yard, a refit, work, and the record).
+
+**The rule that shaped the first nine still holds: it must not take your word
+for it.** Every lesson names a watcher in `sim/tutorial_watch.py` that reads
+the *world* against a mark taken when the lesson opened. Where a deed leaves
+state behind, the watcher reads the state — a body newly surveyed, a quay
+stood at, a colony planted, a technology unlocked, a power warmer than it
+was. Where it leaves none — flying under the computer, standing a watch,
+working a seam or a trench, putting a party down, opening fire — the *sim
+function that performs the act* records one flag through `tutorial_watch.deed`,
+never a screen, so a button that refuses records nothing.
+
+**`ui/academy_panel.py` makes it a menu.** A curriculum you can only take
+from the beginning is one most players abandon at lesson three, so the
+Academy tab under Help lists every course, what it teaches, how much of it
+you have done, and a *Teach me this* button — `tutorial.jump_to`, which also
+steps over anything you can demonstrably already fly. And the manual gained
+four pages about playing *well* rather than about what things are: your
+first hour in order, making money, flying her well, and fighting (or not).
+
+Three checks changed shape with the curriculum and none lost its teeth: the
+veteran check now asserts the orientation course is stepped over on a
+demonstrable career (`have_played` wants prices, a survey *and* a second
+star, together); the settling-in bracket and the mark check jump to the
+course they are about; and `tests/test_tutorial` performs all twenty-nine
+lessons in order, which is what stops a lesson being added that nothing can
+actually do.
+
+### And the crash that only a full run could find
+
+The suite came back **exit 134 with zero failures** — 171 suites green and
+the process dead. `ui/painting.py` was written for exactly this ("a paint
+that cannot begin, or dies mid-frame, is recorded in `MISSES` rather than
+killing the process from inside `paintEvent`") and **only the widgets that
+inherit `Painted` were ever protected**: thirteen others build their own
+`QPainter` and draw. Late in a long run the approach view's painter was live
+at the top of a frame and invalid by the time it drew a label, and the
+`TypeError` PyQt raises for a dead receiver escaped `paintEvent` and took Qt
+down — reported a hundred lines from the cause, as an argument-overload
+error listing seven `drawText` signatures.
+
+Both halves of the guard are general now: `painting.alive(widget, painter)`
+for the painter that never began, and `@painting.safe_paint` for the frame
+that dies part-way. All thirteen raw painters carry them. A picture that did
+not happen belongs in `MISSES`, where the checks that care can read it, and
+nowhere near the process exit.
+
 ## Running
 
 ```
@@ -2927,7 +2985,12 @@ seedfall/
 │   ├── personas.py     voices: register, tics, and offline sentence frames
 │   ├── screens.py      the rail and the key for each screen — read by both layers
 │   ├── help.py         the manual: prose, and which facts each topic generates
-│   ├── lessons.py      the tutorial's eight steps, and what each one watches for
+│   ├── lesson_types.py the shapes: a Lesson, and the Chapter it sits in
+│   ├── lessons_early.py chapters I-V: finding your way, flying, money,
+│   │                   science, distance
+│   ├── lessons_late.py  chapters VI-X: working a system, fighting,
+│   │                   holdings, powers, a career
+│   ├── lessons.py      the curriculum: ten courses, twenty-nine lessons
 │   ├── epochs.py       what the Verge becomes after each of the ten endings
 │   ├── scenarios.py    40 situations an epoch puts in front of you
 │   ├── chassis.py      the hull registry — assembles and re-exports the rest
@@ -3041,7 +3104,11 @@ seedfall/
 │   ├── voice.py        speech, written by the game or by a model
 │   ├── manual.py       resolves the manual's facts from the tables themselves
 │   ├── options.py      player settings, every one of which does something
-│   ├── tutorial.py     watches the game until the thing has actually been done
+│   ├── tutorial.py     the curriculum's state machine: which lesson, what
+│   │                   has been stepped over, and jumping to a course
+│   ├── tutorial_watch.py what it watches: the mark, every watcher, and
+│   │                   `deed` — how a sim function records an act that
+│   │                   leaves no state behind
 │   ├── fieldwork.py    everything done off the ship — digs, analysis, landings
 │   ├── assessment.py   reading an engagement: who wins, why, what to do
 │   ├── chains.py       commissions: work that escalates and closes doors
