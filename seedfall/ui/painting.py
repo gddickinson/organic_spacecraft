@@ -76,9 +76,32 @@ def safe_paint(fn):
     def wrapper(self, event):
         try:
             return fn(self, event)
-        except (RuntimeError, TypeError) as err:
+        # **`ValueError` joined the list the hard way.** The pair caught here
+        # were the two a dying painter raised; then legs gained a third
+        # number, one chart still unpacked two, and `ValueError` walked
+        # straight out of `paintEvent` and took the process down — exit 134
+        # again, with 151 of 186 suites green and *nothing failing*, which is
+        # the exact shape of the fault this decorator exists to stop. The
+        # list was the accident: what belongs here is "a picture that did not
+        # happen", not "the two exceptions seen so far".
+        except (RuntimeError, TypeError, ValueError, AttributeError,
+                IndexError, KeyError) as err:
             MISSES.append((type(self).__name__, self.width(), self.height(),
                            repr(err)[:120]))
+            # **Let the painter go now, not when the collector reaches it.**
+            # `paintEvent` builds `QPainter(self)` as a local, and a raised
+            # exception keeps that local alive in the frames its traceback
+            # holds — so a swallowed error can leave a painter still active
+            # on the widget. Dropping the traceback frees those frames at
+            # once, ending the painter through its own destructor.
+            #
+            # Honest about what this did *not* buy: it was written against a
+            # segfault under concurrent runs ("Cannot destroy paint device
+            # that is being painted", exit 139, no traceback and nothing
+            # failing) and **the crash survived it** — 1 in 15 before, 1 in
+            # 15 after. So this is hygiene rather than the cure, and the
+            # cure is still open. See IMPROVEMENTS.md.
+            err.__traceback__ = None
     wrapper.__name__ = getattr(fn, "__name__", "paintEvent")
     wrapper.__doc__ = fn.__doc__
     return wrapper

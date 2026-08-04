@@ -26,10 +26,62 @@ two different things is a bug waiting to be written.)
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
+import zlib
+
 from ..data.factions import FACTIONS_BY_ID
+from . import elements
 from . import flight
+
+#: Kilometres in an astronomical unit.
+KM_PER_AU = 149_597_870.7
+
+#: How far above its world a quay holds station, as a share of the world's
+#: radius, and the least it may ever be.
+#:
+#: **A quay used to be at its body's exact coordinates**, which is the centre
+#: of the planet — inside it — and had two consequences a player reported
+#: together. The range to a quay from the world it orbits was *zero*, so
+#: "run for Fleet Hub" told the flight computer it had already arrived and
+#: nothing moved; and a target at zero range subtends 180°, so the thing you
+#: were flying at filled every camera at once, the same distance in every
+#: direction. Three places already worked around it — the orrery seats quays
+#: apart on screen, `sim/sky` lifts a co-located sight 400 km so it does not
+#: stack, and this class's own docstring admitted it — while the sim had no
+#: answer at all. That is the two-doors fault this project keeps paying for.
+BERTH_ALTITUDE = 0.35
+BERTH_MIN_KM = 400.0
+
+#: How long a quay takes to go round, in days — slow, and for the reason
+#: `traffic.STATION_DRIFT_LO` gives at length: a free orbit this low is
+#: kilometres a second, a conn closes at tens of metres a second, and a berth
+#: nobody can reach is worse than a berth in the wrong place. A quay holds
+#: station under power, like every other working hull near a world.
+BERTH_DAYS = 40.0
+
+
+def berth_orbit(place, body, day: float) -> tuple:
+    """Where this quay sits relative to its body, in AU.
+
+    Derived from the quay's own id, never stored — the discipline
+    `sim/traffic` uses for a hull's station and `sim/elements` for a body's
+    orbit, so two screens asking about one quay get one answer and a saved
+    chronicle grows the place without a migration.
+    """
+    seed = zlib.crc32(str(getattr(place, "id", "")).encode())
+    radius_km = max(1.0, float(getattr(body, "radius_km", 0) or 0.0))
+    span_km = max(BERTH_MIN_KM, radius_km * BERTH_ALTITUDE)
+    span_km *= 1.0 + ((seed >> 17) % 100) / 250.0     # no two quays level
+    orbit = elements.Elements(
+        a=span_km / KM_PER_AU, e=0.0,
+        # Half a turn of inclination, so quays sit round a world rather than
+        # in a ring on one plane — and about half of them the other way.
+        incl=((seed >> 22) % 1000) / 1000.0 * math.pi,
+        node=((seed >> 2) % 3600) / 3600.0 * math.tau,
+        peri=0.0, m0=(seed % 3600) / 3600.0 * math.tau)
+    return elements.at(orbit, day, BERTH_DAYS)
 
 #: What a berth can offer, in the words a captain would use.
 SERVICE_NAMES = {
@@ -53,8 +105,8 @@ class Anchorage:
     name: str
     #: quay | hub | holding
     kind: str
-    #: The body it orbits. Its position *is* that body's position, which is
-    #: why nothing in `sim/flight` needs a special case for it.
+    #: The body it orbits. Its position used to *be* that body's position —
+    #: see `berth_orbit` for what that cost and why it is a real place now.
     body_id: str
     body_index: int
     what: str = ""
@@ -95,7 +147,7 @@ def gate_body(system):
         return None, -1
     from . import flight
     index = max(range(len(system.bodies)),
-                key=lambda i: flight.orbit_radius(system.bodies[i]))
+                key=lambda i: flight.semi_major(system.bodies[i]))
     return system.bodies[index], index
 
 
@@ -232,8 +284,9 @@ def reach_to(game, anchorage) -> float:
     """How far the hull is from an anchorage, in AU."""
     body = game.system.bodies[anchorage.body_index]
     aim = flight.intercept(game, body, "standard")["aim"]
-    ship = flight.ship_position(game)
-    return ((aim[0] - ship[0]) ** 2 + (aim[1] - ship[1]) ** 2) ** 0.5
+    # All three: a body on an inclined orbit is genuinely above or below
+    # you, and a range worked in two of them quietly reads short.
+    return math.dist(aim, flight.ship_position(game))
 
 
 def quote(game, anchorage, profile: str = "standard") -> dict:

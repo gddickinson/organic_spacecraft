@@ -102,7 +102,7 @@ def contacts(game, system=None) -> list[Contact]:
             id=f"body:{index}", name=body.name, kind="body",
             tint=getattr(body, "tint", "") or "chloro",
             detail=f"{body.kind.title()} · orbit "
-                   f"{flight.orbit_radius(body):.2f} AU",
+                   f"{flight.semi_major(body):.2f} AU",
             body_index=index))
     for place in anchorage_sim.in_system(game, system):
         # An anchorage's position *is* its body's, which is why `flight`
@@ -141,21 +141,38 @@ def at(game, contact: Contact, day: float, system=None) -> tuple[float, float]:
     """
     system = _system(game, system)
     if contact.kind == "star":
-        return 0.0, 0.0
+        return 0.0, 0.0, 0.0
     if contact.at_xy is not None:
-        return contact.at_xy
+        # A point a navigator named by clicking the chart. A click picks a
+        # place on the plane and cannot pick a height, so this is padded
+        # rather than stored in three — see `plot_canvas.from_screen`.
+        return (float(contact.at_xy[0]), float(contact.at_xy[1]),
+                float(contact.at_xy[2]) if len(contact.at_xy) > 2 else 0.0)
     if contact.kind in ("body", "anchorage") and contact.body_index is not None:
-        x, y = flight.position(system.bodies[contact.body_index], day,
-                               mu_of(system))
+        at = flight.position(system.bodies[contact.body_index], day,
+                             mu_of(system))
         if contact.kind == "anchorage":
-            dx, dy = knock_sim.offset(game, contact.id, day)
-            return x + dx, y + dy
-        return x, y
+            # A quay has a place of its own in orbit of its world — see
+            # `anchorage.berth_orbit`. It used to be *at* the body, which put
+            # it at the centre of a planet and made the range to it zero.
+            from . import anchorage as anchorage_sim
+            # A contact's id wears a `quay:` prefix and the anchorage's does
+            # not, so the join is on the tail.
+            want = str(contact.id).split(":", 1)[-1]
+            place = next((a for a in anchorage_sim.in_system(game)
+                          if a.id == want), None)
+            body = system.bodies[contact.body_index]
+            berth = (anchorage_sim.berth_orbit(place, body, day)
+                     if place is not None else (0.0, 0.0, 0.0))
+            return tuple(a + b + d for a, b, d in
+                         zip(at, berth,
+                             knock_sim.offset(game, contact.id, day)))
+        return at
     if contact.kind == "hull":
-        x, y = _hull_at(game, contact, day, system)
-        dx, dy = knock_sim.offset(game, contact.id, day)
-        return x + dx, y + dy
-    return 0.0, 0.0
+        at = _hull_at(game, contact, day, system)
+        return tuple(a + d for a, d in
+                     zip(at, knock_sim.offset(game, contact.id, day)))
+    return 0.0, 0.0, 0.0
 
 
 def _hull_at(game, contact: Contact, day: float, system):
@@ -268,7 +285,7 @@ def forecast(game, contact: Contact, days: float = HORIZON, steps: int = 30,
 def _risk(game, burn, au: float, start, target) -> float:
     """The same sum `flight.intercept` quotes, so the two cannot drift apart."""
     return (burn.risk + min(flight.LONG_LEG_CAP, au * flight.PER_AU)
-            + flight._heat_risk(*start, *target) + flight.hot_risk(game))
+            + flight._heat_risk(start, target) + flight.hot_risk(game))
 
 
 def solve(game, contact: Contact, burn_id: str = "standard",
@@ -300,7 +317,7 @@ def solve(game, contact: Contact, burn_id: str = "standard",
         days = 1.0
         for _pass in range(8):
             target = at(game, contact, game.day + days, system)
-            _legs, au = flight.route(*start, *target)
+            _legs, au = flight.route(start, target)
             fresh, _fuel = flight._leg(au, burn, speed)
             if abs(fresh - days) <= 0.5:
                 days = fresh
@@ -311,7 +328,7 @@ def solve(game, contact: Contact, burn_id: str = "standard",
         arrive = max(game.day, float(arrive_day))
 
     target = at(game, contact, arrive, system)
-    legs, au = flight.route(*start, *target)
+    legs, au = flight.route(start, target)
     need_days, fuel = flight._leg(au, burn, speed)
     available = arrive - game.day
     feasible = need_days <= available + 1e-6

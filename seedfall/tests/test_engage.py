@@ -173,9 +173,19 @@ def run(suite: Suite) -> None:
         # hull holding station a place of its own now, so there is a range.
         game, conn = _flying()
         hull = next(x for x in track.contacts(game) if x.kind == "hull")
+        # **Toward it, not along `+x`.** This used to fly the hull down the
+        # x axis and assume that closed the range, which held only because
+        # every hull holding station sat at a fixed offset in one shared
+        # plane. Hulls keep their own circuits at their own tilts now, so
+        # "toward" is a direction that has to be asked for — which is what
+        # the claim was always about.
+        start = list(conn.pos)
+        aim = freeflight.toward(game, conn, hull)
+        span = math.dist(aim, (0.0, 0.0, 0.0))
+        unit = [c / span for c in aim]
         seen = {}
         for km in (0, 2000, 4000):
-            conn.pos = [float(km), 0.0, 0.0]
+            conn.pos = [s + u * km for s, u in zip(start, unit)]
             seen[km] = (engage.range_km(game, conn, hull),
                         engage.band_for(game, conn, hull))
         assert seen[2000][0] < seen[0][0], (
@@ -208,8 +218,8 @@ def run(suite: Suite) -> None:
         for h in holding:
             body = game.system.bodies[h.from_body]
             at = flight.position(body, game.day, mu_of(game.system))
-            x, y = traffic.position(game, h)
-            offs.append(math.dist(at, (x, y)) * freeflight.KM_PER_AU)
+            offs.append(math.dist(at, traffic.position(game, h))
+                        * freeflight.KM_PER_AU)
         assert all(o > 100.0 for o in offs), (
             f"a hull is sitting exactly on its body: {offs}")
         assert all(o <= traffic.STATION_KM for o in offs), (

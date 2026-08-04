@@ -58,9 +58,8 @@ DAY_SECONDS = 86_400.0
 
 def reach_to(game, contact) -> float:
     """How far the ship is from a contact right now, in km."""
-    sx, sy = flight.ship_position(game)
-    x, y = track_sim.at(game, contact, game.day)
-    return math.hypot(x - sx, y - sy) * KM_PER_AU
+    return math.dist(flight.ship_position(game),
+                     track_sim.at(game, contact, game.day)) * KM_PER_AU
 
 
 def can_conn(game, contact) -> tuple[bool, str]:

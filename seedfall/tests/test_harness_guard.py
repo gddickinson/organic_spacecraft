@@ -131,7 +131,13 @@ def run(suite: Suite) -> None:
         # alone because a narrower entry sat ninety lines below the real one.
         import ast
         import collections
-        tree = ast.parse(pathlib.Path(tripwire.__file__).read_text())
+        # Parsed where the table is *defined*, not where it is used: `KIN`
+        # moved to `tests/tripwire_kin.py` when the tool around it hit the
+        # length ceiling, and reading `tripwire.py` would find an import and
+        # conclude the table was empty — which is a check that passes by
+        # seeing nothing, the worst way for one to fail.
+        from . import tripwire_kin
+        tree = ast.parse(pathlib.Path(tripwire_kin.__file__).read_text())
         keys = []
         for node in ast.walk(tree):
             if isinstance(node, ast.Assign) and \

@@ -61,7 +61,7 @@ def _parked_deep(seed: str):
     game = new_game(seed)
     game.ship.cargo["volatiles"] = 9999
     inner = min(range(len(game.system.bodies)),
-                key=lambda i: flight.orbit_radius(game.system.bodies[i]))
+                key=lambda i: flight.semi_major(game.system.bodies[i]))
     flight.travel_to(game, inner, "economy")
     return game
 
@@ -257,7 +257,7 @@ def run(suite: Suite) -> None:
                   ("parked inside the star's heat", _parked_deep("deep"))]
         silent, checked = [], 0
         for label, game in states:
-            sx, sy = flight.ship_position(game)
+            here = flight.ship_position(game)
             for body in game.system.bodies:
                 for burn in flight.BURNS:
                     q = flight.quote(game, body, burn.id)
@@ -271,7 +271,7 @@ def run(suite: Suite) -> None:
                         ("distance", min(flight.LONG_LEG_CAP,
                                          q["au"] * flight.PER_AU),
                          0.03, "AU on this arc"),
-                        ("the star", flight._heat_risk(sx, sy, *q["aim"]),
+                        ("the star", flight._heat_risk(here, q["aim"]),
                          0.01, "from the star"),
                         ("carried heat", flight.hot_risk(game),
                          0.07, "carrying"),

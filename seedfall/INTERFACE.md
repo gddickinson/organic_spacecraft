@@ -3025,6 +3025,123 @@ now — the generator that exists precisely so "a saved seed always grows the
 same sky" — and the roll itself moved out of `data/countermeasures.py` and
 into `sim/detection.py`, because a table states odds and a rule applies them.
 
+### The ninth pass: every orbit was the same orbit
+
+A player looked at the plotting board and said *every object in the system is
+orbiting the sun in the same way*. That was exactly true, and it was not a
+drawing fault. `flight.position` read one element — the radius — and returned
+`r·cos θ, r·sin θ` for it, so every body in every system ran a **circle**, in
+one **shared plane**, all the **same way round**. There was nothing else to
+draw.
+
+`sim/elements.py` gives an orbit the other five elements. **e** makes it a
+shape, so distance from the star varies over the year and a transfer's cost
+depends on *when* you fly it. **i** tilts the plane, and past a right angle
+the body runs the other way — so "different directions" is that one number
+rather than a flag beside it, and a retrograde orbit cannot get out of step
+with its own inclination. **Ω** and **ω** place the tilted ellipse. **M₀** is
+what `flight._phase` already was.
+
+**Nothing is stored.** `data/orbit_shapes.py` states the range each kind of
+body keeps and the elements are drawn off `rng.hash_seed` of the body's own
+identity — the idiom `_phase` was already using — so a chronicle saved last
+week grows real orbits the moment it is loaded, with no migration, and two
+screens cannot roll differently. Every bound in that table is a real body:
+Mercury (e=0.206, i=7.0°) tops the rocky range, Jupiter (e=0.049, i=1.3°) the
+giants, Pluto (e=0.249, i=17.2°) the icy ones, Pallas (e=0.231, i=34.8°) the
+rubble, and Halley (e=0.967, i=162°, retrograde) makes the comet range look
+timid. Measured across 787 bodies in five galaxies: eccentricity median 0.103,
+inclination median 4.8°, 3.8% of everything retrograde — about half the comets.
+
+**The degenerate case is exact.** At `e=0, i=0, Ω=0, ω=0` the solver returns
+precisely the circle the old function did, to 5×10⁻¹⁵ AU. A flat orbit is a
+*value* in the new model rather than a second path through the code, which is
+what made it safe to change every caller at once.
+
+`position` returns three numbers now, and the change reaches everywhere a
+position goes: `separation` and `distance_to` are `math.dist`; `path.route`
+still bends a course around the star, and the geometry generalised untouched
+because the closest point on a segment to the origin does not care how many
+axes there are — only the degenerate "dead through the star" case needed
+thought, since a plane has one perpendicular to a line and space has a circle
+of them. The conn's sky is no longer flat: `sky.offset` used to end `, 0.0`
+for everything, and a world on a steep orbit was drawn level with the hull
+however far above the plane it stood.
+
+Two docstrings that described limitations got to retire. `freeflight.where`
+dropped `z` "because the sector is a plane and always has been", so a captain
+who spent a whole flight climbing ended up where they would have without the
+climb; and `freeflight.toward` returned a zero third component for the same
+reason. Climbing is now how you reach half the system.
+
+**Hulls go round too, and about half of them the other way.** A ship holding
+station sat at one fixed point beside its world for the life of the chronicle.
+Now each walks its own circuit at its own tilt. The first draft gave them a
+real Keplerian period off the body's `mu`, which is honest physics and
+unplayable — six thousand kilometres off a rocky world is about five
+*kilometres* a second, and a conn closes at tens of metres a second, so
+rendezvous broke outright and the computer arrived alongside still doing
+16.5 m/s. A hull holding station is *under power*; it walks a slow circuit at
+a speed a visitor can match, and `traffic.STATION_DRIFT_LO` says so. A hull
+genuinely falling round a world at orbital speed would be a different errand
+and would need matching orbits to reach.
+
+**A quay was at the centre of its own planet.** A player reported two things
+as one: *"I tried running to Fleet Hub and the auto-pilot wouldn't move
+anywhere, and Fleet Hub could be seen in every view at the same distance in
+every direction."* Both halves were the same fault. An anchorage's position
+*was* its body's — the class docstring said so — so from that world the range
+to it was **0.000 km**: the flight computer read zero, correctly concluded it
+had arrived, and did nothing; and a target at zero range subtends 180°, which
+is exactly the picture of being inside something. Three places had already
+worked around it — `orbit_chart` seats quays apart on screen, `sim/sky` lifts
+a co-located sight 400 km clear so it does not stack, and the docstring
+admitted it — while the sim itself had no answer, which is the two-doors
+fault this project has paid for more than any other.
+
+`anchorage.berth_orbit` gives a quay a real place in orbit of its world,
+derived from its own id and never stored, the discipline `traffic` uses for a
+hull's station and `elements` for a body's orbit. Fleet Hub now stands 2,067
+km off its world, and running for it is a manoeuvre: 606 beats and 8.7 t of
+reaction mass to come alongside.
+
+**"Ahead" could not point up, and that is what a flat sector had been
+hiding.** `Conn.heading` is one angle about the vertical, so the direction a
+pilot calls ahead was confined to the orbital plane; `freeflight.steer`
+computed `atan2(-dx, dy)` and threw the third number away. Free while every
+orbit lay in that plane, and wrong the moment they did not. Measured on the
+flight deck: a course laid on a hull **15.4° above the plane** left the nose
+15.4° off it, and five hundred burns on the torch closed 5,952 km to 1,514
+and sailed past. `Conn.pitch` is the second angle, `rotate` takes both, and
+the same run now closes to **14 km**. At `pitch=0` the arithmetic is the
+yaw-only formula it replaced to the last bit, which is what let every caller
+gain the angle at once.
+
+**It took the process down again, the same way.** A route leg is three
+numbers now and one chart still unpacked two, which raised `ValueError` inside
+`paintEvent`. `ui/painting.safe_paint` — written after the *first* time a
+paint error killed the run — caught `RuntimeError` and `TypeError`, being the
+two that had been seen, so this one escaped: exit 134, 151 of 186 suites
+green, nothing failing. A guard whose job is "a bad picture must not be fatal"
+cannot be a list of the exceptions met so far, and it is not one now.
+
+**Six cameras do not cover a sphere, and now it shows.** They sit on the six
+axes with a sixty-degree field, which leaves a blind cone between each pair —
+invisible while every orbit lay in one plane, because anything you laid a
+course on was near the ring of the four side views. Measured after the tilt
+arrived: a mark 35.7° out of the plane landed 51°, 54° and 59° off the three
+nearest axes and was ringed in **none** of the six windows. A course laid on
+something no camera will admit exists is worse than no course, so
+`viewport_mark.draw` now puts a chevron on the frame pointing the way to turn
+when the mark is in front of the lens but outside the picture.
+
+The same tilt shows in what the flight computer says it is doing. One run,
+narrated: *coming about to burn → ahead on the torch at 62% → **up on the
+torch at 62%** → ahead on thrusters → down on thrusters → astern on thrusters
+→ coasting → holding station*. The third of those is the third dimension.
+
+`tests/test_elements.py` holds the seven claims.
+
 ## Running
 
 ```

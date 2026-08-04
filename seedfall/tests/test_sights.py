@@ -248,10 +248,22 @@ def run(suite: Suite) -> bool:
         assert viewport_mark.draw_sights(
             _Blind(), wide, project, cam, 464, 260) == 0, (
             "a contact far outside the frame was drawn past the edge of it")
-        # The same for the ring.
+        # **The ring is allowed one thing a sight is not**, and this is the
+        # line between them. A mark just past the edge gets a chevron on the
+        # frame pointing the way to turn, because six cameras leave blind
+        # cones between them and a course laid on something in one of those
+        # was ringed nowhere at all. A mark *this* far out — eighty degrees
+        # off the nose, thousands of pixels beyond a 464-pixel window — is
+        # beside you rather than ahead, and gets nothing, exactly as a sight
+        # does. See `viewport_mark.POINTER_REACH`.
         assert viewport_mark.draw(_Blind(), ((900.0, 100.0, 0.0), "Wide"),
                                   project, cam, 464, 260) is False
-        return "ahead is drawn; eighty degrees off the nose is not"
+        near = ((0.6, 1.0, 0.55), "Just off")
+        assert viewport_mark.draw(_Blind(), near, project, cam, 464, 260), (
+            "a mark just past the edge got no pointer, so a course laid in "
+            "the gap between two cameras is shown nowhere")
+        return ("ahead is drawn; just off the edge is pointed at; eighty "
+                "degrees off the nose is not")
 
     @check("a mark behind the camera is not drawn in front of it")
     def _():

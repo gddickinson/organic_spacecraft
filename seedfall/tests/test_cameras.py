@@ -175,7 +175,11 @@ def run(suite: Suite) -> None:
                 contact = next(c for c in track_sim.contacts(game)
                                if c.body_index == index and c.kind == "body")
                 board_au = track_sim.at(game, contact, game.day)
-                worst = max(worst, math.dist(helm_au, truth),
+                # The helm's chart is flat and looks straight down, so it
+                # is asked about the plan position — `_to_screen` drops the
+                # height deliberately and says so. The plotting board keeps
+                # all three, and is asked about all three.
+                worst = max(worst, math.dist(helm_au, truth[:2]),
                             math.dist(board_au, truth))
                 samples += 1
             here = flight.position(game.system.bodies[0], game.day, mu_of(game.system))

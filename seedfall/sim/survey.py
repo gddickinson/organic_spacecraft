@@ -12,8 +12,9 @@ others. `preview()` states what a method will cost and, more importantly,
 
 from __future__ import annotations
 
+import math
+
 from ..data.surveys import CATEGORIES, DEFAULT, METHODS, METHODS_BY_ID
-from ..world.galaxy import distance
 from ..world.planets import survey_body
 from . import biology
 from . import flight
@@ -46,8 +47,9 @@ def reach(game) -> float:
 def reach_to(game, body) -> float:
     """How far the body is, in the units the sensor rating is quoted in."""
     aim = flight.intercept(game, body, "standard")["aim"]
-    ship = flight.ship_position(game)
-    return ((aim[0] - ship[0]) ** 2 + (aim[1] - ship[1]) ** 2) ** 0.5
+    # All three: a body on an inclined orbit is genuinely above or below
+    # you, and a range worked in two of them quietly reads short.
+    return math.dist(aim, flight.ship_position(game))
 
 
 def work_days(game, method) -> int:

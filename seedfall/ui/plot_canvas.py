@@ -26,6 +26,7 @@ from PyQt6.QtCore import QPointF, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QFont, QPainter, QPen, QPolygonF
 from PyQt6.QtWidgets import QWidget
 
+from ..sim import elements
 from ..sim import flight
 from ..sim import track as track_sim
 from . import theme
@@ -120,7 +121,8 @@ class PlotCanvas(QWidget):
 
     def frame_all(self) -> None:
         """Zoom and centre so the whole system fits."""
-        radii = [flight.orbit_radius(b) for b in self.system.bodies] or [1.0]
+        radii = [flight.elements_of(b).aphelion
+                 for b in self.system.bodies] or [1.0]
         span = max(radii) * 1.25
         self.centre = [0.0, 0.0]
         smallest = min(self.width(), self.height()) or 400
@@ -184,15 +186,27 @@ class PlotCanvas(QWidget):
         p.end()
 
     def _orbits(self, p: QPainter) -> None:
-        p.setPen(QPen(QColor(38, 62, 52), 1))
+        """The paths themselves — which is what this widget was built for.
+
+        It drew a flat ring of radius `semi_major` per body: a circle, in the
+        one plane, identical in shape for every body in every system. The
+        tilt control has laid that plane over since the day it was written
+        and there was never anything to see, because every orbit was in it.
+
+        Now each is its own ellipse with the star at a focus, at its own
+        inclination, and the ones that lean show it the moment you tilt.
+        """
         p.setBrush(Qt.BrushStyle.NoBrush)
         for body in self.system.bodies:
-            r = flight.orbit_radius(body)
-            ring = QPolygonF([
-                self.to_screen(r * math.cos(t * math.tau / 72),
-                               r * math.sin(t * math.tau / 72))
-                for t in range(73)])
-            p.drawPolygon(ring)
+            el = flight.elements_of(body)
+            # A steeply inclined path is drawn a shade brighter, because on a
+            # chart seen from overhead the thing that most wants saying is
+            # the one thing an overhead view cannot show.
+            lean = min(1.0, math.degrees(el.incl) / 30.0)
+            p.setPen(QPen(QColor(38 + int(30 * lean), 62 + int(26 * lean),
+                                 52 + int(20 * lean)), 1))
+            p.drawPolygon(QPolygonF([self.to_screen(*point)
+                                     for point in elements.path(el, 96)]))
 
     def _tracks(self, p: QPainter, contacts: dict) -> None:
         """Where the tracked things have been and where they are going."""
@@ -209,7 +223,7 @@ class PlotCanvas(QWidget):
             pen.setStyle(Qt.PenStyle.DashLine)
             p.setPen(pen)
             p.setBrush(Qt.BrushStyle.NoBrush)
-            p.drawPolyline(QPolygonF([self.to_screen(x, y) for x, y in past]))
+            p.drawPolyline(QPolygonF([self.to_screen(*at) for at in past]))
 
             ahead = track_sim.forecast(self.game, contact, track_sim.HORIZON,
                                        30, self.system)
@@ -219,22 +233,21 @@ class PlotCanvas(QWidget):
             pen = QPen(QColor(tint.red(), tint.green(), tint.blue(), faded), 1.3)
             pen.setStyle(Qt.PenStyle.DotLine)
             p.setPen(pen)
-            p.drawPolyline(QPolygonF([self.to_screen(x, y) for x, y in ahead]))
+            p.drawPolyline(QPolygonF([self.to_screen(*at) for at in ahead]))
 
             # Ticks along the forecast, so the track carries dates and not
             # merely a direction.
             p.setPen(QPen(QColor(tint.red(), tint.green(), tint.blue(), 150), 1))
             for step in range(1, 7):
                 day = self.game.day + track_sim.HORIZON * step / 6
-                x, y = track_sim.at(self.game, contact, day, self.system)
-                at = self.to_screen(x, y)
+                at = self.to_screen(
+                    *track_sim.at(self.game, contact, day, self.system))
                 p.drawLine(QPointF(at.x() - 2, at.y()),
                            QPointF(at.x() + 2, at.y()))
 
             if self.arrive_day is not None:
-                x, y = track_sim.at(self.game, contact, self.arrive_day,
-                                    self.system)
-                at = self.to_screen(x, y)
+                at = self.to_screen(*track_sim.at(
+                    self.game, contact, self.arrive_day, self.system))
                 p.setPen(QPen(QColor(theme.tint("warn")), 1.4))
                 p.setBrush(Qt.BrushStyle.NoBrush)
                 p.drawEllipse(at, 7, 7)
@@ -252,10 +265,9 @@ class PlotCanvas(QWidget):
         """The leg itself, bent round the star exactly as `flight` bends it."""
         if not self.plotted or not self.plotted.get("legs"):
             return
-        sx, sy = flight.ship_position(self.game)
-        points = [self.to_screen(sx, sy)]
+        points = [self.to_screen(*flight.ship_position(self.game))]
         for leg in self.plotted["legs"]:
-            points.append(self.to_screen(leg[0], leg[1]))
+            points.append(self.to_screen(*leg))
         pen = QPen(QColor(theme.tint("warn")), 1.6)
         if not self.plotted.get("feasible", True):
             pen.setStyle(Qt.PenStyle.DashLine)
@@ -266,8 +278,8 @@ class PlotCanvas(QWidget):
     def _marks(self, p: QPainter, contacts: dict) -> None:
         p.setFont(QFont(theme.mono_family(), 9))
         for cid, contact in contacts.items():
-            x, y = track_sim.at(self.game, contact, self.game.day, self.system)
-            at = self.to_screen(x, y)
+            at = self.to_screen(*track_sim.at(
+                self.game, contact, self.game.day, self.system))
             self._hits.append((cid, at))
             tint = QColor(theme.tint(contact.tint) if contact.tint in theme.TINTS
                           else theme.INK2)
@@ -303,8 +315,7 @@ class PlotCanvas(QWidget):
                            QPointF(at.x(), at.y() + 7))
 
     def _ship(self, p: QPainter) -> None:
-        x, y = flight.ship_position(self.game)
-        at = self.to_screen(x, y)
+        at = self.to_screen(*flight.ship_position(self.game))
         p.setBrush(QColor(theme.INK))
         p.setPen(QPen(QColor(theme.tint("lumen")), 1.4))
         p.drawEllipse(at, 4, 4)

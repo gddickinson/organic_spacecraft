@@ -68,9 +68,9 @@ def range_km(game, conn, contact) -> float:
     `sim/traffic.STATION_KM` gives a hull holding station a place of its own
     now, so there is a range to close.
     """
-    sx, sy = freeflight.where(game, conn)
-    ax, ay = track_sim.at(game, contact, game.day)
-    return math.dist((sx, sy), (ax, ay)) * freeflight.KM_PER_AU
+    return math.dist(freeflight.where(game, conn),
+                     track_sim.at(game, contact, game.day)
+                     ) * freeflight.KM_PER_AU
 
 
 def band_for(game, conn, contact, km: float | None = None) -> int:

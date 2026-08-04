@@ -10,11 +10,14 @@ past five hundred lines carrying both the plot and the screen around it.
 
 from __future__ import annotations
 
+import math
+
 from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
 from ..core.util import duration
 from ..data.starclasses import mu_of
 from ..sim import anchorage as anchorage_sim
+from ..data import orbit_shapes as shapes
 from ..sim import flight
 from ..sim import transit as transit_sim
 from ..world.planets import BODY_KINDS
@@ -211,10 +214,31 @@ class HelmView(View):
         if picked is not None:
             p.add(note(f"In orbit of {body.name}. Flying to the one is "
                        "flying to the other."))
-        p.add(note(BODY_KINDS[body.kind][0] + " · "
-                   + f"{flight.orbit_radius(body):.1f} AU orbit · "
-                   + f"period {duration(flight.period_days(body, mu_of(g.system)))}"))
+        # **What the orbit actually is**, not a single radius. A body no
+        # longer sits at one distance: it runs an ellipse at its own tilt,
+        # and half of what makes a transfer cheap or dear is which end of
+        # that ellipse it happens to be at when you go.
+        el = flight.elements_of(body)
+        shape = (f"{el.perihelion:.1f}–{el.aphelion:.1f} AU"
+                 if el.aphelion - el.perihelion >= 0.05
+                 else f"{el.a:.1f} AU")
+        lean = (f" · {math.degrees(el.incl):.0f}° "
+                f"{shapes.sense_of(el.incl)}"
+                if math.degrees(el.incl) >= 1.0 or el.retrograde else "")
+        p.add(note(BODY_KINDS[body.kind][0] + " · " + shape + " orbit"
+                   + lean + " · period "
+                   + f"{duration(flight.period_days(body, mu_of(g.system)))}"))
         p.add_row("Range now", f"{flight.distance_to(g, body):.2f} AU")
+        # Where it is on that ellipse *today*, which is half of what decides
+        # whether this is a cheap crossing or a dear one.
+        out = flight.distance_from_star(body, g.day, mu_of(g.system))
+        if el.aphelion - el.perihelion >= 0.05:
+            near = (out - el.perihelion) / (el.aphelion - el.perihelion)
+            where = ("near its closest" if near < 0.25 else
+                     "near its furthest" if near > 0.75 else "mid-swing")
+            p.add_row("From its star", f"{out:.2f} AU — {where}")
+        else:
+            p.add_row("From its star", f"{out:.2f} AU")
         p.add_row("Reaction mass aboard",
                   f"{round(g.ship.cargo.get('volatiles', 0))} t")
         cap = g.ship_stats.heat_cap

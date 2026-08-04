@@ -100,11 +100,15 @@ def run(suite: Suite) -> None:
         game = new_game("where")
         moved = 0
         for system in game.galaxy.systems[:14]:
-            span = max((flight.orbit_radius(b) for b in system.bodies),
-                       default=1.0)
+            # The system's extent is its furthest *aphelion*, not its
+            # longest semi-major axis: an eccentric orbit spends half its
+            # year outside its own average, so measuring against the axis
+            # would call a body on a perfectly ordinary track an escapee.
+            span = max((flight.elements_of(b).aphelion
+                        for b in system.bodies), default=1.0)
             for hull in traffic.in_system(game, system):
-                x, y = traffic.position(game, hull, system)
-                out = math.hypot(x, y)
+                out = math.dist(traffic.position(game, hull, system),
+                                (0.0, 0.0, 0.0))
                 assert out <= span * 1.35 + 0.5, (
                     f"{hull.name} is {out:.1f} AU out in a {span:.1f} AU "
                     "system")

@@ -353,7 +353,7 @@ def _toward(conn: Conn, vec, need: float) -> tuple[str | None, bool, float]:
     want = [v / length for v in vec]
     best, score = None, 0.0
     for axis_id, _label, body_vec in AXES:
-        world = rotate(body_vec, conn.heading)
+        world = rotate(body_vec, conn.heading, conn.pitch)
         dot = sum(a * b for a, b in zip(world, want))
         if dot > score:
             best, score = axis_id, dot
@@ -386,7 +386,8 @@ def worth_turning(conn: Conn, axis_id: str, need: float) -> bool:
     """
     from . import attitude as attitude_sim
     _aid, _label, vec = AXES_BY_ID[axis_id]
-    angle = attitude_sim.angle_between(conn.nose, rotate(vec, conn.heading))
+    angle = attitude_sim.angle_between(
+        conn.nose, rotate(vec, conn.heading, conn.pitch))
     if conn.slew_rate <= 0 or conn.main_dv <= 0:
         return False
     if angle <= attitude_sim.POINTED_RAD:

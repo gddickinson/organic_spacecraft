@@ -86,6 +86,15 @@ class Conn:
     nose: list = field(default_factory=lambda: [0.0, 1.0, 0.0])
     #: Kept for the camera basis, which works in the hull's own frame.
     heading: float = 0.0
+    #: How far above the plane "ahead" points, in radians.
+    #:
+    #: **`heading` alone cannot point up.** It is one angle about the vertical,
+    #: so the direction a pilot calls "Ahead" was confined to the orbital
+    #: plane — which cost nothing while every orbit was *in* that plane, and
+    #: broke the moment they were not. Measured on the flight deck: a course
+    #: laid on a hull 15.4° above the plane left the nose 15.4° off, and five
+    #: hundred burns on Ahead closed 5,952 km to 1,514 and sailed past.
+    pitch: float = 0.0
     #: This hull's propulsion, read from what is actually fitted. The bare
     #: constants below are only the fallback for a Conn built without a ship.
     main_dv: float = MAIN_DV
@@ -291,11 +300,25 @@ def __getattr__(name):
 
 
 
-def rotate(vec, heading: float) -> tuple:
-    """Turn a vector from the ship's frame into the target's."""
-    c, s = math.cos(heading), math.sin(heading)
+def rotate(vec, heading: float, pitch: float = 0.0) -> tuple:
+    """Turn a vector from the ship's frame into the target's.
+
+    Yaw about the vertical, then pitch the nose up or down. At `pitch=0` this
+    is exactly the yaw-only formula it replaced, to the last bit — which is
+    what let every caller gain the second angle at once.
+
+    The ship's axes are x right, y ahead, z up, and they come out as an
+    orthonormal triple: `right` stays level (yaw cannot bank a hull), `ahead`
+    climbs by the pitch, and `up` follows the two.
+    """
+    ch, sh = math.cos(heading), math.sin(heading)
+    cp, sp = math.cos(pitch), math.sin(pitch)
     x, y, z = vec
-    return (x * c - y * s, x * s + y * c, z)
+    right = (ch, sh, 0.0)
+    ahead = (-sh * cp, ch * cp, sp)
+    up = (sh * sp, -ch * sp, cp)
+    return tuple(x * r + y * a + z * u
+                 for r, a, u in zip(right, ahead, up))
 
 
 def can_burn(conn: Conn, main: bool,
@@ -333,7 +356,7 @@ def thrust_axis(conn: Conn, axis_id: str, main: bool) -> tuple:
     if main:
         return tuple(conn.nose)
     _aid, _label, vec = AXES_BY_ID[axis_id]
-    return rotate(vec, conn.heading)
+    return rotate(vec, conn.heading, conn.pitch)
 
 
 def apply(conn: Conn, axis_id: str | None, main: bool = False,
@@ -370,7 +393,7 @@ def apply(conn: Conn, axis_id: str | None, main: bool = False,
             # instead of burning — which is what makes a hard burn to port on
             # a loaded freighter a decision rather than a button.
             _aid, _label, vec = AXES_BY_ID[axis_id]
-            want = rotate(vec, conn.heading)
+            want = rotate(vec, conn.heading, conn.pitch)
             if not attitude_sim.pointed_at(conn.nose, want):
                 attitude_sim.slew(conn, want, TICK)
                 turning = conn.fired_turning = True

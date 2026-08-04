@@ -174,15 +174,104 @@ when the approach opens, so a hull sits where it was then. A dark raider
 cannot yet *close* on you during a flight — it can only be somewhere you did
 not see. Giving a sighting a persistent, ageing position is item 3 below.
 
+## Done — the ninth pass (2026-08-03): orbits with a shape and a tilt
+
+**"Every object in the system is orbiting the sun in the same way."** True,
+and not a drawing fault: `flight.position` had one element to read.
+
+- **`data/orbit_shapes.py` + `sim/elements.py`** — six Keplerian elements,
+  derived from the body's identity and kind, never stored, so old chronicles
+  gain real orbits on load. Every bound quoted against a real Solar System
+  body so it can be argued with rather than merely preferred.
+- **Three dimensions everywhere a position goes** — `separation`,
+  `distance_to`, `route` (which bends round the star unchanged, because the
+  geometry was already dimension-agnostic), `track.at`, `traffic.position`,
+  the conn's sky, both charts.
+- **The plotting board finally shows what it was built for.** Its `to_screen`
+  has taken a `z` and tilted since the day it was written, and its docstring
+  said the orbits were flat but the tracks needed somewhere to stand up. Now
+  the orbits stand up too, and a steeply inclined path is drawn a shade
+  brighter because an overhead view cannot otherwise say so.
+- **Two limitation docstrings retired**: `freeflight.where` and
+  `freeflight.toward` both dropped `z` "because the sector is a plane".
+- **Hulls hold a circuit, not a spot**, at their own tilt and direction. The
+  first draft used a real orbital period and broke rendezvous — five km/s
+  against a conn that closes at tens of m/s. Station-keeping is powered; the
+  constant says so.
+- **A shove can push out of the plane** (`knock.pitch`), because a collision
+  has no reason to respect an orbital plane.
+- **Reported by the player: a quay was at the centre of its own planet.**
+  An anchorage's position was its body's, so the range to it from that world
+  was zero — the autopilot said it had arrived and would not move, and a
+  target at zero range fills every camera at once. `anchorage.berth_orbit`
+  gives it a place of its own; Fleet Hub stands 2,067 km off and running for
+  it costs 606 beats and 8.7 t.
+- **Found by playing the GUI: "Ahead" could not point up.** `Conn.heading`
+  is one angle about the vertical and `freeflight.steer` discarded the third
+  number, so a course laid on a contact above the plane left the nose under
+  it — 5,952 km closed to 1,514 and sailed past. `Conn.pitch` fixes it; the
+  same run closes to 14 km. The check that caught it was already there and
+  had been passing for the wrong reason: everything used to be coplanar.
+- **A second exit-134, and the same lesson twice.** One chart still unpacked
+  a route leg as two numbers. `painting.safe_paint` caught `RuntimeError` and
+  `TypeError` — the two a dying painter had raised *so far* — so `ValueError`
+  walked out of `paintEvent` and killed the process, with 151 of 186 suites
+  green and **nothing failing**. The list was the accident; what belongs
+  there is "a picture that did not happen". It now catches the six that mean
+  that, and the leg is unpacked whole.
+- **Two silent short ranges.** `survey.reach_to` and `anchorage.reach_to`
+  worked their distance in x and y only. Nothing crashed; they just read
+  short for any body off the plane, which is most of them now.
+- **Every world was lit from above**, whatever it was doing.
+  `targets.starlight` returned a fixed `-0.25` third component, so the light
+  fell the same way on a body above the plane as below it. It follows the
+  body's own position now — this is what gives a world a terminator on the
+  correct side, and it was only ever right by accident while everything sat
+  in one plane.
+- **Six cameras leave blind cones**, which one plane hid. A mark 35.7° out of
+  the plane was ringed in none of the six windows; an off-picture chevron
+  points at it now (`viewport_mark`).
+- Found while converting: a bridge check asserted the computer burns "ahead"
+  and then "astern", which was a fact about a flat sector — measured, it
+  opened the torch 340 times on *down*, *left* and *back* and never once on
+  ahead. The narration was right and the claim was wrong; it now checks the
+  words against `conn.fired_*`, which is the thing it was really about.
+- Found while converting: the free-flight rendezvous check was really testing
+  the *fuel budget*, not the control law — every one of those runs is
+  marginal on a new hull's 20 t and `run_quote` says `afford: False` for all
+  three. It is given the mass now, and the bill is claimed where the bill
+  belongs.
+
 ## Open — defects and debts, in rough value order
 
-1. **Tuning constants without a guard.** The tripwire's last clean sweep
+1. **A segfault when suite runs overlap, and it is ours.** Three concurrent
+   runs crash about **1 in 15** on this build and **0 in 17** on the one
+   before it, always in the same stream (`chronicle dig resume verbs`),
+   always preceded by Qt's *"Cannot destroy paint device that is being
+   painted"*: a widget torn down while a painter is still live on it. Exit
+   139, **no traceback and nothing failing**, which is why a run has to be
+   graded on its exit code and never on a count of FAIL lines — that mistake
+   was made twice in one day.
+   - It does **not** happen on a quiet machine: 187 suites, exit 0.
+   - It is not a swallowed paint error: `painting.MISSES` is empty in those
+     runs, and freeing the traceback's frames in `safe_paint` (which does
+     release the painter earlier) changed nothing — 1 in 15 either way.
+   - The likeliest reading is that this pass simply *paints more*: an orbit
+     went from `drawEllipse` to a 72-point path on the orrery and a 96-point
+     one on the plotting board, which widens the window in which a teardown
+     can catch a live painter. That would make it a latent harness race this
+     build provokes rather than a new defect — but it has only ever been
+     seen here, so it is recorded as ours until someone proves otherwise.
+   - Worth trying next: close and `deleteLater` every window a suite opens
+     before the app is torn down, and see whether the rate goes to zero.
+
+2. **Tuning constants without a guard.** The tripwire's last clean sweep
    read 60 of 131 unprotected (`INTERFACE.md`, "Which numbers are actually
    held in place"); a few have been pinned since, and new constants
    (`path.py`, `engage.REACH_KM`, `freeflight.RUN_MARGIN`) joined the pool.
    Each pin is its own small piece of work: drive the sim to the bar,
    bracket with absolute values. Re-run the sweep before choosing targets.
-2. **Eleven recorded length debts, 525 lines** (`tests/test_length.ALLOWED`),
+3. **Eleven recorded length debts, 525 lines** (`tests/test_length.ALLOWED`),
    `data/works3d.py` at 635 the worst. Each is a real seam to find, roughly
    a cycle apiece; the ratchet stops them growing meanwhile.
 3. **Other ships are not plotted on the helm chart.** Nothing gives a known
@@ -215,6 +304,17 @@ lesson, time compression, brake-to-zero — shipped in the third pass.)
 - **A combat HUD in the battle screen's own viewport** — the band ring and
   arcs are on the tactical plot; the first-person cameras go dark in a
   fight today.
+- **An orbit you fly is still flat.** `autopilot.across` shapes an orbit in
+  the conn's *local* x/y plane and returns a tangent with `z` zero — a
+  deliberate simplification, and untouched by this pass because the conn's
+  frame is not the system's. Now that a heliocentric orbit has a tilt, the
+  obvious next question is a polar or inclined orbit round a world, which is
+  a real thing to want and would need the tangent, the rungs and the orbit
+  test to agree about which plane is being held.
+- **Dead imports across `data/`.** `flake8 --select=F401` finds a couple of
+  dozen (`dataclasses.field` in eight files, `models3d` helpers in three).
+  Three were cleared where this pass was already rewriting the imports; the
+  rest is a tidy-up nobody has done.
 - **Let the captain hide too.** `data/countermeasures.py` describes the
   signature of *anything*, and only the sky reads it — the player's hull is
   always loud. A "run dark" switch (drop the transponder, bank the drive)

@@ -12,8 +12,8 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from ..core.rng import RNG, hash_seed
 from ..data.starclasses import SOLAR_MU, mu_of
+from . import elements
 from .ship import add_cargo, add_heat, apply_damage, cook
 
 #: Orbital radius in AU for a body's normalised orbit slot (0 inner, 1 outer).
@@ -60,7 +60,14 @@ BURNS = [
 BURNS_BY_ID = {b.id: b for b in BURNS}
 
 
-def orbit_radius(body) -> float:
+def semi_major(body) -> float:
+    """The long half-axis of this body's orbit, in AU.
+
+    Was `orbit_radius`, and the rename is the point: an orbit no longer
+    *has* a radius. `body.orbit` places the ellipse; `sim/elements` gives it
+    a shape, a tilt and a direction, and how far the body actually is from
+    the star is now a question about a day (`distance_from_star`).
+    """
     return R_INNER + (R_OUTER - R_INNER) * body.orbit
 
 
@@ -79,33 +86,43 @@ def period_days(body, star_mu: float) -> float:
     do it properly, which is the same two-doors-disagreeing fault this file
     has been bitten by before.
     """
-    r = orbit_radius(body)
+    r = semi_major(body)
     scale = math.sqrt(SOLAR_MU / max(star_mu, 1.0))
     return max(30.0, YEAR_AT_1AU * (r ** 1.5) * scale)
 
 
-def _phase(body) -> float:
-    """A stable starting angle, derived rather than stored.
+def elements_of(body) -> elements.Elements:
+    """This body's orbit. **One door**, so nothing derives a second one.
 
-    Python randomises ``hash()`` of a string per process, so deriving the phase
-    from it put every planet somewhere new on every launch — the same seed grew
-    the same galaxy and then scattered its orbits. ``hash_seed`` is stable.
+    Six elements where there used to be a radius. They are not stored: see
+    `sim/elements`, which draws them off a stable hash of the body's own
+    identity, so an old chronicle grows real orbits the moment it is loaded
+    and the save does not gain a byte.
     """
-    return (hash_seed(f"{body.id}|{body.name}") % 3600) / 3600.0 * math.tau
+    return elements.of(body, semi_major(body))
 
 
-def position(body, day: int, star_mu: float) -> tuple[float, float]:
-    """Where a body is, in AU, on a given day, round a star of this mass."""
-    r = orbit_radius(body)
-    angle = _phase(body) + math.tau * (day / period_days(body, star_mu))
-    return r * math.cos(angle), r * math.sin(angle)
+def position(body, day: float, star_mu: float) -> tuple:
+    """Where a body is, in AU, on a given day, round a star of this mass.
+
+    **Three dimensions now, and not a circle.** This used to be
+    `r·cos θ, r·sin θ` with a constant radius, which made every orbit in the
+    game the same orbit: circular, in one shared plane, all going the same way
+    round. A player looking at the plotting board said so, and they were
+    right — there was nothing else to draw.
+    """
+    return elements.at(elements_of(body), day, period_days(body, star_mu))
 
 
-def separation(a, b, day: int, star_mu: float) -> float:
+def distance_from_star(body, day: float, star_mu: float) -> float:
+    """How far out the body actually is today — which now varies over its
+    year, and is the number `semi_major` used to be mistaken for."""
+    return math.dist(position(body, day, star_mu), (0.0, 0.0, 0.0))
+
+
+def separation(a, b, day: float, star_mu: float) -> float:
     """AU between two bodies right now."""
-    ax, ay = position(a, day, star_mu)
-    bx, by = position(b, day, star_mu)
-    return math.hypot(ax - bx, ay - by)
+    return math.dist(position(a, day, star_mu), position(b, day, star_mu))
 
 
 #: Where a jump leaves you: inside the system, not beyond its outermost orbit.
@@ -151,8 +168,13 @@ def ship_position(game) -> tuple[float, float]:
         return position(body, game.day, mu_of(game.system))
     where = getattr(game, "ship_xy", None)
     if where is not None:
-        return float(where[0]), float(where[1])
-    return 0.0, -ARRIVAL_RADIUS
+        # A chronicle saved before orbits had a third dimension stored two
+        # numbers here. Padding rather than refusing puts that hull exactly
+        # where it always thought it was — on the plane, which is where every
+        # orbit used to be.
+        return (float(where[0]), float(where[1]),
+                float(where[2]) if len(where) > 2 else 0.0)
+    return 0.0, -ARRIVAL_RADIUS, 0.0
 
 
 def hold_at(game, body) -> None:
@@ -173,7 +195,9 @@ def stand_off(game, at=None) -> None:
     what a jump into a system means.
     """
     game.orbit_body = None
-    game.ship_xy = (float(at[0]), float(at[1])) if at is not None else None
+    game.ship_xy = (
+        (float(at[0]), float(at[1]),
+         float(at[2]) if len(at) > 2 else 0.0) if at is not None else None)
 
 
 def current_body(game):
@@ -183,9 +207,8 @@ def current_body(game):
 
 
 def distance_to(game, body) -> float:
-    sx, sy = ship_position(game)
-    bx, by = position(body, game.day, mu_of(game.system))
-    return math.hypot(sx - bx, sy - by)
+    return math.dist(ship_position(game),
+                     position(body, game.day, mu_of(game.system)))
 
 
 def _leg(au: float, burn: Burn, speed: float) -> tuple[int, int]:
@@ -207,28 +230,33 @@ def intercept(game, body, burn_id: str = "standard") -> dict:
     """
     burn = BURNS_BY_ID.get(burn_id, BURNS_BY_ID["standard"])
     speed = game.ship_stats.speed
-    sx, sy = ship_position(game)
+    here = ship_position(game)
     days, fuel = _leg(distance_to(game, body), burn, speed)
 
+    # Bodies no longer move at one speed. On an eccentric orbit a world
+    # hurries through perihelion and loiters at aphelion, so the correction
+    # this iteration is chasing can be larger on one date than another — but
+    # it still shrinks, and the aim below is read from the truth on the day
+    # arrived at whether or not the loop converged.
     passes = 0
     for passes in range(1, 8):
-        tx, ty = position(body, game.day + days, mu_of(game.system))
-        _legs, au = route(sx, sy, tx, ty)
+        there = position(body, game.day + days, mu_of(game.system))
+        _legs, au = route(here, there)
         new_days, fuel = _leg(au, burn, speed)
         if abs(new_days - days) <= 0.5:
             days = new_days
             break
         days = new_days
 
-    tx, ty = position(body, game.day + days, mu_of(game.system))
-    legs, au = route(sx, sy, tx, ty)
-    nx, ny = position(body, game.day, mu_of(game.system))
+    there = position(body, game.day + days, mu_of(game.system))
+    legs, au = route(here, there)
+    now = position(body, game.day, mu_of(game.system))
     return {"burn": burn, "au": au, "days": days, "fuel": fuel,
-            "aim": (tx, ty), "arrival_day": game.day + days,
-            "lead": math.hypot(tx - nx, ty - ny), "passes": passes,
-            "legs": legs, "detour": au - math.hypot(tx - sx, ty - sy),
+            "aim": there, "arrival_day": game.day + days,
+            "lead": math.dist(there, now), "passes": passes,
+            "legs": legs, "detour": au - math.dist(here, there),
             "risk": (burn.risk + min(LONG_LEG_CAP, au * PER_AU)
-                     + _heat_risk(sx, sy, tx, ty)
+                     + _heat_risk(here, there)
                      + hot_risk(game))}
 
 

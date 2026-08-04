@@ -83,7 +83,7 @@ def run(suite: Suite) -> None:
             assert spec.mass_solar > 0, cid
             # And the law itself, against the closed form rather than
             # against another call to the same function.
-            a_au = flight.orbit_radius(probe)
+            a_au = flight.semi_major(probe)
             expect = flight.YEAR_AT_1AU * a_au ** 1.5 / math.sqrt(spec.mass_solar)
             assert abs(years[cid] - expect) < 1.0, (cid, years[cid], expect)
 

@@ -101,16 +101,20 @@ def begin(game):
     return conn, ""
 
 
-def where(game, conn) -> tuple[float, float]:
+def where(game, conn) -> tuple:
     """Where the ship has got to, in AU, in the system's own frame.
 
-    The conn works in km on a local x/y/z; the system works in AU on a plane.
-    A free flight starts at the ship's position, so this is that position plus
-    however far it has been flown — and `z` is dropped, because the sector is
-    a plane and always has been. A captain who spends the whole flight
-    climbing out of it ends up where they would have without the climb, which
-    is the honest consequence of a 2D sector rather than a hidden one: the
-    screens say what the plane is.
+    The conn works in km on a local x/y/z, and the system now does too, so
+    this is the ship's position plus however far it has been flown — all
+    three of them.
+
+    **`z` used to be dropped here**, and this docstring used to explain why:
+    the sector was a plane, so a captain who spent a whole flight climbing out
+    of it ended up exactly where they would have without the climb. That was
+    an honest account of a real limitation and it is no longer a limitation.
+    Orbits have a tilt (`sim/elements`), bodies sit above and below the
+    reference plane by AU at a time, and climbing is now the way you get to
+    one of them.
     """
     # **An approach measures from its target, not from the ship's last
     # recorded place.** `conn.pos` is an offset from the frame's origin, and
@@ -125,11 +129,12 @@ def where(game, conn) -> tuple[float, float]:
     # It read right on a fresh game only because the ship is moored *at* the
     # quay's body, so the two origins coincide.
     if is_open(conn.target):
-        sx, sy = flight.ship_position(game)
+        sx, sy, sz = flight.ship_position(game)
     else:
         from . import track as track_sim
-        sx, sy = track_sim.at(game, conn.target, game.day)
-    return (sx + conn.pos[0] / KM_PER_AU, sy + conn.pos[1] / KM_PER_AU)
+        sx, sy, sz = track_sim.at(game, conn.target, game.day)
+    return (sx + conn.pos[0] / KM_PER_AU, sy + conn.pos[1] / KM_PER_AU,
+            sz + conn.pos[2] / KM_PER_AU)
 
 
 def toward(game, conn, contact) -> list:
@@ -145,12 +150,15 @@ def toward(game, conn, contact) -> list:
     22,695 km. Flying at something you could see moved you away from it.
 
     The frames are the same axes; only the units and the origin differ, which
-    is what `hand_over` relies on too. `z` is zero because the sector is a
-    plane — see `where`.
+    is what `hand_over` relies on too.
+
+    **The third number used to be zero**, because the sector was a plane and
+    `where` said so. Orbits have a tilt now, so a contact can be genuinely
+    above or below you and flying at it means pointing up — which is the
+    whole of what a third axis on a flight deck is for.
     """
-    sx, sy = where(game, conn)
-    ax, ay = track_at(game, contact)
-    return [(ax - sx) * KM_PER_AU, (ay - sy) * KM_PER_AU, 0.0]
+    here, there = where(game, conn), track_at(game, contact)
+    return [(b - a) * KM_PER_AU for a, b in zip(here, there)]
 
 
 def track_at(game, contact) -> tuple:
@@ -179,10 +187,16 @@ def steer(game, conn, contact) -> float:
     `rotate` takes the forward axis (0, 1, 0) to `(-sin h, cos h)`, so putting
     that on the bearing to the contact is `atan2(-dx, dy)`.
     """
-    dx, dy, _dz = toward(game, conn, contact)
-    if not (dx or dy):
+    dx, dy, dz = toward(game, conn, contact)
+    if not (dx or dy or dz):
         return conn.heading
-    conn.heading = math.atan2(-dx, dy)
+    conn.heading = math.atan2(-dx, dy) if (dx or dy) else conn.heading
+    # **And how far above the plane it is.** The third number used to be
+    # thrown away here, which was free while every orbit shared one plane and
+    # wrong the moment they did not: a course laid on a contact 15° above the
+    # ecliptic left "Ahead" pointing 15° under it, and five hundred burns on
+    # the torch closed 5,952 km to 1,514 and sailed past. See `Conn.pitch`.
+    conn.pitch = math.atan2(dz, math.hypot(dx, dy))
     return conn.heading
 
 
@@ -390,9 +404,15 @@ def hand_over(game, conn, contact):
     # just spent an hour on.
     from . import track as track_sim
     from .conn import ALONGSIDE_KM as alongside_km
-    tx, ty = track_sim.at(game, contact, game.day)
+    tx, ty, tz = track_sim.at(game, contact, game.day)
+    # **All three.** This ended `, 0.0` — the height was thrown away, which
+    # cost nothing while the sector was one plane and became a teleport the
+    # moment it was not: measured after quays gained places of their own,
+    # handing over moved the hull 199.7 km straight down. The same z-dropping
+    # that `where` and `toward` used to do, in the one place that kept it.
     offset = [(here[0] - tx) * KM_PER_AU,
-              (here[1] - ty) * KM_PER_AU, 0.0]
+              (here[1] - ty) * KM_PER_AU,
+              (here[2] - tz) * KM_PER_AU]
     # **Only when the offset is a real place to fly from.** A moored hull's
     # position *is* its structure's — the subtraction comes out 0.000 km, and
     # an approach opened there put the ship inside the skin: measured, one

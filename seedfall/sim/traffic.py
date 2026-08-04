@@ -34,6 +34,7 @@ from ..data.lore import HULL_NAMES
 from ..data.factions import FACTIONS_BY_ID
 from . import anchorage as anchorage_sim
 from ..data.starclasses import mu_of
+from . import elements
 from . import flight
 
 #: What a hull is out here doing. Each carries how it reads on a chart and
@@ -245,8 +246,16 @@ STATION_KM = 6000.0
 KM_PER_AU = 149_597_870.7
 
 
-def _station_offset(hull) -> tuple[float, float]:
-    """Where in a body's neighbourhood this hull holds, in AU.
+def _station_orbit(hull, body, day: float) -> tuple:
+    """Where in a body's neighbourhood this hull is, in AU, on a day.
+
+    **A hull on station is going round, not parked.** This used to return a
+    fixed offset: every ship keeping station sat at one unmoving point beside
+    its world for as long as the chronicle lasted, all of them in the same
+    plane as everything else. Now each walks its own circuit, at its own tilt
+    and in its own direction — and about half of them go round the other way.
+    See `STATION_DRIFT_LO` for why it is a powered circuit at metres a second
+    rather than a free orbit at kilometres a second.
 
     **Derived from the hull's id, never drawn.** `in_system` is pure in
     `(system, day, sector state)` and says why in as many words — it must not
@@ -255,39 +264,81 @@ def _station_offset(hull) -> tuple[float, float]:
     fact, so it is a reading of the identity rather than a roll or a field.
     """
     seed = zlib.crc32(str(hull.id).encode())
-    angle = (seed % 3600) / 3600.0 * math.tau
-    # The square root spreads hulls evenly over the disc instead of crowding
+    # The square root spreads hulls evenly over the shell instead of crowding
     # them at the middle, which is what a plain fraction of the radius does.
-    span = math.sqrt(((seed >> 12) % 1000) / 1000.0) * STATION_KM / KM_PER_AU
-    return (span * math.cos(angle), span * math.sin(angle))
+    span_km = max(1.0, math.sqrt(((seed >> 12) % 1000) / 1000.0) * STATION_KM)
+    # Clear of the surface: a station six thousand kilometres from the centre
+    # of a six-thousand-kilometre world is a hull underground.
+    radius_km = float(getattr(body, "radius_km", 0) or 0.0)
+    span_km = max(span_km, radius_km * 1.15)
+    orbit = elements.Elements(
+        a=span_km / KM_PER_AU, e=0.0,
+        # A full half-turn of inclination, so about half of them are
+        # retrograde — the same rule the bodies use, and for the same reason:
+        # direction is the tilt, not a flag beside it.
+        incl=((seed >> 22) % 1000) / 1000.0 * math.pi,
+        node=((seed >> 2) % 3600) / 3600.0 * math.tau,
+        peri=0.0, m0=(seed % 3600) / 3600.0 * math.tau)
+    return elements.at(orbit, day, _station_days(span_km, seed))
 
 
-def position(game, hull, system=None) -> tuple[float, float]:
+#: How fast a hull holding station drifts round its body, in m/s.
+#:
+#: **Not a free orbit, and the difference matters.** The first draft gave
+#: these hulls a real Keplerian period off the body's own `mu`, which is
+#: honest physics and unplayable: six thousand kilometres off a rocky world
+#: is about five *kilometres* a second, and a conn closes at tens of metres a
+#: second on its thrusters. Measured, it broke rendezvous outright — the
+#: computer ran a hull down and arrived alongside still doing 16.5 m/s,
+#: because the thing it was chasing was moving a hundred times faster than
+#: anything it could match.
+#:
+#: A hull holding station is *under power* — that is what the errand says and
+#: what station-keeping is. So it walks a slow circuit at a speed a visitor
+#: can match, which is both what a working ship near a world actually looks
+#: like and what keeps coming alongside one a manoeuvre rather than a
+#: fantasy. A hull genuinely falling round a world at orbital speed would be
+#: a different errand, and it would need matching orbits to reach.
+STATION_DRIFT_LO, STATION_DRIFT_HI = 2.0, 12.0
+
+
+def _station_days(span_km: float, seed: int) -> float:
+    """How long this hull's circuit round its body takes, in days."""
+    share = ((seed >> 7) % 1000) / 1000.0
+    speed = STATION_DRIFT_LO + share * (STATION_DRIFT_HI - STATION_DRIFT_LO)
+    return max(0.01, math.tau * span_km * 1000.0 / speed / 86_400.0)
+
+
+def position(game, hull, system=None) -> tuple:
     """Where a hull is, in AU, right now."""
     system = _home(game, hull, system)
     bodies = system.bodies
     start = flight.position(bodies[hull.from_body], game.day,
                             mu_of(system))
     if hull.from_body == hull.to_body:
-        dx, dy = _station_offset(hull)
-        return (start[0] + dx, start[1] + dy)
-    end = flight.position(bodies[hull.to_body], game.day,
-                          mu_of(system))
-    return (start[0] + (end[0] - start[0]) * hull.along,
-            start[1] + (end[1] - start[1]) * hull.along)
+        return tuple(a + b for a, b in zip(
+            start, _station_orbit(hull, bodies[hull.from_body], game.day)))
+    end = flight.position(bodies[hull.to_body], game.day, mu_of(system))
+    # A hull under way between two worlds flies the line, in three dimensions
+    # now that the two ends are rarely in the same plane. That is not an
+    # orbit and is not meant to be: a powered transfer is a straight run.
+    return tuple(a + (b - a) * hull.along for a, b in zip(start, end))
 
 
 def reach_to(game, hull) -> float:
     """AU between the ship and a hull."""
-    hx, hy = position(game, hull)
-    sx, sy = flight.ship_position(game)
-    return math.hypot(hx - sx, hy - sy)
+    return math.dist(position(game, hull), flight.ship_position(game))
 
 
 def bearing_to(game, hull) -> float:
-    """Degrees clockwise from the star-ward direction. For a chart, later."""
-    hx, hy = position(game, hull)
-    sx, sy = flight.ship_position(game)
+    """Degrees clockwise from the star-ward direction, in the plane.
+
+    A bearing is a compass direction and a compass lies in the plane, so the
+    climb is not part of it — `reach_to` is the number that carries the
+    height. Two answers about one hull, each honest about what it measures.
+    """
+    hx, hy = position(game, hull)[:2]
+    sx, sy = flight.ship_position(game)[:2]
     return math.degrees(math.atan2(hy - sy, hx - sx)) % 360
 
 

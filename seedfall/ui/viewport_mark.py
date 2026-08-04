@@ -19,6 +19,8 @@ how to draw a ring, and not what a contact is.
 
 from __future__ import annotations
 
+import math
+
 from PyQt6.QtCore import QPointF, Qt
 from PyQt6.QtGui import QColor, QFont, QPen
 
@@ -145,19 +147,100 @@ def _screen(vec, project, cam, w: int, h: int):
     return (x, y)
 
 
+#: How far in from the frame an off-picture pointer sits, in pixels.
+POINTER_PAD = 16.0
+
+#: How far outside the picture a mark may be and still be worth pointing at,
+#: as a multiple of the frame's half-diagonal.
+#:
+#: **The bound is the whole of the argument with `draw_sights`.** That refuses
+#: to draw anything outside the frame, deliberately and for a good reason:
+#: `project` answers for anything with a positive component along the view
+#: axis, so a contact eighty degrees off the nose comes back at x=2,000 in a
+#: 464-pixel window, and a camera once reported a sight drawn and showed none.
+#: A chevron for every such contact in every camera would be six windows of
+#: arrows pointing at things beside you, and the "In view" board already lists
+#: them with their ranges.
+#:
+#: The *mark* is one thing — the single contact a course is laid on — and the
+#: case that matters is the one measured when orbits gained a tilt: 35.7° out
+#: of the plane put it 54° off the nearest axis and just past three edges, at
+#: 266, 301 and 364 pixels from the middle of a frame whose half-diagonal is
+#: 264. Two half-diagonals takes all three and leaves the eighty-degree case
+#: — thousands of pixels out — where `draw_sights` leaves it.
+POINTER_REACH = 2.0
+
+
+def _edge_at(x: float, y: float, w: int, h: int) -> tuple:
+    """Where a bearing off the picture meets the frame, and which way it lies.
+
+    The point is pushed back onto a rectangle inset by `POINTER_PAD`, along
+    the line from the middle of the view — so a mark eighty degrees off the
+    nose gives a pointer on the edge nearest to it rather than a ring drawn
+    two thousand pixels outside the pixmap.
+    """
+    cx, cy = w / 2.0, h / 2.0
+    dx, dy = x - cx, y - cy
+    if abs(dx) < 1e-9 and abs(dy) < 1e-9:
+        return cx, cy, 0.0
+    steps = []
+    if abs(dx) > 1e-9:
+        steps.append((cx - POINTER_PAD) / abs(dx))
+    if abs(dy) > 1e-9:
+        steps.append((cy - POINTER_PAD) / abs(dy))
+    step = max(0.0, min(steps))
+    return cx + dx * step, cy + dy * step, math.atan2(dy, dx)
+
+
+def _pointer(p, x: float, y: float, angle: float, name: str, w: int) -> None:
+    """A chevron on the frame, pointing at something out of the picture."""
+    tint = QColor(theme.tint("warn"))
+    p.setPen(QPen(tint, 1.3))
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    nose = (x + math.cos(angle) * 7.0, y + math.sin(angle) * 7.0)
+    for turn in (2.5, -2.5):
+        p.drawLine(QPointF(*nose),
+                   QPointF(x + math.cos(angle + turn) * 8.0,
+                           y + math.sin(angle + turn) * 8.0))
+    p.setFont(QFont(theme.mono_family(), 7))
+    room = p.fontMetrics().horizontalAdvance(name)
+    left = min(max(4.0, x - room / 2.0), max(4.0, w - 4.0 - room))
+    p.drawText(QPointF(left, y - 10.0), name)
+
+
 def draw(p, mark, project, cam, w: int, h: int) -> bool:
     """Ring and name the marked bearing. Returns whether anything was drawn.
 
     `project` is handed in rather than imported so this cannot drift from the
     camera the rest of the window is drawn with.
+
+    **Off the picture is still an answer.** Six cameras on six axes do not
+    cover a sphere — they leave a cone between each pair — and while every
+    orbit lay in one plane that never showed, because everything a pilot laid
+    a course on was somewhere near the ring of the four side views. With
+    orbits tilted (`sim/elements`) a mark is regularly forty degrees out of
+    the plane, and one was measured landing fifty to sixty degrees off the
+    three nearest axes: ringed in *none* of the six windows. A course laid on
+    something no camera will admit exists is worse than no course, so a mark
+    in front of the lens but outside the frame gets a chevron on the edge
+    pointing the way to turn.
     """
     if not mark:
         return False
     vec, name = mark
-    at = _screen(vec, project, cam, w, h)
-    if at is None:
-        return False            # behind the camera, or no bearing at all
-    x, y = at
+    length = sum(c * c for c in vec) ** 0.5
+    if length <= 1e-9:
+        return False
+    spot = project([c / length for c in vec], cam, w, h)
+    if spot is None:
+        return False            # genuinely behind the camera
+    x, y = spot[0], spot[1]
+    if not (-EDGE <= x <= w + EDGE and -EDGE <= y <= h + EDGE):
+        half = math.hypot(w, h) / 2.0
+        if math.dist((x, y), (w / 2.0, h / 2.0)) > half * POINTER_REACH:
+            return False        # beside you, not ahead — see `POINTER_REACH`
+        _pointer(p, *_edge_at(x, y, w, h), name=name, w=w)
+        return True
     tint = QColor(theme.tint("warn"))
     p.setPen(QPen(tint, 1.3))
     p.setBrush(Qt.BrushStyle.NoBrush)

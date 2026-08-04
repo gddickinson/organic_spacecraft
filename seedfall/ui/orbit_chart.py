@@ -23,11 +23,12 @@ import math
 
 from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import (QColor, QFont, QFontMetricsF, QPainter, QPainterPath,
-                         QPen)
+                         QPen, QPolygonF)
 from PyQt6.QtWidgets import QSizePolicy, QWidget
 
 from ..data.starclasses import mu_of
 from ..sim import anchorage as anchorage_sim
+from ..sim import elements
 from ..sim import flight
 from ..sim import traffic as traffic_sim
 from ..world.planets import BODY_KINDS
@@ -89,12 +90,22 @@ class OrbitChart(QWidget):
         """Fit whatever the system actually holds — comets orbit well outside
         the planets, and a chart that crops them is a chart that lies."""
         g = self.win.game
-        span = max([flight.orbit_radius(b) for b in g.system.bodies]
+        span = max([flight.elements_of(b).aphelion for b in g.system.bodies]
                    + [flight.ARRIVAL_RADIUS]) * 1.08 + 0.4
         side = min(self.width(), self.height())
         return (side / 2 - 22) / span, self.width() / 2, self.height() / 2
 
-    def _to_screen(self, x: float, y: float) -> QPointF:
+    def _to_screen(self, x: float, y: float, z: float = 0.0) -> QPointF:
+        """AU to a point on the chart — an overhead view, looking down.
+
+        The height is taken and dropped, deliberately. This is the helm's
+        flat chart and it is *of* the plane; a body an AU above it belongs at
+        the same place on the paper, and the plotting board
+        (`ui/plot_canvas.py`) is the screen that tilts and shows the climb.
+        Taking the argument rather than refusing it means every caller can
+        hand over a position whole, instead of each one remembering to trim
+        it — which is how a stale two-number position gets left somewhere.
+        """
         s, cx, cy = self._scale()
         return QPointF(cx + x * s, cy + y * s)
 
@@ -201,8 +212,8 @@ class OrbitChart(QWidget):
         # the course as actually flown — bent around the star if need be
         p.setPen(QPen(QColor(theme.tint("lumen")), 1.5, Qt.PenStyle.DashLine))
         course = QPainterPath()
-        for step, (lx, ly) in enumerate(q["legs"]):
-            pt = self._to_screen(lx, ly)
+        for step, leg in enumerate(q["legs"]):
+            pt = self._to_screen(*leg)
             course.moveTo(pt) if step == 0 else course.lineTo(pt)
         p.drawPath(course)
         p.setPen(QPen(QColor(theme.tint("lumen")), 1.6))
@@ -274,10 +285,17 @@ class OrbitChart(QWidget):
         p.drawEllipse(QPointF(cx, cy), 7, 7)
 
         for i, b in enumerate(g.system.bodies):
-            r = flight.orbit_radius(b) * s
+            # **The path, not a ring.** This drew `drawEllipse(centre, r, r)`
+            # — a circle, centred on the star, identical in shape for every
+            # body in every system. An orbit is an ellipse with the star at a
+            # *focus*, so the near end is genuinely nearer, and seen from
+            # overhead an inclined one is foreshortened across its own line of
+            # nodes. Both fall out of drawing the real path.
             p.setPen(QPen(QColor(150, 196, 176, 40), 1))
             p.setBrush(Qt.BrushStyle.NoBrush)
-            p.drawEllipse(QPointF(cx, cy), r, r)
+            p.drawPolygon(QPolygonF([
+                self._to_screen(*point)
+                for point in elements.path(flight.elements_of(b), 72)]))
 
             pos = self._to_screen(*flight.position(b, g.day, mu_of(g.system)))
             tint = QColor(theme.tint(BODY_KINDS[b.kind][1]))
@@ -384,12 +402,12 @@ class OrbitChart(QWidget):
         # one thing guaranteed to be moving was the one thing that never
         # moved. The chart interpolates by watches stood, and dashes what is
         # still to fly.
-        sx, sy = flight.ship_position(g)
+        sx, sy, sz = flight.ship_position(g)
         transit = getattr(g, "transit", None)
         if transit is not None and not transit.over \
                 and 0 <= transit.body_index < len(g.system.bodies):
-            tx, ty = flight.position(g.system.bodies[transit.body_index],
-                                     g.day, mu_of(g.system))
+            tx, ty, _tz = flight.position(
+                g.system.bodies[transit.body_index], g.day, mu_of(g.system))
             share = max(0.0, min(1.0, transit.progress))
             ex, ey = sx + (tx - sx) * share, sy + (ty - sy) * share
             pen = QPen(QColor(theme.tint("lumen")), 1.0,

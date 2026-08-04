@@ -149,12 +149,19 @@ def starlight(game, contact) -> tuple:
     """
     from . import track as track_sim
     try:
-        x, y = track_sim.at(game, contact, game.day)
+        x, y, z = track_sim.at(game, contact, game.day)
     except Exception:
         return (0.0, 1.0, 0.0)
-    span = math.hypot(x, y)
+    span = math.dist((x, y, z), (0.0, 0.0, 0.0))
     if span < 1e-9:
         return (0.0, 1.0, 0.0)
-    # A little out of the orbital plane as well, so a sphere is never lit
-    # dead-on and the terminator always has somewhere to fall.
-    return (x / span, y / span, -0.25)
+    # **The height above the plane is part of the answer now.** A body on an
+    # inclined orbit is genuinely above or below its star at most of the year,
+    # and the light comes up at it — which is a thing you can see on a world
+    # whose terminator used to be vertical no matter where it stood. The
+    # nudge that remains stops a body exactly level with the star being lit
+    # dead-on, where a terminator has nowhere to fall.
+    lit = [x / span, y / span, z / span]
+    if abs(lit[2]) < 0.25:
+        lit[2] = -0.25 if lit[2] <= 0.0 else 0.25
+    return tuple(lit)

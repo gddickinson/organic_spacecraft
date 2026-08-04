@@ -57,6 +57,63 @@ def _rich(seed: str):
 
 def run(suite: Suite) -> None:
     check = suite.check
+
+    @check("a quay is somewhere of its own, not the middle of its world")
+    def _():
+        # **A player's report.** "I tried running to Fleet Hub and the
+        # auto-pilot wouldn't move anywhere, and Fleet Hub could be seen in
+        # every view at the same distance in every direction."
+        #
+        # Both halves were one fault: a quay's position *was* its body's, so
+        # from that world the range to it was zero. The flight computer read
+        # zero and correctly concluded it had arrived; and a target at zero
+        # range subtends 180°, which is the picture of being inside it. Three
+        # places had already papered over it — the orrery seats quays apart,
+        # `sim/sky` lifts a co-located sight clear, and the class docstring
+        # admitted it — while the sim had no answer at all.
+        import math
+        from ..sim import conn as conn_sim
+        from ..sim import engage as engage_sim
+        from ..sim import freeflight as free_sim
+        from ..sim import track as track_sim
+        game = new_game("playtest")
+        conn, why = free_sim.begin(game)
+        assert conn is not None, why
+        game.conn = conn
+        quays = [c for c in track_sim.contacts(game) if c.kind == "anchorage"]
+        assert quays, "no quay in this chronicle to fly at"
+        home = min(quays, key=lambda q: engage_sim.range_km(game, conn, q))
+        span = engage_sim.range_km(game, conn, home)
+        assert span > free_sim.ALONGSIDE_KM, (
+            f"{home.name} is {span:,.1f} km off — a quay you are already "
+            "alongside before you have flown anywhere")
+        # And running for it is a real manoeuvre that actually arrives.
+        conn.mark = home.name
+        free_sim.steer(game, conn, home)
+        for beat in range(3000):
+            axis, main, throttle = free_sim.run_for(game, conn, home)
+            conn_sim.apply(conn, axis, main=main, ticks=1, throttle=throttle)
+            if free_sim.alongside(game, conn, home):
+                break
+        else:
+            raise AssertionError(
+                f"ran for {home.name} for 3,000 beats and got to "
+                f"{engage_sim.range_km(game, conn, home):,.0f} km")
+        # Two quays at one world are not in the same place either.
+        together = {}
+        for q in quays:
+            together.setdefault(q.body_index, []).append(q)
+        for pair in together.values():
+            for a in pair:
+                for b in pair:
+                    if a.id >= b.id:
+                        continue
+                    apart = math.dist(track_sim.at(game, a, game.day),
+                                      track_sim.at(game, b, game.day))
+                    assert apart > 1e-9, (
+                        f"{a.name} and {b.name} share one point in space")
+        return (f"{home.name} stands {span:,.0f} km off its world; run for "
+                f"it and she arrives in {beat} beats")
     @check("every anchor stands somewhere you can fly to")
     def _():
         # A player's report: the anchor is on the sector chart, invisible on

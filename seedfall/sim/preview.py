@@ -41,7 +41,8 @@ def _off_by(conn: Conn, axis_id: str, main: bool) -> float:
     if not main or not axis_id:
         return 0.0
     _aid, _label, vec = AXES_BY_ID[axis_id]
-    return attitude_sim.angle_between(conn.nose, rotate(vec, conn.heading))
+    return attitude_sim.angle_between(
+        conn.nose, rotate(vec, conn.heading, conn.pitch))
 
 
 def _copy(conn: Conn) -> Conn:
@@ -126,7 +127,7 @@ def _copy(conn: Conn) -> Conn:
     may not bill a station for a collision that has not happened.
     """
     return Conn(target=conn.target, pos=list(conn.pos), vel=list(conn.vel),
-                heading=conn.heading, rcs=conn.rcs, elapsed=conn.elapsed,
+                heading=conn.heading, pitch=conn.pitch, rcs=conn.rcs, elapsed=conn.elapsed,
                 start_km=conn.start_km, opening_rcs=conn.opening_rcs,
                 nose=list(conn.nose), star_dir=list(conn.star_dir),
                 sky=conn.sky, array=conn.array, main_dv=conn.main_dv,

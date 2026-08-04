@@ -65,12 +65,12 @@ def run(suite: Suite) -> None:
 
         # The aim point must be where the body actually is on arrival.
         truth = flight.position(best, q["arrival_day"], mu_of(g.system))
-        miss = math.hypot(q["aim"][0] - truth[0], q["aim"][1] - truth[1])
+        miss = math.dist(q["aim"], truth)
         assert miss < 1e-6, f"aim point misses the body by {miss:.4f} AU"
 
         # And it must differ from a naive shot at the body's present position.
         now = flight.position(best, g.day, mu_of(g.system))
-        naive = math.hypot(q["aim"][0] - now[0], q["aim"][1] - now[1])
+        naive = math.dist(q["aim"], now)
         assert naive > 0.05, "the aim point is just the current position"
         return f"{best.name}: leads {gap:.2f} AU over {q['days']} d"
 
@@ -101,21 +101,22 @@ def run(suite: Suite) -> None:
             g = new_game(seed)
             for index in range(min(4, len(g.galaxy.systems))):
                 g.system_id = g.galaxy.systems[index].id
-                sx, sy = flight.ship_position(g)
+                here = flight.ship_position(g)
                 for body in g.system.bodies:
                     q = flight.intercept(g, body, "coast")
-                    legs, (tx, ty) = q["legs"], q["aim"]
-                    clear = min(flight.HOT_RADIUS, math.hypot(sx, sy),
-                                math.hypot(tx, ty))
-                    near = min(path_sim._closest_approach(ax, ay, bx, by)
-                               for (ax, ay), (bx, by) in zip(legs, legs[1:]))
+                    legs, aim = q["legs"], q["aim"]
+                    origin = (0.0, 0.0, 0.0)
+                    clear = min(flight.HOT_RADIUS, math.dist(here, origin),
+                                math.dist(aim, origin))
+                    near = min(path_sim._closest_approach(a, b)
+                               for a, b in zip(legs, legs[1:]))
                     ratio = near / clear if clear else 1.0
                     if worst is None or ratio < worst_ratio:
                         worst, worst_ratio = body.name, ratio
                     assert ratio > 0.55, (
                         f"the course to {body.name} passes {near:.3f} AU from "
                         f"the star, well inside its {clear:.2f} AU clearance")
-                    direct = math.hypot(tx - sx, ty - sy)
+                    direct = math.dist(here, aim)
                     if len(legs) > 2:
                         bent += 1
                         assert q["au"] > direct + 1e-9, (
@@ -128,7 +129,7 @@ def run(suite: Suite) -> None:
     def _():
         g = new_game("arrive")
         target = max(range(len(g.system.bodies)),
-                     key=lambda i: flight.orbit_radius(g.system.bodies[i]))
+                     key=lambda i: flight.semi_major(g.system.bodies[i]))
         body = g.system.bodies[target]
         g.ship.cargo["volatiles"] = 400
         before = g.day

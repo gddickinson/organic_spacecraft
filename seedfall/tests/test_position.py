@@ -89,8 +89,8 @@ def run(suite: Suite) -> None:
         # to it is a real number at both ends.
         elsewhere = [b for i, b in enumerate(game.system.bodies)
                      if i != quay.body_index]
-        near = min(elsewhere, key=flight.orbit_radius)
-        far = max(elsewhere, key=flight.orbit_radius)
+        near = min(elsewhere, key=flight.semi_major)
+        far = max(elsewhere, key=flight.semi_major)
         readings = {}
         for body in (near, far):
             flight.hold_at(game, body)
@@ -99,7 +99,7 @@ def run(suite: Suite) -> None:
             readings[body.id] = {
                 "position": here,
                 "reach": berthing.reach_to(game, quay),
-                "by hand": math.hypot(at[0] - here[0], at[1] - here[1]),
+                "by hand": math.dist(at, here),
             }
         # `reach_to` answers in km and the hand-worked figure in AU. What is
         # being asked is that they are the *same measurement*: if berthing kept
@@ -108,10 +108,8 @@ def run(suite: Suite) -> None:
         ratios = [r["reach"] / r["by hand"] for r in readings.values()]
         assert min(ratios) > 0.0 and abs(ratios[0] - ratios[1]) < 1.0, (
             f"berthing and the chart disagree about the scale: {ratios}")
-        moved = math.hypot(readings[near.id]["position"][0]
-                           - readings[far.id]["position"][0],
-                           readings[near.id]["position"][1]
-                           - readings[far.id]["position"][1])
+        moved = math.dist(readings[near.id]["position"],
+                          readings[far.id]["position"])
         assert moved > 1.0, (
             f"the ship moved from the innermost orbit to the outermost and "
             f"the position changed by {moved:.3f} AU")
@@ -163,8 +161,15 @@ def run(suite: Suite) -> None:
             f"{flight.ARRIVAL_RADIUS:.2f}")
         # And a stand-off that is *given* a place holds that place, which is
         # what stops "alongside nothing" from meaning one particular point.
+        # Two numbers in, three out: a place named on the plane is a place
+        # at zero height, which is exactly where it used to be.
         flight.stand_off(game, (1.5, -2.5))
-        assert flight.ship_position(game) == (1.5, -2.5), flight.ship_position(game)
+        assert flight.ship_position(game) == (1.5, -2.5, 0.0), (
+            flight.ship_position(game))
+        # And a place named with a height keeps it.
+        flight.stand_off(game, (1.5, -2.5, 0.75))
+        assert flight.ship_position(game) == (1.5, -2.5, 0.75), (
+            flight.ship_position(game))
         # Mooring again drops the free-space position rather than leaving it
         # lying about for the next stand-off to pick up.
         flight.hold_at(game, game.system.bodies[1])

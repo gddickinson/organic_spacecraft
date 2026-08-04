@@ -70,12 +70,17 @@ class Knock:
     """One shove, and what it has come to since."""
 
     contact_id: str
-    #: How hard, in m/s, and which way, as a bearing in radians.
+    #: How hard, in m/s, and which way, as a bearing in the plane.
     speed: float
     bearing: float
     #: The day it happened, and what it did to the thing struck.
     day: float
     damage: float = 0.0
+    #: How far above or below the plane the shove was aimed. Defaults to zero
+    #: so a chronicle saved before shoves had a third direction reads back
+    #: exactly as it was — flat, which is where every shove used to go,
+    #: because the whole sector was flat.
+    pitch: float = 0.0
     #: Is there anybody aboard to work back onto station?
     keeping: bool = True
 
@@ -103,6 +108,23 @@ def _bearing_for(game, contact_id: str, day: float) -> float:
         * math.tau
 
 
+#: How far out of the plane a shove may be aimed, in radians. A collision has
+#: no reason to respect an orbital plane — it is one hull hitting another from
+#: wherever it came from — and now that the sector has a third dimension it
+#: need not. Bounded rather than free: a shove straight up would carry a quay
+#: out of its own system's traffic entirely, and the interesting case is a
+#: structure knocked *off* its plane, still in reach and no longer where the
+#: charts say.
+MAX_PITCH = math.pi / 5
+
+
+def _pitch_for(game, contact_id: str, day: float) -> float:
+    """How far above or below the plane this shove was aimed."""
+    seed = getattr(game, "seed", "") if game is not None else ""
+    share = (hash_seed(f"{seed}|pitch|{contact_id}|{int(day)}") % 2000) / 1000.0
+    return (share - 1.0) * MAX_PITCH
+
+
 def record(game, contact, speed: float, day: float | None = None,
            damage: float = 0.0) -> Knock | None:
     """Write down that this contact was shoved, and by how much.
@@ -117,6 +139,7 @@ def record(game, contact, speed: float, day: float | None = None,
     when = float(game.day if day is None else day)
     hit = Knock(contact_id=contact.id, speed=float(speed),
                 bearing=_bearing_for(game, contact.id, when),
+                pitch=_pitch_for(game, contact.id, when),
                 day=when, damage=float(damage),
                 keeping=keeps_station(contact))
     if km_after(hit, when + KEEPING_DAYS) < SETTLED_KM:
@@ -147,7 +170,7 @@ def km_after(hit: Knock, day: float) -> float:
     return km_per_day * elapsed * math.exp(-elapsed / KEEPING_DAYS)
 
 
-def offset(game, contact_id: str, day: float) -> tuple[float, float]:
+def offset(game, contact_id: str, day: float) -> tuple:
     """Where this contact has been carried to, in AU, relative to its place.
 
     Zero for anything that has never been hit, which is almost everything —
@@ -156,12 +179,17 @@ def offset(game, contact_id: str, day: float) -> tuple[float, float]:
     """
     knocks = getattr(game, "knocks", None)
     if not knocks:
-        return 0.0, 0.0
+        return 0.0, 0.0, 0.0
     hit = knocks.get(contact_id)
     if hit is None:
-        return 0.0, 0.0
+        return 0.0, 0.0, 0.0
     span = km_after(hit, day) / KM_PER_AU
-    return math.cos(hit.bearing) * span, math.sin(hit.bearing) * span
+    # Out of the plane as well as across it. A collision has no reason to
+    # respect an orbital plane, and until the sector had a third dimension
+    # there was nowhere for a shove to go but sideways.
+    flat = math.cos(hit.pitch) * span
+    return (math.cos(hit.bearing) * flat, math.sin(hit.bearing) * flat,
+            math.sin(hit.pitch) * span)
 
 
 def sweep(game) -> int:

@@ -361,8 +361,8 @@ def run(suite: Suite) -> None:
                 available = solved["arrive_day"] - game.day
                 if solved["feasible"] != (solved["days"] <= available + 1e-6):
                     wrong.append(f"{contact.name} day {day:.0f}")
-                _legs, au = flight.route(*flight.ship_position(game),
-                                         *solved["aim"])
+                _legs, au = flight.route(flight.ship_position(game),
+                                         solved["aim"])
                 if abs(au - solved["au"]) > 1e-9:
                     wrong.append(f"{contact.name}: {au:.3f} AU against "
                                  f"{solved['au']:.3f} quoted")

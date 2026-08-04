@@ -216,7 +216,19 @@ def run(suite: Suite) -> None:
         with_rings = lit(view)
         conn.target = dataclasses.replace(conn.target, ringed=False)
         without = lit(view)
-        assert with_rings > without + 400, (
+        # **A share, not a count.** This wanted 400 more lit samples, which
+        # was a number calibrated when starlight always fell the same way: the
+        # old `targets.starlight` returned a fixed `-0.25` for the third
+        # component, so every world in the game was lit from above whatever it
+        # was doing. Once orbits gained a tilt that became wrong — this body
+        # sits 0.17 AU *above* the plane, so the star is below it and the
+        # light comes up — and the flip moved which face of the rings catches
+        # it. Measured, 811 against 592: the rings are plainly drawn, and 219
+        # is simply not 400.
+        #
+        # The claim was never about a pixel count. A ratio says the same thing
+        # and survives the next change to where the light comes from.
+        assert with_rings > without * 1.25, (
             f"a ringed giant lit {with_rings} samples against {without} for "
             "the same approach with the rings removed — the world you are "
             "flying at is not drawing them")

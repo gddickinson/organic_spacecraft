@@ -105,20 +105,30 @@ def build(game, contact=None) -> list:
 
     system = game.system
     if contact is None:
-        tx, ty = flight.ship_position(game)
+        tx, ty, tz = flight.ship_position(game)
         skip = None
     else:
         try:
-            tx, ty = track_sim.at(game, contact, game.day)
+            tx, ty, tz = track_sim.at(game, contact, game.day)
         except Exception:
             return []
         skip = contact.id
 
-    def offset(x_au: float, y_au: float, radius_km: float = 0.0,
-               index: int = 0) -> tuple:
-        dx, dy = (x_au - tx) * AU_KM, (y_au - ty) * AU_KM
-        if math.hypot(dx, dy) > radius_km * CO_LOCATED_LIFT:
-            return (dx, dy, 0.0)
+    def offset(at_au, radius_km: float = 0.0, index: int = 0) -> tuple:
+        """Something's place in the approach's frame, in km.
+
+        **The third number is real now.** This used to end `, 0.0` for
+        everything: the sky was a flat disc, so a world on a steeply inclined
+        orbit was drawn level with the hull however far above the plane it
+        actually stood. With orbits tilted (`sim/elements`) a body can be an
+        AU out of the reference plane, and from a berth that is the
+        difference between a planet on the horizon and one overhead.
+        """
+        dx, dy, dz = ((at_au[0] - tx) * AU_KM, (at_au[1] - ty) * AU_KM,
+                      ((at_au[2] if len(at_au) > 2 else 0.0) - tz) * AU_KM)
+        if math.dist((dx, dy, dz), (0.0, 0.0, 0.0)) > (radius_km
+                                                       * CO_LOCATED_LIFT):
+            return (dx, dy, dz)
         # Sharing a position with the target: put it where it actually is.
         # A world an anchorage orbits is *below* the berth; a hull holding
         # station beside one is off to a side, spread so they do not stack.
@@ -130,7 +140,7 @@ def build(game, contact=None) -> list:
     from ..data.starclasses import of as star_class
     star = star_class(system)
     out = [Sight(name=system.star_name or star.name, kind="star",
-                 at=offset(0.0, 0.0, star.radius_km),
+                 at=offset((0.0, 0.0, 0.0), star.radius_km),
                  radius_km=star.radius_km, tint=star.core, look=star.id,
                  halo=star.halo)]
 
@@ -150,7 +160,7 @@ def build(game, contact=None) -> list:
         if other.id == skip or other.kind == "star":
             continue
         try:
-            x, y = track_sim.at(game, other, game.day)
+            x, y, z = track_sim.at(game, other, game.day)
         except Exception:
             continue
         if other.kind == "body" and other.body_index is not None:
@@ -173,14 +183,14 @@ def build(game, contact=None) -> list:
             radius, kind, ringed = radius_km(look), "anchorage", False
         else:
             radius, kind, look, ringed = 0.08, "hull", other.errand, False
-        where = offset(x, y, radius, index)
+        where = offset((x, y, z), radius, index)
         held = docked.get(other.name) if kind == "hull" else None
         if held is not None and contact is not None:
             # On the berth it is holding. Only when the frame is an approach —
             # with no target the sky is the view from wherever the ship is
             # standing, and the structure's own frame is not the one being
             # drawn in.
-            spot = _berth_spot(game, held[0], held[1], tx, ty)
+            spot = _berth_spot(game, held[0], held[1], tx, ty, tz)
             if spot is not None:
                 where = spot
         out.append(Sight(name=other.name, kind=kind,
@@ -190,7 +200,8 @@ def build(game, contact=None) -> list:
     return out
 
 
-def _berth_spot(game, structure, berth: str, tx: float, ty: float):
+def _berth_spot(game, structure, berth: str, tx: float, ty: float,
+                tz: float = 0.0):
     """Where a berth on this structure is, in the approach's own frame.
 
     Through `moorings.points`, which is the one door for where a fitting is —
@@ -211,11 +222,11 @@ def _berth_spot(game, structure, berth: str, tx: float, ty: float):
         at = dict(moorings.points(target, spin)).get(berth)
         if at is None:
             return None
-        sx, sy = track_sim.at(game, structure, game.day)
+        sx, sy, sz = track_sim.at(game, structure, game.day)
     except Exception:
         return None
-    dx, dy = (sx - tx) * AU_KM, (sy - ty) * AU_KM
-    return (dx + at[0], dy + at[1], at[2])
+    dx, dy, dz = ((sx - tx) * AU_KM, (sy - ty) * AU_KM, (sz - tz) * AU_KM)
+    return (dx + at[0], dy + at[1], dz + at[2])
 
 
 def has_rings(body) -> bool:

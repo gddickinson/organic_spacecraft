@@ -42,6 +42,30 @@ ceiling and was split at a real seam (`sim/conn_open.py` — opening a flight
 reads the whole game; flying one does not), and the manual grew a topic that
 quotes your own ranges off your own array.
 
+## The ninth pass: orbits (2026-08-03)
+
+Every orbit in the game was a circle in one plane going one way, because
+`flight.position` had exactly one element to read. It now has six, derived
+rather than stored, and positions are three-dimensional from the ephemeris
+out to both charts and the conn's own windows. The rule that governs the
+tables: every bound is a real Solar System body, so none of it is taste.
+
+## The GUI play-test (2026-08-03)
+
+Thirteen screens built, painted and resized; every button pressed; a
+chronicle surveyed, flown, jumped, saved and reloaded. It found the defect
+the orbit work had left behind and no suite had asked about: **a course could
+not point out of the plane**, because `Conn.heading` is one angle. The flight
+deck now has a pitch as well, and a run that used to sail past at 1,514 km
+arrives at 14.
+
+## Reported from play (2026-08-03)
+
+*"The auto-pilot wouldn't move anywhere, and Fleet Hub could be seen in every
+view at the same distance in every direction."* One fault, both halves: a
+quay sat at its body's exact coordinates — the centre of the planet — so the
+range to it was zero. Quays have places of their own now.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests` runs the lot (~20 min, 184 suites); one suite by
