@@ -9,6 +9,7 @@ is the thing to measure.
 
 from __future__ import annotations
 
+import dataclasses
 import math
 
 from .test_ui import _use_offscreen
@@ -176,8 +177,37 @@ def run(suite) -> bool:
                         f"({after.x():.1f},{after.y():.1f}) when the quays "
                         "were listed in the other order")
             win.close()
-        assert stacked, ("no seed in this set has two quays at one body, so "
-                         "nothing here exercised the fan")
+        # **The fan is built, not waited for.** This used to require that
+        # some seed in the set happened to grow two quays at one body — and
+        # once `data/remnants.py` changed what systems hold, no seed in a
+        # hundred and sixty did, so the very case the seat fan exists for
+        # went untested while the check went on passing. A crowd is made
+        # here instead: `place_mark` reads `anchorage_sim.in_system`, which
+        # is the same door the ordering check above leans on.
+        if not stacked:
+            win, chart = chart_for(SEEDS[0])
+            g = win.game
+            try:
+                real = anchorage_sim.in_system
+                one = next(p for p in real(g) if p.kind in ("quay", "hub"))
+                crowd = [dataclasses.replace(one, id=f"{one.id}-{n}",
+                                             name=f"{one.name} {n}")
+                         for n in range(3)]
+                try:
+                    anchorage_sim.in_system = lambda g_, _c=crowd: list(_c)
+                    seats = [chart.place_mark(g, p) for p in crowd]
+                finally:
+                    anchorage_sim.in_system = real
+                for i, a in enumerate(seats):
+                    for b in seats[i + 1:]:
+                        gap = math.dist((a.x(), a.y()), (b.x(), b.y()))
+                        assert gap > QUAY_HIT, (
+                            f"three quays at one body seat {gap:.1f} px "
+                            f"apart, inside the {QUAY_HIT:.0f} px hit radius")
+                stacked = len(crowd)
+            finally:
+                win.close()
+        assert stacked, "the fan was neither found nor built"
         return (f"{checked} quays over {len(SEEDS)} seeds, each on its own "
                 f"mark; {stacked} body carries more than one")
 

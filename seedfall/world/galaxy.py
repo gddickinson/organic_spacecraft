@@ -15,6 +15,7 @@ from ..data.factions import FACTIONS
 from ..data.lore import STAR_PREFIX, STAR_SUFFIX
 from ..data.xenotech import CULTURES, XENOTECH, by_culture
 from .economy import Market, make_market
+from ..data import remnants as remnant_data
 from .planets import Body, make_body
 
 #: (id, name, heat, tint, weight)
@@ -170,7 +171,22 @@ def generate_sector(seed_str: str, count: int = 42) -> Galaxy:
         sc = rng.weighted([(s[4], s) for s in STAR_CLASSES])
         name = _system_name(rng, used)
         n_bodies = rng.weighted([(1, 1), (3, 2), (5, 3), (5, 4), (3, 5), (2, 6), (1, 7)])
-        bodies = [make_body(rng, name, j, n_bodies, sc[2]) for j in range(n_bodies)]
+        # **A corpse keeps less — and the ones it does not keep are still
+        # rolled for.** Every body is generated and the surplus dropped
+        # afterwards, rather than the count being cut first: cutting it first
+        # would take fewer numbers out of `rng` and shift the whole sector
+        # every existing seed grows. Only the dead stars change, which is the
+        # point. See `data/remnants.py` and `Leavings.keeps`.
+        bodies = [make_body(rng, name, j, n_bodies, sc[2], sc[0])
+                  for j in range(n_bodies)]
+        leavings = remnant_data.of(sc[0])
+        if leavings is not None:
+            # The *outer* ones survive: what was close in was engulfed or
+            # unbound. Dropping from the front rather than the back is the
+            # difference between a corpse that kept its far worlds and one
+            # that kept exactly the worlds it should have eaten.
+            keep = max(1, min(len(bodies), leavings.keeps))
+            bodies = bodies[len(bodies) - keep:]
         systems.append(System(i, name, p["x"], p["y"], sc[0], sc[1], sc[3], sc[2], bodies))
 
     _assign_ports(rng, systems, owners)

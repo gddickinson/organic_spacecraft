@@ -200,6 +200,59 @@ and not a drawing fault: `flight.position` had one element to read.
   constant says so.
 - **A shove can push out of the plane** (`knock.pitch`), because a collision
   has no reason to respect an orbital plane.
+- **The exit-139 segfault: found, and it was never what it looked like.**
+  `tests/test_verbs.py` drives every control on every screen by building a
+  window per control, clicking, pumping the loop and calling `close()`.
+  **`close()` is not a delete.** A closed widget is still a live paint device
+  with events queued against it; the reference then fell out of scope, the
+  collector took the C++ object at some unrelated later moment, and a queued
+  paint landed on a device that no longer existed — which is why
+  `painter.setBrush` appeared to fail on a good colour (the painter was fine,
+  its *device* was gone) and why the crash always surfaced in a suite well
+  after the one that caused it. Closing *and* destroying each window takes it
+  from 1–2 in 4 to **0 in 8**.
+  - It was characterised wrongly three times first — concurrency, then widget
+    teardown at suite boundaries, then out-of-range projected coordinates —
+    because it was reasoned about from symptoms. `python -X faulthandler`
+    settled it in one run and should have been the first move.
+  - Two fixes made while wrong are kept because they are real: `render3d`
+    now bounds a projected vertex (one a hair in front of the lens genuinely
+    projects to billions and genuinely can kill a rasteriser), and the
+    harness puts windows down at suite boundaries.
+  - **Exit 139 with zero failures is the worst shape a failure takes.** Grade
+    a run on its exit code, never on a count of FAIL lines.
+- **A dead star now leaves what a dead star leaves.** Three of the nine
+  classes are corpses and all three generated systems from the living table —
+  a supernova remnant could hold an ocean world with lifeforms in it.
+  `data/remnants.py`: a white dwarf engulfed its inner system and shed the
+  rest wide and cold, rubble-rich; a neutron star's planets are second
+  generation, condensed from fallback debris, metal and sterile; a black hole
+  keeps almost nothing. Measured over ten galaxies: 47% rubble round a corpse
+  against 32% round a living star, 0 lifeforms against 975, innermost body
+  1.78 AU against 0.40, 3.1 bodies against 3.8.
+- **The generator's RNG stream is a compatibility surface, and I learned it
+  the hard way.** The first version of the above chose a remnant's bodies
+  with `rng.weighted`, which takes a different count of numbers out of the
+  sector generator — so every seed in the game grew a *different sector* and
+  **thirty-five checks failed in places with nothing to do with dead stars**.
+  A galaxy is grown once and stored, so what a generator draws is as much an
+  interface as what it returns. Remnants are recast **after the fact** now,
+  derived from each body's own identity and touching `rng` not at all;
+  disabling the feature and re-running was what proved the churn was mine.
+- **`gate_body` enforced a rule it had only stated.** "Deliberately not the
+  one the quay is built over" was left to the assumption that the outermost
+  body is never the largest — true in a system of six, false in the two-to-
+  four-body systems remnants keep, so a Weave anchor came out standing on a
+  port. Single-body systems are exempt because there is nowhere else.
+- **A survey quote cannot bill luck, and the check now says so.** It demanded
+  the spend equal the forecast exactly; a burn incident ("the correction
+  costs reaction mass nobody budgeted") took 6 t on top of a 3 t burn. The
+  claim is the real one now: the quote is exact and anything past it was
+  *announced* — a silent overspend still fails.
+- **The orrery's seat fan is built rather than waited for.** It required some
+  seed to happen to grow two quays at one body; after the remnant tables no
+  seed in 160 did, so the case the fan exists for went untested while the
+  check passed.
 - **One order now docks her.** A run stopped 50 km short and handed the conn
   back; `flightdeck.berth_from_here` carries it on into the berth through the
   hand-over, the clearance and the boats. 18 of 18 chronicles run from open
@@ -255,28 +308,7 @@ and not a drawing fault: `flight.position` had one element to read.
 
 ## Open — defects and debts, in rough value order
 
-1. **A segfault when suite runs overlap, and it is ours.** Three concurrent
-   runs crash about **1 in 15** on this build and **0 in 17** on the one
-   before it, always in the same stream (`chronicle dig resume verbs`),
-   always preceded by Qt's *"Cannot destroy paint device that is being
-   painted"*: a widget torn down while a painter is still live on it. Exit
-   139, **no traceback and nothing failing**, which is why a run has to be
-   graded on its exit code and never on a count of FAIL lines — that mistake
-   was made twice in one day.
-   - It does **not** happen on a quiet machine: 187 suites, exit 0.
-   - It is not a swallowed paint error: `painting.MISSES` is empty in those
-     runs, and freeing the traceback's frames in `safe_paint` (which does
-     release the painter earlier) changed nothing — 1 in 15 either way.
-   - The likeliest reading is that this pass simply *paints more*: an orbit
-     went from `drawEllipse` to a 72-point path on the orrery and a 96-point
-     one on the plotting board, which widens the window in which a teardown
-     can catch a live painter. That would make it a latent harness race this
-     build provokes rather than a new defect — but it has only ever been
-     seen here, so it is recorded as ours until someone proves otherwise.
-   - Worth trying next: close and `deleteLater` every window a suite opens
-     before the app is torn down, and see whether the rate goes to zero.
-
-2. **Tuning constants without a guard.** The tripwire's last clean sweep
+1. **Tuning constants without a guard.** The tripwire's last clean sweep
    read 60 of 131 unprotected (`INTERFACE.md`, "Which numbers are actually
    held in place"); a few have been pinned since, and new constants
    (`path.py`, `engage.REACH_KM`, `freeflight.RUN_MARGIN`) joined the pool.

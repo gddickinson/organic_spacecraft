@@ -77,6 +77,7 @@ KIN = {
     "path": ("helm", "flight", "burns"),   # split from `flight`, same pins
     "collision": ("collision", "detection", "byhand", "conn"),
     "elements": ("elements", "flight", "orrery"),
+    "remnants": ("remnants", "geography"),
     "viewport_mark": ("bridgemarks", "sights"),
     "orbit_shapes": ("elements", "traffic", "flight"),
     "detection": ("detection", "collision"),

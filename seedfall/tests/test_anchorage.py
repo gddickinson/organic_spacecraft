@@ -143,9 +143,13 @@ def run(suite: Suite) -> None:
                     faults.append(f"{berth.name} against {gate.name}")
                 # And not on top of the quay — arriving through the Weave
                 # should drop you at the edge, not in the middle of a port.
+                # Where there *is* a choice: a system of one body has
+                # nowhere else to put an anchor, and asking it to find one
+                # would be asking for a place that does not exist.
                 quay = next((a for a in berths if a.kind in ("quay", "hub")),
                             None)
-                if quay is not None and quay.body_index == berth.body_index:
+                if (len(system.bodies) > 1 and quay is not None
+                        and quay.body_index == berth.body_index):
                     faults.append(f"{berth.name} shares a body with "
                                   f"{quay.name}")
         assert not faults, faults

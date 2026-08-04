@@ -202,6 +202,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("collision", "test_collision", "collision guard", True),
     SuiteSpec("detection", "test_detection", "detection", True),
     SuiteSpec("elements", "test_elements", "orbital elements", True),
+    SuiteSpec("remnants", "test_remnants", "stellar remnants"),
     SuiteSpec("freeframe", "test_freeframe", "free-flight frame", True),
     SuiteSpec("bridge2", "test_bridge", "the bridge", True),
     SuiteSpec("bridgemarks", "test_bridge_marks", "bridge marks", True),

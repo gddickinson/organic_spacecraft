@@ -73,6 +73,18 @@ carries through the hand-over, the clearance and the tug to lines across at
 the granted berth — 18 of 18 chronicles. Fixing that exposed the boats towing
 hulls straight through the structure, which is now a swing round it.
 
+## Stellar remnants (2026-08-04)
+
+White dwarfs, neutron stars and black holes stopped generating their systems
+from the living-star table. Changing what a corpse keeps shifts the RNG
+stream, so every seed grows a different sector — which flushed out three
+seed-dependent fixtures, one of them a rule (`gate_body`) that had been
+stated in a docstring and never enforced.
+
+**A generator's draws are an interface.** Changing *how many* numbers the
+sector generator takes reshapes every seed's galaxy. Anything new there has
+to be derived after the fact, not rolled.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests` runs the lot (~20 min, 184 suites); one suite by

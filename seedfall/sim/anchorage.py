@@ -146,8 +146,17 @@ def gate_body(system):
     if not system.bodies:
         return None, -1
     from . import flight
-    index = max(range(len(system.bodies)),
-                key=lambda i: flight.semi_major(system.bodies[i]))
+    # **Said for a long time, enforced only now.** The rule above was left to
+    # an assumption — that the outermost body is never the largest — which
+    # holds in a system of five or six and fails in a small one. Stellar
+    # remnants keep two to four bodies (`data/remnants.py`), so the outermost
+    # *is* often the one the quay is built over, and a Weave anchor came out
+    # standing on top of a port: arriving through the Weave dropped you in
+    # the middle of the traffic, which is the one thing this is for.
+    order = sorted(range(len(system.bodies)),
+                   key=lambda i: -flight.semi_major(system.bodies[i]))
+    taken = anchor_body(system)[1] if len(system.bodies) > 1 else -1
+    index = next((i for i in order if i != taken), order[0])
     return system.bodies[index], index
 
 

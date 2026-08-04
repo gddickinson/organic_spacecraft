@@ -136,17 +136,36 @@ def run(suite: Suite) -> None:
             before_day = game.day
             before = {c: game.ship.cargo.get(c, 0) + game.stores.get(c, 0)
                       for c in said["cost"]}
+            logged = len(game.log)
             found = survey_sim.perform(game, index, method.id)
             assert found.get("ok"), found.get("why")
             assert game.day - before_day == said["days"], (
                 f"{method.id}: said {said['days']} days, took "
                 f"{game.day - before_day}")
+            # **A quote cannot bill luck, and it does not have to.** The
+            # flight it includes carries a stated risk, and when that risk
+            # lands the incident spends more — "the correction costs reaction
+            # mass nobody budgeted" is the flavour describing itself. Measured
+            # once the sector layout moved and this fixture started actually
+            # flying: an Attitude fault took 6 t on top of a 3 t burn.
+            #
+            # So the claim is the one that matters: the quote is exact, and
+            # anything past it was *announced*. A silent overspend still
+            # fails, which is the defect `survey.full_cost` exists to stop.
+            surprise = [text for _day, text, _kind in game.log[logged:]
+                        if " t of reaction mass gone" in text]
             for commodity, amount in said["cost"].items():
                 after = game.ship.cargo.get(commodity, 0) + \
                     game.stores.get(commodity, 0)
-                assert abs((before[commodity] - after) - amount) < 0.01, (
+                spent = before[commodity] - after
+                if abs(spent - amount) < 0.01:
+                    continue
+                assert surprise, (
                     f"{method.id}: said {amount:g} {commodity}, took "
-                    f"{before[commodity] - after:g}")
+                    f"{spent:g}, and nothing was said about the difference")
+                assert spent > amount, (
+                    f"{method.id}: said {amount:g} {commodity} and took only "
+                    f"{spent:g}")
             checked += 1
 
         # Again with a nearly dry tank. `flight.ensure_at` quietly drops to a

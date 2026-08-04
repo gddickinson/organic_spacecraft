@@ -52,10 +52,20 @@ def run(suite: Suite) -> None:
             for fid in dip.POWERS:
                 game.rep[fid] = 30.0
             last = {}
+            standing = None
             for day in range(4000):
                 approach.tick(game, 1, RNG(f"{seed}{day}"))
                 envoy = getattr(game, "envoy", None)
-                if envoy is not None and not envoy.over:
+                # **A new approach, not a new sighting of the same one.**
+                # This counted every day it could see a live envoy, so an
+                # answer that does not close one — an "accept" the chronicle
+                # cannot actually act on — read as the power coming back
+                # after a single day and the gap being measured collapsed to
+                # 1. The quiet rule in `sim/approach` is per faction and was
+                # never in doubt; what was being measured was.
+                if (envoy is not None and not envoy.over
+                        and envoy is not standing):
+                    standing = envoy
                     who = envoy.faction
                     if who in last:
                         seen.append(game.day - last[who])

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass, field
 
 from ..core.save import register
@@ -152,8 +153,14 @@ def _make_lifeform(rng, biome: str) -> Lifeform:
                     rng.pick(BEHAVIOURS), specimen_value(rng, met[0], traits))
 
 
-def make_body(rng, system_name: str, index: int, count: int, star_heat: float) -> Body:
-    """One body, unsurveyed. Everything interesting is hidden until you look."""
+def make_body(rng, system_name: str, index: int, count: int,
+              star_heat: float, star_class: str = "") -> Body:
+    """One body, unsurveyed. Everything interesting is hidden until you look.
+
+    `star_class` is taken so a dead star can leave what it actually leaves;
+    omitted, the body is built the way every body was before remnants had
+    their own tables, which is what keeps every existing caller honest.
+    """
     t = index / (count - 1) if count > 1 else 0.5
     kind = _kind_for_orbit(rng, t)
     biome = _biome_for(rng, kind, t, star_heat)
@@ -181,7 +188,7 @@ def make_body(rng, system_name: str, index: int, count: int, star_heat: float) -
         a = rng.pick(ANOMALIES)
         anomaly = Anomaly(a[0], a[1], a[2], a[3], a[4])
 
-    return Body(
+    made = Body(
         id=str(index),
         name=f"{system_name} {ROMAN[index] if index < len(ROMAN) else index + 1}",
         kind=kind, biome=biome, orbit=t, radius_km=radius, gravity=gravity,
@@ -190,6 +197,45 @@ def make_body(rng, system_name: str, index: int, count: int, star_heat: float) -
         lifeforms=[_make_lifeform(rng, biome) for _ in range(n_life)],
         anomaly=anomaly,
     )
+    return _recast_for_star(made, star_class, index, system_name)
+
+
+def _recast_for_star(body, star_class: str, index: int, system_name: str):
+    """Make a body over into what a dead star would actually have left.
+
+    **After the fact, and without touching `rng`.** Every draw above happens
+    exactly as it did before this existed, and what a remnant holds is
+    *derived* from the body's own identity afterwards. That is not fastidious:
+    the first version chose a remnant's bodies with `rng.weighted`, which took
+    a different number of numbers out of the generator, and every seed in the
+    game grew a different sector — thirty-five checks failed in places with
+    nothing to do with dead stars. A galaxy is grown once and stored, so the
+    stream is a compatibility surface like any other.
+    """
+    from ..core.rng import hash_seed
+    from ..data import remnants as remnant_data
+    leavings = remnant_data.of(star_class)
+    if leavings is None:
+        return body
+    ident = f"remnant|{system_name}|{index}"
+    share = (hash_seed(ident) % 100_000) / 100_000.0
+    kind, radius, gravity = remnant_data.recast(leavings, ident, share)
+    return dataclasses.replace(
+        body, kind=kind, radius_km=radius, gravity=gravity,
+        # Nothing survives a supernova, and a red giant's envelope is not
+        # survivable either — but the table says so rather than this, because
+        # a corpse that *did* keep something alive is a thing somebody may
+        # want to write one day.
+        lifeforms=[] if leavings.lifeless else list(body.lifeforms),
+        biome=_dead_biome(kind) if leavings.lifeless else body.biome,
+        # Pushed out into what is left, which is also what a star losing mass
+        # does to the orbits of what it does not swallow.
+        orbit=remnant_data.survivor_t(leavings, body.orbit))
+
+
+def _dead_biome(kind: str) -> str:
+    """What a body round a corpse reads as. Nothing warm, nothing living."""
+    return {"gas": "aerial", "comet": "cryo", "ice": "cryo"}.get(kind, "barren")
 
 
 def survey_body(body: Body, quality: float, rng, finds=None) -> dict:

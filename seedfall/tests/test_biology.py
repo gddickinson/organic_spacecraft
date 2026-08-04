@@ -125,7 +125,12 @@ def run(suite: Suite) -> None:
                 "is not a starting technology")
         # And each explanation names the node and its price, so the player can
         # see what it would take.
-        game2 = _surveyed("bio-words", systems=4)
+        # Eight rather than four: `data/remnants.py` made stellar corpses
+        # sterile, as a supernova ought to, so a four-system sample can now
+        # come up short of *kinds* of life rather than short of life. The
+        # claim is about the words each explanation uses, not about how many
+        # systems it takes to collect three of them.
+        game2 = _surveyed("bio-words", systems=8)
         said = set()
         for row in biology.catalogue(game2):
             for found in row["rows"]:
@@ -227,7 +232,11 @@ def run(suite: Suite) -> None:
                         f"{line!r} does not spell {tech.name!r} as the tree "
                         "does")
                     checked += 1
-        assert checked > 5, checked
+        # Corpses are sterile now (`data/remnants.py`), so a fixed sample
+        # yields fewer *explanations* than it used to — the claim is that
+        # every line spells the technology as the tree does, not that a given
+        # number of systems produces a given number of lines.
+        assert checked >= 5, checked
         return (f"{checked} lines, every technology named exactly as "
                 "`data/tech.py` spells it")
 

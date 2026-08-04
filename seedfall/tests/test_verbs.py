@@ -206,11 +206,34 @@ def run(suite: Suite) -> bool:
             QDialog.exec = held_exec
             QInputDialog.getText = held_text
 
+    def _put_down(widget) -> None:
+        """Close a window *and* destroy it, before making the next one.
+
+        **`close()` is not a delete, and that cost a run.** This drove every
+        control on every screen by building a window per control, clicking,
+        pumping the event loop and calling `close()`. A closed widget is
+        still a live paint device with events pending against it; the Python
+        reference then went out of scope, the collector took the C++ object
+        at some unrelated later moment, and a queued paint landed on a device
+        that no longer existed. `faulthandler` put it in `render3d.draw` at
+        `painter.setBrush` — the painter was fine, its *device* was gone —
+        and the process went down with **exit 139, no traceback and nothing
+        failing**, one run in two, always in a suite well after this one.
+        """
+        from PyQt6.QtCore import QEvent
+        try:
+            widget.close()
+            widget.deleteLater()
+        except RuntimeError:
+            return
+        app.processEvents()
+        app.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
     def _drive(screen: str, tab: str | None = None,
                state=None) -> tuple[int, list]:
         _game, win = window(f"{screen}-probe", screen, tab, state)
         labels = [b.text() for b in controls(win, screen)]
-        win.close()
+        _put_down(win)
 
         broken = []
         for index, label in enumerate(labels):
@@ -228,7 +251,7 @@ def run(suite: Suite) -> bool:
             for kind, message in trap.caught:
                 where = f"{screen}/{tab}" if tab else screen
                 broken.append(f"{where}/{label!r}: {kind} {message}")
-            w.close()
+            _put_down(w)
         return len(labels), broken
 
     @check("every control on every standing screen runs")

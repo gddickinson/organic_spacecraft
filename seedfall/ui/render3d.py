@@ -133,6 +133,13 @@ def _shade(base: QColor, lit: float, rim: float, glare: float = 1.0) -> QColor:
 place = models3d.place
 
 
+#: How far outside a window a projected vertex may land and still be worth
+#: handing to the rasteriser, in pixels. Generous — a face can legitimately
+#: run well off the edge — but finite, because the alternative is a number
+#: with no upper bound at all.
+FAR_OFF = 100_000.0
+
+
 def draw(painter, camera: Camera, mesh, at, scale: float, light,
          spin: float = 0.0, tilt: float = 0.0, outline: bool = False,
          glare: float = 1.0, yaw: float = 0.0) -> int:
@@ -180,6 +187,19 @@ def draw(painter, camera: Camera, mesh, at, scale: float, light,
                 points = []
                 break
             point, ahead = got
+            # **A face straddling the lens is not drawable, and asking for it
+            # anyway takes the process down.** `project` divides by depth, so
+            # a vertex a hair in front of the camera comes back at a
+            # coordinate in the billions; hand that to the rasteriser and it
+            # segfaults — no traceback, no failing check, exit 139. Measured
+            # by `faulthandler` after a run died here two times in four, in
+            # the middle of a suite that had nothing to do with the one that
+            # made the window. A hull you are *inside* is the everyday way to
+            # produce it, which quays orbiting their worlds made reachable.
+            if not (-FAR_OFF <= point.x() <= FAR_OFF
+                    and -FAR_OFF <= point.y() <= FAR_OFF):
+                points = []
+                break
             points.append(point)
             depth = max(depth, ahead)
         if len(points) < 3:
