@@ -34,6 +34,7 @@ from ..sim import shipyard as shipyard_sim
 from ..sim import threat as threat_sim
 from ..sim import xeno as xeno_sim
 from ..sim import chains as chain_sim
+from ..sim import comms as comms_sim
 from ..sim import contracts as contract_sim
 from ..sim import territory as territory_sim
 from ..sim import upkeep as upkeep_sim
@@ -317,6 +318,10 @@ def _one_step(game, n: float, dilation: float) -> None:
 
     # Notes banked against a technology whose prerequisites have since been
     # met can finally be made sense of.
+    # **The sector says things to you.** Derived from what has changed since
+    # it last reported, so it cannot repeat itself or drift — `sim/comms`.
+    comms_sim.tick(game, 1)
+    comms_sim.sweep(game)
     for contract, outcome in contract_sim.check(game):
         if outcome == "done":
             game.add_log(f"Contract complete: {contract.title}. "

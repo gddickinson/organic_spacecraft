@@ -230,10 +230,17 @@ def run(suite: Suite) -> None:
         assert runs, "the opening Weave goes nowhere"
         dest = runs[0]
 
+        # **The crossing is instant; the queue is not.** A ring is a machine
+        # with a cycle, and a harbour working one hard has hulls waiting on
+        # it — `sim/gatetraffic`. What must stay true is the thing the Weave
+        # is *for*: stepping across the sector does not cost the calendar. So
+        # a quiet anchor is free, and what a busy one costs is a wait for a
+        # slot rather than a crossing that takes days.
         said = gates_sim.quote(game, dest)
-        assert said["days"] == 0, (
-            f"a Weave crossing costs {said['days']} days — it is supposed to "
-            "be the one thing that does not spend the calendar")
+        assert said["days"] < 1.0, (
+            f"a Weave crossing off a quiet anchor costs {said['days']} days "
+            "— it is supposed to be the one thing that does not spend the "
+            "calendar")
         assert said["ly_saved"] > 15, said["ly_saved"]
         assert said["credits"] > 0, "the ring opened for nothing"
 
@@ -286,9 +293,12 @@ def run(suite: Suite) -> None:
         out = gates_sim.use(game, dest)
         assert out["ok"], out
         assert game.location_id == dest, "the ring did not move the ship"
+        # A quiet anchor costs nothing at all. A ring being worked hard can
+        # cost a day of waiting for a slot (`sim/gatetraffic`), but the
+        # crossing itself never does — see the quote above.
         assert game.day == before_day, (
-            f"the calendar moved {game.day - before_day} days on an instant "
-            "crossing")
+            f"the calendar moved {game.day - before_day} days stepping "
+            "through a quiet ring")
         assert game.credits == before_credits - out["credits"], (
             "the toll charged is not the toll quoted")
         assert weave_sim.ensure(game).transits == 1

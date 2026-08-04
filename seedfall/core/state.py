@@ -78,6 +78,13 @@ class Game:
     #: to, so a struck quay is off station everywhere the game reads a
     #: position rather than only in the log line about hitting it.
     knocks: dict = field(default_factory=dict)
+    #: Traffic addressed to this captain — see `sim/comms.py`. Declared here
+    #: rather than attached on first use, because `core/save` walks a
+    #: dataclass's *fields*: an attribute set at runtime is invisible to it,
+    #: and an unanswered despatch that does not survive a reload is a
+    #: question the game forgot it asked.
+    signals: list = field(default_factory=list)
+    signal_marks: dict = field(default_factory=dict)
     #: The radius from that body's centre, in km, that the ship is holding.
     #: Zero means an orbit whose height nobody chose — which is every orbit
     #: made before the conn could be asked for one, and is read as standard.

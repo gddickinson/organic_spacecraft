@@ -200,6 +200,22 @@ and not a drawing fault: `flight.position` had one element to read.
   constant says so.
 - **A shove can push out of the plane** (`knock.pitch`), because a collision
   has no reason to respect an orbital plane.
+- **The sector talks to you now, and a gate is a machine.** `sim/comms.py`
+  and `data/signals.py` give the game an inbox: a sender, a body, sometimes a
+  question, and a *delay*. Nothing is broadcast through a ring — a gate moves
+  mass — so a despatch is carried by a courier that waits for a slot,
+  transits and rebroadcasts. Four regimes, and a chronicle uses all of them:
+  same system (a radio call), carried on the lit Weave (hours), shipped
+  aboard ordinary hulls where there is no anchor (11 d/ly), and light where
+  no hull can reach at all. Measured on one chronicle: 8 shipped, 33 light.
+  `sim/gatetraffic.py` gives rings a bore (a size, not a toll) and a cycle,
+  with queues read off the port's level and the hulls already in the system.
+- **Still to build: enforcement at a gate.** Slots nobody polices are a
+  suggestion. A warded anchor should be run, slipped past under
+  `data/countermeasures` (which is where a cloak finally earns a use beyond
+  the collision guard), or talked past with a forged despatch priority — and
+  an unwarded ring in a lawless system should have no picket at all, which
+  is what would make the Weave's geography political.
 - **The exit-139 segfault: found, and it was never what it looked like.**
   `tests/test_verbs.py` drives every control on every screen by building a
   window per control, clicking, pumping the loop and calling `close()`.

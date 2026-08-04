@@ -116,7 +116,18 @@ def begin(game, contact):
         # The berth is the one the *port* assigned, not the one the ship
         # fancied.
         conn.berth = cleared.berth
-        game.add_log(clearance_sim.line(cleared), "")
+        # **The harbour says it to you, rather than you noting it.** A
+        # clearance is somebody at a desk answering a hull that asked — see
+        # `sim/comms`. It stays in the log as well, because the log is the
+        # record of the voyage and this is a thing that happened in it.
+        said = clearance_sim.line(cleared)
+        game.add_log(said, "")
+        from . import comms
+        comms.send(
+            game, "control", getattr(contact, "name", "Traffic control"),
+            "control",
+            "Cleared to berth" if cleared.granted else "Clearance refused",
+            said)
     # What this structure could do about an uncleared hull, and how long it
     # would put up with one. Set whether or not the clearance was granted —
     # a refusal is precisely when it matters.

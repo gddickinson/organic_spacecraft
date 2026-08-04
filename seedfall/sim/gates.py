@@ -106,7 +106,22 @@ def quote(game, to_id: int) -> dict:
                 "hops": [], "credits": 0, "days": 0}
     tolls = []
     here = game.location_id
+    # **A throat and a clock.** Transit is still the only act that does not
+    # spend the calendar *for the crossing itself* — what it spends now is
+    # the wait for a slot, which is a property of the rings on the way and of
+    # how hard the systems they stand in are working them. See
+    # `sim/gatetraffic`, and `data/gate_traffic` for why a courier is not
+    # held up by the same queue a freighter is.
+    from . import gatetraffic
+    from . import impulse
+    mass = impulse.ship_mass(game)
+    held, wide = 0.0, ""
     for step in hops:
+        ring = weave.gate_at(game, here)
+        fits, why_not = gatetraffic.may_pass(game, ring, mass)
+        if not fits and not wide:
+            wide = why_not
+        held += gatetraffic.wait_days(game, ring)
         tolls.append(toll(game, here, step))
         here = step
     refused = [t for t in tolls if t["refused"]]
@@ -114,12 +129,13 @@ def quote(game, to_id: int) -> dict:
     saved = distance(game.galaxy.systems[game.location_id],
                      game.galaxy.systems[to_id])
     return {
-        "ok": not refused and game.credits >= total,
-        "why": (refused[0]["why"] if refused else
+        "ok": not refused and not wide and game.credits >= total,
+        "why": (wide if wide else refused[0]["why"] if refused else
                 (f"The tolls come to ₡{total:,.0f} and you have "
                  f"₡{game.credits:,.0f}." if game.credits < total else "")),
-        "hops": hops, "tolls": tolls, "credits": total, "days": 0,
-        "ly_saved": saved, "refused": bool(refused),
+        "hops": hops, "tolls": tolls, "credits": total,
+        "days": round(held, 2), "wait": round(held, 2), "bore": wide,
+        "ly_saved": saved, "refused": bool(refused) or bool(wide),
     }
 
 
@@ -153,12 +169,25 @@ def use(game, to_id: int) -> dict:
     target.visited = True
     if first and to_id not in game.discovered["systems"]:
         game.discovered["systems"].append(to_id)
+    # The crossing is still instant; the *queue* is not. A ring working at
+    # its cycle takes you when it takes you.
+    # **A queue is only a cost once it is worth a day.** The calendar steps
+    # in days, so charging a whole one for a two-hour wait would make every
+    # crossing in the sector cost a day — which is the opposite of what the
+    # Weave is for. Rounded, not ceilinged: an afternoon is free and a ring
+    # that is genuinely backed up takes its day.
+    waited = float(said.get("days", 0.0) or 0.0)
+    held = int(round(waited))
+    if held >= 1:
+        game.advance_days(held)
     game.add_log(
         f"Through the Weave to {target.name}: {len(said['hops'])} ring(s), "
         f"₡{said['credits']:,.0f} in tolls, {said['ly_saved']:.0f} light "
-        "years, and no time at all.", "good")
+        + ("years, and no time at all." if waited < 0.01 else
+           f"years, and {waited:.1f} d waiting for a slot."), "good")
     return {"ok": True, "hops": said["hops"], "credits": said["credits"],
-            "ly_saved": said["ly_saved"], "first": first, "days": 0}
+            "ly_saved": said["ly_saved"], "first": first,
+            "days": round(waited, 2)}
 
 
 # ── waking what is dark ────────────────────────────────────────────────────
