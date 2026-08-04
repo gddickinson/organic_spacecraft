@@ -140,6 +140,12 @@ def cleanse(game, system, rng):
                       f"{round(need)} points of armament against a mass this size.")
     cut = min(system.bloom, 0.25 + (firepower - need) / 300 + rng.float(0, 0.15))
     system.bloom = max(0.0, system.bloom - cut)
+    # The burn is made with the fitted guns, so it teaches the Bloom what it
+    # was burned with — combat already reported its hits per family and the
+    # cleanse, the larger provocation, reported nothing, which left "it is
+    # adapting everywhere at once" with nothing to adapt against.
+    for w in game.ship_stats.weapons:
+        bloom_sim.record_damage(game, w.family, w.wpn.dmg)
     if system.bloom <= 0.02:
         loyalty.record(game, "bloom_cleansed")
     return {"cut": cut,

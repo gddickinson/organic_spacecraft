@@ -65,6 +65,13 @@ def buy(game, cid: str, units: int) -> dict:
     officials_sim.spend_once(game, system, "quiet_price")
     add_cargo(game.ship, cid, n)
     apply_trade(system.market, cid, n)
+    # A prospecting order is for material brought in. Tonnes bought over the
+    # issuing port's own counter are remembered against the posting, so they
+    # cannot be presented straight back for the fee (`Contract.bought_here`).
+    for c in game.contracts:
+        if (not c.done and not c.failed and c.kind in ("prospect", "relic")
+                and c.issued_at == game.location_id and c.commodity == cid):
+            c.bought_here += n
     officials_sim.dealt_with(game, system, min(2.0, n * price / 9000))
     if not BY_ID[cid].legal:
         game.adjust_rep(system.port.faction, -BUY_TAINT)

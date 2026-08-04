@@ -41,10 +41,11 @@ def _throw(side, against) -> float:
     scale-3 one carries a hundred and twenty points of it.
     """
     total = 0.0
+    from .abilities import armour_of
     for part in side.st.weapons:
         if part.wpn is None:
             continue
-        total += max(part.wpn.dmg * LEAK, part.wpn.dmg - against.st.armour)
+        total += max(part.wpn.dmg * LEAK, part.wpn.dmg - armour_of(against))
     return total
 
 

@@ -15,7 +15,7 @@ from __future__ import annotations
 from PyQt6.QtWidgets import QHBoxLayout, QLineEdit, QWidget
 
 from ..data.help import TOPICS
-from ..data.screens import NAV_KEYS
+from ..data.screens import KEY_FOR, NAV, NAV_KEYS
 from ..sim import manual as manual_sim
 from .widgets import (Panel, TabBar, View, button, defer, label, note,
                       spacer)
@@ -121,9 +121,15 @@ class HelpView(View):
                 # view — which pushed the whole manual off the right edge.
                 p.add(label(line, "", "dim" if line.startswith("  ") else "",
                             wrap=True))
-        if page["screen"]:
+        if page["screen"] in KEY_FOR:
+            # Only a rail screen can be walked to from here — an event view
+            # (the battle, the ground) exists when its event does. And the
+            # button carries the rail's name for it, not the internal id:
+            # it used to read "GO TO THE EMPIRE SCREEN" over a rail that
+            # says Holdings.
+            name = dict(NAV)[page["screen"]].split("  ", 1)[-1]
             p.add(spacer(6))
-            p.add(button(f"Go to the {page['screen']} screen",
+            p.add(button(f"Go to {name}",
                          lambda s=page["screen"]: self.win.go(s),
                          kind="primary"))
         if page["see"]:

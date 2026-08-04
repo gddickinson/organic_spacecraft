@@ -90,12 +90,22 @@ def buy_price(market: Market, cid: str, rep: float = 0, trade_bonus: float = 0):
 
 
 def sell_price(market: Market, cid: str, rep: float = 0, trade_bonus: float = 0):
-    """Unit price this market pays you. Always below buy — that is the spread."""
+    """Unit price this market pays you. Always below buy — that is the spread.
+
+    The last clause is enforced rather than hoped. The buy side applies the
+    trade skill as a discount and this side applied it as a premium, so the
+    two crossed at trade 0.222 — measured, 18,000 credits became 2,645,369 in
+    two hundred same-counter round trips on day zero. The offer is clamped
+    under what *this* captain would pay to buy the tonne back, so the spread
+    survives every modifier either term grows in future.
+    """
     b = buy_price(market, cid, rep, 0)
     if b is None:
         c = BY_ID.get(cid)
         return max(1, round(c.base * 0.55 * (1 + trade_bonus))) if c else None
-    return max(1, round(b * (0.80 + trade_bonus * 0.4)))
+    offered = round(b * (0.80 + trade_bonus * 0.4))
+    asked = buy_price(market, cid, rep, trade_bonus)
+    return max(1, min(offered, asked - 1))
 
 
 def apply_trade(market: Market, cid: str, units: float) -> None:

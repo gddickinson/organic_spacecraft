@@ -31,7 +31,8 @@ KINDS: dict[str, ContractKind] = {k.id: k for k in [
     ContractKind(
         "prospect", "Prospecting", "steel",
         "A standing order for material, payable on presentation, no questions "
-        "about which rock it came off.",
+        "about which rock it came off — brought in, though. Tonnes off their "
+        "own counter do not count.",
         rate=120, rep=3, deadline=(150, 400)),
     ContractKind(
         "survey", "Survey Commission", "lumen",

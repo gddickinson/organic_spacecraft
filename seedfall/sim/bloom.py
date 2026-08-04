@@ -11,8 +11,9 @@ import itertools
 from dataclasses import dataclass, field
 
 from ..core.save import register
-from ..data.bloom import (BEATS, HEART_HP, HEART_NAME, MAX_RESIST,
-                          RESIST_DECAY, RESIST_PER_HIT, STAGES, STAGES_BY_ID)
+from ..data.bloom import (BEATS, HEART_HP, MAX_RESIST, RESIST_DECAY,
+                          RESIST_PER_HIT, STAGE_BY_ANSWERS, STAGES,
+                          STAGES_BY_ID)
 from ..world.galaxy import distance
 
 _uid = itertools.count(1)
@@ -41,6 +42,9 @@ class BloomState:
     beats: list[str] = field(default_factory=list)
     provocation: float = 0.0
     responses: list[str] = field(default_factory=list)
+    #: Damage dealt to it per weapon family, from the first shot — what
+    #: "adapting everywhere at once" adapts against (`responses.check`).
+    hurt: dict[str, float] = field(default_factory=dict)
 
     @property
     def definition(self):
@@ -48,10 +52,18 @@ class BloomState:
 
 
 def ensure(game) -> BloomState:
-    """The state, created on first use so old saves keep working."""
+    """The state, created on first use so old saves keep working.
+
+    The heart is pinned by the generator's own rule — the far corner,
+    `max(x + y)`, which is where `world/galaxy._seed_bloom` put Kessel's
+    Reach — rather than by whichever system happens to read the highest
+    bloom today. On an old save loaded mid-campaign several systems can sit
+    at 1.0, and the live reading landed the heart on the first of them in
+    list order while every screen still called it Kessel's Reach.
+    """
     if getattr(game, "bloom_state", None) is None:
         state = BloomState()
-        origin = max(game.galaxy.systems, key=lambda s: s.bloom)
+        origin = max(game.galaxy.systems, key=lambda s: s.x + s.y)
         state.heart_system = origin.id
         game.bloom_state = state
     return game.bloom_state
@@ -60,11 +72,23 @@ def ensure(game) -> BloomState:
 # ── stages ─────────────────────────────────────────────────────────────────
 
 def review_stage(game, burden: float) -> list[tuple[str, str]]:
-    """Advance the stage when the burden earns it. Never regresses."""
+    """Advance the stage when the burden — or the answering — earns it.
+
+    Never regresses. Burden alone made the antagonist unreachable: it only
+    climbs when nobody fights, so an engaged captain killed the Bloom at
+    stage 0 and never met adaptation, roaming instars or the hunt. What it
+    has answered (`data/bloom.STAGE_BY_ANSWERS`) carries the stage too now —
+    a captain who burns it back meets the Adaptive Bloom *because* they
+    burned it back, which is what the herald has claimed all along ("It is
+    learning by dying").
+    """
     state = ensure(game)
     events = []
+    answered = len(state.responses or [])
+    floor = STAGE_BY_ANSWERS[min(answered, len(STAGE_BY_ANSWERS) - 1)]
     for stage in STAGES:
-        if burden >= stage.threshold and stage.id > state.stage:
+        if (burden >= stage.threshold or stage.id <= floor) \
+                and stage.id > state.stage:
             state.stage = stage.id
             events.append(("bad", stage.herald))
     return events
@@ -89,9 +113,17 @@ def resistance(game, family: str) -> float:
 
 
 def record_damage(game, family: str, amount: float) -> None:
-    """Every hit teaches it a little, once it is adaptive."""
+    """Every hit teaches it a little, once it is adaptive.
+
+    What the hit was made *with* is remembered from the first shot, whatever
+    the stage — it is what "adapting everywhere at once" adapts against when
+    the harden response fires before any resistance exists.
+    """
     state = ensure(game)
-    if state.stage < 3 or amount <= 0:
+    if amount <= 0:
+        return
+    state.hurt[family] = state.hurt.get(family, 0.0) + amount
+    if state.stage < 3:
         return
     state.resist[family] = min(MAX_RESIST,
                                state.resist.get(family, 0.0)
@@ -115,29 +147,52 @@ def worst_resisted(game) -> tuple[str, float] | None:
     return family, state.resist[family]
 
 
+def most_hurt(game) -> str | None:
+    """The weapon family that has cost it the most, resisted or not."""
+    state = ensure(game)
+    if not state.hurt:
+        return None
+    return max(state.hurt, key=lambda k: state.hurt[k])
+
+
 # ── instars ────────────────────────────────────────────────────────────────
 
 def _spawn_instar(game, rng) -> Instar | None:
+    state = ensure(game)
     held = [s for s in game.galaxy.systems if s.bloom > 0.4]
+    if not held and state.heart_hp > 0 and state.heart_system is not None:
+        # A cleaned sector is not a dead one while the heart lives. Without
+        # this, the responses that detach masses ("a seeding wave", "it is
+        # coming for you") printed their text over an empty list precisely
+        # when a fighting captain had earned them — the sector they had just
+        # cleared held nothing past 0.4 to detach from.
+        held = [game.galaxy.systems[state.heart_system]]
     if not held:
         return None
     home = rng.pick(held)
     inst = Instar(id=next(_uid), system_id=home.id,
-                  mass=rng.float(0.8, 1.0) + ensure(game).stage * 0.35)
-    _retarget(game, inst, rng)
+                  mass=rng.float(0.8, 1.0) + state.stage * 0.35)
+    _retarget(game, inst)
     return inst
 
 
-def _retarget(game, inst: Instar, rng) -> None:
-    """Instars go for your holdings first, then for clean ground."""
+def _retarget(game, inst: Instar) -> None:
+    """Instars go for your holdings first, then for clean ground.
+
+    Never for the system it is standing in: the nearest of the pool could be
+    exactly that, and the mass then "arrived" every twenty days for ever,
+    re-seeding the growth and re-rolling the colony attack each time.
+    """
     here = game.galaxy.systems[inst.system_id]
     yours = [game.galaxy.systems[c.system_id] for c in game.colonies if c.online]
-    pool = yours or [s for s in game.galaxy.systems if s.bloom < 0.3]
+    pool = [s for s in (yours or [t for t in game.galaxy.systems
+                                  if t.bloom < 0.3])
+            if s.id != inst.system_id]
     if not pool:
         inst.target_id = None
         return
     pool = sorted(pool, key=lambda s: distance(s, here))
-    inst.target_id = pool[0].id if pool else None
+    inst.target_id = pool[0].id
     inst.days = 0.0
 
 
@@ -160,7 +215,7 @@ def tick_instars(game, days: float, rng) -> list[tuple[str, str]]:
 
     for inst in list(state.instars):
         if inst.target_id is None:
-            _retarget(game, inst, rng)
+            _retarget(game, inst)
             continue
         inst.days += days
         here = game.galaxy.systems[inst.system_id]
@@ -184,7 +239,7 @@ def tick_instars(game, days: float, rng) -> list[tuple[str, str]]:
             if b:
                 events.append(b)
         events.append(("bad", f"An instar has arrived at {target.name}."))
-        _retarget(game, inst, rng)
+        _retarget(game, inst)
     return events
 
 
@@ -237,9 +292,13 @@ def reveal_heart(game) -> tuple[str, str] | None:
 
 
 def strike_heart(game, firepower: float, rng) -> dict:
+    """Burn the original germination. It takes several visits.
+
+    The provocation lands after the guards: it used to be paid first — 260,
+    the largest value in the table — so a strike refused for being in the
+    wrong system still enraged it. Only a burn that happens is answered.
+    """
     from . import responses
-    responses.provoke(game, "heart")
-    """Burn the original germination. It takes several visits."""
     state = ensure(game)
     if state.heart_hp <= 0:
         return {"ok": False, "why": "There is nothing left of it."}
@@ -249,6 +308,7 @@ def strike_heart(game, firepower: float, rng) -> dict:
     if not state.heart_found:
         return {"ok": False, "why": "You have not found it. Survey the system."}
 
+    responses.provoke(game, "heart")
     cut = firepower * rng.float(0.8, 1.3)
     state.heart_hp = max(0.0, state.heart_hp - cut)
     backlash = round(cut * 0.55 * rng.float(0.7, 1.2))

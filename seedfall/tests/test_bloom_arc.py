@@ -148,6 +148,96 @@ def run(suite: Suite) -> None:
         assert aimed, "hunting, but nothing is aimed at the player"
         return f"{len(aimed)} mass(es) aimed at the hull"
 
+    @check("a captain who fights it meets the Bloom the game describes")
+    def _():
+        # The whole reason for `STAGE_BY_ANSWERS`: burden only climbs when
+        # nobody fights, so stage 3 — adaptation, resistance, the hunt — was
+        # reachable only by 3½–5½ years of total neglect, and every game a
+        # player actually played killed the antagonist at stage 0. Played as
+        # a campaign: burn it back on a clock, watch it answer.
+        game = new_game("engaged-captain")
+        rng = RNG("engaged")
+        st = bloom_sim.ensure(game)
+        game.credits = 10 ** 6
+        burns = 0
+        heart = bloom_sim.heart_system(game)
+        # A sector with something to fight — this seed happens to generate
+        # no infested neighbours, and the claim is about the arc, not the
+        # generator.
+        for sysm in game.galaxy.systems[:4]:
+            if sysm is not heart:
+                sysm.bloom = max(sysm.bloom, 0.6)
+        for _round in range(80):
+            infested = [s for s in game.galaxy.systems
+                        if s.bloom > 0.02 and s is not heart]
+            if infested:
+                worst = max(infested, key=lambda s: s.bloom)
+                game.location_id = worst.id
+                response_sim.provoke(game, "burn")
+                for w in game.ship_stats.weapons:
+                    bloom_sim.record_damage(game, w.family, w.wpn.dmg)
+                worst.bloom = max(0.0, worst.bloom - 0.4)
+                burns += 1
+            for _k, _t in response_sim.check(game, rng):
+                pass
+            game.bloom_total = sum(s.bloom for s in game.galaxy.systems
+                                   if s.bloom > 0.02)
+            bloom_sim.review_stage(game, game.bloom_total)
+            if st.stage >= 3:
+                break
+        assert st.stage >= 3, (
+            f"{burns} burns and the Bloom never adapted — stage {st.stage}, "
+            f"provocation {response_sim.level(game):.0f}")
+        assert st.resist, "Adaptive, and resisting nothing"
+        assert bloom_sim.resistance(game, next(iter(st.resist))) > 0, (
+            "resistance recorded but not felt")
+        return (f"stage {st.stage} after {burns} burns; hardened against "
+                f"{sorted(st.resist)} — the antagonist shows up for the fight")
+
+    @check("a mass never hunts the system it is standing in")
+    def _():
+        # `_retarget` could pick the instar's own system — the nearest of the
+        # pool — and the mass then "arrived" every twenty days for ever,
+        # re-seeding the growth and re-rolling the colony attack each time.
+        # Swept over every system as a starting point.
+        game, _sys = _infested("retarget-self")
+        st = bloom_sim.ensure(game)
+        for sysm in game.galaxy.systems:
+            inst = bloom_sim.Instar(id=9000 + sysm.id, system_id=sysm.id,
+                                    mass=1.0)
+            bloom_sim._retarget(game, inst)
+            assert inst.target_id != sysm.id, (
+                f"an instar at {sysm.name} was sent to {sysm.name}")
+        # And a cleaned sector still fields one while the heart lives.
+        for s in game.galaxy.systems:
+            s.bloom = 0.0
+        assert st.heart_hp > 0
+        spawned = bloom_sim._spawn_instar(game, RNG("clean-spawn"))
+        assert spawned is not None, (
+            "a clean sector spawned nothing — the seeding-wave response is "
+            "a no-op exactly when a fighting captain earns it")
+        assert spawned.system_id == st.heart_system, (
+            "the last redoubt is the heart, and it detached from somewhere else")
+        return (f"{len(game.galaxy.systems)} starting points, none self-"
+                f"targeted; a clean sector still detaches from the heart")
+
+    @check("a refused strike is not an answered one")
+    def _():
+        # `strike_heart` paid its provocation — 260, the table's largest —
+        # before the guards that can refuse it, so shooting from the wrong
+        # system enraged the thing you never touched.
+        game, _sys = _infested("refused-strike")
+        before = response_sim.level(game)
+        somewhere_else = next(s for s in game.galaxy.systems
+                              if s.id != bloom_sim.ensure(game).heart_system)
+        game.location_id = somewhere_else.id
+        res = bloom_sim.strike_heart(game, 120, RNG("refused"))
+        assert not res["ok"], "the strike was supposed to be refused"
+        assert response_sim.level(game) == before, (
+            f"a refused strike provoked it: {before} → "
+            f"{response_sim.level(game)}")
+        return f"refused ('{res['why']}'), and the provocation held at {before:g}"
+
     @check("studying a mass pays, and feeds it")
     def _():
         game, system = _infested("study", mass=0.55)

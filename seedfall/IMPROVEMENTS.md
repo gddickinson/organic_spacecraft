@@ -322,6 +322,209 @@ and not a drawing fault: `flight.position` had one element to read.
   three. It is given the mass now, and the bill is claimed where the bill
   belongs.
 
+## Done — the tenth pass (2026-08-04): the review's worst, fixed
+
+The same day as the review below, in its value order. Every fix carries a
+played claim; the suites named held green through the pass.
+
+- **The crash and the two data-loss shapes.** `go()` refuses an unknown
+  screen before anything is hidden or reassigned; the two manual topics
+  point at real screens; the manual's "go to" button only offers rail
+  screens and calls them by their rail names. Escape at the ending returns
+  to the game instead of falling into `clear_save()`; `begin_again` and the
+  ending path no longer clear the save before the title dialog can still be
+  cancelled, and cancelling it returns to a live chronicle. `closeEvent`
+  saves; buy, sell and vent save the way `learn_about` always did.
+  (`tests/test_ui.py` ×4, `ui/window_dialogs.py` split out — `ui/window.py`
+  was at 507.)
+- **The same counter never pays more than it asks.** The floor is stated at
+  both layers — `world/economy.sell_price` clamps under what *this* captain
+  would pay, `sim/market.quote_sell` clamps under `quote_buy` — so every
+  modifier present and future is covered. The office rate keeps both its
+  directions up to that ceiling. Swept: 532 quotes, cold and warm, every
+  port; 40 played round trips lose money. (`tests/test_counter.py` ×3.)
+- **A prospect is fed by bringing material in.** Tonnes bought over the
+  issuing counter are remembered against the posting
+  (`Contract.bought_here`, written by `trade.buy`) and do not complete it;
+  the board's blurb says so. A delivery completes from the hold, not the
+  location-free depot. (`tests/test_cargo.py` ×2.)
+- **A worked-out board fills again.** `contracts.board_for` owns the board
+  in `sim/`, stamped and turned over on the harbour's clock (faster at
+  bigger ports); an old save's bare list is adopted, not thrown away.
+  (`tests/test_postings.py`.)
+- **The Bloom shows up for the fight.** The stage rides what it has
+  *answered* as well as the burden (`data/bloom.STAGE_BY_ANSWERS`) — played,
+  an engaged captain reaches Adaptive in 7 burns instead of never. The two
+  no-op responses do their thing: answering advances the stage before the
+  effects land, "everywhere at once" adapts against the family that has
+  actually hurt it (`BloomState.hurt`, fed by combat *and* by `cleanse`,
+  which fires the same fitted guns), and a cleaned sector still detaches
+  instars from the living heart. A refused heart-strike no longer provokes;
+  an instar never retargets the system it stands in; the heart is pinned to
+  the generated origin, not a live `max()`. (`tests/test_bloom_arc.py` ×3.)
+- **Combat is decided on the plot again.** Sensory interference saturates
+  (`DAZZLE_CAP`) — the flash organ is a support tool now (hull kept 0.43 vs
+  0.21), not a 10%→62% win button. The enemy plays a real seat a turn:
+  engineering when cooking or holed, the helm when the geometry is wrong,
+  gunnery otherwise — and its guns work every turn through the same
+  `turnplan.bearing_set` arc test as every player selector, undirected
+  unless gunnery is the seat, exactly the player's price. Damage control
+  patches the outermost *breached* layer (it skipped `hp <= 0`, the one
+  case its blurb advertises, and walked the list inward-first). The idle
+  gunner fires on the ability and brace paths too. The legacy `move` order
+  moves. `seal`'s armour lives on the side and survives the stat rebuilds
+  that erased it every turn (`abilities.armour_of`, read by `combat` and
+  `assessment`). `broke` can no longer be referenced unbound; the enemy's
+  brace clears.
+- **The log can tell good news from bad** — `"good"` and `"bad"` (61 call
+  sites) are in `theme.TINTS`.
+- **Diplomatic ground is worked once, whoever asks.** Two-party cooldowns
+  key on the pair (broker) or the target (denounce), not the seat the order
+  came from; denounce's appreciation runs through `courtship` like every
+  other gain, and the preview quotes the tapered number.
+  (`tests/test_overtures.py` ×2.)
+
+## Open — the 2026-08-04 review: the systems layers
+
+A four-agent review (combat, economy, strategic layer, player experience)
+plus a live play-through over the bridge, looking everywhere the flight-deck
+campaigns did not. The verdict: the flight deck holds and the systems layers
+do not — not one item below was on this list before, and every number was
+measured by driving the sim, not by reading it. In rough value order.
+(The worst of it — the session-brick, the data loss, the same-counter
+arbitrage, the contract exploits, the dead board, the unreachable Bloom,
+the flash organ, the diplomacy exploits — was fixed the same day; see the
+tenth pass above.)
+
+### The economy, measured
+
+- **Colonies print money forever, and nothing bounds them.** A 9,188-credit
+  Grove pays back in 45 days and yields in perpetuity; ~125 plantable sites,
+  no cap, no scaling administration, and no late-game credit sink anywhere
+  (`sim/colony.py`, `core/clock.py`). Mining — the activity with hull wear
+  and mishap risk — is the worst-paid thing in the game at 129 cr/day.
+- **Scrapping a self-built hull profits.** `scrap_value` recomputes the cost
+  without the fabricator discount the build was given
+  (`sim/shipyard.py:293-298`): +146,470 credits per THRESHOLD cycle. It also
+  values every returned tonne at a flat 60 — ore above market, silicon at
+  7% of it.
+- **The freight desk still has the bug `cargo_cost` documents fixing.**
+  `sim/freight.py:150`, `:203`, `:258` call `buy_price`/`sell_price` raw
+  instead of `market.quote_buy`/`quote_sell`, so the board quotes a price
+  the counter will not honour. `trade.sell_survey_data` (`sim/trade.py:129`)
+  the same. Worth a claim that nothing outside `sim/market` imports the raw
+  prices.
+- **One tonne of contraband opens a market the port was built without**
+  (`world/economy.py:149-170` — `apply_sale` writes a supply into a
+  zero-base stock and the next tick adopts a baseline at the scarcity cap).
+  Verified: 14,300 cr/t at a port `make_market` refused to give the good.
+- **A power's port can never be promoted, by arithmetic.**
+  `YIELD_PER_LEVEL × L − UPKEEP_COEFF × L²` (`data/exchequer.py:31,36`)
+  makes the marginal gain of level 2 exactly zero and level 3 negative;
+  `payback` returns `inf` for both, and 2,000 played days produced no
+  retrenchment and purses that only grew. The docstring's "any shock pushes
+  a power into deficit" does not happen.
+- Smaller: SOL-FORGE requires a `"star"` site no generator can produce
+  (`data/colonies.py:112` — 0 in 1,223 bodies over 8 sectors); robot upkeep
+  drives the account negative silently (`sim/robots.py:~351`); the exchequer
+  `payback` re-derives a curve `yield_of` does not follow
+  (`sim/exchequer.py:264`); the Cartel ending counts twenty-year-old price
+  quotes (`sim/threat.py:195`).
+
+### The Bloom, what remains
+
+*(The reachability half — stage gating, the no-op responses, the refused
+strike, the self-targeting instar, the wandering heart — was fixed in the
+tenth pass.)*
+
+- **`system.bloom` has no economic bite.** Not read by `sim/exchequer`,
+  `sim/market`, `world/economy`, `sim/fleets`, `sim/anchorage` or gate
+  tolls — forty infested systems move no price and shrink no fleet, so
+  ignoring the Bloom is free for anyone without colonies.
+- **The powers never act on it.** Six venture kinds and none concerns the
+  Bloom; nothing in the codebase but the player ever reduces
+  `system.bloom`. A `containment` venture kind (`data/ventures.py`,
+  `sim/ventures._apply`) would let the whole existing
+  back/oppose/preview pipeline carry it.
+- **Ruin pre-empts the loss.** Ruin needs 90% of systems past 0.02
+  (`sim/threat.py:199`) and the loss needs all past 0.5 (`:127`), checked
+  after victory — Ruin fires ~180 days first on every seed measured, so a
+  living captain cannot lose to the Bloom and passivity is rewarded with an
+  ending.
+- The Holdings panel and the containment bar leak the fog
+  (`ui/empire_view.py:192-201`, `sim/threat.py:181` — no `intel.sees_bloom`
+  filter); the same panel says "Five of them" over ten endings
+  (`ui/empire_view.py:178`); `HEART_HP` is hardcoded in two UI files
+  (`ui/empire_view.py:215`, `ui/system_view.py:106`).
+
+### Combat, what remains
+
+*(The flash organ, the one-seat enemy, and the four silent deletions were
+fixed in the tenth pass.)*
+
+- **Threat never scales.** Day 1 and day 900 draw the same 1.0–3.0 spread
+  (`sim/encounters.py:166`), and `engage.py:145` spawns the conn's target at
+  the *default* difficulty — opening fire yourself buys the easiest fight in
+  the game.
+- **Nothing sits between "kill it" and "let it go".** No surrender, no
+  prize (though `consorts.sail` already flies a second hull under your
+  flag); `driven-off` pays 10 research; fleeing is ~0.61 odds per turn,
+  retryable, and `fleeable` is never set False by any caller. The aftermath
+  prints recovered tonnage without valuing it — the cargo is ~5× the credit
+  loot and the player cannot see the reason to fight.
+- Smaller: `brace` vents three times and has no button; `nonlethal` is
+  read by nothing (`damage._breach` kills crew whatever opened the hull);
+  lawlessness can only ever bite at the jump exit (`sim/piracy.py` builds a
+  five-term model with one moment to use it); the Charter fields armed
+  warships against its own lore (`encounters._outfit` arms any chassis).
+
+### The world talks and the player cannot hear it
+
+- **`sim/comms.py` is a complete, ticking, saved inbox with zero UI.**
+  Five channels, couriers, lag — grep `ui/` for `comms`, `unread`,
+  `asking(`: nothing. Signals accumulate unbounded in the save because
+  nothing ever calls `read`. A Captain's Log screen — full scrollback over
+  the 300 stored lines (the sidebar shows 60, the rest are unreachable),
+  a kind filter, a despatches tab, an unread pill on the HUD — is the
+  highest-value UX item on the table. `comms.tick` also watches exactly one
+  fact (your standing band) against a docstring promising a sector that
+  speaks; the log tuples in `sim/threat.py:66-116` are the material.
+- **"Wait a year" stops for nothing but death** (`core/clock.py:100-105`) —
+  a seized colony, an expired contract, a Bloom stage all scroll past
+  unread, and a year can overflow the 300-line cap, destroying events
+  before they can be read. A `stop_on` predicate plus a digest dialog.
+  Played on 2026-08-04: a year of waiting alongside a Fleet Hub starved
+  three of the crew to death, one at a time, with 8,250 credits in the
+  purse and biomass on sale a berth away — the log said "It is starting to
+  tell" five times and the clock never paused to let anybody act on it.
+- **No sound. Not one byte** — no audio asset, no QtMultimedia import in
+  the tree. Four cues would carry more than any HUD addition: thruster loop
+  on the held burn, proximity tone off the collision guard, berth-secured
+  chime, a distinct bad-news alert. `QSoundEffect` behind a no-op façade,
+  the same shape as the optional-LLM path.
+- One save slot, no geometry persistence; number keys don't match rail
+  order (`4` opens the fifth entry — `data/screens.py:16-30`); W/A/S/D
+  documented only inside one lesson and dead on the Helm though the clock
+  runs there (`ui/window.py:363` vs `flight_clock.DECK_SCREENS`); buttons at
+  2.02:1 border contrast against WCAG's 3:1, `chloro`/`osteo`
+  luminance-identical for a deuteranope, 8–9 px type with no scale setting;
+  "Twenty-nine things" over 30 lessons (`ui/academy_panel.py:31`), "Eight
+  things to try" (`ui/title.py:136`), "Keys 1–8" over 13 screens (`:160`);
+  the Bloom absent from the HUD; the
+  header clips the ship name unelided; the yard's "After refit" numbers
+  clip at the default window size; forced-answer screens lock navigation
+  while their own fiction offers days to decide.
+
+### What would hold it in place
+
+Almost none of the above is catchable by the suite as written, because it
+is about *reachability and balance* — code that works and is never reached,
+numbers individually pinned and jointly exploitable. The tripwire's natural
+sequel is a set of played economic claims: a same-port round trip loses
+money at every trade × bias combination; a 2,000-day sector produces at
+least one port promotion and one retrenchment; an engaged captain reaches
+Bloom stage 2; no cargo contract nets positive without leaving the system.
+
 ## Open — defects and debts, in rough value order
 
 1. **Tuning constants without a guard.** The tripwire's last clean sweep

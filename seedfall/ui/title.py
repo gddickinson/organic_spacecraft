@@ -112,9 +112,20 @@ def ask_for_game(parent=None):
 
 
 def start_new_chronicle(win) -> None:
-    """Called after an ending: get a fresh game and reset the window in place."""
+    """Get a fresh game and reset the window in place.
+
+    Called after an ending and from "Begin again". Cancelling the title
+    screen must cost nothing: with a live chronicle still underway the window
+    goes back to it — closing here used to be the only exit, which made
+    Escape abandon a game the player had just declined to abandon. Only when
+    there is nothing to go back to does the window close.
+    """
     game = ask_for_game(win)
     if game is None:
+        g = win.game
+        if g is not None and not g.dead and not g.victory:
+            win.refresh()
+            return
         win.close()
         return
     win.game = game

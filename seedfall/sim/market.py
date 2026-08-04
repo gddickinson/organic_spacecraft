@@ -189,6 +189,13 @@ def quote_sell(game, system, cid: str):
         raw = raw / bias
     if _office_rate(game, system):
         raw = raw / QUIET_SHARE          # the same twelve per cent, your way
+    # Warm memory and the office rate act on both sides of the counter, and
+    # inverting a favourable modifier squares it across the pair — at bias
+    # 0.82 that alone was a 49% instant round-trip profit. The law is stated
+    # where both quotes exist: the same counter never pays more than it asks.
+    asked = quote_buy(game, system, cid)
+    if asked is not None:
+        raw = min(raw, asked - 1)
     return max(1, round(raw))
 
 

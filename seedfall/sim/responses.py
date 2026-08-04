@@ -73,9 +73,17 @@ def check(game, rng) -> list[tuple[str, str]]:
         st.responses.append(response.id)
         events.append(("bad" if response.tint == "bad" else "warn",
                        f"{response.name}. {response.text}"))
+        # An answer can advance the stage (`data/bloom.STAGE_BY_ANSWERS`),
+        # and it must advance *before* the answer's own effects — "harden"
+        # writes resistance, which only an Adaptive Bloom holds. Both of the
+        # adapting responses used to no-op silently while printing their
+        # text, because the resist table they read is empty below stage 3
+        # and the burden never reached stage 3 in a fought campaign.
+        events.extend(bloom_sim.review_stage(
+            game, getattr(game, "bloom_total", 0.0)))
         if response.adapts:
             worst = bloom_sim.worst_resisted(game)
-            family = worst[0] if worst else None
+            family = worst[0] if worst else bloom_sim.most_hurt(game)
             if family:
                 bloom_sim.record_damage(game, family, 900)
                 events.append(("warn", f"It has hardened against {family} "

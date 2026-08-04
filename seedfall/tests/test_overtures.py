@@ -111,6 +111,56 @@ def run(suite: Suite) -> None:
         return (f"{len(losers)} powers minded, "
                 + ", ".join(f"{p} {v:.1f}" for p, v in losers))
 
+    @check("the same ground cannot be worked twice from the other seat")
+    def _():
+        # The cooldown was keyed on the initiator alone, so brokering the
+        # same pair from both sides paid double relation for double fee on
+        # the same day, and a denunciation could be farmed from every court
+        # in the sector — +18 with three powers, free, repeatable.
+        game = _able("pair-cooldown")
+        first = dip.perform(game, "broker", "charter", "concordat")
+        assert first["ok"], first.get("why")
+        again = dip.perform(game, "broker", "concordat", "charter")
+        assert not again["ok"], (
+            "the same pair was brokered from the other seat the same day")
+        elsewhere = dip.perform(game, "broker", "sanhedrin", "freeholds")
+        assert elsewhere["ok"], (
+            f"a different pair was refused: {elsewhere.get('why')}")
+
+        fresh = _able("denounce-farm")
+        one = dip.perform(fresh, "denounce", "charter", "freeholds")
+        assert one["ok"], one.get("why")
+        two = dip.perform(fresh, "denounce", "concordat", "freeholds")
+        assert not two["ok"], (
+            "the same denunciation was sold twice, to different courts")
+        return ("a pair brokered once a cooldown, whoever asks; a "
+                "denunciation is of its target, not of the court")
+
+    @check("appreciation for a denunciation tapers like every other gain")
+    def _():
+        # Denounce's `action.gain` is 0, so only the flat +6 reward existed
+        # and nothing ran it through `courtship` — a hole straight past
+        # COURTSHIP_FLOOR at any standing.
+        low = _able("denounce-low", standing=10.0)
+        high = _able("denounce-high", standing=90.0)
+        for game in (low, high):
+            game.rep["freeholds"] = 0.0
+        grateful = [p for p in POWERS
+                    if p != "freeholds"
+                    and dip.relation(low, p, "freeholds") < -15]
+        assert grateful, "nobody dislikes the target — this measures nothing"
+        who = grateful[0]
+        r1 = dip.perform(low, "denounce", "charter", "freeholds")
+        r2 = dip.perform(high, "denounce", "charter", "freeholds")
+        assert r1["ok"] and r2["ok"]
+        gain_low = low.rep[who] - 10.0
+        gain_high = high.rep[who] - 90.0
+        assert 0 < gain_high < gain_low, (
+            f"appreciation does not taper: +{gain_low:.2f} at 10 standing, "
+            f"+{gain_high:.2f} at 90")
+        return (f"+{gain_low:.2f} appreciated at 10 standing, "
+                f"+{gain_high:.2f} at 90 — bought dear, like everything else")
+
     @check("only brokering repairs the matrix, only denouncing tears it")
     def _():
         movers = {}

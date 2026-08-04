@@ -111,7 +111,9 @@ TOPICS = [
            "and risks setbacks."),
           facts=("tech_tree",), see=("xeno",)),
 
-    Topic("xeno", "Alien technology", "xeno",
+    # `screen` must name a view the window actually holds — "xeno" once sat
+    # here, and the manual's "go to" button bricked the whole window on it.
+    Topic("xeno", "Alien technology", "codex",
           ("Four cultures left twelve technologies scattered as buried sites. "
            "None can be derived. Understanding accumulates from excavating a "
            "site, taking relics apart, buying field notes, and seizing them "
@@ -186,7 +188,7 @@ TOPICS = [
            "before you commit."),
           facts=("powers",), see=("contracts", "empire")),
 
-    Topic("detection", "What you can see, and what can hide", "conn",
+    Topic("detection", "What you can see, and what can hide", "pilot",
           ("Your sensor rating is a range in kilometres, and everything is "
            "measured against a hull that is transponding, warm and lit. "
            "Worlds, stars and quays you always see — a planet is enormous "

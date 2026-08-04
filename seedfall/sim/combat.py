@@ -10,27 +10,30 @@ ammunition. TESTUDO doctrine, fitted as a mechanic.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
 from ..core.util import clamp
 from .battle_state import Battle, Side
-from . import doctrine
 from . import damage
 from .damage import _disable, _say, _who
 from . import firing
 from . import stations as st_mod
 from . import turnplan
 from . import tactical as tac
+from . import abilities
 from .abilities import use_ability as _fire_ability
 from .enemy_ai import enemy_turn as _enemy_turn
 from . import consorts as consort_sim
 from . import parley
 from ..data.part_types import BANDS
 from ..data.parts import part
-from .ship import (Ship, Stats, add_cargo, hull_pct, is_breached, is_destroyed,
-                   stats)
+from .ship import add_cargo, hull_pct, is_breached, is_destroyed
 
 VARIANCE = (0.82, 1.18)
+
+#: The most dazzle and jam together may take off accuracy. Unbounded, a
+#: refreshed dazzle pinned any opponent at the 0.05 floor for a whole fight
+#: — the cheapest organ in the game won 62% of engagements on its own.
+DAZZLE_CAP = 0.35
+
 MAX_TURNS = 40
 
 GRIND_TURN = 9      # turns of clean fighting before either side starts wanting out
@@ -40,7 +43,6 @@ GRIND_TURN = 9      # turns of clean fighting before either side starts wanting 
 #: importable from here because that is where the fight reads it.
 from .ship import HEAT_CEILING, add_heat, cook  # noqa: E402,F401
 
-#: personality -> (close preference, fire chance, flee chance)
 def start(player_ship, player_stats, enemy, *, bonuses=None, officers=(),
           rep=0.0, no_parley=False, band=3, game=None, rng=None,
           fleet=()) -> Battle:
@@ -112,7 +114,11 @@ def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng,
     evade = 0.0 if seeking else to.st.evade + (0.08 if to.braced else 0)
     directed = frm.station == "gunnery"
     officers = b.officers if frm is b.player else ()
-    acc = (frm.st.accuracy + w.wpn.acc - pen - frm.blind * 0.3 - frm.jammed * 0.25
+    # Sensory interference saturates (see DAZZLE_CAP): dazzled is a
+    # handicap, not the fight's decision.
+    dazzle = min(DAZZLE_CAP, (0.22 if frm.blind else 0.0)
+                 + (0.25 if frm.jammed else 0.0))
+    acc = (frm.st.accuracy + w.wpn.acc - pen - dazzle
            + (frm.ship.morale - 0.7) * 0.15
            + st_mod.accuracy_modifier(frm, directed, officers))
     if not rng.chance(clamp(acc - evade, 0.05, 0.95)):
@@ -154,7 +160,7 @@ def _fire(b: Battle, frm: Side, to: Side, weapon_id: str, rng,
     # armour: with the floor scaled, a screen cuts what the flag takes from
     # 26.5 to 15.1; with it flat, only to 21.6. A rule that stops armour
     # negating a weapon must not also negate the hull standing in front.
-    dmg = max(w.wpn.dmg * 0.15 * arriving, dmg - to.st.armour)
+    dmg = max(w.wpn.dmg * 0.15 * arriving, dmg - abilities.armour_of(to))
 
     # Bloom tissue remembers what killed the last lineage. Keep using one kind
     # of weapon and it stops working; vary the loadout and the memory fades.
@@ -222,12 +228,16 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
     if b.over:
         return b
     b.player.braced = False
+    b.enemy.braced = False       # a brace that never cleared is permanent
     kind = action.get("type")
 
     # Legacy orders map onto the stations so older callers keep working.
     if kind == "move":
         b.player.station = "helm"
         b.player.helm_order = "close" if action.get("dir", 1) < 0 else "open"
+        # Without the pending order, `_run_stations` handed the helm None
+        # and `run_helm` overwrote the order this mapping had just written.
+        b.pending_order = b.player.helm_order
         kind = "station"
     elif kind in ("fire", "salvo", "volley"):
         b.player.station = "gunnery"
@@ -245,13 +255,14 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
     if kind == "station":
         _run_stations(b, rng)
         _run_consorts(b, rng)
-        if not b.over and isDestroyedSafe(b.enemy.ship):
+        if not b.over and is_destroyed(b.enemy.ship):
             return _finish(b, "destroyed")
+        broke = None
         if not b.over:
             broke = _enemy_turn(b, rng, _say, _fire, _salvo, use_ability)
         if broke:
             return _finish(b, broke)
-        if not b.over and isDestroyedSafe(b.player.ship):
+        if not b.over and is_destroyed(b.player.ship):
             return _finish(b, "lost")
         if not b.over:
             _end_of_turn(b, rng)
@@ -282,12 +293,6 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
                     "mounts.", "dim")
     elif kind == "ability":
         use_ability(b, b.player, action["id"], rng)
-    elif kind == "move":
-        if b.player.grappled:
-            _say(b, "The grapple holds you at contact range.", "warn")
-        else:
-            b.band = int(clamp(b.band + action["dir"], 0, 4))
-            _say(b, f"You manoeuvre to {BANDS[b.band].lower()} range.")
     elif kind == "brace":
         b.player.braced = True
         b.player.resolve += 6
@@ -297,6 +302,11 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
         return parley.hail(b, rng, _ops())
     elif kind == "flee":
         return parley.flee(b, rng, _ops())
+
+    if kind in ("ability", "brace"):
+        # Nobody is laying a mount by hand on these turns, and the panel's
+        # preview already promises the gunner keeps working.
+        _idle_gunner(b, rng)
 
     _run_consorts(b, rng)
     if not b.over and is_destroyed(b.enemy.ship):
@@ -328,10 +338,6 @@ def _ops() -> parley.Ops:
     return parley.Ops(say=_say, fire=_fire, salvo=_salvo,
                       use_ability=use_ability, enemy_turn=_enemy_turn,
                       finish=_finish, end_of_turn=_end_of_turn)
-
-
-def isDestroyedSafe(ship) -> bool:      # noqa: N802 - thin alias for readability
-    return is_destroyed(ship)
 
 
 def use_ability(b: Battle, s: Side, ability_id: str, rng) -> bool:
@@ -372,6 +378,20 @@ def _run_seats(b: Battle, seat: str, order=None) -> list:
     return [t for t in (eng_text, helm_text) if t]
 
 
+def _idle_gunner(b: Battle, rng) -> None:
+    """The gunner keeps working while the captain is elsewhere, less well.
+
+    `turnplan.idle_gunnery` is asked what they do, because the orders panel
+    asks the same function to cost it — quoted separately, the panel once
+    forecast *vent* while the walked-away-from gunner fired everything.
+    """
+    idle = turnplan.idle_gunnery(b.player, b.enemy, b.officers)
+    if idle["order"] == "salvo":
+        _salvo(b, b.player, b.enemy, rng)
+    elif idle["mounts"]:
+        _fire(b, b.player, b.enemy, idle["mounts"][0].id, rng)
+
+
 def _run_stations(b: Battle, rng) -> None:
     """Resolve the player's chosen seat, then the two the officers hold."""
     order_id = getattr(b, "pending_order", None)
@@ -393,20 +413,7 @@ def _run_stations(b: Battle, rng) -> None:
             else:
                 _say(b, "Nothing will bear for an aimed shot.", "dim")
     elif seat != "gunnery":
-        # The gunner keeps working while you are elsewhere, less well. With a
-        # battle computer they at least stop firing into an empty arc or
-        # cooking the mounts past the cap; without one it is salvo, always,
-        # whatever the heat and whatever bears.
-        #
-        # `turnplan.idle_gunnery` is asked what they do, because the orders
-        # panel asks the same function to cost it. Quoted separately, the panel
-        # forecast *vent* at 45 → 20 on a 50 cap and the turn ended at 74: the
-        # gunner the captain had just walked away from had fired everything.
-        idle = turnplan.idle_gunnery(b.player, b.enemy, b.officers)
-        if idle["order"] == "salvo":
-            _salvo(b, b.player, b.enemy, rng)
-        elif idle["mounts"]:
-            _fire(b, b.player, b.enemy, idle["mounts"][0].id, rng)
+        _idle_gunner(b, rng)
 
     if bits:
         _say(b, f"{b.player.ship.name}: {', '.join(bits)}.", "dim")

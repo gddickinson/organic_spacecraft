@@ -4,14 +4,13 @@ ship's log. Also the host for dialogs and the combat hand-off."""
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QMainWindow,
+from PyQt6.QtWidgets import (QFrame, QHBoxLayout, QMainWindow,
                              QVBoxLayout, QWidget)
 
-from ..core import state as state_mod
 from ..core.util import stardate
 from ..data.screens import KEY_FOR, NAV as SCREENS_NAV
 from ..data.lore import TITLE
-from . import flight_clock, theme
+from . import flight_clock, theme, window_dialogs
 from .widgets import (button, label, mono_label,
                       hrule)
 
@@ -116,7 +115,10 @@ class MainWindow(QMainWindow):
                             "its place. There is one save and this overwrites "
                             "it."):
             return
-        state_mod.clear_save()
+        # No `clear_save()` here: the title dialog's own buttons clear it at
+        # the moment a new game actually exists. Clearing first meant that
+        # cancelling the title screen had already destroyed the chronicle it
+        # was supposed to return to.
         from .title import start_new_chronicle
         start_new_chronicle(self)
 
@@ -252,6 +254,14 @@ class MainWindow(QMainWindow):
     del _on_game
 
     def go(self, view_id: str) -> None:
+        # Refuse an unknown screen before anything is hidden or reassigned.
+        # This used to be checked implicitly at `self.views[view_id]` — after
+        # the outgoing view was hidden and `self.current` reassigned — so one
+        # bad id (a manual topic naming a screen that is not a view) left a
+        # blank window that every later navigation re-raised out of.
+        if view_id not in self.views:
+            self.toast(f"No such screen: {view_id}.", "warn")
+            return
         if self.battle is not None and not self.battle.over and view_id != "battle":
             self.toast("You are under fire. Finish the engagement first.", "warn")
             view_id = "battle"
@@ -408,49 +418,17 @@ class MainWindow(QMainWindow):
             self.log_col.addWidget(entry)
 
     # ── dialogs ────────────────────────────────────────────────────────────
+    # `ui/window_dialogs.py`, bound as methods like the flight clock's.
+    toast = window_dialogs.toast
+    dialog = window_dialogs.dialog
+    confirm = window_dialogs.confirm
 
-    def toast(self, text: str, kind: str = "") -> None:
-        self.statusBar().setStyleSheet(
-            f"color: {theme.tint(kind) if kind else theme.INK3};"
-            f"font-family: '{theme.mono_family()}'; font-size: 10px;")
-        self.statusBar().showMessage(text, 6000)
-
-    def dialog(self, heading: str, widgets, buttons=(("Close", None),),
-               width: int = 620):
-        """A modal panel. ``buttons`` is a list of (label, value)."""
-        dlg = QDialog(self)
-        dlg.setWindowTitle(heading)
-        dlg.setMinimumWidth(width)
-        v = QVBoxLayout(dlg)
-        v.setContentsMargins(22, 20, 22, 18)
-        v.setSpacing(10)
-        v.addWidget(label(heading, "h2"))
-        for w in widgets:
-            v.addWidget(body_or(w))
-        row = QWidget()
-        h = QHBoxLayout(row)
-        h.setContentsMargins(0, 8, 0, 0)
-        h.addStretch(1)
-        result = {"value": None}
-
-        def choose(val):
-            result["value"] = val
-            dlg.accept()
-
-        for i, (text, val) in enumerate(buttons):
-            kind = "primary" if i == 0 else "flat"
-            h.addWidget(button(text, lambda v_=val: choose(v_), kind=kind))
-        v.addWidget(row)
-        dlg.exec()
-        return result["value"]
-
-    def confirm(self, heading: str, text: str,
-                yes: str = "Do it", no: str = "Belay that") -> bool:
-        """Ask, unless the player has said not to be asked."""
-        from ..sim import options as options_sim
-        if not options_sim.get(self.game, "confirm"):
-            return True
-        return bool(self.dialog(heading, [text], [(yes, True), (no, False)]))
+    def closeEvent(self, event) -> None:          # noqa: N802
+        # Quitting is a save. Trading advances no calendar, so the autosave
+        # in `refresh` never fires for it — a shopping run used to be lost
+        # on quit while the manual promised it could not be.
+        self.game.save()
+        super().closeEvent(event)
 
     def apply_options(self) -> None:
         """Push settings into the parts of the window that hold their own."""
@@ -490,10 +468,3 @@ class MainWindow(QMainWindow):
         """
         from .endings import reached
         return reached(self)
-
-
-def body_or(w):
-    """Accept either a widget or a paragraph of text."""
-    if isinstance(w, str):
-        return label(w, "", wrap=True)
-    return w

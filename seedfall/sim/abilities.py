@@ -46,6 +46,18 @@ VENT_HEAT = 45.0
 HOLDS_FOR = 2
 
 
+def armour_of(side) -> float:
+    """The side's soak: the fitted armour plus what sealing has bought.
+
+    The one door for a battle read. `combat._fire` and `assessment` both ask
+    this rather than `side.st.armour`, because `side.st` is rebuilt by any
+    `_disable` and by the window every turn — a seal bonus written into it
+    was erased almost immediately, every battle, while the compartment
+    stayed given up.
+    """
+    return side.st.armour + SEAL_ARMOUR * len(getattr(side, "sealed", None) or ())
+
+
 def sealable(side):
     """The compartment `seal` could give up, or None.
 
@@ -97,8 +109,8 @@ def preview(battle, side, ability_id: str) -> dict:
                             "hole, it does not make armour.")
         else:
             told["lines"].append(f"gives up {gone.name}")
-            told["lines"].append(f"armour {side.st.armour:.0f} → "
-                                 f"{side.st.armour + SEAL_ARMOUR:.0f}")
+            told["lines"].append(f"armour {armour_of(side):.0f} → "
+                                 f"{armour_of(side) + SEAL_ARMOUR:.0f}")
     elif ability_id == "interpose":
         told["lines"].append(f"carapace into the fire, {HOLDS_FOR} turns")
     elif ability_id == "shed":
@@ -145,9 +157,13 @@ def use_ability(battle, side, ability_id: str, rng) -> tuple[bool, str, str]:
         if getattr(side, "sealed", None) is None:
             side.sealed = []
         side.sealed.append(gone.name)
-        side.st.armour += SEAL_ARMOUR
+        # The bonus lives on `side.sealed` and is read through `armour_of`,
+        # never written into `side.st` — the stats object is rebuilt by any
+        # `_disable` and by the window every turn, so a bonus written there
+        # was erased almost immediately while the compartment stayed given
+        # up. The ability was a cooldown, a log line and a permanent loss.
         return True, (f"irises its bulkheads shut and gives up {gone.name} — "
-                      f"armour {side.st.armour:.0f}."), "good"
+                      f"armour {armour_of(side):.0f}."), "good"
 
     if ability_id == "interpose":
         side.interpose = HOLDS_FOR

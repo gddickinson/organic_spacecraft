@@ -196,9 +196,12 @@ def preview(game, action_id: str, faction: str,
         if other is None:
             return out
         out["standing"].append((other, -14.0))
+        # Tapered through `courtship` exactly as `perform` pays it — the
+        # board must quote the number the act will move.
         for power in POWERS:
             if power != other and relation(game, power, other) < -15:
-                out["standing"].append((power, 6.0))
+                out["standing"].append(
+                    (power, 6.0 * courtship(game.rep.get(power, 0.0))))
         out["standing"] += [
             (power, -cost) for power, cost
             in allegiance.price_attack(game, other, DENOUNCE_WEIGHT,
@@ -259,6 +262,24 @@ def _spend(game, action) -> None:
             game.stores[cid] = max(0.0, game.stores.get(cid, 0) - rest)
 
 
+def _work_key(action_id: str, faction: str, other: str | None) -> str | None:
+    """The cooldown key for the *work*, not the seat it was ordered from.
+
+    Keyed on the initiator alone, a two-party overture could be run again
+    the same day from the other seat: brokering the same pair from both
+    sides paid double for double the fee with no cooldown at all, and a
+    denunciation of one power could be farmed from every court in the
+    sector — +18 with three powers, free, repeatable. Brokering B with A
+    *is* brokering A with B, and a denunciation is of its target, whoever
+    you said it to.
+    """
+    if action_id == "broker" and other:
+        return f"{action_id}|{'|'.join(sorted((faction, other)))}"
+    if action_id == "denounce" and other:
+        return f"{action_id}|{other}"
+    return None
+
+
 def perform(game, action_id: str, faction: str, other: str | None = None) -> dict:
     """Carry out a diplomatic move. Returns what happened."""
     from . import allegiance
@@ -271,9 +292,18 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
                     if a.id == action_id), (False, "Unavailable."))
     if not ok:
         return {"ok": False, "why": why}
+    pair_key = _work_key(action_id, faction, other)
+    if pair_key is not None:
+        ready = state.cooldowns.get(pair_key, -9999)
+        if game.day < ready:
+            return {"ok": False,
+                    "why": f"That ground was worked {action.cooldown - (ready - game.day)} "
+                           f"day(s) ago — not for another {ready - game.day}."}
 
     _spend(game, action)
     state.cooldowns[f"{action_id}|{faction}"] = game.day + action.cooldown
+    if pair_key is not None:
+        state.cooldowns[pair_key] = game.day + action.cooldown
     lines: list[str] = []
     gain = offer_gain(game, action, faction)
 
@@ -296,12 +326,17 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
         if other is None:
             return {"ok": False, "why": "Denounce whom?"}
         game.adjust_rep(other, -14)
-        # Everyone who dislikes the denounced thinks better of you.
+        # Everyone who dislikes the denounced thinks better of you — through
+        # `courtship`, like every other gain. Flat, the +6 was untapered at
+        # any standing because denounce's `action.gain` is 0 and only the
+        # gain went through the curve — a hole straight past COURTSHIP_FLOOR,
+        # the constant added to stop standing being bought at a flat rate.
         for power in POWERS:
             if power == other:
                 continue
             if relation(game, power, other) < -15:
-                game.adjust_rep(power, 6)
+                game.adjust_rep(power,
+                                6 * courtship(game.rep.get(power, 0.0)))
                 lines.append(f"{FACTIONS_BY_ID[power].short} appreciated it.")
         shift_relation(game, faction, other, -8)
         # And whoever is close to them takes it personally. Denouncing a

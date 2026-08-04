@@ -130,6 +130,11 @@ class Contract:
     stage: int = 0
     #: What completing it cost with the issuer's enemies, for the screen.
     cost: list = field(default_factory=list)
+    #: Tonnes of the wanted commodity bought over the issuing port's own
+    #: counter while this posting stood — the fee is set from the neutral
+    #: price, so presenting the counter's own tonnes was a guaranteed
+    #: margin. `sim/trade.buy` writes it; `check` subtracts it.
+    bought_here: float = 0.0
 
     @property
     def definition(self):
@@ -175,6 +180,36 @@ def _pick_target(rng, game, sysm, far: bool):
 #: of them scaled up, because you are seeing the work before it is picked over.
 EARLY_EXTRA = 2
 EARLY_SCALE = 1.18
+
+
+#: How long a port's board stands before the harbourmaster turns it over —
+#: sooner at bigger ports. Before this existed a board was generated exactly
+#: once per chronicle, so contracts were a finite resource that ran out.
+BOARD_TURNOVER = 90
+BOARD_TURNOVER_PER_LEVEL = 10
+
+
+def board_for(game, sysm) -> list[Contract]:
+    """The postings standing at this port, turned over on the harbour's clock.
+
+    The one door to a board: the panel draws what this returns. An old
+    save's bare list carries no stamp — it is stamped with today on first
+    read, so the cadence starts from the load rather than discarding what
+    was standing.
+    """
+    key = str(sysm.id)
+    entry = game.boards.get(key)
+    if isinstance(entry, list):
+        entry = {"day": game.day, "posts": entry}
+    level = sysm.port.level if sysm.port else 0
+    turnover = max(30, BOARD_TURNOVER - BOARD_TURNOVER_PER_LEVEL * level)
+    if entry is None or game.day - entry["day"] >= turnover:
+        entry = {"day": game.day,
+                 "posts": generate(game.rng("board"), game, sysm)}
+    entry["posts"] = [c for c in entry["posts"]
+                      if not c.accepted and c.deadline > game.day]
+    game.boards[key] = entry
+    return entry["posts"]
 
 
 def generate(rng, game, sysm) -> list[Contract]:
@@ -318,7 +353,10 @@ def abandon(game, contract: Contract) -> None:
 
 
 def _cargo_held(game, cid: str) -> float:
-    return game.ship.cargo.get(cid, 0) + game.stores.get(cid, 0)
+    """Cargo aboard the hull. The hold, not `game.stores` — the depot is
+    location-free, so counting it let a delivery complete with the goods in
+    a warehouse nobody moved. Delivered means aboard, here."""
+    return game.ship.cargo.get(cid, 0)
 
 
 def check(game) -> list[tuple[Contract, str]]:
@@ -341,7 +379,8 @@ def check(game) -> list[tuple[Contract, str]]:
                 events.append((c, "done"))
         elif c.kind in ("prospect", "relic"):
             here = game.system.port and game.location_id == c.issued_at
-            if here and _cargo_held(game, c.commodity) >= c.amount:
+            brought = _cargo_held(game, c.commodity) - c.bought_here
+            if here and brought >= c.amount:
                 _take_cargo(game, c.commodity, c.amount)
                 _pay(game, c)
                 events.append((c, "done"))

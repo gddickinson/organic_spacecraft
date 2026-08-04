@@ -178,9 +178,12 @@ def jump(game, system_id: int) -> dict:
     return action_sim.jump_to(game, int(system_id))
 
 
-@verb("extract", "Run the rig on a body: index, tonnes, method.")
-def extract(game, index: int, tonnes: float = 30, method: str = "cut") -> dict:
-    return action_sim.extract(game, int(index), float(tonnes), method)
+@verb("extract", "Run the rig on a body: index, days of working, method.")
+def extract(game, index: int, days: float = 30, method: str = "cut") -> dict:
+    # The parameter was called "tonnes" and it was days all along —
+    # `actions.extract` takes a spell length, and a caller asking for 30
+    # tonnes got a 30-day working that raised ~99.
+    return action_sim.extract(game, int(index), float(days), method)
 
 
 @verb("buy", "Buy tonnes of a commodity at this port.")

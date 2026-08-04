@@ -56,6 +56,15 @@ STAGES: list[Stage] = [
 
 STAGES_BY_ID = {s.id: s for s in STAGES}
 
+#: The stage the Bloom's own answering carries it to, indexed by how many
+#: responses have fired (`sim/responses`). Burden was the only ladder, and
+#: burden only climbs when nobody fights — measured over five seeds, stage 3
+#: needed 3½–5½ *years* of total neglect, so adaptation, resistance and
+#: hunting were dead content in any chronicle a captain actually played.
+#: "harden" is the adaptation beat, so two answers carry it straight to
+#: Adaptive; "hunt" is a Bloom that has your measure, which is Sovereign.
+STAGE_BY_ANSWERS = (0, 1, 3, 3, 4)
+
 #: Damage families the Bloom can build resistance to, keyed off the part that
 #: dealt the damage. Vary your armament or watch it stop working.
 RESIST_FAMILIES = ("grown", "fabricated", "synthetic", "xeno", "any")

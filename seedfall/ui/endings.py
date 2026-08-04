@@ -16,7 +16,6 @@ again.
 
 from __future__ import annotations
 
-from ..core import state as state_mod
 from ..data.lore import ENDINGS, VICTORIES
 from .widgets import label
 
@@ -65,6 +64,13 @@ def _show(win, heading: str, text: str, cause: str = "",
         win.save()
         win.go("legacy")
         return
-    state_mod.clear_save()
+    if picked != "again":
+        # Escape, or the title bar's close. Dismissing an ending is "not
+        # now", never "begin again" — this used to fall through into
+        # `clear_save()` and destroy a chronicle that could have carried on.
+        # `check_ending` will present it again.
+        return
+    # No `clear_save()` before the title screen: its own buttons clear the
+    # save at the moment a new game exists, so cancelling it costs nothing.
     from .title import start_new_chronicle
     start_new_chronicle(win)

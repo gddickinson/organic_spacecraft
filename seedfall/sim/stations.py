@@ -168,8 +168,14 @@ def run_engineering(side, order_id: str | None, directed: bool, officers,
         return "power to the drive"
     if order_id == "damage_control":
         healed = 0.0
-        for layer in reversed(side.ship.layers):
-            if layer.hp <= 0 or layer.hp >= layer.max:
+        # The outermost damaged layer, a breached one first of all.
+        # `layers[0]` is the outermost — the same end `damage._apply_to_layers`
+        # hits first — and this loop used to walk `reversed(...)` (innermost
+        # first) while skipping `hp <= 0` entirely, so the one case the order
+        # exists for — "A layer is open. Patching it", `doctrine.engineering`
+        # — answered "nothing to patch".
+        for layer in side.ship.layers:
+            if layer.hp >= layer.max:
                 continue
             gain = (layer.max * (0.06 + 0.02 * skill)
                     * (1.6 if side.st.regen > 0 else 1.0) * share)

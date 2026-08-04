@@ -114,6 +114,68 @@ def run(suite: Suite) -> None:
         return (f"{len(KINDS)} kinds played out; {sorted(needs)} need the "
                 "hold, and those are the ones priced")
 
+    @check("a prospect cannot be fed from the counter that posted it")
+    def _():
+        # The fee is set from the neutral price and completion is at the
+        # issuing port, so the goods could be bought over that same counter
+        # and handed straight back — 442 of 442 sampled cargo contracts
+        # profitable, the prospects with no travel at all. Played both ways:
+        # counter tonnes do not finish it, brought tonnes do.
+        from ..sim import trade as trade_sim
+        game = new_game("prospect-taint")
+        system = next(s for s in game.galaxy.systems
+                      if s.port and buy_price(s.market, "ore", 0, 0))
+        game.location_id = system.id
+        game.credits = 100_000
+        contract = _fake("prospect")
+        contract.issued_at = system.id
+        contract.deadline = game.day + 500
+        contract.accepted = True
+        contract.commodity = "ore"
+        contract.amount = 20
+        game.contracts = [contract]
+        game.ship.cargo.pop("ore", None)
+
+        bought = trade_sim.buy(game, "ore", 30)
+        assert bought["ok"], bought
+        counter = any(c is contract and out == "done"
+                      for c, out in contract_sim.check(game))
+        assert not counter, (
+            "tonnes off the issuing counter completed the posting")
+
+        game.ship.cargo["ore"] = game.ship.cargo.get("ore", 0) + 20
+        brought = any(c is contract and out == "done"
+                      for c, out in contract_sim.check(game))
+        assert brought, "tonnes brought in did not complete it"
+        return ("30 t off their own counter: refused; 20 t brought in: paid "
+                f"{contract.reward or 'the fee'}")
+
+    @check("a delivery is made from the hold, not the depot")
+    def _():
+        # `game.stores` is location-free, so counting it let a delivery
+        # complete with the alloy in a warehouse nobody moved.
+        game = new_game("deliver-depot")
+        system = next(s for s in game.galaxy.systems if s.port)
+        game.location_id = system.id
+        contract = _fake("deliver")
+        contract.issued_at = system.id
+        contract.target_system = system.id
+        contract.deadline = game.day + 500
+        contract.accepted = True
+        contract.commodity = "alloy"
+        contract.amount = 10
+        game.contracts = [contract]
+        game.ship.cargo.pop("alloy", None)
+        game.stores["alloy"] = 50
+        stored = any(c is contract and out == "done"
+                     for c, out in contract_sim.check(game))
+        assert not stored, "a warehouse fifty systems away made the delivery"
+        game.ship.cargo["alloy"] = 10
+        aboard = any(c is contract and out == "done"
+                     for c, out in contract_sim.check(game))
+        assert aboard, "cargo aboard at the destination did not deliver"
+        return "50 t in the depot: refused; 10 t in the hold: delivered"
+
     @check("the board prices a relic like every other cargo contract")
     def _():
         # It rendered a fee and a deadline and nothing about the xenoliths,

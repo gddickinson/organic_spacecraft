@@ -3187,6 +3187,42 @@ torch at 62%** → ahead on thrusters → down on thrusters → astern on thrust
 
 `tests/test_elements.py` holds the seven claims.
 
+### The tenth pass: the systems layers answer for themselves
+
+A four-agent review (combat, economy, strategic layer, player experience)
+measured everywhere the nine flight-deck passes had not, and the worst of
+what it found was fixed the same day. The full findings and what remains
+are in `IMPROVEMENTS.md` ("the 2026-08-04 review"); the shape of the fixes:
+
+- **A dialog's None is a refusal, never a choice** (`ui/window_dialogs.py`)
+  — Escape at the ending used to run `clear_save()`. And `go()` refuses an
+  unknown screen before hiding anything: two manual topics naming
+  non-screens could brick the window for the session.
+- **The same counter never pays more than it asks** — an invariant clamped
+  at both price layers (`world/economy.sell_price`,
+  `sim/market.quote_sell`) rather than a repaired coefficient, because the
+  exploit was two independent modifiers crossing (trade skill, the grudge
+  bias) and the next modifier would have crossed it again. 18,000 → 2.6M
+  credits on day 0, closed.
+- **A posting is fed by bringing material in** (`Contract.bought_here`),
+  a delivery completes from the hold, and the board turns over on the
+  harbour's clock through `contracts.board_for` — the board was built in a
+  UI module, which is *why* nothing in `sim/` could ever have aged it.
+- **The Bloom's stage rides what it has answered**
+  (`data/bloom.STAGE_BY_ANSWERS`) as well as the burden, so the antagonist
+  — adaptation, roaming instars, the hunt — is met by the captain who
+  fights it rather than only by the one who ignores it for three years.
+- **Sensory interference saturates** (`combat.DAZZLE_CAP`), and the enemy
+  plays a real seat a turn through the same arc test as the player
+  (`sim/enemy_ai.py`), so fights are decided on the plot rather than by
+  whether a 3,400-credit flash organ is fitted.
+- **Diplomatic cooldowns key on the work** — the pair brokered, the power
+  denounced — not the seat the order came from.
+
+`tests/test_ui.py`, `test_counter.py`, `test_cargo.py`, `test_postings.py`,
+`test_bloom_arc.py` and `test_overtures.py` hold the claims, all of them
+played rather than quoted.
+
 ## Running
 
 ```
@@ -3533,8 +3569,14 @@ seedfall/
 ├── ui/                 PyQt6 presentation — never mutates state directly
 │   ├── theme.py        palette, fonts, the global stylesheet
 │   ├── widgets.py      Panel, Card, Bar, Pill, TabBar and the View base class
-│   ├── window.py       MainWindow: hud, nav rail, view stack, log, dialogs
-│   ├── title.py        title screen and the opening briefing
+│   ├── window.py       MainWindow: hud, nav rail, view stack, log; refuses
+│   │                   an unknown screen before touching anything, saves on
+│   │                   close
+│   ├── window_dialogs.py  toast/dialog/confirm, bound as methods the way
+│   │                   flight_clock's are; None from a dialog is a refusal,
+│   │                   never a choice
+│   ├── title.py        title screen and the opening briefing; cancelling it
+│   │                   returns to a live chronicle rather than closing
 │   ├── app.py          QApplication bootstrap
 │   ├── map_view.py     custom-painted sector chart and jump control
 │   ├── system_view.py  bodies, survey, extraction, diving, colonising

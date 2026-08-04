@@ -85,6 +85,29 @@ stated in a docstring and never enforced.
 sector generator takes reshapes every seed's galaxy. Anything new there has
 to be derived after the fact, not rolled.
 
+## The review, and the tenth pass (2026-08-04)
+
+A four-agent review (combat, economy, strategic layer, player experience)
+plus a live play-through over the bridge. The verdict, and it held up under
+measurement: the flight deck is done and the systems layers were not. The
+worst of it went in `IMPROVEMENTS.md` and the worst of *that* was fixed the
+same day — the Help-screen session brick, Escape destroying saves twice,
+trading never saved; the same-counter arbitrage (18,000 → 2.6M on day 0),
+the prospect-contract fee farm, boards that never refreshed; the Bloom's
+whole antagonist arc gated behind a burden only a losing player reaches;
+the flash organ deciding every fight on its own; two diplomacy exploits.
+Every fix carries a played claim in the suite.
+
+Two lessons worth keeping. **The suite was green through all of it**,
+because nearly every finding was about reachability and balance — code that
+works and is never reached, numbers individually pinned and jointly
+exploitable. The claims that catch these are *played* ones: a round trip
+must lose money, an engaged captain must meet stage 3, a board must refill.
+**And an invariant beats a corrected formula**: the spread fix is not a
+repaired coefficient but a stated law — the same counter never pays more
+than it asks — clamped at both layers, so every future modifier is covered
+on the day it is added.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests` runs the lot (~20 min, 184 suites); one suite by

@@ -227,6 +227,9 @@ class PortView(BerthsMixin, View):
                                 "It goes to space and it is not coming back."):
             return
         customs_sim.jettison(self.game, cid)
+        # Trading moves no calendar, so the autosave never fires for it —
+        # these three save the way `learn_about` and `ask_favour` already do.
+        self.win.save()
         self.win.refresh()
 
     def _buy(self, cid: str, units: int) -> None:
@@ -237,6 +240,7 @@ class PortView(BerthsMixin, View):
         if res["due"]:
             self.win.toast(f"{cr(res['paid'])} for the cargo and "
                            f"{cr(res['due'])} to the quay.", "osteo")
+        self.win.save()
         self.win.refresh()
 
     def _sell(self, cid: str, units: int) -> None:
@@ -251,6 +255,7 @@ class PortView(BerthsMixin, View):
             self.win.toast(f"{cr(res['took'])} over the counter, less "
                            f"{cr(res['due'])} wharfage — {cr(res['net'])} "
                            "clear.", "osteo")
+        self.win.save()
         self.win.refresh()
 
     # ── contracts ──────────────────────────────────────────────────────────

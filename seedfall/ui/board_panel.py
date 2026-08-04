@@ -23,13 +23,9 @@ from .widgets import Card, Panel, Pill, button, label, note, spacer
 def build(view, sysm) -> None:
     """Fill `view.col` with the board as it stands at this port."""
     g = view.game
-    # A board is generated once per port and keeps until it is worked out.
-    key = str(sysm.id)
-    if key not in g.boards:
-        g.boards[key] = contract_sim.generate(g.rng("board"), g, sysm)
-    board = [c for c in g.boards[key]
-             if not c.accepted and c.deadline > g.day]
-    g.boards[key] = board
+    # The board belongs to the sim, which turns it over on the harbour's
+    # clock — generated here, it could never refresh, and it never did.
+    board = contract_sim.board_for(g, sysm)
 
     rumours = rumours_panel.board(view, g, sysm)
     if rumours is not None:

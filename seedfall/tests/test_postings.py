@@ -145,10 +145,10 @@ def run(suite: Suite) -> None:
                 app.processEvents()
             texts = [lab.text() for lab in view.findChildren(QLabel)
                      if lab.text()]
-            # The posted board lives in `game.boards`, keyed by system —
+            # The posted board is the sim's, through its one door —
             # `all_open` is what you have already taken, which is why the
             # first version of this check found nothing on screen at all.
-            posted = game.boards.get(str(game.system.id), [])
+            posted = contracts.board_for(game, game.system)
             targeted = [c for c in posted if c.target_system is not None]
             for c in targeted:
                 leg = contracts.trip(game, c)
@@ -187,6 +187,35 @@ def run(suite: Suite) -> None:
         finally:
             reach_sim.component = original
         return f"{len(board)} postings, all of them at home"
+
+    @check("a worked-out board fills again on the harbour's clock")
+    def _():
+        # `ui/board_panel.build` was the only caller of `generate` in the
+        # codebase and it cached the result for the chronicle, so contracts
+        # were a finite resource: a port whose board was worked out had no
+        # postings for the rest of the game.
+        game = new_game("board-turnover")
+        sysm = next(s for s in game.galaxy.systems if s.port)
+        game.location_id = sysm.id
+        first = contracts.board_for(game, sysm)
+        assert first, "the opening board posted nothing"
+        game.boards[str(sysm.id)]["posts"] = []          # worked out
+        assert not contracts.board_for(game, sysm), (
+            "an emptied board refilled before the turnover")
+        level = sysm.port.level
+        turnover = max(30, contracts.BOARD_TURNOVER
+                       - contracts.BOARD_TURNOVER_PER_LEVEL * level)
+        game.day += turnover
+        again = contracts.board_for(game, sysm)
+        assert again, "the turnover posted nothing"
+        # And an old save's bare list is adopted, not thrown away.
+        game.boards[str(sysm.id)] = list(again)
+        adopted = contracts.board_for(game, sysm)
+        assert adopted == list(again), "a migrated board lost its postings"
+        assert isinstance(game.boards[str(sysm.id)], dict), (
+            "the migrated board was not stamped")
+        return (f"{len(first)} posted, worked out, {len(again)} fresh after "
+                f"{turnover} days; an old save's board adopted whole")
 
     @check("route_to agrees with component, and with what flying it costs")
     def _():

@@ -28,6 +28,12 @@ TINTS = {
     "warn": "#e0685f",
     "dim": INK3,
     "ink": INK,
+    # The log's two commonest kinds — 61 call sites between them — and
+    # neither was in this table, so a completed contract, a lost colony and
+    # neutral chatter all rendered the same grey. The game's only
+    # notification channel could not tell good news from bad.
+    "good": "#54cf7c",
+    "bad": "#e0685f",
 }
 
 FACTION_TINT = {

@@ -124,27 +124,105 @@ def run(suite: Suite) -> None:
         return (f"regard {before:.0f} → "
                 f"{officials._store(who)['regard']:.0f}, and it is on the books")
 
-    @check("the office rate is worth what it says, both ways")
+    @check("the office rate is worth what it says, up to the counter's own ask")
     def _():
         # Measured against the share written in `data/officials.py` rather than
-        # re-deriving it, and confirmed to move in opposite directions.
+        # re-deriving it. The favour cuts both ways — but the sale is capped
+        # under what the counter now asks, because a favour applied as a raise
+        # on one side and a discount on the other used to invert the spread:
+        # buy at the office rate, sell at the office rate, richer for it, on
+        # the same tonne at the same counter. The promise on the screen is "the
+        # office rate rather than the posted one", and that is what happens;
+        # what no favour may promise is a counter that pays more than it asks.
         game, system = _at_a_quay("worth")
-        cid = _sellable(game, system)
-        posted_buy = market.quote_buy(game, system, cid)
-        posted_sell = market.quote_sell(game, system, cid)
+        goods = [c for c in system.market.stock
+                 if market.quote_sell(game, system, c)]
+        posted = {c: (market.quote_buy(game, system, c),
+                      market.quote_sell(game, system, c)) for c in goods}
         officials.ask(game, system, "quiet_price", False)
-        office_buy = market.quote_buy(game, system, cid)
-        office_sell = market.quote_sell(game, system, cid)
-        assert office_buy < posted_buy, (
-            f"the office rate charges {office_buy} against a posted "
-            f"{posted_buy}")
-        assert office_sell > posted_sell, (
-            f"the office rate pays {office_sell} against a posted "
-            f"{posted_sell} — it is supposed to cut both ways")
-        assert abs(office_buy - round(posted_buy * QUIET_SHARE)) <= 1, (
-            f"{office_buy} against {posted_buy} — not the office share")
-        return (f"buying {posted_buy} → {office_buy}, "
-                f"selling {posted_sell} → {office_sell}")
+        raised = []
+        for cid in goods:
+            office_buy = market.quote_buy(game, system, cid)
+            office_sell = market.quote_sell(game, system, cid)
+            posted_buy, posted_sell = posted[cid]
+            if posted_buy is None:
+                # Sold to, never sold by — no counter, so no ask to stay
+                # under. The favour must still not make the sale worse.
+                assert office_sell >= posted_sell, (
+                    f"{cid}: the favour cut a sale with no counter")
+                continue
+            assert office_buy < posted_buy, (
+                f"{cid}: the office rate charges {office_buy} against a "
+                f"posted {posted_buy}")
+            assert abs(office_buy - round(posted_buy * QUIET_SHARE)) <= 1, (
+                f"{cid}: {office_buy} against {posted_buy} — not the share")
+            assert office_sell >= posted_sell, (
+                f"{cid}: the office rate pays {office_sell} against a "
+                f"posted {posted_sell} — a favour made the sale worse")
+            assert office_sell < office_buy, (
+                f"{cid}: pays {office_sell}, asks {office_buy} — the favour "
+                f"turned the counter into a pump")
+            if office_sell > posted_sell:
+                raised.append(cid)
+        assert raised, "the office rate raised no sale price at all"
+        return (f"{len(goods)} goods at the office rate: all cheaper to buy, "
+                f"{len(raised)} dearer to sell, none above the ask")
+
+    @check("the same counter never pays more than it asks, whoever asks")
+    def _():
+        # `sell_price` crossed `buy_price` at trade 0.222 (a finished tree is
+        # 0.48), and a warm memory inverted the pair by its square — measured,
+        # 18,000 credits became 2,645,369 in two hundred same-counter round
+        # trips on day zero. Swept at the extremes of both modifiers, over
+        # every stocked good at every port in the sector.
+        from ..data.tech import TECH
+        from ..sim import grudge as grudge_sim
+        crossings = []
+        ports = goods = 0
+        for warmth in ("cold", "warm"):
+            game = new_game("counter-sweep")
+            game.research.unlocked = [t.id for t in TECH]
+            game.recompute()
+            for sysm in game.galaxy.systems:
+                if not sysm.port or not sysm.market:
+                    continue
+                ports += 1
+                if warmth == "warm":
+                    for _ in range(3):
+                        grudge_sim.note(game, sysm.port.faction, "rescue",
+                                        "you came for us", 1.5)
+                for cid in sysm.market.stock:
+                    qb = market.quote_buy(game, sysm, cid)
+                    qs = market.quote_sell(game, sysm, cid)
+                    goods += 1
+                    if qb is not None and qs is not None and qs >= qb:
+                        crossings.append((warmth, sysm.name, cid, qb, qs))
+        assert not crossings, f"sell ≥ buy at {crossings[:4]}"
+        return (f"{goods} quotes across {ports} port visits, cold and warm: "
+                f"sell under buy at every one")
+
+    @check("working the same counter is a way to lose money")
+    def _():
+        # The compounding half of the same exploit: each cycle made the port
+        # scarcer, so the next cycle paid better. Played rather than quoted.
+        from ..data.tech import TECH
+        game = new_game("counter-grind")
+        game.research.unlocked = [t.id for t in TECH]
+        game.recompute()
+        start = game.credits
+        cycles = 0
+        for _ in range(40):
+            if not trade.buy(game, "ore", 10)["ok"]:
+                break
+            if not trade.sell(game, "ore", 10)["ok"]:
+                break
+            cycles += 1
+        assert cycles >= 20, f"the counter ran dry after {cycles} cycles"
+        assert game.credits < start, (
+            f"{cycles} same-counter round trips turned {start} into "
+            f"{game.credits}")
+        return (f"{cycles} round trips, {start} → {game.credits} credits — "
+                f"the counter takes its cut every time")
 
     @check("a favour good once is good once")
     def _():
