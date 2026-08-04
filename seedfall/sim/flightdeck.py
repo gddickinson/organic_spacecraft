@@ -99,6 +99,60 @@ def can_arm(game, conn, mode: str) -> tuple[bool, str]:
     return True, ""
 
 
+def berth_from_here(game, conn, aim):
+    """Carry a finished run straight on into the berth it was aimed at.
+
+    **A run used to stop fifty kilometres short of the thing it was sent
+    to.** `alongside` is open-space alongside — no berth to touch and no
+    structure to stop against — so the computer said "Alongside Fleet Hub,
+    50 km off", handed the conn back and held station there. A player
+    reported the other half of it: having arrived, the autopilot would not
+    move anywhere, because as far as it was concerned the order was done.
+
+    Everything needed to finish already existed and nothing joined it up:
+    `freeflight.hand_over` turns the run into an approach keeping the way on,
+    `clearance` asks the structure which berth it has assigned and where to
+    hold, `moorings` flies the hull to that fitting, and `tug` sends the
+    boats out to walk her the last stretch for nothing at ports that keep
+    them. This is the join.
+
+    Only when the structure will actually have her. A quay that refuses, or
+    one the conn cannot legally be taken on, leaves the run ending exactly
+    where it used to — holding station, with the words to say why.
+
+    Returns the fresh approach, or None to hold as before.
+    """
+    if getattr(aim, "kind", "") != "anchorage":
+        return None
+    from . import berthing as berth_sim
+    from . import freeflight as free_sim
+    ok, _why = berth_sim.can_conn(game, aim)
+    if not ok:
+        return None
+    fresh, why = free_sim.hand_over(game, conn, aim)
+    if fresh is None:
+        game.add_log(f"Alongside {aim.name}, and she will not have us: "
+                     f"{why}", "warn")
+        return None
+    can, said = can_arm(game, fresh, "close")
+    if not can:
+        game.add_log(f"Alongside {aim.name}. {said}", "warn")
+        return fresh
+    # The flight carries across whole: what was armed, whether the clock was
+    # running, and whether the guard is on. A hand-over the *computer* makes
+    # must not quietly change the terms the captain set.
+    fresh.auto = "close"
+    fresh.arm_main = bool(getattr(conn, "arm_main", False))
+    fresh.clock_on = bool(getattr(conn, "clock_on", False))
+    fresh.safeties = bool(getattr(conn, "safeties", True))
+    game.conn = fresh
+    from . import tug as tug_sim
+    boats = (" The boats are coming out to take a line."
+             if tug_sim.has_tug(game, aim) else "")
+    game.add_log(f"Alongside {aim.name}. Coming in to berth.{boats}", "")
+    return fresh
+
+
 def computer(game, conn) -> tuple:
     """What the one flight computer does this beat, under `conn.auto`.
 
@@ -141,7 +195,17 @@ def computer(game, conn) -> tuple:
         if aim is None:
             return None, False, 1.0
         if alongside(game, conn, aim):
-            # Arrived. Say so once and hold station.
+            # **Arrived — and if she was sent to a berth, that is where she
+            # is going.** See `berth_from_here`: this used to stop fifty
+            # kilometres off and hand the conn back, which is where a player
+            # found the autopilot refusing to move.
+            #
+            # The fresh approach flies from the *next* beat: every window
+            # reads `game.conn` each time round, so handing it over and
+            # coasting this one tick is how the swap is made without two
+            # frames being flown in the same breath.
+            if berth_from_here(game, conn, aim) is not None:
+                return None, False, 1.0
             conn.auto = "null"
             game.add_log(f"Alongside {aim.name}, "
                          f"{ALONGSIDE_KM:,.0f} km off.", "")

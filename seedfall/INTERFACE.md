@@ -3086,6 +3086,51 @@ a speed a visitor can match, and `traffic.STATION_DRIFT_LO` says so. A hull
 genuinely falling round a world at orbital speed would be a different errand
 and would need matching orbits to reach.
 
+### One order, from open space to lines across
+
+**A run stopped fifty kilometres short of the thing it was sent to.**
+`freeflight.alongside` is open-space alongside — no berth to touch and no
+structure to stop against — so the computer said *"Alongside Fleet Hub, 50 km
+off"*, handed the conn back and held there. A player found the other half of
+it: having arrived, the autopilot would not move anywhere, because as far as
+it was concerned the order was finished.
+
+Everything needed to finish already existed and nothing joined it up.
+`freeflight.hand_over` turns a run into an approach keeping the way on;
+`clearance` asks the structure which berth it has assigned, where to hold and
+what rate it may be crossed at; `moorings` flies the hull to that fitting; and
+`tug` sends boats out to walk her the last stretch for nothing at any port of
+level 2 or better. `flightdeck.berth_from_here` is the join, and it only fires
+where the structure will actually have her — a refusal leaves the run ending
+exactly where it used to, with the words to say why.
+
+**Then the boats turned out to be the danger.** A tow drew the hull along a
+straight line to the berth from wherever it caught her, and the boats come out
+as far as `TUG_REACH` of the opening range. From the twelve kilometres an
+approach normally opens at that line is harmless; from a run handed over fifty
+kilometres out on whatever bearing the ship arrived on, it goes *through the
+structure*. Measured: cleared, under tow, granted mast 4, walked onto the
+plating 579 m short of it at nought metres a second, the log reading "the
+frames took it" — a collision at zero speed, performed by the harbour.
+
+`tug._walk` puts the tow on the same two-phase discipline the flight computer
+is held to: while the straight line would cut inside the keep-out sphere the
+hull is swung *round* it at the radius she has, and only run in once the line
+is clear. Two things had to be got right and each was found by a check rather
+than by reasoning. The guard may never exclude the destination — at a hub
+whose hold point is 444 m out against a 448 m sphere it forbade every route
+and froze the tow for 2,100 beats while the station turned 136° underneath
+it. And a hull on the *far side* is exactly anti-parallel to its berth, which
+is the case the guard exists for, so falling back to a straight line there
+towed her through the middle: 12 m from the centre of a 400 m hull. There is
+a whole circle of ways round; it takes the one square to the axis she is
+least parallel to, the way `sim/path` picks a way round a star.
+
+Measured across eighteen chronicles: **eighteen berthed, none lost**, from
+490–2,800 km out, arriving at a named fitting with 8.1–14.2 t of a 20 t tank
+still aboard — the tug's own drive doing the last stretch, which is the whole
+of why being cleared is worth having.
+
 **A quay was at the centre of its own planet.** A player reported two things
 as one: *"I tried running to Fleet Hub and the auto-pilot wouldn't move
 anywhere, and Fleet Hub could be seen in every view at the same distance in

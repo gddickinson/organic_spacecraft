@@ -17,6 +17,8 @@ now, and its fast path is recorded in `tests/test_tripwire.MEASURED`.
 
 from __future__ import annotations
 
+import math
+
 from .control import step, welcome
 #: The port level at which a structure keeps tugs. A wayside quay has one arm
 #: and a docking light; somewhere a fleet lives has boats.
@@ -39,6 +41,11 @@ TUG_RATE = 0.9
 #: arrives at the corridor with way still on, which is the burn a captain would
 #: otherwise have to make and the whole reason to ask for boats.
 TUG_CATCH = 8.0
+
+#: The sphere a tow will not cross, as a share of the structure's radius.
+#: A shade outside the skin: the boats walk a hull round the hull, and
+#: "round" has to mean clear of it rather than along it.
+KEEP_OUT = 1.12
 
 #: How far out the boats will come, as a share of where the approach opened.
 #:
@@ -103,17 +110,118 @@ def tug_step(conn, seconds: float) -> float:
                    + float(seconds) / TUG_SECONDS)
     if conn.tug < 1.0:
         return conn.tug
-    # It has the hull. Walk it to the berth at the tug's own rate, on the
-    # tug's own mass — `conn.rcs` is untouched, which is the point.
-    at = found["at"]
-    gap = found["km"]
-    step = min(gap, TUG_RATE * float(seconds) / 1000.0)
-    if gap > 1e-9:
-        share = step / gap
-        conn.pos = [p + (a - p) * share for p, a in zip(conn.pos, at)]
+    # It has the hull. Walk it in at the tug's own rate, on the tug's own
+    # mass — `conn.rcs` is untouched, which is the point.
+    #
+    # **Down the corridor, not straight at the fitting.** This drew the hull
+    # along a chord to the berth from wherever the boats caught it, and the
+    # boats come out as far as `TUG_REACH` of the opening range. From the
+    # twelve kilometres an approach normally opens at, that chord is
+    # harmless. From a run handed over fifty kilometres out on whatever
+    # bearing the ship happened to arrive on, it goes *through the
+    # structure*: measured, a cleared hull under tow at a Fleet Hub was
+    # walked onto the skin 634 m from the mast it had been granted and the
+    # log read "the frames took it" — a collision, at nought metres a second,
+    # performed by the harbour's own boats.
+    #
+    # `moorings.aim` is the two-phase route the flight computer is held to —
+    # out to the hold point on the berth's own line, and only then in. A tug
+    # that ignored it was the one thing in the game allowed to fly a course
+    # no captain would be permitted.
+    from . import moorings as _m
+    at = _m.aim(conn)
+    step = TUG_RATE * float(seconds) / 1000.0
+    conn.pos = list(_walk(conn.pos, at, step, _keep_out(conn.target)))
     conn.vel = [0.0, 0.0, 0.0]
     conn.towed = round(float(getattr(conn, "towed", 0.0)) + step, 6)
     return conn.tug
+
+
+def _keep_out(target) -> float:
+    """The sphere the boats will not take a hull through, in km."""
+    return float(getattr(target, "radius_km", 0.0) or 0.0) * KEEP_OUT
+
+
+def _walk(pos, at, step: float, safe: float) -> tuple:
+    """One step of the tow, round the structure rather than through it.
+
+    **A tow is not a straight line.** The hold point sits barely outside the
+    skin — at a Fleet Hub it is 555 m out against a 400 m hull — so a hull
+    caught on the far side and drawn straight at it crosses the structure on
+    the way. Measured before this: cleared, under tow, granted mast 4, and
+    walked onto the plating 579 m short of it at nought metres a second, the
+    log reading "the frames took it". The boats did that, not the captain.
+
+    So while the straight line would cut inside the keep-out sphere, the tow
+    goes *round*: the hull is swung along the sphere toward the bearing it
+    wants, at the radius it already has. Once the line is clear it is drawn
+    straight in. That is how a harbour walks a hull, and it is the same
+    two-phase discipline `moorings.aim` holds the flight computer to.
+    """
+    gap = math.dist(pos, at)
+    if gap <= 1e-9:
+        return tuple(pos)
+    # **The sphere may never exclude the place she is going.** The hold point
+    # sits just outside the skin and the keep-out just outside that, so at
+    # some structures the destination is *inside* the guard — measured at a
+    # hub whose hold point is 444 m out against a 448 m keep-out, which
+    # forbade every route to it and froze the tow: 2,100 beats, the hull not
+    # moving a millimetre while the station turned 136° underneath it. The
+    # guard is for the crossing, not for the arrival.
+    safe = min(safe, math.dist(at, (0.0, 0.0, 0.0)) * 0.999)
+    if step >= gap or not _cuts_inside(pos, at, safe):
+        share = min(1.0, step / gap)
+        return tuple(p + (a - p) * share for p, a in zip(pos, at))
+    out = math.dist(pos, (0.0, 0.0, 0.0))
+    reach = max(out, safe)
+    if out <= 1e-9:
+        return tuple(pos)
+    here = [p / out for p in pos]
+    want = math.dist(at, (0.0, 0.0, 0.0))
+    if want <= 1e-9:
+        return tuple(pos)
+    there = [a / want for a in at]
+    # The part of the destination bearing square to where she lies, which is
+    # the direction to swing in.
+    dot = sum(h * t for h, t in zip(here, there))
+    side = [t - h * dot for t, h in zip(there, here)]
+    span = math.dist(side, (0.0, 0.0, 0.0))
+    if span <= 1e-9:
+        # **Dead in line — and if that line runs through the structure, any
+        # way round will do.** Falling back to a straight run here was the
+        # hole: a hull on the *far side* is exactly anti-parallel to its
+        # berth, which is precisely the case this guard exists for, and it
+        # was towed clean through the middle — 12 m from the centre of a
+        # 400 m hull. There is a whole circle of ways round; take the one
+        # square to the axis she is least parallel to, the way `sim/path`
+        # picks a way round a star for the same reason.
+        if dot > 0.0:                     # same side, nothing in the way
+            share = min(1.0, step / gap)
+            return tuple(p + (a - p) * share for p, a in zip(pos, at))
+        axis = min(range(3), key=lambda i: abs(here[i]))
+        other = [1.0 if i == axis else 0.0 for i in range(3)]
+        side = [here[1] * other[2] - here[2] * other[1],
+                here[2] * other[0] - here[0] * other[2],
+                here[0] * other[1] - here[1] * other[0]]
+        span = math.dist(side, (0.0, 0.0, 0.0)) or 1.0
+    side = [s / span for s in side]
+    arc = min(step / reach, math.acos(max(-1.0, min(1.0, dot))))
+    swung = [h * math.cos(arc) + s * math.sin(arc)
+             for h, s in zip(here, side)]
+    return tuple(c * reach for c in swung)
+
+
+def _cuts_inside(pos, at, safe: float) -> bool:
+    """Would the straight run from here to there pass inside the sphere?"""
+    if safe <= 0.0:
+        return False
+    span = [a - p for p, a in zip(pos, at)]
+    length = sum(c * c for c in span)
+    if length <= 1e-12:
+        return math.dist(pos, (0.0, 0.0, 0.0)) < safe
+    t = max(0.0, min(1.0, -sum(p * c for p, c in zip(pos, span)) / length))
+    near = [p + c * t for p, c in zip(pos, span)]
+    return math.dist(near, (0.0, 0.0, 0.0)) < safe
 
 
 def tug_line(conn) -> str:

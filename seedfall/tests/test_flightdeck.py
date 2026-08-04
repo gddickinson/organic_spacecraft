@@ -57,8 +57,99 @@ def _window(game):
     return win
 
 
+def _berth_run(seed):
+    """Lay a course on a quay from open space and let the computer have it."""
+    from ..sim import conn as conn_sim
+    from ..sim import flightdeck
+    from ..sim import freeflight as free_sim
+    from ..sim import track as track_sim
+    game = new_game(seed)
+    conn, why = free_sim.begin(game)
+    assert conn is not None, why
+    game.conn = conn
+    quay = next((c for c in track_sim.contacts(game)
+                 if c.kind == "anchorage"), None)
+    if quay is None:
+        return None, None, 0
+    conn.mark, conn.auto, conn.arm_main = quay.name, "run", True
+    free_sim.steer(game, conn, quay)
+    for beat in range(6000):
+        live = game.conn
+        axis, main, throttle = flightdeck.computer(game, live)
+        conn_sim.apply(live, axis, main=main, ticks=1, throttle=throttle)
+        if game.conn.over:
+            break
+    return game, quay, beat
+
+
 def run(suite: Suite) -> bool:
     check = suite.check
+
+    @check("one order takes her from open space to lines across")
+    def _():
+        # **A run used to stop fifty kilometres short of the berth.**
+        # `alongside` in open space means "near the mark", so the computer
+        # said "Alongside Fleet Hub, 50 km off", handed back the conn and
+        # held there — and a player reported the other half: having arrived,
+        # the autopilot would not move anywhere, because the order was done.
+        # Everything to finish existed and nothing joined it up. See
+        # `flightdeck.berth_from_here`.
+        seeds = ("playtest", "verge-7", "kite", "aurel", "det", "hub3")
+        landed, said = [], []
+        for seed in seeds:
+            game, quay, beats = _berth_run(seed)
+            if game is None:
+                continue
+            conn = game.conn
+            assert conn.outcome == "alongside", (
+                f"{seed}: ran for {quay.name} and ended {conn.outcome!r} at "
+                f"{conn.range_km * 1000:,.0f} m")
+            assert getattr(conn, "berth", ""), (
+                f"{seed}: moored to no named fitting")
+            landed.append(seed)
+            said.append(f"{quay.name} {conn.berth}")
+        assert len(landed) >= 4, f"only {len(landed)} chronicles got there"
+        return (f"{len(landed)} chronicles run from open space to a named "
+                f"berth: {said[0]}, and {len(landed) - 1} more")
+
+    @check("the boats walk her round the structure, not through it")
+    def _():
+        # The hold point sits barely outside the skin — 555 m against a 400 m
+        # hull at a Fleet Hub — so a tow drawn straight at it from the far
+        # side crosses the structure. Measured before `tug._walk`: cleared,
+        # under tow, granted mast 4, and walked onto the plating 579 m short
+        # of it at nought metres a second, the log reading "the frames took
+        # it". The harbour's own boats did that.
+        import math
+        from ..sim import tug as tug_sim
+        # Straight through the middle: the far side of a 0.4 km hull.
+        pos, at = (0.0, -1.2, 0.0), (0.0, 0.55, 0.0)
+        safe = 0.4 * tug_sim.KEEP_OUT
+        near, closest = pos, 9e9
+        for _ in range(400):
+            near = tug_sim._walk(near, at, 0.054, safe)
+            closest = min(closest, math.dist(near, (0.0, 0.0, 0.0)))
+        # The claim is the skin, not the margin: the keep-out is a working
+        # allowance and dipping a few metres into it on the last stride is
+        # nobody's problem. Touching a 400 m hull is.
+        assert closest >= 0.4, (
+            f"the tow passed {closest * 1000:,.0f} m from the middle of a "
+            "400 m hull — through the structure")
+        assert math.dist(near, at) < 0.06, (
+            f"the tow never arrived: {math.dist(near, at) * 1000:,.0f} m short")
+        # And a destination inside the keep-out is still reachable — the
+        # guard is for the crossing, not the arrival. A hold point 444 m out
+        # against a 448 m sphere once froze a tow for 2,100 beats.
+        deep = (0.0, 0.444, 0.0)
+        near, moved = (0.0, -0.9, 0.0), 0.0
+        for _ in range(400):
+            step = tug_sim._walk(near, deep, 0.054, 0.448)
+            moved += math.dist(step, near)
+            near = step
+        assert math.dist(near, deep) < 0.06, (
+            f"a hold point inside the keep-out was unreachable: "
+            f"{math.dist(near, deep) * 1000:,.0f} m short after {moved:.2f} km")
+        return "round the hull and in, and a berth inside the guard is reached"
 
     @check("the flight window sees the game's flight, conn window or no")
     def _():

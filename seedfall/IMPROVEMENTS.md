@@ -200,6 +200,17 @@ and not a drawing fault: `flight.position` had one element to read.
   constant says so.
 - **A shove can push out of the plane** (`knock.pitch`), because a collision
   has no reason to respect an orbital plane.
+- **One order now docks her.** A run stopped 50 km short and handed the conn
+  back; `flightdeck.berth_from_here` carries it on into the berth through the
+  hand-over, the clearance and the boats. 18 of 18 chronicles run from open
+  space to a named fitting.
+- **The harbour's own boats were flying a course no captain would be allowed.**
+  A tow ran straight at the berth from wherever it caught the hull and went
+  through the structure — a collision at nought m/s, 579 m short of mast 4.
+  `tug._walk` swings her round the keep-out sphere instead. Two traps found
+  by checks, not by thinking: a guard that excluded the destination froze a
+  tow for 2,100 beats, and the far-side case is exactly anti-parallel, where
+  falling back to a straight line towed her through the middle.
 - **Reported by the player: a quay was at the centre of its own planet.**
   An anchorage's position was its body's, so the range to it from that world
   was zero — the autopilot said it had arrived and would not move, and a

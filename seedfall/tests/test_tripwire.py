@@ -249,7 +249,14 @@ def run(suite: Suite) -> None:
 
         assert code == 0, f"the sweep exited {code}"
         said = out.getvalue()
-        assert "0 of 5 constants are unprotected" in said, said[-300:]
+        # **Counted, not quoted.** This asked for the literal string "0 of 5
+        # constants", so adding a constant to `sim/tug.py` failed a check
+        # about whether the *sweep* restores files — which is nothing to do
+        # with how many there are. The claim is that none of them survives
+        # unprotected, whatever the number.
+        many = len(sweepkit.constants("tug"))
+        assert f"0 of {many} constants are unprotected" in said, (
+            f"expected all {many} caught: {said[-300:]}")
         after = target.read_text()
         assert after == before, (
             "the sweep did not put sim/tug.py back the way it found it — "

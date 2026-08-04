@@ -66,6 +66,13 @@ view at the same distance in every direction."* One fault, both halves: a
 quay sat at its body's exact coordinates — the centre of the planet — so the
 range to it was zero. Quays have places of their own now.
 
+## Docking, end to end (2026-08-04)
+
+"Run for Fleet Hub" used to stop 50 km off and hand back the conn. It now
+carries through the hand-over, the clearance and the tug to lines across at
+the granted berth — 18 of 18 chronicles. Fixing that exposed the boats towing
+hulls straight through the structure, which is now a swing round it.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests` runs the lot (~20 min, 184 suites); one suite by
