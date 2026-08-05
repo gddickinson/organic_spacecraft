@@ -313,6 +313,66 @@ def run(suite: Suite) -> None:
         return (f"{before}→{game.ship.crew} after 90 days with no food, "
                 f"nothing lost in the first {upkeep.GRACE:.0f}")
 
+    @check("a wait stands down on bad news rather than running through it")
+    def _():
+        # Played before this existed: a year alongside a Fleet Hub starved
+        # three crew one at a time, with credits in the purse and biomass
+        # on sale a berth away, while the log said "it is starting to tell"
+        # five times and the clock never paused.
+        game = _of("wet", "stand-down")
+        game.ship.cargo.pop("biomass", None)
+        game.stores["biomass"] = 0
+        crew = game.ship.crew
+        # Waiting again after each stand-down, the way a player who reads
+        # the digest and presses on would — clearing whatever question
+        # stopped it. The crew must still be alive when the shortage is
+        # first reported, because that is the point: there is time to act.
+        stops, reported = [], []
+        for _ in range(12):
+            told = game.wait_days(365)
+            stops.append(told["days"])
+            reported.extend(told["bad"])
+            if told["stopped"] == "bad news" or game.ship.crew < crew:
+                break
+            game.envoy = game.demand = game.situation = None
+        assert sum(stops) < 365, (
+            f"a year of starving ran through without standing down: {stops}")
+        assert reported, "it stood down and reported nothing at all"
+        assert game.ship.crew == crew, (
+            f"lost {crew - game.ship.crew} of the crew before the wait "
+            "stood down — the whole point is acting before that")
+        told = {"days": sum(stops), "stopped": told["stopped"]}
+
+        # And the physical clock is untouched: work that bills its own days
+        # bills all of them, hungry or not.
+        billed = _of("wet", "billed")
+        billed.ship.cargo.pop("biomass", None)
+        billed.stores["biomass"] = 0
+        was = billed.day
+        billed.advance_days(120)
+        assert billed.day - was == 120, (
+            f"advance_days stood down too — {billed.day - was} of 120")
+        return (f"waited {told['days']} of 365 ({told['stopped']}), crew "
+                f"intact at {game.ship.crew}; a billed 120 days still 120")
+
+    @check("a wait always stops for a question waiting on an answer")
+    def _():
+        # An envoy, a demand or an aftermath situation locks the window, so
+        # a wait that ran past one buried the very thing it was waiting on.
+        # Stands down whatever the option says, which is why it is asked
+        # for with the option deliberately off.
+        from ..sim import options as options_sim
+        from ..sim.approach import Envoy
+        game = _of("wet", "answerable")
+        options_sim.set_to(game, "wait_stands_down", False)
+        game.envoy = Envoy(kind="tribute", faction="charter",
+                           expires=game.day + 300)
+        told = game.wait_days(90)
+        assert told["days"] <= 1, (
+            f"waited {told['days']} days with an envoy on the bridge")
+        assert "answer" in told["stopped"], told["stopped"]
+        return f"stopped in {told['days']} day(s): {told['stopped']}"
+
     @check("what the crew needs is stated before the crossing, not after")
     def _():
         game = _of("wet", "say")

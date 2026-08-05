@@ -298,6 +298,16 @@ class Game:
         from . import clock
         clock.advance_days(self, n, dilation)
 
+    def wait_days(self, days: int) -> dict:
+        """Sit still for a spell, standing down on news worth a hand.
+
+        The door for a *voluntary* wait — `clock.wait_days` says why it is
+        not the same call as `advance_days`, which stays exact for work
+        that bills its own time.
+        """
+        from . import clock
+        return clock.wait_days(self, days)
+
     def die(self, reason: str = "") -> None:
         """Loss — unless a TARDIGRADE vault is holding a copy of the lineage."""
         if self.colony_fx.get("has_vault") and not self.flags.get("vault_used"):

@@ -106,6 +106,88 @@ def advance_days(game, n: float, dilation: float = 1.0) -> None:
     _one_step(game, left, dilation)
 
 
+#: Log kinds a deliberate wait stands down on.
+#:
+#: `warn` belongs here and it is the whole point: the crew starving is
+#: *warned* three times ("it is starting to tell") and only `bad` once
+#: everybody is dead. Standing down on `bad` alone stops the wait after
+#: the first death, which is exactly too late to do anything about it.
+STAND_DOWN_KINDS = ("bad", "warn")
+
+
+def wait_days(game, days: int) -> dict:
+    """A deliberate wait, standing down on news that deserves a hand.
+
+    `advance_days` is the physical clock and stays exact — a transit or a
+    dig bills the days it bills. *Waiting* is different: nobody is flying,
+    so there is no reason to sit through news you would have acted on.
+    Played before this existed: a year alongside a Fleet Hub starved three
+    crew one at a time, with credits in the purse and biomass on sale a
+    berth away, while the log said "it is starting to tell" five times.
+
+    Always stops for a question the window would lock on — an envoy, a
+    demand, an aftermath situation — and for death or an ending. Stops on
+    any ``bad`` log entry when `Options.wait_stands_down` says so. Returns
+    a digest: what passed, what it cost, and everything said meanwhile.
+    """
+    from ..sim import options as options_sim
+    on_bad = bool(options_sim.get(game, "wait_stands_down"))
+    start_day, start_credits = game.day, game.credits
+    said: list[tuple] = []
+    stopped = ""
+    if _awaiting_answer(game):
+        # Asked with a question already on the bridge: no day passes at
+        # all. Checking only after the step spent one a press, which is a
+        # day of upkeep for nothing while the answer is what is wanted.
+        return {"ok": True, "asked": int(days), "days": 0, "credits": 0,
+                "stopped": "something is waiting on an answer",
+                "good": [], "bad": [], "said": 0}
+    for _ in range(max(0, int(days))):
+        tail = game.log[-1] if game.log else None
+        advance_days(game, 1)
+        fresh = _since(game.log, tail)
+        said.extend(fresh)
+        if game.dead or game.victory:
+            stopped = "the chronicle turned"
+            break
+        if _awaiting_answer(game):
+            stopped = "something is waiting on an answer"
+            break
+        if on_bad and any(kind in STAND_DOWN_KINDS for _d, _t, kind in fresh):
+            stopped = "bad news"
+            break
+    return {"ok": True, "asked": int(days),
+            "days": game.day - start_day,
+            "credits": round(game.credits - start_credits),
+            "stopped": stopped,
+            "good": [t for _d, t, k in said if k == "good"],
+            "bad": [t for _d, t, k in said if k in ("bad", "warn")],
+            "said": len(said)}
+
+
+def _since(log, tail) -> list[tuple]:
+    """The entries appended after `tail`. The log drops from the *front*
+    when it is full, so walking back from the end until `tail` is met is
+    sound whatever the cap did."""
+    if tail is None:
+        return list(log)
+    out = []
+    for entry in reversed(log):
+        if entry == tail:
+            break
+        out.append(entry)
+    return list(reversed(out))
+
+
+def _awaiting_answer(game) -> bool:
+    """A question the window would divert into, live right now."""
+    for name in ("envoy", "demand", "situation"):
+        waiting = getattr(game, name, None)
+        if waiting is not None and not getattr(waiting, "over", False):
+            return True
+    return False
+
+
 #: The longest span any subsystem tick is asked to cover in one go.
 #:
 #: One day. At ten the answer stops depending on how the caller chopped the

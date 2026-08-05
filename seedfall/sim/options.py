@@ -50,6 +50,12 @@ class Options:
     #: Offer the tutorial when a new chronicle opens. Read by `title.py`.
     tutorial: bool = True
 
+    #: A deliberate wait stands down on bad news. Read by `clock.wait_days`.
+    #: Off, the clock runs the full span the way it always did — which once
+    #: starved three crew one at a time while the log said "it is starting
+    #: to tell" and nothing paused to let anybody act on it.
+    wait_stands_down: bool = True
+
 
 
 #: id -> (label, kind, what it does, bounds)
@@ -75,6 +81,10 @@ FIELDS = (
     ("tutorial", "Offer the tutorial", "bool",
      "Whether a new chronicle offers to walk you through the first few "
      "things. It can also be started from the Help screen at any time.", None),
+    ("wait_stands_down", "A long wait stands down on bad news", "bool",
+     "Waiting stops early when something goes wrong — a death, a loss, an "
+     "expiry — so it can be acted on. A question waiting on an answer always "
+     "stops the clock, whatever this says.", None),
     ("llm_provider", "Which model to use", "choice",
      "Whichever answers first, or one you name. What is on this machine is "
      "listed below with whether it is actually responding.", None),

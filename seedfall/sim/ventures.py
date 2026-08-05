@@ -88,7 +88,28 @@ def _claimable(game, power: str) -> list:
                           if s.bloom < 0.5 and s not in open_ground]
 
 
+#: How much growth a power's flotilla is worth, and the least it will turn
+#: out for. Deliberately under what a captain's own burn takes
+#: (`threat.cleanse` cuts 0.25 upward): the powers help, and they do not
+#: make the captain unnecessary.
+CONTAIN_CUT = 0.22
+CONTAIN_FLOOR = 0.25
+
+
+def _infested(game) -> list:
+    """Systems worth sending a burn flotilla to.
+
+    The mirror of `_claimable`, which refuses anywhere past half-grown —
+    somebody has to be willing to go where the growth actually is, and
+    before `containment` existed nobody in the game but the captain ever
+    reduced `system.bloom` by a single point.
+    """
+    return [s for s in game.galaxy.systems if s.bloom >= CONTAIN_FLOOR]
+
+
 def _open_to(game, power: str, kind) -> bool:
+    if getattr(kind, "needs_bloom", False):
+        return bool(_infested(game))
     if kind.needs_place and not _claimable(game, power):
         return False
     return True
@@ -116,7 +137,14 @@ def start(game, rng, power: str):
         else:
             rivals.sort(key=lambda p: dip.relation(game, power, p))
         other = rivals[0]
-    if kind.needs_place:
+    if getattr(kind, "needs_bloom", False):
+        # The worst of it they can reach — a flotilla is fitted out for the
+        # fire everybody can see, not for a rumour.
+        infested = _infested(game)
+        if not infested:
+            return None
+        place = max(infested, key=lambda s: s.bloom).id
+    elif kind.needs_place:
         options = _claimable(game, power)
         if not options:
             return None
@@ -370,6 +398,24 @@ def _apply(game, venture, rng) -> list[tuple[str, str]]:
         system = game.galaxy.systems[venture.place]
         if system.faction is None:
             system.faction = venture.power
+    elif kind.id == "containment" and venture.place is not None:
+        # **The only thing in the game besides the captain that reduces
+        # `system.bloom`.** Four powers used to watch the sector be eaten
+        # and never fire a shot at it, which made the antagonist the
+        # player's private problem rather than the sector's.
+        system = game.galaxy.systems[venture.place]
+        was = system.bloom
+        system.bloom = max(0.0, system.bloom - CONTAIN_CUT)
+        cut = was - system.bloom
+        if system.bloom <= 0.02:
+            out.append(("good", f"{system.name} is clean. It took a flotilla "
+                                "and it did not take a captain."))
+        elif cut > 0:
+            out.append(("good", f"The flotilla has burned {system.name} back "
+                                f"to {round(system.bloom * 100)}%."))
+        # It notices, the way it notices a captain's burn.
+        from . import responses as response_sim
+        response_sim.provoke(game, "burn", scale=cut / max(CONTAIN_CUT, 1e-9))
     return out
 
 

@@ -118,6 +118,11 @@ def run(suite: Suite) -> None:
         game = new_game("carry")
         for system in game.galaxy.systems:
             system.bloom = 0.95
+        # Ruin is *outliving* the sector, so it wants a captain who was in
+        # it — see `threat._stood_through_it`. Burning it back once is the
+        # cheapest record of that.
+        from ..sim import responses as response_sim
+        response_sim.provoke(game, "burn")
         game.advance_days(1)
         assert game.victory == "ruin", game.victory
         assert not game.dead
@@ -133,6 +138,51 @@ def run(suite: Suite) -> None:
         assert legacy_sim.gauge(game)["pressure"] > 0, "no pressure accrued"
         return (f"ruin taken at day {before}, still flying at {game.day} with "
                 f"{legacy_sim.gauge(game)['pressure'] * 100:.0f}% attrition")
+
+    @check("Ruin is outlived, not waited out — and the loss can be reached")
+    def _():
+        # Ruin needed 90% of the sector merely touched, a live captain and
+        # a hull over a quarter — which pure passivity satisfies about 180
+        # days *before* the loss could fire, and victory is checked first.
+        # So a living captain could not lose to the Bloom at all, and doing
+        # nothing whatsoever was rewarded with an ending.
+        from ..core.rng import RNG
+        from ..sim import responses as response_sim
+        from ..sim import threat as threat_sim
+
+        idle = new_game("ruin-idle")
+        for system in idle.galaxy.systems:
+            system.bloom = 0.6
+        idle.colonies = []
+        assert not threat_sim.victory_progress(idle)["ruin"][2], (
+            "a captain who did nothing at all was given an ending for it")
+        assert threat_sim.check_victory(idle) != "ruin"
+
+        stood = new_game("ruin-stood")
+        for system in stood.galaxy.systems:
+            system.bloom = 0.6
+        stood.colonies = []
+        response_sim.provoke(stood, "burn")
+        assert threat_sim.victory_progress(stood)["ruin"][2], (
+            "a captain who fought it and outlived it was refused the ending")
+
+        # And the loss now fires on a condition that can be watched closing:
+        # every harbour in the sector drowned, rather than all forty-two
+        # systems past half.
+        lost = new_game("loss-harbours")
+        for system in lost.galaxy.systems:
+            if system.port:
+                system.bloom = 0.9
+        left, total = threat_sim.harbours_left(lost)
+        assert (left, total) == (0, total) and total > 0, (left, total)
+        assert any(s.bloom <= 0.5 for s in lost.galaxy.systems), (
+            "this fixture drowned the whole sector, so it proves nothing "
+            "the old all-forty-two test did not")
+        threat_sim.tick(lost, 30, RNG("loss"))
+        assert lost.overgrown, (
+            "every harbour in the Verge is gone and the chronicle goes on")
+        return (f"idle: no ending; stood through it: Ruin; {total} harbours "
+                f"drowned ends it with clean ground still on the chart")
 
     @check("an epoch closes, badly at the top and well at the end")
     def _():
@@ -233,6 +283,11 @@ def run(suite: Suite) -> None:
         game = new_game("win-ruin")
         for system in game.galaxy.systems:
             system.bloom = 0.95
+        # Ruin is *outliving* the sector, so it asks for a captain who was
+        # in it rather than one who waited somewhere quiet — burning it
+        # back once is the cheapest record of that.
+        from ..sim import responses as response_sim
+        response_sim.provoke(game, "burn")
         reached["ruin"] = victory_progress(game)["ruin"][2]
 
         unreachable = [k for k, v in reached.items() if not v]

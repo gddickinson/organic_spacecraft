@@ -199,8 +199,12 @@ def sell(game, commodity: str, tonnes: float) -> dict:
 @verb("wait", "Let days pass.")
 def wait(game, days: float = 1) -> dict:
     before = game.day
-    game.advance_days(float(days))
+    # The same door the Holdings screen uses: a wait stands down on news
+    # that deserves a hand rather than running blind to the end.
+    told = game.wait_days(int(days))
     return {"ok": True, "from": before, "to": game.day,
+            "stopped": told["stopped"], "bad": told["bad"][-6:],
+            "credits": told["credits"],
             "dead": game.dead, "victory": game.victory}
 
 

@@ -16,6 +16,19 @@ from dataclasses import dataclass, field
 #: A colony may hold no more works than this; after that it is what it is.
 MAX_WORKS = 4
 
+#: What each colony past the first adds to the daily bill of running *every*
+#: colony you hold, in credits: the Nth costs `ADMIN_STEP × (N − 1)`.
+#:
+#: An empire used to be free to administer. A POMONA Grove pays itself back
+#: in 45 days and yields for ever, there are about 125 plantable sites in a
+#: sector, and nothing capped how many you held — so colony spam was the
+#: strategy and the game had no late-game credit sink at all. At twelve the
+#: bill is nothing at five holdings (120 a day against about a thousand
+#: earned), real at fifteen (1,260), and past twenty-five it eats the
+#: margin — which is a ceiling a player meets rather than one the code
+#: imposes.
+ADMIN_STEP = 12.0
+
 
 @dataclass(frozen=True)
 class Work:

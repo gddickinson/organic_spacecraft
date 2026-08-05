@@ -90,7 +90,15 @@ def run(suite: Suite) -> None:
             for system in game.galaxy.systems[:8]:
                 system.bloom = 0.3
             start = sum(s.bloom for s in game.galaxy.systems)
-            for _ in range(6):
+            # **Two years, not three — measured below the ceiling.** A
+            # forty-two system sector saturates: at six passes both arms
+            # ended with 28 to 37 systems at 1.00 and the totals were equal
+            # to the decimal, so the check was reading the cap rather than
+            # the multiplier. It had drifted there — its own note says the
+            # horizon "runs close to saturation, which compresses the gap"
+            # — and the powers' new containment flotillas, which burn back
+            # whichever arm has more to burn, finished the job.
+            for _ in range(2):
                 game.advance_days(180)
             return sum(s.bloom for s in game.galaxy.systems) - start
 
@@ -101,13 +109,12 @@ def run(suite: Suite) -> None:
         # money — neither of which touches the Bloom, both of which re-roll
         # what the sectors look like.
         #
-        # The effect is real and noisy. Three years of growth in a forty-two
-        # system sector runs close to saturation, which compresses the gap, so
-        # per-sector the provoked side loses about a quarter of the time.
-        # Measured over twenty: **+8.5% aggregate, ahead in 15**. The
-        # aggregate is the measurement; the tally is a share rather than a
-        # count now, so widening the sample makes it *more* stable instead of
-        # inviting another round of the same edit.
+        # Measured below the ceiling the effect is not noisy at all:
+        # **×2.20 aggregate, ahead in 20 of 20 sectors**, against the ×1.085
+        # and 15-of-20 this check used to report from a saturated one. The
+        # aggregate is still the measurement and the tally still a share, so
+        # widening the sample makes it more stable rather than inviting
+        # another round of the same edit.
         angry_id = [r.id for r in RESPONSES]
         seeds = ["growth"] + [f"growth-{n}" for n in range(1, 20)]
         calm = angry = 0.0
@@ -119,14 +126,14 @@ def run(suite: Suite) -> None:
             agreed += two > one
         assert response_sim.growth_multiplier(new_game("x")) == 1.0, (
             "an unprovoked Bloom already grows faster")
-        assert angry > calm * 1.04, (
-            f"a fully provoked Bloom spread {angry:.1f} across eight sectors "
-            f"against {calm:.1f} calm — the multiplier is not reaching the "
-            "growth")
-        assert agreed >= 0.65 * len(seeds), (
+        assert angry > calm * 1.35, (
+            f"a fully provoked Bloom spread {angry:.1f} across {len(seeds)} "
+            f"sectors against {calm:.1f} calm — the multiplier is not "
+            "reaching the growth")
+        assert agreed >= 0.85 * len(seeds), (
             f"provoked growth won in only {agreed} of {len(seeds)} sectors "
-            f"({agreed / len(seeds):.0%}); it is ahead in about three quarters "
-            "of them when the multiplier is reaching the growth")
+            f"({agreed / len(seeds):.0%}); below the ceiling it is ahead in "
+            "very nearly all of them")
         return (f"spread {calm:.1f} calm → {angry:.1f} provoked over "
                 f"{len(seeds)} sectors, ahead in {agreed} of them")
 
@@ -208,18 +215,27 @@ def run(suite: Suite) -> None:
             bloom_sim._retarget(game, inst)
             assert inst.target_id != sysm.id, (
                 f"an instar at {sysm.name} was sent to {sysm.name}")
-        # And a cleaned sector still fields one while the heart lives.
+        # And a cleaned sector still fields one *for a response* while the
+        # heart lives — but only for a response. The routine top-up runs
+        # every tick, so letting it reach the origin made the heart a
+        # permanent re-infestation engine and put containment out of reach;
+        # a wave is an event, the top-up is a standing condition.
         for s in game.galaxy.systems:
             s.bloom = 0.0
         assert st.heart_hp > 0
-        spawned = bloom_sim._spawn_instar(game, RNG("clean-spawn"))
-        assert spawned is not None, (
-            "a clean sector spawned nothing — the seeding-wave response is "
-            "a no-op exactly when a fighting captain earns it")
-        assert spawned.system_id == st.heart_system, (
+        assert bloom_sim._spawn_instar(game, RNG("clean-tick")) is None, (
+            "the routine top-up detached a mass from a clean sector — the "
+            "origin is an engine again")
+        wave = bloom_sim._spawn_instar(game, RNG("clean-wave"), from_heart=True)
+        assert wave is not None, (
+            "a clean sector spawned nothing even for a wave — the "
+            "seeding-wave response is a no-op exactly when a fighting "
+            "captain earns it")
+        assert wave.system_id == st.heart_system, (
             "the last redoubt is the heart, and it detached from somewhere else")
         return (f"{len(game.galaxy.systems)} starting points, none self-"
-                f"targeted; a clean sector still detaches from the heart")
+                f"targeted; a clean sector detaches for a wave and not for "
+                f"the tick")
 
     @check("a refused strike is not an answered one")
     def _():

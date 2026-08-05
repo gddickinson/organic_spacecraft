@@ -1,6 +1,6 @@
 """The public purse, from the outside: what each power earns and is building.
 
-Everything on this panel comes from `sim/exchequer.ledger`, which is computed by
+Everything on this panel comes from `sim/exchequer_ledger.ledger`, which is computed by
 the same `income` and `outlay` the sim spends from. There is deliberately no
 arithmetic here — a screen that works out its own version of a number the sim
 already knows is how a forecast comes to disagree with the act it forecasts.
@@ -9,13 +9,13 @@ already knows is how a forecast comes to disagree with the act it forecasts.
 from __future__ import annotations
 
 from ..core.util import credits as cr
-from ..sim import exchequer as exchequer_sim
+from ..sim import exchequer_ledger as ledger_sim
 from .widgets import Panel, label, note, spacer
 
 
 def build(game) -> Panel:
-    rows = exchequer_sim.ledger(game)
-    total = exchequer_sim.summary(game)
+    rows = ledger_sim.ledger(game)
+    total = ledger_sim.summary(game)
     p = Panel("The public purse")
     p.add(note("Ports are not scenery. Each one pays its holder in proportion "
                "to its size and costs the square of it, so an outpost and a "

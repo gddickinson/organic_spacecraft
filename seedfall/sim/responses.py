@@ -89,7 +89,7 @@ def check(game, rng) -> list[tuple[str, str]]:
                 events.append(("warn", f"It has hardened against {family} "
                                        "work specifically."))
         for _ in range(response.instars):
-            inst = bloom_sim._spawn_instar(game, rng)
+            inst = bloom_sim._spawn_instar(game, rng, from_heart=True)
             if inst is not None:
                 st.instars.append(inst)
                 if response.hunts:

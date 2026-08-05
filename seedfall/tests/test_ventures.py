@@ -171,6 +171,67 @@ def run(suite: Suite) -> None:
         return (f"{seen['backed']} backed winners and {seen['opposed']} "
                 "opposed losers, each paid as forecast")
 
+    @check("the powers send hulls at the Bloom, and it comes off the growth")
+    def _():
+        # Nothing in the game but the captain had ever reduced
+        # `system.bloom`: four powers watched the sector be eaten and ran
+        # six kinds of initiative, none of them about it.
+        game = new_game("containment")
+        game.credits = 400_000
+        for sysm in game.galaxy.systems[:6]:
+            sysm.bloom = 0.8
+        rng = RNG("containment")
+        started = None
+        for _ in range(60):
+            for power in dip.POWERS:
+                got = ventures.start(game, rng, power)
+                if got is not None and got.kind == "containment":
+                    started = got
+                    break
+            if started:
+                break
+        assert started is not None, (
+            "no power ever fitted out a flotilla against the Bloom")
+        target = game.galaxy.systems[started.place]
+        assert target.bloom >= ventures.CONTAIN_FLOOR, (
+            f"the flotilla was sent to {target.name} at {target.bloom:.2f} — "
+            "nothing worth burning")
+        was = target.bloom
+        events = ventures._apply(game, started, rng)
+        assert target.bloom < was, (
+            f"the operation came off and {target.name} is unchanged at "
+            f"{target.bloom:.2f}")
+        assert any(kind == "good" for kind, _t in events), (
+            "the sector was helped and nobody was told")
+        return (f"{target.name} {was:.2f} → {target.bloom:.2f} by "
+                f"{FACTIONS_BY_ID[started.power].short}'s flotilla")
+
+    @check("infestation is felt in the treasuries that fund everything")
+    def _():
+        # `system.bloom` was read by colony survival, encounters, piracy and
+        # traffic — and by nothing that holds money, so the sector could be
+        # nine tenths eaten with every purse untouched and every fleet the
+        # same size. The powers' fleets, ventures and promotions all run off
+        # these numbers.
+        from ..sim import exchequer
+        clean = new_game("bite")
+        dirty = new_game("bite")
+        for sysm in dirty.galaxy.systems:
+            sysm.bloom = 1.0
+        moved = []
+        for power in dip.POWERS:
+            before = exchequer.income(clean, power)
+            after = exchequer.income(dirty, power)
+            if before > 0:
+                moved.append((power, before, after))
+                assert after < before, (
+                    f"{power} earns {after:.0f} in a fully overgrown sector "
+                    f"against {before:.0f} in a clean one")
+        assert moved, "no power earns anything in either sector"
+        worst = min(moved, key=lambda row: row[2] / row[1])
+        return (f"{len(moved)} powers poorer for it; {worst[0]} "
+                f"{worst[1]:.0f} → {worst[2]:.0f} a day")
+
     @check("a side once taken cannot be taken again")
     def _():
         game, venture = _with_venture("once")

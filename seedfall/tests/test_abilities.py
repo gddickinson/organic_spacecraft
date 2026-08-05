@@ -86,7 +86,11 @@ def run(suite: Suite) -> None:
             if ability_id == "vent":
                 side.ship.heat = 80.0
             before = {
-                "armour": side.st.armour,
+                # The soak through `armour_of`, not `side.st.armour`: the
+                # seal's bonus lives on the side because `side.st` is rebuilt
+                # by any `_disable` and by the window every turn, which used
+                # to erase it while the compartment stayed given up.
+                "armour": ab_sim.armour_of(side),
                 "hull": sum(max(0.0, l.hp) for l in side.ship.layers),
                 "heat": side.ship.heat,
                 "interpose": side.interpose,
@@ -99,7 +103,7 @@ def run(suite: Suite) -> None:
             ok, msg, kind = ab_sim.use_ability(battle, side, ability_id, rng)
             assert ok and msg and kind, (part_id, ok, msg, kind)
             after = {
-                "armour": side.st.armour,
+                "armour": ab_sim.armour_of(side),
                 "hull": sum(max(0.0, l.hp) for l in side.ship.layers),
                 "heat": side.ship.heat,
                 "interpose": side.interpose,
@@ -126,10 +130,19 @@ def run(suite: Suite) -> None:
         side.ship.heat = 70.0
 
         seal = ab_sim.preview(battle, side, "seal")
-        want = side.st.armour + ab_sim.SEAL_ARMOUR
-        assert f"armour {side.st.armour:.0f} → {want:.0f}" in seal["lines"], seal
+        was = ab_sim.armour_of(side)
+        want = was + ab_sim.SEAL_ARMOUR
+        assert f"armour {was:.0f} → {want:.0f}" in seal["lines"], seal
         ab_sim.use_ability(battle, side, "seal", rng)
-        assert side.st.armour == want, (side.st.armour, want)
+        assert ab_sim.armour_of(side) == want, (ab_sim.armour_of(side), want)
+
+        # And it survives the stat rebuild that used to erase it — which is
+        # what `recompute()` does to `side.st` on the window's every turn.
+        from ..sim.ship import stats as ship_stats
+        side.st = ship_stats(side.ship, {})
+        assert ab_sim.armour_of(side) >= ab_sim.SEAL_ARMOUR, (
+            "the seal was erased by a stat rebuild — the compartment is "
+            "still given up and the armour is gone")
 
         vent = ab_sim.preview(battle, side, "vent")
         after = max(0.0, side.ship.heat - ab_sim.VENT_HEAT)
@@ -192,7 +205,7 @@ def run(suite: Suite) -> None:
         for layer in side.ship.layers:
             layer.hp = 0.0
 
-        start = side.st.armour
+        start = ab_sim.armour_of(side)
         fired = 0
         for _ in range(len(losable) + 4):
             side.cd["seal"] = 0
@@ -202,17 +215,17 @@ def run(suite: Suite) -> None:
             fired += 1
         assert fired == len(losable), (
             f"{fired} compartments given up out of {len(losable)} that could be")
-        assert side.st.armour == start + ab_sim.SEAL_ARMOUR * len(losable), (
-            side.st.armour, start)
+        assert ab_sim.armour_of(side) == start + ab_sim.SEAL_ARMOUR * len(losable), (
+            ab_sim.armour_of(side), start)
         assert sorted(side.sealed) == sorted(l.name for l in losable), side.sealed
 
         # And it stops. However many times it is pressed after that.
-        stuck = side.st.armour
+        stuck = ab_sim.armour_of(side)
         for _ in range(8):
             side.cd["seal"] = 0
             assert not ab_sim.use_ability(battle, side, "seal", rng)[0]
-        assert side.st.armour == stuck, (
-            f"armour went on to {side.st.armour} with every compartment "
+        assert ab_sim.armour_of(side) == stuck, (
+            f"armour went on to {ab_sim.armour_of(side)} with every compartment "
             "already given up")
         assert not ab_sim.preview(battle, side, "seal")["can"]
 

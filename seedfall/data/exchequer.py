@@ -39,6 +39,17 @@ UPKEEP_COEFF = 30.0
 #: done, not merely a berth it owns.
 CAPITAL_BONUS = 0.35
 
+#: What a fully infested system takes off the trade its port can do.
+#:
+#: The Bloom used to be read by colony survival, encounters, piracy and
+#: traffic — and by nothing that holds money. A sector could go from three
+#: infested systems to forty with no power poorer, no fleet smaller and no
+#: lane closed, so a captain with no colonies felt the antagonist as log
+#: lines only. At 0.85 a port standing in a fully overgrown system clears
+#: about a seventh of what it would clean, which is enough to move a
+#: power's purse, its fleets and its ventures without closing the berth.
+BLOOM_YIELD_LOSS = 0.85
+
 #: What each industry running at a power's berths adds to what they yield. This
 #: is the whole reason a power buys a process off the captain (`sim/industry.py`):
 #: without it a licence is money out for cheaper goods at home, and nobody would

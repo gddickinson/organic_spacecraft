@@ -9,7 +9,7 @@ finished work is felt everywhere without anything else knowing works exist.
 from __future__ import annotations
 
 from ..data.colonies import COLONIES_BY_ID
-from ..data.works import MAX_WORKS, WORKS_BY_ID, WORKS
+from ..data.works import ADMIN_STEP, MAX_WORKS, WORKS_BY_ID, WORKS
 from . import loyalty
 
 
@@ -75,6 +75,27 @@ def upkeep_of(col) -> dict:
         for key, add in work.upkeep_add.items():
             out[key] = out.get(key, 0.0) + add
     return out
+
+
+def admin_total(held: int) -> float:
+    """The daily administration bill for holding `held` colonies.
+
+    Triangular rather than linear: each holding past the first makes every
+    other one dearer to run, because what costs money is the traffic
+    between them. One colony is free to administer; the twentieth is not.
+    """
+    held = max(0, int(held))
+    return ADMIN_STEP * held * (held - 1) / 2
+
+
+def admin_each(held: int) -> float:
+    """One colony's share of that bill — what `colony.tick` charges."""
+    return admin_total(held) / held if held > 0 else 0.0
+
+
+def admin_next(held: int) -> float:
+    """What planting one more would add to the bill, for the seed card."""
+    return admin_total(held + 1) - admin_total(held)
 
 
 def effects_of(col) -> dict:

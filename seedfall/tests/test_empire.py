@@ -152,6 +152,53 @@ def run(suite: Suite) -> None:
             f"a colony took on more than {MAX_WORKS} works")
         return f"costs charged, one at a time, capped at {MAX_WORKS}"
 
+    @check("an empire costs more to administer the bigger it gets")
+    def _():
+        # A Grove paid itself back in 45 days and yielded for ever, there
+        # are about 125 plantable sites in a sector, and nothing capped how
+        # many you held — so colony spam was the strategy and the game had
+        # no late-game credit sink at all. Played: the marginal worth of one
+        # more holding has to fall as the empire grows.
+        from ..sim.colony import Colony, _WORTH
+
+        def worth_a_day(count: int, days: int = 60) -> float:
+            game = new_game("admin-curve")
+            game.credits = 10 ** 7
+            for key in ("biomass", "volatiles", "ore", "alloy", "phosphate"):
+                game.stores[key] = 10 ** 6
+            game.colonies = [
+                Colony(id=i, class_id="pomona_grove", name=f"Grove {i}",
+                       system_id=game.galaxy.systems[i % 40].id, body_id=0,
+                       need=1, online=True, pop=400)
+                for i in range(count)]
+            was_credits, was_stores = game.credits, dict(game.stores)
+            gains, _events = colony_sim.tick(game, days)
+            moved = sum((game.stores.get(k, 0) - was_stores.get(k, 0))
+                        * _WORTH.get(k, 0)
+                        for k in set(list(game.stores) + list(was_stores)))
+            moved += sum(v * _WORTH.get(k, 0) for k, v in gains.items())
+            return (game.credits - was_credits + moved) / days
+
+        small, large = worth_a_day(5), worth_a_day(25)
+        marginal_small = (worth_a_day(6) - small)
+        marginal_large = (worth_a_day(26) - large)
+        assert marginal_small > marginal_large > 0, (
+            f"the sixth holding is worth {marginal_small:.0f} a day and the "
+            f"twenty-sixth {marginal_large:.0f} — an empire that never gets "
+            "harder to run has no ceiling and no sink")
+        assert works_sim.admin_total(1) == 0, (
+            "a single holding is billed for administering itself")
+
+        # And the seed card says so before the credits are spent.
+        game, _col, system = _settled("admin-quote")
+        body = next(b for b in system.bodies if b.kind in ("asteroid", "moon",
+                                                           "rocky"))
+        plan = colony_sim.forecast(game, system, body, "pomona_grove")
+        assert plan["admin"] > 0, "the card quoted an empire that runs itself"
+        return (f"the 6th holding is worth {marginal_small:.0f}/day and the "
+                f"26th {marginal_large:.0f}; the card quotes "
+                f"{plan['admin']:.0f}/day before you commit")
+
     @check("a colony's works survive a save and reload")
     def _():
         import json

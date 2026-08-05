@@ -106,6 +106,13 @@ def run(suite: Suite) -> None:
                 continue                      # where `gain` is declared
             for number, line in enumerate(
                     path.read_text(encoding="utf-8").splitlines(), 1):
+                # A comment is not a reading. This asks whether the *code*
+                # has a second door onto what an overture is worth, and a
+                # line of prose explaining the rule is not one — the note
+                # in `sim/diplomacy` recording why denounce's flat reward
+                # goes through the curve tripped it as though it were.
+                if line.strip().startswith("#"):
+                    continue
                 if RAW.search(line):
                     raw.append(f"{path.name}:{number}")
         assert not raw, (
@@ -114,7 +121,8 @@ def run(suite: Suite) -> None:
         # And inside `sim/diplomacy.py` there is exactly one such reading.
         body = (pathlib.Path(__file__).resolve().parent.parent
                 / "sim" / "diplomacy.py").read_text(encoding="utf-8")
-        inside = [l.strip() for l in body.splitlines() if RAW.search(l)]
+        inside = [l.strip() for l in body.splitlines()
+                  if RAW.search(l) and not l.strip().startswith("#")]
         assert len(inside) == 1, (
             f"{len(inside)} readings of `gain` in sim/diplomacy.py, so the "
             f"forecast and the act can drift apart again: {inside}")

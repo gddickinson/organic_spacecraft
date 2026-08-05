@@ -384,6 +384,94 @@ played claim; the suites named held green through the pass.
   other gain, and the preview quotes the tapered number.
   (`tests/test_overtures.py` ×2.)
 
+## Done — the eleventh pass (2026-08-04): the sector answers back
+
+The top of the reassessed list, in order. Every one carries a played claim.
+
+- **A wait stands down on news worth a hand** (`core/clock.wait_days`,
+  `Game.wait_days`). Found by playing: a year alongside a Fleet Hub starved
+  three crew one at a time, with credits in the purse and biomass on sale a
+  berth away, while the log said "it is starting to tell" five times and
+  nothing paused. `advance_days` stays exact — work that bills its own days
+  bills all of them — and *waiting* is the different verb. Stops on `bad`
+  **and `warn`** (`STAND_DOWN_KINDS`: the starving crew is warned three
+  times and only `bad` once everyone is dead, so stopping on `bad` alone
+  stops exactly too late), always for a question the window would lock on,
+  and reports a digest — days, treasury, what was said — with "wait the
+  remaining N days" on the dialog. Measured on a provisioned captain:
+  9–90-day stretches, so waiting is still waiting.
+- **The Bloom is felt in the treasuries that fund everything**
+  (`exchequer.BLOOM_YIELD_LOSS`). Nothing holding money read `system.bloom`
+  before: a fully overgrown sector now takes a power from 724 to 109 credits
+  a day, which shrinks its fleets, its ventures and its promotions through
+  machinery that already existed.
+- **The powers fight it** (`containment`, `data/ventures.py` +
+  `ventures._apply`). Six venture kinds and none was about the thing eating
+  the sector; nothing in the game but the captain had ever reduced
+  `system.bloom`. A flotilla is fitted out for the worst system anybody can
+  see, cuts 0.22 off it, and provokes the Bloom the way a captain's burn
+  does. Backing or opposing it runs through the existing preview pipeline.
+- **Ruin is outlived, not waited out** (`threat._stood_through_it`), and
+  **the loss can be reached** (`threat.harbours_left`). Ruin asked only for
+  a drowned sector and a live hull, which passivity satisfies ~180 days
+  before the loss could fire — and victory is checked first, so a living
+  captain could not lose to the Bloom at all. Ruin now wants something of
+  yours still standing or a record of having fought; the loss fires when
+  every *harbour* is drowned, which happens sooner and can be watched
+  closing.
+- **An empire is not free to administer** (`works.admin_total`,
+  `data/works.ADMIN_STEP`). Each holding past the first makes every holding
+  dearer: the marginal worth of one more falls from +359/day at five to
+  +65 at thirty, so colony spam has a ceiling, and the credit line goes
+  negative at scale — a large empire must *trade* to pay its bill, which is
+  the late-game sink the game lacked. The seed card quotes it before you
+  commit.
+- Found while doing it: the bridge's `extract` verb advertised "tonnes" and
+  its parameter was *days* of rig time — asking for 30 t ran a 30-day
+  working that raised 99 t.
+- **Fifteen failures the pipe had been hiding, all traced before fixing.**
+  Four were real regressions of mine: the heart-fallback that fixed the
+  no-op responses had let the *routine* top-up reach the origin, making it
+  a permanent re-infestation engine that put Containment out of reach
+  (`_spawn_instar(from_heart=...)` — a wave is an event, the top-up is a
+  standing condition); and a competent enemy proved worth about a
+  difficulty step, so a light patrol beat an armed hull three times in ten
+  until enemy nerve was re-pitched (`encounters.RESOLVE_BASE`, measured
+  82/33/15 across the scale against 71/33/15). Six were checks encoding
+  rules deliberately changed — Ruin's new gate, hold-only delivery,
+  `abilities.armour_of`, the moved ledger, and two fixtures that assumed a
+  port can never close (a power poor enough to retrench now gives one up,
+  which is the Bloom's economic bite working). **Five were checks measuring
+  badly**, and would have failed on any later change: the provoked-growth
+  check ran three years into saturation where both arms pin at the ceiling
+  and read equal to the decimal — below it the effect is ×2.20 and ahead in
+  20 sectors of 20, against the ×1.085 and 15-of-20 it used to report; the
+  warfit and smuggling checks judged 32- and 12-sample statistics against
+  thresholds finer than their noise, and smuggling used a *mean* where one
+  seizure swamps the distribution (median: bare +33k, kitted +292k); and
+  the `offer_gain` one-door check counted a *comment* as a reading.
+- **Four length violations, and the measurement that hid them.** The tenth
+  pass was reported green on a run whose exit code was read through a pipe
+  (`... | tail; echo $?` is *tail's* status, always 0), so `tests/test_ui.py`
+  at 530 lines rode into commit `0c98798` over the ceiling. Paid off along
+  real seams: `tests/test_window.py` (the window as an application —
+  navigation refusal, save on quit, dismissed dialogs, the unstubbed
+  briefing), `ui/seed_dialog.py` (offering, pricing and planting a colony),
+  and `sim/exchequer_ledger.py` (the screen queries), which took
+  `sim/exchequer.py` under the limit and **off the debt list** — ten files
+  and 517 lines of debt now, down from eleven and 525. `tests/test_play.py`
+  went the same way afterwards, along the seam its own docstring names:
+  `tests/test_endgame.py` holds the Bloom's escalation, its adaptation and
+  the climax at Kessel's Reach.
+- **A check whose control was somebody else's ports.**
+  `test_industry`'s "cheaper than other powers' berths" inverted by one
+  credit (156 against 155) the moment infestation began moving power
+  economies — the same shape as the 1.15 ratio that check already records
+  recalibrating once. Replaced with the like-for-like control (the same
+  berths, the same year, without the licence), which no tuning of the
+  sector's economy can shift. **A control that is not the thing you changed
+  is not a control.**
+
 ## Open — the 2026-08-04 review: the systems layers
 
 A four-agent review (combat, economy, strategic layer, player experience)
@@ -398,11 +486,10 @@ tenth pass above.)
 
 ### The economy, measured
 
-- **Colonies print money forever, and nothing bounds them.** A 9,188-credit
-  Grove pays back in 45 days and yields in perpetuity; ~125 plantable sites,
-  no cap, no scaling administration, and no late-game credit sink anywhere
-  (`sim/colony.py`, `core/clock.py`). Mining — the activity with hull wear
-  and mishap risk — is the worst-paid thing in the game at 129 cr/day.
+- **Mining is the worst-paid thing in the game** at 129 cr/day median, and
+  it is the one with hull wear and mishap risk. Now that colonies have a
+  ceiling (eleventh pass) the comparison is fairer, but a rig should still
+  beat sitting still.
 - **Scrapping a self-built hull profits.** `scrap_value` recomputes the cost
   without the fabricator discount the build was given
   (`sim/shipyard.py:293-298`): +146,470 credits per THRESHOLD cycle. It also
@@ -433,24 +520,9 @@ tenth pass above.)
 
 ### The Bloom, what remains
 
-*(The reachability half — stage gating, the no-op responses, the refused
-strike, the self-targeting instar, the wandering heart — was fixed in the
-tenth pass.)*
+*(Reachability was fixed in the tenth pass; the economic bite, the
+`containment` venture and the Ruin/loss separation in the eleventh.)*
 
-- **`system.bloom` has no economic bite.** Not read by `sim/exchequer`,
-  `sim/market`, `world/economy`, `sim/fleets`, `sim/anchorage` or gate
-  tolls — forty infested systems move no price and shrink no fleet, so
-  ignoring the Bloom is free for anyone without colonies.
-- **The powers never act on it.** Six venture kinds and none concerns the
-  Bloom; nothing in the codebase but the player ever reduces
-  `system.bloom`. A `containment` venture kind (`data/ventures.py`,
-  `sim/ventures._apply`) would let the whole existing
-  back/oppose/preview pipeline carry it.
-- **Ruin pre-empts the loss.** Ruin needs 90% of systems past 0.02
-  (`sim/threat.py:199`) and the loss needs all past 0.5 (`:127`), checked
-  after victory — Ruin fires ~180 days first on every seed measured, so a
-  living captain cannot lose to the Bloom and passivity is rewarded with an
-  ending.
 - The Holdings panel and the containment bar leak the fog
   (`ui/empire_view.py:192-201`, `sim/threat.py:181` — no `intel.sees_bloom`
   filter); the same panel says "Five of them" over ten endings
@@ -489,14 +561,6 @@ fixed in the tenth pass.)*
   highest-value UX item on the table. `comms.tick` also watches exactly one
   fact (your standing band) against a docstring promising a sector that
   speaks; the log tuples in `sim/threat.py:66-116` are the material.
-- **"Wait a year" stops for nothing but death** (`core/clock.py:100-105`) —
-  a seized colony, an expired contract, a Bloom stage all scroll past
-  unread, and a year can overflow the 300-line cap, destroying events
-  before they can be read. A `stop_on` predicate plus a digest dialog.
-  Played on 2026-08-04: a year of waiting alongside a Fleet Hub starved
-  three of the crew to death, one at a time, with 8,250 credits in the
-  purse and biomass on sale a berth away — the log said "It is starting to
-  tell" five times and the clock never paused to let anybody act on it.
 - **No sound. Not one byte** — no audio asset, no QtMultimedia import in
   the tree. Four cues would carry more than any HUD addition: thruster loop
   on the held burn, proximity tone off the collision guard, berth-secured
@@ -533,9 +597,11 @@ Bloom stage 2; no cargo contract nets positive without leaving the system.
    (`path.py`, `engage.REACH_KM`, `freeflight.RUN_MARGIN`) joined the pool.
    Each pin is its own small piece of work: drive the sim to the bar,
    bracket with absolute values. Re-run the sweep before choosing targets.
-3. **Eleven recorded length debts, 525 lines** (`tests/test_length.ALLOWED`),
+3. **Ten recorded length debts, 517 lines** (`tests/test_length.ALLOWED`),
    `data/works3d.py` at 635 the worst. Each is a real seam to find, roughly
    a cycle apiece; the ratchet stops them growing meanwhile.
+   (`sim/exchequer.py` was struck off in the eleventh pass — its screen
+   queries are `sim/exchequer_ledger.py`.)
 3. **Other ships are not plotted on the helm chart.** Nothing gives a known
    hull a persistent position a chart could draw — honestly a design piece
    (where does a sighting live, how stale may it go), not a marker to add.

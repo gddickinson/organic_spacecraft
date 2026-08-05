@@ -65,14 +65,38 @@ class EmpireView(View):
         self.col.addWidget(self._depot())
 
     def _wait(self, days: int) -> None:
-        before = self.game.credits
-        self.game.advance_days(days)
+        """Sit still, and be told what happened while you did.
+
+        A toast with a credits delta was the whole report on a year of
+        the sector's life — and the clock ran through anything short of
+        death, so a colony seized, a contract expired or a crew starving
+        scrolled past unread. `wait_days` stands down on bad news; this
+        says what stopped it and what was said.
+        """
+        told = self.game.wait_days(days)
         if self.win.check_ending():
             return
-        gain = round(self.game.credits - before)
-        self.win.toast(f"{duration(days)} passed. Treasury {cr(gain)}.",
-                       "chloro" if gain >= 0 else "osteo")
+        gain = told["credits"]
+        body = [f"{duration(told['days'])} passed"
+                + (f" of {duration(days)} asked — {told['stopped']}."
+                   if told["stopped"] else ".")]
+        body.append(label(f"Treasury {cr(gain)}.", "",
+                          "chloro" if gain >= 0 else "osteo", wrap=True))
+        for text in told["bad"][-6:]:
+            body.append(label(text, "", "bad", wrap=True))
+        for text in told["good"][-4:]:
+            body.append(label(text, "", "good", wrap=True))
+        if not told["bad"] and not told["good"]:
+            body.append(label("Nothing worth reporting.", "note", wrap=True))
+        choices = [("Carry on", None)]
+        if told["stopped"] and told["days"] < days and not told["stopped"] == \
+                "something is waiting on an answer":
+            choices.insert(0, (f"Wait the remaining "
+                               f"{duration(days - told['days'])}", "more"))
+        again = self.win.dialog("While you waited", body, choices)
         self.win.refresh()
+        if again == "more":
+            self._wait(days - told["days"])
 
     def _exodus(self) -> Panel | None:
         """Offered only once a LEVIATHAN exists — it ends the chronicle."""

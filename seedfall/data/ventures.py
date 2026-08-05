@@ -32,6 +32,10 @@ class VentureKind:
     needs_other: bool = False
     #: Needs a system as its object.
     needs_place: bool = False
+    #: Wants an *infested* system rather than claimable ground. The rest of
+    #: the table refuses anywhere past half-grown; this is the one that goes
+    #: looking for it.
+    needs_bloom: bool = False
     #: What backing it costs, in credits.
     back_cost: int = 6000
     #: Standing gained with the sponsor for backing it.
@@ -99,6 +103,18 @@ VENTURES: list[VentureKind] = [
         failure="The censure failed to carry and {power} looks foolish for "
                 "having tried.",
         days=(110, 240), needs_other=True, back_cost=4500, weight=2),
+
+    VentureKind(
+        "containment", "Containment operation", "chloro",
+        "{power} is fitting out a burn flotilla for {place} and asking who "
+        "else will send hulls. Everyone agrees somebody should have done this "
+        "already; nobody agrees whose bill it is.",
+        success="The flotilla burned {place} back. It cost more than they "
+                "said it would, and it worked.",
+        failure="The {place} operation was called off — the hulls were needed "
+                "somewhere a power could point at.",
+        days=(120, 260), needs_place=True, needs_bloom=True,
+        back_cost=8000, back_rep=16, weight=3),
 ]
 
 VENTURES_BY_ID = {v.id: v for v in VENTURES}

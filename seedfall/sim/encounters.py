@@ -32,6 +32,20 @@ PERSONALITY = {
 ROUNDS_MIN = 22
 ROUNDS_MAX = 38
 
+#: How much nerve an opponent brings, by difficulty: `BASE + PER_SCALE × d`.
+#:
+#: Re-pitched when the enemy learned to fly and shoot in the same turn
+#: (`sim/enemy_ai`). A competent opponent is worth about a difficulty step,
+#: and at 60 + 14·d it made a *light patrol* — a scale-half contact, the
+#: thing a new captain meets first — beat an armed hull three times in ten
+#: (measured, 150 fights: 71% player wins against the 80% this game is
+#: pitched at). Nerve is the honest lever, because the difference between a
+#: patrol and a warship is mostly whether it will see the fight through.
+#: Measured over 120 fights a scale: **0.5 → 82%, 2.5 → 33%, 4.0 → 15%**,
+#: against 71/33/15 before — the patrol breaks off and the warship does not.
+RESOLVE_BASE = 26.0
+RESOLVE_PER_SCALE = 27.0
+
 #: Damage at or above which a mount is a main gun rather than a specialist.
 #: Below it sit the flash organ (3), the grapple (5), the point-defence cannon
 #: (8) and the boarding pod (9); above it every gun in the game, against a
@@ -203,7 +217,7 @@ def make_enemy(rng, faction_id: str, difficulty: float = 1.0) -> dict:
         "name": f"{fac.short if fac else 'Unaligned'} {chassis.name} «{ship.name}»",
         "faction": faction_id,
         "personality": PERSONALITY.get(faction_id, "balanced"),
-        "resolve": 60 + difficulty * 14,
+        "resolve": RESOLVE_BASE + difficulty * RESOLVE_PER_SCALE,
         "loot": {
             "credits": round(rng.int(400, 2200) * (1 + difficulty * 0.6)),
             "research": round(rng.int(4, 22) * (1 + difficulty * 0.4)),

@@ -58,8 +58,13 @@ def _ports(game, limit: int = 18) -> list:
 
 
 def _best_margin(ports, cid: str):
-    buys = [p for p in (buy_price(s.market, cid, 0) for s in ports) if p]
-    sells = [p for p in (sell_price(s.market, cid, 0) for s in ports) if p]
+    # Only berths that still exist. A power poor enough to retrench gives one
+    # up altogether (`exchequer._retrench`), taking its market with it — and
+    # since infestation costs a power income that now happens inside the six
+    # years this check runs. A closed quay is not somewhere you can trade.
+    open_now = [s for s in ports if s.port and s.market]
+    buys = [p for p in (buy_price(s.market, cid, 0) for s in open_now) if p]
+    sells = [p for p in (sell_price(s.market, cid, 0) for s in open_now) if p]
     if not buys or not sells:
         return None
     return max(sells) - min(buys)

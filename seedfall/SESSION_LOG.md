@@ -108,10 +108,72 @@ repaired coefficient but a stated law — the same counter never pays more
 than it asks — clamped at both layers, so every future modifier is covered
 on the day it is added.
 
+## The eleventh pass: the sector answers back (2026-08-04)
+
+The top of the reassessed list. Waiting stands down on news worth a hand —
+found by playing, where a year alongside a Fleet Hub starved three crew one
+at a time while the log warned five times and nothing paused. Infestation
+now costs the powers income, so their fleets, ventures and promotions all
+feel it; they fit out containment flotillas, which is the first thing in
+the game besides the captain ever to reduce `system.bloom`. Ruin has to be
+*outlived* rather than waited out, and the loss fires when the harbours
+drown rather than 180 days after Ruin was already available. An empire pays
+administration that rises with its size, so colony spam has a ceiling and
+the late game has a credit sink.
+
+**A control that is not the thing you changed is not a control.**
+`test_industry` asserted the licensee's berths were cheaper than *other
+powers'* berths; the moment infestation began moving power economies that
+inverted by one credit, while the effect under test was working exactly as
+measured. Its own docstring already recorded recalibrating a comparison of
+that shape once before. The claim is now the same berths over the same year
+without the licence.
+
+## The run that looked green and was not (2026-08-04)
+
+The tenth pass was reported green and committed on a run that had a failing
+check in it. The harness was fine — `python -m seedfall.tests` returns 1 on
+failure and always did. The command was wrong:
+
+    python -m seedfall.tests 2>&1 | tail -50; echo "EXIT: $?"
+
+**`$?` after a pipeline is the exit status of the last command in it** — of
+`tail`, which succeeds at printing whatever it is given, including a report
+full of failures. Every "EXIT: 0" that command printed was `tail`'s.
+
+This is the same failure the exit-139 hunt already recorded from the other
+side: *grade a run on its exit code, never on a count of FAIL lines*. The
+rule was right and the measurement was of the wrong process. Redirect to a
+file and read `$?` from the interpreter itself:
+
+    python -m seedfall.tests > run.log 2>&1; echo "EXIT: $?"; grep -c FAIL run.log
+
+What it hid: `tests/test_ui.py` had gone to 530 lines, over the ceiling the
+project holds by check, and rode into commit `0c98798` that way. The
+eleventh pass added three more violations before anybody looked. All four
+are paid off — the window's *application* behaviour (navigation refusal,
+save on quit, dismissed dialogs, the unstubbed briefing) is
+`tests/test_window.py`; the seed dialog is `ui/seed_dialog.py`; the
+exchequer's screen queries are `sim/exchequer_ledger.py`, which took that
+file under the limit and **off the debt list**; and the Bloom endgame is
+`tests/test_endgame.py`.
+
+Measuring properly then surfaced **fifteen** failures the pipe had hidden.
+Four were real regressions, six were checks encoding rules deliberately
+changed, and five were checks that had been measuring badly for a while —
+a growth comparison run so long both arms saturated and read equal to the
+decimal, two judged on samples coarser than the effect, and one that
+counted a comment as a call. A check that cannot fail for the right reason
+will eventually fail for the wrong one.
+
 ## Standing facts about working here
 
-- `python -m seedfall.tests` runs the lot (~20 min, 184 suites); one suite by
+- `python -m seedfall.tests` runs the lot (~25 min, 192 suites); one suite by
   name for a cycle. A suite that reports must `return True` from `run()`.
+- **Read the exit code from the interpreter, never through a pipe.**
+  `... | tail -50; echo $?` reports `tail`'s status and is always 0. Send the
+  run to a file: `python -m seedfall.tests > run.log 2>&1; echo "EXIT: $?"`.
+  A failing check was committed once because of exactly this.
 - **500 lines is the ceiling**, held by `tests/test_length.py`. The `ALLOWED`
   debt list may shrink and never grow — pay it by finding the seam, not by
   recording a new debt.

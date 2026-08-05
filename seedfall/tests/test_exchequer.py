@@ -28,6 +28,7 @@ from ..data.exchequer import (FOUND_COST, HARBOUR_DUE, OPENING_PURSE, RESERVE,
 from ..data.factions import FACTIONS_BY_ID
 from ..sim import diplomacy as dip
 from ..sim import exchequer as ex
+from ..sim import exchequer_ledger as ex_ledger
 from ..sim import market as market_sim
 from ..sim import ventures as venture_sim
 from .harness import Suite
@@ -85,7 +86,7 @@ def run(suite: Suite) -> None:
         was_ports, was_levels = _levels(game)
         _years(game, 8)
         now_ports, now_levels = _levels(game)
-        told = ex.summary(game)
+        told = ex_ledger.summary(game)
 
         assert told["built"] >= 8, (
             f"only {told['built']} works paid for in eight years — the powers "

@@ -155,13 +155,18 @@ def forecast(game, system, body, class_id: str) -> dict:
 
     a_day = sum(amount * _WORTH.get(key, 0) for key, amount in yields.items())
     a_day -= sum(amount * _WORTH.get(key, 0) for key, amount in upkeep.items())
+    # What holding one *more* adds to the bill for the whole empire. The
+    # card quoted a colony as though it were the only one you had, so the
+    # twentieth Grove read exactly as well as the first.
+    admin = works.admin_next(sum(1 for c in game.colonies if c.online))
+    a_day -= admin
     outlay = float(definition.cost.get("credits", 0))
     outlay += sum(amount * _WORTH.get(key, 0)
                   for key, amount in definition.cost.items() if key != "credits")
     speed = 1 + game.bonuses.get("growth", 0) + _gestation_help(game, system.id)
     return {
         "yields": yields, "upkeep": upkeep, "effects": effects,
-        "a_day": a_day, "outlay": outlay,
+        "a_day": a_day, "outlay": outlay, "admin": admin,
         "days": max(10, round(definition.days / speed)),
         "payback": (outlay / a_day) if a_day > 0 else None,
     }
@@ -171,6 +176,7 @@ def tick(game, days: float) -> tuple[dict, list]:
     """Advance every colony. Returns (materials gained, log events)."""
     gains: dict[str, float] = {}
     events: list[tuple[str, str]] = []
+    admin = works.admin_each(sum(1 for c in game.colonies if c.online))
 
     for col in game.colonies:
         c = col.definition
@@ -188,7 +194,13 @@ def tick(game, days: float) -> tuple[dict, list]:
             continue
 
         affordable = True
-        for key, n in works.upkeep_of(col).items():
+        # Every holding past the first makes every holding dearer to run —
+        # `works.admin_total` says why. Charged as part of the colony's own
+        # bill so an over-extended empire starves at the edges, which is
+        # the honest consequence and the machinery that already exists.
+        owing = dict(works.upkeep_of(col))
+        owing["credits"] = owing.get("credits", 0.0) + admin
+        for key, n in owing.items():
             owed = n * days
             have = game.credits if key == "credits" else game.stores.get(key, 0)
             if have < owed:

@@ -17,8 +17,7 @@ from ..data.tech import TECH
 from ..sim import actions
 from ..sim import colony as colony_sim
 from ..sim import threat
-from ..sim.ship import add_cargo, build_layers, make_ship
-from ..world.economy import sell_price
+from ..sim.ship import build_layers, make_ship
 from ..world.galaxy import in_range
 from .captain_bot import _bot
 from .harness import Suite
@@ -130,6 +129,11 @@ def run(suite: Suite) -> None:
         g = _stocked()
         for system in g.galaxy.systems:
             system.bloom = 0.95
+        # Ruin is *outliving* the sector — `threat._stood_through_it` wants
+        # a captain who was in it rather than one who waited somewhere
+        # quiet, and burning it back once is the cheapest record of that.
+        from ..sim import responses as response_sim
+        response_sim.provoke(g, "burn")
         fired["ruin"] = threat.check_victory(g)
 
         for vid, *_ in VICTORIES:
@@ -248,7 +252,10 @@ def run(suite: Suite) -> None:
             pros = next(c for c in contract_sim.generate(g.rng("b2"), g, port)
                         if c.kind == "prospect")
         contract_sim.accept(g, pros)
-        g.stores[pros.commodity] = pros.amount + 10
+        # Aboard, not in the depot: `contracts._cargo_held` reads the hold,
+        # because the location-free store let a delivery complete with the
+        # goods in a warehouse nobody moved.
+        g.ship.cargo[pros.commodity] = pros.amount + 10
         before = g.credits
         g.advance_days(1)
         assert pros.done, "delivered the goods and the contract did not close"
@@ -265,80 +272,6 @@ def run(suite: Suite) -> None:
         assert late.failed, "an overdue contract never expired"
         assert g2.rep[late.issuer] < rep_before, "failing one cost no standing"
         return f"{len(board)} posted across {len(kinds)} kinds; pay and expiry both work"
-
-    @check("the Bloom escalates and stops being a pushover")
-    def _():
-        from ..sim import bloom as bloom_sim
-        g = new_game("arc-test")
-        assert bloom_sim.ensure(g).definition.id == 0, "it should start latent"
-        r = RNG("arc")
-        seen = []
-        for _ in range(12):
-            threat.tick(g, 365, r)
-            stage = bloom_sim.ensure(g).definition
-            if stage.id not in [x.id for x in seen]:
-                seen.append(stage)
-        assert len(seen) >= 4, (
-            f"the Bloom never escalated past {[s.name for s in seen]}")
-        assert bloom_sim.ensure(g).instars, "it never put an instar in the field"
-        return " → ".join(s.name for s in seen)
-
-    @check("the Bloom learns what you keep shooting it with")
-    def _():
-        from ..sim import bloom as bloom_sim
-        g = new_game("adapt")
-        state = bloom_sim.ensure(g)
-        state.stage = 3                       # adaptive
-        assert bloom_sim.resistance(g, "fabricated") == 0, "starts resistant"
-        for _ in range(200):
-            bloom_sim.record_damage(g, "fabricated", 30)
-        grown = bloom_sim.resistance(g, "grown")
-        fab = bloom_sim.resistance(g, "fabricated")
-        assert fab > 0.2, f"200 hits taught it nothing: {fab:.2f}"
-        assert grown == 0, "it resisted a weapon it never met"
-        # and it forgets what you stop using
-        bloom_sim.decay_resistance(g, 2000)
-        assert bloom_sim.resistance(g, "fabricated") < fab, "it never forgets"
-        return f"fabricated resistance {fab:.0%}, grown {grown:.0%}, decays"
-
-    @check("Containment requires reaching and killing the heart")
-    def _():
-        from ..sim import bloom as bloom_sim
-        from ..sim import actions
-        g = _stocked("heart")
-        for s in g.galaxy.systems:
-            s.bloom = 0.0
-        g.day = 60
-        assert threat.check_victory(g) is None, "cleared the map and won early"
-
-        state = bloom_sim.ensure(g)
-        g.location_id = state.heart_system
-        state.heart_found = True
-        ship = make_ship("bastion", ["fusion_lance", "fusion_lance", "railgun",
-                                     "fusion_plant", "fusion_plant", "plasma_drive"])
-        build_layers(ship, g.bonuses)
-        g.ship = ship
-        g.fleet.append(ship)
-        g.recompute()
-        strikes = 0
-        while not bloom_sim.heart_dead(g) and strikes < 40:
-            strikes += 1
-            for layer in g.ship.layers:
-                layer.hp = layer.max
-            res = actions.strike_heart(g)
-            assert res.get("ok"), res.get("why")
-        assert bloom_sim.heart_dead(g), "the heart could not be killed at all"
-        # **Bracketed, because `strikes > 1` did not hold `HEART_HP` at all.**
-        # Measured with a battleship: 9 passes at 1,300, 19 at 2,600, 37 at
-        # 5,200 — so halving and doubling the Heart both sailed through the
-        # old bound, and doubling cleared the loop's own cap of 40 by three.
-        # `data/bloom.HEART_HP` decides how long the game's climax lasts and
-        # was pinned by nothing; the numbers here are absolute on purpose.
-        assert 14 <= strikes <= 26, (
-            f"the heart took {strikes} passes from a battleship, against 19 "
-            "when this was measured — the climax has changed length")
-        assert threat.check_victory(g) == "containment", "killing it did not win"
-        return f"heart took {strikes} passes from a battleship"
 
     @check("diplomacy moves both standing and the powers' own relations")
     def _():

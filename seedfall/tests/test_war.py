@@ -151,8 +151,13 @@ def run(suite: Suite) -> None:
                 seen.update(war.wars(game))
             wars += len(seen)
             by_id = {s.id: s for s in game.galaxy.systems}
+            # A quay that *closed* is not a quay that changed hands: a
+            # power poor enough to retrench gives a berth up altogether
+            # (`exchequer._retrench`), and infestation now costs income, so
+            # that happens where once it could not.
             taken += sum(1 for k, v in before.items()
-                         if by_id[k].port.faction != v)
+                         if by_id[k].port is not None
+                         and by_id[k].port.faction != v)
         assert wars, "six sectors and a decade each, and nobody fell out"
         assert taken, (
             f"{wars} wars over six sectors and not one quay changed hands")

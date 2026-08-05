@@ -157,15 +157,25 @@ def most_hurt(game) -> str | None:
 
 # ── instars ────────────────────────────────────────────────────────────────
 
-def _spawn_instar(game, rng) -> Instar | None:
+def _spawn_instar(game, rng, from_heart: bool = False) -> Instar | None:
+    """A mass detaches. `from_heart` lets it come from the origin itself.
+
+    A cleaned sector is not a dead one while the heart lives, and without
+    that the responses which detach masses ("a seeding wave", "it is coming
+    for you") printed their text over an empty list precisely when a
+    fighting captain had earned them.
+
+    **Only the responses may use it.** The routine top-up in `tick_instars`
+    keeps a stage's masses in the field *every tick*, so letting that reach
+    the heart turned the origin into a permanent re-infestation engine:
+    measured over the climax, nineteen strikes at the heart put the sector
+    from clean back to two systems at 1.00 and containment out of reach.
+    A wave is an event; the top-up is a standing condition.
+    """
     state = ensure(game)
     held = [s for s in game.galaxy.systems if s.bloom > 0.4]
-    if not held and state.heart_hp > 0 and state.heart_system is not None:
-        # A cleaned sector is not a dead one while the heart lives. Without
-        # this, the responses that detach masses ("a seeding wave", "it is
-        # coming for you") printed their text over an empty list precisely
-        # when a fighting captain had earned them — the sector they had just
-        # cleared held nothing past 0.4 to detach from.
+    if (not held and from_heart and state.heart_hp > 0
+            and state.heart_system is not None):
         held = [game.galaxy.systems[state.heart_system]]
     if not held:
         return None

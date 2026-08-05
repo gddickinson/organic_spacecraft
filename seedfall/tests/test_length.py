@@ -38,7 +38,6 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 #: `sim/conn_step.py`, leaving 484. That is the shape of paying one off.
 ALLOWED = {
     "data/works3d.py": 635,
-    "sim/exchequer.py": 506,
     "ui/viewport.py": 533,
     "ui/map_view.py": 526,
     "ui/widgets.py": 516,

@@ -5,18 +5,14 @@ from __future__ import annotations
 
 from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
-from ..core.util import cost_line, credits as cr, duration, num, pct
-from ..data.colonies import effect_text
+from ..core.util import num, pct
 from ..data.factions import FACTIONS_BY_ID
-from ..data.territory import TRESPASS_NOTE
 from ..sim import settlement as settlement_sim
-from ..sim import colony as colony_sim
-from ..sim import territory as territory_sim
 from ..sim import dig as dig_sim
 from ..sim import mining
 from ..sim import responses as response_sim
 from ..sim.actions import burn_bloom, dive, extract, strike_heart, survey
-from . import mining_panel
+from . import mining_panel, seed_dialog
 from ..sim import bloom as bloom_sim
 from ..sim.fieldwork import excavate, launch_expedition
 from ..sim import xeno as xeno_sim
@@ -425,76 +421,6 @@ class SystemView(View):
                        "chloro" if res["cleared"] else "osteo")
         self.win.refresh()
 
-    def _colonise(self) -> None:
-        g = self.game
-        sys = g.system
-        body = sys.bodies[self.selected]
-        options = colony_sim.colonies_for(body.kind, g.research.unlocked)
-        if not options:
-            self.win.toast("Nothing you know how to grow will take root there.", "warn")
-            return
-
-        chosen = {"id": None}
-        cards = []
-        widgets = [note("A grown colony gestates for months and costs almost nothing "
-                        "in credits. A fabricator yard is the opposite bargain.")]
-        # Planting on somebody's register is allowed and it is not free. Say so
-        # here rather than in the log afterwards.
-        claimant = territory_sim.claimant(g, sys)
-        if claimant:
-            widgets.append(label(
-                TRESPASS_NOTE.format(power=FACTIONS_BY_ID[claimant].name,
-                                     cost=territory_sim.trespass_cost(g, sys)),
-                "", "warn", wrap=True))
-        for c in options:
-            ok, why = colony_sim.can_found(g, sys, body, c.id)
-            card = Card(selectable=ok)
-            card.add(label(c.name, "h3"))
-            if c.binomial:
-                card.add(label(c.binomial, "sub"))
-            card.add(label(c.blurb, "", wrap=True))
-            card.add(note(cost_line(c.cost) + f" · {duration(c.days)} gestation"))
-            # What it will actually produce. The dialog used to give a price
-            # and a gestation time and nothing else, so a Free Port at 74,000
-            # read much like a RADIX Mine at 12,000.
-            plan = colony_sim.forecast(g, sys, body, c.id)
-            yields = ", ".join(
-                (f"{cr(round(v))}/day" if k == "credits" else f"{v:g} {k}/day")
-                for k, v in plan.get("yields", {}).items())
-            card.add(label(yields or "Produces nothing directly.", "",
-                           "chloro" if yields else "dim", wrap=True))
-            if plan.get("effects"):
-                # What each grant *does*, not the internal name of it.
-                for key in sorted(plan["effects"]):
-                    card.add(note("· " + effect_text(key)))
-            if plan.get("upkeep"):
-                card.add(note("Upkeep: " + ", ".join(
-                    f"{v:g} {k}/day" for k, v in plan["upkeep"].items())))
-            if plan.get("payback"):
-                years = plan["payback"] / 365
-                card.add(note(f"Pays for itself in about "
-                              f"{years:.1f} year(s) once it is up."))
-            if not ok:
-                card.add(label(why, "", "warn", wrap=True))
-            else:
-                def pick(cid=c.id, this=card):
-                    chosen["id"] = cid
-                    for other in cards:
-                        other.set_selected(other is this)
-                card.clicked.connect(pick)
-            cards.append(card)
-            widgets.append(card)
-
-        if self.win.dialog(f"Plant a seed on {body.name}", widgets,
-                           [("Plant it", "go"), ("Not yet", None)]) != "go":
-            return
-        if not chosen["id"]:
-            self.win.toast("No class selected.", "warn")
-            return
-        col, why = colony_sim.found(g, sys, body, chosen["id"])
-        if not col:
-            self.win.toast(why, "warn")
-            return
-        g.add_log(f"Seed planted at {body.name}. Gestation {col.need} days.", "good")
-        self.win.toast("Seed planted.", "chloro")
-        self.win.refresh()
+    # The seed dialog is `ui/seed_dialog.py` — offering, pricing and
+    # planting a colony is its own flow, and this file was over the ceiling.
+    _colonise = seed_dialog.colonise

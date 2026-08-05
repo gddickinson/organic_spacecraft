@@ -33,6 +33,7 @@ from ..data.settlements import (DEMAND, FOUND_COST, MATURE_DAYS, NEWBORN,
                                 SUPPLY, UPKEEP, WORKABLE, WORTH_SETTLING,
                                 YIELD)
 from ..sim import exchequer as ex
+from ..sim import exchequer_ledger as ex_ledger
 from ..sim import industry as industry_sim
 from ..sim import settlement as settle
 from ..world.economy import buy_price
@@ -289,7 +290,7 @@ def run(suite: Suite) -> None:
         assert abs((grown - before) - settle.income(game, power)) < 1e-6, (
             "the exchequer's idea of settlement income is not the settlement "
             "module's")
-        row = next(r for r in ex.ledger(game) if r["power"] == power)
+        row = next(r for r in ex_ledger.ledger(game) if r["power"] == power)
         assert row["settlements"] == 2, row
         assert abs(row["ground"] - settle.income(game, power)) < 1e-6
 

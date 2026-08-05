@@ -123,10 +123,25 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
             if b:
                 events.append(b)
 
-    # If it takes the whole sector there is nothing left to play for.
-    if all(s.bloom > 0.5 for s in game.galaxy.systems):
+    # If it takes the whole sector there is nothing left to play for — or
+    # if it takes every harbour in it, which happens sooner and is the
+    # condition a player can actually watch closing. The old test needed
+    # all forty-two systems past half, which arrived about 180 days *after*
+    # Ruin could fire; victory is checked first, so a living captain could
+    # not lose to the Bloom at all and pure passivity was rewarded with an
+    # ending. Harbours are what a hull needs to go on existing.
+    systems = game.galaxy.systems
+    harbours = [s for s in systems if s.port]
+    if all(s.bloom > 0.5 for s in systems) or (
+            harbours and all(s.bloom > 0.5 for s in harbours)):
         game.overgrown = True
     return events
+
+
+def harbours_left(game) -> tuple[int, int]:
+    """Ports not yet drowned, and how many there were. The loss, as a bar."""
+    harbours = [s for s in game.galaxy.systems if s.port]
+    return len([s for s in harbours if s.bloom <= 0.5]), len(harbours)
 
 
 def cleanse(game, system, rng):
@@ -202,10 +217,29 @@ def victory_progress(game) -> dict[str, tuple[float, float, bool]]:
                    priced >= cartel_need and game.credits >= CARTEL_PURSE),
         "apostasy": (1 if crewless else 0, 1,
                      bool(crewless) and game.rep.get("sanhedrin", 0) >= 75),
+        # **Outlived, not waited out.** The goal on the card is "Outlive the
+        # sector", and the prose is a captain who "was right about all of
+        # it" — but the test was 90% drowned and a hull over a quarter,
+        # which total passivity satisfies on its own about 180 days before
+        # the loss could fire. Living through it means having been *in* it:
+        # something of yours still standing, or a record of having fought.
         "ruin": (drowned, total,
                  drowned >= total * RUIN_SHARE and not game.dead
-                 and hull_pct(game.ship) > 0.25),
+                 and hull_pct(game.ship) > 0.25 and _stood_through_it(game)),
     }
+
+
+def _stood_through_it(game) -> bool:
+    """Did the captain live through the sector's fall, or merely outlast it?
+
+    Either something of theirs is still standing in it, or they have at
+    some point cost the Bloom enough for it to have answered — both are
+    records of having been present at what happened. Waiting a decade in a
+    quiet system with the door shut is neither.
+    """
+    if any(c.online for c in game.colonies):
+        return True
+    return bool(response_sim.fired(game)) or response_sim.level(game) > 0
 
 
 def check_victory(game) -> str | None:
