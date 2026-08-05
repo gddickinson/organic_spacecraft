@@ -22,6 +22,10 @@ def _satisfy(game, contract) -> None:
     """Meet a contract's terms by whatever route it wants."""
     if contract.kind in ("deliver", "prospect", "relic"):
         game.ship.cargo[contract.commodity] = contract.amount + 5
+        # A prospect wants the material *brought in*, so the hull has to have
+        # been away since it was accepted (`Contract.travelled`) — otherwise
+        # it is the issuing counter's own stock handed straight back.
+        contract.travelled = True
         game.location_id = (contract.target_system if contract.kind == "deliver"
                             else contract.issued_at)
     elif contract.kind == "survey":

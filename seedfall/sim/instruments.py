@@ -16,6 +16,22 @@ from .targets import is_open
 from . import pilot
 
 
+def drive_note(conn) -> str:
+    """What the main drive is doing, in one place for every window.
+
+    **Armed is not firing, and a pilot needs to see both.** The button read
+    the arming switch alone, so a captain who handed the ship to the
+    computer watched it burn while the console said *off* — reported from
+    play. The flight panel had learned to say FIRING and the conn console
+    and the bridge had not, which is three windows and two answers.
+    """
+    if conn is None:
+        return "off"
+    if getattr(conn, "fired_main", False) and getattr(conn, "fired_axis", ""):
+        return f"FIRING {getattr(conn, 'fired_share', 1.0):.0%}"
+    return "armed" if getattr(conn, "arm_main", False) else "off"
+
+
 def readout(conn: Conn) -> list[tuple[str, str, str]]:
     """The instrument panel: label, value, and how it reads (ok/warn/bad).
 
@@ -66,7 +82,7 @@ def readout(conn: Conn) -> list[tuple[str, str, str]]:
              "ok" if altitude >= ORBIT_FLOOR_KM else "bad"),
             ("Closing", f"{conn.closing:+,.1f} m/s",
              "ok" if sound or abs(conn.closing) <= band else "warn"),
-            ("Relative", f"{conn.speed:,.1f} m/s",
+            ("Speed", f"{conn.speed:,.1f} m/s",
              "ok" if sound or abs(conn.speed - want) <= band else "warn"),
             ("Circular here", f"{want:,.0f} m/s", "ok"),
         ]
@@ -76,7 +92,7 @@ def readout(conn: Conn) -> list[tuple[str, str, str]]:
              "ok" if r < 40 else "warn"),
             ("Closing", f"{conn.closing:+,.1f} m/s",
              "bad" if conn.closing > SAFE_CLOSING else "ok"),
-            ("Relative", f"{conn.speed:,.1f} m/s",
+            ("Speed", f"{conn.speed:,.1f} m/s",
              "ok" if conn.speed <= ALONGSIDE_RATE else "warn"),
         ]
     rows.append(("Thruster mass", f"{conn.rcs:,.1f}",

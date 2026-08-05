@@ -164,11 +164,36 @@ def note(game, days: float) -> str:
             "they will start going without.")
 
 
+def unmanned(game) -> list:
+    """Is there anybody left to hold the watch? **Asked every tick.**
+
+    This test used to live inside the shortage branch below, which is only
+    reached when something the crew needs is *missing* — and nothing is
+    missing once nobody is aboard to need it. So a hull whose crew had aged
+    out and whose officers had all retired sailed on for ever: measured on
+    five do-nothing chronicles, every one emptied (seed `dn-a` at day 1516)
+    and not one of them ended. Three modules agreed on the rule and the
+    branch it sat in could not be reached.
+    """
+    out: list = []
+    if game.ship.crew > 0 or active(game.officers) or game.dead:
+        return out
+    from . import robots as robots_sim
+    if robots_sim.watchkeepers(game):
+        out.append(("warn", "The last of the crew is gone. The machines "
+                            "have the hull."))
+        return out
+    game.die("Nobody left aboard to hold the watch.")
+    return out
+
+
 def tick(game, days: float, rng) -> list:
     """Feed everyone aboard. Returns (kind, text) lines for the log."""
     if days <= 0:
         return []
-    out: list = []
+    out: list = list(unmanned(game))
+    if game.dead:
+        return out
     want = demand(game)
     missing = []
     for commodity, rate in want.items():
@@ -212,16 +237,7 @@ def tick(game, days: float, rng) -> list:
                 out.append(("bad", f"{who.name} has gone without the metals "
                                    "the lineage needs. Something did not come "
                                    "back the same."))
-        if game.ship.crew <= 0 and not active(game.officers):
-            # The same door the air path uses. A machine does not starve; it
-            # runs out of the metals it patches itself with, which is
-            # `sim/robots.tick`'s business and not this one's.
-            from . import robots as robots_sim
-            if robots_sim.watchkeepers(game):
-                out.append(("warn", "The last of the crew is gone. The "
-                                    "machines have the hull."))
-            else:
-                game.die("Nobody left aboard to hold the watch.")
+        out.extend(unmanned(game))
     elif rng.chance(0.25):
         out.append(("warn", f"Still short of {', '.join(missing)}. It is "
                             "starting to tell."))

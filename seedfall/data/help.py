@@ -211,6 +211,30 @@ TOPICS = [
            "rather than a free one."),
           facts=("detection",), see=("instruments", "moving", "shipyard")),
 
+    Topic("weave", "The Weave, and how to ride one", "map",
+          ("A Weave anchor is a ring somebody else built, standing off a "
+           "body in a system like a quay does. Two anchors that are both "
+           "*lit* and joined to each other make a ring you can transit — "
+           "and a transit is instant. It is the only thing in the Verge "
+           "that costs no days at all; what it costs is a toll.",
+           "**You do not fly to it to use it.** Flying alongside an anchor "
+           "shows you what it is and nothing else, because a ring is ridden "
+           "from the sector chart: the Weave panel there lists every "
+           "destination a lit ring runs to from the system you are standing "
+           "in, with the light years it saves and what the toll comes to, "
+           "and a Step button for each.",
+           "Most anchors start dark, and a dark one runs nothing. Waking an "
+           "ancient anchor needs the Weavecraft technology before anything "
+           "else — the metallurgy and the fold physics both — and then "
+           "material and a stretch of days. You can also lay an anchor of "
+           "your own where there is a lit ring near enough to hang one off, "
+           "which is how the network becomes yours rather than theirs.",
+           "The price of the network is on the same card as its use, and "
+           "deliberately: growth crosses a lit ring exactly as easily as "
+           "you do. Waking an anchor next to something infested opens a "
+           "road for the Bloom as well as for your cargo."),
+          facts=("weave",), see=("moving", "map")),
+
     Topic("instruments", "The instrument windows", "",
           ("Six pop-out windows — power, heat, integrity, hold, crew and a "
            "scope — that stay on top and re-read the live game. They are "

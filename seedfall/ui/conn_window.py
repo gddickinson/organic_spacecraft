@@ -24,7 +24,8 @@ from ..sim import orbits
 from ..sim import pilot as console_sim
 from ..sim import conn as conn_sim
 from ..sim import track as track_sim
-from .conn_targets import default_target  # re-exported: two checks import it here
+from .conn_targets import (default_target,  # re-exported: two checks import it here
+                           same_place as _same_place)
 from . import fire_panel, sights, theme
 from . import conn_moves, conn_panel
 from .conn_controls import ConnControls
@@ -82,6 +83,24 @@ class ConnWindow(QDialog):
                         near.append((km - skin, c))
                 near.sort(key=lambda row: row[0])
                 contact = near[0][1] if near else None
+            elif live is not None:
+                # **A flight under way names its own target.** Asking
+                # `default_target` instead handed the window whatever was
+                # nearest the ship's recorded position — so opening the conn
+                # while established in an orbit switched the target to a
+                # quay and threw the orbit away: photographed, "Conn — Fleet
+                # Hub, approach begun, 12.0 km" over a hull that was
+                # circling a world under the computer. Which flight you are
+                # on is not the window's to decide.
+                #
+                # `landed` is not part of the test: it means *arrived* —
+                # secured at a quay, established in an orbit, set down on a
+                # surface — and every one of those is still a flight whose
+                # target this window should be showing.
+                contact = next(
+                    (c for c in track_sim.contacts(self.game)
+                     if _same_place(self.game, live.target, c)),
+                    None) or default_target(self.game)
             else:
                 contact = default_target(self.game)
         self.contact = contact
@@ -103,22 +122,20 @@ class ConnWindow(QDialog):
                 self.win.conn = handed
             else:
                 self.refused = why
-        elif (live is not None and getattr(live, "over", False)
-              and getattr(live.target, "id", None)
-              == getattr(contact, "id", None)):
-            # **A finished approach is not a missing one.** Securing at a
-            # quay sets `landed`, and the test below reads that as "no live
-            # flight" — so opening the conn after berthing threw the flight
-            # away and began a fresh one at the arrival range. Measured:
-            # moored at Fleet Hub, `anchorage.docked_at` still naming the
-            # berth, and the conn reading 12,000 m. That is precisely the
-            # fault this window's own note says it exists to prevent — one
-            # flight, whichever window you look through. Taking the conn
+        elif live is not None and _same_place(self.game, live.target, contact):
+            # **Already on this flight: leave it alone.** `landed` used to
+            # send it down the branch below, and `landed` means *arrived* —
+            # secured at a quay, established in an orbit, set down on a
+            # surface. So opening the conn after berthing threw the flight
+            # away and began a fresh one at the arrival range: moored at
+            # Fleet Hub, `anchorage.docked_at` still naming the berth, and
+            # the instruments reading 12,000 m. Precisely the fault this
+            # window's own note says it exists to prevent. Taking the conn
             # again is a control the pilot presses, not a side effect of
             # opening a window.
             pass
         elif live is None or live.landed \
-                or getattr(live.target, "id", None) != getattr(contact, "id", None):
+                or not _same_place(self.game, live.target, contact):
             fresh, why = berth_sim.begin(self.game, contact)
             if fresh is not None:
                 self.win.conn = fresh

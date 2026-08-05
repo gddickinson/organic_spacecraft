@@ -30,6 +30,27 @@ def _sector(seed: str):
     return game
 
 
+def _provisioned(game) -> None:
+    """Keep the hull fed and solvent, so a claim about the *powers* gets its
+    decade.
+
+    **The captain is a clock in these checks, not a subject.** Since
+    `upkeep.unmanned` gave the game loss by neglect, a hull nobody provisions
+    empties and the chronicle ends at about day 1,400 — and `advance_days`
+    then early-returns for ever, so a loop that says "3,600 days" silently ran
+    1,400 and the sector was measured a third of the way through its decade.
+    Measured: 1 war over six sectors and not one quay changing hands, against
+    6 and 2 when the decade actually elapses.
+
+    Food and wages, which is all `upkeep.demand` asks for — not a suppressed
+    death. The rule stays exactly as the game plays it and the fixture simply
+    does what a live captain does, so this cannot hide a future regression in
+    the rule itself.
+    """
+    game.credits = max(game.credits, 500_000)
+    game.ship.cargo["biomass"] = max(game.ship.cargo.get("biomass", 0), 300)
+
+
 def run(suite: Suite) -> None:
     check = suite.check
 
@@ -141,14 +162,17 @@ def run(suite: Suite) -> None:
     def _():
         # The claim the flight itself can make, rather than a constructed one.
         wars = taken = 0
+        days: list = []
         for i in range(6):
             game = _sector(f"w{i}")
             before = {s.id: s.port.faction for s in game.galaxy.systems
                       if getattr(s, "port", None) is not None}
             seen = set()
             for _ in range(24):                       # 3,600 days
+                _provisioned(game)
                 game.advance_days(150)
                 seen.update(war.wars(game))
+            days.append(game.day)
             wars += len(seen)
             by_id = {s.id: s for s in game.galaxy.systems}
             # A quay that *closed* is not a quay that changed hands: a
@@ -161,4 +185,10 @@ def run(suite: Suite) -> None:
         assert wars, "six sectors and a decade each, and nobody fell out"
         assert taken, (
             f"{wars} wars over six sectors and not one quay changed hands")
-        return f"{wars} wars over 6 sectors x 3,600 days, {taken} quays taken"
+        # Say how much calendar each sector actually got. A sector cut short
+        # by an ending is a real outcome, and one silently measured at a third
+        # of its decade is how this check went quiet in the first place.
+        assert min(days) > 2000, (
+            f"a sector was measured over only {min(days):.0f} days: {days}")
+        return (f"{wars} wars over 6 sectors, {min(days):.0f}-{max(days):.0f} "
+                f"days each, {taken} quays taken")

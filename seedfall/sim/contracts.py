@@ -130,11 +130,11 @@ class Contract:
     stage: int = 0
     #: What completing it cost with the issuer's enemies, for the screen.
     cost: list = field(default_factory=list)
-    #: Tonnes of the wanted commodity bought over the issuing port's own
-    #: counter while this posting stood — the fee is set from the neutral
-    #: price, so presenting the counter's own tonnes was a guaranteed
-    #: margin. `sim/trade.buy` writes it; `check` subtracts it.
-    bought_here: float = 0.0
+    #: Away since it was accepted? A prospect is for material *brought in*,
+    #: so handing back the counter's own stock was free margin. Replaced a
+    #: tally of tonnes bought there, which never came down: a captain who
+    #: *refuelled* had an honest cargo refused.
+    travelled: bool = False
 
     @property
     def definition(self):
@@ -379,8 +379,9 @@ def check(game) -> list[tuple[Contract, str]]:
                 events.append((c, "done"))
         elif c.kind in ("prospect", "relic"):
             here = game.system.port and game.location_id == c.issued_at
-            brought = _cargo_held(game, c.commodity) - c.bought_here
-            if here and brought >= c.amount:
+            if not here:
+                c.travelled = True
+            if here and c.travelled and _cargo_held(game, c.commodity) >= c.amount:
                 _take_cargo(game, c.commodity, c.amount)
                 _pay(game, c)
                 events.append((c, "done"))
@@ -435,7 +436,6 @@ def _take_cargo(game, cid: str, amount: float) -> None:
 def _remember_done(game, contract: Contract) -> None:
     """Whoever posted it remembers that you finished it, and where."""
     from ..data.factions import FACTIONS_BY_ID
-    from ..data.personas import FACTION_PERSONA
     from . import memory as memory_sim
     faction = FACTIONS_BY_ID.get(contract.issuer)
     where = game.galaxy.systems[contract.issued_at].name \

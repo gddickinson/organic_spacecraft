@@ -94,6 +94,10 @@ def run(suite: Suite) -> None:
             contract.commodity = "xenolith"
             contract.amount = 2
             contract.progress = 9        # satisfies the non-cargo conditions
+            # A prospect also wants the hull to have *been* somewhere (see
+            # `Contract.travelled`). This check is about which kinds need
+            # the hold, so the voyage is granted and the cargo isolated.
+            contract.travelled = True
             game.contracts = [contract]
             game.ship.cargo.pop("xenolith", None)
             dry = any(c is contract and out == "done"
@@ -114,41 +118,54 @@ def run(suite: Suite) -> None:
         return (f"{len(KINDS)} kinds played out; {sorted(needs)} need the "
                 "hold, and those are the ones priced")
 
-    @check("a prospect cannot be fed from the counter that posted it")
+    @check("a prospect is paid for material brought in, not bought in")
     def _():
         # The fee is set from the neutral price and completion is at the
         # issuing port, so the goods could be bought over that same counter
         # and handed straight back — 442 of 442 sampled cargo contracts
-        # profitable, the prospects with no travel at all. Played both ways:
-        # counter tonnes do not finish it, brought tonnes do.
+        # profitable, the prospects with no travel at all.
+        #
+        # **The rule is the voyage, not a tally of tonnes.** The first fix
+        # counted purchases at that counter against the posting, and that
+        # tally never came down: a captain who *refuelled* there — volatiles
+        # and biomass are both wanted goods — had an honest mined cargo
+        # refused for tonnes long since burned. Having been away cannot be
+        # poisoned by a purchase.
         from ..sim import trade as trade_sim
-        game = new_game("prospect-taint")
+        game = new_game("prospect-travel")
         system = next(s for s in game.galaxy.systems
-                      if s.port and buy_price(s.market, "ore", 0, 0))
+                      if s.port and buy_price(s.market, "volatiles", 0, 0))
         game.location_id = system.id
-        game.credits = 100_000
+        game.credits = 200_000
         contract = _fake("prospect")
         contract.issued_at = system.id
         contract.deadline = game.day + 500
         contract.accepted = True
-        contract.commodity = "ore"
-        contract.amount = 20
+        contract.commodity = "volatiles"
+        contract.amount = 60
         game.contracts = [contract]
-        game.ship.cargo.pop("ore", None)
 
-        bought = trade_sim.buy(game, "ore", 30)
+        # Bought at the counter and handed straight back: refused.
+        game.ship.cargo["volatiles"] = 100
+        assert not any(c is contract and out == "done"
+                       for c, out in contract_sim.check(game)), (
+            "goods bought at the issuing counter completed the posting")
+
+        # Refuelling there does not poison the job. Away, and back with an
+        # honest cargo: paid.
+        bought = trade_sim.buy(game, "volatiles", 40)
         assert bought["ok"], bought
-        counter = any(c is contract and out == "done"
-                      for c, out in contract_sim.check(game))
-        assert not counter, (
-            "tonnes off the issuing counter completed the posting")
-
-        game.ship.cargo["ore"] = game.ship.cargo.get("ore", 0) + 20
-        brought = any(c is contract and out == "done"
-                      for c, out in contract_sim.check(game))
-        assert brought, "tonnes brought in did not complete it"
-        return ("30 t off their own counter: refused; 20 t brought in: paid "
-                f"{contract.reward or 'the fee'}")
+        game.location_id = next(s.id for s in game.galaxy.systems
+                                if s.id != system.id)
+        contract_sim.check(game)
+        assert contract.travelled, "a voyage away was not noticed"
+        game.ship.cargo["volatiles"] = 60
+        game.location_id = system.id
+        assert any(c is contract and out == "done"
+                   for c, out in contract_sim.check(game)), (
+            "an honest cargo brought in after a voyage was refused")
+        return ("handed back at the counter: refused; refuelled there, flown "
+                "away and brought back: paid")
 
     @check("a delivery is made from the hold, not the depot")
     def _():

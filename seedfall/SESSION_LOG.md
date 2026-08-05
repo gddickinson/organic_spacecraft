@@ -204,6 +204,126 @@ flight surviving the window that shows it.
 found in a screenshot, and three of them are invisible to any assertion
 anybody would think to write about behaviour.
 
+## The fourteenth pass: the fog, and two stolen flights (2026-08-05)
+
+The Holdings panel was counting every infested system in the sector and
+printing the sector-wide burden, directly under a picket sold on telling you
+what happens where you are not. `threat.known_bloom` is the census now, and
+`victory_progress(seen_only=True)` fogs the containment bar — but never the
+achieved flag, because winning is decided by what is true and not by what
+has been looked at.
+
+Then a forty-six shot sweep: every screen, a flight photographed at five
+stages, an orbit, a free flight, all six cameras. It found the conn stealing
+live flights — opening the window while established in an orbit switched the
+target to a quay and began again at twelve kilometres. Two causes, and the
+second is the one worth remembering: **a `Target`'s id is not a `Contact`'s
+id.** A quay is `quay:port-14` on both sides and compares equal; a body is
+`body:0` as a contact and `0` as a target, so the question "am I already
+flying to this?" answered *no* for every world in the game. Both sides go
+through `targets.target_from_contact` before they are compared now.
+
+And then the one that had been recorded rather than fixed: a world you are
+standing at read 0 km, because `flight.ship_position` put the hull at the
+body's exact centre. **A ship in orbit is not at the planet's core.** It
+holds `flight.ship_orbit_offset` now — the radius the flight actually flies,
+derived from the body's identity and the calendar, never stored — so the
+world that read 0 km reads 7,449 km, its standard orbit radius, and the
+conn's altitude agrees because both ask `orbits.height_km`.
+
+That is the *third* defect of this shape: a quay at its planet's centre
+(`anchorage.berth_orbit`), a hull sharing a body (`traffic.STATION_KM`), and
+now the ship itself. **Anything that can be somewhere needs a place of its
+own** — a position inherited from what you are near is a zero waiting to be
+printed.
+
+## The fifteenth pass: one way in to everything (2026-08-05)
+
+A player asked how to use a Weave anchor, having flown to one. The answer is
+that you do not use it there at all — a ring is ridden from the sector
+chart — and the anchor they had flown to offered them "Open holdings",
+because that is the anchorage card's fall-through for anything that is not a
+quay.
+
+Fixed at the anchor (what it is, whether it is lit, what waking wants), in
+the manual (a topic with a fact that reads this chronicle), and then
+generally: `sim/hail.py` answers "who is this, what do they say, and what can
+I do about it" for anything `sim/track` can put a cursor on, and
+`ui/comms_window.py` is the channel that shows it. Every option is a door
+that already existed, so the menu cannot promise what the game will refuse.
+
+**An object the player can fly to is a promise.** The acts existed for every
+one of these things; they were scattered across screens that each knew about
+one kind of object, so knowing what you could do depended on knowing which
+screen owned it. That is not discoverability, it is a quiz.
+
+## The sixteenth pass: played long (2026-08-05)
+
+Fifty-odd headless chronicles across the economy, four long games through
+the real GUI to day 2,600, and every dialog-gated flow driven directly. The
+GUI play found nothing at all — no crash, no impossible state, in 500-odd
+presses. The long economy runs found eight things.
+
+The one worth remembering: **the game had no way to lose by neglect.** Three
+modules agreed the chronicle ends when there is nobody left aboard, and the
+test sat inside a branch that is only reached when the crew is short of
+something — which cannot happen once there is no crew. Every do-nothing
+chronicle emptied and sailed on for ever.
+
+Fixing it immediately exposed two more, and both were the *test captain*
+being naive rather than the game being unfair: the trading bot bought fuel
+and never food, and once the bodies in reach ran out it had no income at
+all. A real loss condition is a measuring instrument — it finds every place
+something was quietly surviving on the game's failure to enforce a rule.
+
+## 2026-08-05 — one ship, one place, one drive
+
+Three reports from play, and all three were the same fault wearing different
+clothes: a fact with more than one door.
+
+The deep one was the ship's position. `flight.ship_position` answered with
+the *recorded* place, which is not written again until `berthing.commit` —
+so the helm's map, the plotting board and the tactical list held the hull at
+the quay it left while the conn beside them counted the range down. It was
+reported as four windows failing to update. It was actually one window
+telling the truth and four faithfully reading a field nobody had written.
+
+The first fix was wrong in an instructive way. I made `ship_position` add
+`conn.pos`, reasoning that the conn knows where she has been flown to — and
+two checks caught it within the hour. **`conn.pos` is not an offset from the
+ship.** An approach's frame is anchored on its *target*, and `conn_open.start`
+opens it at a canned arrival range, so `conn.pos` is already twelve
+kilometres the instant the conn is taken. Adding it teleported the hull every
+time a window opened; a played check watched a 110 km flight register as
+0.0 km moved, because reopening the conn silently re-anchored the frame. The
+quantity that is honest in both frames is the *difference* — `Conn.start_pos`
+and the `flown_km` built on it — zero when a conn opens and exactly the
+kilometres flown after. The lesson is the file's oldest one restated: a
+number is only a fact once you know what frame it is measured in.
+
+Two smaller ones, same shape. The engine button read "off" while the
+computer was burning, because three windows each formatted that label
+themselves and only the flight panel had learned to say FIRING. And speed was
+on every panel already — under two names, "Speed" in a free flight and
+"Relative" everywhere else, which reads as a missing instrument and was
+reported as one.
+
+`sim/flight.py` was at the 500-line ceiling before any of this, so
+`ship_orbit_offset` and its constants moved to `sim/orbits.py`, where the
+geometry already lived and where the lazy import it needed disappears. The
+precedent was in the file's own comment about `sim/path.py`.
+
+One old check went red, and it was worth the hour. `test_war` asks for six
+sectors and a decade each; loss by neglect (added last pass) ends a
+do-nothing chronicle at about day 1,360, and `advance_days` early-returns
+after that — so the loop that says 3,600 days was quietly running 1,400. The
+check had been measuring a third of a decade and still passing until the
+margin finally went. Bisected it by reverting the uncommitted files in
+halves, which took four runs and settled it; the alternative was reading
+seven diffs and guessing. The fixture provisions the hull now, and reports
+the span each sector actually got, because a silent truncation that still
+passes is worse than a failure.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests` runs the lot (~25 min, 192 suites); one suite by

@@ -75,7 +75,15 @@ def tick(res: Research, days: float, rate: float, rng=None) -> str | None:
 
     served, missing = inquiry.draw(res, res.current, days, rate)
     approach = inquiry.approach_of(res)
-    res.progress += (gained * approach.speed * served) + res.banked
+    # **Banked points are worked, not simply added.** They used to be poured
+    # in raw while the day's own points were throttled by what the bench is
+    # actually supplied with (`served`, floored at 0.35) — so *not choosing*
+    # a project was worth more than running one, and a lump saved up while
+    # idle cascaded through node after node on consecutive days. Measured
+    # over five seeds and 2,100 days on identical totals: always-on 12
+    # techs, bank-then-dump 16 to 17. Evidence gates the whole day's work
+    # or it gates none of it.
+    res.progress += (gained + res.banked) * approach.speed * served
     res.banked = 0.0
     res.starved = list(missing)
 

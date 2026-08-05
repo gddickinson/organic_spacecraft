@@ -102,7 +102,11 @@ def run(suite: Suite) -> None:
         conn, why = berth_sim.begin(game, quay)
         assert conn is not None, why
         names = [k for k, _v, _kind in panel_sim.readout(conn)]
-        for row in ("Range", "Closing", "Relative"):
+        # "Relative" until the speed was given one name in all three
+        # situations — see "every situation the conn can be in reads out a
+        # speed". The row is the same row; a docking pilot reading the panel
+        # beside a free flight's should not have to learn a second word for it.
+        for row in ("Range", "Closing", "Speed"):
             assert row in names, (f"an approach lost its {row} row", names)
         assert "Flown" not in names, names
 
@@ -338,3 +342,96 @@ def run(suite: Suite) -> None:
         win.close()
         return (f"{painted} instruments painted, live-updating, closed and "
                 f"reopened")
+
+    @check("every situation the conn can be in reads out a speed")
+    def _():
+        # Reported from play: "always display speed in pilot, conn and flight
+        # control windows." The number was there in all three — as "Relative"
+        # when orbiting and when coming alongside, and "Speed" only in a free
+        # flight. One quantity under two names across three windows reads as
+        # a missing instrument, which is exactly how it was reported.
+        from ..sim import conn as conn_sim
+        from ..sim import freeflight as free_sim
+        from ..sim import instruments
+        from ..sim import track as track_sim
+
+        game = new_game("speed-everywhere")
+        seen = {}
+        free, why = free_sim.begin(game)
+        assert free is not None, why
+        seen["free flight"] = free
+        for kind in ("body", "anchorage", "hull"):
+            contact = next((c for c in track_sim.contacts(game)
+                            if c.kind == kind), None)
+            if contact is None:
+                continue
+            seen[kind] = conn_sim.start(game, contact)
+
+        assert len(seen) >= 3, sorted(seen)
+        told = []
+        for name, conn in seen.items():
+            conn_sim.apply(conn, "forward", main=False)
+            rows = {label: value for label, value, _kind
+                    in instruments.readout(conn)}
+            assert "Speed" in rows, (
+                f"the panel for a {name} lists {sorted(rows)} and none of it "
+                "is the ship's speed")
+            assert "Relative" not in rows, (
+                f"a {name} still calls the speed 'Relative' — two names for "
+                "one number is what was reported")
+            told.append(f"{name} {rows['Speed']}")
+        return " · ".join(told)
+
+    @check("the three flying windows say one thing about the main drive")
+    def _():
+        # Reported from play: "when on auto-pilot the engine button shows
+        # engines off even when they are on." Three windows formatted this
+        # label themselves; only the flight panel had learned to say FIRING,
+        # so a captain who handed the ship to the computer watched it burn
+        # under a console reading "off". One door now: `instruments.drive_note`.
+        from ..sim import conn as conn_sim
+        from ..sim import freeflight as free_sim
+        from ..sim import instruments
+        from ..ui import pilot_panels
+
+        game = new_game("drive-agrees")
+        conn, why = free_sim.begin(game)
+        assert conn is not None, why
+        game.conn = conn
+
+        class _View:
+            pass
+        view = _View()
+        view.conn = conn
+
+        def all_three() -> set:
+            #: The conn console and the flight panel both build the string
+            #: from `drive_note`; the bridge goes through `main_label`. Ask
+            #: all three the way their windows do.
+            bridge = pilot_panels.main_label(view)
+            return {f"Main drive: {instruments.drive_note(conn)}", bridge}
+
+        told = []
+        conn.arm_main = False
+        conn_sim.apply(conn, None)                       # coasting, pad off
+        assert len(all_three()) == 1, all_three()
+        told.append(instruments.drive_note(conn))
+        assert told[-1] == "off", told
+
+        conn.arm_main = True
+        conn_sim.apply(conn, None)                       # armed, not burning
+        assert len(all_three()) == 1, all_three()
+        told.append(instruments.drive_note(conn))
+        assert told[-1] == "armed", told
+
+        # The reported case: the *computer* opens the drive while the pilot's
+        # pad is set to the clusters. The pad's switch is off and the drive
+        # is burning, and every window has to say the burning part.
+        conn.arm_main = False
+        conn_sim.apply(conn, "forward", main=True)
+        assert len(all_three()) == 1, all_three()
+        told.append(instruments.drive_note(conn))
+        assert told[-1].startswith("FIRING"), (
+            f"the computer is burning and the button says {told[-1]!r} — "
+            "the fault as reported")
+        return " → ".join(told)

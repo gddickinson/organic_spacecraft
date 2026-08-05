@@ -140,7 +140,8 @@ def stack_of(btns, per_row: int = 2) -> QWidget:
 
 
 def main_label(view) -> str:
-    return f"Main drive: {'armed' if view.use_main else 'off'}"
+    from ..sim import instruments
+    return f"Main drive: {instruments.drive_note(view.conn)}"
 
 
 def throttle_label(view) -> str:
@@ -283,3 +284,15 @@ def in_view_board(view, rows) -> Panel:
                      + ("  · may be engaged" if ok else "")
                      + ("  · on course" if contact.name == view.mark else ""))
     return near
+
+
+def _hail(view, contact) -> None:
+    """Open the channel. With no contact, the window picks one to start on."""
+    from .comms_window import open_comms
+    if contact is None:
+        rows = view.ranged()
+        contact = rows[0][1] if rows else None
+    if contact is None:
+        view.win.toast("Nothing within reach of the array.", "warn")
+        return
+    open_comms(view.win, contact)

@@ -18,6 +18,7 @@ from __future__ import annotations
 from PyQt6.QtWidgets import QGridLayout, QWidget
 
 from ..sim import conn as conn_sim
+from ..sim import instruments
 from ..sim import orbits
 from ..sim import pilot as pilot_sim
 from .widgets import button, light
@@ -249,8 +250,11 @@ class ConnControls(QWidget):
         live = not conn.over
         # "armed", in the same words as the bridge and the flight panel — the
         # three said ON / on / armed for one fact, which reads as three facts.
+        # One door for the words: `instruments.drive_note`. This said
+        # "off" while the computer was burning, because it read the arming
+        # switch and not what the drive was doing.
         self.main_btn.setText(
-            f"Main drive: {'armed' if self.use_main else 'off'}")
+            f"Main drive: {instruments.drive_note(conn)}")
         self.run_btn.setText(
             "Stop clock" if self.window.running else "Run clock")
         self.scale_btn.setText(

@@ -388,10 +388,18 @@ class PilotView(View):
         left.addWidget(panels.row_of(
             button("Hold (coast)", lambda: self.burn(None), kind="flat"),
             self._btn_main, self._btn_throttle))
+        # **The channel is one control, in the left column, always there.**
+        # Offered per contact in the right-hand list it broke two of this
+        # screen's rules at once: the set of controls changed on a beat as
+        # the contacts reordered (six of thirty-seven replaced under the
+        # pilot's finger — the #150 churn again), and it pushed the autopilot
+        # bar below the fold. Which contact you are talking to is picked
+        # inside the channel, where switching costs the bridge nothing.
         left.addWidget(panels.stack_of([
             self._btn_clock, self._btn_scale,
             button("Secure from the conn", self.secure, kind="flat"),
-            button("Take the conn on something…", self._to_conn, kind="flat")],
+            button("Take the conn on something…", self._to_conn, kind="flat"),
+            button("Open a channel…", self._open_channel, kind="flat")],
             per_row=2))
         # **The guns go with the hands, not with the boards.** This file's own
         # rule is that the left column is the view and what flies her and the
@@ -470,6 +478,15 @@ class PilotView(View):
         from . import flight_clock
         flight_clock.cycle_scale(self.win)
         self.refresh()
+
+    def _open_channel(self) -> None:
+        """Talk to the nearest thing on the array; switch inside the window."""
+        from .comms_window import open_comms
+        rows = self.ranged()
+        if not rows:
+            self.win.toast("Nothing within reach of the array.", "warn")
+            return
+        open_comms(self.win, rows[0][1])
 
     def _to_conn(self) -> None:
         """Hand this flight to an approach, carrying the way already on."""

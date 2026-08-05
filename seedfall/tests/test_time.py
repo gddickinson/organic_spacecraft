@@ -313,6 +313,34 @@ def run(suite: Suite) -> None:
         return (f"{before}→{game.ship.crew} after 90 days with no food, "
                 f"nothing lost in the first {upkeep.GRACE:.0f}")
 
+    @check("a hull with nobody aboard does not sail on for ever")
+    def _():
+        # Three modules agreed the chronicle ends when the crew is gone, no
+        # officer is active and no machine keeps watch — and the test sat
+        # inside the branch `upkeep.tick` only reaches when something the
+        # crew needs is *missing*. Nothing is missing once nobody is aboard
+        # to need it, so the branch was unreachable. Measured on five
+        # do-nothing chronicles: every one emptied — seed `dn-a` at day
+        # 1516 — and not one of them ended.
+        game = new_game("nobody-aboard")
+        game.ship.crew = 0
+        for officer in game.officers:
+            officer.retired = True
+        game.advance_days(400)
+        assert game.dead, (
+            "400 days with an empty bridge and the chronicle goes on")
+        assert game.death_reason or game.ending, "it ended without saying why"
+
+        # And doing nothing for long enough gets there by itself, which is
+        # the loss condition a do-nothing captain is supposed to meet.
+        idle = new_game("dn-a")
+        idle.advance_days(2500)
+        assert idle.dead, (
+            f"2,500 days of doing nothing: crew {idle.ship.crew}, "
+            f"dead {idle.dead} — there is no losing by neglect")
+        return (f"an empty bridge ends it; doing nothing ends it at day "
+                f"{idle.day}")
+
     @check("a wait stands down on bad news rather than running through it")
     def _():
         # Played before this existed: a year alongside a Fleet Hub starved

@@ -129,7 +129,7 @@ def where(game, conn) -> tuple:
     # It read right on a fresh game only because the ship is moored *at* the
     # quay's body, so the two origins coincide.
     if is_open(conn.target):
-        sx, sy, sz = flight.ship_position(game)
+        sx, sy, sz = flight.base_position(game)
     else:
         from . import track as track_sim
         sx, sy, sz = track_sim.at(game, conn.target, game.day)
@@ -329,6 +329,9 @@ def secure(game, conn) -> str:
     at = where(game, conn)
     flew_km = math.dist(conn.pos, (0.0, 0.0, 0.0))
     flight.stand_off(game, at)
+    # The flight is spent by `flight.stand_off` above — it is one of the two
+    # writers of the recorded place, and writing that place is exactly what
+    # spending a flight means. Doing it again here would be a second door.
     conn.outcome = conn.outcome or "secured"
     # **No log line here.** `berthing.commit` is what charges the chronicle
     # for an approach — the mass, the hours, the line in the ledger — and a
@@ -385,12 +388,17 @@ def hand_over(game, conn, contact):
     here = where(game, conn)
     was_body, was_xy = (getattr(game, "orbit_body", None),
                         getattr(game, "ship_xy", None))
+    # `stand_off` spends the flight into the place it writes, so the *flown*
+    # displacement has to be kept back too — restoring the recorded place
+    # without it would snap the hull back to where the flight began.
+    was_start = list(conn.start_pos)
     flight.stand_off(game, here)
     fresh, why = berth_sim.begin(game, contact)
     if fresh is None:
         # Put the ship back where it was standing: a refused hand-over must
         # not also move the hull.
         game.orbit_body, game.ship_xy = was_body, was_xy
+        conn.start_pos = was_start
         return None, why
     # The way she has on, carried across. The frames are both km on the same
     # axes — the conn's origin moves, the units do not.
@@ -428,6 +436,12 @@ def hand_over(game, conn, contact):
         # 12 km opening was declared adrift — four times `start_km` — on the
         # very first beat, and the computer never got a tick in.
         fresh.start_km = max(fresh.start_km, fresh.range_km)
+    # **The flight is already written down** — `stand_off` above recorded it
+    # before this conn existed. So the new frame starts here: `flown_km` is
+    # what `flight.ship_position` adds to the recorded place, and leaving it
+    # measured against `begin`'s canned arrival range would have the hull
+    # jump by the offset the moment the hand-over completed.
+    fresh.start_pos = list(fresh.pos)
     fresh.vel = list(conn.vel)
     fresh.nose = list(conn.nose)
     fresh.rcs = conn.rcs

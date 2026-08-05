@@ -397,3 +397,40 @@ def run(suite: Suite) -> None:
             "the panel says nothing at all rather than saying it does not "
             "know")
         return f"an uncatalogued star keeps its flag to itself"
+
+    @check("the Holdings panel counts what you have seen, not what is there")
+    def _():
+        # `intel.sees_bloom` covers the chart, and the Holdings panel went
+        # straight round it: every infested system in the sector counted and
+        # the sector-wide burden printed, above a picket whose `watch` is
+        # sold on telling you what happens where you are not.
+        from ..sim import threat as threat_sim
+        game = new_game("holdings-fog")
+        truly = len(threat_sim.bloom_systems(game))
+        known = threat_sim.known_bloom(game)
+        assert truly > 0, "this sector has no growth to hide"
+        assert known["count"] < truly, (
+            f"the panel knows about {known['count']} of {truly} infested "
+            "systems without having looked at any of them")
+        assert known["unscouted"] > 0
+        assert known["burden"] <= game.bloom_total
+
+        # Look at one, and it appears — which is what makes looking worth it.
+        hidden = next(s for s in game.galaxy.systems
+                      if s.bloom > 0.02 and not intel.sees_bloom(game, s))
+        hidden.visited = True
+        after = threat_sim.known_bloom(game)
+        assert after["count"] == known["count"] + 1, (
+            "visiting an infested system did not add it to the census")
+        assert after["burden"] > known["burden"]
+
+        # **The ending is decided by what is true.** Fogging the display is
+        # right; fogging the achievement would let a captain take
+        # Containment by keeping their eyes shut.
+        shown = threat_sim.victory_progress(game, seen_only=True)
+        truth = threat_sim.victory_progress(game)
+        assert shown["containment"][0] != truth["containment"][0], (
+            "the containment bar reads the same fogged or not")
+        assert shown["containment"][2] is truth["containment"][2] is False
+        return (f"{known['count']} of {truly} known before looking, "
+                f"{after['count']} after; the ending still reads the truth")

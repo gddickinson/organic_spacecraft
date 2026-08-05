@@ -79,6 +79,18 @@ class Conn:
     target: Target
     #: Where the ship is relative to the target, in km.
     pos: list = field(default_factory=lambda: [0.0, -12.0, 0.0])
+    #: Where `pos` stood when the approach opened, in the same frame. The
+    #: hull's *flown* displacement is `pos - start_pos`, and that is what
+    #: `flight.ship_position` adds to the recorded place.
+    #:
+    #: **`pos` alone is not an offset from the ship.** `conn_open.start` opens
+    #: an approach at the canned arrival range — `[0, -start_km, 0]` — which
+    #: says nothing about where the hull actually is; the frame is anchored on
+    #: the *target*. Adding that to the recorded place teleported the ship by
+    #: the arrival range every time a conn was opened. The difference is
+    #: honest in both frames: zero the moment a conn opens, and exactly the
+    #: kilometres flown thereafter.
+    start_pos: list = field(default_factory=list)
     #: How fast, in m/s, in the same frame.
     vel: list = field(default_factory=lambda: [0.0, 0.0, 0.0])
     #: Which way the nose points, as a unit vector in the target's frame.
@@ -256,9 +268,21 @@ class Conn:
     #: it in.
     ditching: bool = False
 
+    def __post_init__(self) -> None:
+        # Filled in here rather than at each of the four places a Conn is
+        # built, so no future one can forget and quietly hand
+        # `flight.ship_position` a frame offset as a displacement.
+        if not self.start_pos:
+            self.start_pos = list(self.pos)
+
     @property
     def over(self) -> bool:
         return bool(self.outcome)
+
+    @property
+    def flown_km(self) -> tuple[float, float, float]:
+        """How far the hull has been flown since this conn opened, in km."""
+        return tuple(p - q for p, q in zip(self.pos, self.start_pos))
 
     @property
     def range_km(self) -> float:

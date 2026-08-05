@@ -254,7 +254,10 @@ def run(suite: Suite) -> None:
         contract_sim.accept(g, pros)
         # Aboard, not in the depot: `contracts._cargo_held` reads the hold,
         # because the location-free store let a delivery complete with the
-        # goods in a warehouse nobody moved.
+        # goods in a warehouse nobody moved. And a prospect is for material
+        # *brought in*, so the hull has to have been away (`Contract.
+        # travelled`) — otherwise it is the counter's own stock handed back.
+        pros.travelled = True
         g.ship.cargo[pros.commodity] = pros.amount + 10
         before = g.credits
         g.advance_days(1)

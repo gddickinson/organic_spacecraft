@@ -373,11 +373,24 @@ def is_stranded(game) -> bool:
     if any(fuel >= jump_quote(game, s)["fuel"] for s in reach):
         return False
     if game.system.port and game.system.market:
-        # A port can sell you fuel, if it has any and you can pay for it.
+        # A port can sell you fuel, if it has any and you can pay for it —
+        # and **what is in the hold is money at a counter.** This read
+        # `game.credits` alone, so a captain standing at a market with
+        # nothing in the purse and 15,000 credits of silicon aboard was
+        # called stranded, and the tow that answered charged them standing
+        # to be dragged away from the very quay that would have fixed it.
+        from . import market as market_sim
         cheapest = min((jump_quote(game, s)["fuel"] for s in reach), default=99)
         price = buy_price(game.system.market, "volatiles",
                           game.rep.get(game.system.port.faction, 0))
-        if price is not None and game.credits >= price * (cheapest - fuel):
+        sellable = 0.0
+        for cid, tonnes in game.ship.cargo.items():
+            if cid == "volatiles" or tonnes <= 0:
+                continue
+            offer = market_sim.quote_sell(game, game.system, cid)
+            if offer:
+                sellable += offer * tonnes
+        if price is not None and (game.credits + sellable) >= price * (cheapest - fuel):
             return False
     # Can we make our own out of ice in this system? Only off a body a rig
     # will actually go on — the same question `extract` asks.

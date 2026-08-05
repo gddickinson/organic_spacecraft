@@ -56,6 +56,36 @@ def _burns(game) -> list:
     return lines
 
 
+@fact("weave")
+def _weave(game) -> list:
+    """The Weave as it stands in *this* chronicle, not in general."""
+    from . import gates as gates_sim
+    from . import weave as weave_sim
+    state = weave_sim.summary(game)
+    lines = [f"In this sector: {state['gates']} anchor(s), {state['lit']} of "
+             f"them burning, {state['links']} ring(s) live."]
+    here = weave_sim.gate_at(game, game.location_id)
+    if here is None:
+        lines.append("  No anchor in the system you are standing in.")
+    else:
+        lines.append(f"  {here.name} is here, and it is "
+                     + ("lit." if here.lit else "dark."))
+        if not here.lit:
+            _ok, why = gates_sim.can_wake(game)
+            lines.append("  " + (why or "Everything needed to wake it is "
+                                        "aboard."))
+    runs = weave_sim.reachable(game, game.location_id)
+    if runs:
+        for dest in runs[:4]:
+            said = gates_sim.quote(game, dest)
+            lines.append(f"  Step to {game.galaxy.systems[dest].name} — "
+                         f"{said['ly_saved']:.0f} ly for "
+                         f"{said['credits']:,.0f} credits.")
+    else:
+        lines.append("  Nothing runs from where you are standing.")
+    return lines
+
+
 @fact("reach")
 def _reach(game) -> list:
     from . import reach as reach_sim

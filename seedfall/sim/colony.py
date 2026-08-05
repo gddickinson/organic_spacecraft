@@ -18,6 +18,12 @@ from ..world.galaxy import Port
 
 _uid = itertools.count(1)
 
+#: Days short before a holding is called starving, and how often it is
+#: mentioned after that. Once when it starts, then once a year — not once a
+#: day, which is what buried every other line in the chronicle.
+STARVING_SAID = 30.0
+STARVING_AGAIN = 365.0
+
 
 @register
 @dataclass
@@ -211,10 +217,25 @@ def tick(game, days: float) -> tuple[dict, list]:
             else:
                 game.stores[key] -= owed
         if not affordable:
+            # **Said when it becomes true, and again only if it is still
+            # true much later.** `MAX_STEP` is one day, so "past thirty days
+            # short" fired *every day* for ever: measured, 90 identical
+            # entries in 120 days. The log holds 300, so one starving
+            # holding wiped every other piece of news inside four months —
+            # and being `bad` it stood a long wait down daily as well.
+            was = col.starving
             col.starving += days
-            if col.starving > 30:
-                events.append(("bad", f"{col.name} is starving — yields have stopped."))
+            if was <= STARVING_SAID < col.starving:
+                events.append(("bad", f"{col.name} is starving — yields have "
+                                      "stopped."))
+            elif (int(was // STARVING_AGAIN)
+                  != int(col.starving // STARVING_AGAIN)):
+                events.append(("bad", f"{col.name} has been starving for "
+                                      f"{col.starving / 365:.1f} year(s). It "
+                                      "produces nothing until it is fed."))
             continue
+        if col.starving:
+            events.append(("good", f"{col.name} is being fed again."))
         col.starving = 0
 
         finished = works.advance(game, col, days)
@@ -404,12 +425,16 @@ MEGASTRUCTURE_GUARD = 0.85
 
 
 def bloom_attack(game, system, rng) -> list[Colony]:
-    """Losses here are reported to the bridge — some of them built the place."""
     """The Bloom eats colonies it reaches — unless something is shooting back.
 
-    A station that wards the system also has guns pointed at its own perimeter,
-    so it is markedly harder to overgrow than the farm next door. It is not
-    immortal: given years enough, the Bloom gets everything unattended.
+    A station that wards the system also has guns pointed at its own
+    perimeter, so it is markedly harder to overgrow than the farm next door.
+    It is not immortal: given years enough, the Bloom gets everything
+    unattended. Losses are reported to the bridge — some of them built the
+    place.
+
+    (There were two string literals here. The first was the docstring and the
+    second — the one that explained anything — was a discarded expression.)
     """
     here = [c for c in game.colonies if c.system_id == system.id]
     system_ward = ward_at(game, system.id)

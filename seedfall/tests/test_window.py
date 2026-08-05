@@ -203,5 +203,81 @@ def run(suite) -> bool:
         assert state_mod.has_save(), "a dismissed ending cleared the save"
         return "Escape at the ending: save intact, nothing begun"
 
+    @check("every screen that draws the ship follows a flight from elsewhere")
+    def _():
+        # Reported from play: "the ship's position is not being updated in the
+        # helm window system map, or sector chart or in the plotting board or
+        # tactical window when the ship is driven from another window. All
+        # windows must be consistent."
+        #
+        # Driven here rather than argued: fly the hull from the flight deck
+        # and ask each *widget* where it is drawing her, through the same call
+        # its own paint does.
+        import math
+
+        from ..sim import conn as conn_sim
+        from ..sim import flight
+        from ..sim import freeflight as free_sim
+        from ..sim import readiness
+        from ..ui.orbit_chart import OrbitChart
+        from ..ui.plot_canvas import PlotCanvas
+
+        flying = new_game("screens-follow-ui")
+        held = MainWindow(flying)
+        held.resize(1200, 820)
+        chart = OrbitChart(held)
+        chart.resize(620, 620)
+        board = PlotCanvas(flying)
+        board.resize(620, 620)
+        for widget in (chart, board):
+            widget.show()
+        app.processEvents()
+
+        def drawn() -> dict:
+            """Where each widget puts the hull, and what the lists say."""
+            at = flight.ship_position(flying)
+            point = board.to_screen(*at)
+            near = readiness.in_reach(flying) if hasattr(
+                readiness, "in_reach") else []
+            return {"chart": chart._to_screen(*at) if hasattr(
+                        chart, "_to_screen") else at,
+                    "board": (point.x(), point.y()),
+                    "ranges": [round(getattr(c, "km", 0.0), 1) for c in near]}
+
+        before = drawn()
+        conn, why = free_sim.begin(flying)
+        assert conn is not None, why
+        flying.conn = conn
+        for _ in range(90):
+            conn_sim.apply(conn, "forward", main=True, ticks=30)
+        flown_km = math.dist(conn.pos, (0.0, 0.0, 0.0))
+        assert flown_km > 1000, f"the drive barely moved her: {flown_km}"
+        for widget in (chart, board):
+            widget.update()
+        app.processEvents()
+        after = drawn()
+
+        moved_km = math.dist(flight.ship_position(flying),
+                             flight.base_position(flying)) * flight.KM_PER_AU
+        assert abs(moved_km - flown_km) < 1.0, (
+            f"she flew {flown_km:,.0f} km and the screens moved her "
+            f"{moved_km:,.0f} km")
+        assert before["board"] != after["board"], (
+            f"the plotting board drew the hull at {before['board']} before a "
+            f"{flown_km:,.0f} km flight and at {after['board']} after it")
+        assert before["chart"] != after["chart"], (
+            "the helm's system map held the hull where it was")
+
+        # The sector chart is at light-year scale and a flight inside a system
+        # does not move which system you are in — there is nothing there to
+        # follow, and saying so is what stops a later cycle "fixing" it.
+        assert flying.location_id == new_game("screens-follow-ui").location_id
+
+        for widget in (chart, board):
+            widget.close()
+        held.close()
+        return (f"flew {flown_km:,.0f} km from the flight deck; the plotting "
+                f"board and the helm chart both moved with her")
+
     win.close()
     return True

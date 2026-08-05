@@ -539,6 +539,192 @@ working, which is why pressing every control had never found them.
 the flying windows can be *read*, beside `test_flightops`, which asks
 whether their controls work.
 
+## Done — the fourteenth pass (2026-08-05): the fog, and two stolen flights
+
+The Holdings fog leak, then a forty-six shot sweep of every screen with a
+flight photographed at five stages, an orbit, a free flight and all six
+cameras.
+
+- **The Holdings panel counted the whole sector.** `intel.sees_bloom` covers
+  the chart and this went round it: every infested system counted and the
+  sector-wide burden printed, above a picket whose `watch` is sold on
+  telling you what happens where you are not. `threat.known_bloom` is the
+  one door — the census is what is *known*, and it says how many systems
+  nothing of yours has looked at rather than folding them in silently.
+  `victory_progress(seen_only=True)` fogs the containment bar for display;
+  **the achieved flag is never fogged**, or a captain could take Containment
+  by keeping their eyes shut.
+- **Opening the conn stole a live orbit.** Established at 299 km under the
+  computer, opening the Conn window switched the target to a quay and began
+  a fresh approach — photographed as "Conn — Fleet Hub, approach begun,
+  12.0 km" over a hull circling a world. Two causes, both now fixed: the
+  window asked `default_target` instead of the flight it already had, and
+  **a `Target`'s id is not a `Contact`'s id** — a quay is `quay:port-14` on
+  both sides but a body is `body:0` as a contact and `0` as a target, so
+  "am I already flying to this?" answered *no* for every world in the game.
+  `conn_targets.same_place` asks the question through
+  `targets.target_from_contact`, so both sides are the same kind of thing.
+- The same fix retired the `landed` half of the test: `landed` means
+  *arrived* — secured at a quay, established in an orbit, set down on a
+  surface — and all three are still flights whose target the window should
+  be showing.
+
+- **A ship in orbit is no longer at the planet's core.**
+  `flight.ship_position` returned the body's exact position when alongside
+  one, so the Pilot screen listed a world 6,772 km in radius at `0 km` and
+  every range to the thing you were standing at came out nought. This is
+  the third defect of that shape the project has fixed, after
+  `anchorage.berth_orbit` for a quay at its planet's centre and
+  `traffic.STATION_KM` for a hull sharing a body — and it is fixed the same
+  way, by giving the thing a place of its own.
+  `flight.ship_orbit_offset` holds the radius the flight actually flies
+  (`Game.orbit_alt_km`, or the standard rung when nobody has chosen), on an
+  orbit derived from the body's identity and the calendar and never stored,
+  so an old chronicle gains the place without a migration. Measured: the
+  world that read 0 km now reads 7,449 km, which is its standard orbit
+  radius, and the conn's altitude and this agree because both ask
+  `orbits.height_km`. Two position claims that asserted the hull sat at the
+  body's exact centre now assert the stronger thing — that it rides *with*
+  the body without being buried in it — and a new sweep holds that nothing
+  a captain is standing at ever reads zero (61 ranges, 6 chronicles).
+
+## Done — the fifteenth pass (2026-08-05): one way in to everything
+
+**Reported by a player: "I can fly up to a Weave anchor, but how do I use
+it?"** They were right to be stuck. An anchor is a place in the system with
+no services, the panel that rides a ring lives on the sector chart, and the
+anchorage card's fall-through for anything that is not a quay offered *Open
+holdings*. So the game invited them to fly to a thing and then said nothing
+at it.
+
+- **The anchor explains itself, at the anchor.** Standing at one now says
+  what a Weave anchor is, whether it is lit, what it is joined to, and — if
+  dark — exactly what waking it wants, which is the Weavecraft technology
+  before anything else. With a button to the chart where the ring is ridden.
+- **A manual topic**, "The Weave, and how to ride one", with a generated
+  fact that reads *this* chronicle: how many anchors are burning, what the
+  one here is doing, and what a step from where you stand would cost.
+- **`sim/hail.py` and `ui/comms_window.py` — the general fix.** One door
+  that opens on anything `sim/track` can put a cursor on: who they are,
+  what they say in their own voice (`sim/voice`), and a menu of what can be
+  done, every entry either available or greyed *with the reason*. A quay
+  lists its services and its harbourmaster; a gate lists its transits or
+  what it needs; a world lists survey, rig and landing; a hull lists hail,
+  mark and the guns. Reachable from the Pilot screen's contact rows and
+  from every place on the helm's put-in list.
+  It decides nothing — every option is a door that already existed
+  (`berthing`, `gates`, `hostiles`, the port screen), which is what stops a
+  menu promising what the game would refuse. `tests/test_hail.py` holds
+  that: what the menu offers is what `berthing.can_conn` answers, and every
+  refusal names a reason.
+
+## Done — the sixteenth pass (2026-08-05): played long, and losing exists
+
+Fifty-odd chronicles driven headlessly across the economy, four long games
+pressed through the real GUI to day 2,280–2,666, and the option-space behind
+every dialog (colonies, research, the ground, digs, the shipyard) driven
+directly. The GUI play found nothing; the long economy runs found eight
+things, and two of them were load-bearing.
+
+- **The game had no loss by neglect.** Three modules agreed a chronicle ends
+  when the crew is gone, no officer is active and no machine keeps watch —
+  and the test sat inside the branch `upkeep.tick` only reaches when
+  something the crew *needs* is missing. Nothing is missing once nobody is
+  aboard to need it, so the branch was unreachable: five do-nothing
+  chronicles all emptied (seed `dn-a` at day 1516) and not one ended.
+  `upkeep.unmanned` is asked every tick now; doing nothing ends it at 1517.
+- **Idling out-researched playing by about forty per cent.** `research.tick`
+  poured `banked` in raw while the day's own points were throttled by what
+  the bench is supplied with, so *not choosing* beat choosing and a saved
+  lump cascaded through node after node. Banked points go through the same
+  gate now: always-on 12 techs against bank-then-dump 13, was 16–17.
+- **Standing was purchasable at about 350 credits a point.** Survey data is
+  an ordinary stocked commodity, so the sets could be bought over the very
+  counter they were handed back to, and the hand-in granted `min(6, n*0.4)`
+  with no cooldown — nought to the +100 cap in 19 to 26 hand-ins.
+  `SURVEY_REP_CAP` puts it at the same rate as any other sale, and the
+  hand-in finally goes through `wharfage.collect`, which its own docstring
+  calls "the only place money moves" — 50 sets moved 20,650 credits with the
+  quay seeing none of its 519.
+- **A prospect is gated on the voyage, not on a tally.** The `bought_here`
+  count added in the twelfth pass never came down, so a captain who
+  *refuelled* at the issuing port — volatiles and biomass are both wanted
+  goods — had an honest mined cargo refused for tonnes long since burned.
+  `Contract.travelled` is the thing the rule was always reaching for, and a
+  purchase cannot poison it.
+- **A starving holding said so every day for ever** — 770 lines in 800 days,
+  which wiped the 300-line log inside four months and stood a long wait down
+  daily. Once when it starts, once a year after that, and once when it is
+  fed again.
+- **A hold worth selling is a way out.** `is_stranded` priced escape against
+  the purse alone, so a captain at a market with 15,000 credits of silicon
+  aboard was called stranded — and the tow charged them standing to be
+  dragged away from the counter that would have fixed it.
+- Two smaller ones: a discarded docstring in `colony.bloom_attack` (two
+  string literals, the informative one a no-op), and the harness captain in
+  `tests/captain_bot.py`, which bought fuel and never food and then had no
+  income once the bodies in reach ran out. **Three times now this file has
+  recorded the same lesson: that is not the game dead-ending, it is the
+  probe failing to take the move in front of it.**
+
+## Done — the seventeenth pass (2026-08-05): one ship, one place, one drive
+
+Three things reported from play, all of them the same shape — a fact with
+more than one door.
+
+- **The ship's position did not follow a flight.** `flight.ship_position`
+  returned the *recorded* place, and the recorded place is not written again
+  until `berthing.commit` — so the helm's system map, the plotting board and
+  the tactical list all held the hull at the quay it left while the conn
+  beside them counted the range down. Reported as four windows disagreeing
+  with a fifth; it was one window telling the truth. `base_position` is the
+  recorded place now (what `freeflight.where` flies from) and
+  `ship_position` adds `Conn.flown_km` on top, so every screen that already
+  asked the one door follows the flight without being told there was one.
+  - The subtlety that cost a rewrite: **`conn.pos` is not an offset from the
+    ship.** An approach's frame is anchored on its *target* and
+    `conn_open.start` opens it at a canned arrival range, so `conn.pos` is
+    already kilometres the instant a conn is taken — adding it teleported
+    the hull every time a window opened. `Conn.start_pos` and the
+    `flown_km` it feeds are zero at that instant and exactly the kilometres
+    flown after it, which is true in an approach frame and a free one alike.
+  - The sector chart is at light-year scale and a flight inside a system
+    does not change which system you are in. There is nothing there to
+    follow, and the check says so, so a later cycle does not "fix" it.
+- **The engine button said "off" while the computer was burning.** Three
+  windows formatted that label themselves and only the flight panel had
+  learned to say FIRING. `instruments.drive_note` is the one door;
+  `conn_controls`, `flight_window` and `pilot_panels` all ask it.
+- **Speed was there under two names.** `instruments.readout` called it
+  "Speed" in a free flight and "Relative" when orbiting and when coming
+  alongside. One quantity, three windows, two words — which reads as a
+  missing instrument, and was reported as one. It is "Speed" everywhere; the
+  orbit panel keeps "Circular here" beside it, because that is a different
+  number.
+
+**And one thing the new fixes caught in an old check.** Giving the game loss
+by neglect (16th pass) silently shortened every long headless fixture: a
+do-nothing chronicle now ends at about day 1,360, and `advance_days`
+early-returns after that — so `test_war`'s "3,600 days" loop was really
+running about 1,400 and measuring the sector a third of the way through its
+decade. It reported 1 war over six sectors and no quay changing hands, against
+6 and 2 when the calendar actually elapses. The fixture provisions the hull
+now (food and wages, the only things `upkeep.demand` asks for — not a
+suppressed death, so a regression in the rule itself would still show), and
+the check reports the span each sector actually got so the truncation cannot
+go quiet again. Surveyed the rest: `test_geography._fed` already had the
+pattern and its docstring says why; every other long fixture stops under
+1,400 days. **Any new fixture that means to run past ~1,400 days must
+provision, or it is measuring less calendar than it asks for.**
+
+Played rather than argued: `test_window` opens the real `OrbitChart` and
+`PlotCanvas`, flies the hull 19,539 km from the flight deck and asks each
+widget where it is drawing her; `test_position` holds the recorded place
+still mid-flight and checks securing does not count the flight twice;
+`test_instruments` drives all four target kinds for the speed row and walks
+the drive label through off → armed → FIRING with the pad switched *off*,
+which is the reported case.
+
 ## Open — the 2026-08-04 review: the systems layers
 
 A four-agent review (combat, economy, strategic layer, player experience)
@@ -654,6 +840,91 @@ sequel is a set of played economic claims: a same-port round trip loses
 money at every trade × bias combination; a 2,000-day sector produces at
 least one port promotion and one retrenchment; an engaged captain reaches
 Bloom stage 2; no cargo contract nets positive without leaving the system.
+
+## Open — the 2026-08-05 endgame sweep: combat is sound, the arc is not
+
+5,640 engagements across 5 factions × 9 hulls × difficulty 0.5–4.0 found
+**no defects at all** — no non-terminations, no negative hulls, no
+both-sides-destroyed. All ten endings were reached by playing, no flags set
+by hand. What the sweep did find is in the arc around the fighting:
+
+1. **A refused brokerage still charges 20,000 credits and burns the court for
+   150 days.** `diplomacy.perform` spends and writes both cooldowns at
+   `sim/diplomacy.py:303-306`; the guards that refuse the act are at `:355`,
+   *after*. `ui/diplomacy_view.py:119` fills the third-party combo
+   unfiltered, so it is one click away. `denounce` has the same shape.
+2. **Ruin is won by doing literally nothing.** `threat._stood_through_it`
+   exists to stop exactly this, but it accepts `response.level(game) > 0`
+   and the *powers'* own containment ventures provoke the Bloom on the
+   clock — so the guard is satisfied by NPCs. Seed `passive-0`:
+   `advance_days` only, victory `ruin` at day 2338. Across 8 passive seeds,
+   total passivity is 2 wins, 3 deaths, 3 unresolved.
+3. **The `hunt` response re-seeds the system the captain is standing in.**
+   `sim/responses.py:96` writes `inst.target_id = game.location_id`
+   directly, bypassing the rule `sim/bloom.py:189` states. Striking the heart
+   is the largest provocation in the table, so `hunt` is near-certain to fire
+   while the captain is *at* the heart — undoing `infested == 0` at the
+   moment it is earned.
+4. **A closed aftermath epoch freezes the calendar.** `in_epoch` goes False,
+   `threat.check_victory` re-detects the same still-true condition, and
+   `advance_days` early-returns for ever. `sim/legacy.py`'s docstring
+   promises "the next one begins"; no code picks a next one.
+5. **Two aftermath epochs cannot be failed.** Ceilings are 0.884 (concord)
+   and 0.838 (xenarch) against `BREAK = 1.0`, so their `failure` prose is
+   unreachable and both are guaranteed triumphs whatever the player does.
+6. **2% of sectors generate a Bloom that can never spread** — 10 of 500.
+   `threat.py:127` only seeds within `distance < 11` of a system past 0.6; if
+   no such pair exists at generation, the whole antagonist is inert. More
+   broadly, 9 of 40 untouched sectors never reach Motile in 2,000 days.
+7. **"It is sending masses after your hull" stops being true after the first
+   two.** `responses.hunting()` is read by one line of UI and by nothing in
+   `bloom._retarget` — measured, 28/500 instar-ticks aimed at the captain
+   against a 10/500 control.
+8. Two smaller ones: `hail` against a no-parley enemy, a held `flee`, and an
+   unknown order all consume **no turn at all** (a wasted click for a human,
+   an infinite loop for any scripted driver); and an overture at capped
+   standing charges full price and prints a gain it does not deliver.
+
+## Open — the 2026-08-05 governance survey: there is no law
+
+Asked how debts are collected, laws enforced and crimes punished. The honest
+answer is that **none of those systems exist as systems**. Every "legal" act
+in the game is one of four mechanics in a legal costume: a reputation delta,
+a memory entry, a percentage skimmed at a point of sale, or an escalation
+ladder attached to a berth. That is a defensible design — justice in the
+Verge is a relationship with a harbourmaster — but several pieces promise
+more than they deliver, and those are the gaps worth closing:
+
+- **Smuggling risk is opt-in.** `customs.inspect` has exactly one caller —
+  the docking minigame — while `ui/system_view.py:135`, `ui/map_view.py:467`
+  and `ui/anchorage_panel.py:88` all dock directly, one of them captioned
+  "Skip the approach and dock directly". A whole risk/reward system is
+  bypassed by a button.
+- **`BURNED = 1.0` — "they are waiting for you" — is a label with nothing
+  behind it.** No code path reads `heat >= BURNED`. The cheapest place in the
+  game to put a picket at the jump exit or a pre-emptive board.
+- **No debt exists at all**, and the one unguarded outflow (`robots.py:351`,
+  the only `credits -=` without an affordability check) can put the treasury
+  underwater with nothing in the game responding. A yard that impounds the
+  hull is the missing half of an economy that already has wharfage, tolls,
+  levies, admin overheads and payroll.
+- **Two purchasable favours buy nothing.** `Favour("berth")` and
+  `Favour("warning")` cost regard and are read by no code; `clearance.py`
+  never asks `officials`.
+- **`grudge.hostile_open` is dead** — the game's own definition of "this
+  power shoots you on sight", called only from a test.
+- **The embargo venture inspects nobody**, though its prose says it is
+  "inspecting anything that smells of" a rival's cargo and `sim/customs.py`
+  already has the machinery.
+- **Patrols are furniture** — `hostile=False`, parked at the quay body,
+  never intercepting, while `piracy.lawlessness` gives them the largest term
+  in its model and the only moment that model can bite is the jump exit.
+- **`engage.may_engage` has no political gate.** You may open fire inside a
+  capital's approaches; the ladder only escalates on unauthorised *closing*.
+- **The censure venture is the game's only trial and the player cannot
+  testify.** A censure aimed at the player, assembled from the memories
+  `grudge.because()` already names by date, would be a tribunal built almost
+  entirely out of parts that exist.
 
 ## Open — defects and debts, in rough value order
 

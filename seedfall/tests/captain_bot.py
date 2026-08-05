@@ -67,12 +67,46 @@ def _bot(seed: str, years: int = 5):
                         continue
                     g.credits += held * got
                     add_cargo(g.ship, cid, -held)
+            # **And a captain feeds the crew.** The bot bought fuel and
+            # never food, so it starved its own people — invisible until an
+            # empty hull stopped sailing on for ever (`upkeep.unmanned`),
+            # and then fatal on every seed. Measured on "run-b": dead on day
+            # 1763 with 18,690 credits in the purse and not a tonne of
+            # biomass aboard. What they eat is asked of `upkeep.demand`
+            # rather than written out here, because two lineages do not eat
+            # the same things.
+            from ..sim import upkeep as upkeep_sim
+            for cid, a_day in upkeep_sim.demand(g).items():
+                if cid == "volatiles":
+                    continue
+                want = a_day * 400 - g.ship.cargo.get(cid, 0)
+                if want <= 0:
+                    continue
+                price = (sell_price(sysm.market, cid, rep, 0) or 60) * 1.35
+                take = int(min(want, g.credits * 0.25 // max(1, price)))
+                if take > 0:
+                    g.credits -= take * price
+                    add_cargo(g.ship, cid, take)
             fuel_price = (sell_price(sysm.market, "volatiles", rep, 0) or 40) * 1.35
             want = 70 - g.ship.cargo.get("volatiles", 0)
             afford = int(min(want, g.credits * 0.6 // max(1, fuel_price)))
             if afford > 0:
                 g.credits -= afford * fuel_price
                 add_cargo(g.ship, "volatiles", afford)
+
+        # **A captain out of survey work digs.** Surveying is this bot's
+        # only income, and the bodies in reach run out — so on "run-a" it
+        # reached day 1197 with seven credits, nothing in the hold and a
+        # crew starving beside a system full of rock. Working a body for
+        # cargo is the move in front of it, the same way selling the hold
+        # and cracking ice for fuel already are.
+        if g.credits < BROKE and not todo:
+            rich = sorted(
+                ((sum(b.resources.values()), i)
+                 for i, b in enumerate(sysm.bodies)
+                 if not mining.worked_out(b)), reverse=True)
+            if rich and cargo_free(g.ship, g.ship_stats) > 20:
+                actions.extract(g, rich[0][1], 30)
 
         reach = in_range(g.galaxy.systems, sysm, g.ship_stats.jump)
         reach = [s for s in reach if s.bloom < 0.3] or reach

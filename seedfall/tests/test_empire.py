@@ -219,3 +219,39 @@ def run(suite: Suite) -> None:
         assert (works_sim.yields_of(back)["ore"]
                 == works_sim.yields_of(col)["ore"]), "yields differ after reload"
         return f"{back.works} kept, {back.job} still {works_sim.progress(back):.0%} done"
+
+    @check("a starving holding says so, and then stops saying it")
+    def _():
+        # `MAX_STEP` is one day, so "past thirty days short" fired *every
+        # day* for ever: measured, 90 identical entries in 120 days. The log
+        # holds 300, so one starving holding wiped every other piece of news
+        # inside four months — and being `bad` it stood a long wait down
+        # daily as well.
+        from ..sim.colony import Colony
+        game = new_game("starving-log")
+        game.credits = 0
+        game.stores.clear()
+        game.colonies = [Colony(id=1, class_id="radix_mine", name="Hungry",
+                                system_id=game.galaxy.systems[0].id,
+                                body_id="0", need=1, online=True, pop=100)]
+        said = []
+        for _ in range(800):
+            _gains, events = colony_sim.tick(game, 1)
+            said.extend(text for _kind, text in events)
+        starving = [t for t in said if "starv" in t.lower()]
+        assert starving, "a holding starved for two years and never said so"
+        assert len(starving) <= 6, (
+            f"{len(starving)} starving lines in 800 days — one holding "
+            "buries every other line in the chronicle")
+
+        # And being fed again is worth saying, once.
+        game.stores["biomass"] = 10_000
+        game.credits = 100_000
+        fed = []
+        for _ in range(5):
+            _gains, events = colony_sim.tick(game, 1)
+            fed.extend(text for _kind, text in events)
+        assert any("fed again" in t for t in fed), (
+            "the holding recovered and nobody was told")
+        return (f"{len(starving)} lines in 800 days (was ~770), and one when "
+                "it recovers")

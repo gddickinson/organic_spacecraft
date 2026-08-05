@@ -139,10 +139,20 @@ def run(suite: Suite) -> None:
         assert went > 0.05, (
             f"120 days alongside a body and the ship moved {went:.4f} AU — it "
             "is parked in space, not in orbit")
+        # **With the body, and not inside it.** The ship used to be at the
+        # body's exact position, which is the planet's core — so the Pilot
+        # screen listed a world thousands of kilometres across at `0 km`.
+        # It now holds the orbit the flight is actually flying
+        # (`flight.ship_orbit_offset`), so the test is that it travels *with*
+        # the body rather than that it is buried in it.
         with_body = flight.position(body, game.day, mu_of(game.system))
         drift = math.hypot(later[0] - with_body[0], later[1] - with_body[1])
-        assert drift < 1e-9, (
-            f"the ship is {drift:.4f} AU off the body it is moored to")
+        held_km = math.dist(flight.ship_orbit_offset(game, body),
+                            (0.0, 0.0, 0.0)) * flight.KM_PER_AU
+        assert drift < 1e-3, (
+            f"the ship is {drift:.4f} AU off the body it is moored to — it "
+            "has been left behind rather than carried")
+        assert held_km > 0, "the hull is sitting at the body's centre again"
         if quay is not None:
             ok, why = berthing.can_conn(game, quay)
             assert ok, f"four months at the quay and the conn refuses it: {why}"
@@ -179,6 +189,42 @@ def run(suite: Suite) -> None:
         return (f"jump → {out:.2f} AU out; a placed stand-off holds its place; "
                 "mooring clears it")
 
+    @check("nothing you are standing at reads zero kilometres away")
+    def _():
+        # Found by photographing the Pilot screen: "In view — Ashkeep Mouth I
+        # · 0 km", a world 6,772 km in radius. `engage.range_km` measures to
+        # a contact's centre and the hull sat at that centre exactly, so
+        # every range to the thing you were standing at came out nought.
+        # The third of this shape the project has fixed — after
+        # `anchorage.berth_orbit` for a quay at its planet's core and
+        # `traffic.STATION_KM` for a hull sharing a body.
+        from ..sim import engage as engage_sim
+        from ..sim import freeflight as free_sim
+        zeroed, checked = [], 0
+        for index in range(6):
+            game = new_game(f"nozero-{index}")
+            places = anchorage_sim.in_system(game)
+            if places:
+                flight.hold_at(game, game.system.bodies[places[0].body_index])
+            elif game.system.bodies:
+                flight.hold_at(game, game.system.bodies[0])
+            else:
+                continue
+            game.recompute()
+            game.conn = free_sim.begin(game)[0]
+            for contact in track_sim.contacts(game):
+                if contact.kind == "star":
+                    continue
+                checked += 1
+                km = engage_sim.range_km(game, game.conn, contact)
+                if km <= 0.0:
+                    zeroed.append(f"{game.seed}: {contact.name} ({contact.kind})")
+        assert checked > 20, f"only {checked} ranges measured"
+        assert not zeroed, (
+            f"{len(zeroed)} contact(s) read as nought kilometres off — the "
+            f"hull is inside them: {zeroed[:4]}")
+        return f"{checked} ranges across 6 chronicles, none of them zero"
+
     @check("a save from before there was a position still knows where it is")
     def _():
         # `ship_xy` did not exist until this cycle, and a chronicle saved
@@ -189,9 +235,89 @@ def run(suite: Suite) -> None:
         flight.hold_at(game, body)
         game.ship_xy = None                      # as an old save has it
         alongside = flight.ship_position(game)
-        assert alongside == flight.position(body, game.day, mu_of(game.system))
+        at_body = flight.position(body, game.day, mu_of(game.system))
+        # Alongside means *in orbit of*, not at the centre — see
+        # `flight.ship_orbit_offset`. An old save gains the place without a
+        # migration, because it is derived rather than stored.
+        assert math.dist(alongside, at_body) < 1e-3, (alongside, at_body)
+        assert alongside != at_body, "an old save reads the body's core"
         game.orbit_body = None
         adrift = flight.ship_position(game)
         assert abs(math.hypot(*adrift) - flight.ARRIVAL_RADIUS) < 1e-9, adrift
         return ("an old save moored reads its body; an old save adrift reads "
                 f"the {flight.ARRIVAL_RADIUS:.2f} AU edge it always did")
+
+    @check("a flight under way moves the ship on every screen that draws it")
+    def _():
+        # Reported from play: "the ship's position is not being updated in the
+        # helm window system map, or sector chart or in the plotting board or
+        # tactical window when the ship is driven from another window."
+        #
+        # One cause. `flight.ship_position` returned the *recorded* place, and
+        # the recorded place is not written again until `berthing.commit` —
+        # so four screens held the hull at the quay it left while the conn
+        # beside them counted the range down. The offset is added at the one
+        # door now, so every screen that already asked follows the flight.
+        from ..sim import conn as conn_sim
+        from ..sim import freeflight as free_sim
+
+        game = new_game("screens-follow")
+        conn, why = free_sim.begin(game)
+        assert conn is not None, why
+        game.conn = conn
+        recorded = flight.base_position(game)
+        assert math.dist(flight.ship_position(game), recorded) < 1e-12, (
+            "a flight that has not moved reads somewhere else already")
+
+        for _ in range(60):
+            conn_sim.apply(conn, "forward", main=True, ticks=30)
+        flown_km = math.dist(conn.pos, (0.0, 0.0, 0.0))
+        assert flown_km > 1000, f"the drive barely moved her: {flown_km}"
+
+        # The recorded place has deliberately *not* moved — that is what
+        # `base_position` is for, and what `freeflight.where` flies from.
+        assert math.dist(flight.base_position(game), recorded) < 1e-12, (
+            "the recorded position was written mid-flight")
+        live = flight.ship_position(game)
+        moved_km = math.dist(live, recorded) * flight.KM_PER_AU
+        assert abs(moved_km - flown_km) < 1.0, (
+            f"she flew {flown_km:,.0f} km and the screens moved her "
+            f"{moved_km:,.0f} km")
+
+        # Everything a screen draws goes through the one door, so nothing has
+        # to be told about the flight. Ranges follow too.
+        from ..sim import berthing as berth_sim
+        body = flight.current_body(game) or game.system.bodies[0]
+        near = flight.distance_to(game, body)
+        assert near > 0, "a range read zero with the hull light-seconds off"
+
+        # And securing must not count the flight twice: `secure` writes the
+        # flown offset into the recorded place, so the offset is spent.
+        free_sim.secure(game, conn)
+        after = flight.ship_position(game)
+        assert math.dist(after, live) < 1e-9, (
+            f"secured at {after} having been at {live} — the flown offset "
+            "was added to a position that already contained it")
+        berth_sim.commit(game, conn)
+
+        # And the other writer. `berthing.commit` moors the hull by calling
+        # `flight.hold_at`, and leaves the finished conn standing on the game
+        # — so the flight it had just flown was still being added on top of a
+        # place that already accounted for it. Measured at 473 km from the
+        # quay the ship was alongside. Both writers spend the flight now.
+        berthed = new_game("moored-reads-its-quay")
+        alongside, why = free_sim.begin(berthed)
+        assert alongside is not None, why
+        berthed.conn = alongside
+        for _ in range(20):
+            conn_sim.apply(alongside, "forward", main=False, ticks=30)
+        assert any(alongside.flown_km), "nothing was flown to spend"
+        world = berthed.system.bodies[0]
+        flight.hold_at(berthed, world)
+        off_km = math.dist(flight.ship_position(berthed),
+                           flight.base_position(berthed)) * flight.KM_PER_AU
+        assert off_km < 1e-6, (
+            f"moored, and the hull reads {off_km:,.1f} km from its own quay")
+        return (f"flew {flown_km:,.0f} km; the one door moved "
+                f"{moved_km:,.0f} km, securing added nothing twice, and "
+                "mooring reads zero from the quay")

@@ -112,6 +112,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("berthing", "test_berthing", "berthing"),
     SuiteSpec("thrusters", "test_thrusters", "thrusters"),
     SuiteSpec("weave", "test_weave", "weave"),
+    SuiteSpec("hail", "test_hail", "the channel"),
     SuiteSpec("customs", "test_customs", "customs"),
     SuiteSpec("allegiance", "test_allegiance", "allegiance"),
     SuiteSpec("public", "test_public", "public"),

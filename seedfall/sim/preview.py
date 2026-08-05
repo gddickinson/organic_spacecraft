@@ -128,7 +128,8 @@ def _copy(conn: Conn) -> Conn:
     """
     return Conn(target=conn.target, pos=list(conn.pos), vel=list(conn.vel),
                 heading=conn.heading, pitch=conn.pitch, rcs=conn.rcs, elapsed=conn.elapsed,
-                start_km=conn.start_km, opening_rcs=conn.opening_rcs,
+                start_km=conn.start_km, start_pos=list(conn.start_pos),
+                opening_rcs=conn.opening_rcs,
                 nose=list(conn.nose), star_dir=list(conn.star_dir),
                 sky=conn.sky, array=conn.array, main_dv=conn.main_dv,
                 rcs_dv=conn.rcs_dv, slew_rate=conn.slew_rate,

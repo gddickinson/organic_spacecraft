@@ -13,6 +13,9 @@ has to work at both ends, which is what `orbit_band` is for.
 from __future__ import annotations
 
 import math
+import zlib
+
+from . import elements
 
 #: How near a body you may hold station before the drag of its exosphere and
 #: the traffic-control of anyone living there make it somebody's business.
@@ -446,3 +449,37 @@ def look_factor(radius_km: float, r_km: float) -> float:
 # Deliberately no import of `Conn`: `sim/conn.py` imports this module, so
 # naming its type here would close the loop. Everything below reads an
 # approach through the same handful of attributes and nothing else.
+
+
+#: Kilometres in an AU, and how long a held orbit takes to come round — the
+#: same devices `anchorage.KM_PER_AU` and `BERTH_DAYS` use on a quay.
+KM_PER_AU = 149_597_870.7
+ORBIT_DAYS = 0.5
+
+
+def ship_orbit_offset(game, body) -> tuple[float, float, float]:
+    """Where the hull sits relative to the body it is alongside, in AU.
+
+    **A ship in orbit is not at the planet's core.** `flight.ship_position`
+    used to
+    return the body's exact position, so every range to the thing you were
+    standing at came out zero — the third defect of that shape, after
+    `anchorage.berth_orbit` for a quay and `traffic.STATION_KM` for a hull.
+
+    The radius is the one the flight holds (`Game.orbit_alt_km`) or the
+    standard rung, so this and the conn's altitude are the same number.
+    Derived from the body's identity and the calendar, never stored.
+    """
+    radius_km = max(0.0, float(getattr(body, "radius_km", 0.0) or 0.0))
+    held = float(getattr(game, "orbit_alt_km", 0.0) or 0.0)
+    if held <= 0:
+        held = height_km(radius_km, DEFAULT_HEIGHT)
+    if held <= 0:
+        return 0.0, 0.0, 0.0
+    seed = zlib.crc32(str(getattr(body, "id", "")).encode())
+    orbit = elements.Elements(
+        a=held / KM_PER_AU, e=0.0,
+        incl=((seed >> 19) % 1000) / 1000.0 * math.pi,
+        node=((seed >> 5) % 3600) / 3600.0 * math.tau,
+        peri=0.0, m0=(seed % 3600) / 3600.0 * math.tau)
+    return elements.at(orbit, game.day, ORBIT_DAYS)

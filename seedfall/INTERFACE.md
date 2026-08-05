@@ -482,6 +482,36 @@ first tick reported the ship as having struck open space. `hand_over` turns
 one into an approach to something while keeping the way on, so flying by hand
 and then giving the computer the last of it is one approach rather than two.
 
+**Where the ship is, and which frame the answer is in.** This is the fact the
+project has got wrong in the most ways, so it is worth stating plainly. There
+are two questions and they have different answers:
+
+- `flight.base_position(game)` — the **recorded** place. A body id, or
+  `game.ship_xy`. Written by exactly two functions, `flight.hold_at` and
+  `flight.stand_off`, and by nothing else.
+- `flight.ship_position(game)` — where she is **now**: the recorded place plus
+  `Conn.flown_km`, the flight in hand. This is the one door every screen
+  reads, and it is the one to ask unless you specifically want the other.
+
+Two traps live here, both of which have been sprung. The first: the recorded
+place is not written again until `berthing.commit`, so for the whole of a
+flight it is *stale by however far the ship has been flown* — which is why the
+helm's map, the plotting board and the tactical list once held a hull at the
+quay it left while the conn beside them counted the range down. The second is
+subtler and cost a rewrite. **`conn.pos` is not an offset from the ship.** An
+approach's frame is anchored on its *target*, and `conn_open.start` opens it
+at a canned arrival range, so `conn.pos` is already twelve kilometres the
+instant the conn is taken and says nothing about where the hull is. The
+quantity that is honest in an approach frame and a free one alike is the
+difference from where the frame started — `Conn.start_pos`, and the
+`flown_km` built on it.
+
+The invariant that keeps the two consistent: **whoever writes the recorded
+place spends the flight into it** (`flight._flight_spent`, called by both
+writers). Without it a hull moored by `berthing.commit` read 473 km from its
+own quay, because the place accounted for the flight and `ship_position`
+added it again on top.
+
 `sim/conn.py` is the close-quarters frame — kilometres, metres a second, and
 a minute a tick. Reaction control for fine work, the main drive for closing
 distance, `mu` taken from the body's own `radius_km` and `gravity` so a heavy
@@ -3445,8 +3475,11 @@ seedfall/
 │   ├── outcome.py      whether an approach is over — alongside, in orbit,
 │   │                   aground or adrift. An orbit is a shape rather than a
 │   │                   distance, which is why it is not decided in conn.py
-│   ├── orbits.py       what counts as an orbit, its size and roundness, and
-│   │                   the ladder of heights you can ask to hold
+│   ├── orbits.py       what counts as an orbit, its size and roundness, the
+│   │                   ladder of heights you can ask to hold, and
+│   │                   `ship_orbit_offset` — where in the orbit it holds the
+│   │                   hull actually sits, which is why a range to the thing
+│   │                   you are standing at is not zero
 │   ├── autopilot.py    the flight computer: one control law, three modes
 │   ├── collision.py    what is in the way, how long there is, and whether
 │   │                   she can still be stopped — the guard the computer
@@ -3461,7 +3494,9 @@ seedfall/
 │   ├── thrusters.py    mass, thrust and slew rate from what is actually fitted
 │   ├── burnplan.py     a transfer as a sequence of burns
 │   ├── berthing.py     what an approach charges the chronicle when it ends
-│   ├── instruments.py  the conn's panel, judged against what it is trying to do
+│   ├── instruments.py  the conn's panel, judged against what it is trying to
+│   │                   do; `drive_note` is the one door for the main-drive
+│   │                   label the three flying windows all print
 │   ├── preview.py      what a burn will do before you make it: a throwaway
 │   │                   twin of the ship, flown and reported on
 │   ├── pilot.py        what the console is set to — the throttle ladder, the
@@ -3545,9 +3580,13 @@ seedfall/
 │   │                   things do to each other — both of them
 │   ├── readiness.py    what the ship brings to a fight nobody has started:
 │   │                   a rehearsal through `combat.start`, thrown away
-│   ├── flight.py       the helm: orbits, intercepts, routing, transfer burns;
-│   │                   `ship_position` is the one door for where the hull is,
-│   │                   `hold_at` and `stand_off` the only two writers
+│   ├── flight.py       the helm: orbits, intercepts, routing, transfer burns.
+│   │                   `ship_position` is the one door for where the hull is
+│   │                   **now** — the recorded place plus the flight in hand;
+│   │                   `base_position` is the recorded place alone, which is
+│   │                   what `freeflight.where` flies from. `hold_at` and
+│   │                   `stand_off` are the only two writers, and both spend
+│   │                   the flight into the place they write
 │   ├── path.py         where a leg actually runs: the arc bent round the
 │   │                   star, the heat of working close in, and the risk —
 │   │                   split from `flight`, which imports it to quote

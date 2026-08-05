@@ -171,3 +171,43 @@ def run(suite: Suite) -> None:
         return (f"{sum(first['used'].values()):.0f} then "
                 f"{sum(second['used'].values()):.0f}, off shelves that "
                 "went down by exactly that")
+
+    @check("idling does not out-research running a programme")
+    def _():
+        # `tick` threw `res.banked` straight into progress while the day's
+        # own points were throttled by what the bench is actually supplied
+        # with (`served`, floored at 0.35) — so *not choosing* a project beat
+        # running one, and a lump saved while idle cascaded through node
+        # after node on consecutive days. Measured over five seeds on
+        # identical totals: always-on 12 techs against bank-then-dump 16-17.
+        #
+        # The claim is the comparison, not "a bank buys nothing": the floor
+        # is deliberate, so a large enough bank *should* still do partial
+        # work. What it must not do is beat the captain who chose.
+        from ..data.tech import researchable
+
+        def played(bank_first: bool, seed: str) -> int:
+            game = new_game(seed)
+            for key in ("survey", "specimen", "hardware", "xenolith"):
+                game.stores[key] = 200_000
+            game.recompute()
+            if bank_first:
+                game.advance_days(700)
+            for _ in range(60):
+                open_now = researchable(game.research.unlocked)
+                if not open_now:
+                    break
+                if game.research.current is None:
+                    research_sim.set_project(game.research, open_now[0].id)
+                game.advance_days(30)
+            return len(game.research.unlocked)
+
+        rows = []
+        for seed in ("gate-a", "gate-b", "gate-c"):
+            chose, idled = played(False, seed), played(True, seed)
+            rows.append((seed, chose, idled))
+            assert idled <= chose + 1, (
+                f"{seed}: idling first got {idled} techs against {chose} for "
+                "choosing a programme and running it — banking is a strategy "
+                "again")
+        return " · ".join(f"{s} chose {c} / idled {i}" for s, c, i in rows)

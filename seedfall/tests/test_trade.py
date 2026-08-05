@@ -252,3 +252,53 @@ def run(suite: Suite) -> None:
         assert buy_price(reloaded.market, cid) == priced, (
             "the shock stopped biting after a reload")
         return "one shock and one noted port came back, still priced"
+
+    @check("standing is not purchasable over the counter it is sold at")
+    def _():
+        # Survey data is an ordinary stocked commodity, so the sets could be
+        # bought over the very counter they were handed back to — and the
+        # hand-in granted `min(6, n * 0.4)` with no cooldown. Measured: nought
+        # to the +100 cap in 19 to 26 hand-ins across 120 to 220 days, for
+        # about 35,000 credits, plus a couple of thousand free research
+        # points. An ordinary sale grants `min(2, n * 0.05)`.
+        from ..sim import trade as trade_sim
+        game = new_game("rep-counter")
+        game.credits = 5_000_000
+        system = game.system
+        faction = system.port.faction
+        game.rep[faction] = 0.0
+        hands = 0
+        while game.rep.get(faction, 0) < 100 and hands < 500:
+            game.ship.cargo["survey"] = 15
+            if not trade_sim.sell_survey_data(game).get("ok"):
+                break
+            hands += 1
+        assert hands >= 30, (
+            f"standing reached {game.rep.get(faction, 0):.0f} in {hands} "
+            "hand-ins — it is being bought at a discount")
+        # And one hand-in is worth no more standing than one ordinary sale.
+        assert trade_sim.SURVEY_REP_CAP <= 2.0, trade_sim.SURVEY_REP_CAP
+        return (f"{hands} hand-ins to the cap, at no better a rate than any "
+                f"other trade (cap {trade_sim.SURVEY_REP_CAP:g} a hand-in)")
+
+    @check("a survey sale goes over the counter like every other sale")
+    def _():
+        # It moved money without `wharfage.collect` — whose own docstring
+        # calls itself "the only place money moves" — and priced off
+        # `world.economy` directly, so a power's memory of you and the office
+        # rate both went unread. Measured at one quay: 50 sets took 20,650
+        # and the holder's purse saw nothing of the 490 due.
+        from ..sim import exchequer as ex_sim
+        from ..sim import trade as trade_sim
+        game = new_game("survey-due")
+        system = game.system
+        game.ship.cargo["survey"] = 50
+        purse = ex_sim.purse(game, system.port.faction).dues
+        out = trade_sim.sell_survey_data(game)
+        assert out["ok"], out
+        assert out["due"] > 0, "the quay took no cut of a 50-set hand-in"
+        assert out["net"] == out["took"] - out["due"]
+        assert ex_sim.purse(game, system.port.faction).dues > purse, (
+            "the wharfage was charged and nobody received it")
+        return (f"{out['took']:,} taken, {out['due']:,} to the quay, "
+                f"{out['net']:,} clear")

@@ -65,13 +65,6 @@ def buy(game, cid: str, units: int) -> dict:
     officials_sim.spend_once(game, system, "quiet_price")
     add_cargo(game.ship, cid, n)
     apply_trade(system.market, cid, n)
-    # A prospecting order is for material brought in. Tonnes bought over the
-    # issuing port's own counter are remembered against the posting, so they
-    # cannot be presented straight back for the fee (`Contract.bought_here`).
-    for c in game.contracts:
-        if (not c.done and not c.failed and c.kind in ("prospect", "relic")
-                and c.issued_at == game.location_id and c.commodity == cid):
-            c.bought_here += n
     officials_sim.dealt_with(game, system, min(2.0, n * price / 9000))
     if not BY_ID[cid].legal:
         game.adjust_rep(system.port.faction, -BUY_TAINT)
@@ -124,6 +117,21 @@ def sell(game, cid: str, units: int) -> dict:
     return out
 
 
+#: What a hand-in of survey data is worth in standing, and the most any one
+#: of them can be.
+#:
+#: **Standing used to be purchasable at about 350 credits a point.** Survey
+#: data is an ordinary stocked commodity, so the sets could be bought over
+#: the very counter they were handed back to, and this granted `min(6, n *
+#: 0.4)` with no cooldown — measured, nought to the +100 cap in 19 to 26
+#: hand-ins across 120 to 220 days, for about 35,000 credits and a couple of
+#: thousand free research points on top. Ordinary selling grants `min(2, n *
+#: 0.05)` for comparison. Charting is worth standing; it is not worth *that*
+#: much standing, and what is bought back over a counter is worth none.
+SURVEY_REP_PER_SET = 0.12
+SURVEY_REP_CAP = 2.0
+
+
 def sell_survey_data(game) -> dict:
     """Hand over accumulated survey sets. Worth standing as well as money."""
     system = game.system
@@ -132,15 +140,31 @@ def sell_survey_data(game) -> dict:
     n = game.ship.cargo.get("survey", 0)
     if n < 1:
         return {"ok": False, "why": "No survey data aboard."}
-    rep = game.rep.get(system.port.faction, 0)
-    price = sell_price(system.market, "survey", rep, game.ship_stats.trade) or 250
+    # **Through the same counter as everything else.** This moved money
+    # without `wharfage.collect` — whose docstring calls itself "the only
+    # place money moves" — and priced off `world.economy` directly, so a
+    # power's memory of you and the office rate both went unread. Measured
+    # at one quay: 50 sets took 20,650 and the holder's purse saw nothing of
+    # the 490 due.
+    price = market_sim.quote_sell(game, system, "survey")
+    if price is None:
+        price = sell_price(system.market, "survey",
+                           game.rep.get(system.port.faction, 0),
+                           game.ship_stats.trade) or 250
     took = round(n * price)
     game.credits += took
+    due = wharfage_sim.collect(game, system, took)
+    officials_sim.spend_once(game, system, "quiet_price")
+    officials_sim.dealt_with(game, system, min(2.0, took / 9000))
     add_cargo(game.ship, "survey", -n)
-    game.adjust_rep(system.port.faction, min(6, n * 0.4))
+    game.adjust_rep(system.port.faction,
+                    min(SURVEY_REP_CAP, n * SURVEY_REP_PER_SET))
     game.research.banked += n * 6
-    game.add_log(f"Sold {round(n)} survey sets for {took:,}.", "good")
-    return {"ok": True, "units": n, "price": price, "took": took}
+    game.add_log(f"Sold {round(n)} survey sets for {took:,}."
+                 + (f" Wharfage {due:,}, {took - due:,} clear." if due else ""),
+                 "good")
+    return {"ok": True, "units": n, "price": price, "took": took,
+            "due": due, "net": took - due}
 
 
 def jettison(game, cid: str, tonnes: float | None = None) -> dict:

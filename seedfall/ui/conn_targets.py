@@ -59,3 +59,24 @@ def default_target(game):
             if found:
                 return found[0]
     return None
+
+
+def same_place(game, target, contact) -> bool:
+    """Does this contact name the thing the flight is already on?
+
+    **A `Target`'s id is not a `Contact`'s id.** A quay is `quay:port-14`
+    on both sides and compares equal; a *body* is `body:0` as a contact and
+    `0` as a target, so comparing the two directly answered "different" for
+    every world in the game. That is what made opening the conn while
+    established in an orbit throw the orbit away and begin a fresh approach
+    to whatever `default_target` liked best — photographed as "Conn — Fleet
+    Hub, approach begun, 12.0 km" over a hull that was circling a world
+    under the computer.
+
+    Asked through `targets.target_from_contact`, so both sides are the same
+    kind of thing before they are compared.
+    """
+    if target is None or contact is None:
+        return False
+    from ..sim import targets as targets_sim
+    return targets_sim.target_from_contact(game, contact).id == target.id

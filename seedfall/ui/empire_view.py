@@ -11,6 +11,7 @@ from ..core.util import duration, num, pct
 from ..data.commodities import BY_ID
 from ..data.lore import VICTORIES
 from ..data.bloom import HEART_HP
+from ..sim import threat as threat_sim
 from ..sim.threat import victory_progress
 from ..sim import bloom as bloom_sim
 from ..sim.actions import launch_exodus
@@ -202,7 +203,9 @@ class EmpireView(View):
 
     def _victories(self) -> Panel:
         g = self.game
-        progress = victory_progress(g)
+        # Fogged for display; the achieved flag inside is still
+        # decided by what is true. See `threat.victory_progress`.
+        progress = victory_progress(g, seen_only=True)
         p = Panel("Ways this ends")
         # Counted, not stated: it said "five" from the day there were five,
         # and there have been ten for some time.
@@ -220,16 +223,27 @@ class EmpireView(View):
             p.add_bar(have / need if need else 0, tint)
             p.add_row(blurb[:70] + "…", f"{num(have)}/{num(need)}")
 
-        infested = [s for s in g.galaxy.systems if s.bloom > 0.02]
+        # **What you have looked at, not what is there.** This counted every
+        # infested system in the sector and printed the sector-wide burden —
+        # directly undercutting `intel.sees_bloom`, which the chart obeys and
+        # which is the whole of what a picket's `watch` is sold on. The
+        # census is what is *known* now, and it says how much is unlooked-at
+        # rather than quietly folding it in.
+        known = threat_sim.known_bloom(g)
         total = max(1, len(g.galaxy.systems))
         st = bloom_sim.summary(g)
         stage = st["stage"]
         p.add(spacer(6))
         p.add(label(f"The Bloom — {stage.name}", "h3", stage.tint))
         p.add(note(stage.blurb))
-        p.add(note(f"{len(infested)} systems carrying unlicensed growth, "
-                   f"{pct(g.bloom_total / total)} of the sector by mass."))
-        p.add_bar(g.bloom_total / total, "warn")
+        said = (f"{known['count']} system(s) known to be carrying unlicensed "
+                f"growth, {pct(known['burden'] / total)} of the sector by "
+                "mass.")
+        if known["unscouted"]:
+            said += (f" {known['unscouted']} system(s) nothing of yours has "
+                     "looked at — this is a floor, not a total.")
+        p.add(note(said))
+        p.add_bar(known["burden"] / total, "warn")
         if st["instars"]:
             p.add_row("Instars under way", num(st["instars"]), "warn")
         worst = bloom_sim.worst_resisted(g)

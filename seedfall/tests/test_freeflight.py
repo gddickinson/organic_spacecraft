@@ -361,6 +361,43 @@ def run(suite: Suite) -> None:
         return (f"“{before}” → “{after}”, {flew:,.0f} km flown by hand and "
                 f"{moved:,.0f} km moved")
 
+    @check("a refused hand-over leaves the hull where it was flown to")
+    def _():
+        # `hand_over` writes the flight down with `flight.stand_off` before it
+        # asks, and puts the recorded place back if the answer is no. Since
+        # `stand_off` *spends* the flight into the place it writes, the flown
+        # displacement has to be kept back with it — otherwise a refusal
+        # snapped the hull back to where the flight began, which is the one
+        # thing the refusal path exists to prevent.
+        from ..sim import berthing as berth_sim
+        from ..sim import conn as conn_sim
+        from ..sim import track as track_sim
+
+        game = new_game("refused-handover")
+        conn, why = free_sim.begin(game)
+        assert conn is not None, why
+        game.conn = conn
+        for _ in range(60):
+            conn_sim.apply(conn, "forward", main=True, ticks=30)
+        flown = math.dist(conn.pos, (0.0, 0.0, 0.0))
+        assert flown > 1000, flown
+        before = flight.ship_position(game)
+
+        aim = next(c for c in track_sim.contacts(game) if c.kind == "anchorage")
+        kept = berth_sim.begin
+        berth_sim.begin = lambda *a, **k: (None, "the office says no")
+        try:
+            fresh, said = free_sim.hand_over(game, conn, aim)
+        finally:
+            berth_sim.begin = kept
+        assert fresh is None and said, (fresh, said)
+        snap = math.dist(before, flight.ship_position(game)) * KM_PER_AU
+        assert snap < 1.0, (
+            f"a refused hand-over snapped the hull {snap:,.0f} km back "
+            f"towards where the {flown:,.0f} km flight began")
+        return (f"refused after {flown:,.0f} km flown, and she stayed "
+                "exactly where she was")
+
 
 def _shut(*windows) -> None:
     """Close pop-outs before their parents.

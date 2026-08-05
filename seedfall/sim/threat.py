@@ -34,6 +34,31 @@ def bloom_systems(game):
     return [s for s in game.galaxy.systems if s.bloom > 0.02]
 
 
+def known_bloom(game) -> dict:
+    """What the captain can actually see of the Bloom. **The one door.**
+
+    `sim/intel.sees_bloom` exists so the chart cannot show infestation
+    nobody has looked at — that is what a picket's `watch` is sold on, and
+    what makes visiting a system worth the reaction mass. The Holdings
+    panel went round it: it counted every infested system in the sector and
+    printed the sector-wide burden, so the fog covered the map and not the
+    one number the game is about.
+
+    `unscouted` is the honest remainder — how many systems nothing of yours
+    has looked at — so the panel can say *at least* rather than pretending
+    the census is complete.
+    """
+    from . import intel as intel_sim
+    seen = [s for s in game.galaxy.systems if intel_sim.sees_bloom(game, s)]
+    held = [s for s in seen if s.bloom > 0.02]
+    return {"systems": held,
+            "count": len(held),
+            "burden": sum(s.bloom for s in held),
+            "seen": len(seen),
+            "total": len(game.galaxy.systems),
+            "unscouted": len(game.galaxy.systems) - len(seen)}
+
+
 def bloom_burden(game) -> float:
     return sum(s.bloom for s in game.galaxy.systems if s.bloom > 0.02)
 
@@ -170,10 +195,19 @@ def cleanse(game, system, rng):
 
 # ── victory ────────────────────────────────────────────────────────────────
 
-def victory_progress(game) -> dict[str, tuple[float, float, bool]]:
-    """id -> (have, need, achieved)."""
+def victory_progress(game, seen_only: bool = False) -> dict:
+    """id -> (have, need, achieved).
+
+    `seen_only` fogs the *displayed* containment figure — a bar reading
+    38 of 42 tells a captain who has scouted nothing that four systems are
+    infested, which is the census `intel.sees_bloom` refuses the chart.
+    **The achieved flag is never fogged**: winning is decided by what is
+    true, not by what has been looked at, or a captain could take
+    Containment by keeping their eyes shut.
+    """
     total = len(game.galaxy.systems)
     infested = len(bloom_systems(game))
+    shown = known_bloom(game)["count"] if seen_only else infested
     concord = dip_sim.concord_progress(game)
     kin = len(concord["kin"]) + len(concord["peace"])
     kin_need = concord["kin_need"] + concord["peace_need"]
@@ -205,8 +239,8 @@ def victory_progress(game) -> dict[str, tuple[float, float, bool]]:
         # for a captain who had not fired a shot and had not yet found
         # Kessel's Reach. The heart is the other half of the condition and
         # is now the other half of the measure.
-        "containment": (total - infested + (total if bloom_sim.heart_dead(game)
-                                            else 0),
+        "containment": (total - shown + (total if bloom_sim.heart_dead(game)
+                                         else 0),
                         total * 2,
                         infested == 0 and bloom_sim.heart_dead(game)
                         and game.day > 30),

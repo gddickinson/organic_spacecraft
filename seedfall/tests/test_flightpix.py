@@ -91,8 +91,44 @@ def run(suite: Suite) -> bool:
             f"{win.game.conn.range_km * 1000:,.0f} m")
         assert anchorage_sim.docked_at(win.game) is not None, (
             "and the ship is no longer berthed")
-        return (f"berthed at {was_km * 1000:,.0f} m, and still berthed "
-                f"after the conn was opened")
+
+        # **And the same for an orbit, which is where it was worse.** A
+        # `Target`'s id is not a `Contact`'s: a quay is `quay:port-14` on
+        # both sides, but a body is `body:0` as a contact and `0` as a
+        # target — so "is this the thing I am already flying to?" answered
+        # *no* for every world in the game. Opening the conn while
+        # established in an orbit therefore switched the target to a quay
+        # and threw the orbit away: photographed as "Conn — Fleet Hub,
+        # approach begun, 12.0 km" over a hull circling a world.
+        orbit_win = _window(new_game("finished-orbit"))
+        orbit_win.confirm = lambda *a, **k: True
+        orbit_win.resize(1360, 880)
+        orbit_win.show()
+        world = next((c for c in track_sim.contacts(orbit_win.game)
+                      if c.kind == "body"
+                      and berth_sim.can_conn(orbit_win.game, c)[0]), None)
+        if world is not None:
+            orbit_win.conn = berth_sim.begin(orbit_win.game, world)[0]
+            panel = open_flight(orbit_win)
+            app.processEvents()
+            for btn in panel.findChildren(QPushButton):
+                if btn.isEnabled() and "make orbit" in btn.text().lower():
+                    btn.click()
+                    break
+            app.processEvents()
+            for _ in range(300):
+                orbit_win.fly_beat()
+            app.processEvents()
+            circling = orbit_win.game.conn
+            open_conn(orbit_win)
+            app.processEvents()
+            assert orbit_win.game.conn is circling, (
+                f"opening the conn in orbit of {world.name} switched to "
+                f"{orbit_win.game.conn.target.name} and began again")
+            assert orbit_win.game.conn.auto == circling.auto, (
+                "the armed mode was lost with it")
+        return (f"berthed at {was_km * 1000:,.0f} m and still berthed; an "
+                f"orbit kept its target and its mode")
 
     @check("no two controls in a flying window are drawn on top of each other")
     def _():

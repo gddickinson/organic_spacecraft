@@ -92,7 +92,12 @@ def run(suite: Suite) -> bool:
         where_before = free_sim.where(game, view.conn)
         assert was[0] > 100.0, f"the fixture barely moved: {was[0]}"
 
-        window = open_conn(win)
+        # **Named, not guessed at.** This took whatever the conn called
+        # nearest, which was the quay only because the hull sat at its orbit
+        # body's exact centre and so was excluded from its own candidate
+        # list. In a real orbit the world is legitimately nearest, so the
+        # default moved; the claim here is about the hand-over.
+        window = open_conn(win, hub)
         try:
             assert window.conn is view.conn, (
                 "opening the Conn started a second flight of the same ship")
@@ -171,7 +176,13 @@ def run(suite: Suite) -> bool:
         # ship.** Two views of one situation: the flight belongs to the game.
         for _ in range(10):
             view.burn("forward")
-        window = open_conn(win)
+        # **Named, not guessed at.** This took whatever the conn called
+        # nearest, which was the quay only because the hull sat at its orbit
+        # body's exact centre and so was excluded from its own candidate
+        # list. In a real orbit the world is legitimately nearest, so the
+        # default moved; the claim here is about closing the window.
+        quay = next(c for c in view.in_view() if c.kind == "anchorage")
+        window = open_conn(win, quay)
         flying = game.conn
         window.close()
         assert game.conn is flying, (

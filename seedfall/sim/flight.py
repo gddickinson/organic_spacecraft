@@ -137,17 +137,21 @@ ARRIVAL_RADIUS = R_OUTER * 0.45
 #: the screens and checks that have always read them through `flight`.
 from .path import (HOT_RADIUS, LONG_ENOUGH, LONG_LEG_CAP, PER_AU,  # noqa: E402
                    WORTH_SAYING, _heat_risk, burn_heat, hot_risk, route)
+#: Where the hull sits in the orbit it holds is orbit geometry and lives with
+#: the rest of it in `sim/orbits`; reachable here for the same reason.
+from .orbits import KM_PER_AU, ship_orbit_offset  # noqa: E402
 
 
-def ship_position(game) -> tuple[float, float]:
-    """Where the ship is in this system, in AU. **The one door for reading it.**
+def base_position(game) -> tuple[float, float, float]:
+    """Where the ship was last *written down*, in AU — the recorded place.
+
+    Not the answer to "where is she now": between `stand_off` and the next
+    `berthing.commit` the hull can be a light-second from here with the conn
+    running. Ask `ship_position` unless you want the recorded place itself.
 
     The sector has always been positioned — `track.at` gives every contact a
-    place that moves with the calendar — and the ship was not. It had a body id
-    or nothing, and "nothing" was a fixed point on the system's edge. So a
-    captain sitting at the quay they started at measured four AU from it,
-    `berthing.can_conn` refused every contact in the system, and the conn
-    opened on nothing with controls that correctly did nothing.
+    place that moves with the calendar — and the ship was not: it had a body
+    id or nothing, and "nothing" was a fixed point on the system's edge.
 
     Two states, and only one of them is stored:
 
@@ -156,16 +160,16 @@ def ship_position(game) -> tuple[float, float]:
       takes it with it, so a captain who moors and waits a month is still at
       the quay when they look up. Storing a copy here would be a second door
       that goes stale the moment the clock moves.
-    - **Free space** — `game.ship_xy`, written by `stand_off`. A jump's
-      arrival is the common case, and it used to be the *only* case, which is
-      why "not alongside anything" meant "at one particular point on the edge".
+    - **Free space** — `game.ship_xy`, written by `stand_off`.
 
     A save from before there was a position has neither, and falls through to
     that arrival point — which is exactly where it always thought it was.
     """
     body = current_body(game)
     if body is not None:
-        return position(body, game.day, mu_of(game.system))
+        at = position(body, game.day, mu_of(game.system))
+        off = ship_orbit_offset(game, body)
+        return (at[0] + off[0], at[1] + off[1], at[2] + off[2])
     where = getattr(game, "ship_xy", None)
     if where is not None:
         # A chronicle saved before orbits had a third dimension stored two
@@ -177,6 +181,36 @@ def ship_position(game) -> tuple[float, float]:
     return 0.0, -ARRIVAL_RADIUS, 0.0
 
 
+def ship_position(game) -> tuple[float, float, float]:
+    """Where the ship is **now**, in AU. The one door every screen reads.
+
+    **A flight under way is where the ship is.** This used to return the
+    recorded place alone, which is not written again until `berthing.commit`
+    — so a captain flying from the bridge watched the helm's map, the
+    plotting board and the tactical list all hold the hull at the quay it
+    left while the conn beside them counted the range down. It was one
+    window telling the truth and the rest reading a field nobody wrote.
+
+    `Conn.flown_km` is the *flown* displacement, never `conn.pos` — that is
+    an offset from the approach's target, already kilometres when a conn
+    opens, and adding it teleported the hull. `_flight_spent` is the other
+    half: whoever writes the recorded place spends the flight into it.
+    """
+    at = base_position(game)
+    conn = getattr(game, "conn", None)
+    flown = getattr(conn, "flown_km", None) if conn is not None else None
+    if not flown:
+        return at
+    return tuple(a + f / KM_PER_AU for a, f in zip(at, flown))
+
+
+def _flight_spent(game) -> None:
+    """Spend the flight in hand: the place just written already accounts for
+    it, and `ship_position` adding `Conn.flown_km` would count it twice."""
+    if getattr(game, "conn", None) is not None:
+        game.conn.start_pos = list(game.conn.pos)
+
+
 def hold_at(game, body) -> None:
     """Put the hull alongside a body: one of the two writers of where it is.
 
@@ -185,6 +219,7 @@ def hold_at(game, body) -> None:
     """
     game.orbit_body = getattr(body, "id", body)
     game.ship_xy = None
+    _flight_spent(game)
 
 
 def stand_off(game, at=None) -> None:
@@ -198,6 +233,7 @@ def stand_off(game, at=None) -> None:
     game.ship_xy = (
         (float(at[0]), float(at[1]),
          float(at[2]) if len(at) > 2 else 0.0) if at is not None else None)
+    _flight_spent(game)
 
 
 def current_body(game):

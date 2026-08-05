@@ -54,12 +54,27 @@ def _escapes(game) -> dict:
     out = {"jump": any(fuel >= actions.jump_quote(game, s)["fuel"]
                        for s in reach)}
 
+    # **What is in the hold is money at a counter.** This priced the fuel
+    # against `game.credits` alone, exactly as `is_stranded` did — so a
+    # captain at a market with a hold full of silicon and nothing in the
+    # purse counted as having no way out, and the tow that answered charged
+    # them standing to be dragged away from the market that would have fixed
+    # it. Selling first is a way out and belongs in the enumeration.
     buy = False
     if game.system.port and game.system.market and reach:
+        from ..sim import market as market_sim
         price = buy_price(game.system.market, "volatiles",
                           game.rep.get(game.system.port.faction, 0))
         cheapest = min(actions.jump_quote(game, s)["fuel"] for s in reach)
-        buy = price is not None and game.credits >= price * (cheapest - fuel)
+        sellable = 0.0
+        for cid, tonnes in game.ship.cargo.items():
+            if cid == "volatiles" or tonnes <= 0:
+                continue
+            offer = market_sim.quote_sell(game, game.system, cid)
+            if offer:
+                sellable += offer * tonnes
+        buy = (price is not None
+               and (game.credits + sellable) >= price * (cheapest - fuel))
     out["buy"] = buy
 
     # Asked of `extract` itself rather than of a threshold: the whole bug was
@@ -262,3 +277,38 @@ def run(suite: Suite) -> None:
             f"{len(short)} run(s) ran out of moves before running out of "
             f"time: {short}")
         return "six five-year runs, every one playable to the end"
+
+    @check("a hold worth selling is a way out")
+    def _():
+        # `is_stranded` priced escape against `game.credits` alone. Measured
+        # on seed `st-a` at day 1679: nought credits, 0.2 t of reaction mass,
+        # *at a port*, holding silicon, alloy and ore quoted at 15,060, 1,989
+        # and 2,184 — and it answered "stranded", so `distress_call` accepted
+        # and charged −12 standing to tow the captain away from the market
+        # that would have fixed it.
+        from ..sim import actions as actions_sim
+        from ..sim import market as market_sim
+
+        game = new_game("hold-is-money")
+        system = next(s for s in game.galaxy.systems if s.port and s.market)
+        game.location_id = system.id
+        game.credits = 0
+        game.ship.cargo = {"volatiles": 0.2}
+        game.recompute()
+        bare = actions_sim.is_stranded(game)
+
+        # The same captain, with a hold worth selling at that counter.
+        worth = 0.0
+        for cid in ("silicon", "alloy", "ore"):
+            offer = market_sim.quote_sell(game, system, cid)
+            if offer:
+                game.ship.cargo[cid] = 40
+                worth += offer * 40
+        game.recompute()
+        laden = actions_sim.is_stranded(game)
+        assert worth > 0, "this port buys nothing, so the case cannot be made"
+        assert not laden, (
+            f"holding {worth:,.0f} credits of cargo at a market that buys it, "
+            "and the game says stranded")
+        return (f"empty hold: {'stranded' if bare else 'not stranded'}; "
+                f"{worth:,.0f} credits of cargo aboard: not stranded")

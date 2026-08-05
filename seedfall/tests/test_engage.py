@@ -301,7 +301,16 @@ def run(suite: Suite) -> None:
         game.fleet.append(extra)
         assert [s.name for s in consort_sim.escorts_of(game)] == ["Consort"]
         hull = next(x for x in track.contacts(game) if x.kind == "hull")
-        conn.pos = [100.0, 0.0, 0.0]
+        # **Close the range, rather than assuming it.** This used to plant
+        # the hull at a magic `[100, 0, 0]`, which happened to be inside gun
+        # reach only because the ship sat at its body's exact centre. Now
+        # that a hull in orbit has a place of its own
+        # (`flight.ship_orbit_offset`) that assumption reads 12,758 km and
+        # the guns refuse — correctly. The claim is about the escort coming
+        # along, so the fixture flies to the mark the way a captain would.
+        from ..sim import freeflight as free_sim
+        toward = free_sim.toward(game, conn, hull)
+        conn.pos = [conn.pos[i] + toward[i] for i in range(3)]
         battle, why = engage.open_fire(game, conn, hull, RNG("escort"))
         assert battle is not None, why
         aboard = [c.name for c in getattr(battle, "consorts", [])]
@@ -317,7 +326,16 @@ def run(suite: Suite) -> None:
         # disagree about the same ship.
         game, conn = _flying()
         hull = next(x for x in track.contacts(game) if x.kind == "hull")
-        conn.pos = [100.0, 0.0, 0.0]
+        # **Close the range, rather than assuming it.** This used to plant
+        # the hull at a magic `[100, 0, 0]`, which happened to be inside gun
+        # reach only because the ship sat at its body's exact centre. Now
+        # that a hull in orbit has a place of its own
+        # (`flight.ship_orbit_offset`) that assumption reads 12,758 km and
+        # the guns refuse — correctly. The claim is about the escort coming
+        # along, so the fixture flies to the mark the way a captain would.
+        from ..sim import freeflight as free_sim
+        toward = free_sim.toward(game, conn, hull)
+        conn.pos = [conn.pos[i] + toward[i] for i in range(3)]
         battle, why = engage.open_fire(game, conn, hull, RNG("mk"))
         assert battle is not None, why
         assert battle.enemy_name == hull.name, (

@@ -27,6 +27,7 @@ from PyQt6.QtWidgets import (QDialog, QGridLayout, QHBoxLayout, QVBoxLayout,
 
 from ..sim import autopilot as pilot_sim
 from ..sim import conn as conn_sim
+from ..sim import instruments
 from ..sim import moorings
 from ..sim import thrusters
 from ..sim import pilot as quote_sim
@@ -311,14 +312,13 @@ class FlightWindow(QDialog):
                 # once. Parenting to None takes it out now.
                 old.setParent(None)
                 old.deleteLater()
-        # The label is the *pilot's* selection; the light is what the ship
-        # fired. Those can differ — the computer opens the drive while the
-        # pad is set to clusters — and a button reading "off" with a light on
-        # it is a screen arguing with itself, so the firing case says so.
-        firing = conn is not None and conn.fired_main and conn.fired_axis
+        # The pad's switch and what the ship actually fired can differ — the
+        # computer opens the drive while the pad is set to clusters — and a
+        # button reading "off" with a light on it is a screen arguing with
+        # itself. `instruments.drive_note` is the one door, so this window,
+        # the conn console and the bridge cannot answer it three ways.
         self.main_btn.setText(
-            f"Main drive: FIRING {conn.fired_share:.0%}" if firing else
-            f"Main drive: {'armed' if self.use_main else 'off'}")
+            f"Main drive: {instruments.drive_note(conn)}")
         self.run_btn.setText("Stop clock" if self.running else "Run clock")
         self.scale_btn.setText(
             f"Time ×{int(getattr(self.win, 'time_scale', 1))}")
