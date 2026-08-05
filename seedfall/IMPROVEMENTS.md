@@ -505,6 +505,40 @@ Everything here was found by playing rather than by reading.
   `HEART_HP` read from `data/bloom` in both views instead of a hardcoded
   2600 in each.
 
+## Done — the thirteenth pass (2026-08-05): the flight deck, photographed
+
+A deep play-test driven through the real interface — a hull flown to a quay
+by hand and then by computer, every flying window opened, every instrument
+photographed and *looked at*. Five defects, none of which stopped anything
+working, which is why pressing every control had never found them.
+
+- **Opening the conn threw away a finished approach.** Berthed at Fleet Hub,
+  moored, `anchorage.docked_at` naming the berth — and opening the Conn
+  window began a fresh approach at the arrival range, so the instruments
+  read 12,000 m from a quay the ship was tied to. Securing sets `landed`,
+  and the window read that as "no live flight". Exactly the fault that
+  window's own note says it exists to prevent: one flight, whichever window
+  you look through. Taking the conn again is a control the pilot presses.
+- **Two controls in one grid cell.** The conn console put "Cut in" and the
+  100% throttle in the same place — four throttle steps running into a
+  button at column 3 — drawn over each other into an unreadable smear, both
+  clickable. The throttle and coast runs have a row of their own now and
+  their columns are derived, so neither collides if either list grows.
+- **An instrument value cut off mid-word.** "Computer — off — she flies as
+  you fly her" was drawn unwrapped in a fixed-width column: the pilot read
+  "she flies as you f". Values wrap now.
+- **A ladder of overlapping labels.** Every tick on the predicted course
+  carried its time, and on a slow approach the whole hour landed inside
+  forty pixels — "6m120m…560m" in one smear. One label per `LABEL_GAP`.
+- **Four names in one place on the plotting board.** At the default zoom the
+  inner system is a few pixels across, so the star, its worlds, the quay and
+  the ship all wrote their names on the same spot. Names give way to each
+  other (`NAME_GAP`); marks never do, and a chosen mark is always named.
+
+`tests/test_flightpix.py` holds the four claims — a suite that asks whether
+the flying windows can be *read*, beside `test_flightops`, which asks
+whether their controls work.
+
 ## Open — the 2026-08-04 review: the systems layers
 
 A four-agent review (combat, economy, strategic layer, player experience)

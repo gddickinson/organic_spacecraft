@@ -103,6 +103,20 @@ class ConnWindow(QDialog):
                 self.win.conn = handed
             else:
                 self.refused = why
+        elif (live is not None and getattr(live, "over", False)
+              and getattr(live.target, "id", None)
+              == getattr(contact, "id", None)):
+            # **A finished approach is not a missing one.** Securing at a
+            # quay sets `landed`, and the test below reads that as "no live
+            # flight" — so opening the conn after berthing threw the flight
+            # away and began a fresh one at the arrival range. Measured:
+            # moored at Fleet Hub, `anchorage.docked_at` still naming the
+            # berth, and the conn reading 12,000 m. That is precisely the
+            # fault this window's own note says it exists to prevent — one
+            # flight, whichever window you look through. Taking the conn
+            # again is a control the pilot presses, not a side effect of
+            # opening a window.
+            pass
         elif live is None or live.landed \
                 or getattr(live.target, "id", None) != getattr(contact, "id", None):
             fresh, why = berth_sim.begin(self.game, contact)

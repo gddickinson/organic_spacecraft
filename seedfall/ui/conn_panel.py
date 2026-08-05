@@ -16,6 +16,7 @@ readouts changes when the situation does.
 
 from __future__ import annotations
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QWidget
 
 from ..sim import conn as conn_sim
@@ -113,9 +114,17 @@ def apply(window, conn) -> None:
             left.setStyleSheet(f"color: {theme.INK3}; font-size: 12px;")
             right = QLabel(value)
             right.setStyleSheet(_row_style(tint))
-            line.addWidget(left)
+            # **Some readings are sentences.** "off — she flies as you fly
+            # her" is a value like any other here, and unwrapped it ran off
+            # the side panel and was clipped mid-word — the pilot read
+            # "she flies as you f". Wrapped and right-aligned it keeps the
+            # column's shape and says the whole thing.
+            right.setWordWrap(True)
+            right.setAlignment(Qt.AlignmentFlag.AlignRight
+                               | Qt.AlignmentFlag.AlignVCenter)
+            line.addWidget(left, 0)
             line.addStretch(1)
-            line.addWidget(right)
+            line.addWidget(right, 1)
             window.side.addWidget(row)
             made.append(right)
         elif entry[0] == "head":

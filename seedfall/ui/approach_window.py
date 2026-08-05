@@ -40,6 +40,16 @@ from . import painting
 AHEAD_TICKS = 60
 MARK_EVERY = 6
 
+#: How far apart two time labels on the predicted course must be, in pixels,
+#: before the second one is drawn. The marks themselves are always drawn —
+#: it is only their times that are thinned, because at a slow closing rate
+#: the whole hour of them lands inside forty pixels.
+LABEL_GAP = 34.0
+
+
+def _apart(a: QPointF, b: QPointF) -> float:
+    return math.dist((a.x(), a.y()), (b.x(), b.y()))
+
 #: The zoom slider's ends, as a share of the opening range that fills the
 #: frame. At the wide end the whole approach fits; at the tight end the
 #: structure fills it, which is what the last hundred metres needs.
@@ -139,6 +149,12 @@ class ApproachView(QWidget):
         tint = QColor(theme.tint("amber"))
         painter.setFont(QFont(theme.mono_family(), 8))
         last = None
+        # **A label every tick is no labels at all.** On a slow approach the
+        # ladder's points fall within a few pixels of each other and their
+        # times were drawn over one another — photographed, the run read
+        # "6m120m…560m" in one illegible smear. One label per LABEL_GAP
+        # pixels, so the ladder stays a ladder however tight the frame.
+        labelled = None
         for seconds, at, _range_km, _speed in rows:
             spot = camera.project(at)
             if spot is None:
@@ -151,10 +167,12 @@ class ApproachView(QWidget):
             painter.setBrush(tint)
             painter.setPen(Qt.PenStyle.NoPen)
             painter.drawEllipse(point, 1.8, 1.8)
-            if seconds > 0:
+            if seconds > 0 and (labelled is None
+                                or _apart(point, labelled) >= LABEL_GAP):
                 painter.setPen(QColor(theme.INK2))
                 painter.drawText(point + QPointF(5, -4),
                                  f"{seconds / 60:.0f}m")
+                labelled = point
             last = point
 
     def _scale(self, painter, w: int, h: int, span: float) -> None:

@@ -157,21 +157,33 @@ class ConnControls(QWidget):
         grid.addWidget(self.free_btn, 1, 6)
 
         # ── the throttle and the coast ─────────────────────────────────────
-        # A third row, because these govern every button above them rather than
-        # being one more thing to press. The throttle is the main drive's: the
-        # clusters are pulsed, not throttled, which is why the row says so.
+        # A row of their own, because these govern every button above them
+        # rather than being one more thing to press. The throttle is the main
+        # drive's: the clusters are pulsed, not throttled, which is why the
+        # row says so.
+        #
+        # **Row 4, and the columns are derived.** They were on row 2, which
+        # holds "Cut in" at column 3 — and there are four throttle steps, so
+        # the fourth step and "Cut in" were drawn *on top of each other*: one
+        # unreadable smear of two labels, both of them clickable. Found by
+        # photographing the window rather than by pressing it, because every
+        # control still worked. The coast run starts after the throttle run
+        # with a column of air between, so neither collides if either list
+        # gains an entry.
+        row = 4
         self.throttle_buttons = {}
         for index, step in enumerate(pilot_sim.THROTTLE_STEPS):
             btn = button(f"{step * 100:.0f}%",
                          lambda v=step: self._set_throttle(v), kind="flat")
-            grid.addWidget(btn, 2, index)
+            grid.addWidget(btn, row, index)
             self.throttle_buttons[step] = btn
 
         self.coast_buttons = {}
+        first_coast = len(pilot_sim.THROTTLE_STEPS) + 1
         for index, minutes in enumerate(pilot_sim.COAST_MINUTES):
             btn = button(f"{minutes} min",
                          lambda m=minutes: self._set_coast(m), kind="flat")
-            grid.addWidget(btn, 2, 4 + index)
+            grid.addWidget(btn, row, first_coast + index)
             self.coast_buttons[minutes] = btn
 
     # ── acts ───────────────────────────────────────────────────────────────

@@ -197,6 +197,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("savefile", "test_savefile", "save file"),
     SuiteSpec("ui", "test_ui", "interface", True),
     SuiteSpec("window", "test_window", "the window itself", True),
+    SuiteSpec("flightpix", "test_flightpix", "the flying windows as pictures", True),
     SuiteSpec("orrery", "test_orrery", "orrery", True),
     SuiteSpec("pilotscreen", "test_pilot_screen", "pilot screen", True),
     SuiteSpec("flightdeck", "test_flightdeck", "one flight deck", True),

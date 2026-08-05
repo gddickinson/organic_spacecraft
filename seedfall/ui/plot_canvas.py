@@ -41,6 +41,13 @@ MAX_TILT = math.radians(82.0)
 GLYPH = {"star": "★", "body": "●", "anchorage": "▣", "hull": "◆", "point": "✛"}
 
 
+#: How close two names may be drawn on the plotting board, in pixels, before
+#: the second is dropped. The inner system is a handful of pixels wide at the
+#: default zoom, so without this a star, its worlds, a quay and the ship all
+#: wrote their names in one place.
+NAME_GAP = 46.0
+
+
 class PlotCanvas(QWidget):
     """A system, drawn obliquely, with history and prediction on it."""
 
@@ -277,6 +284,18 @@ class PlotCanvas(QWidget):
 
     def _marks(self, p: QPainter, contacts: dict) -> None:
         p.setFont(QFont(theme.mono_family(), 9))
+        # **Names are thinned; marks never are.** At the default zoom the
+        # inner system is a few pixels across, so a star, two worlds, a quay
+        # and the ship all put their names in the same place and the middle
+        # of the board was an unreadable pile. Photographed at 18 px/AU:
+        # "Iron Gate I", "Patient Increment", "Fleet Hub" and "M-type red
+        # dwarf" one on top of another. A name is drawn only where there is
+        # room for it; the thing itself is always drawn, and zooming in
+        # gives the rest of the names back.
+        # Seeded with the ship's own place: `_ship` draws last and always
+        # writes its name, so the contacts have to give way to it rather
+        # than the other way round.
+        self._named = [self.to_screen(*flight.ship_position(self.game))]
         for cid, contact in contacts.items():
             at = self.to_screen(*track_sim.at(
                 self.game, contact, self.game.day, self.system))
@@ -298,8 +317,8 @@ class PlotCanvas(QWidget):
                 p.setPen(QPen(QColor(theme.tint("lumen")), 1))
                 p.drawRect(int(at.x() - size - 4), int(at.y() - size - 4),
                            int(size * 2 + 8), int(size * 2 + 8))
-            if chosen or contact.kind in ("star", "body", "anchorage") \
-                    or cid in self.tracked:
+            if (chosen or contact.kind in ("star", "body", "anchorage")
+                    or cid in self.tracked) and self._room_for(at, chosen):
                 p.setPen(QColor(theme.INK2 if chosen else theme.INK3))
                 p.drawText(QPointF(at.x() + size + 5, at.y() + 4), contact.name)
 
@@ -314,6 +333,19 @@ class PlotCanvas(QWidget):
                 p.drawLine(QPointF(at.x(), at.y() - 7),
                            QPointF(at.x(), at.y() + 7))
 
+    def _room_for(self, at: QPointF, chosen: bool = False) -> bool:
+        """Is there space here for a name, given the ones already drawn?
+
+        A chosen mark always gets its name — the player asked about that
+        one — and takes the room, so nothing else crowds it.
+        """
+        for other in getattr(self, "_named", ()):
+            if math.dist((at.x(), at.y()), (other.x(), other.y())) < NAME_GAP:
+                if not chosen:
+                    return False
+        self._named = list(getattr(self, "_named", ())) + [at]
+        return True
+
     def _ship(self, p: QPainter) -> None:
         at = self.to_screen(*flight.ship_position(self.game))
         p.setBrush(QColor(theme.INK))
@@ -321,6 +353,8 @@ class PlotCanvas(QWidget):
         p.drawEllipse(at, 4, 4)
         p.setFont(QFont(theme.mono_family(), 9))
         p.setPen(QColor(theme.INK2))
+        # Always named: your own hull is the one label worth crowding for.
+        # `_marks` has already reserved this spot, so nothing sits under it.
         p.drawText(QPointF(at.x() + 8, at.y() - 6), self.game.ship.name)
 
     def _scalebar(self, p: QPainter) -> None:

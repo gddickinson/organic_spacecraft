@@ -184,6 +184,26 @@ were interface behaviour no check looked at, one was a protocol gap, and
 one was prose. A green suite says the rules hold, not that the game reads
 well after two hundred days.
 
+## The thirteenth pass: the flight deck, photographed (2026-08-05)
+
+A deep dive through the real interface — a hull flown to Fleet Hub by hand
+and then handed to the computer, every flying window opened, every
+instrument photographed and looked at. Five defects, and the common thread
+is that **not one of them stopped anything working**: a finished approach
+silently replaced by a fresh one when the conn was opened, two controls
+drawn in the same grid cell, a value clipped mid-word, and two plots that
+wrote their labels on top of each other.
+
+`test_flightops` presses every control in these windows and had been green
+throughout. Pressing a control proves it fires; it says nothing about
+whether the pilot can read what happened. `tests/test_flightpix.py` is the
+suite for the second question — overlap, clipping, label crowding, and the
+flight surviving the window that shows it.
+
+**A picture is a test you can only run by looking.** Every one of these was
+found in a screenshot, and three of them are invisible to any assertion
+anybody would think to write about behaviour.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests` runs the lot (~25 min, 192 suites); one suite by
