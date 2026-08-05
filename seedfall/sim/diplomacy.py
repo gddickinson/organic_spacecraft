@@ -20,6 +20,8 @@ from ..data.factions import FACTIONS_BY_ID
 from . import loyalty
 
 POWERS = ("charter", "concordat", "freeholds", "sanhedrin")
+#: A power will not sit down at your invitation below this standing.
+BROKER_INVITE = 40.0
 
 
 @register
@@ -280,6 +282,24 @@ def _work_key(action_id: str, faction: str, other: str | None) -> str | None:
     return None
 
 
+def refusal(game, action_id: str, faction: str, other: str | None) -> str:
+    """Why this overture cannot be made, or "" if it can — **asked before a
+    credit is spent**. Inside `perform` these sat after `_spend` and both
+    cooldowns, so a brokerage the third party would not attend cost 20,000
+    credits, shut that pair for 150 days, and refused an honest one after.
+    """
+    if action_id == "denounce" and other is None:
+        return "Denounce whom?"
+    if action_id != "broker":
+        return ""
+    if other is None:
+        return "Broker between whom?"
+    if game.rep.get(other, 0) < BROKER_INVITE:
+        return (f"{FACTIONS_BY_ID[other].short} would not sit down at "
+                "your invitation.")
+    return ""
+
+
 def perform(game, action_id: str, faction: str, other: str | None = None) -> dict:
     """Carry out a diplomatic move. Returns what happened."""
     from . import allegiance
@@ -300,6 +320,9 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
                     "why": f"That ground was worked {action.cooldown - (ready - game.day)} "
                            f"day(s) ago — not for another {ready - game.day}."}
 
+    said = refusal(game, action_id, faction, other)
+    if said:
+        return {"ok": False, "why": said}
     _spend(game, action)
     state.cooldowns[f"{action_id}|{faction}"] = game.day + action.cooldown
     if pair_key is not None:
@@ -323,8 +346,6 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
         return [(who, round(total[who], 2)) for who in order]
 
     if action_id == "denounce":
-        if other is None:
-            return {"ok": False, "why": "Denounce whom?"}
         game.adjust_rep(other, -14)
         # Everyone who dislikes the denounced thinks better of you — through
         # `courtship`, like every other gain. Flat, the +6 was untapered at
@@ -351,11 +372,6 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
             loyalty.record(game, "denounce_charter")
         lines.append(f"{FACTIONS_BY_ID[other].short} will remember this.")
     elif action_id == "broker":
-        if other is None:
-            return {"ok": False, "why": "Broker between whom?"}
-        if game.rep.get(other, 0) < 40:
-            return {"ok": False, "why": f"{FACTIONS_BY_ID[other].short} would not "
-                                        "sit down at your invitation."}
         before = relation(game, faction, other)
         after = shift_relation(game, faction, other, 28)
         other_gain = offer_gain(game, action, other)

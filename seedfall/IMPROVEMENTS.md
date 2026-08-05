@@ -848,11 +848,13 @@ Bloom stage 2; no cargo contract nets positive without leaving the system.
 both-sides-destroyed. All ten endings were reached by playing, no flags set
 by hand. What the sweep did find is in the arc around the fighting:
 
-1. **A refused brokerage still charges 20,000 credits and burns the court for
-   150 days.** `diplomacy.perform` spends and writes both cooldowns at
-   `sim/diplomacy.py:303-306`; the guards that refuse the act are at `:355`,
-   *after*. `ui/diplomacy_view.py:119` fills the third-party combo
-   unfiltered, so it is one click away. `denounce` has the same shape.
+1. ~~**A refused brokerage still charges 20,000 credits and burns the court
+   for 150 days.**~~ **Fixed.** `perform` spent and wrote both cooldowns
+   before it tested whether the third party would come, and
+   `ui/diplomacy_view.py:119` fills the third-party combo unfiltered — so it
+   was one click away. `diplomacy.refusal` is one door, asked before a credit
+   is spent; `denounce` had the same shape and goes through it too. Pinned by
+   "an overture that will be refused is refused before it is paid for".
 2. **Ruin is won by doing literally nothing.** `threat._stood_through_it`
    exists to stop exactly this, but it accepts `response.level(game) > 0`
    and the *powers'* own containment ventures provoke the Bloom on the

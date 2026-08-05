@@ -277,3 +277,48 @@ def run(suite: Suite) -> None:
             f"denouncing the Freeholds charged us with the Concordat, who "
             f"dislike them: {moved}")
         return "no gain, no charge"
+
+    @check("an overture that will be refused is refused before it is paid for")
+    def _():
+        # Found by a long-play agent, and it is one click away: the board
+        # fills its third-party list with every other power, unfiltered, and
+        # calls `perform` direct. `perform` spent the credits and wrote both
+        # cooldowns *before* it tested whether the third party would come.
+        #
+        # Measured: 20,000 credits gone, `broker|charter` and
+        # `broker|charter|freeholds` both shut for 150 days, the relation
+        # unmoved — and a legitimate brokerage the same afternoon refused
+        # with "not for another 150 day(s)".
+        game = new_game("refuse-before-pay")
+        game.credits = 100_000
+        game.rep["charter"] = 60.0
+        game.rep["freeholds"] = 10.0          # will not sit down
+        purse = game.credits
+        before = dp.relation(game, "charter", "freeholds")
+
+        out = dp.perform(game, "broker", "charter", "freeholds")
+        assert not out["ok"] and out["why"], out
+        assert game.credits == purse, (
+            f"a refused brokerage cost {purse - game.credits:,.0f} credits")
+        assert not dp.ensure(game).cooldowns, (
+            f"a refused brokerage shut the door anyway: "
+            f"{dict(dp.ensure(game).cooldowns)}")
+        assert dp.relation(game, "charter", "freeholds") == before, (
+            "a refused brokerage moved the matrix")
+
+        # And the same afternoon, with a party who *will* come, it works.
+        game.rep["freeholds"] = 80.0
+        good = dp.perform(game, "broker", "charter", "freeholds")
+        assert good["ok"], good
+        assert game.credits < purse, "the brokerage that happened was free"
+        assert dp.relation(game, "charter", "freeholds") > before, (
+            "the brokerage that happened moved nothing")
+
+        # Denounce has the same shape: no third party named, nothing spent.
+        was = game.credits
+        blank = dp.perform(game, "denounce", "charter", None)
+        assert not blank["ok"], blank
+        assert game.credits == was, "an unaimed denouncement was billed"
+        return ("refused: 0 credits, no cooldown, matrix unmoved; the honest "
+                f"one the same day cost {purse - game.credits:,.0f} and moved "
+                f"{before:.0f} → {dp.relation(game, 'charter', 'freeholds'):.0f}")
