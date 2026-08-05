@@ -355,6 +355,31 @@ def run(suite: Suite) -> None:
         return (f"waited {told['days']} of 365 ({told['stopped']}), crew "
                 f"intact at {game.ship.crew}; a billed 120 days still 120")
 
+    @check("carrying on past a warning does not stop for it again")
+    def _():
+        # Standing down on every bad line turned a long wait into a wall:
+        # measured in play, a hold short of biomass stopped it eight times
+        # in fourteen days with the same sentence. "Carry on" hands back
+        # what was read, so only *new* news stops the next spell.
+        game = _of("wet", "carry-on")
+        game.ship.cargo.pop("biomass", None)
+        game.stores["biomass"] = 0
+        seen, stops, reasons = (), [], []
+        for _ in range(6):
+            told = game.wait_days(120, seen)
+            if told["stopped"] == "bad news":
+                stops.append(told["days"])
+                reasons.extend(told["told"])
+            seen = tuple(seen) + tuple(told.get("told", ()))
+            game.envoy = game.demand = game.situation = None
+            if game.dead:
+                break
+        assert reasons, "it never stood down at all"
+        assert len(reasons) == len(set(reasons)), (
+            f"the same warning stopped the wait twice: {reasons}")
+        return (f"{len(reasons)} stand-downs, {len(set(reasons))} distinct "
+                f"reasons — “{reasons[0][:44]}…” said once")
+
     @check("a wait always stops for a question waiting on an answer")
     def _():
         # An envoy, a demand or an aftermath situation locks the window, so

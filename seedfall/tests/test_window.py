@@ -111,6 +111,58 @@ def run(suite) -> bool:
         app.processEvents()
         return f"briefing built and shown ({built[0]})"
 
+    @check("a full ship's log scrolls instead of being squashed flat")
+    def _():
+        # Found by playing to day 226: the sidebar — the game's only
+        # notification channel — had become an unreadable smear of
+        # two-pixel slivers. The same fault `widgets.View._sync_scroll`
+        # exists for, in the one panel that fix never reached: rebuilding a
+        # column of wrapping labels inside a scroll area does not tell the
+        # inner widget its contents grew, so sixty entries were compressed
+        # into one screenful instead of scrolling.
+        from ..core.util import stardate
+        full = MainWindow(new_game("log-squash"))
+        full.dialog = lambda *a, **k: None
+        full.resize(1360, 880)
+        full.show()
+        for n in range(80):
+            full.game.add_log(
+                f"Entry {n}: a line long enough to wrap in a three hundred "
+                f"pixel column, which is what the sidebar actually is.",
+                "bad" if n % 3 else "good")
+        full.refresh()
+        app.processEvents()
+        app.processEvents()          # the settle pass, one loop turn later
+
+        need = full.log_col.minimumSize().height()
+        got = full.log_inner.height()
+        seen = full.log_area.viewport().height()
+        rows = full.log_col.count()
+        assert rows > 20, f"only {rows} entries were built"
+        assert got + 1 >= need, (
+            f"the log wants {need}px and was given {got}px — it is being "
+            f"squashed into the viewport rather than scrolling")
+        assert got > seen, (
+            f"{rows} entries fitted into {seen}px of viewport without "
+            "scrolling, which means they were flattened to fit")
+        # **The symptom, stated directly.** A stardate and a line of text
+        # cannot be drawn in a sliver; measured properly they are 44px.
+        # `sizeHint` is not the yardstick — a wrapping label reports its
+        # unwrapped guess there (76px) and gets its real height from
+        # `heightForWidth`, so comparing against it fails on a log that is
+        # rendering perfectly.
+        slivers = [i for i in range(rows)
+                   if (w := full.log_col.itemAt(i).widget()) is not None
+                   and w.height() < 20]
+        assert not slivers, (
+            f"{len(slivers)} of {rows} entries are under 20px tall — that is "
+            "the unreadable smear this check exists for")
+        assert stardate(full.game.day)
+        full.close()
+        full.deleteLater()
+        app.processEvents()
+        return f"{rows} entries, {need}px of log in a scroller, none squashed"
+
     @check("quitting is a save")
     def _():
         # Trading advances no calendar and the autosave fires on calendar

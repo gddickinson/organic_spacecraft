@@ -1,4 +1,4 @@
-"""Holdings — colonies, the depot, and how close each of the five endings is."""
+"""Holdings — colonies, the depot, and how close each ending is."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from . import works_panel
 from ..core.util import duration, num, pct
 from ..data.commodities import BY_ID
 from ..data.lore import VICTORIES
+from ..data.bloom import HEART_HP
 from ..sim.threat import victory_progress
 from ..sim import bloom as bloom_sim
 from ..sim.actions import launch_exodus
@@ -64,7 +65,7 @@ class EmpireView(View):
             self.col.addWidget(works_panel.build(self, g, focused))
         self.col.addWidget(self._depot())
 
-    def _wait(self, days: int) -> None:
+    def _wait(self, days: int, ignoring=()) -> None:
         """Sit still, and be told what happened while you did.
 
         A toast with a credits delta was the whole report on a year of
@@ -73,7 +74,7 @@ class EmpireView(View):
         scrolled past unread. `wait_days` stands down on bad news; this
         says what stopped it and what was said.
         """
-        told = self.game.wait_days(days)
+        told = self.game.wait_days(days, ignoring)
         if self.win.check_ending():
             return
         gain = told["credits"]
@@ -96,7 +97,11 @@ class EmpireView(View):
         again = self.win.dialog("While you waited", body, choices)
         self.win.refresh()
         if again == "more":
-            self._wait(days - told["days"])
+            # Carrying on means "I have read that": what stopped this spell
+            # is handed back, so a warning that recurs every few days — a
+            # hold short of biomass — does not stop the next one too.
+            self._wait(days - told["days"],
+                       tuple(ignoring) + tuple(told.get("told", ())))
 
     def _exodus(self) -> Panel | None:
         """Offered only once a LEVIATHAN exists — it ends the chronicle."""
@@ -199,8 +204,10 @@ class EmpireView(View):
         g = self.game
         progress = victory_progress(g)
         p = Panel("Ways this ends")
-        p.add(note("Five of them. You do not have to pick one now, and nothing stops "
-                   "you from working two at once."))
+        # Counted, not stated: it said "five" from the day there were five,
+        # and there have been ten for some time.
+        p.add(note(f"{len(VICTORIES)} of them. You do not have to pick one "
+                   "now, and nothing stops you from working two at once."))
 
         for vid, name, tint, goal, blurb in VICTORIES:
             have, need, done = progress[vid]
@@ -236,5 +243,5 @@ class EmpireView(View):
                       "destroyed" if st["heart_hp"] <= 0
                       else f"{round(st['heart_hp'])} left",
                       "chloro" if st["heart_hp"] <= 0 else "warn")
-            p.add_bar(1 - st["heart_hp"] / 2600, "chloro")
+            p.add_bar(1 - st["heart_hp"] / HEART_HP, "chloro")
         return p

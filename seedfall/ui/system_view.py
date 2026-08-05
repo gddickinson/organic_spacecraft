@@ -19,6 +19,7 @@ from ..sim import xeno as xeno_sim
 from ..data.xenotech import CULTURES_BY_ID, XENOTECH_BY_ID
 from ..world.planets import BODY_KINDS
 from ..data.lifeforms import biome_name
+from ..data.bloom import HEART_HP
 from .widgets import (Bar, Card, Panel, Pill, View, button, label, mono_label,
                       note, spacer)
 
@@ -99,7 +100,7 @@ class SystemView(View):
                 from ..data.bloom import HEART_BLURB, HEART_NAME
                 hp.add(label(HEART_NAME, "h3", "warn"))
                 hp.add(label(HEART_BLURB, "", wrap=True))
-                hp.add_bar(1 - st["heart_hp"] / 2600, "chloro")
+                hp.add_bar(1 - st["heart_hp"] / HEART_HP, "chloro")
                 hp.add_row("Mass remaining", f"{round(st['heart_hp'])}")
                 hp.add_buttons(button("Burn into the heart", self._heart,
                                       kind="danger"))

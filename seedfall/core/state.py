@@ -298,7 +298,7 @@ class Game:
         from . import clock
         clock.advance_days(self, n, dilation)
 
-    def wait_days(self, days: int) -> dict:
+    def wait_days(self, days: int, ignoring=()) -> dict:
         """Sit still for a spell, standing down on news worth a hand.
 
         The door for a *voluntary* wait — `clock.wait_days` says why it is
@@ -306,7 +306,7 @@ class Game:
         that bills its own time.
         """
         from . import clock
-        return clock.wait_days(self, days)
+        return clock.wait_days(self, days, ignoring)
 
     def die(self, reason: str = "") -> None:
         """Loss — unless a TARDIGRADE vault is holding a copy of the lineage."""

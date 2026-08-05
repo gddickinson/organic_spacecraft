@@ -166,6 +166,24 @@ decimal, two judged on samples coarser than the effect, and one that
 counted a comment as a call. A check that cannot fail for the right reason
 will eventually fail for the wrong one.
 
+## The twelfth pass: played again (2026-08-04)
+
+Five things, every one found by playing the committed tree rather than by
+reading it. The ship's log — the game's only notification channel — had
+become an unreadable smear of two-pixel slivers by day 226, which is the
+same scroll-area fault `widgets.View` was fixed for and the one panel that
+fix never reached. Standing down on *every* bad line had turned a long wait
+into a wall, so "carry on" now means "I have read that". A driven session
+deadlocked the moment a power sent an envoy, because the protocol could
+neither see nor answer one. The containment bar told a captain who had done
+nothing that they were nearly finished. And the endings panel still said
+"five".
+
+**Play the build you shipped.** The suite was green for all five: three
+were interface behaviour no check looked at, one was a protocol gap, and
+one was prose. A green suite says the rules hold, not that the game reads
+well after two hundred days.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests` runs the lot (~25 min, 192 suites); one suite by

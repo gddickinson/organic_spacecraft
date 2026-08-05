@@ -199,7 +199,15 @@ def victory_progress(game) -> dict[str, tuple[float, float, bool]]:
     drowned = len(bloom_systems(game))
 
     return {
-        "containment": (total - infested, total,
+        # **The husk counts, because it is half the work.** The bar read
+        # `clean systems / all systems`, so an untouched sector on day 227
+        # showed 38 of 42 and a nearly-full green bar — "very nearly won"
+        # for a captain who had not fired a shot and had not yet found
+        # Kessel's Reach. The heart is the other half of the condition and
+        # is now the other half of the measure.
+        "containment": (total - infested + (total if bloom_sim.heart_dead(game)
+                                            else 0),
+                        total * 2,
                         infested == 0 and bloom_sim.heart_dead(game)
                         and game.day > 30),
         "exodus": (1 if has_ark else 0, 1, has_ark and game.flags.get("exodus_launched")),

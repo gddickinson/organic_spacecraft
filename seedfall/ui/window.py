@@ -416,6 +416,27 @@ class MainWindow(QMainWindow):
                 "font-size: 12.5px;")
             v.addWidget(lb)
             self.log_col.addWidget(entry)
+        # **Tell the scroll area its contents changed size.** The same fault
+        # `widgets.View._sync_scroll` exists for, in the one panel that fix
+        # never reached: a column of wrapping labels rebuilt inside a scroll
+        # area does not update the inner widget's minimum, so once the log
+        # held more than a screenful every entry was squeezed into a few
+        # pixels and the whole sidebar — the game's only notification
+        # channel — became an unreadable smear. Found by playing to day 569.
+        self.log_col.invalidate()
+        self.log_col.activate()
+        self.log_inner.setMinimumHeight(self.log_col.minimumSize().height())
+        QTimer.singleShot(0, self._settle_log)
+
+    def _settle_log(self) -> None:
+        """The true minimum is not known until the new labels are polished."""
+        try:
+            self.log_col.activate()
+        except RuntimeError:
+            return          # the window went down before the loop came back
+        need = self.log_col.minimumSize().height()
+        if need != self.log_inner.minimumHeight():
+            self.log_inner.setMinimumHeight(need)
 
     # ── dialogs ────────────────────────────────────────────────────────────
     # `ui/window_dialogs.py`, bound as methods like the flight clock's.

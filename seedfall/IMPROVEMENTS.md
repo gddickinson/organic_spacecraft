@@ -472,6 +472,39 @@ The top of the reassessed list, in order. Every one carries a played claim.
   sector's economy can shift. **A control that is not the thing you changed
   is not a control.**
 
+## Done — the twelfth pass (2026-08-04): played again, five things found
+
+A fresh play-through of the committed tree, over the bridge and on screen.
+Everything here was found by playing rather than by reading.
+
+- **The ship's log became an unreadable smear.** By day 226 the sidebar —
+  the game's only notification channel — was a column of two-pixel slivers.
+  The same fault `widgets.View._sync_scroll` exists for, in the one panel
+  that fix never reached: rebuilding a column of wrapping labels inside a
+  scroll area does not tell the inner widget its contents grew, so sixty
+  entries were flattened into one screenful instead of scrolling. Now
+  2,062 px of log in a scroller, and the good/bad tints from the tenth pass
+  finally do their job.
+- **A recurring warning turned a long wait into a wall.** Standing down on
+  every bad line meant a hold short of biomass stopped the wait eight times
+  in fourteen days with the same sentence. `wait_days(..., ignoring=)` and
+  a digest that hands back what it showed: **"carry on" now means "I have
+  read that"**, and only genuinely new news stops the next spell. Measured:
+  three stand-downs for three distinct developments, then a full 120-day
+  spell.
+- **A driven session deadlocked on an envoy.** An envoy or a territorial
+  demand stops the clock and locks the window, and the protocol could
+  neither see nor answer one — so every wait returned nought days for ever.
+  `waiting` and `reply` verbs (`bridge/protocol.py`).
+- **The containment bar said "nearly won" to a captain who had done
+  nothing.** It measured systems-not-yet-infested, so an untouched sector
+  on day 227 read 38 of 42. The husk is half the condition and is now half
+  the measure: 46% untouched, 50% with the sector clean, 100% only with the
+  origin dead.
+- **"Five of them"** over ten endings, counted now rather than stated; and
+  `HEART_HP` read from `data/bloom` in both views instead of a hardcoded
+  2600 in each.
+
 ## Open — the 2026-08-04 review: the systems layers
 
 A four-agent review (combat, economy, strategic layer, player experience)
@@ -524,10 +557,9 @@ tenth pass above.)
 `containment` venture and the Ruin/loss separation in the eleventh.)*
 
 - The Holdings panel and the containment bar leak the fog
-  (`ui/empire_view.py:192-201`, `sim/threat.py:181` — no `intel.sees_bloom`
-  filter); the same panel says "Five of them" over ten endings
-  (`ui/empire_view.py:178`); `HEART_HP` is hardcoded in two UI files
-  (`ui/empire_view.py:215`, `ui/system_view.py:106`).
+  (`ui/empire_view.py`, `sim/threat.py` — no `intel.sees_bloom` filter), so
+  a picket's `watch` still buys nothing. (The "Five of them" line and the
+  hardcoded `HEART_HP` beside it were fixed in the twelfth pass.)
 
 ### Combat, what remains
 

@@ -35,6 +35,37 @@ def _stocked(seed="endgame"):
 def run(suite: Suite) -> None:
     check = suite.check
 
+    @check("the containment bar counts the husk, not just the map")
+    def _():
+        # Seen on the Holdings screen at day 227 of a chronicle where the
+        # captain had fired no shot and not yet found Kessel's Reach: 38 of
+        # 42 and a nearly-full green bar, because the measure was "systems
+        # not yet infested" and a fresh sector has only a few. The heart is
+        # half the condition, so it is half the bar.
+        from ..sim import bloom as bloom_sim
+        game = new_game("containment-bar")
+        game.day = 227
+        untouched = threat.victory_progress(game)["containment"]
+        assert untouched[0] / untouched[1] < 0.6, (
+            f"a sector nobody has touched reads {untouched[0]}/{untouched[1]} "
+            "— that bar says 'nearly won' to a captain who has done nothing")
+
+        for system in game.galaxy.systems:
+            system.bloom = 0.0
+        cleaned = threat.victory_progress(game)["containment"]
+        assert not cleaned[2], "won with the husk still alive"
+        assert cleaned[0] > untouched[0], "cleaning the sector moved nothing"
+        assert cleaned[0] / cleaned[1] < 0.75, (
+            f"the map alone reads {cleaned[0]}/{cleaned[1]} with the origin "
+            "untouched — the husk is about twenty burn passes of work")
+
+        bloom_sim.ensure(game).heart_hp = 0.0
+        finished = threat.victory_progress(game)["containment"]
+        assert finished[2] and finished[0] == finished[1], finished
+        return (f"untouched {untouched[0]}/{untouched[1]}, cleaned "
+                f"{cleaned[0]}/{cleaned[1]}, husk dead {finished[0]}/"
+                f"{finished[1]}")
+
     @check("the Bloom escalates and stops being a pushover")
     def _():
         from ..sim import bloom as bloom_sim

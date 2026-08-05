@@ -241,6 +241,55 @@ def minds(game) -> dict:
         for mind, impression in memory_sim.summary(game)]}
 
 
+@verb("waiting", "Every question holding the game up: envoy, demand, aftermath.")
+def waiting(game) -> dict:
+    """What is on the bridge wanting an answer.
+
+    A driven session used to have no way to see, let alone answer, an envoy
+    or a territorial demand — and both stop the clock (`clock.wait_days`)
+    and lock the window (`MainWindow.go`). So a power sending somebody round
+    deadlocked the bridge: every wait returned nought days for ever, with
+    nothing in the protocol able to clear it.
+    """
+    out = {"ok": True}
+    envoy = getattr(game, "envoy", None)
+    if envoy is not None and not envoy.over:
+        out["envoy"] = {
+            "kind": envoy.kind, "faction": envoy.faction,
+            "rival": envoy.rival, "credits": envoy.credits,
+            "goods": envoy.goods, "amount": envoy.amount,
+            "expires": envoy.expires,
+            "answers": ["accept", "push", "refuse"]}
+    demand = getattr(game, "demand", None)
+    if demand is not None and not demand.over:
+        from ..data.territory import ANSWERS
+        out["demand"] = {
+            "system_id": demand.system_id, "power": demand.power,
+            "worth": demand.worth,
+            "answers": [a.id for a in ANSWERS]}
+    spot = legacy_sim.offer(game)
+    if spot:
+        out["situation"] = spot
+    out["blocked"] = any(k in out for k in ("envoy", "demand", "situation"))
+    return out
+
+
+@verb("reply", "Answer the envoy or the demand: accept/push/refuse, or an id.")
+def reply(game, choice: str, what: str = "") -> dict:
+    from ..sim import approach as approach_sim
+    from ..sim import territory as territory_sim
+    envoy = getattr(game, "envoy", None)
+    demand = getattr(game, "demand", None)
+    if what == "envoy" or (not what and envoy is not None and not envoy.over):
+        if envoy is None or envoy.over:
+            return {"ok": False, "why": "No envoy is waiting."}
+        return approach_sim.answer(game, envoy, choice)
+    if demand is None or demand.over:
+        return {"ok": False, "why": "Nothing is waiting on an answer."}
+    system = game.galaxy.systems[demand.system_id]
+    return territory_sim.answer(game, system, demand.power, choice)
+
+
 @verb("situation", "The aftermath question waiting on an answer, if any.")
 def situation(game) -> dict:
     waiting = legacy_sim.offer(game)

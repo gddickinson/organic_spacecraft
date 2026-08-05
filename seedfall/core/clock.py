@@ -115,7 +115,7 @@ def advance_days(game, n: float, dilation: float = 1.0) -> None:
 STAND_DOWN_KINDS = ("bad", "warn")
 
 
-def wait_days(game, days: int) -> dict:
+def wait_days(game, days: int, ignoring=()) -> dict:
     """A deliberate wait, standing down on news that deserves a hand.
 
     `advance_days` is the physical clock and stays exact — a transit or a
@@ -129,19 +129,29 @@ def wait_days(game, days: int) -> dict:
     demand, an aftermath situation — and for death or an ending. Stops on
     any ``bad`` log entry when `Options.wait_stands_down` says so. Returns
     a digest: what passed, what it cost, and everything said meanwhile.
+
+    `ignoring` is news already read. Some warnings recur every few days —
+    a hold short of biomass says "it is starting to tell" over and over —
+    and standing down on each one turned a long wait into a wall the
+    player hammered: measured in play, eight stops in fourteen days for
+    one shortage. Pressing *carry on* passes back what stopped it, which
+    is what makes the button mean "I have seen that" rather than "ask me
+    again in three days". Genuinely new bad news still stops it.
     """
     from ..sim import options as options_sim
     on_bad = bool(options_sim.get(game, "wait_stands_down"))
     start_day, start_credits = game.day, game.credits
     said: list[tuple] = []
     stopped = ""
+    told: list[str] = []
+    seen = set(ignoring or ())
     if _awaiting_answer(game):
         # Asked with a question already on the bridge: no day passes at
         # all. Checking only after the step spent one a press, which is a
         # day of upkeep for nothing while the answer is what is wanted.
         return {"ok": True, "asked": int(days), "days": 0, "credits": 0,
                 "stopped": "something is waiting on an answer",
-                "good": [], "bad": [], "said": 0}
+                "good": [], "bad": [], "told": [], "said": 0}
     for _ in range(max(0, int(days))):
         tail = game.log[-1] if game.log else None
         advance_days(game, 1)
@@ -153,8 +163,11 @@ def wait_days(game, days: int) -> dict:
         if _awaiting_answer(game):
             stopped = "something is waiting on an answer"
             break
-        if on_bad and any(kind in STAND_DOWN_KINDS for _d, _t, kind in fresh):
+        news = [t for _d, t, kind in fresh
+                if kind in STAND_DOWN_KINDS and t not in seen]
+        if on_bad and news:
             stopped = "bad news"
+            told = news
             break
     return {"ok": True, "asked": int(days),
             "days": game.day - start_day,
@@ -162,6 +175,9 @@ def wait_days(game, days: int) -> dict:
             "stopped": stopped,
             "good": [t for _d, t, k in said if k == "good"],
             "bad": [t for _d, t, k in said if k in ("bad", "warn")],
+            # What stopped it, to hand back on "carry on" so the same
+            # recurring warning does not stop the next spell as well.
+            "told": told,
             "said": len(said)}
 
 
