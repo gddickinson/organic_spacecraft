@@ -19,7 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ..data.commodities import BY_ID
-from ..world.economy import buy_price, demands, sell_price
+from ..world.economy import demands
 from ..world.galaxy import distance
 from . import market as market_sim
 
@@ -137,17 +137,21 @@ class Run:
 
 
 def _buyable(game, here) -> dict[str, int]:
-    """What this port will sell you, at what you would actually pay."""
+    """What this port will sell you, at what you would actually pay.
+
+    Through `market.quote_buy` — the counter's own door — not the raw price.
+    This card carried the bug `voyage`'s docstring documents fixing: it read
+    `buy_price` without the grudge bias or the office rate, so the desk
+    forecast an outlay the counter would not honour.
+    """
     if not here.market:
         return {}
-    rep = game.rep.get(here.port.faction, 0) if here.port else 0
-    trade = game.ship_stats.trade
     out = {}
     for cid in here.market.stock:
         good = BY_ID.get(cid)
         if good is None or not good.legal:
             continue
-        price = buy_price(here.market, cid, rep, trade)
+        price = market_sim.quote_buy(game, here, cid)
         if price is not None and here.market.stock[cid].units > 0:
             out[cid] = price
     return out
@@ -200,7 +204,11 @@ def from_desk(game, here) -> list[Run]:
             cost = buyable.get(cid)
             if cost is None:
                 continue
-            pays = sell_price(target.market, cid, 0, 0)
+            # What *this* captain's counter at that port would actually pay —
+            # their standing and their grudges travel with them. The HEARSAY
+            # discount below carries the uncertainty; the base figure should
+            # not add its own error by quoting a stranger's price.
+            pays = market_sim.quote_sell(game, target, cid)
             if pays is None or pays <= cost:
                 continue
             runs.append(Run(commodity=cid, target_id=target.id,
@@ -255,7 +263,7 @@ def voyage(game, run, tonnes: float | None = None) -> dict:
     fuel_t = quote["fuel"]
     fuel_price = 0
     if game.system.market:
-        fuel_price = buy_price(game.system.market, "volatiles", 0, 0) or 0
+        fuel_price = market_sim.quote_buy(game, game.system, "volatiles") or 0
 
     room = cargo_free(game.ship, game.ship_stats)
     afford = (int(game.credits // wharfage_sim.unit_cost(

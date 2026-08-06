@@ -38,6 +38,14 @@ class Epoch:
     triumph: str
     hold_days: int = 1460    # four years of keeping the lid on
     scenarios: tuple = ()
+    #: What age follows this one, if any — "" means the chronicle *rests*:
+    #: the story has been told, no further ending is detected, and the
+    #: calendar keeps running. A closed epoch used to set nothing at all,
+    #: `check_victory` re-detected the same still-true condition, and
+    #: `advance_days` early-returned for ever — a frozen calendar with no
+    #: signal, which a driven session reads as a hang.
+    sequel_triumph: str = ""
+    sequel_failure: str = ""
 
 
 EPOCHS = [
@@ -53,7 +61,10 @@ EPOCHS = [
           "guest in it.",
           "Four powers, one settlement, and your signature on it. The worlds "
           "you burned clean got a charter instead of an owner.",
-          scenarios=("claim-jump", "cleared-world", "old-serial", "the-vote")),
+          scenarios=("claim-jump", "cleared-world", "old-serial", "the-vote"),
+          # The triumph is four powers signing one settlement — which is
+          # concord's opening line. The age turns.
+          sequel_triumph="concord"),
 
     Epoch("exodus", "The Rearguard", "osteo",
           "The LEVIATHAN made its burn eight days ago with ten million aboard "
@@ -65,7 +76,10 @@ EPOCHS = [
           "The rearguard is overrun. Whatever was still here, still was.",
           "Everyone who could be moved was moved, and the rest are dug in deep "
           "enough to argue with. You held the door.",
-          scenarios=("last-lighter", "the-holdouts", "seed-vault", "a-signal")),
+          scenarios=("last-lighter", "the-holdouts", "seed-vault", "a-signal"),
+          # An overrun rearguard is ruin's opening: one hull with a good
+          # tank, moving through the middle of it.
+          sequel_failure="ruin"),
 
     Epoch("concord", "The Long Silence", "lumen",
           "Four powers signed one canon and the shooting stopped. In the sixty "
@@ -73,7 +87,13 @@ EPOCHS = [
           "from outside the Verge: something large, slow, and on a heading.",
           "Whatever made the Bloom is coming to see what happened to it. The "
           "Concord holds only as long as it is useful.",
-          1.0 / 2200, "Approach",
+          # 1/2200 made this epoch unfailable by arithmetic: drift over the
+          # whole hold was 0.664 and the worst possible answers add 0.22 —
+          # ceiling 0.884 against a break of 1.0, so the failure prose was
+          # dead text and the epoch a guaranteed triumph. Both closes are
+          # reachable now, and `test_legacy` sweeps the arithmetic for
+          # every epoch so a retuned scenario cannot quietly re-kill one.
+          1.0 / 1600, "Approach",
           "It arrives to find the Concord already arguing. It does not stay "
           "long and it does not leave much.",
           "The Verge meets it as one thing rather than four, which is the only "
@@ -125,7 +145,8 @@ EPOCHS = [
           "The other odd part is what they have in common.",
           "Four cultures learned all of this and none of them are here. "
           "Working out why is not an academic question.",
-          1.0 / 2400, "Pattern",
+          # 1/2400 gave a ceiling of 0.838 — unfailable, like concord above.
+          1.0 / 1650, "Pattern",
           "You work out why they are all gone at roughly the same time as the "
           "reason arrives.",
           "You work out why they are all gone with enough of a margin to do "

@@ -24,6 +24,9 @@ class SuiteSpec:
 
 SUITES: list[SuiteSpec] = [
     SuiteSpec("sim", "test_sim", "simulation"),
+    SuiteSpec("solvency", "test_solvency", "money cannot be conjured"),
+    SuiteSpec("prize", "test_prize", "striking colours"),
+    SuiteSpec("despatch", "test_despatch", "the despatch board"),
     SuiteSpec("xeno", "test_xeno", "xenotech"),
     SuiteSpec("play", "test_play", "playability"),
     SuiteSpec("endgame", "test_endgame", "the Bloom endgame"),
@@ -177,6 +180,8 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("helm", "test_helm", "helm"),
     SuiteSpec("thermal", "test_thermal", "thermal"),
     SuiteSpec("courting", "test_courting", "courting"),
+    SuiteSpec("law", "test_law", "law"),
+    SuiteSpec("tribunal", "test_tribunal", "tribunal"),
     SuiteSpec("picture", "test_picture", "picture"),
     SuiteSpec("seams", "test_seams", "seams"),
     SuiteSpec("manual", "test_manual", "manual"),

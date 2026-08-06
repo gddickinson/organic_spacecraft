@@ -45,8 +45,15 @@ PARLEY_FEE = 400
 #: what the loss cost the owner.
 SCHADENFREUDE = 0.45
 
+#: A struck hull humbles its owner — dearer than driving it off, cheaper
+#: than killing the crew. (Taking her as a prize afterwards adds
+#: `prize.PRIZE_COST` on top, which lands the total beside a kill: you have
+#: their ship.)
+STRUCK_COST = 6.0
+
 _MOOD = {"destroyed": "victory", "driven-off": "victory", "parley": "parley",
-         "lost": "defeat", "escaped": "defeat"}
+         "struck": "victory", "lost": "defeat", "escaped": "defeat",
+         "routed": "defeat"}
 
 
 def _pleased(game, faction: str | None, weight: float) -> list[tuple[str, float]]:
@@ -90,6 +97,14 @@ def _standing(game, battle, out: dict) -> None:
     fid = battle.enemy_faction
     if battle.result == "destroyed":
         if fid and fid != "bloom":
+            # **Destroying a hull is the gravest thing in the offence table**,
+            # it never prescribes, and every power that keeps a register will
+            # charge it — not only the one that lost the ship. `report` works
+            # out which of them could have known; the owner always does.
+            from . import dockets
+            name = getattr(battle.enemy, "name", None) or "a hull"
+            dockets.report(game, "killing", f"you destroyed {name}",
+                           weight=1.0, against=fid)
             game.adjust_rep(fid, -KILL_COST)
             out["standing"].append((fid, -KILL_COST))
             out["pleased"] = _pleased(game, fid, KILL_COST)
@@ -131,6 +146,12 @@ def _standing(game, battle, out: dict) -> None:
         out["pleased"] = _pleased(game, fid, ROUT_COST)
         _remember(game, fid, "slight",
                   f"you drove the {battle.enemy_name} off", 0.9)
+    elif battle.result == "struck" and fid and fid != "bloom":
+        game.adjust_rep(fid, -STRUCK_COST)
+        out["standing"].append((fid, -STRUCK_COST))
+        out["pleased"] = _pleased(game, fid, STRUCK_COST)
+        _remember(game, fid, "slight",
+                  f"the {battle.enemy_name} struck its colours to you", 1.1)
 
 
 def _salvage(game, battle, out: dict) -> None:
@@ -152,6 +173,20 @@ def _salvage(game, battle, out: dict) -> None:
             add_cargo(game.ship, cid, take)
             room -= take
             out["recovered"][cid] = out["recovered"].get(cid, 0) + take
+    out["recovered_worth"] = worth_of(out["recovered"])
+
+
+def worth_of(goods: dict) -> int:
+    """Credit worth of a pile of cargo, at base prices.
+
+    The screen printed recovered tonnage with no figure on it, between two
+    lines that *are* in credits — and the cargo is the larger half of a
+    wreck: measured, 1.5–10× the credit loot. A captain cannot see the
+    reason to fight if the ledger will not say it.
+    """
+    from ..data.commodities import BY_ID
+    return round(sum((BY_ID[cid].base if cid in BY_ID else 60) * tonnes
+                     for cid, tonnes in goods.items()))
 
 
 def resolve(game, battle, rng) -> dict:
@@ -163,7 +198,8 @@ def resolve(game, battle, rng) -> dict:
     out = {"result": battle.result, "faction": battle.enemy_faction,
            "standing": [], "pleased": [], "recovered": {}, "bounties": [],
            "dead": [], "seized": None, "instar": False, "credits": 0,
-           "research": 0, "salvage": 0.0, "fee": 0, "already": False}
+           "research": 0, "salvage": 0.0, "fee": 0, "already": False,
+           "recovered_worth": 0}
     if getattr(battle, "settled", False):
         out["already"] = True
         return out

@@ -46,7 +46,6 @@ ALLOWED = {
     "tests/test_control.py": 560,
     "tests/test_conn.py": 523,
     "tests/test_industry.py": 520,
-    "tests/chronicle.py": 517,
 }
 
 

@@ -74,6 +74,17 @@ def collect(game, system, value: float) -> int:
     p = exchequer_sim.purse(game, who)
     p.credits += amount
     p.dues += amount
+    # **Distraint happens at the till, not on a screen you choose to open.**
+    # That is the whole answer to a fine a captain can decline to pay by never
+    # looking at it again: a creditor who holds this counter takes its share
+    # of the sale here, before the money is anywhere the captain can move it.
+    from . import debts as debts_sim
+    took = debts_sim.distrain_at(game, system, value)
+    if took:
+        game.credits -= took
+        p.credits += took
+        game.add_log(f"{took:,} taken at the counter against what you owe "
+                     f"here. Nobody asked.", "warn")
     return amount
 
 

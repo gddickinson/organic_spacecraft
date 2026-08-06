@@ -302,6 +302,14 @@ def commit(game, conn) -> dict:
         grudge_sim.note(game, grief["faction"], grief["kind"], grief["text"],
                         salience=grief["salience"])
         game.add_log(grief["text"] + " It is in their books now.", "bad")
+        # And on the file, if getting in anyway is what happened. `grievance`
+        # is already quiet below being fired on, so anything that reaches
+        # here is worth charging — and they were plainly watching, since it
+        # was their ward that failed to stop you.
+        if grief["kind"] == "forced":
+            from . import dockets
+            dockets.allege(game, grief["faction"], "forcing", grief["text"],
+                           weight=grief.get("salience", 1.0), seen=1.0)
 
     moved = None
     index = _berth_index(conn)

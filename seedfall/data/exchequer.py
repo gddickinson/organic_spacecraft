@@ -31,8 +31,12 @@ from __future__ import annotations
 YIELD_PER_LEVEL = 90.0
 
 #: What holding it costs each day: `UPKEEP_COEFF × level²`. Superlinear on
-#: purpose — see the module docstring. Level 1 clears 60, level 2 clears 60,
-#: level 3 clears nothing at all.
+#: purpose — see the module docstring. On the bare constants level 1 clears
+#: 60, level 2 clears 60, level 3 clears nothing at all — a *bare* berth is
+#: never worth promoting. What promotes is a port whose multipliers (capital,
+#: licensed industries) put real margin on the higher level, and
+#: `exchequer.payback` prices those through the same `would_yield` the
+#: ledger pays with.
 UPKEEP_COEFF = 30.0
 
 #: A capital yields this much again: it is where the power's own business is

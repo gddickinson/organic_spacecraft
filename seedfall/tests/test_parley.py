@@ -269,3 +269,27 @@ def run(suite: Suite) -> None:
         return (f"the panel reads {talk['chance']:.0%} to talk and "
                 f"{run_['chance']:.0%} to run, with "
                 f"{len(talk['terms'])} named reasons")
+
+    @check("straining against a grapple spends the turn it says it spends")
+    def _():
+        # A held "flee" returned free of charge — and `grappled` only counts
+        # down in the end-of-turn the free return skipped, so repeating the
+        # order was an infinite loop for any scripted driver. It goes the way
+        # of the refused hail now: the enemy takes its turn, the clock moves,
+        # and the grapple eventually slackens.
+        game = new_game("held-flee")
+        rng = RNG("held-flee")
+        b = _battle(game, rng)
+        b.player.grappled = 2
+        turns = b.turn
+        combat_sim.take_turn(b, {"type": "flee"}, rng)
+        assert b.over or b.turn == turns + 1, (
+            f"a held flee left the turn at {b.turn}")
+        tries = 1
+        while not b.over and b.player.grappled and tries < 6:
+            combat_sim.take_turn(b, {"type": "flee"}, rng)
+            tries += 1
+        assert b.over or not b.player.grappled, (
+            f"{tries} strains and the grapple never slackened")
+        return (f"held fast: {tries} strain(s), each a real turn, and the "
+                "grapple let go")

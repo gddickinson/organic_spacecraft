@@ -13,10 +13,10 @@ from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QSizePolicy, QWidget
 from ..core.util import credits as cr
 from ..core.util import num, pct
 from ..data.chassis import CHASSIS_BY_ID
-from ..data.factions import FACTIONS_BY_ID
 from ..data.part_types import BANDS
 from ..sim import abilities as abilities_sim
 from ..sim import aftermath as aftermath_sim
+from ..sim import prize as prize_sim
 from ..sim import stations as st_mod
 from ..sim import turnplan
 from ..sim import tactical as tac
@@ -33,39 +33,7 @@ from .widgets import (Bar, Panel, Pill, TabBar, View, button, label,
                       mono_label, note, spacer)
 
 
-def _parley_lines(b) -> list:
-    """What the two ways out are worth, for the panel. From `sim/parley`."""
-    out = []
-    talk = parley_sim.odds(b)
-    if talk["mute"]:
-        out.append((f"Hailing them: {talk['why']}", "warn"))
-    else:
-        out.append((f"Hailing them: {talk['chance']:.0%} they stand down"
-                    + (" — " + _terms(talk["terms"]) if talk["terms"] else "")
-                    + ". Refused, they fire anyway.", "dim"))
-    if b.fleeable:
-        run = parley_sim.escape_odds(b)
-        if run["held"]:
-            out.append((f"Disengaging: {run['why']}", "warn"))
-        else:
-            out.append((f"Disengaging: {run['chance']:.0%} you shake them"
-                        + (" — " + _terms(run["terms"]) if run["terms"] else "")
-                        + ". Short, and they get the turn.", "dim"))
-    return out
-
-
-def _terms(terms) -> str:
-    """Each named part of a chance, in points, worst or best first."""
-    ranked = sorted(terms, key=lambda pair: -abs(pair[1]))
-    return " · ".join(f"{name} {value * 100:+.0f}" for name, value in ranked)
-
-
-def _parley_tip(b, which: str) -> str:
-    told = (parley_sim.odds(b) if which == "hail" else parley_sim.escape_odds(b))
-    if told.get("mute") or told.get("held"):
-        return told["why"]
-    return (f"{told['chance']:.0%}. " + _terms(told["terms"])
-            + ". If it fails they take their turn regardless.")
+from .battle_text import aftermath_lines, parley_lines, parley_tip
 
 
 class BattleView(View):
@@ -354,6 +322,11 @@ class BattleView(View):
                           "warn" if plan["over"] else "dim")
 
         p.add(spacer(4), mono_label("Other"))
+        # A mute enemy's hail button is off, with the reason under it — the
+        # sim deliberately charges no turn for that press ("a category
+        # error, not a gamble"), so the screen must refuse it rather than
+        # let it read as a free re-roll.
+        mute = parley_sim.odds(b).get("mute", False)
         p.add_buttons(
             button("Gunnery…", self._open_gunnery, kind="flat",
                    tip="The gunner's station: every mount's arc, and which of "
@@ -361,15 +334,19 @@ class BattleView(View):
             button("Tactical…", self._open_tactical, kind="flat",
                    tip="The tactical station, which is open whether or not "
                        "anybody is shooting."),
+            button("Brace", lambda: self._act({"type": "brace"}), kind="flat",
+                   tip="Turn the thickest tissue into the fire and hold: "
+                       "vents heat, steadies the crew, and the gunner keeps "
+                       "working."),
             button("Hail them", lambda: self._act({"type": "hail"}),
-                   tip=_parley_tip(b, "hail")),
+                   enabled=not mute, tip=parley_tip(b, "hail")),
             button("Disengage", lambda: self._act({"type": "flee"}), kind="flat",
-                   tip=_parley_tip(b, "flee"))
+                   tip=parley_tip(b, "flee"))
             if b.fleeable else None)
         # And on the panel, not only under a hover: these two are the only acts
         # on this screen whose failing side is "they shoot you for free", and the
         # only ones that used to name no number at all.
-        for line, tint in _parley_lines(b):
+        for line, tint in parley_lines(b):
             p.add(note(line) if tint == "dim" else label(line, "", tint,
                                                          wrap=True))
         return p
@@ -432,47 +409,36 @@ class BattleView(View):
                   "escaped": "Clear", "parley": "Stood down",
                   "routed": "You have nothing left",
                   "stalemate": "Neither of you could finish it"}
-        body = [b.log[-1][1]] + [note(l) for l in self._aftermath_lines(out)]
-        self.win.dialog(titles.get(b.result, "Engagement over"), body,
-                        [("Back to the bridge", None)])
+        body = [b.log[-1][1]] + [note(l) for l in aftermath_lines(out)]
+        if b.result == "struck":
+            self._prize_choice(b, g, body)
+        else:
+            self.win.dialog(titles.get(b.result, "Engagement over"), body,
+                            [("Back to the bridge", None)])
         self.win.end_combat()
 
-    @staticmethod
-    def _aftermath_lines(out: dict) -> list[str]:
-        """Turn what happened into what the bridge is told."""
-        lines: list[str] = []
-        if out["dead"]:
-            lines.append("Lost in the action: " + ", ".join(out["dead"]) + ".")
-        if out["result"] == "destroyed":
-            lines.append(f"{round(out['salvage'])} units of their hardware came "
-                         "off the wreck intact.")
-            lines.append(f"Salvage: {cr(out['credits'])} and "
-                         f"{out['research']} points of research.")
-            for cid, take in out["recovered"].items():
-                lines.append(f"{round(take)} t of {cid} pulled out of the wreck.")
-            for c in out["bounties"]:
-                lines.append(f"Bounty progress: {c.title} "
-                             f"({int(c.progress)}/{int(c.amount)})"
-                             + (" — paid." if c.done else "."))
-            seized = out["seized"]
-            if seized:
-                lines.append("Their xenology files came out intact: "
-                             f"{round(seized['points'])} points toward "
-                             f"{seized['tech'].name}.")
-                if seized["incorporated"]:
-                    lines.append(f"{seized['tech'].name} is now yours.")
-        elif out["result"] == "driven-off":
-            lines.append("They broke first. Your hull held and theirs did not "
-                         "want to find out how long.")
-        elif out["result"] == "parley" and out["fee"]:
-            lines.append("They pay a courtesy for the trouble.")
+    def _prize_choice(self, b, g, body) -> None:
+        """One decision per struck hull, through `sim/prize`'s doors.
 
-        for fid, delta in out["standing"]:
-            short = FACTIONS_BY_ID[fid].short
-            lines.append(f"{short} standing "
-                         + ("has fallen." if delta < 0 else f"+{delta:g}."))
-        if out["pleased"]:
-            # The half that never existed: everyone glad to see them lose one.
-            lines.append("Word travels — "
-                         + aftermath_sim.phrase_pleased(out["pleased"]) + ".")
-        return lines
+        Dismissing the dialog lets them go — the release button and Escape
+        are the same mercy, so a captain cannot dodge the choice and keep it.
+        """
+        told = prize_sim.offer(g, b)
+        if told.get("cargo"):
+            body.append(note("In her holds: " + ", ".join(
+                f"{round(t)} t {cid}" for cid, t in told["cargo"].items())
+                + " — worth about "
+                + cr(aftermath_sim.worth_of(told["cargo"])) + "."))
+        if not told.get("can_take") and told.get("why"):
+            body.append(note(told["why"]))
+        buttons = []
+        if told.get("can_take"):
+            buttons.append((f"Put a prize crew aboard — {told['need']} hands",
+                            "take"))
+        buttons += [("Strip her holds", "strip"),
+                    ("Let them limp home", "release")]
+        chose = self.win.dialog("They have struck their colours", body, buttons)
+        act = {"take": prize_sim.take,
+               "strip": prize_sim.strip}.get(chose, prize_sim.release)
+        act(g, b)
+

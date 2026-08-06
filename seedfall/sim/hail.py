@@ -94,6 +94,15 @@ def greeting(game, contact) -> str:
     from . import voice as voice_sim
 
     who = about(game, contact)
+    # **Anathema is silence, not a refusal.** The Dry Choir does not tell you
+    # it will not speak to you; there is simply nothing on the channel, which
+    # is a different and worse thing than being turned down.
+    faction = getattr(contact, "faction", None)
+    if faction:
+        from . import enforce as enforce_sim
+        answered, said = enforce_sim.answers_hail(game, faction)
+        if not answered:
+            return f"{contact.name} — {said}"
     if contact.kind in ("body", "star", "point"):
         return (f"{contact.name} — {who['detail'] or 'nothing is transmitting'}"
                 ". Nothing there answers a hail; this is what the array sees.")
@@ -119,6 +128,51 @@ def greeting(game, contact) -> str:
     return f"{contact.name} does not answer."
 
 
+def _law_options(game, contact) -> list[Option]:
+    """What the law lets you do at somebody's counter.
+
+    A summons has to be answerable somewhere, and a quay is where a captain
+    already is. Putting it here rather than only on the law screen is the
+    difference between a legal system you manage and one you *meet*.
+    """
+    from ..data.factions import FACTIONS_BY_ID
+    from . import clemency, debts, governance, tribunal, wharfage
+    system = getattr(game, "system", None)
+    power = wharfage.holder(game, system)
+    if not power or power not in FACTIONS_BY_ID:
+        return []
+    short = FACTIONS_BY_ID[power].short
+    out: list[Option] = []
+    waiting = [c for c in tribunal.summons(game) if c.power == power]
+    if waiting:
+        out.append(Option(
+            "answer", f"Answer {short} — {len(waiting)} matter(s)",
+            "They have filed against you and the day is set. Contest it, "
+            "admit it, or settle before it is heard.",
+            goes_to="law", order=18))
+    owed = debts.total_owed(game, power)
+    if owed > 0:
+        out.append(Option(
+            "settle", f"Settle with {short} — {owed:,.0f}",
+            "Judgments outstanding. Paying one lifts whatever it bought them.",
+            goes_to="law", order=22))
+    if clemency.can_pardon(game, system, power)[0]:
+        state = governance.standing_with(game, power)
+        out.append(Option(
+            "pardon", "Have the file closed",
+            f"{state['note']} There is a way this goes away, and the "
+            "harbourmaster is it. It will cost what they think of you.",
+            goes_to="law", order=26))
+    if any(w["bite"] == "hunt" for w in governance.standing_with(
+            game, power)["warrants"]):
+        out.append(Option(
+            "buyback", "Buy the paper back",
+            "There is a price on your hull and somebody holds it. They will "
+            "sell it back for more than they paid.",
+            goes_to="law", order=24))
+    return out
+
+
 def options(game, contact) -> list[Option]:
     """Everything that can be done with this contact, best guess first."""
     kind = getattr(contact, "kind", "")
@@ -126,7 +180,7 @@ def options(game, contact) -> list[Option]:
         place = _place_of(game, contact)
         if place is not None and place.kind == "gate":
             return _gate_options(game, contact)
-        return _quay_options(game, contact, place)
+        return _quay_options(game, contact, place) + _law_options(game, contact)
     if kind == "body":
         return _body_options(game, contact)
     if kind == "hull":

@@ -25,13 +25,30 @@ def fired(game) -> list:
     return list(getattr(state(game), "responses", []))
 
 
-def provoke(game, kind: str, scale: float = 1.0) -> float:
-    """Report something you did to it. Returns the new level."""
+def provoke(game, kind: str, scale: float = 1.0, *, npc: bool = False) -> float:
+    """Report something done to it. Returns the new level.
+
+    `npc=True` is a power's flotilla burning on its own account
+    (`ventures._apply`). The Bloom answers either way — provocation is
+    provocation — but only the captain's own burns are *the captain's
+    record*: `fought` never decays and is what Ruin's guard reads. Without
+    the split, an NPC containment run satisfied "you lived through it"
+    while the player did literally nothing (measured: `advance_days` alone,
+    victory `ruin` on day 2,338).
+    """
     st = state(game)
     if getattr(st, "provocation", None) is None:
         st.provocation = 0.0
-    st.provocation += PROVOCATION.get(kind, 0.0) * scale
+    amount = PROVOCATION.get(kind, 0.0) * scale
+    st.provocation += amount
+    if not npc and amount > 0:
+        st.fought = float(getattr(st, "fought", 0.0) or 0.0) + amount
     return st.provocation
+
+
+def fought(game) -> float:
+    """What the captain personally has cost it, undecayed. Ruin reads this."""
+    return float(getattr(state(game), "fought", 0.0) or 0.0)
 
 
 def decay(game, days: float) -> None:
@@ -51,6 +68,15 @@ def growth_multiplier(game) -> float:
 
 
 def hunting(game) -> bool:
+    """It is sending masses after the hull — while it is still angry.
+
+    `fired` is append-only (it is the record `STAGE_BY_ANSWERS` reads), so
+    a bare read made the hunt permanent: one provoked response and the
+    System screen warned "after your hull specifically" for the rest of the
+    chronicle. The hunt lasts as long as the provocation that earned it.
+    """
+    if level(game) <= 0:
+        return False
     return any(RESPONSES_BY_ID[r].hunts for r in fired(game)
                if r in RESPONSES_BY_ID)
 
@@ -92,8 +118,17 @@ def check(game, rng) -> list[tuple[str, str]]:
             inst = bloom_sim._spawn_instar(game, rng, from_heart=True)
             if inst is not None:
                 st.instars.append(inst)
-                if response.hunts:
+                # Aimed at the hull — unless the hull is standing in the
+                # system the mass detached from. `_retarget`'s own rule
+                # ("never the system it is standing in") exists because a
+                # self-target "arrives" every twenty days for ever,
+                # re-seeding the growth — and striking the heart is the
+                # commonest way to earn `hunt`, so this wrote the captain's
+                # own location over that rule at the exact moment
+                # `infested == 0` was earned.
+                if response.hunts and inst.system_id != game.location_id:
                     inst.target_id = game.location_id
+                    inst.days = 0.0
     return events
 
 

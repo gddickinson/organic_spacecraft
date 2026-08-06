@@ -415,21 +415,37 @@ def run(suite: Suite) -> None:
 
     @check("a plain trading run stays solvent for five years")
     def _():
+        # Solvent, not immortal. This asserted `not dead` outright, and it
+        # passed for as long as it did on an artifact: on "run-a" the bot
+        # froze at day 1500 (a stale `is_stranded` price reading refused its
+        # tow), and a frozen captain cannot die. Un-frozen, that seed's
+        # sector genuinely drowns in year 4.8 and the loss rule ends the
+        # chronicle — which is the antagonist working, not the economy
+        # failing. The claim this check owns is the *economy*: nobody goes
+        # into debt, nobody starves, and the sector's own ending is the only
+        # thing allowed to stop a run.
         results = []
         for seed in ("run-a", "run-b", "run-c", "run-d", "run-e", "run-f"):
             g = _bot(seed, years=5)
             results.append(g)
         broke = [g for g in results if g.credits < 0]
-        dead = [g for g in results if g.dead]
+        starved = [g for g in results if g.dead and g.ending != "overgrown"]
         assert not broke, f"{len(broke)} runs ended in debt"
-        assert not dead, f"{len(dead)} runs died surveying empty systems"
-        mean = sum(g.credits for g in results) / len(results)
+        assert not starved, (
+            f"{len(starved)} runs died of the economy, not of the sector")
+        survivors = [g for g in results if not g.dead]
+        assert len(survivors) >= 4, (
+            f"only {len(survivors)} of {len(results)} sectors saw the "
+            "captain through five years")
+        mean = sum(g.credits for g in survivors) / len(survivors)
         # A floor, not just "not negative": the naive strategy sat on exactly
         # zero for a while, which made this check flaky and the early game
         # knife-edge. Survey data has to cover a wage bill and a fuel bill.
         assert mean > 500, (
             f"the naive strategy barely breaks even — mean {mean:,.0f}")
-        return (f"{len(results)} runs, none dead or in debt, "
-                f"mean treasury {round(mean):,}")
+        lost = len(results) - len(survivors)
+        return (f"{len(results)} runs: none in debt, none starved, "
+                f"{lost} ended by the sector itself; survivor mean "
+                f"treasury {round(mean):,}")
 
 

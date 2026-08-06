@@ -11,7 +11,7 @@ ammunition. TESTUDO doctrine, fitted as a mechanic.
 from __future__ import annotations
 
 from ..core.util import clamp
-from .battle_state import Battle, Side
+from .battle_state import Battle, Side, finish as _finish
 from . import damage
 from .damage import _disable, _say, _who
 from . import firing
@@ -246,6 +246,9 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
     elif kind == "station":
         order = st_mod.ORDERS_BY_ID.get(action.get("order", ""))
         if order is None:
+            # Say so — this was the one refusal in the fight that said
+            # nothing at all, which a scripted driver reads as a hang.
+            _say(b, "No such order is on any station's board.", "warn")
             return b
         b.player.station = order.station
         if order.station == "helm":
@@ -473,27 +476,6 @@ def _end_of_turn(b: Battle, rng) -> None:
         _finish(b, "routed")
     elif b.turn > MAX_TURNS:
         _finish(b, "stalemate")
-
-
-_ENDINGS = {
-    "destroyed": "{enemy} comes apart across three compartments.",
-    "driven-off": "{enemy} breaks off. Whatever they came for, it was not worth this.",
-    "escaped": "You break contact and run dark.",
-    "parley": "They stand down. Somebody on that bridge wanted a reason to.",
-    "routed": "You have nothing left to hold with. They let you go.",
-    "stalemate": "Neither hull can finish the other. You drift apart, both of you "
-                 "poorer and neither of you satisfied.",
-    "lost": "{player} is lost.",
-}
-
-
-def _finish(b: Battle, result: str) -> Battle:
-    b.over = True
-    b.result = result
-    line = _ENDINGS.get(result, result).format(enemy=b.enemy_name,
-                                               player=b.player.ship.name)
-    _say(b, line, "bad" if result == "lost" else "good")
-    return b
 
 
 __all__ = ["Battle", "Side", "start", "take_turn", "use_ability", "BANDS",

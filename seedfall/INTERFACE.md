@@ -482,6 +482,33 @@ first tick reported the ship as having struck open space. `hand_over` turns
 one into an approach to something while keeping the way on, so flying by hand
 and then giving the computer the last of it is one approach rather than two.
 
+**Four powers, four laws, and no police force.** The governance layer's one
+rule is that a law is only as long as the arm attached to it. `dockets.witness`
+returns how well a power can know what happened in a system — from its quay,
+its register, its hulls on station, or a friend with one of those — and
+returns 0 for a power with nothing there, at which point nothing is recorded
+at all. Being unobserved is not innocence and is meant to feel different.
+
+The four forums are deliberately not comparable, and each is drawn from what
+`data/factions.py` already said that power was. The Charter fields no armed
+vessel and never will, so its law is paperwork and its whole armoury is
+refusal — no clearance, no licence, no gate. The Concordat thinks in property
+and has hulls to collect it with. The Freeholds have no forum at all: a claim
+is a price on your hull, posted and sold on, and they are the only power that
+ever hunts the player. The Dry Choir holds no hearing because there is nowhere
+to stand, and what it imposes is anathema — the network stops answering.
+
+Two traps, both sprung during the build and both worth knowing about. **The
+law must never re-enter itself**: a patrol that charged the captain two days
+with `advance_days` ran the clock, which ran the law, which stopped the
+captain — surfacing as a `RecursionError` three modules away in
+`settlement.maturity`. And **the process must not generate its own work**: a
+default charge decided in absence produced another, whose debt produced
+arrears, which was also decided in absence, reaching 61,820 charges and ₡498
+million from one contraband bust inside eight years. `Offence.procedural` and
+`dockets.PROCEDURAL_DAYS` bound it; what escalates is the instrument, through
+`tribunal.severity`'s count of priors, not the paperwork.
+
 **Where the ship is, and which frame the answer is in.** This is the fact the
 project has got wrong in the most ways, so it is worth stating plainly. There
 are two questions and they have different answers:
@@ -3397,7 +3424,11 @@ seedfall/
 │   ├── combat.py       turn resolution, firing, damage, endings;
 │   │                   `_run_seats` runs helm and engineering either way;
 │   │                   `cook()` holds heat under `HEAT_CEILING`
-│   ├── battle_state.py the Side and Battle shapes, shared by resolver/AI/UI
+│   ├── battle_state.py the Side and Battle shapes, shared by resolver/AI/UI;
+│   │                   ENDINGS and `finish()` — the one door an engagement
+│   │                   ends through, for combat, parley and prize alike
+│   ├── prize.py        striking colours: a beaten crew gives up, and the
+│   │                   captain decides once — prize crew, strip, or release
 │   ├── tactical.py     the plane: positions, headings, firing arcs, bands
 │   ├── stations.py     helm / gunnery / engineering: the seats and their acts
 │   ├── turnplan.py     and the forecast of a turn that contains one — the
@@ -3445,6 +3476,7 @@ seedfall/
 │   │                   supply, and whether the party can afford it
 │   ├── parley.py       breaking off and talking your way out: the odds, what
 │   │                   each part of them is worth, the turn a refusal costs
+│   │                   (a held flee strains and pays the same turn)
 │   ├── transit.py      standing the watches of a crossing
 │   ├── programmes.py   what the bench runs once a branch is exhausted, and
 │   │                   what a finding buys: standing, money, or nothing
@@ -3475,6 +3507,23 @@ seedfall/
 │   ├── outcome.py      whether an approach is over — alongside, in orbit,
 │   │                   aground or adrift. An orbit is a shape rather than a
 │   │                   distance, which is why it is not decided in conn.py
+│   ├── law.py          the record: charges, judgment debts and warrants, in
+│   │                   one saved object. Nothing else may hold a Charge
+│   ├── governance.py   **the one front door** — the clock calls this and it
+│   │                   owns the order the six modules below run in
+│   ├── dockets.py      being seen and being charged, and the difference:
+│   │                   `witness` is how far a power's arm actually reaches
+│   ├── tribunal.py     the hearing. `case` states the whole price and
+│   │                   `plead` spends exactly it
+│   ├── debts.py        money owed to somebody who can do something about not
+│   │                   being paid; distraint happens at the till
+│   ├── warrants.py     what a power will do to you and how far it follows —
+│   │                   the Charter's arm is the shortest, the Freeholds' the
+│   │                   longest, and that is the truest thing here
+│   ├── enforce.py      where the law touches the ship: berths, rings,
+│   │                   counters, licences, hails and patrols
+│   ├── clemency.py     the way out — pay, buy the paper back, buy a
+│   │                   harbourmaster, or sign a treaty
 │   ├── orbits.py       what counts as an orbit, its size and roundness, the
 │   │                   ladder of heights you can ask to hold, and
 │   │                   `ship_orbit_offset` — where in the orbit it holds the
@@ -3686,7 +3735,13 @@ seedfall/
 │   ├── blackmarket_panel.py  the quiet word on the quay, and the tip-off
 │   ├── freight_panel.py  what is worth loading here, and what it clears
 │   ├── demand_view.py  answering a power that has annexed ground you hold
-│   └── battle_view.py  combat screen and post-engagement resolution
+│   ├── despatch_view.py the inbox `sim/comms` kept with no UI, plus the
+│   │                  full chronicle with a kind filter; every action a
+│   │                  comms door
+│   ├── battle_text.py  the battle screen's words — parley forecasts and
+│   │                  the aftermath card, priced by `sim`, drawn by the view
+│   └── battle_view.py  combat screen and post-engagement resolution,
+│                      including the prize choice on a struck hull
 └── tests/              python -m seedfall.tests
     ├── harness.py      a tiny check runner (no pytest dependency)
     ├── test_sim.py     27 simulation checks
@@ -3796,7 +3851,17 @@ seedfall/
     ├── ground_ai.py    a party leader good enough to measure the ground with
     ├── suites.py       the suite table `__main__` dispatches from
     ├── test_beginnings.py 9 checks — the commission you pick is the one you get
-    ├── test_legacy.py  7 aftermath checks — an ending is a turn, not a stop
+    ├── test_legacy.py  12 aftermath checks — an ending is a turn, not a stop;
+    │                   no epoch unfailable, absence decided, the calendar runs
+    ├── test_solvency.py 7 checks — money cannot be conjured: scrap, raw
+    │                   prices, contraband markets, promotion, the Cartel
+    ├── test_prize.py   7 checks — striking colours, the prize choice,
+    │                   nonlethal meaning it, struck priced between outcomes
+    ├── test_despatch.py 5 checks — the despatch board, courier lag, sweep
+    │                   aging, digit keys on their rail positions
+    ├── chronicle_fights.py the decade driver's combat half — seeking
+    │                   trouble and taking the engagement (split at the
+    │                   ratchet; `chronicle.py` sits under the limit now)
     ├── test_instruments.py 5 checks — a gauge agrees with the ship and itself
     ├── test_lopsided.py 9 checks — what one missing engine of a pair costs
     ├── test_pilot.py   9 checks — a throttle and a coast the pilot can reach

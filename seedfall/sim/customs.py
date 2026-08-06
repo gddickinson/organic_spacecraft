@@ -233,6 +233,15 @@ def inspect(game, rng, approach: float = 0.0) -> dict:
                     f"your hold was opened at {port.name}", 1.0,
                     tags=["customs", faction], name=faction_name,
                     entity="faction")
+    # **And it goes on the file.** The fine above is the quay's own business,
+    # settled at the counter; this is the power's, and it is what turns a bust
+    # from a toll into something with a hearing at the end of it. They plainly
+    # witnessed it — their people were in the hold — so the charge does not
+    # have to guess.
+    from . import dockets
+    dockets.allege(game, faction, "contraband",
+                   f"{tonnage:.0f} t taken out of your hold at {port.name}",
+                   weight=min(2.5, 0.5 + tonnage / 14.0), seen=1.0)
     return out
 
 
@@ -257,6 +266,14 @@ def sell_quietly(game, cid: str) -> dict:
     good = BY_ID.get(cid)
     game.add_log(f"Sold {tonnes:g} t of {good.short if good else cid} off the "
                  f"books at {port.name} — {take:,}.", "warn")
+    # Off the books is not out of sight. Unlike a boarding, nobody has the
+    # goods in their hands here, so `allege` works out for itself who could
+    # plausibly have known — which is what makes a quiet sale at a frontier
+    # quay a genuinely different proposition from one under a capital.
+    from . import dockets
+    dockets.allege(game, faction, "trafficking",
+                   f"{tonnes:g} t moved off the register at {port.name}",
+                   weight=min(2.0, 0.4 + tonnes / 18.0))
     return {"ok": True, "tonnes": tonnes, "price": price, "took": take,
             "all": tonnes >= held}
 

@@ -294,5 +294,114 @@ def run(suite: Suite) -> None:
         assert not unreachable, f"endings nothing can reach: {unreachable}"
         return " · ".join(sorted(reached))
 
+    @check("the powers' own flotillas do not stand Ruin's guard")
+    def _():
+        # Measured before the fix: `advance_days` alone — not one act by the
+        # captain — took the Ruin ending on day 2,338, because a containment
+        # venture provokes the Bloom on the clock and the guard read the
+        # shared provocation level. The NPC record and the captain's record
+        # are separate facts now.
+        from ..sim import responses as response_sim
+        from ..sim import threat as threat_sim
+
+        game = new_game("npc-ruin")
+        for system in game.galaxy.systems:
+            system.bloom = 0.95
+        game.colonies = []
+        response_sim.provoke(game, "burn", scale=3.0, npc=True)
+        assert response_sim.level(game) > 0, "the fixture provoked nothing"
+        assert not threat_sim.victory_progress(game)["ruin"][2], (
+            "an NPC flotilla's burn stood the captain's Ruin guard")
+
+        npc_level = response_sim.level(game)
+        response_sim.provoke(game, "burn")
+        assert threat_sim.victory_progress(game)["ruin"][2], (
+            "the captain's own burn no longer counts")
+        return (f"NPC provocation {npc_level:.0f}: no ending; one burn of "
+                "your own: Ruin stands")
+
+    @check("no epoch is unfailable, and none is untriumphable")
+    def _():
+        # Concord's ceiling was 0.884 and xenarch's 0.838 against a break of
+        # 1.0 — their failure prose was dead text and both were guaranteed
+        # triumphs whatever the player did. The arithmetic is data, so the
+        # claim is swept over every epoch: the worst answers must be able to
+        # break it, and the best answers must be able to hold it.
+        rows = []
+        for epoch in EPOCHS:
+            drift = epoch.rate * epoch.hold_days
+            worst = best = 0.0
+            for sid in epoch.scenarios:
+                deltas = [a.effect.get("pressure", 0.0)
+                          for a in SCENARIOS_BY_ID[sid].answers]
+                worst += max(deltas)
+                best += min(deltas)
+            ceiling, floor = drift + worst, drift + best
+            assert ceiling > 1.0, (
+                f"{epoch.id}: worst play tops out at {ceiling:.3f} — its "
+                "failure text is unreachable")
+            assert floor < 1.0, (
+                f"{epoch.id}: best play still breaks at {floor:.3f} — its "
+                "triumph is unreachable")
+            rows.append(f"{epoch.id} {floor:.2f}–{ceiling:.2f}")
+        return "; ".join(rows)
+
+    @check("a closed epoch turns the age or rests — the calendar never freezes")
+    def _():
+        # `in_epoch` went False on the close, `check_victory` re-detected the
+        # same still-true condition, and `advance_days` early-returned for
+        # ever: measured, 2,000 requested days moved the calendar 13 → 13.
+        # A close now either opens its sequel or rests the chronicle.
+        chained = _in_epoch("age-turns", "containment")
+        epoch = EPOCHS_BY_ID["containment"]
+        chained.legacy.began = chained.day - epoch.hold_days - 1
+        chained.advance_days(1)
+        assert legacy_sim.in_epoch(chained), "the age did not turn"
+        assert chained.legacy.epoch == "concord", chained.legacy.epoch
+        lived = legacy_sim.summary(chained)
+        assert lived[0][0].id == "containment" and lived[0][1] == "triumph"
+
+        resting = _in_epoch("rested", "dominion")
+        resting.legacy.pressure = 0.999
+        resting.advance_days(30)
+        assert resting.legacy.over and resting.legacy.outcome == "failure"
+        assert legacy_sim.rested(resting)
+        before = resting.day
+        resting.advance_days(400)
+        assert resting.day - before >= 399, (
+            f"a rested chronicle moved {resting.day - before} of 400 days")
+        assert resting.victory is None and not resting.dead, (
+            "the rest re-detected an ending")
+        return ("containment turns into concord with its triumph on the "
+                f"record; a rested chronicle sailed {resting.day - before} "
+                "more days")
+
+    @check("an unanswered situation is decided in your absence, badly")
+    def _():
+        # Never answering used to be a strategy: an open situation blocks the
+        # next, so ignoring the first collapsed the epoch's ceiling to pure
+        # drift. The law's rule applies here too — silence is an answer, and
+        # it is the worst one.
+        game = _in_epoch("absentee", "cartel")
+        for _ in range(20):
+            game.advance_days(30)
+            if game.situation is not None:
+                break
+        assert game.situation is not None, "no situation ever arrived"
+        sid = game.situation.scenario_id
+        before = game.legacy.pressure
+        game.advance_days(legacy_sim.ABSENCE_DAYS + 40)
+        assert game.situation is None or game.situation.scenario_id != sid, (
+            "the ignored question is still open half a year on")
+        assert sid in game.legacy.answered, "the default was not recorded"
+        worst = max(a.effect.get("pressure", 0.0)
+                    for a in SCENARIOS_BY_ID[sid].answers)
+        drift = EPOCHS_BY_ID["cartel"].rate * (legacy_sim.ABSENCE_DAYS + 40)
+        assert game.legacy.pressure >= before + drift + worst - 0.02, (
+            f"pressure {before:.3f} → {game.legacy.pressure:.3f} does not "
+            f"carry the worst answer ({worst:+.2f})")
+        return (f"'{sid}' ignored for {legacy_sim.ABSENCE_DAYS} days decided "
+                f"itself at {worst:+.2f} pressure")
+
 
 BREAK_LABEL = "100%"

@@ -35,6 +35,13 @@ BREAK = 1.0
 #: How often a situation arrives, in days.
 CADENCE = 90
 
+#: A situation left unanswered this long is decided in your absence, at its
+#: worst answer — the same principle the law's tribunals run on. Without it,
+#: never answering was a strategy: an open situation blocks the next one, so
+#: ignoring the first collapsed an epoch's pressure ceiling to pure drift
+#: and made the slow epochs guaranteed triumphs by inattention.
+ABSENCE_DAYS = 120
+
 
 @register
 @dataclass
@@ -77,6 +84,20 @@ def in_epoch(game) -> bool:
     return lg is not None and not lg.over
 
 
+def rested(game) -> bool:
+    """A final epoch has closed and the chronicle sails on.
+
+    The clock reads this beside `in_epoch`: once the last age has been lived
+    through — no sequel followed it — no further ending is *detected*, and
+    the calendar keeps running. Without it, `check_victory` re-detected the
+    still-true condition on the tick after the close and `advance_days`
+    early-returned for ever: a frozen calendar with no signal, which the
+    module docstring's own promise ("the next one begins") forbids.
+    """
+    lg = held(game)
+    return lg is not None and lg.over
+
+
 def begin(game, ending: str) -> dict:
     """Carry on past an ending. Returns what changed, for the dialog to read."""
     epoch = EPOCHS_BY_ID.get(ending)
@@ -103,6 +124,9 @@ def begin(game, ending: str) -> dict:
                          f"the Verge turned over into {epoch.name}, and it was "
                          "your doing", salience=1.4,
                          tags=["epoch", epoch.id], among=("faction", "port"))
+    from . import comms as comms_sim
+    comms_sim.send(game, "news", "Sector bulletin", "news",
+                   f"The Verge turns: {epoch.name}", epoch.opening)
     game.add_log(f"— {epoch.name} —", "good")
     game.add_log(epoch.opening, "")
     return {"ok": True, "epoch": epoch}
@@ -151,11 +175,24 @@ def tick(game, days: float, rng) -> list:
     lg.since_last += days
 
     if lg.pressure >= BREAK:
-        _close(game, "failure")
-        return [("bad", epoch.failure)]
+        return [("bad", epoch.failure)] + _close(game, "failure")
     if game.day - lg.began >= epoch.hold_days:
-        _close(game, "triumph")
-        return [("good", epoch.triumph)]
+        return [("good", epoch.triumph)] + _close(game, "triumph")
+
+    # A question ignored long enough answers itself, badly.
+    pending = getattr(game, "situation", None)
+    if (pending is not None and not pending.over
+            and pending.definition is not None
+            and game.day - pending.day >= ABSENCE_DAYS):
+        scenario = pending.definition
+        worst = max(scenario.answers,
+                    key=lambda a: a.effect.get("pressure", 0.0))
+        apply(game, worst.effect)
+        if scenario.id not in lg.answered:
+            lg.answered.append(scenario.id)
+        game.situation = None
+        out.append(("bad", f"{scenario.title}: decided in your absence — "
+                           f"{worst.label}."))
 
     if lg.since_last >= CADENCE and getattr(game, "situation", None) is None:
         lg.since_last = 0.0
@@ -168,11 +205,29 @@ def tick(game, days: float, rng) -> list:
     return out
 
 
-def _close(game, outcome: str) -> None:
+def _close(game, outcome: str) -> list:
+    """Close the epoch, and turn the age or let the chronicle rest.
+
+    Returns log lines. A sequel (`data/epochs.sequel_*`) opens through the
+    same `begin` the endings dialog uses, which records this epoch into the
+    history; with no sequel the chronicle *rests* — see `rested`.
+    """
     lg = held(game)
     lg.over = True
     lg.outcome = outcome
     game.situation = None
+    epoch = lg.definition
+    sequel = ""
+    if epoch is not None:
+        sequel = (epoch.sequel_failure if outcome == "failure"
+                  else epoch.sequel_triumph)
+    if sequel and EPOCHS_BY_ID.get(sequel) is not None:
+        told = begin(game, sequel)
+        if told.get("ok"):
+            return [("warn" if outcome == "failure" else "good",
+                     f"The age turns: {EPOCHS_BY_ID[sequel].name}.")]
+    return [("", "The chronicle rests. What happens next is not an ending; "
+                 "it is just what happens next.")]
 
 
 def offer(game) -> dict:

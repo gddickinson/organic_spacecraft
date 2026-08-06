@@ -39,3 +39,14 @@ def part_value(p: Part) -> int:
         if key != "credits":
             v += _MATERIAL_VALUE.get(key, 100) * n
     return round(v)
+
+
+def material_value(key: str) -> int:
+    """Credit value of a tonne of a build material, for resale valuation.
+
+    The one table for "what is this matter worth back": `part_value` reads it
+    for fittings and `shipyard.scrap_value` for whole hulls. It used to be
+    private and the yard valued every returned tonne at a flat 60 — ore came
+    back at 143% of its market base and silicon at 7%.
+    """
+    return _MATERIAL_VALUE.get(key, 100)

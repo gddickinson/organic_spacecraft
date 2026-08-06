@@ -109,8 +109,13 @@ COLONIES: list[ColonyClass] = [
         "everything, this is what you come back from.", "Ursus vivus",
         {"vault": True}),
     ColonyClass(
+        # Sunward rock, not the star itself: the generator grows no body of
+        # kind "star", so a site list saying ("star",) made this class
+        # unbuildable by construction — 0 candidate bodies in 1,223 over
+        # eight sectors. The film is anchored to whatever bare rock rides
+        # closest to the furnace.
         "solforge", "SOL-FORGE", "grown", "solforge",
-        ("star",), 240,
+        ("rocky", "asteroid"), 240,
         {"credits": 70000, "biomass": 60, "ore": 200, "spidroin": 40},
         {"credits": 420, "alloy": 0.9}, {}, 0,
         "Five kilometres of secreted reflective film at a fifth of an AU, "

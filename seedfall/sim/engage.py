@@ -142,7 +142,23 @@ def open_fire(game, conn, contact, rng):
     if not ok:
         return None, why
     faction = getattr(contact, "faction", None) or "unaligned"
-    enemy = encounters_sim.make_enemy(rng, faction)
+    # **Opening fire inside somebody's volume is an offence.** It was not
+    # gated at all: `may_engage`'s four refusals are the conn being busy, the
+    # target not being a hull, having no weapons, and range — so a captain
+    # could fire on a Charter freighter inside a Charter capital's approaches
+    # and the station would not react, because `control.step` only escalates
+    # on unauthorised *closing*. It still does not stop you. It charges you,
+    # which is the difference between a policed volume and a locked door.
+    from . import dockets
+    dockets.report(game, "affray",
+                   f"you opened fire on {getattr(contact, 'name', 'a hull')} "
+                   f"in {getattr(getattr(game, 'system', None), 'name', 'open space')}",
+                   weight=1.0)
+    # At the sector's own difficulty draw — the default 1.0 sat at the very
+    # floor of the encounter range, so opening fire yourself bought the
+    # easiest fight in the game.
+    enemy = encounters_sim.make_enemy(rng, faction,
+                                      encounters_sim.draw_threat(game, rng))
     enemy["name"] = getattr(contact, "name", enemy.get("name", "Unknown hull"))
     enemy["faction"] = faction
     # **Your escorts come with you.** `ui/battle_view.begin` passes

@@ -25,8 +25,7 @@ from ..sim.fieldwork import buy_field_notes, xeno_notes_price
 from ..sim import xeno as xeno_sim
 from ..sim import contracts as contract_sim
 from ..sim.ship import cargo_used, hull_pct
-from ..world.economy import (buy_price, demands,
-                             price_note, sell_price)
+from ..world.economy import demands, price_note
 from .widgets import (Panel, Pill, TabBar, View, button, label,
                       mono_label, note)
 
@@ -116,6 +115,16 @@ class PortView(BerthsMixin, View):
         self.col.addWidget(note(
             f"This port is short of: {wants}.   Hold: {round(cargo_used(g.ship))}/"
             f"{round(g.ship_stats.cargo)} t."))
+
+        # **Before you sell, not after.** A creditor who holds this counter
+        # takes its share at the till (`sim/wharfage.collect`), which is the
+        # whole reason a judgment cannot be ignored — so the board has to say
+        # so first. A cut taken out of a sale the captain was not warned about
+        # is the screen lying by omission.
+        from ..sim import debts as debts_sim
+        distraint = debts_sim.distraint_note(g, sys)
+        if distraint:
+            self.col.addWidget(label(distraint, "", "warn", wrap=True))
 
         # Why the numbers are not the posted ones. The office rate used to be
         # applied at the till, so the board showed one price and the counter
@@ -319,7 +328,9 @@ class PortView(BerthsMixin, View):
             button(f"Clear {len(g.ship.disabled)} fault(s)", self._clear_faults)
             if g.ship.disabled else None)
 
-        vp = buy_price(sys.market, "volatiles", rep, st.trade) or 40
+        # The counter's own quote — the market grid twenty lines up was
+        # switched to `quote_buy` and pinned; this button was missed.
+        vp = market_sim.quote_buy(self.game, sys, "volatiles") or 40
         bunker = Panel("Bunkering")
         bunker.add(label("Reaction mass is volatiles. Every jump burns roughly a "
                          "tonne per light-year.", "", wrap=True))

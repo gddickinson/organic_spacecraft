@@ -324,6 +324,108 @@ seven diffs and guessing. The fixture provisions the hull now, and reports
 the span each sector actually got, because a silent truncation that still
 passes is worse than a failure.
 
+## 2026-08-05 — building a law for the Verge
+
+Asked for a comprehensive governance system covering everything the survey
+found missing. The temptation was a police force, and it would have been the
+wrong game: the Charter "fields no armed vessel anywhere" and a sector-wide
+constabulary is precisely the single authority the programme's charter exists
+to prevent. So the design became **four powers, four legal cultures, and each
+only as long as its own arm** — which turned out to be latent in
+`data/factions.py` already. The Charter excludes and never shoots. The
+Concordat wants property and has hulls. The Freeholds have no court and post
+a price. The Dry Choir holds no hearing and stops answering. Same act, four
+completely different afternoons; that check is the one I would keep if I could
+only keep one.
+
+The idea that made it a game rather than a tax was separating **witnessed**
+from **charged**. An act nobody could see offends nobody, so where you work is
+a real decision and the frontier is worth having.
+
+Two faults, both found by playing rather than reading, both instructive.
+
+The law re-entered itself: a patrol stop charged two days with
+`advance_days`, which runs the clock, which runs the law. It surfaced as a
+`RecursionError` raised in `settlement.maturity`, three modules from the
+cause — re-entrancy never reports itself where it happens. There is a guard
+flag now, and the rule is simply that nothing inside a tick moves the
+calendar.
+
+The second was worse and I nearly shipped it. Not answering a summons is
+itself an offence — that is what stops the whole layer being escapable by
+never going home — but a default charge decided in absence generates a default
+charge, and the debt it creates generates arrears, which is also decided in
+absence. One contraband bust, left alone for eight years: **61,820 charges
+and ₡498 million owed.** Not a balance problem; a save file that will not
+load. The fix is the honest one rather than a cap: a power has *one*
+complaint about your silence at a time, and what escalates is the instrument,
+not the paperwork. The same decade now ends at three charges and ₡45,000. The
+lesson is the project's oldest in a new costume — any rule that generates its
+own input needs a reason it terminates, written down.
+
+## 2026-08-05 — the reviews' residue, closed in four sub-passes
+
+Asked what the game's major weaknesses were. The honest answer was already
+written down — the two review lists in IMPROVEMENTS.md had survived
+eighteen passes — so the work was verification and then closure, in value
+order: the economy exploits, the endgame arc, the combat arc, and the mute
+sector. Three new suites (`solvency`, `prize`, `despatch`), additions to
+eight more, and the details in IMPROVEMENTS.md's nineteenth-pass entry.
+
+What the pass taught, beyond what it fixed:
+
+**A probability where a pity timer belongs re-paces the whole game.** The
+inert-Bloom fix started as "past the seeding cutoff, throw anyway at 0.35×
+chance" — and every *saturated* system became long-range artillery the
+moment its neighbourhood filled in, because "no clean ground in range" is
+also the late game's normal state. Six long fixtures drowned ~40% faster
+and a naive five-year captain starved in a sector 37/42 gone. The stall is
+the *sector's* condition, so the answer is the sector's one move: a forced
+throw after ~3 stalled years, deterministic, and slow sectors stay slow.
+
+**A new outcome id breaks every tally that enumerates outcomes.** Adding
+"struck" collapsed the easy tier's measured win rate to 62% overnight —
+weak enemies were surrendering and the harness counted a surrender as a
+loss. Grep for the result-id literal before shipping a new one.
+
+**A check that passes on a frozen actor is not passing.** `test_play`'s
+five-year solvency floor had held because the bot froze at day 1500 (a
+stale `is_stranded` price refused its tow) and a frozen captain cannot die.
+Making `is_stranded` honest un-froze it, and one seed's sector genuinely
+drowns in year 4.8 — the loss rule working. The check now owns the economy
+(nobody starves, nobody in debt) and lets the sector's own ending be the
+one thing that stops a run.
+
+**The suite must arrange its own silence.** The two speech checks assumed
+no model answers on this machine, and this machine runs Ollama — so they
+failed against a healthy game. A claim about behaviour-when-nothing-answers
+has to point the probe at a dead port, not hope the developer never
+installed anything.
+
+And one small closure with a long history: the fifteen-screen rail finally
+has digits that mean their position, W/A/S/D works wherever the flight
+clock runs, and every stated count ("Eight things", "Five endings",
+"Keys 1–8") is computed from the table it describes.
+
+The first full run then surfaced four stragglers, each its own lesson:
+
+- **A drawing keyed on a datum you retire loses its face silently.**
+  `works3d` derived SOL-FORGE's mirror from the `"star"` site kind; fixing
+  the site to sunward rock stripped the film and left a refinery clone at
+  91% shared outline. The class is the fact now, not the site.
+- **A lever must measure its own experiment.** The relation-drift probe
+  took the *minimum over every pair* after twelve passive years — and once
+  a passive sector can genuinely collapse, that minimum read the
+  apocalypse, not the fade, and the direction inverted. It measures the
+  pair it shoved now, over a horizon the sector survives, provisioned.
+- **A capability check must count the act, not the survivors.** The decade
+  chronicle planted eleven colonies and the Bloom ate every one; counting
+  `len(game.colonies)` at the end read "never planted". And the driver had
+  never cleared a combat fault in its life — an EMP took the seed bay in
+  year two and `can_colonise` was False for the rest of the decade, which
+  is the same probe-misses-the-move lesson as the bot's pantry, at a yard
+  instead of a counter.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests` runs the lot (~25 min, 192 suites); one suite by

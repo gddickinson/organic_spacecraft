@@ -193,7 +193,9 @@ class MainWindow(QMainWindow):
     def _make_views(self) -> None:
         from .battle_view import BattleView
         from .codex_view import CodexView
+        from .despatch_view import DespatchView
         from .diplomacy_view import DiplomacyView
+        from .law_view import LawView
         from .expedition_view import ExpeditionView
         from .helm_view import HelmView
         from .pilot_view import PilotView
@@ -218,7 +220,8 @@ class MainWindow(QMainWindow):
             "empire": EmpireView, "codex": CodexView, "battle": BattleView,
             "ground": ExpeditionView, "helm": HelmView,
             "pilot": PilotView,
-            "diplomacy": DiplomacyView,
+            "diplomacy": DiplomacyView, "law": LawView,
+            "despatches": DespatchView,
             "docking": DockingView, "decoding": DecodingView,
             "transit": TransitView, "dig": DigView, "legacy": LegacyView,
             "help": HelpView,
@@ -369,13 +372,19 @@ class MainWindow(QMainWindow):
     beat_refresh = flight_clock.beat_refresh
 
     def keyPressEvent(self, event) -> None:      # noqa: N802
+        # Wherever the flight clock runs, the flying keys work — the clock
+        # ran on the Helm (`flight_clock.DECK_SCREENS`) while W/A/S/D were
+        # gated to the Pilot screen alone, so half the flight deck had a
+        # dead keyboard.
         from . import flying_keys
-        if not (self.current == "pilot" and flying_keys.press(self, event)):
+        deck = self.current in flight_clock.DECK_SCREENS
+        if not (deck and flying_keys.press(self, event)):
             super().keyPressEvent(event)
 
     def keyReleaseEvent(self, event) -> None:    # noqa: N802
         from . import flying_keys
-        if not (self.current == "pilot" and flying_keys.release(self, event)):
+        deck = self.current in flight_clock.DECK_SCREENS
+        if not (deck and flying_keys.release(self, event)):
             super().keyReleaseEvent(event)
 
     def battle_act(self, action: dict) -> None:

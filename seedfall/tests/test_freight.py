@@ -86,6 +86,12 @@ def run(suite: Suite) -> None:
     @check("the desk names only its own power's ports")
     def _():
         game = _travelled("own-ports")
+        # A liked captain, so every desk speaks at full reach. The desk's
+        # quotes go through the counter now (`quote_buy`/`quote_sell`), which
+        # prunes the marginal runs the old raw prices invented — on neutral
+        # standing this seed kept only five, too few to carry the claim.
+        for fid in set(s.port.faction for s in game.galaxy.systems if s.port):
+            game.rep[fid] = 60.0
         checked = 0
         for system in game.galaxy.systems:
             if not system.port or not system.market:

@@ -148,11 +148,15 @@ def run(suite: Suite) -> None:
         #     upkeep 30    120    270    480    750
         #     net   +60    +60      0   −120   −300
         #
-        # Promoting an outpost to a station is worth exactly nothing a day,
-        # and every step above it is a loss. That is deliberate — a Fleet Hub
-        # is what a power builds with money it has nothing better to do with —
-        # but it only works because `works_open` sorts by payback rather than
-        # by price, and that sort was unguarded.
+        # Promoting a *bare* berth is worth exactly nothing a day, and every
+        # step above it is a loss. That much is deliberate — a Fleet Hub is
+        # what a power builds with money it has nothing better to do with.
+        # But the bare curve is not the whole answer any more: `payback` now
+        # reads the port's own multipliers through `would_yield` — the same
+        # function the ledger pays with — so a thriving *capital* clears real
+        # margin on the higher level and its promotion carries a finite
+        # payback. Before that, "promotion never pays" was true of every port
+        # in the sector by arithmetic, and no power ever promoted anything.
         game = new_game("payback")
         power = dip.POWERS[0]
         found = ex.payback(game, power, ex.FOUND_COST, "found")
@@ -161,24 +165,33 @@ def run(suite: Suite) -> None:
         for level in (2, 3, 4):
             step = ex.payback(game, power, 10_000, f"promote:{level}")
             assert step == float("inf"), (
-                f"promoting to level {level} claims to pay back in {step:.0f} "
-                "days, and it clears nothing a day")
+                f"a bare promotion to level {level} claims to pay back in "
+                f"{step:.0f} days, and it clears nothing a day")
+        capital = next((s for s in ex.holdings(game, power)
+                        if s.port.capital and s.port.level == 1), None)
+        finite_cap = None
+        if capital is not None:
+            finite_cap = ex.payback(game, power, ex.STEP_COST[2],
+                                    "promote:2", capital)
+            assert finite_cap < float("inf"), (
+                "a capital's promotion still reads as never paying — the "
+                "forecast is not reading the multipliers the ledger pays")
         # And the ordering the sort exists for: nothing that never pays is
-        # offered ahead of something that does.
-        for held in ex.holdings(game, power):
-            opts = ex.works_open(game, power)
-            if len(opts) < 2:
-                continue
-            paying = [i for i, (cost, _s, what) in enumerate(opts)
-                      if ex.payback(game, power, cost, what) < float("inf")]
-            never = [i for i, (cost, _s, what) in enumerate(opts)
-                     if ex.payback(game, power, cost, what) == float("inf")]
+        # offered ahead of something that does — judged the way `works_open`
+        # itself judges, with the system in hand.
+        opts = ex.works_open(game, power)
+        if len(opts) >= 2:
+            paying = [i for i, (cost, s, what) in enumerate(opts)
+                      if ex.payback(game, power, cost, what, s) < float("inf")]
+            never = [i for i, (cost, s, what) in enumerate(opts)
+                     if ex.payback(game, power, cost, what, s) == float("inf")]
             if paying and never:
                 assert max(paying) < min(never), (
                     "a work that never pays is offered before one that does")
-            break
-        return (f"founding pays back in {found:,.0f} days; promoting to "
-                "levels 2, 3 and 4 never does, and is offered last")
+        return (f"founding pays back in {found:,.0f} days; bare promotion "
+                "never does"
+                + (f"; the capital's pays in {finite_cap:,.0f}"
+                   if finite_cap is not None else ""))
 
     @check("a power that cannot pay the stake starts nothing")
     def _():

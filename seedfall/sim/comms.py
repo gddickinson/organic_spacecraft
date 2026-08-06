@@ -320,13 +320,28 @@ def tick(game, days: float = 1.0) -> int:
     return sent
 
 
+#: A bulletin a year stale is litter, read or not. Questions never expire —
+#: an open ask is never swept — but plain telling that nobody read for a
+#: year goes the way of old newsprint. Before this, an ignored inbox grew
+#: without bound in the save, which is the exact defect the screen's absence
+#: was hiding.
+EXPIRE_DAYS = 365.0
+
+
 def sweep(game, keep: int = 120) -> int:
-    """Drop the oldest read-and-answered traffic so the store cannot grow."""
+    """Drop old traffic so the store cannot grow: the oldest read-and-
+    answered beyond `keep`, and any unread *telling* past `EXPIRE_DAYS`."""
     got = _all(game)
+    litter = [s for s in got
+              if not s.asks and not s.read
+              and game.day - s.due_day > EXPIRE_DAYS]
+    for sig in litter:
+        got.remove(sig)
+    dropped = len(litter)
     if len(got) <= keep:
-        return 0
+        return dropped
     stale = [s for s in got if s.read and not s.asks]
     drop = len(got) - keep
     for sig in sorted(stale, key=lambda s: s.due_day)[:drop]:
         got.remove(sig)
-    return min(drop, len(stale))
+    return dropped + min(drop, len(stale))

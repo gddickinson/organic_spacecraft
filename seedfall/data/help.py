@@ -50,6 +50,60 @@ TOPICS = [
            "will arrive at before you commit."),
           facts=("burns", "reach"), see=("map", "instruments")),
 
+    Topic("law", "Four powers, four laws, and none of them universal", "law",
+          ("There is no law of the Verge. There are four powers, each with "
+           "its own, and each is only as long as that power's arm. An act "
+           "offends nobody who could not see it — and a power sees a system "
+           "through its quay, its register, its hulls on station, or a "
+           "friend who has one of those. Working where a power holds nothing "
+           "is not innocence. It is being unobserved, and it is allowed to "
+           "feel different.",
+           "Being seen is not being charged. A witnessed act sits on the "
+           "file until that power sweeps it, which happens about monthly — "
+           "so there is a window in which leaving is a plan. Left long "
+           "enough unfiled, most things age out. Destroying a hull and "
+           "germinating without a licence never do.",
+           "The four forums are deliberately not comparable. The Charter "
+           "fields no armed vessel and never will: its law is paperwork, and "
+           "its whole armoury is the word no — no clearance, no licence, no "
+           "gate. The Concordat thinks in property and has hulls to collect "
+           "it with. The Freeholds have no forum at all; a claim becomes a "
+           "price on your hull, posted openly and sold to whoever fancies "
+           "the work. The Dry Choir holds no hearing, because there is "
+           "nowhere to stand and nothing is audible to you — what comes out "
+           "is anathema, and their network simply stops answering.",
+           "Every forum decides in your absence. Not turning up multiplies "
+           "the assessment, makes them reach for a heavier instrument, and "
+           "is itself an offence that never prescribes. Answer, admit, or "
+           "settle before the day — the screen states the whole price of "
+           "each before you choose.",
+           "There is always a way out. Pay the judgment and whatever it "
+           "bought them lifts itself. Buy the paper back off whoever holds "
+           "it. Ask a harbourmaster who is fond of you to lose the file, "
+           "which costs money and most of what they think of you. Or sign a "
+           "treaty: an amnesty is a clause, and it is why a captain deep in "
+           "trouble with one power may suddenly want very badly to be "
+           "friends with it."),
+          facts=("powers",), see=("diplomacy", "trade")),
+
+    Topic("despatches", "Despatches, and why word arrives old", "despatches",
+          ("A courier is not a radio. Word moves through the sector the way "
+           "everything else does: instantly within a system, in hours where "
+           "the Weave is lit, aboard ordinary hulls where it is not — about "
+           "eleven days a light year — and at the speed of light where no "
+           "hull can reach at all. A bulletin from the far side of the "
+           "Verge is a history lesson by the time it is in your hand, and "
+           "the board says how old each one is.",
+           "Some despatches ask a question. Those stay on the board until "
+           "you answer them; nothing forces you, and nothing stops the "
+           "clock — but a power that wrote to you remembers whether you "
+           "wrote back. Plain bulletins can simply be noted, and any left "
+           "unread for a year are swept out with the rest of the litter.",
+           "The Chronicle tab is the ship's own log, all of it — the "
+           "sidebar shows the last sixty lines; every line the ship has "
+           "kept is here, and can be sifted by kind."),
+          see=("weave", "diplomacy")),
+
     Topic("map", "The chart, and what you can actually reach", "map",
           ("The dashed ring is one jump. The question that matters is what "
            "you can get to at all, by hopping — and often the answer is not "

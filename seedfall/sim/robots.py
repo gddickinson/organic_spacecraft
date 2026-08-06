@@ -348,7 +348,15 @@ def tick(game, days: float, rng) -> list:
         if need <= 1e-9:
             continue
         if key == "credits":
-            game.credits -= need
+            # Like the payroll in `core/clock.py`: an empty purse is not a
+            # line of credit. This was the one unguarded `credits -=` in the
+            # game — machines quietly drove the treasury underwater and
+            # nothing anywhere read a negative balance. Unpaid is starved,
+            # and a starved machine spends itself (wear ×2 below).
+            if game.credits >= need:
+                game.credits -= need
+            else:
+                starved.append(key)
             continue
         if _take(game, key, need) > need * 0.02:
             starved.append(key)

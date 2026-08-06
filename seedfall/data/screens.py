@@ -12,19 +12,25 @@ Aftermath both bound `0` and one of them was unreachable from the keyboard.
 
 from __future__ import annotations
 
-#: (screen id, rail label, key). Keys must be unique — `test_manual` checks.
+#: (screen id, rail label, key). Keys must be unique — `test_manual` checks —
+#: and **a digit key is the rail position it opens**: `4` is the fourth entry,
+#: `0` the tenth. The digits used to drift (`4` opened the fifth entry, and
+#: two off by the end), which reads as a broken keyboard; letters carry
+#: everything past ten, chosen clear of the flying keys (W/A/S/D, R/F).
 SCREENS = (
     ("map", "✦  Sector", "1"),
     ("system", "◉  System", "2"),
     ("helm", "◐  Helm", "3"),
-    ("pilot", "▲  Pilot", "p"),
-    ("port", "⌂  Port", "4"),
-    ("ship", "❖  Ship", "5"),
-    ("yard", "⚙  Shipyard", "6"),
-    ("tech", "⌘  Research", "7"),
-    ("empire", "◈  Holdings", "8"),
-    ("diplomacy", "⚖  Diplomacy", "9"),
-    ("codex", "§  Codex", "0"),
+    ("pilot", "▲  Pilot", "4"),
+    ("port", "⌂  Port", "5"),
+    ("ship", "❖  Ship", "6"),
+    ("yard", "⚙  Shipyard", "7"),
+    ("tech", "⌘  Research", "8"),
+    ("empire", "◈  Holdings", "9"),
+    ("diplomacy", "⚖  Diplomacy", "0"),
+    ("law", "§§  The law", "l"),
+    ("despatches", "✉  Despatches", "c"),
+    ("codex", "§  Codex", "x"),
     ("legacy", "∞  Aftermath", "-"),
     ("help", "?  Help", "?"),
 )

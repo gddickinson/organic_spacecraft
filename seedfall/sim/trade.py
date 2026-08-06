@@ -18,7 +18,7 @@ from . import wharfage as wharfage_sim
 from . import diplomacy as dip_sim
 from . import loyalty as loyalty_sim
 from .ship import add_cargo, cargo_free
-from ..world.economy import apply_sale, apply_trade, buy_price, sell_price
+from ..world.economy import apply_sale, apply_trade
 
 #: A sale worth this much is a sale the quartermaster notices.
 NOTICED = 2500
@@ -36,6 +36,14 @@ SELL_TAINT = 8.0
 
 def buy(game, cid: str, units: int) -> dict:
     """Take `units` off the local market, as many as can be paid for and stowed."""
+    # A counter that has struck you from the record does not price for you.
+    # `sim/enforce.may_trade` is the one door — anathema is the only
+    # instrument that closes a market, because an interdict stops you getting
+    # alongside and does not stop them taking your money if you manage it.
+    from . import enforce as enforce_sim
+    dealing, refusal = enforce_sim.may_trade(game, game.system)
+    if not dealing:
+        return {"ok": False, "why": refusal}
     system = game.system
     if not system.port:
         return {"ok": False, "why": "No port here."}
@@ -76,6 +84,14 @@ def buy(game, cid: str, units: int) -> dict:
 
 def sell(game, cid: str, units: int) -> dict:
     """Sell over the posted counter. Refused for anything this power seizes."""
+    # A counter that has struck you from the record does not price for you.
+    # `sim/enforce.may_trade` is the one door — anathema is the only
+    # instrument that closes a market, because an interdict stops you getting
+    # alongside and does not stop them taking your money if you manage it.
+    from . import enforce as enforce_sim
+    dealing, refusal = enforce_sim.may_trade(game, game.system)
+    if not dealing:
+        return {"ok": False, "why": refusal}
     system = game.system
     if not system.port:
         return {"ok": False, "why": "No port here."}
@@ -146,11 +162,7 @@ def sell_survey_data(game) -> dict:
     # power's memory of you and the office rate both went unread. Measured
     # at one quay: 50 sets took 20,650 and the holder's purse saw nothing of
     # the 490 due.
-    price = market_sim.quote_sell(game, system, "survey")
-    if price is None:
-        price = sell_price(system.market, "survey",
-                           game.rep.get(system.port.faction, 0),
-                           game.ship_stats.trade) or 250
+    price = market_sim.quote_sell(game, system, "survey") or 250
     took = round(n * price)
     game.credits += took
     due = wharfage_sim.collect(game, system, took)

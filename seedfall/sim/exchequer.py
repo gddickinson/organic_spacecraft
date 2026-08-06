@@ -133,16 +133,31 @@ def yield_of(game, system) -> float:
     port = system.port
     if port is None:
         return 0.0
-    out = port.level * YIELD_PER_LEVEL
-    if port.capital:
+    return would_yield(game, port.faction, system, port.level)
+
+
+def would_yield(game, power: str, system, level: int) -> float:
+    """`yield_of`'s arithmetic, for a berth that need not exist yet.
+
+    One door for the ledger *and* the forecast. `payback` used to re-derive
+    the curve from the bare constants — no capital bonus, no industries, no
+    shortage, no Bloom — which read "promotion never pays" at every port in
+    the sector, while the ledger it was forecasting paid a thriving capital
+    half again the bare rate. The module docstring's rule about forecasts
+    that read a different function from the act, again.
+    """
+    out = max(0, level) * YIELD_PER_LEVEL
+    port = system.port if system is not None else None
+    if port is not None and port.capital:
         out *= 1.0 + CAPITAL_BONUS
     # What they have been taught to make. A power that buys a process off the
     # captain is buying this line — see `sim/industry.py`.
-    out *= 1.0 + INDUSTRY_YIELD * industries(game, port.faction)
-    if scarce(game, system):
-        out *= SHORTAGE_YIELD
-    # Growth here is growth in the trade — `data/exchequer` says why.
-    out *= 1.0 - BLOOM_YIELD_LOSS * max(0.0, min(1.0, system.bloom))
+    out *= 1.0 + INDUSTRY_YIELD * industries(game, power)
+    if system is not None:
+        if scarce(game, system):
+            out *= SHORTAGE_YIELD
+        # Growth here is growth in the trade — `data/exchequer` says why.
+        out *= 1.0 - BLOOM_YIELD_LOSS * max(0.0, min(1.0, system.bloom))
     return out
 
 
@@ -238,7 +253,7 @@ def demote(game, system) -> str | None:
 
 # ── what a power does with the money ───────────────────────────────────────
 
-def payback(game, power: str, cost: int, what: str) -> float:
+def payback(game, power: str, cost: int, what: str, system=None) -> float:
     """Days for one work to pay for itself, or `inf` if it never does.
 
     **The exchequer chose by price, and price is not value.** `_invest` took the
@@ -263,11 +278,17 @@ def payback(game, power: str, cost: int, what: str) -> float:
         from . import settlement as settlement_sim
         return settlement_sim.payback_days()
     if what == "found":
-        gain = YIELD_PER_LEVEL * PORT_KINDS[0][2] - upkeep_at(PORT_KINDS[0][2])
+        base = PORT_KINDS[0][2]
+        gain = would_yield(game, power, system, base) - upkeep_at(base)
     else:
+        # The *real* marginal gain, with this port's own multipliers — a
+        # thriving capital is worth promoting and a bare outpost is not,
+        # which is a texture the bare constants cannot express (they say
+        # exactly zero for level 2, everywhere, for everyone).
         level = int(what.split(":", 1)[1]) if ":" in what else 0
-        gain = ((YIELD_PER_LEVEL * level - upkeep_at(level))
-                - (YIELD_PER_LEVEL * (level - 1) - upkeep_at(level - 1)))
+        gain = ((would_yield(game, power, system, level) - upkeep_at(level))
+                - (would_yield(game, power, system, level - 1)
+                   - upkeep_at(level - 1)))
     if gain <= 0:
         return float("inf")
     return cost / gain
@@ -300,7 +321,7 @@ def works_open(game, power: str) -> list[tuple[int, object, str]]:
     from . import settlement as settlement_sim
     for system, body, _good in settlement_sim.sites_for(game, power)[:3]:
         out.append((SETTLE_COST, system, f"settle:{body.id}"))
-    out.sort(key=lambda row: (payback(game, power, row[0], row[2]),
+    out.sort(key=lambda row: (payback(game, power, row[0], row[2], row[1]),
                               row[0], row[1].id))
     return out
 

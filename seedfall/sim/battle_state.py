@@ -64,6 +64,10 @@ class Battle:
     #: screen and a headless driver can reach the end of a fight; neither
     #: should be able to collect the salvage twice.
     settled: bool = False
+    #: What the captain did with a hull that struck its colours — "" until
+    #: decided, then "taken", "stripped" or "released". One decision per
+    #: engagement; `sim/prize.py` is the door.
+    prized: str = ""
 
     @property
     def range_units(self) -> float:
@@ -73,3 +77,30 @@ class Battle:
     def band(self) -> int:
         """Weapons are specified in bands; the band comes from real distance."""
         return tac.band_for(self.range_units)
+
+
+#: How each way a battle can end reads in the log. Lives here rather than in
+#: `sim/combat.py` so the resolver, `sim/parley.py` and `sim/prize.py` end an
+#: engagement through the same door.
+ENDINGS = {
+    "destroyed": "{enemy} comes apart across three compartments.",
+    "driven-off": "{enemy} breaks off. Whatever they came for, it was not worth this.",
+    "escaped": "You break contact and run dark.",
+    "parley": "They stand down. Somebody on that bridge wanted a reason to.",
+    "struck": "{enemy} strikes their colours. The guns fall silent, and what "
+              "happens to that hull is now yours to decide.",
+    "routed": "You have nothing left to hold with. They let you go.",
+    "stalemate": "Neither hull can finish the other. You drift apart, both of you "
+                 "poorer and neither of you satisfied.",
+    "lost": "{player} is lost.",
+}
+
+
+def finish(b: Battle, result: str) -> Battle:
+    """End the engagement, one way. The one writer of `over` and `result`."""
+    b.over = True
+    b.result = result
+    line = ENDINGS.get(result, result).format(enemy=b.enemy_name,
+                                              player=b.player.ship.name)
+    b.log.append((b.turn, line, "bad" if result == "lost" else "good"))
+    return b

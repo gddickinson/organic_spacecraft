@@ -87,6 +87,15 @@ def request(game, contact, conn=None) -> Clearance:
     """
     if contact is None:
         return Clearance(False, "Nothing selected.")
+    # **An interdict is refused here or it is refused nowhere.** This is the
+    # Charter's entire armoury and the whole of what "they exclude, they never
+    # shoot" means in play — see `sim/enforce.may_berth`, which also honours
+    # the "a berth regardless" favour that until now bought nothing at all.
+    from . import enforce as enforce_sim
+    allowed, refusal = enforce_sim.may_berth(
+        game, getattr(game, "system", None), contact)
+    if not allowed:
+        return Clearance(False, refusal)
     kind = getattr(contact, "kind", "")
     if kind in ("body", "star"):
         # **A settled world names whoever is on it**, and that is the whole of

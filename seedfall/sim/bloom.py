@@ -42,6 +42,11 @@ class BloomState:
     beats: list[str] = field(default_factory=list)
     provocation: float = 0.0
     responses: list[str] = field(default_factory=list)
+    #: What the *captain* has cost it, undecayed and never NPC-fed — the
+    #: record `threat._stood_through_it` reads. `provocation` cannot serve:
+    #: the powers' own containment flotillas provoke on the clock, so a
+    #: level test handed Ruin to total passivity.
+    fought: float = 0.0
     #: Damage dealt to it per weapon family, from the first shot — what
     #: "adapting everywhere at once" adapts against (`responses.check`).
     hurt: dict[str, float] = field(default_factory=dict)
@@ -193,6 +198,17 @@ def _retarget(game, inst: Instar) -> None:
     exactly that, and the mass then "arrived" every twenty days for ever,
     re-seeding the growth and re-rolling the colony attack each time.
     """
+    # A hunting Bloom goes for the hull itself, wherever it stands — the
+    # sentence the System screen prints ("it is sending masses after your
+    # hull specifically") was read by that one label and by nothing here,
+    # so it stopped being true after the first two masses. The rule above
+    # still holds: never the system the mass is standing in.
+    from . import responses as response_sim
+    if (response_sim.hunting(game)
+            and game.location_id != inst.system_id):
+        inst.target_id = game.location_id
+        inst.days = 0.0
+        return
     here = game.galaxy.systems[inst.system_id]
     yours = [game.galaxy.systems[c.system_id] for c in game.colonies if c.online]
     pool = [s for s in (yours or [t for t in game.galaxy.systems

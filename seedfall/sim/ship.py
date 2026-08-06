@@ -115,6 +115,12 @@ class Stats:
     abilities: list = field(default_factory=list)
 
 
+def next_uid() -> int:
+    """A fresh hull identity. A captured ship keeps its layers and its cargo
+    and cannot keep its uid — `consorts` and the fleet ledger both key on it."""
+    return next(_uid)
+
+
 def make_ship(chassis_id: str, fitted=(), name: str | None = None) -> Ship:
     ch = CHASSIS_BY_ID.get(chassis_id)
     if ch is None:

@@ -146,13 +146,13 @@ def market(game) -> dict:
         return {"ok": False, "why": "No market here."}
     rep = game.rep.get(system.port.faction, 0)
     market_sim.note_prices(game, system, rep, game.ship_stats.trade)
-    from ..world.economy import buy_price, sell_price
+    # The counter's quotes, not the raw prices — the bot trades through
+    # `sim.trade`, which charges `quote_*`, so anything else here is a board
+    # quoting figures the counter will not honour.
     rows = {}
     for cid in list(system.market.stock):
-        rows[cid] = {"buy": buy_price(system.market, cid, rep,
-                                      game.ship_stats.trade),
-                     "sell": sell_price(system.market, cid, rep,
-                                        game.ship_stats.trade)}
+        rows[cid] = {"buy": market_sim.quote_buy(game, system, cid),
+                     "sell": market_sim.quote_sell(game, system, cid)}
     return {"ok": True, "port": system.port.name, "prices": rows}
 
 
@@ -163,6 +163,37 @@ def log(game, count: int = 20) -> dict:
          "text": entry[1] if isinstance(entry, (list, tuple)) and len(entry) > 1
          else str(entry)}
         for entry in list(game.log)[-int(count):]]}
+
+
+@verb("despatches", "The inbox: what has arrived, and what asks an answer.")
+def despatches(game, count: int = 20) -> dict:
+    """Deliberately *not* part of `waiting`/`reply`: an unanswered despatch
+    does not stop the clock or lock the window, and folding it into the
+    blocked set would deadlock every driven session on the first bulletin."""
+    from ..sim import comms as comms_sim
+    rows = []
+    for sig in comms_sim.inbox(game)[:int(count)]:
+        rows.append({"id": sig.id, "from": sig.name, "channel": sig.channel,
+                     "subject": sig.subject, "body": sig.body,
+                     "age": sig.note, "read": sig.read,
+                     "asks": sig.asks,
+                     "replies": [{"key": k, "says": w}
+                                 for k, w in sig.replies] if sig.asks else []})
+    return {"ok": True, "unread": comms_sim.unread(game),
+            "asking": len(comms_sim.asking(game)), "despatches": rows}
+
+
+@verb("answer_signal", "Answer a despatch by id and reply key; or mark it read.")
+def answer_signal(game, signal_id: str, key: str = "") -> dict:
+    from ..sim import comms as comms_sim
+    if key:
+        if comms_sim.answer(game, str(signal_id), str(key)):
+            return {"ok": True, "answered": str(key)}
+        return {"ok": False, "why": "Not being asked, or no such reply."}
+    sig = comms_sim.read(game, str(signal_id))
+    if sig is None:
+        return {"ok": False, "why": "No despatch by that id."}
+    return {"ok": True, "read": True}
 
 
 # ── doing ──────────────────────────────────────────────────────────────────

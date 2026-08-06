@@ -118,11 +118,23 @@ def apply_trade(market: Market, cid: str, units: float) -> None:
 
 
 def apply_sale(market: Market, cid: str, units: float) -> None:
-    """Selling floods it and pushes the price down."""
+    """Selling floods it and pushes the price down.
+
+    Unless the port does not trade the good at all. `tick_market` keeps a
+    `base == 0, supply == 0` stock exactly where it is — that is what "this
+    port was built without it" *means* — and this function used to break the
+    precondition from the sale side: one tonne of contraband lifted the
+    supply off zero, the next tick adopted that as a baseline at the scarcity
+    cap, and the port then stocked and quoted a good `make_market` had
+    refused it, at 2.75× base, permanently. The tonnes still land on the quay
+    (`units`); they just do not conjure a market.
+    """
     s = market.stock.get(cid)
     if s is None:
         return
     s.units += units
+    if s.base <= 0 and s.supply <= 0:
+        return
     s.supply += units * 0.0013
 
 

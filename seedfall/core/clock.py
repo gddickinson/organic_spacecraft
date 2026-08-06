@@ -341,6 +341,13 @@ def _one_step(game, n: float, dilation: float) -> None:
     # toward a baseline while the captain does all the talking.
     for kind, text in approach_sim.tick(game, n, r):
         game.add_log(text, kind)
+    # And the powers' law runs: files swept, hearings decided, judgments
+    # collected, instruments lifted, and patrols that finally have a reason
+    # to come alongside. `sim/governance` is the one front door — the order
+    # the six modules run in is the law's own and lives there, not here.
+    from ..sim import governance as law_sim
+    for kind, text in law_sim.tick(game, n, r):
+        game.add_log(text, kind)
 
     # Payroll. Miss it and the crew notices immediately.
     wages = crew_sim.daily_wages(game.officers) * ship_n
@@ -448,15 +455,20 @@ def _one_step(game, n: float, dilation: float) -> None:
     # Endings are checked before the Bloom is allowed to kill you, because
     # one of them is surviving it: Ruin fires when the sector is lost and
     # you are still flying, and the old order set `dead` first so it could
-    # never fire at all.
+    # never fire at all. A *rested* chronicle — its final epoch lived
+    # through and closed — detects no further endings at all: the world an
+    # epoch leaves behind satisfies its own ending's condition by
+    # construction, so re-detection froze the calendar for ever.
     win = threat_sim.check_victory(game)
-    if win and not game.victory and not legacy_sim.in_epoch(game):
+    if (win and not game.victory and not legacy_sim.in_epoch(game)
+            and not legacy_sim.rested(game)):
         game.victory = win
     # Inside an epoch the Bloom is no longer the clock — the epoch's own
     # pressure is. Without this the Ruin aftermath killed you on its first
     # tick, because the sector is still ninety-five per cent overgrown by
     # definition and `overgrown` fires every time.
-    if game.overgrown and not game.victory and not legacy_sim.in_epoch(game):
+    if (game.overgrown and not game.victory and not legacy_sim.in_epoch(game)
+            and not legacy_sim.rested(game)):
         game.dead = True
         game.ending = "overgrown"
     game.recompute()

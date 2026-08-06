@@ -307,3 +307,101 @@ def run(suite: Suite) -> None:
         assert response_sim.growth_multiplier(back) > 1.0, (
             "the growth multiplier was lost over a save")
         return f"provocation {after[0]:.0f} and {len(after[1])} response(s) kept"
+
+    @check("the hunt never re-seeds the ground you are standing on")
+    def _():
+        # The sweep's worst find: `hunt` wrote `game.location_id` over
+        # `_retarget`'s no-self-target rule, and striking the heart — the
+        # largest provocation in the table — is how `hunt` usually fires. So
+        # the response re-infested the captain's own system at the exact
+        # moment `infested == 0` was earned. Reproduced: captain at the
+        # heart, sector clean, hunt fired.
+        game, _sys = _infested("hunt-self")
+        st = bloom_sim.ensure(game)
+        for s in game.galaxy.systems:
+            s.bloom = 0.0
+        game.location_id = st.heart_system
+        rng = RNG("hunt-self")
+        for _ in range(30):
+            response_sim.provoke(game, "heart")
+            response_sim.check(game, rng)
+            if response_sim.hunting(game):
+                break
+        assert response_sim.hunting(game), "hunt never fired"
+        assert st.instars, "hunt fired and detached nothing"
+        for inst in st.instars:
+            assert inst.target_id != inst.system_id, (
+                f"a mass at system {inst.system_id} was sent to itself")
+        here = game.galaxy.systems[st.heart_system]
+        bloom_sim.tick_instars(game, 30, rng)
+        assert here.bloom <= 0.02, (
+            "thirty days on, the hunt re-seeded the system the captain "
+            "stands in")
+        return (f"{len(st.instars)} mass(es) detached at the heart with the "
+                "captain standing on it; none aimed home")
+
+    @check("the hunt ends when the anger does, and aims while it lasts")
+    def _():
+        # `fired` is append-only (it feeds STAGE_BY_ANSWERS), so a bare read
+        # made "it is sending masses after your hull" true for ever — and
+        # nothing in `_retarget` read it at all: measured, 28 of 500
+        # instar-ticks aimed at the captain against a 10-of-500 control.
+        game, _sys = _infested("hunt-decay")
+        st = bloom_sim.ensure(game)
+        for s in game.galaxy.systems[:6]:
+            s.bloom = 0.7
+        rng = RNG("hunt-decay")
+        for _ in range(30):
+            response_sim.provoke(game, "heart")
+            response_sim.check(game, rng)
+            if response_sim.hunting(game):
+                break
+        assert response_sim.hunting(game)
+        away = next(s for s in game.galaxy.systems
+                    if s.id != game.location_id and s.bloom > 0.4)
+        inst = bloom_sim.Instar(id=9900, system_id=away.id, mass=1.0)
+        bloom_sim._retarget(game, inst)
+        assert inst.target_id == game.location_id, (
+            "hunting, and a re-targeting mass did not come for the hull")
+
+        st.provocation = 0.0
+        assert not response_sim.hunting(game), (
+            "the anger is spent and the hunt goes on for ever — the System "
+            "screen's warning would be a permanent fixture")
+        return ("a re-targeting mass comes for the hull while it hunts, and "
+                "the hunt ends when the provocation is spent")
+
+    @check("an isolated origin still reaches the sector")
+    def _():
+        # 90 of 500 generated sectors put the origin's nearest clean system
+        # past the 11 ly seeding cutoff — a whole antagonist inert at day 0,
+        # 2% of them for the full 2,000 days. A sector stalled for
+        # STALL_TICKS growth ticks now makes one forced throw at the
+        # nearest clean ground: geography still matters, nothing is exempt,
+        # and the timer is deterministic so slow sectors stay slow.
+        from ..sim import threat as threat_sim
+        from ..world.galaxy import distance
+        found = None
+        for index in range(80):
+            game = new_game(f"inert-{index}")
+            systems = game.galaxy.systems
+            hot = [s for s in systems if s.bloom > 0.6]
+            gap = min((min(distance(s, t) for t in systems
+                           if t.bloom < 0.02) for s in hot), default=0)
+            if gap >= threat_sim.SPREAD_LY:
+                found = (game, gap)
+                break
+        assert found is not None, (
+            "eighty seeds and none isolated — the generator changed; "
+            "re-measure the gap distribution")
+        game, gap = found
+        rng = RNG("inert-run")
+        was = len([s for s in game.galaxy.systems if s.bloom > 0.02])
+        for _ in range(100):
+            threat_sim.tick(game, 30, rng)
+        now = len([s for s in game.galaxy.systems if s.bloom > 0.02])
+        assert now > was, (
+            f"nearest clean ground {gap:.1f} ly out and the Bloom never "
+            f"left home in 3,000 days ({was} systems held throughout)")
+        return (f"origin {gap:.1f} ly from clean ground: {was} → {now} "
+                "systems in 3,000 days")

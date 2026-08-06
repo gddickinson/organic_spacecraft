@@ -49,7 +49,7 @@ def opponent(game, hull=None) -> dict:
                or (traffic.present_factions(game) or [FALLBACK_FACTION])[0])
     rng = RNG(f"{game.seed}:readiness:{getattr(hull, 'id', 'anyone')}")
     made = encounters.make_enemy(rng, faction,
-                                 encounters.typical_threat())
+                                 encounters.typical_threat(game))
     if hull is not None:
         made["name"] = f"{hull.name} ({hull.kind_name})" if hasattr(
             hull, "kind_name") else hull.name

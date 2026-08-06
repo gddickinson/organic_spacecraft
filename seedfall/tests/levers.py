@@ -105,14 +105,22 @@ def _flag_damage() -> float:
 # ── grievances fade, so the sector does not ratchet shut ───────────────────
 
 def _worst_pair() -> float:
+    """The pair the fixture shoved, measured over a horizon the sector
+    survives. It used to take the min over *every* pair after twelve passive
+    years — and once a passive sector can genuinely collapse (the Bloom's
+    stall timer), that min read the apocalypse, not the fade: wars in a
+    drowning economy swamped the very signal this lever exists to prove.
+    `drift`'s own docstring says events dominate any short period; the
+    probe's job is to give the fade room to tell, not to survive a decade
+    of everything else. Provisioned, per the long-fixture rule."""
     game = new_game("lever-drift")
-    game.credits = 500000
+    game.credits = 500_000
+    game.stores["biomass"] = 5_000
     a, b = dip.POWERS[0], dip.POWERS[1]
     dip.shift_relation(game, a, b, -40)
-    for _ in range(12):
+    for _ in range(6):
         game.advance_days(365)
-    return min(dip.relation(game, x, y)
-               for i, x in enumerate(dip.POWERS) for y in dip.POWERS[i + 1:])
+    return dip.relation(game, a, b)
 
 
 # ── weather makes ground harder to cross ───────────────────────────────────

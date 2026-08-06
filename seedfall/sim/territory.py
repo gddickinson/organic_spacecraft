@@ -86,6 +86,15 @@ def charge_trespass(game, system) -> list[tuple[str, float]]:
     if power is None:
         return []
     cost = trespass_cost(game, system)
+    # Ground is the one thing every power keeps a register of, so this is the
+    # offence all four of them recognise. Whether they can prove it is a
+    # separate question and `allege` asks it — a settlement on a claim nobody
+    # has hulls near is a risk worth taking.
+    from . import dockets
+    dockets.allege(game, power, "trespass",
+                   f"you settled ground standing on their register at "
+                   f"{getattr(system, 'name', 'a system')}",
+                   weight=1.0, system=system)
     game.adjust_rep(power, -cost)
     moved = [(power, cost)]
     # Their enemies rather enjoy it, which is the other half of taking sides.
@@ -172,6 +181,16 @@ def answer(game, system, power: str, choice: str) -> dict:
         grudge_sim.note(game, power, "trespass",
                         f"you refused us {where} to our face", 1.5,
                         tags=["politics", "territory"])
+        # **"An unpaid levy is a standing grievance, and they collect
+        # grievances."** `data/approaches` has promised that in so many words
+        # since it was written, and the grievance counter it once incremented
+        # was a field `DiplomaticState` never declared — read by nobody, wiped
+        # by the next save. There is somewhere for it to go now.
+        from . import dockets
+        dockets.allege(game, power, "defiance",
+                       f"you refused the levy at {where} to their face",
+                       weight=min(2.5, 0.8 + 0.4 * len(held)),
+                       system=system, seen=1.0)
         loyalty.record(game, "defied_power")
 
     if game.demand is not None:

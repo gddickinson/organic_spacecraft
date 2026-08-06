@@ -172,6 +172,10 @@ class Game:
     charts_sold: list = field(default_factory=list)
     boards: dict = field(default_factory=dict)
     diplomacy: object | None = None
+    #: What the powers have on you: charges, judgment debts and the warrants
+    #: in force. One saved object for the whole governance layer — see
+    #: `sim/law.py`, which is the only thing allowed to build one.
+    law: object | None = None
     #: The powers' treasuries: what each earns from its ports, what holding
     #: them costs, and what it has built or given up. See `sim/exchequer.py`.
     exchequer: object | None = None

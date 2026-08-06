@@ -172,8 +172,8 @@ def traits_of(c) -> tuple:
     # set as the Fabricator Yard, which is the defect this file exists to fix.
     builds = bool(effects.get("gestation") or effects.get("drydock")
                   or effects.get("build_here"))
-    if "star" in sites:
-        out.append("mirror")                       # it is parked at a star
+    if c.id == "solforge" or "star" in sites:   # the furnace is the class —
+        out.append("mirror")    # no generator grows a "star" site any more
     if sites == {"gas"}:
         out.append("scoop")                        # it can only work a gas giant
     if yields.get("ore") or yields.get("phosphate"):

@@ -325,30 +325,46 @@ def run(suite: Suite) -> None:
 
     @check("the speech settings drive the model module, and start off")
     def _():
+        # These two checks claim "nothing answers". That has to be arranged,
+        # not assumed: on a machine where Ollama is actually serving — the
+        # normal state of a box that plays with local models — the probe
+        # answered and both checks failed against a healthy game. The claim
+        # is about the game's behaviour when nothing answers, so the check
+        # points the probe at a port nothing listens on.
         from ..core import llm
+        import os
+        was_host = os.environ.get("OLLAMA_HOST")
+        os.environ["OLLAMA_HOST"] = "http://127.0.0.1:9"
         llm.forget()
-        game = new_game("speech-set")
-        assert llm.settings() == {"enabled": None, "provider": "", "model": ""}
-        assert not llm.enabled(), "a model was live before anything asked"
+        try:
+            game = new_game("speech-set")
+            assert llm.settings() == {"enabled": None, "provider": "",
+                                      "model": ""}
+            assert not llm.enabled(), "a model was live before anything asked"
 
-        options_sim.set_to(game, "voices", True)
-        options_sim.set_to(game, "llm_provider", "ollama")
-        options_sim.set_to(game, "llm_model", "qwen2.5")
-        asked = llm.settings()
-        assert asked["enabled"] is True and asked["provider"] == "ollama"
-        assert asked["model"] == "qwen2.5", asked
+            options_sim.set_to(game, "voices", True)
+            options_sim.set_to(game, "llm_provider", "ollama")
+            options_sim.set_to(game, "llm_model", "qwen2.5")
+            asked = llm.settings()
+            assert asked["enabled"] is True and asked["provider"] == "ollama"
+            assert asked["model"] == "qwen2.5", asked
 
-        # Nothing is running, so the game still writes every line itself.
-        assert not options_sim.voices_live(game)
-        from ..sim import voice as voice_sim
-        said = voice_sim.speak(game, "ship:self", persona="ship",
-                               name="Test", kind="ship")
-        assert said["source"] == "written", said
-        assert said["line"]
+            # Nothing is answering, so the game still writes every line itself.
+            assert not options_sim.voices_live(game)
+            from ..sim import voice as voice_sim
+            said = voice_sim.speak(game, "ship:self", persona="ship",
+                                   name="Test", kind="ship")
+            assert said["source"] == "written", said
+            assert said["line"]
 
-        options_sim.set_to(game, "voices", False)
-        assert llm.settings()["enabled"] is False
-        llm.forget()
+            options_sim.set_to(game, "voices", False)
+            assert llm.settings()["enabled"] is False
+        finally:
+            if was_host is None:
+                os.environ.pop("OLLAMA_HOST", None)
+            else:
+                os.environ["OLLAMA_HOST"] = was_host
+            llm.forget()
         return ("settings reach core/llm.py, and with nothing answering the "
                 "game still writes every line")
 
@@ -359,25 +375,34 @@ def run(suite: Suite) -> None:
         # toggle that reads "on" beside speech the game is still writing
         # itself would be the worst of both.
         from ..core import llm
+        import os
+        was_host = os.environ.get("OLLAMA_HOST")
+        os.environ["OLLAMA_HOST"] = "http://127.0.0.1:9"   # see the check above
         llm.forget()
-        game = new_game("manual-voice")
-        assert not llm.switched_on(), "on before anybody asked"
-        assert "Off." in llm.describe()
+        try:
+            game = new_game("manual-voice")
+            assert not llm.switched_on(), "on before anybody asked"
+            assert "Off." in llm.describe()
 
-        options_sim.set_to(game, "voices", True)
-        assert llm.switched_on(), "the switch did not reach core/llm"
-        # Nothing is running in a check, so it must report that plainly.
-        assert "nothing answered" in llm.describe(), llm.describe()
-        assert not options_sim.voices_live(game), (
-            "reported a live model with nothing answering")
+            options_sim.set_to(game, "voices", True)
+            assert llm.switched_on(), "the switch did not reach core/llm"
+            # Nothing is answering at that port, and it must say so plainly.
+            assert "nothing answered" in llm.describe(), llm.describe()
+            assert not options_sim.voices_live(game), (
+                "reported a live model with nothing answering")
 
-        from ..sim import voice as voice_sim
-        said = voice_sim.speak(game, "port:q", persona="harbourmaster",
-                               name="Vell", kind="port")
-        assert said["source"] == "written" and said["line"]
+            from ..sim import voice as voice_sim
+            said = voice_sim.speak(game, "port:q", persona="harbourmaster",
+                                   name="Vell", kind="port")
+            assert said["source"] == "written" and said["line"]
 
-        options_sim.set_to(game, "voices", False)
-        assert not llm.switched_on()
-        llm.forget()
+            options_sim.set_to(game, "voices", False)
+            assert not llm.switched_on()
+        finally:
+            if was_host is None:
+                os.environ.pop("OLLAMA_HOST", None)
+            else:
+                os.environ["OLLAMA_HOST"] = was_host
+            llm.forget()
         return ("asked-for and answering are separate, and the screen says "
                 "which is missing")

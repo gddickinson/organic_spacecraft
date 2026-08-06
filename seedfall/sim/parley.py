@@ -140,7 +140,20 @@ def _memory(b: Battle) -> float:
 def flee(b: Battle, rng, ops: "Ops") -> Battle:
     told = escape_odds(b)
     if told["held"]:
-        ops.say(b, "You are held fast. Nothing to do but cut loose or fight.", "warn")
+        # Straining against the grapple is a turn spent, like a refused hail
+        # — see COSTS_A_TURN. The free return here was an infinite loop for
+        # any scripted driver: `grappled` only counts down in the end-of-turn
+        # the free return skipped, so "flee" while held could never progress.
+        ops.say(b, "You strain against the grapple and get nowhere. "
+                   "Cut loose or fight.", "warn")
+        broke = ops.enemy_turn(b, rng, ops.say, ops.fire, ops.salvo,
+                               ops.use_ability)
+        if broke:
+            return ops.finish(b, broke)
+        if is_destroyed(b.player.ship):
+            return ops.finish(b, "lost")
+        if not b.over:
+            ops.end_of_turn(b, rng)
         return b
     chance = told["chance"]
     if rng.chance(chance):

@@ -413,9 +413,12 @@ def _apply(game, venture, rng) -> list[tuple[str, str]]:
         elif cut > 0:
             out.append(("good", f"The flotilla has burned {system.name} back "
                                 f"to {round(system.bloom * 100)}%."))
-        # It notices, the way it notices a captain's burn.
+        # It notices, the way it notices a captain's burn — but this is not
+        # the captain's record (`npc=True`): Ruin's guard must not be
+        # satisfied by a flotilla the player never sent.
         from . import responses as response_sim
-        response_sim.provoke(game, "burn", scale=cut / max(CONTAIN_CUT, 1e-9))
+        response_sim.provoke(game, "burn", scale=cut / max(CONTAIN_CUT, 1e-9),
+                             npc=True)
     return out
 
 

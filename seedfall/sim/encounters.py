@@ -180,10 +180,46 @@ def _pick_hull(rng, pool, difficulty: float):
 THREAT_FLOOR = 1.0
 THREAT_SPREAD = 2.0
 
+#: Chance per arrival that a posted hunt warrant materialises as the hull
+#: it pays for, where the paper reaches. A stop that chose the hunt
+#: (`enforce` → `law_hunted_by`) summons one with certainty instead.
+HUNTER_ODDS = 0.25
 
-def typical_threat() -> float:
+#: The opening hull's layer total (a stock NAVIS) — the yardstick
+#: `threat_scale` measures growth against. Layer weight is the same measure
+#: `test_balance` uses for "a heavier threat arrives in a heavier hull".
+OPENING_WEIGHT = 336.0
+
+
+def threat_scale(game) -> float:
+    """The sector's earned edge against this captain, 0 to 1.2.
+
+    Day one in the opening hull is 0 — the spread below is untouched — and
+    it grows with the calendar and with the hull the captain actually flies.
+    Nothing read progression before: day 1 and day 900 drew the same
+    U(1, 3), so a veteran in a battleship bought the same fights as a
+    beginner, and opening fire yourself bought the easiest fight in the
+    game (`engage` spawned at the *default* 1.0).
+    """
+    if game is None:
+        return 0.0
+    weight = sum(l.max for l in game.ship.layers) or OPENING_WEIGHT
+    growth = max(0.0, weight / OPENING_WEIGHT - 1.0)
+    seasons = min(1.0, float(getattr(game, "day", 0)) / 900.0)
+    return min(1.2, 0.55 * seasons + 0.9 * growth)
+
+
+def draw_threat(game, rng) -> float:
+    """One opponent's difficulty — the sector's one door for the number."""
+    edge = threat_scale(game)
+    return (THREAT_FLOOR + 0.4 * edge
+            + rng.float(0, THREAT_SPREAD + 0.8 * edge))
+
+
+def typical_threat(game=None) -> float:
     """The middle of what `roll_encounter` draws — the median opponent."""
-    return THREAT_FLOOR + THREAT_SPREAD / 2.0
+    edge = threat_scale(game)
+    return THREAT_FLOOR + 0.4 * edge + (THREAT_SPREAD + 0.8 * edge) / 2.0
 
 
 def make_enemy(rng, faction_id: str, difficulty: float = 1.0) -> dict:
@@ -247,6 +283,33 @@ def roll_encounter(game, system, rng):
 
     from . import piracy as piracy_sim
 
+    # A hunt warrant is a hull with your name on it, not weather — it does
+    # not wait on the lawlessness roll. `warrants.bites` documented that
+    # "encounters asks for 'hunt'" and encounters never asked; `enforce`
+    # wrote `law_hunted_by` and nothing read it. Both are live now: a stop
+    # that chose the hunt summons the hunter at the next arrival, and a
+    # posted warrant finds you on its own at its holder's pace.
+    from . import warrants as warrants_sim
+    posted = ""
+    if isinstance(getattr(game, "flags", None), dict):
+        posted = game.flags.pop("law_hunted_by", "")
+    hunters = warrants_sim.holders(game, "hunt", system)
+    who = posted or (rng.pick(hunters)
+                     if hunters and rng.chance(HUNTER_ODDS) else "")
+    if who:
+        # A price is a price, whoever posted it: the Charter fields no armed
+        # vessel, so its paper is collected by Freeholds hulls.
+        enemy = make_enemy(rng, "freeholds" if who == "charter" else who,
+                           draw_threat(game, rng) + 0.5)
+        price = warrants_sim.bounty(game, system)
+        return {
+            "enemy": enemy, "no_parley": False, "hunter": who,
+            "intro": (f"The hull closing on you has your registry number on "
+                      f"its board. {FACTIONS_BY_ID[who].short} paper"
+                      + (f" — {price:,.0f} on your hull." if price
+                         else " brought them here.")),
+        }
+
     dark = traffic_sim.hostiles(game, system)
     # The same law `sim/traffic` asks about before it puts an unmarked hull
     # here at all. This used to be its own arithmetic over the same field —
@@ -269,8 +332,7 @@ def roll_encounter(game, system, rng):
     # Something running dark on the chart is the likeliest thing to meet you.
     if dark and rng.chance(0.55):
         hull = dark[0]
-        enemy = make_enemy(rng, "freeholds",
-                           THREAT_FLOOR + rng.float(0, THREAT_SPREAD))
+        enemy = make_enemy(rng, "freeholds", draw_threat(game, rng))
         enemy["ship"].name = hull.name
         return {
             "enemy": enemy, "no_parley": False, "hull_id": hull.id,
@@ -279,7 +341,12 @@ def roll_encounter(game, system, rng):
                      "answering. No colours, no transponder, no hail.",
         }
 
-    candidates = [f for f in ("freeholds", "concordat", "sanhedrin", "charter")
+    # The Charter is not on this list, and the lore is the reason: it
+    # "fields no armed vessel anywhere" (`data/factions.py`) — its entire
+    # armoury is the word *no*, which is what the governance layer runs on.
+    # It was here, and it turned up in armed TESTUDOs against two of its own
+    # data files.
+    candidates = [f for f in ("freeholds", "concordat", "sanhedrin")
                   if is_hostile(f, game.rep.get(f, 0)) or rng.chance(0.10)]
     if not candidates:
         return None
@@ -290,7 +357,7 @@ def roll_encounter(game, system, rng):
     fid = rng.weighted(weighted)
     theirs = next((h for h in traffic_sim.in_system(game, system)
                    if h.faction == fid and not h.hostile), None)
-    enemy = make_enemy(rng, fid, THREAT_FLOOR + rng.float(0, THREAT_SPREAD))
+    enemy = make_enemy(rng, fid, draw_threat(game, rng))
     if theirs is not None:
         enemy["ship"].name = theirs.name
         intro = (f"The {FACTIONS_BY_ID[fid].short} hull you had plotted — "

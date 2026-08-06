@@ -76,6 +76,13 @@ def build(win) -> QWidget:
     win.clock_pill = Pill("under way", "chloro")
     win.clock_pill.hide()
     h.addWidget(win.clock_pill)
+    # Unread despatches, on the one bar every screen shows — the inbox
+    # ticked for six passes with no way to know it held anything. A button,
+    # not a Pill, because a count you cannot press is a taunt.
+    win.despatch_btn = button("✉", lambda: win.go("despatches"), kind="flat",
+                              tip="Despatches waiting on the board")
+    win.despatch_btn.hide()
+    h.addWidget(win.despatch_btn)
     # Instruments pop out into their own windows, so a player can watch
     # heat or the scope while flying rather than switching to a tab.
     h.addWidget(button("▣ Instruments", win.instruments, kind="flat"))
@@ -109,6 +116,11 @@ def refresh(win) -> None:
         cap.setText(f"{key.title()} · {text}")
         bar.set_value(frac, tintname)
     win.breach_pill.setVisible(is_breached(g.ship))
+    from ..sim import comms as comms_sim
+    waiting = comms_sim.unread(g)
+    if waiting:
+        win.despatch_btn.setText(f"✉ {waiting}")
+    win.despatch_btn.setVisible(bool(waiting))
     conn = getattr(win, "conn", None)
     wanted = conn is not None and getattr(conn, "clock_on", False)
     if wanted:

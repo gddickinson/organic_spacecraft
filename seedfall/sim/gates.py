@@ -141,6 +141,14 @@ def quote(game, to_id: int) -> dict:
 
 def can_use(game, to_id: int) -> tuple[bool, str]:
     """The gate on using a gate."""
+    # Instruments in force close rings. `sim/enforce.may_pass` asks whose
+    # ring this is before refusing, so an interdict by one power does not
+    # strand you on another's network — which is what makes the Weave's
+    # geography political rather than a single on/off switch.
+    from . import enforce as enforce_sim
+    passable, refusal = enforce_sim.may_pass(game, to_id)
+    if not passable:
+        return False, refusal
     if to_id == game.location_id:
         return False, "You are already here."
     here = weave.gate_at(game, game.location_id)

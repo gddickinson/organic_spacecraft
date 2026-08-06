@@ -58,7 +58,11 @@ def _win_rate(game, build: str, scale: float, trials: int = 24,
             if battle.over:
                 break
             combat.take_turn(battle, captain_ai.orders(battle), rng)
-        wins += battle.result in ("destroyed", "driven-off")
+        # A struck hull is a beaten one — the crew gave up the fight, which
+        # is a harder win than driving them off. Left out, weak enemies
+        # surrendering read as *losses* and the easy tier's win rate
+        # collapsed to 62% overnight.
+        wins += battle.result in ("destroyed", "driven-off", "struck")
     return wins / trials
 
 
@@ -275,3 +279,90 @@ def run(suite: Suite) -> None:
         assert outcomes.get("driven-off"), (
             f"endurance never won a single fight: {outcomes}")
         return " ".join(f"{k}:{v}" for k, v in outcomes.items())
+
+    @check("the sector's threat grows with the captain")
+    def _():
+        # Day 1 and day 900 drew the same U(1, 3) — `game.day` appeared
+        # nowhere in `sim/encounters.py`, so a veteran in a battleship
+        # bought the same fights as a beginner. `draw_threat` is the one
+        # door now, and it reads the calendar and the hull.
+        game = new_game("threat-scale")
+        rng = RNG("threat-scale")
+        fresh = [encounters.draw_threat(game, rng) for _ in range(300)]
+        assert min(fresh) >= encounters.THREAT_FLOOR - 1e-9
+        assert max(fresh) <= (encounters.THREAT_FLOOR
+                              + encounters.THREAT_SPREAD + 1e-9), (
+            "a day-one captain in the opening hull was handed a scaled fight")
+
+        game.day = 1200
+        game.ship = make_ship("leviathan", [])
+        build_layers(game.ship, game.bonuses)
+        veteran = [encounters.draw_threat(game, rng) for _ in range(300)]
+        fresh_mid = sorted(fresh)[150]
+        veteran_mid = sorted(veteran)[150]
+        assert veteran_mid > fresh_mid + 0.4, (
+            f"three years and a battleship moved the median opponent from "
+            f"{fresh_mid:.2f} only to {veteran_mid:.2f}")
+        assert min(veteran) > encounters.THREAT_FLOOR + 0.2, (
+            "a veteran can still draw the day-one floor")
+        # And the conn path draws from the same door: the enemy's resolve
+        # encodes the difficulty it was built at, so the default-1.0 spawn
+        # (the easiest fight in the game) would show as the resolve floor.
+        made = encounters.make_enemy(rng, "freeholds",
+                                     encounters.draw_threat(game, rng))
+        floor = (encounters.RESOLVE_BASE
+                 + encounters.RESOLVE_PER_SCALE * (encounters.THREAT_FLOOR
+                                                   + 0.2))
+        assert made["resolve"] > floor, (
+            "a veteran's opponent was built at the beginner floor")
+        return (f"median opponent {fresh_mid:.2f} on day one → "
+                f"{veteran_mid:.2f} at day 1,200 in a heavy hull")
+
+    @check("a hunt warrant is a hull with your name on it")
+    def _():
+        # `warrants.bites` has always documented that "encounters asks for
+        # 'hunt'", and encounters never asked; `enforce.stop`'s hunt branch
+        # wrote `law_hunted_by` and nothing in the tree read it. A stop that
+        # chose the hunt now summons the hunter at the next arrival.
+        game = new_game("hunted")
+        rng = RNG("hunted")
+        game.flags["law_hunted_by"] = "concordat"
+        met = encounters.roll_encounter(game, game.system, rng)
+        assert met is not None, "hunted, and nothing came"
+        assert met.get("hunter") == "concordat", met.get("intro", "")
+        assert "law_hunted_by" not in game.flags, (
+            "the summons was not consumed — every arrival spawns a hunter")
+        assert met["enemy"]["resolve"] > encounters.RESOLVE_BASE + (
+            encounters.RESOLVE_PER_SCALE * encounters.THREAT_FLOOR), (
+            "a paid hunter arrived softer than a random encounter")
+        # And with no warrant and no summons, no hunter.
+        calm = new_game("unhunted")
+        met2 = encounters.roll_encounter(calm, calm.system, RNG("unhunted"))
+        assert met2 is None or "hunter" not in met2 or not met2["hunter"]
+        return (f"the stop's hunter arrived flying {met['hunter']} paper, "
+                "once")
+
+    @check("the Charter fields no armed vessel, just as its book says")
+    def _():
+        # `data/factions.py`: "It fields no armed vessel anywhere — TESTUDO
+        # interposes and never intercepts". The encounter table had it
+        # anyway, and it turned up in armed TESTUDOs against two of its own
+        # data files — the same lore the whole governance layer is built on.
+        game = new_game("charter-lore")
+        game.rep["charter"] = -80        # hostile, and still no warship
+        # Somewhere lawless enough that encounters actually roll — at the
+        # opening port the danger term is near zero and a 400-roll sweep
+        # met nothing at all, which proves nothing about anybody.
+        from ..sim import piracy as piracy_sim
+        wild = max((s for s in game.galaxy.systems if s.bloom < 0.25),
+                   key=lambda s: piracy_sim.lawlessness(game, s))
+        seen = []
+        for index in range(400):
+            met = encounters.roll_encounter(game, wild, RNG(f"cl-{index}"))
+            if met and not met.get("hunter"):
+                seen.append(met["enemy"]["faction"])
+        assert seen, "no encounters at all — the sweep proves nothing"
+        assert "charter" not in seen, (
+            "the Charter is still sending warships it does not own")
+        return (f"{len(seen)} hostile encounters, none flying Charter "
+                "colours")

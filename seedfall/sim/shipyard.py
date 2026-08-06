@@ -15,7 +15,7 @@ from ..core.save import register
 from ..data.chassis import (BUILD_NEED, CHASSIS_BY_ID, Chassis,
                             accepts_family)
 from ..data.colonies import COLONIES_BY_ID
-from ..data.parts import part, part_value
+from ..data.parts import material_value, part, part_value
 from . import colony
 from .ship import Ship, build_layers, make_ship, stats
 
@@ -290,11 +290,30 @@ def apply_refit(game, ship: Ship, new_fitted) -> tuple[bool, str]:
     return True, ""
 
 
+#: Share of a hull's worth the breaker pays. One number for credits and
+#: matter alike — a yard that paid different shares invites arbitrage between
+#: the two sides of the bill.
+SCRAP_SHARE = 0.45
+
+
 def scrap_value(ship: Ship) -> int:
+    """What a breaker pays for the whole hull. Always less than building it.
+
+    Two rules, both learned from a measured exploit (+146,470 credits per
+    build-and-scrap cycle at a fabricator port):
+
+    - The bill is priced **as if the fabricator discount was taken**, whoever
+      actually built her. `Ship` records no provenance, so the breaker
+      assumes the cheapest possible build — a hull can never be worth more
+      broken up than it cost to lay down.
+    - Returned matter is valued as *itself* (`data/parts.material_value`),
+      not at a flat rate that paid 143% of base for ore and 7% for silicon.
+    """
     chassis = CHASSIS_BY_ID[ship.chassis]
-    cost = cost_of(chassis, ship.fitted)
-    v = cost.get("credits", 0) * 0.45
-    v += sum(n * 60 for key, n in cost.items() if key != "credits")
+    cost = cost_of(chassis, ship.fitted, fabricator=True)
+    v = cost.get("credits", 0) * SCRAP_SHARE
+    v += sum(n * material_value(key) * SCRAP_SHARE
+             for key, n in cost.items() if key != "credits")
     return round(v)
 
 

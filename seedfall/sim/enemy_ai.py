@@ -32,9 +32,20 @@ def enemy_turn(b, rng, _say, _fire, _salvo, use_ability) -> str | None:
     ``station = "helm"`` set for ever after its first manoeuvre — a
     permanent −0.22 to its own gunnery.
     """
+    from . import prize
     from . import turnplan
     e = b.enemy
     _close, fire_p, flee_p = STYLES.get(e.personality, STYLES["balanced"])
+
+    # A crew with a broken hull and no fight left in it can strike its
+    # colours rather than break off — the outcome the game had nothing of
+    # between "kill it" and "let it go". The Bloom never strikes: it has
+    # nobody to strike with. A grappled hull strikes *more* readily; being
+    # held fast with no nerve left is what striking is for.
+    if (not b.no_parley and e.resolve <= prize.STRIKE_AT
+            and hull_pct(e.ship) < prize.STRIKE_HULL
+            and rng.chance(prize.STRIKE_ODDS + (0.3 if e.grappled else 0.0))):
+        return "struck"
 
     if e.resolve <= 0 or (hull_pct(e.ship) < 0.25 and rng.chance(flee_p)):
         if not e.grappled:

@@ -105,15 +105,25 @@ def courtship(rep: float) -> float:
     return max(COURTSHIP_FLOOR, (1.0 - reached) ** COURTSHIP_FALLOFF)
 
 
+#: What `state.adjust_rep` clamps standing to. Diplomacy could not see the
+#: cap: at rep 100 an overture quoted "+3", charged 12,000 credits, delivered
+#: +0.00 — and its rivals' displeasure still landed, so the act was strictly
+#: negative while the screen printed a gain.
+REP_CAP = 100.0
+
+
 def offer_gain(game, action, faction: str) -> float:
-    """The standing an overture actually buys — the one place this is decided.
+    """The standing an overture actually *delivers* — the one place this is
+    decided.
 
     `preview` and `perform` each carried their own copy of this expression,
     which is the arrangement that has produced a free treaty, an ungranted
-    favour and a phantom haggle payment in this file's history.
+    favour and a phantom haggle payment in this file's history. Capped at
+    the room the ledger has left, so the quoted number is the delivered one.
     """
     base = action.gain * (1 + game.ship_stats.diplomacy)
-    return base * courtship(game.rep.get(faction, 0.0))
+    room = max(0.0, REP_CAP - game.rep.get(faction, 0.0))
+    return min(base * courtship(game.rep.get(faction, 0.0)), room)
 
 
 def rivals_of(game, faction: str) -> list[str]:
@@ -160,6 +170,25 @@ def available(game, faction: str) -> list[tuple]:
     return out
 
 
+def _merged(rows: list) -> list:
+    """One line per power. The screen is read by a person.
+
+    Brokering charges a third party twice over — once as an enemy of each
+    principal — and quoting that as two separate lines meant the board
+    promised the Freeholds -3.30 and then again -4.90 while the act moved
+    them -8.20. Both halves were true and neither was the number.
+
+    (Hoisted: `preview` and `perform` each carried an identical nested copy,
+    which is how two doors drift apart.)
+    """
+    order, total = [], {}
+    for who, amount in rows:
+        if who not in total:
+            order.append(who)
+        total[who] = total.get(who, 0.0) + amount
+    return [(who, round(total[who], 2)) for who in order]
+
+
 def preview(game, action_id: str, faction: str,
             other: str | None = None) -> dict:
     """What an overture will move, without moving it.
@@ -179,20 +208,6 @@ def preview(game, action_id: str, faction: str,
     out = {"standing": [], "relations": None, "gain": gain,
            "courtship": courtship(game.rep.get(faction, 0.0))}
 
-    def _merged(rows: list) -> list:
-        """One line per power. The screen is read by a person.
-
-        Brokering charges a third party twice over — once as an enemy of each
-        principal — and quoting that as two separate lines meant the board
-        promised the Freeholds -3.30 and then again -4.90 while the act moved
-        them -8.20. Both halves were true and neither was the number.
-        """
-        order, total = [], {}
-        for who, amount in rows:
-            if who not in total:
-                order.append(who)
-            total[who] = total.get(who, 0.0) + amount
-        return [(who, round(total[who], 2)) for who in order]
 
     if action_id == "denounce":
         if other is None:
@@ -290,6 +305,15 @@ def refusal(game, action_id: str, faction: str, other: str | None) -> str:
     """
     if action_id == "denounce" and other is None:
         return "Denounce whom?"
+    # An overture whose whole deliverable is standing, aimed at a ledger with
+    # no room left, is refused before it is paid for — the same rule the
+    # brokerage learned. Treaty and broker still deliver instruments at the
+    # cap, so only the pure-standing family is turned away.
+    if action_id in ("tribute", "intelligence", "relief"):
+        action = ACTIONS_BY_ID.get(action_id)
+        if action is not None and offer_gain(game, action, faction) < 0.5:
+            return (f"{FACTIONS_BY_ID[faction].short} could not think "
+                    "better of you than they already do.")
     if action_id != "broker":
         return ""
     if other is None:
@@ -330,20 +354,6 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
     lines: list[str] = []
     gain = offer_gain(game, action, faction)
 
-    def _merged(rows: list) -> list:
-        """One line per power. The screen is read by a person.
-
-        Brokering charges a third party twice over — once as an enemy of each
-        principal — and quoting that as two separate lines meant the board
-        promised the Freeholds -3.30 and then again -4.90 while the act moved
-        them -8.20. Both halves were true and neither was the number.
-        """
-        order, total = [], {}
-        for who, amount in rows:
-            if who not in total:
-                order.append(who)
-            total[who] = total.get(who, 0.0) + amount
-        return [(who, round(total[who], 2)) for who in order]
 
     if action_id == "denounce":
         game.adjust_rep(other, -14)
@@ -450,20 +460,6 @@ def _remember(game, action_id: str, action, faction: str,
     kind, text, weight = entry
     named = FACTIONS_BY_ID.get(other or "")
     body = text.format(other=named.short if named else "them")
-    def _merged(rows: list) -> list:
-        """One line per power. The screen is read by a person.
-
-        Brokering charges a third party twice over — once as an enemy of each
-        principal — and quoting that as two separate lines meant the board
-        promised the Freeholds -3.30 and then again -4.90 while the act moved
-        them -8.20. Both halves were true and neither was the number.
-        """
-        order, total = [], {}
-        for who, amount in rows:
-            if who not in total:
-                order.append(who)
-            total[who] = total.get(who, 0.0) + amount
-        return [(who, round(total[who], 2)) for who in order]
 
     if action_id == "denounce":
         # The one that lands on somebody else.

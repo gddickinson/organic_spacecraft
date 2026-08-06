@@ -19,6 +19,20 @@ from . import diplomacy as dip_sim
 
 SPREAD_INTERVAL = 30    # days between growth ticks
 
+#: Inside this range a mature system seeds its neighbour at full chance.
+#: The cutoff used to be absolute, and it sat on the shoulder of the
+#: generated-gap distribution — see the seeding loop in `tick`.
+SPREAD_LY = 11.0
+
+#: A sector whose every mature system is out of range of clean ground makes
+#: one forced throw after this many stalled growth ticks (~3 years), then
+#: counts again. Deterministic on purpose: a probability here either
+#: re-paced every slow sector (0.35 killed the five-year playability floor
+#: — a naive captain starved in a sector 37/42 drowned by day 1644) or was
+#: too rare to trust. Three stalled years says "the Bloom always finds a
+#: way" without making it artillery.
+STALL_TICKS = 36
+
 #: Thresholds for the endings that are counted rather than flagged.
 LINEAGE_HULLS = 4          # grown hulls of your own, still flying
 #: Share of the sector's *markets* whose prices you have written down. Not an
@@ -32,6 +46,19 @@ RUIN_SHARE = 0.9           # of the sector held by the Bloom, and you alive
 
 def bloom_systems(game):
     return [s for s in game.galaxy.systems if s.bloom > 0.02]
+
+
+def _seed_system(game, target, events) -> None:
+    """One new infestation, reported only if somebody of yours is looking.
+
+    The sector used to report every new infestation anywhere, which is why
+    the `watch` a picket grants bought nothing: you already knew.
+    """
+    target.bloom = 0.10
+    loyalty.record(game, "bloom_spread")
+    if target.id == game.location_id or watching(game, target.id):
+        events.append(("bad",
+                       f"Unlicensed growth detected at {target.name}."))
 
 
 def known_bloom(game) -> dict:
@@ -96,6 +123,16 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
                                      f"{col.name} was overgrown and lost", 0.9,
                                      tags=["bloom", "colony"],
                                      among=("faction", "port"))
+                # And the captain hears about it the way news travels — a
+                # courier from that system, as old as the crossing. The log
+                # line above only fires where somebody of yours is looking;
+                # the despatch is how the rest of the sector reaches you.
+                from . import comms as comms_sim
+                comms_sim.send(game, "news", "Sector bulletin", "news",
+                               f"{col.name} is lost",
+                               f"{col.name} has been overgrown. The last "
+                               "boats out carried what they could.",
+                               system_id=s.id)
 
         # The Weave is a road, and the Bloom is not fussy about who laid it.
         # Distance means nothing to a lit ring: growth crosses sixty light
@@ -124,21 +161,38 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
                             "more than cargo."))
 
         # A mature system throws a seed at its nearest clean neighbour.
-        for s in [x for x in held if x.bloom > 0.6]:
-            clean = sorted((t for t in systems if t.bloom < 0.02 and distance(s, t) < 11),
+        # When *no* mature system anywhere has clean ground in range, the
+        # sector as a whole makes one long throw instead — spores riding
+        # ordinary traffic across the gap, slowly. The hard cutoff alone
+        # sat on the shoulder of the generated-gap distribution (22.5% of
+        # sectors put the origin's nearest clean system past SPREAD_LY), so
+        # one sector in five generated an antagonist that could never leave
+        # home: 90 of 500 inert at day 0. The first fix let every saturated
+        # system throw long once its neighbourhood filled in, and six
+        # long-fixture sectors drowned ~40% faster — the stall is the
+        # *sector's* condition, so the long throw is the sector's one move.
+        throwers = [x for x in held if x.bloom > 0.6]
+        ground_in_range = False
+        for s in throwers:
+            clean = sorted((t for t in systems
+                            if t.bloom < 0.02 and distance(s, t) < SPREAD_LY),
                            key=lambda t: distance(s, t))
             if clean and rng.chance(0.14 * stage.spread
                                     * (1 - ward_at(game, clean[0].id))):
-                clean[0].bloom = 0.10
-                loyalty.record(game, "bloom_spread")
-                # Only if somebody of yours is looking. The sector used to
-                # report every new infestation anywhere, which is why the
-                # `watch` a picket grants bought nothing: you already knew.
-                if (clean[0].id == game.location_id
-                        or watching(game, clean[0].id)):
-                    events.append(
-                        ("bad", f"Unlicensed growth detected at "
-                                f"{clean[0].name}."))
+                _seed_system(game, clean[0], events)
+            ground_in_range = ground_in_range or bool(clean)
+        if throwers and not ground_in_range:
+            stalled = int(game.flags.get("bloom_stalled", 0)) + 1
+            game.flags["bloom_stalled"] = stalled
+            if stalled >= STALL_TICKS:
+                game.flags["bloom_stalled"] = 0
+                spear = min(((s, t) for s in throwers for t in systems
+                             if t.bloom < 0.02),
+                            key=lambda pair: distance(*pair), default=None)
+                if spear is not None:
+                    _seed_system(game, spear[1], events)
+        else:
+            game.flags.pop("bloom_stalled", None)
 
         game.bloom_total = bloom_burden(game)
         events.extend(bloom_sim.review_stage(game, game.bloom_total))
@@ -225,7 +279,15 @@ def victory_progress(game, seen_only: bool = False) -> dict:
                   and CHASSIS_BY_ID[s.chassis].family == "grown"]
     understood = [t for t in XENOTECH if xeno_sim.is_incorporated(game, t.id)]
     markets = [s for s in game.galaxy.systems if s.market]
-    priced = len([k for k in game.register if str(k).isdigit()])
+    # A cartel corners *living* prices. This counted register keys — quotes
+    # twenty years stale, and ports that have since closed — so the ending
+    # credited a filing cabinet. A quote counts while `market.confidence`
+    # still believes it and the port is still trading.
+    from . import market as market_sim
+    priced = len([k for k in game.register if str(k).isdigit()
+                  and game.galaxy.systems[int(k)].market is not None
+                  and market_sim.confidence(
+                      market_sim.age_of(game, int(k))) > 0.5])
     cartel_need = max(1, int(len(markets) * CARTEL_SHARE))
     crewless = (CHASSIS_BY_ID.get(game.ship.chassis)
                 and CHASSIS_BY_ID[game.ship.chassis].family == "synthetic"
@@ -274,14 +336,20 @@ def victory_progress(game, seen_only: bool = False) -> dict:
 def _stood_through_it(game) -> bool:
     """Did the captain live through the sector's fall, or merely outlast it?
 
-    Either something of theirs is still standing in it, or they have at
-    some point cost the Bloom enough for it to have answered — both are
-    records of having been present at what happened. Waiting a decade in a
-    quiet system with the door shut is neither.
+    Either something of theirs is still standing in it, or *they* have at
+    some point cost the Bloom something — a record of having been present
+    at what happened. Waiting a decade in a quiet system with the door shut
+    is neither.
+
+    The record is `responses.fought`, which only the captain's own acts
+    feed. The first version read `provocation > 0` and the fired-response
+    list — and the powers' containment flotillas provoke on the clock, so
+    the guard was satisfied by NPCs: `advance_days` alone took Ruin on day
+    2,338, exactly the passivity this function exists to refuse.
     """
     if any(c.online for c in game.colonies):
         return True
-    return bool(response_sim.fired(game)) or response_sim.level(game) > 0
+    return response_sim.fought(game) > 0
 
 
 def check_victory(game) -> str | None:

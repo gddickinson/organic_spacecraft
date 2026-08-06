@@ -364,7 +364,6 @@ def is_stranded(game) -> bool:
       the sector is currently dry, so nothing was reaching it — but a way out
       that does not exist must not count as one.
     """
-    from ..world.economy import buy_price
     from ..world.galaxy import in_range
     from . import mining
 
@@ -381,8 +380,10 @@ def is_stranded(game) -> bool:
         # to be dragged away from the very quay that would have fixed it.
         from . import market as market_sim
         cheapest = min((jump_quote(game, s)["fuel"] for s in reach), default=99)
-        price = buy_price(game.system.market, "volatiles",
-                          game.rep.get(game.system.port.faction, 0))
+        # The counter's quote, like the sellable side below it already was —
+        # this function priced escape at the raw price and salvation at the
+        # quoted one, which is two answers to the same question.
+        price = market_sim.quote_buy(game, game.system, "volatiles")
         sellable = 0.0
         for cid, tonnes in game.ship.cargo.items():
             if cid == "volatiles" or tonnes <= 0:

@@ -64,7 +64,8 @@ KIN = {
     "life3d": ("life3d",),
     "parts3d": ("parts3d",),
     "readiness": ("readiness",),
-    "parley": ("parley", "combat"),
+    "parley": ("parley", "combat"), "prize": ("prize",),
+    "battle_state": ("prize", "combat"),
     "stations": ("routing", "orderplan", "seatwork", "turnplan", "gunnery"),
     "damage": ("thermal_doors", "combat"), "contraband": ("customs",),
     "customs": ("customs", "fence"),
@@ -92,7 +93,8 @@ KIN = {
     "charts": ("provenance", "charting", "charts"),
     "notes": ("notes",),
     "freight": ("freight",),
-    "market": ("trade",), "economy": ("trade",), "commodities": ("trade",),
+    "market": ("trade",), "economy": ("trade", "solvency"),
+    "commodities": ("trade",),
     "loyalty": ("conviction", "crew"), "convictions": ("conviction", "crew"),
     "crew": ("conviction", "crew"),
     "lifespan": ("time",), "upkeep": ("time",), "clock": ("time", "ticks"),
@@ -118,6 +120,14 @@ KIN = {
     "legacy": ("legacy",), "beginning": ("beginnings",),
     "watches": ("transit",),
     "services": ("trade",),
+
+    # The law. `test_law` holds reach, filing and collection; `test_tribunal`
+    # holds the hearing, the instruments and the way out — the same seam the
+    # modules themselves split along.
+    "offences": ("law",), "dockets": ("law",), "enforce": ("law",),
+    "debts": ("law", "tribunal"),
+    "tribunal": ("tribunal",), "warrants": ("tribunal", "law"),
+    "clemency": ("tribunal",),
 
     # The conn and the plotting board. Both own a lot of tuning — thruster
     # impulses, the orbit band, the horizon — and all of it is answered by

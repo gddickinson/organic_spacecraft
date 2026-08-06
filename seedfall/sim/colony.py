@@ -112,6 +112,16 @@ def found(game, system, body, class_id: str):
     ok, why = can_found(game, system, body, class_id)
     if not ok:
         return None, why
+    # **The licence finally means something.** It was a tradeable commodity
+    # with a price, no issuing authority, no revocation and no register of who
+    # held one — "the whole containment regime rests on this being
+    # unforgeable, which it is not". It can be taken away now, and a captain
+    # whose plan was an empire of holdings has a great deal to lose by
+    # offending the one power that signs for germination.
+    from . import enforce as enforce_sim
+    licensed, refusal = enforce_sim.may_seed(game)
+    if not licensed:
+        return None, refusal
     c = COLONIES_BY_ID[class_id]
     _spend(game, c.cost)
 

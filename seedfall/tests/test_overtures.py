@@ -214,3 +214,42 @@ def run(suite: Suite) -> None:
             f"at -40 standing the usable overtures are {usable}")
         return (" · ".join(f"{k} {v:,.0f}/pt" for k, v in sorted(rates.items()))
                 + f" · at -40 only {usable}")
+
+    @check("an overture that cannot raise your standing is refused unpaid")
+    def _():
+        # At the cap an overture quoted "+3", charged 12,000 credits,
+        # delivered +0.00 — and the signatory's rivals' displeasure still
+        # landed, so the act was strictly negative while the screen printed
+        # a gain. The pure-standing family is refused before a credit moves;
+        # a treaty still goes through, because it delivers an instrument.
+        game = _able("capped", standing=100.0)
+        before_credits = game.credits
+        reps, relations = _snapshot(game)
+        out = dip.perform(game, "tribute", POWERS[0])
+        assert not out["ok"], "a pointless tribute was accepted"
+        assert game.credits == before_credits, "refused, and still charged"
+        assert _snapshot(game) == (reps, relations), (
+            "a refused overture still moved somebody's opinion")
+        assert dip.refusal(game, "treaty", POWERS[0], None) == "", (
+            "a treaty delivers charts and berthing at any standing, and "
+            "was refused")
+        return f"tribute at the cap: '{out['why']}' — nothing moved"
+
+    @check("the printed rise is the delivered rise")
+    def _():
+        # `offer_gain` is capped at the room the ledger has left, so the
+        # preview, the log line and the ledger all say the same number.
+        game = _able("nearly", standing=98.0)
+        who = POWERS[0]
+        quoted = dip.preview(game, "tribute", who)["gain"]
+        was = game.rep[who]
+        out = dip.perform(game, "tribute", who)
+        assert out["ok"], out.get("why")
+        delivered = game.rep[who] - was
+        assert abs(quoted - delivered) < 0.01, (
+            f"quoted +{quoted:.2f}, delivered +{delivered:.2f}")
+        line = next(l for l in out["lines"] if "standing" in l)
+        assert f"+{delivered:.0f}" in line, (
+            f"the log line {line!r} does not carry the delivered figure")
+        return (f"at 98 standing: quoted +{quoted:.1f}, delivered "
+                f"+{delivered:.1f}, printed the same")

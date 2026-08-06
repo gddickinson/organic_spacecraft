@@ -51,7 +51,7 @@ def _apply_to_layers(b: Battle, to: Side, dmg: float, traits, rng) -> float:
         if L.hp <= 0:
             _say(b, f"— {L.name} of {_who(b, to)} is gone.", "warn")
             if L.critical:
-                _breach(b, to, rng)
+                _breach(b, to, rng, lethal="nonlethal" not in traits)
             if L.life:
                 _say(b, f"— {_who(b, to)} is on bottled air.", "warn")
         first = False
@@ -59,12 +59,26 @@ def _apply_to_layers(b: Battle, to: Side, dmg: float, traits, rng) -> float:
     return total
 
 
-def _breach(b: Battle, to: Side, rng) -> None:
-    lost = max(1, round(to.ship.crew * rng.float(0.04, 0.14) * (1 - to.st.crew_guard)))
-    to.ship.crew = max(0, to.ship.crew - lost)
+def _breach(b: Battle, to: Side, rng, lethal: bool = True) -> None:
+    """A critical layer has gone. Vacuum takes people — unless the thing
+    that opened the hull carries `nonlethal`, a trait the glossary has
+    always glossed "never kills crew" and nothing ever read: the Photic
+    Flash Organ, the one armament every new captain starts with, vented
+    crew exactly like a railgun. The fright and the shame land either way.
+    """
+    lost = 0
+    if lethal:
+        lost = max(1, round(to.ship.crew * rng.float(0.04, 0.14)
+                            * (1 - to.st.crew_guard)))
+        to.ship.crew = max(0, to.ship.crew - lost)
     to.resolve -= 18
     to.ship.morale = max(0.0, to.ship.morale - 0.12)
-    _say(b, f"PRESSURE BREACH on {_who(b, to)} — {lost} lost to vacuum.", "bad")
+    if lethal:
+        _say(b, f"PRESSURE BREACH on {_who(b, to)} — {lost} lost to vacuum.",
+             "bad")
+    else:
+        _say(b, f"PRESSURE BREACH on {_who(b, to)} — suits hold; "
+                "nobody is lost.", "warn")
 
 
 def _apply_traits(b: Battle, frm: Side, to: Side, w, rng) -> None:

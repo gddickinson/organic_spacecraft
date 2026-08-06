@@ -75,15 +75,21 @@ def _bot(seed: str, years: int = 5):
             # biomass aboard. What they eat is asked of `upkeep.demand`
             # rather than written out here, because two lineages do not eat
             # the same things.
+            # Deep, and food before fuel: in a sector the Bloom is eating,
+            # the ports close one by one, and the counter this captain is
+            # standing at may be the last it ever trades with. Fourth entry
+            # in this file's oldest lesson — with a 400-day pantry and a
+            # quarter-purse cap it starved on day 1548 holding 86 t of
+            # reaction mass, because fuel is optional and eating is not.
             from ..sim import upkeep as upkeep_sim
             for cid, a_day in upkeep_sim.demand(g).items():
                 if cid == "volatiles":
                     continue
-                want = a_day * 400 - g.ship.cargo.get(cid, 0)
+                want = a_day * 900 - g.ship.cargo.get(cid, 0)
                 if want <= 0:
                     continue
                 price = (sell_price(sysm.market, cid, rep, 0) or 60) * 1.35
-                take = int(min(want, g.credits * 0.25 // max(1, price)))
+                take = int(min(want, g.credits * 0.6 // max(1, price)))
                 if take > 0:
                     g.credits -= take * price
                     add_cargo(g.ship, cid, take)

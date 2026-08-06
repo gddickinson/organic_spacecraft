@@ -44,12 +44,15 @@ CONTROL = Channel(
 
 #: What the sector is doing. Nobody expects a reply to a bulletin.
 NEWS = Channel(
-    "news", "Sector bulletin", "ink2", False,
+    "news", "Sector bulletin", "dim", False,
     "What has happened somewhere, relayed as far as the Weave reaches.")
 
 #: Cargo, prices, commissions. A desk with a proposal.
 TRADE = Channel(
-    "trade", "Commercial", "gold", True,
+    # "dim" and "osteo", not "ink2" and "gold": a channel tint is a
+    # `theme.TINTS` key, and those two were not in the table — both fell
+    # back to the body colour and the channels were indistinguishable.
+    "trade", "Commercial", "osteo", True,
     "Desks, brokers and anybody with a hold to fill.")
 
 #: A power addressing you as a power does — about standing, licence, or war.

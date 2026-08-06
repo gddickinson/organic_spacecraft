@@ -725,6 +725,136 @@ still mid-flight and checks securing does not count the flight twice;
 the drive label through off → armed → FIRING with the pad switched *off*,
 which is the reported case.
 
+## Done — the nineteenth pass (2026-08-05): the reviews' residue, closed
+
+Four sub-passes in value order, working the two review lists above the line.
+Every fix carries a played claim; three new suites (`solvency`, `prize`,
+`despatch`) hold them beside additions to eight existing ones.
+
+**The economy cannot be conjured** (`tests/test_solvency.py`, 7 checks):
+
+- **Scrapping never profits.** `scrap_value` prices the bill *as if the
+  fabricator discount was taken* (Ship records no provenance, so the breaker
+  assumes the cheapest build) and values returned matter as itself
+  (`data/parts.material_value` — was a flat 60/t: ore at 143% of base,
+  silicon at 7%). Swept 44 hulls: scrap pays 45% of the cheapest bill, never
+  more. The +146,470/cycle exploit is dead.
+- **Nothing outside the counter quotes the raw prices.** Five live call
+  sites switched to `market.quote_*` (the freight desk's buy card and
+  hearsay card, its fuel line, the port screen's bunkering button, the
+  bridge's `market` verb, `is_stranded`'s escape price) and a source-scan
+  check pins the rule with the two documented exceptions (`contracts`
+  neutral generation, `industry`'s market twin).
+- **A tonne of contraband no longer conjures a market.** `apply_sale` leaves
+  a `base == 0, supply == 0` stock where it is — the tonnes land on the
+  quay; the 14,300 cr/t scarcity-capped market the next tick used to adopt
+  does not appear. 400 played days confirm.
+- **Promotion happens.** `exchequer.would_yield` is one arithmetic for the
+  ledger *and* the forecast — `payback` used to re-derive the curve bare
+  (no capital bonus, no industries) and read "never pays" at every port in
+  the sector. Played: a capital with three industries promotes at a 450-day
+  payback, and a rich purse actually buys it. Bare berths still never
+  promote, which is the deliberate half.
+- Robots can no longer drive the treasury underwater (unpaid is starved,
+  and a starved machine wears ×2); SOL-FORGE sites on sunward rock instead
+  of a body kind no generator produces; the Cartel ending counts only
+  living quotes at open ports (`market.confidence`, not a filing cabinet).
+
+**The endgame arc holds** (`test_legacy` +4, `test_bloom_arc` +3):
+
+- **Ruin is the captain's or nobody's.** `BloomState.fought` records only
+  the player's own provocation (`provoke(npc=True)` for the powers'
+  flotillas), and `_stood_through_it` reads it — `advance_days` alone used
+  to take the ending on day 2,338.
+- **The hunt never re-seeds the ground you stand on** (the `hunt` response
+  wrote `location_id` over `_retarget`'s no-self-target rule at the exact
+  moment `infested == 0` was earned), **`hunting()` is transient** (ends
+  when the provocation decays) **and `_retarget` finally reads it** — a
+  hunting Bloom's masses actually come for the hull now.
+- **A closed epoch turns the age or rests.** `data/epochs` sequels
+  (containment's triumph *is* concord's opening; exodus's failure *is*
+  ruin's) open through the same `begin`; with no sequel the chronicle
+  *rests* — `legacy.rested` suppresses re-detection and the calendar runs
+  on. Measured before: 2,000 requested days moved the calendar 13 → 13.
+- **No epoch is unfailable, and none untriumphable** — concord (ceiling
+  0.884) and xenarch (0.838) re-pitched, and an arithmetic sweep in
+  `test_legacy` holds all ten epochs' floors and ceilings against the
+  break. **An unanswered situation is decided in absence** at its worst
+  answer after 120 days — never answering used to collapse the ceiling to
+  pure drift.
+- **No sector is inert.** A Bloom stalled with no clean ground in seeding
+  range makes one forced throw after ~3 stalled years (`threat.STALL_TICKS`)
+  — deterministic on purpose: a live chance at 0.35 re-paced every slow
+  sector and a naive five-year captain starved in a sector 37/42 drowned.
+  90 of 500 sectors used to generate a Bloom that could never leave home.
+- Combat's no-turn orders: straining against a grapple now costs the turn
+  (it was an infinite loop for a driver — `grappled` only counts down in
+  the end-of-turn the free return skipped); the silent unknown-station
+  refusal speaks. **A capped overture is refused before it is paid**, and
+  `offer_gain` caps at the room the ledger has left so the quoted rise is
+  the delivered one (tribute at rep 100 used to charge 12,000, deliver
+  +0.00, and still anger the signatory's rivals).
+
+**Combat's arc around the fighting** (`tests/test_prize.py`, 7 checks;
+`test_balance` +3):
+
+- **Threat scales.** `encounters.draw_threat` is the one door for the
+  difficulty number, reading the calendar and the hull actually flown —
+  day one in the opening hull draws the old U(1, 3) untouched; day 1,200
+  in a heavy hull draws a median 2.88 against 1.86. `engage.open_fire`
+  draws from the same door (the default-1.0 spawn was the easiest fight in
+  the game).
+- **A hunt warrant is a hull with your name on it.** `warrants.bites`
+  always documented that "encounters asks for hunt" and encounters never
+  asked; `enforce`'s `law_hunted_by` flag was written and read by nothing.
+  A stop that chose the hunt summons the hunter at the next arrival; a
+  posted warrant finds you at 0.25 per arrival where the paper reaches.
+- **Striking colours** sits between "kill it" and "let it go": a broken,
+  spent crew strikes (`enemy_ai`, on the same resolve the fight runs on;
+  the Bloom never does), and the captain decides once — prize crew
+  (`sim/prize.py`; the hull joins the fleet through the consort machinery
+  with a fresh uid), strip her holds (priced), or let them limp home
+  (remembered kindly). Standing: driven-off 4 < struck 6 < destroyed 14,
+  struck-and-taken 14. Endings moved to `battle_state` (one door for the
+  resolver, `parley` and `prize`).
+- **`nonlethal` means it** — the Photic Flash Organ's breach vents nobody,
+  as the glossary always claimed. **Recovered tonnage is priced**
+  (`aftermath.worth_of`) on the aftermath card — it was 1.5–10× the credit
+  loot and invisible. **Brace has a button.** A mute enemy's Hail button is
+  off, with the reason. **The Charter fields no armed vessel**, as its own
+  book says — out of the encounter table, and pinned against its lore.
+
+**The sector speaks, and the player can hear it** (`tests/test_despatch.py`,
+5 checks):
+
+- **`ui/despatch_view.py`** — the inbox `sim/comms.py` kept for six passes
+  with zero UI callers: despatches with channel, staleness note and reply
+  buttons (every action a `comms` door), plus a Chronicle tab over the full
+  300-line log with a kind filter (the sidebar shows sixty; the rest were
+  unreachable anywhere). HUD carries an unread counter that is a button.
+  Bridge verbs `despatches`/`answer_signal` (deliberately *not* in
+  `waiting`/`reply` — a bulletin must never deadlock a driven session).
+- **Word travels.** A lost colony's bulletin rides couriers from the system
+  that lost it (427 days from the far side, measured); an epoch's turning
+  writes to the board. Bulletins unread for a year are swept as litter —
+  the store grew without bound before — and an open question is never swept.
+- **The keyboard means what it looks like.** A digit key is the rail
+  position it opens (`4` opened the fifth entry, and two off by the end);
+  W/A/S/D work wherever the flight clock runs (`DECK_SCREENS`, not
+  `pilot` alone); "Keys 1–8" over fifteen screens, "Eight things" over
+  thirty lessons and "Five endings" over ten are all counted now; the two
+  channel tints that were not `theme.TINTS` keys are.
+
+**Found on the way:** the suite's two speech checks assumed no live model
+answers and failed on a machine running Ollama — the claim is about the
+game when nothing answers, so they arrange it (a dead local port) instead
+of assuming it. The seven law modules got their tripwire fast paths. And
+`test_play`'s five-year solvency floor had been passing on an artifact —
+the bot froze at day 1500 and a frozen captain cannot die; un-frozen, one
+seed's sector legitimately drowns in year 4.8, so the check now owns the
+*economy* (nobody starves, nobody in debt) and lets the sector's own
+ending be the one thing that stops a run.
+
 ## Open — the 2026-08-04 review: the systems layers
 
 A four-agent review (combat, economy, strategic layer, player experience)
@@ -737,157 +867,123 @@ arbitrage, the contract exploits, the dead board, the unreachable Bloom,
 the flash organ, the diplomacy exploits — was fixed the same day; see the
 tenth pass above.)
 
-### The economy, measured
+*(Most of this list was closed by the nineteenth pass above — the scrap
+exploit, the raw prices, the contraband market, the promotion arithmetic,
+the robots, SOL-FORGE, the Cartel ledger, threat scaling, surrender/prize,
+`nonlethal`, the brace button, the Charter's warships, the comms UI and the
+keyboard sweep. What follows is only what remains open.)*
 
 - **Mining is the worst-paid thing in the game** at 129 cr/day median, and
   it is the one with hull wear and mishap risk. Now that colonies have a
   ceiling (eleventh pass) the comparison is fairer, but a rig should still
   beat sitting still.
-- **Scrapping a self-built hull profits.** `scrap_value` recomputes the cost
-  without the fabricator discount the build was given
-  (`sim/shipyard.py:293-298`): +146,470 credits per THRESHOLD cycle. It also
-  values every returned tonne at a flat 60 — ore above market, silicon at
-  7% of it.
-- **The freight desk still has the bug `cargo_cost` documents fixing.**
-  `sim/freight.py:150`, `:203`, `:258` call `buy_price`/`sell_price` raw
-  instead of `market.quote_buy`/`quote_sell`, so the board quotes a price
-  the counter will not honour. `trade.sell_survey_data` (`sim/trade.py:129`)
-  the same. Worth a claim that nothing outside `sim/market` imports the raw
-  prices.
-- **One tonne of contraband opens a market the port was built without**
-  (`world/economy.py:149-170` — `apply_sale` writes a supply into a
-  zero-base stock and the next tick adopts a baseline at the scarcity cap).
-  Verified: 14,300 cr/t at a port `make_market` refused to give the good.
-- **A power's port can never be promoted, by arithmetic.**
-  `YIELD_PER_LEVEL × L − UPKEEP_COEFF × L²` (`data/exchequer.py:31,36`)
-  makes the marginal gain of level 2 exactly zero and level 3 negative;
-  `payback` returns `inf` for both, and 2,000 played days produced no
-  retrenchment and purses that only grew. The docstring's "any shock pushes
-  a power into deficit" does not happen.
-- Smaller: SOL-FORGE requires a `"star"` site no generator can produce
-  (`data/colonies.py:112` — 0 in 1,223 bodies over 8 sectors); robot upkeep
-  drives the account negative silently (`sim/robots.py:~351`); the exchequer
-  `payback` re-derives a curve `yield_of` does not follow
-  (`sim/exchequer.py:264`); the Cartel ending counts twenty-year-old price
-  quotes (`sim/threat.py:195`).
-
-### The Bloom, what remains
-
-*(Reachability was fixed in the tenth pass; the economic bite, the
-`containment` venture and the Ruin/loss separation in the eleventh.)*
-
-- The Holdings panel and the containment bar leak the fog
-  (`ui/empire_view.py`, `sim/threat.py` — no `intel.sees_bloom` filter), so
-  a picket's `watch` still buys nothing. (The "Five of them" line and the
-  hardcoded `HEART_HP` beside it were fixed in the twelfth pass.)
-
-### Combat, what remains
-
-*(The flash organ, the one-seat enemy, and the four silent deletions were
-fixed in the tenth pass.)*
-
-- **Threat never scales.** Day 1 and day 900 draw the same 1.0–3.0 spread
-  (`sim/encounters.py:166`), and `engage.py:145` spawns the conn's target at
-  the *default* difficulty — opening fire yourself buys the easiest fight in
-  the game.
-- **Nothing sits between "kill it" and "let it go".** No surrender, no
-  prize (though `consorts.sail` already flies a second hull under your
-  flag); `driven-off` pays 10 research; fleeing is ~0.61 odds per turn,
-  retryable, and `fleeable` is never set False by any caller. The aftermath
-  prints recovered tonnage without valuing it — the cargo is ~5× the credit
-  loot and the player cannot see the reason to fight.
-- Smaller: `brace` vents three times and has no button; `nonlethal` is
-  read by nothing (`damage._breach` kills crew whatever opened the hull);
-  lawlessness can only ever bite at the jump exit (`sim/piracy.py` builds a
-  five-term model with one moment to use it); the Charter fields armed
-  warships against its own lore (`encounters._outfit` arms any chassis).
-
-### The world talks and the player cannot hear it
-
-- **`sim/comms.py` is a complete, ticking, saved inbox with zero UI.**
-  Five channels, couriers, lag — grep `ui/` for `comms`, `unread`,
-  `asking(`: nothing. Signals accumulate unbounded in the save because
-  nothing ever calls `read`. A Captain's Log screen — full scrollback over
-  the 300 stored lines (the sidebar shows 60, the rest are unreachable),
-  a kind filter, a despatches tab, an unread pill on the HUD — is the
-  highest-value UX item on the table. `comms.tick` also watches exactly one
-  fact (your standing band) against a docstring promising a sector that
-  speaks; the log tuples in `sim/threat.py:66-116` are the material.
+- **Lawlessness still has one moment to bite** — `sim/piracy.py`'s
+  five-term model is read only at the jump exit. The nineteenth pass added
+  a second interception moment (warrant hunters), but that reads the law's
+  ledger, not the lawlessness model; the two never meet.
 - **No sound. Not one byte** — no audio asset, no QtMultimedia import in
   the tree. Four cues would carry more than any HUD addition: thruster loop
   on the held burn, proximity tone off the collision guard, berth-secured
   chime, a distinct bad-news alert. `QSoundEffect` behind a no-op façade,
   the same shape as the optional-LLM path.
-- One save slot, no geometry persistence; number keys don't match rail
-  order (`4` opens the fifth entry — `data/screens.py:16-30`); W/A/S/D
-  documented only inside one lesson and dead on the Helm though the clock
-  runs there (`ui/window.py:363` vs `flight_clock.DECK_SCREENS`); buttons at
-  2.02:1 border contrast against WCAG's 3:1, `chloro`/`osteo`
-  luminance-identical for a deuteranope, 8–9 px type with no scale setting;
-  "Twenty-nine things" over 30 lessons (`ui/academy_panel.py:31`), "Eight
-  things to try" (`ui/title.py:136`), "Keys 1–8" over 13 screens (`:160`);
-  the Bloom absent from the HUD; the
-  header clips the ship name unelided; the yard's "After refit" numbers
-  clip at the default window size; forced-answer screens lock navigation
-  while their own fiction offers days to decide.
+- One save slot, no geometry persistence; buttons at 2.02:1 border contrast
+  against WCAG's 3:1, `chloro`/`osteo` luminance-identical for a
+  deuteranope, 8–9 px type with no scale setting; the Bloom absent from the
+  HUD (the despatch counter is there now; a burden chip off
+  `threat.harbours_left` is not); the header clips the ship name unelided;
+  the yard's "After refit" numbers clip at the default window size;
+  forced-answer screens lock navigation while their own fiction offers days
+  to decide.
+- `comms.tick` still watches exactly one fact (the standing band) against a
+  docstring promising a sector that speaks. Colony losses and epoch turns
+  now write to the board from their own sites; wars, port closures and
+  harbour losses are the remaining material (`sim/threat.py` log tuples).
 
-### What would hold it in place
-
-Almost none of the above is catchable by the suite as written, because it
-is about *reachability and balance* — code that works and is never reached,
-numbers individually pinned and jointly exploitable. The tripwire's natural
-sequel is a set of played economic claims: a same-port round trip loses
-money at every trade × bias combination; a 2,000-day sector produces at
-least one port promotion and one retrenchment; an engaged captain reaches
-Bloom stage 2; no cargo contract nets positive without leaving the system.
-
-## Open — the 2026-08-05 endgame sweep: combat is sound, the arc is not
+## Closed by the nineteenth pass — the 2026-08-05 endgame sweep
 
 5,640 engagements across 5 factions × 9 hulls × difficulty 0.5–4.0 found
-**no defects at all** — no non-terminations, no negative hulls, no
-both-sides-destroyed. All ten endings were reached by playing, no flags set
-by hand. What the sweep did find is in the arc around the fighting:
+**no defects at all** in the fighting itself. Every arc defect it found is
+now fixed and pinned: the refused brokerage (same day), Ruin-by-passivity,
+the `hunt` self-seed, the frozen calendar after a closed epoch, the two
+unfailable epochs, the inert-Bloom sectors, the dead `hunting()` read, the
+no-turn orders and the capped overture. See the nineteenth pass above for
+what each fix measured.
 
-1. ~~**A refused brokerage still charges 20,000 credits and burns the court
-   for 150 days.**~~ **Fixed.** `perform` spent and wrote both cooldowns
-   before it tested whether the third party would come, and
-   `ui/diplomacy_view.py:119` fills the third-party combo unfiltered — so it
-   was one click away. `diplomacy.refusal` is one door, asked before a credit
-   is spent; `denounce` had the same shape and goes through it too. Pinned by
-   "an overture that will be refused is refused before it is paid for".
-2. **Ruin is won by doing literally nothing.** `threat._stood_through_it`
-   exists to stop exactly this, but it accepts `response.level(game) > 0`
-   and the *powers'* own containment ventures provoke the Bloom on the
-   clock — so the guard is satisfied by NPCs. Seed `passive-0`:
-   `advance_days` only, victory `ruin` at day 2338. Across 8 passive seeds,
-   total passivity is 2 wins, 3 deaths, 3 unresolved.
-3. **The `hunt` response re-seeds the system the captain is standing in.**
-   `sim/responses.py:96` writes `inst.target_id = game.location_id`
-   directly, bypassing the rule `sim/bloom.py:189` states. Striking the heart
-   is the largest provocation in the table, so `hunt` is near-certain to fire
-   while the captain is *at* the heart — undoing `infested == 0` at the
-   moment it is earned.
-4. **A closed aftermath epoch freezes the calendar.** `in_epoch` goes False,
-   `threat.check_victory` re-detects the same still-true condition, and
-   `advance_days` early-returns for ever. `sim/legacy.py`'s docstring
-   promises "the next one begins"; no code picks a next one.
-5. **Two aftermath epochs cannot be failed.** Ceilings are 0.884 (concord)
-   and 0.838 (xenarch) against `BREAK = 1.0`, so their `failure` prose is
-   unreachable and both are guaranteed triumphs whatever the player does.
-6. **2% of sectors generate a Bloom that can never spread** — 10 of 500.
-   `threat.py:127` only seeds within `distance < 11` of a system past 0.6; if
-   no such pair exists at generation, the whole antagonist is inert. More
-   broadly, 9 of 40 untouched sectors never reach Motile in 2,000 days.
-7. **"It is sending masses after your hull" stops being true after the first
-   two.** `responses.hunting()` is read by one line of UI and by nothing in
-   `bloom._retarget` — measured, 28/500 instar-ticks aimed at the captain
-   against a 10/500 control.
-8. Two smaller ones: `hail` against a no-parley enemy, a held `flee`, and an
-   unknown order all consume **no turn at all** (a wasted click for a human,
-   an infinite loop for any scripted driver); and an overture at capped
-   standing charges full price and prints a gain it does not deliver.
+## Done — the eighteenth pass (2026-08-05): four powers, four laws
 
-## Open — the 2026-08-05 governance survey: there is no law
+The governance survey's answer was "there is no law" — every legal act in the
+game was one of four mechanics in a legal costume: a reputation delta, a
+memory entry, a percentage skimmed at a till, or an escalation ladder bolted
+to a berth. There is a law now, and the design decision that shaped all of it
+was **not to build a police force.** `data/factions.py` says the Charter
+"fields no armed vessel anywhere", and a sector-wide constabulary is exactly
+the "single authority that could weaponise the reproduction licence" the
+programme's own charter was written to prevent. So instead: four powers, four
+legal cultures, each only as long as that power's arm.
+
+**The spine.** An act → a charge → a judgment → a sanction → enforcement that
+can actually reach you → a way back. Seven modules, one front door
+(`sim/governance.tick`, which the clock calls once and which owns the order
+the six others run in).
+
+- `data/offences.py` — eleven offences, and **which powers recognise each**.
+  Trespass offends everyone because everyone keeps a register; unlicensed
+  germination is the Charter's alone, because the Freeholds post a price for
+  unlicensed seed on the open market and a power cannot charge you with the
+  thing it sells.
+- `data/forums.py` — the four legal cultures, drawn from what each faction
+  already was. The Charter: administrative, decides on paper, and its entire
+  armoury is the word *no* — no clearance, no licence, no gate. The Concordat:
+  arbitration over property, with hulls to collect it. The Freeholds: **no
+  forum at all** — a claim becomes a price on your hull, posted openly and
+  sold on. The Dry Choir: attainder by computation, no hearing, nowhere to
+  stand, and what comes out is anathema.
+- `sim/law.py` the record · `sim/dockets.py` witness and filing ·
+  `sim/tribunal.py` the hearing · `sim/debts.py` money owed ·
+  `sim/warrants.py` instruments · `sim/enforce.py` where it bites ·
+  `sim/clemency.py` the way out · `ui/law_view.py` the docket screen.
+
+**Being seen is not being charged**, and that is the load-bearing idea.
+`dockets.witness` asks what a power actually has in a system — its quay, its
+register, its hulls, or a friend with one of those — and returns 0 for a power
+with nothing there, so nothing is recorded at all. Working the frontier is not
+innocence; it is being unobserved, and it is allowed to feel different.
+
+**Every dead reader from the survey is now wired to a live one.** Smuggling
+risk was opt-in (`customs.inspect` had one call site while three buttons
+docked you around it); `BURNED = 1.0` — "they are waiting for you" — was a
+label no code read; patrols were furniture with `hostile=False`;
+`grudge.hostile_open` was called only by its own test; the two purchasable
+favours "a berth regardless" and "a word before it happens" bought nothing —
+and the second's blurb literally reads *a levy, a search, **a claim** — you
+hear about it first*; `may_engage` had no political gate, so you could open
+fire inside a capital's approaches and the station would not react; the
+Charter's licence was a tradeable commodity with no issuing authority and no
+revocation. All of them do something now.
+
+**Two faults found by playing it, both caught before they shipped:**
+
+- **The law re-entered itself.** A patrol that stopped you charged two days
+  with `advance_days`, which runs the clock, which runs the law, which stops
+  you. It surfaced as a `RecursionError` in `settlement.maturity`, three
+  modules from the cause — which is what re-entrancy always looks like from
+  outside. There is a guard flag now and no clock inside the clock.
+- **The layer generated its own work, geometrically.** A default charge
+  decided in absence produced a default charge; its debt went unpaid and
+  produced arrears; that was decided in absence too. Measured from a single
+  contraband bust: **61,820 charges and ₡498 million owed inside eight
+  years** — a save file that does not load rather than a game. A power now
+  has *one* "you are not answering us" at a time and escalates the instrument
+  instead of the paperwork: the same decade now ends at 3 charges and ₡45,000.
+
+Nineteen played checks across `tests/test_law.py` and `tests/test_tribunal.py`,
+including the two that matter most: **a captain who does nothing wrong is
+never charged with anything** (three chronicles to day ~2,400, exposure 0.00),
+and **the same act in front of the four forums produces four different
+afternoons** — licence suspended, bond against the hull, a price on your hull,
+and removal from the record.
+
+## Closed by the eighteenth pass — the governance survey
 
 Asked how debts are collected, laws enforced and crimes punished. The honest
 answer is that **none of those systems exist as systems**. Every "legal" act
@@ -936,11 +1032,12 @@ more than they deliver, and those are the gaps worth closing:
    (`path.py`, `engage.REACH_KM`, `freeflight.RUN_MARGIN`) joined the pool.
    Each pin is its own small piece of work: drive the sim to the bar,
    bracket with absolute values. Re-run the sweep before choosing targets.
-3. **Ten recorded length debts, 517 lines** (`tests/test_length.ALLOWED`),
+3. **Nine recorded length debts, 504 lines over** (`tests/test_length.ALLOWED`),
    `data/works3d.py` at 635 the worst. Each is a real seam to find, roughly
    a cycle apiece; the ratchet stops them growing meanwhile.
-   (`sim/exchequer.py` was struck off in the eleventh pass — its screen
-   queries are `sim/exchequer_ledger.py`.)
+   (`sim/exchequer.py` was struck off in the eleventh pass;
+   `tests/chronicle.py` in the nineteenth — its fights are
+   `tests/chronicle_fights.py`, and the file sits at 471.)
 3. **Other ships are not plotted on the helm chart.** Nothing gives a known
    hull a persistent position a chart could draw — honestly a design piece
    (where does a sighting live, how stale may it go), not a marker to add.

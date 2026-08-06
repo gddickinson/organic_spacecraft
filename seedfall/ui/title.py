@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (QDialog, QHBoxLayout, QLineEdit, QVBoxLayout,
 
 from ..core import state as state_mod
 from ..data.chassis import CHASSIS_BY_ID
-from ..data.lore import INTRO, SUBTITLE, TAGLINE, TITLE
+from ..data.lore import INTRO, SUBTITLE, TAGLINE, TITLE, VICTORIES
 from . import theme
 from .widgets import button, label, note, spacer
 
@@ -142,11 +142,14 @@ def offer_tutorial(win) -> None:
         return                      # already offered, or already running
     if not options_sim.get(game, "tutorial"):
         return
+    from ..data.lessons import LESSONS
     take = win.confirm(
         "A short walk through",
-        "Eight things to try, one at a time, along the top of the screen. It "
-        "watches what you actually do rather than what you click, it never "
-        "blocks anything, and you can stop it whenever you like.",
+        # Counted, not stated — "Eight things to try" survived two curriculum
+        # rewrites, the same way "Five of them" once survived ten endings.
+        f"{len(LESSONS)} things to try, one at a time, along the top of the "
+        "screen. It watches what you actually do rather than what you click, "
+        "it never blocks anything, and you can stop it whenever you like.",
         yes="Walk me through it", no="I will find my own way")
     if take:
         tutorial_sim.begin(game)
@@ -166,7 +169,8 @@ def opening_briefing(win) -> None:
          "Nobody has told you what to do about the Bloom, because nobody knows. "
          "Survey what is out there and sell the data. Dig phosphate and trade it. "
          "Grow colonies, or buy a Concordat battleship, or research your way to "
-         "something neither faction has. Five different endings are open to you "
-         "and none of them are locked behind the others.",
-         note("Keys 1–8 switch screens. The game saves itself whenever time passes.")],
+         f"something neither faction has. {len(VICTORIES)} different endings "
+         "are open to you and none of them are locked behind the others.",
+         note("Keys 1–0 and the letters on the rail switch screens. The game "
+              "saves itself whenever time passes.")],
         [("Take the bridge", None)])
