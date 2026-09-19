@@ -22,9 +22,14 @@ work stream's merge notes. The game's own account is in
     sound;
   - the exploits are closed, every screen fits 1040×680, and every file is
     under 500 lines.
-- **Tooling:** a parallel test runner (17 min → about 200 s), `pyproject.toml`, a
-  CI workflow (not yet run on GitHub), ruff, generated package maps, and the
-  `exports` and `maps` suites.
+- **Tooling:**
+  - a parallel test runner (17 min → about 200 s);
+  - `pyproject.toml`;
+  - a CI workflow, green on Python 3.10–3.12 from its third run (the first
+    two found a missing scipy, lint errors and two checks tied to this
+    machine);
+  - ruff;
+  - generated package maps, and the `exports` and `maps` suites.
 - **Documents:** all 13 corrected. `calcs/` recomputes 291 tagged numbers,
   and `viewer/links.py` audits every link. **All 13 need republishing.**
 - **Final play-test:** an independent agent played the first hour and

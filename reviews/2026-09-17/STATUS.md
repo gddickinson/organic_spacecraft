@@ -75,7 +75,7 @@ Item numbers are the review's own.
 | 40 Order dependence; optional Qt | per-chronicle ids; lazy Qt | `harness` |
 | 41 pytest | `tests/pytest_shim.py`, `pyproject.toml` | `pytest -k …` |
 | 42 Coverage; duplicated setup | `tests/qtkit.py`; `--coverage` (74% on the fast set) | — |
-| 43 No packaging, CI or lint | `pyproject.toml`, `.github/workflows/ci.yml`, ruff config | CI (not yet run on GitHub) |
+| 43 No packaging, CI or lint | `pyproject.toml`, `.github/workflows/ci.yml`, ruff config | CI, green on 3.10–3.12 (the first runs found scipy missing from `models`, eleven lint errors, a hard-coded home path and a CPU budget in seconds) |
 
 **Documents (E):** items 44–53 and 59.
 - NAVIS is one body everywhere.
@@ -168,4 +168,4 @@ Assembly, Kith, relight and arcs. It found eleven defects; the fixes:
   - honest trader income is still thin;
   - hunter income is below the explorer's;
   - only Genesis has been measured for honest endings;
-  - the CI workflow has not run on GitHub.
+  - the nightly full-suite job has not yet run on GitHub (push CI is green).
