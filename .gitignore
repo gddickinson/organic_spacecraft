@@ -7,3 +7,16 @@ __pycache__/
 
 # Simulation preview frames (build artifacts; the GIFs are the deliverable)
 assets/sim/*-preview.png
+
+# Tooling output: coverage, pytest, packaging, virtualenvs, editors
+.coverage
+.coverage.*
+htmlcov/
+coverage-out/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.venv/
+build/
+dist/
+*.swp

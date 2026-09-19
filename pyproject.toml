@@ -1,0 +1,118 @@
+# GESTALT / SEEDFALL — what the project needs, declared once.
+#
+# The READMEs used to say only `pip install PyQt6`, while the root `sim/`
+# needs numpy, matplotlib and Pillow and `models3d/` needs trimesh, and the
+# interpreter everything was run with was a borrowed conda env mixing PyQt5
+# and PyQt6. The suites pass on Python 3.10-3.12.
+#
+# Only the game (`seedfall`) is installed as a package. The root `sim/`,
+# `models3d/` and `viewer/` are run from a checkout (`python -m sim.run`,
+# `python -m models3d.run`, `python viewer/app.py`) and are deliberately
+# not put in site-packages under names as generic as `sim`; their extras
+# exist to pull in what they import.
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gestalt-seedfall"
+dynamic = ["version"]
+description = "SEEDFALL, a space exploration, trading and combat RPG grown from the GESTALT design programme"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "George D. Dickinson" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Games/Entertainment",
+]
+dependencies = ["PyQt6>=6.4"]
+
+[project.optional-dependencies]
+# The root `sim/` physics animations.
+sim = ["numpy", "matplotlib", "pillow"]
+# `models3d/`: building and exporting the GLB models.
+models = ["trimesh", "numpy", "matplotlib"]
+# Running the checks the way CI does, plus the lint.
+dev = ["pytest>=7", "pytest-cov", "ruff", "coverage"]
+
+[project.scripts]
+seedfall = "seedfall.__main__:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "seedfall.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["seedfall*"]
+
+# ── pytest ─────────────────────────────────────────────────────────────────
+# One pytest test per suite; see `seedfall/tests/pytest_shim.py`. The
+# ~220 `test_*.py` modules are `Suite` modules, not pytest modules, so
+# `python_files` names the shim alone — collecting them would import every
+# one to find no pytest tests at all.
+[tool.pytest.ini_options]
+testpaths = ["seedfall/tests"]
+python_files = ["pytest_shim.py"]
+# `pytest-qt`, where it is installed, picks a Qt binding for itself at start
+# and can pick PyQt5 in an env that has both; the suites bring their own.
+addopts = "-p no:pytestqt"
+
+# ── coverage ───────────────────────────────────────────────────────────────
+# For `pytest --cov` (with SEEDFALL_INPROCESS=1). The runner's own
+# `--coverage` passes the same source and omit on its command line.
+[tool.coverage.run]
+source = ["seedfall"]
+omit = ["seedfall/tests/*"]
+
+# ── ruff ───────────────────────────────────────────────────────────────────
+# F (pyflakes), E9 (syntax errors) and B (bugbear), at 99 columns. Chosen so
+# CI means something today: the tree passes this as it stands, and anything
+# *new* in the rules below fails.
+[tool.ruff]
+line-length = 99
+target-version = "py310"
+extend-exclude = ["assets", "docs", "reviews"]
+
+[tool.ruff.lint]
+select = ["F", "E9", "B"]
+# TEMPORARY. Counted 2026-09-17 on the whole tree: F401 198, B905 124,
+# B007 37, F841 21. These are the pyflakes clean-up due to be done
+# mechanically in one pass; delete each line as its count reaches zero.
+# (B905, `zip()` without `strict=`, needs a decision per call site rather
+# than a sed: several zips truncate on purpose.)
+ignore = [
+    "F401",   # unused import                     — temporary, 198
+    "B905",   # zip() without strict=             — temporary, 124
+    "B007",   # unused loop variable              — temporary, 37
+    "F841",   # local assigned and never used     — temporary, 21
+]
+
+[tool.ruff.lint.per-file-ignores]
+# TEMPORARY, and per file rather than per rule so the rule still binds
+# everywhere else. Each row is a finding that exists today; strike it when
+# the file is fixed.
+"seedfall/sim/xeno.py" = ["F822"]            # `known` in __all__ is undefined (a real bug, reported)
+"seedfall/sim/telepresence.py" = ["F811"]    # re-imports `math`, `galaxy`
+"seedfall/sim/tug.py" = ["F811"]             # local `step` shadows the imported one
+"seedfall/tests/probes.py" = ["F811"]
+"seedfall/tests/test_freeframe.py" = ["F811"]
+"seedfall/tests/test_tutorial.py" = ["F811"]
+"seedfall/tests/test_bench_kinds.py" = ["F541"]
+"seedfall/tests/test_fog.py" = ["F541"]
+"seedfall/tests/test_grudges.py" = ["F541"]
+"seedfall/tests/test_wayhome.py" = ["F541"]
+"seedfall/ui/tutorial_bar.py" = ["F541"]
+"seedfall/ui/conn_window.py" = ["F402"]      # loop variable `label` shadows the widget helper
+"seedfall/ui/system_view.py" = ["F402"]
+"seedfall/bridge/attached.py" = ["B904"]
+"seedfall/tests/test_verbs.py" = ["B010"]
+"seedfall/tests/test_cameras.py" = ["B023"]  # closures over a loop variable, each called
+"seedfall/tests/test_drawbudget.py" = ["B023"]   # inside the iteration that made it
+"seedfall/tests/test_programmes.py" = ["B023"]
+"seedfall/tests/test_seats.py" = ["B023"]
+"seedfall/tests/tripwire.py" = ["B023"]

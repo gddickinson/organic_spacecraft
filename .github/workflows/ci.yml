@@ -1,0 +1,93 @@
+# What runs, and when.
+#
+# On every push and pull request: ruff, the two document/model checks, and
+# the fast suites (`--fast`: each measured under 1.5 s alone — about 100 of
+# ~206, 30 s at -j 4) on Python 3.10, 3.11 and 3.12.
+# Nightly, and on demand: every suite, in parallel, on all three; 3.12 also
+# records coverage per suite and keeps the module→suite map as an artifact.
+#
+# `--require-qt` everywhere: a runner that lost its Qt libraries would
+# otherwise skip every interface suite and report green.
+
+name: ci
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "23 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      # Rules and the temporary ignores live in pyproject.toml.
+      - run: ruff check .
+
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12"]
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - name: Qt's system libraries, for a headless PyQt6
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3 \
+            fonts-dejavu-core
+      - name: Install the project with every extra
+        run: pip install -e ".[dev,sim,models]"
+      - name: Keep every save in the runner's scratch space
+        run: echo "SEEDFALL_SAVE=$RUNNER_TEMP/seedfall-save.json" >> "$GITHUB_ENV"
+
+      - name: The documents load
+        run: python viewer/app.py --check
+      - name: The 3D models build and validate
+        run: python -m models3d.run --check
+
+      - name: Fast suites
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        run: python -m seedfall.tests --fast --require-qt -j 4
+
+      - name: Every suite
+        if: >-
+          (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+          && matrix.python != '3.12'
+        run: python -m seedfall.tests --require-qt -j 4
+      - name: Every suite, with coverage per suite
+        if: >-
+          (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+          && matrix.python == '3.12'
+        run: python -m seedfall.tests --require-qt -j 4 --coverage coverage-out
+      - name: Keep the coverage map
+        if: >-
+          always() && matrix.python == '3.12'
+          && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-map
+          path: |
+            coverage-out/coverage-map.json
+            coverage-out/.coverage
+          include-hidden-files: true
+          if-no-files-found: warn
