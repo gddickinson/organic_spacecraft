@@ -191,7 +191,7 @@ def run(suite: Suite) -> None:
             kit.on_day(game, flare.start - 1)
             crew = game.ship.crew
 
-            def cost(neutral: bool) -> float:
+            def cost(neutral: bool, game=game, flare=flare) -> float:
                 twin = save_mod.decode(save_mod.encode({"game": game}))["game"]
                 twin.recompute()
                 real = sky_sim.dose

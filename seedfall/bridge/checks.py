@@ -50,7 +50,8 @@ def whole(value, name: str, lo: int, hi: int) -> int:
         try:
             value = int(value.strip())
         except ValueError:
-            raise Refused(f"{name} must be a whole number, not {value!r}.")
+            raise Refused(f"{name} must be a whole number, "
+                          f"not {value!r}.") from None
     elif isinstance(value, float):
         if not math.isfinite(value) or not value.is_integer():
             raise Refused(f"{name} must be a whole number, not {value!r}.")
@@ -84,7 +85,7 @@ def amount(value, name: str, hi: float, lo: float = 0.0,
         try:
             value = float(value.strip())
         except ValueError:
-            raise Refused(f"{name} must be a number, not {value!r}.")
+            raise Refused(f"{name} must be a number, not {value!r}.") from None
     if not isinstance(value, (int, float)):
         raise Refused(f"{name} must be a number, not {type(value).__name__}.")
     value = float(value)

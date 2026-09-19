@@ -87,7 +87,7 @@ python -m models3d.run --check   # the models build and validate
 ```
 
 The viewer is standard library only. `sim/` needs numpy, matplotlib and
-Pillow; `models3d/` needs trimesh. The game needs PyQt6. Each set is an extra
+Pillow; `models3d/` needs trimesh and scipy. The game needs PyQt6. Each set is an extra
 in `pyproject.toml`.
 
 ## SEEDFALL (`seedfall/`)

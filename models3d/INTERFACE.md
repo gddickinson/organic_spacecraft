@@ -66,4 +66,4 @@ then open the **Working 3D Models** card (route `/models`). It uses the
 connection); the exported `.glb` / `.obj` / `.stl` files themselves work offline
 in any 3D tool.
 
-Requires `trimesh` (+ `numpy`, `matplotlib`, `pygltflib`). All modules under 500 lines.
+Requires `trimesh` (+ `numpy`, `matplotlib`, and `scipy` for the GLB export). All modules under 500 lines.

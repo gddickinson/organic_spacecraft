@@ -167,7 +167,7 @@ def run(suite: Suite) -> None:
             if envoy is None:
                 continue
 
-            def total():
+            def total(game=game):
                 return game.credits + sum(
                     exchequer.purse(game, p).credits for p in dip.POWERS)
             before = total()

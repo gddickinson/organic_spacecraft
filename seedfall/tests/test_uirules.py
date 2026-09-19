@@ -60,7 +60,7 @@ def _calls(attr: str) -> set:
     for path in sorted(UI.glob("*.py")):
         tree = ast.parse(path.read_text())
 
-        def walk(node, fn):
+        def walk(node, fn, path=path):
             for child in ast.iter_child_nodes(node):
                 inner = (child.name if isinstance(
                     child, (ast.FunctionDef, ast.AsyncFunctionDef)) else fn)

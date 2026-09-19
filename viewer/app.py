@@ -124,8 +124,8 @@ def check():
     for line in problems:
         print(f"  FAIL link  {line}")
     if not problems:
-        print(f"  ok   links: every nav in catalog order, every artifact id "
-              f"known, every #anchor present")
+        print("  ok   links: every nav in catalog order, every artifact id "
+              "known, every #anchor present")
     return ok and not problems
 
 

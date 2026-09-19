@@ -197,8 +197,9 @@ def run(suite: Suite) -> None:
             g2, h2, m2 = kit.house()
             paper2, _t2 = kit.route(g2, h2, m2)
             origin = g2.galaxy.systems[paper2.origin]
-            market_sim.quote_sell = lambda gm, sy, cid: market_sim.quote_buy(
-                gm, origin, cid)
+            market_sim.quote_sell = (
+                lambda gm, sy, cid, origin=origin: market_sim.quote_buy(
+                    gm, origin, cid))
             if forced:
                 linetrips.judged = lambda *_a: 1.0
             try:

@@ -1,9 +1,10 @@
 # GESTALT / SEEDFALL — what the project needs, declared once.
 #
 # The READMEs used to say only `pip install PyQt6`, while the root `sim/`
-# needs numpy, matplotlib and Pillow and `models3d/` needs trimesh, and the
-# interpreter everything was run with was a borrowed conda env mixing PyQt5
-# and PyQt6. The suites pass on Python 3.10-3.12.
+# needs numpy, matplotlib and Pillow and `models3d/` needs trimesh (and scipy,
+# for its GLB export), and the interpreter everything was run with was a
+# borrowed conda env mixing PyQt5 and PyQt6. The suites pass on Python
+# 3.10-3.12.
 #
 # Only the game (`seedfall`) is installed as a package. The root `sim/`,
 # `models3d/` and `viewer/` are run from a checkout (`python -m sim.run`,
@@ -37,7 +38,7 @@ dependencies = ["PyQt6>=6.4"]
 # The root `sim/` physics animations.
 sim = ["numpy", "matplotlib", "pillow"]
 # `models3d/`: building and exporting the GLB models.
-models = ["trimesh", "numpy", "matplotlib"]
+models = ["trimesh", "numpy", "matplotlib", "scipy"]   # trimesh's GLB export
 # Running the checks the way CI does, plus the lint.
 dev = ["pytest>=7", "pytest-cov", "ruff", "coverage"]
 
