@@ -312,12 +312,7 @@ class GunnerWindow(QDialog):
 
 def open_gunnery(win) -> GunnerWindow:
     """Open the gunner's station, or raise the one already open."""
-    existing = getattr(win, "gunner_window", None)
-    if existing is not None:
-        existing.raise_()
-        existing.activateWindow()
-        return existing
-    window = GunnerWindow(win)
-    win.gunner_window = window
-    window.show()
-    return window
+    # Freed on close, and its slot cleared — `ui/popout.py`.
+    from . import popout
+    return popout.open_one(win, "gunner_window",
+                           lambda: GunnerWindow(win))

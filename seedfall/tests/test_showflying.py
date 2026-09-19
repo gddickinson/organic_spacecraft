@@ -32,18 +32,7 @@ from ..sim import conn as conn_sim
 from ..sim import preview as preview_sim
 from ..sim import thrusters
 from .harness import Suite
-
-_HELD = None
-
-
-def _app():
-    from .test_ui import _use_offscreen
-    _use_offscreen()
-    from PyQt6.QtWidgets import QApplication
-    global _HELD
-    _HELD = QApplication.instance() or QApplication([])
-    assert _HELD is not None
-    return _HELD
+from .qtkit import app as _app
 
 
 def _shut(win, *windows) -> None:
@@ -189,7 +178,6 @@ def run(suite: Suite) -> None:
     def _():
         # Pixels: the same frame with the burn and without it, and the light
         # has to appear near where `data/mounts.py` says that engine sits.
-        from PyQt6.QtGui import QColor
         from ..ui import render3d, shipdiagram
 
         keep = _app()

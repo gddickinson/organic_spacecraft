@@ -13,7 +13,6 @@ geometry.
 
 from __future__ import annotations
 
-import math
 
 from PyQt6.QtCore import QPointF, Qt, pyqtSignal
 from PyQt6.QtGui import (QColor, QFont, QPainter, QPen, QPolygonF,

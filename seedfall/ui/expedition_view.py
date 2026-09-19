@@ -5,9 +5,8 @@ from __future__ import annotations
 
 from PyQt6.QtCore import QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QFont, QPainter, QPen
-from PyQt6.QtWidgets import QHBoxLayout, QSizePolicy, QWidget
+from PyQt6.QtWidgets import QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 
-from ..core.util import num, pct
 from ..data.expedition import FEATURES, PARTY_CAPACITY, TERRAIN
 from ..sim import expedition as exp_sim
 from ..sim import wayhome as wayhome_sim
@@ -15,10 +14,24 @@ from ..sim import weather as weather_sim
 from ..sim.fieldwork import conclude_expedition
 from . import theme
 from . import painting
-from .widgets import (Bar, Panel, Pill, View, button, label, mono_label, note,
+from .flow import Flow
+from .widgets import (Panel, View, button, label, mono_label, note,
                       spacer)
 
 CELL = 62
+
+#: **A letter in every feature's ring.** Ten features share six colours —
+#: three of them the same green — so on the map a sealed cache, an
+#: aggregation and cultivated ground were one mark, and under deuteranopia
+#: most of the rest joined them. The letter carries the difference; the
+#: legend under the map says which is which.
+MARK = {"ruin": "R", "seam": "S", "vent_field": "V", "wreck": "W",
+        "cache": "C", "nest": "N", "monolith": "M", "shaft": "I",
+        "bloomscar": "B", "garden": "G"}
+
+
+def feature_mark(fid: str) -> str:
+    return MARK.get(fid, fid[:1].upper())
 
 
 class ZoneMap(QWidget):
@@ -70,6 +83,11 @@ class ZoneMap(QWidget):
                 p.setPen(QPen(QColor(theme.tint(f.tint)), 1.6))
                 p.setBrush(Qt.BrushStyle.NoBrush)
                 p.drawEllipse(r.center(), 9, 9)
+                bold = QFont(theme.mono_family(), 8)
+                bold.setBold(True)
+                p.setFont(bold)
+                p.drawText(QRectF(r.center().x() - 9, r.center().y() - 9, 18, 18),
+                           Qt.AlignmentFlag.AlignCenter, feature_mark(t.feature))
             elif t.feature and t.resolved:
                 p.setPen(QPen(QColor(theme.INK3), 1))
                 c = r.center()
@@ -131,7 +149,13 @@ class ExpeditionView(View):
         h.setContentsMargins(0, 0, 0, 0)
         h.setSpacing(14)
         zone = ZoneMap(self.win)
-        h.addWidget(zone, 0, Qt.AlignmentFlag.AlignTop)
+        left = QWidget()
+        down = QVBoxLayout(left)
+        down.setContentsMargins(0, 0, 0, 0)
+        down.setSpacing(6)
+        down.addWidget(zone)
+        down.addWidget(self._legend(exp))
+        h.addWidget(left, 0, Qt.AlignmentFlag.AlignTop)
         h.addWidget(self._status(exp), 1)
         self.col.addWidget(holder)
 
@@ -141,6 +165,20 @@ class ExpeditionView(View):
         else:
             self.col.addWidget(self._debrief(exp))
         self.col.addWidget(self._log(exp))
+
+    def _legend(self, exp) -> QWidget:
+        """The features on this map that have been seen, letter by letter."""
+        seen = sorted({t.feature for t in exp.tiles if t.seen and t.feature})
+        marks = [f"<b style='color:{theme.tint(FEATURES[fid].tint)}'>"
+                 f"{feature_mark(fid)}</b> {FEATURES[fid].name}" for fid in seen]
+        made = []
+        for mark in marks or ["Nothing found yet"]:
+            lb = label(mark, "note")
+            lb.setTextFormat(Qt.TextFormat.RichText)
+            made.append(lb)
+        box = Flow(made, spacing=12, line=2)
+        box.setMaximumWidth(CELL * exp_sim.W + 2)
+        return box
 
     # ── panels ─────────────────────────────────────────────────────────────
 

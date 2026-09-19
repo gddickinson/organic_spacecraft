@@ -27,7 +27,10 @@ does not restore.
 from __future__ import annotations
 
 import ast
+import contextlib
+import shutil
 import os
+import stat
 import pathlib
 import tempfile
 
@@ -37,6 +40,34 @@ import tempfile
 SKIP = {"MASK", "SAVE_VERSION", "KEEP", "MAX_BAND", "ARENA"}
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
+#: The real repository, whatever `ROOT` is pointed at meanwhile.
+REPO = ROOT
+
+
+@contextlib.contextmanager
+def sandbox():
+    """Point the sweep at a throwaway copy of the package, never the tree.
+
+    **The sweep used to edit the working tree itself** — rewrite a constant
+    in `sim/exchequer.py`, run the suites, put it back. Every run of the
+    `tripwire` suite rewrote four real source files (their mtimes moved on
+    every run, and `mkstemp` left three of them mode 600), one check had no
+    restore at all, and a second suite running at the same moment could
+    import a constant while it was mutated. Now the mutations happen in a
+    copy, and a child suite run is started *in* the copy, so it imports the
+    mutated package and the tree is never written.
+    """
+    global ROOT
+    was = ROOT
+    with tempfile.TemporaryDirectory(prefix="seedfall-sweep-") as tmp:
+        shutil.copytree(REPO / "seedfall", pathlib.Path(tmp) / "seedfall",
+                        ignore=shutil.ignore_patterns("__pycache__", "*.pyc",
+                                                      "*.swp"))
+        ROOT = pathlib.Path(tmp)
+        try:
+            yield ROOT
+        finally:
+            ROOT = was
 
 
 def constants(only: str = "") -> list:
@@ -125,6 +156,10 @@ def put(path: pathlib.Path, text: str) -> None:
     try:
         with os.fdopen(fd, "w") as handle:
             handle.write(text)
+        # `mkstemp` makes the file 0600, and the rename carries that over —
+        # which is how swept sources ended up readable by their owner alone.
+        if path.exists():
+            os.chmod(tmp, stat.S_IMODE(os.stat(path).st_mode))
         os.replace(tmp, path)
     except BaseException:
         pathlib.Path(tmp).unlink(missing_ok=True)

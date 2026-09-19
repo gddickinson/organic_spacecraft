@@ -7,22 +7,9 @@ attribute that a browser-free simulation test never would.
 
 from __future__ import annotations
 
-import os
-from pathlib import Path
-
-
-def _use_offscreen() -> None:
-    """Point Qt at its bundled plugins and render without a display."""
-    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-    if "QT_QPA_PLATFORM_PLUGIN_PATH" not in os.environ:
-        try:
-            import PyQt6
-            plugins = Path(PyQt6.__file__).parent / "Qt6" / "plugins" / "platforms"
-            if plugins.is_dir():
-                os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = str(plugins)
-        except ImportError:
-            pass
-
+# Kept under its old name: 69 check files import `_use_offscreen`
+# from here. The one definition is `qtkit.use_offscreen`.
+from .qtkit import use_offscreen as _use_offscreen
 
 _use_offscreen()
 
@@ -204,15 +191,44 @@ def run(suite) -> bool:
         view.tab = "build"
         view.design_chassis = None
         view.refresh()
+        from PyQt6.QtWidgets import QLabel
+
+        from ..ui.widgets import Card
         hulls = view._buildable()
+        # Measured: eleven with those five technologies unlocked.
+        assert len(hulls) >= 11, [c.id for c in hulls]
+        # The "All" tab holds across a refresh and shows every hull. It
+        # used to snap back to the first family (5 of 11 hulls on show).
+        view._pick_family("all")
+        view.refresh()
+        view.grab()
+        assert view.hull_family == "all", view.hull_family
+        shown = {k.findChildren(QLabel)[0].text() for k in view.findChildren(Card)}
+        missing = [c.name for c in hulls if c.name not in shown]
+        assert not missing, f"the All tab hides {missing}"
         for c in hulls:
+            # Through its family's tab, as a player can.
+            view._pick_family(c.family)
             view._pick_hull(c.id)
             view.grab()
+            assert view.design_chassis == c.id, (c.id, view.design_chassis)
+            # The picker lights exactly one card, and it is this hull's; the
+            # fittings panel below is headed with the same name.
+            lit = [k for k in view.findChildren(Card) if k._selected]
+            assert len(lit) == 1, f"{c.id}: {len(lit)} cards lit"
+            assert lit[0].findChildren(QLabel)[0].text() == c.name, c.id
+            heads = [w.text() for w in view.findChildren(QLabel)]
+            assert f"{c.name} — fittings" in heads, (
+                f"picked {c.id} and the designer is not fitting it")
         return f"{len(hulls)} hulls opened in the designer"
 
     @check("body detail renders for every kind of body")
     def _():
+        from PyQt6.QtWidgets import QLabel
+
+        from ..ui.widgets import Panel
         kinds = set()
+        shown = 0
         for sysm in game.galaxy.systems[:14]:
             game.location_id = sysm.id
             for b in sysm.bodies:
@@ -223,7 +239,19 @@ def run(suite) -> bool:
             for i in range(len(sysm.bodies)):
                 view._select(i)
                 view.grab()
+                # The list names every body; the detail is the panel headed
+                # with the one selected, which is what a click has to change.
+                heads = [p.findChildren(QLabel)[0].text()
+                         for p in view.findChildren(Panel)
+                         if p.findChildren(QLabel)]
+                assert sysm.bodies[i].name in heads, (
+                    f"selected {sysm.bodies[i].name} and the detail shows "
+                    f"{heads}")
+                shown += 1
         game.location_id = port_sys.id
+        # Measured: 50 bodies across fourteen systems, seven kinds of them.
+        assert len(kinds) >= 6, f"only {sorted(kinds)} were covered"
+        assert shown >= 40, shown
         return "body kinds covered: " + ", ".join(sorted(kinds))
 
     @check("the tactical plot draws and station orders drive it")
@@ -266,8 +294,17 @@ def run(suite) -> bool:
     def _():
         from ..sim import xeno as xeno_sim
         from ..data.xenotech import XENOTECH
+        from PyQt6.QtWidgets import QLabel
         view = win.views["tech"]
         stages = []
+
+        def says(count: int) -> list:
+            # The desk's own tally line, and every technology named on it.
+            texts = [w.text() for w in view.findChildren(QLabel)]
+            tally = f"{count} of {len(XENOTECH)} alien technologies incorporated"
+            assert any(t.startswith(tally) for t in texts), (
+                f"the desk does not say {tally!r}")
+            return [x.name for x in XENOTECH if x.name in texts]
 
         # nothing found yet
         bare = new_game("xeno-ui")
@@ -275,6 +312,7 @@ def run(suite) -> bool:
         win.go("tech")
         view.branch = "xeno"
         view.refresh(); view.grab()
+        assert says(0) == [], "an undiscovered technology is named already"
         stages.append("undiscovered")
 
         # partly studied, one incorporated, one blocked on a prerequisite
@@ -285,6 +323,10 @@ def run(suite) -> bool:
         bare.ship.cargo["xenolith"] = 5
         bare.recompute()
         view.refresh(); view.grab()
+        # Measured: three are named — two under study and one taken in.
+        partly = says(1)
+        assert XENOTECH[3].name in partly and deep.name in partly, partly
+        assert len(partly) < len(XENOTECH), "the desk names what nobody found"
         stages.append("part-studied")
 
         # everything incorporated
@@ -292,6 +334,7 @@ def run(suite) -> bool:
             xeno_sim.incorporate(bare, x.id)
         bare.recompute()
         view.refresh(); view.grab()
+        assert len(says(len(XENOTECH))) == len(XENOTECH)
         stages.append("complete")
 
         win.game = game
@@ -356,7 +399,6 @@ def run(suite) -> bool:
 
     @check("the helm and both mini-games render and play")
     def _():
-        from ..sim import minigames as mg
         from ..sim import flight
         g2 = new_game("mini-ui")
         win.game = g2
@@ -407,7 +449,14 @@ def run(suite) -> bool:
         sysm = game.system
         col, why = colony_sim.found(game, sysm, sysm.bodies[0], "vesper_picket")
         assert col, f"colony not founded: {why}"
-        game.advance_days(200)
+        # Until it is online, not a fixed 200 days: since the Bloom's pace went
+        # steady, the system this shared game has been moved to is taken by
+        # day 150 and the holding with it (online on day 23, overgrown on day
+        # 150). The screens are the subject here; the Bloom is `rulebook`'s.
+        for _ in range(20):
+            game.advance_days(10)
+            if any(c.online for c in game.colonies):
+                break
         assert any(c.online for c in game.colonies), "colony never came online"
         for vid, _ in NAV:
             render(vid)
@@ -424,8 +473,16 @@ def run(suite) -> bool:
         bare.credits = 0
         bare.recompute()
         win.game = bare
+        from PyQt6.QtWidgets import QLabel
+        assert len(NAV) >= 15, [vid for vid, _ in NAV]
         for vid, _ in NAV:
-            render(vid)
+            w = render(vid)
+            assert win.current == vid, f"asked for {vid}, showing {win.current}"
+            # Measured: the sparsest screen (legacy) still draws two labels. A
+            # screen that raised half-way through building lays out nothing.
+            assert w.findChildren(QLabel), f"{vid} drew nothing for a bare game"
+        hud = [w.text() for w in win.hud.findChildren(QLabel)]
+        assert "₡0" in hud, f"the treasury does not read the bare game: {hud}"
         return f"{len(NAV)} screens clean with no crew, no cargo, no money"
 
     win.close()

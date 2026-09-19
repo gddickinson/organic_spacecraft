@@ -6,17 +6,16 @@ day, wherever you happen to be.
 
 from __future__ import annotations
 
-import itertools
 from dataclasses import dataclass, field
 
 from ..core.save import register
+from ..core import ids
 from ..data.colonies import COLONIES_BY_ID, colonies_for
 from ..data.factions import FACTIONS_BY_ID
-from . import loyalty, territory, works
+from . import assembly, loyalty, stores, territory, works
 from ..world.economy import make_market
 from ..world.galaxy import Port
 
-_uid = itertools.count(1)
 
 #: Days short before a holding is called starving, and how often it is
 #: mentioned after that. Once when it starts, then once a year — not once a
@@ -51,17 +50,13 @@ class Colony:
         return COLONIES_BY_ID[self.class_id]
 
 
-def _held(game, key: str) -> float:
-    """How much of a material the player can reach: depot plus the hold."""
-    if key == "credits":
-        return game.credits
-    return game.stores.get(key, 0) + game.ship.cargo.get(key, 0)
-
-
 def can_found(game, system, body, class_id: str) -> tuple[bool, str]:
     c = COLONIES_BY_ID.get(class_id)
     if c is None:
         return False, "Unknown class."
+    if getattr(body, "transient_until", None) is not None:   # `sim/phenomena`
+        return False, (f"{body.name} is only passing through; it will be "
+                       f"gone by day {body.transient_until}.")
     if body.kind not in c.sites:
         return False, f"{c.name} will not take root on that."
     if body.colony is not None:
@@ -77,26 +72,16 @@ def can_found(game, system, body, class_id: str) -> tuple[bool, str]:
     if c.family == "grown" and not game.ship_stats.can_colonise:
         return False, ("No seed bay fitted — you cannot gestate a seed out here. "
                        "Refit one at a port.")
-    for key, need in c.cost.items():
-        have = _held(game, key)
-        if have < need:
-            return False, f"Short of {key}: need {need:g}, have {int(have)}."
+    # Asked here and not only in `found`: the dialog reads this, and it
+    # offered "Plant it" to a captain whose licence was suspended and then
+    # refused the click.
+    from . import enforce as enforce_sim
+    licensed, refusal = enforce_sim.may_seed(game)
+    if not licensed:
+        return False, refusal
+    for key, need, have in stores.lacking(game, c.cost):
+        return False, f"Short of {key}: need {need:g}, have {int(have)}."
     return True, ""
-
-
-def _spend(game, cost: dict) -> None:
-    for key, need in cost.items():
-        if key == "credits":
-            game.credits -= need
-            continue
-        owed = need
-        from_store = min(game.stores.get(key, 0), owed)
-        game.stores[key] = game.stores.get(key, 0) - from_store
-        owed -= from_store
-        if owed > 0:
-            game.ship.cargo[key] = game.ship.cargo.get(key, 0) - owed
-            if game.ship.cargo[key] <= 0.0001:
-                game.ship.cargo.pop(key, None)
 
 
 def _gestation_help(game, system_id: int) -> float:
@@ -109,24 +94,21 @@ def _gestation_help(game, system_id: int) -> float:
 
 
 def found(game, system, body, class_id: str):
-    ok, why = can_found(game, system, body, class_id)
-    if not ok:
-        return None, why
     # **The licence finally means something.** It was a tradeable commodity
     # with a price, no issuing authority, no revocation and no register of who
     # held one — "the whole containment regime rests on this being
     # unforgeable, which it is not". It can be taken away now, and a captain
     # whose plan was an empire of holdings has a great deal to lose by
-    # offending the one power that signs for germination.
-    from . import enforce as enforce_sim
-    licensed, refusal = enforce_sim.may_seed(game)
-    if not licensed:
-        return None, refusal
+    # offending the one power that signs for germination. `can_found` asks.
+    ok, why = can_found(game, system, body, class_id)
+    if not ok:
+        return None, why
     c = COLONIES_BY_ID[class_id]
-    _spend(game, c.cost)
+    stores.spend(game, c.cost)
+    assembly.founding_rebate(game, system, c.cost)   # the Colony Charter
 
     speed = 1 + game.bonuses.get("growth", 0) + _gestation_help(game, system.id)
-    col = Colony(id=next(_uid), class_id=class_id,
+    col = Colony(id=ids.next_id("colony", game), class_id=class_id,
                  name=f"{c.name} · {body.name}", system_id=system.id,
                  body_id=body.id, need=max(10, round(c.days / speed)))
     body.colony = col.id

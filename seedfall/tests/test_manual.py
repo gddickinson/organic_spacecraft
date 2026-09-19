@@ -28,8 +28,24 @@ from .harness import Suite
 def run(suite: Suite) -> None:
     check = suite.check
 
+    @check("no page or lesson prints a markdown marker as text")
+    def _():
+        # Labels are plain text: "**The Shoals**" printed its asterisks on
+        # the Far Reaches page (play-test, 2026-09-18).
+        import re
+        from ..data.lessons import LESSONS
+        marked = re.compile(r"\*\*?[A-Za-z][^*]*\*\*?")
+        said = [(t.id, line) for t in TOPICS for line in t.body]
+        said += [(lesson.id, text) for lesson in LESSONS
+                 for text in (lesson.ask, lesson.then)]
+        raw = [f"{where}: {m.group(0)[:30]}" for where, text in said
+               for m in [marked.search(text)] if m]
+        assert not raw, raw[:6]
+        return f"{len(said)} paragraphs, none with a raw * marker"
+
     @check("every topic opens, and every fact it names resolves")
     def _():
+        assert len(TOPICS) >= 27, f"measured 27 topics, now {len(TOPICS)}"
         for seed in ("manual-fresh", "manual-other"):
             game = new_game(seed)
             for topic in TOPICS:
@@ -286,7 +302,6 @@ def run(suite: Suite) -> None:
             from PyQt6.QtWidgets import QApplication
         except ImportError as err:              # pragma: no cover
             return f"skipped: {err}"
-        from ..core.rng import RNG
         from ..sim import legacy as legacy_sim
         from ..ui import theme
         from ..ui.window import MainWindow

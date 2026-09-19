@@ -6,7 +6,7 @@ from ..core.util import credits as cr
 from ..core.util import duration
 from ..data.commodities import BY_ID
 from ..sim import market as market_sim
-from .widgets import Panel, Pill, label, mono_label, note, spacer
+from .widgets import Panel, label, note, spacer
 
 
 def _age_tint(confidence: float) -> str:

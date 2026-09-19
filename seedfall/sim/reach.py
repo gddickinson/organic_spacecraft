@@ -21,7 +21,11 @@ from __future__ import annotations
 
 from ..data.chassis import CHASSIS_BY_ID
 from ..data.parts import PARTS, PARTS_BY_ID
-from ..world.galaxy import distance, transit_days
+from ..world.galaxy import distance, local, transit_days
+from . import phenomena as sky_sim
+from . import stores
+from .passage import joined
+from .passage import note as lanes_note
 from .ship import stats as ship_stats
 from .shipyard import validate
 
@@ -33,18 +37,26 @@ def component(game, jump: float | None = None, start: int | None = None) -> set:
     it. Fuel is deliberately not modelled: reaction mass can be cut out of ice
     anywhere, so it paces a voyage rather than bounding it, and a wall that
     moved with the state of the tank would be a worse lie than no wall at all.
+
+    A charted lane (`sim/passage.py`) is a hop at any drive, so it is in.
     """
     if jump is None:
         jump = game.ship_stats.jump
     here = game.location_id if start is None else start
-    systems = game.galaxy.systems
+    # Only this region: nothing hops the rim (`galaxy.distance`), so walking
+    # the far side of it is the same answer at twice the cost.
+    systems = local(game.galaxy, game.galaxy.systems[here])
+    shut = sky_sim.closed_systems(game)     # an ion storm: no lane in or out
     seen = {here}
-    edge = [systems[here]]
+    edge = [game.galaxy.systems[here]]
     while edge:
         following = []
         for system in edge:
             for other in systems:
-                if other.id not in seen and distance(system, other) <= jump:
+                if system.id in shut or other.id in shut:
+                    continue
+                if other.id not in seen and (distance(system, other) <= jump
+                                             or joined(system, other)):
                     seen.add(other.id)
                     following.append(other)
         edge = following
@@ -67,17 +79,20 @@ def routes_from(game, jump: float | None = None,
     if jump is None:
         jump = game.ship_stats.jump
     speed = game.ship_stats.speed
-    systems = game.galaxy.systems
     here = game.location_id if start is None else start
+    systems = local(game.galaxy, game.galaxy.systems[here])   # see `component`
+    shut = sky_sim.closed_systems(game)                       # and a storm
     found = {here: {"hops": 0, "days": 0}}
-    edge = [systems[here]]
+    edge = [game.galaxy.systems[here]]
     while edge:
         following = []
         for system in edge:
             at = found[system.id]
             for other in systems:
                 ly = distance(system, other)
-                if other.id in found or ly > jump:
+                if other.id in found or (ly > jump and not joined(system, other)):
+                    continue
+                if system.id in shut or other.id in shut:
                     continue
                 found[other.id] = {
                     "hops": at["hops"] + 1,
@@ -105,13 +120,14 @@ def route_to(game, system_id: int, jump: float | None = None) -> dict | None:
 def walled(game, jump: float | None = None) -> set:
     """The systems on the far side of the wall. Empty when there is none."""
     within = component(game, jump)
-    return {s.id for s in game.galaxy.systems} - within
+    return {s.id for s in local(game.galaxy, game.system)} - within
 
 
 def horizon(game) -> dict:
     """How much of the sector this drive can see, in a form a screen can say."""
     within = component(game)
-    total = len(game.galaxy.systems)
+    # Out of this region's stars: the rest are behind a deep gate, not a wall.
+    total = len(local(game.galaxy, game.system))
     return {"within": len(within), "total": total,
             "beyond": total - len(within),
             "jump": game.ship_stats.jump,
@@ -213,7 +229,7 @@ def requirements(game, part_id: str) -> dict:
     for key, amount in part.cost.items():
         if key == "credits":
             continue
-        have = (game.stores.get(key, 0) + game.ship.cargo.get(key, 0))
+        have = stores.held(game, key)
         where = sold_within(game, key, within)
         materials.append({"id": key, "need": amount, "have": round(have, 1),
                           "sold_at": where, "short": have < amount and not where})
@@ -242,13 +258,19 @@ def plan(game) -> dict:
 def note(game) -> str:
     """One line for the chart, stating the wall and what would move it."""
     now = horizon(game)
+    lanes = lanes_note(game)
+    # Named: the count is this region's, and the chart shows the line under
+    # every tab — "All 42 systems" read as the Hollow's (play-test).
+    from . import regions as regions_sim
+    where = regions_sim.names(game)[regions_sim.region_of(game.system)]
     if now["whole"]:
-        return (f"All {now['total']} systems are reachable at "
-                f"{now['jump']:.1f} ly.")
+        return (f"All {now['total']} systems of {where} are reachable at "
+                f"{now['jump']:.1f} ly.") + lanes
     step = next_step(game)
-    line = (f"{now['within']} of {now['total']} systems are reachable at "
+    line = (f"{now['within']} of {where}'s {now['total']} systems are "
+            f"reachable at "
             f"{now['jump']:.1f} ly — {now['beyond']} lie beyond a gap no "
-            "amount of hopping closes.")
+            "amount of hopping closes.") + lanes
     if step is None:
         return line + " No drive this hull will take reaches further."
     return (line + f" A {step['part'].name} would reach {step['jump']:.1f} ly "

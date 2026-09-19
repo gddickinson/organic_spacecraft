@@ -7,15 +7,19 @@ because the one thing anybody removed from it was the instruction to stop.
 
 from __future__ import annotations
 
+import math
+
+from ..data.factions import KIN
 from ..data.lore import VICTORIES
 from ..data.chassis import CHASSIS_BY_ID
-from ..world.galaxy import distance
+from ..world.galaxy import distance, verge
 from .ship import hull_pct
 from .colony import bloom_attack, ward_at, watching
 from . import loyalty
 from . import bloom as bloom_sim
 from . import responses as response_sim
 from . import diplomacy as dip_sim
+from . import renown as renown_sim
 
 SPREAD_INTERVAL = 30    # days between growth ticks
 
@@ -33,8 +37,49 @@ SPREAD_LY = 11.0
 #: way" without making it artillery.
 STALL_TICKS = 36
 
+#: **The Bloom's pace is the sector's, not each system's.** Every mature
+#: system used to throw at its nearest clean neighbour on its own 14% a
+#: month, so the number of throws grew with the number of throwers — an
+#: exponential with a year-long generation, multiplied again by each stage.
+#: Measured in honest runs: 2 to 12 infested of 42 for about three years,
+#: then sector-wide in two (harbours 22 of 27 to 6 of 23), overgrown on days
+#: 1,920-2,370 — pressure nobody could see coming until it had arrived.
+#:
+#: Now the sector takes `THROW_RATE` new footholds a month, from whichever of
+#: its mature systems have clean ground in reach, and a mass under way or a
+#: ring that took ground this month spends the same allowance. The stages
+#: still quicken it — by the square root of their `spread`, because they
+#: also put the instars in the field, and the full multiplier on top of them
+#: was the cliff — and provocation scales it as it scales everything else.
+#: A system is mature, able to throw, at `THROW_AT`: soon enough that the
+#: front keeps moving rather than waiting a year for each new colony of it.
+#:
+#: Measured idle, fed, over twelve seeds: the first quarter of the sector
+#: falls on day 1,010 on average (1,210 before, over six) and the fall from a
+#: quarter to three-quarters takes 1,155 days (840); overgrown on days
+#: 1,830-3,510, median 2,500 — the old endgame's timing, reached by a slope
+#: instead of a wall.
+THROW_RATE = 0.30
+THROW_AT = 0.35
+
 #: Thresholds for the endings that are counted rather than flagged.
 LINEAGE_HULLS = 4          # grown hulls of your own, still flying
+#: **A line has to have lived.** Lineage counted every grown hull in the
+#: fleet — the starting NAVIS included, with `licence` a starting technology —
+#: so three empty SPOREs laid down on day 0 took the ending on day 21 for
+#: about 12,500 credits, and the yard opened on SPORE with "Lay down" lit.
+#: Counting only hulls you launched moves that to four SPOREs and the same
+#: day 21, because the opening purse is 18,000. So two more rules, both the
+#: card's own words ("hulls that outlive you"): a hull counts once it has
+#: flown `LINEAGE_AGE` days since its cradle, and a pod does not count at all
+#: — a SPORE is a lifeboat that germinates in three weeks from a seed you can
+#: hold in one hand, and four lifeboats are not a line. Measured with a
+#: scripted rusher on four seeds: given unlimited credits and a nursery on
+#: day 0 it lays four RADIX and takes the ending on day 515, which nothing
+#: can buy faster; earning its money as the explorer does, no run of up to
+#: six years got there at all. `test_exploits` pins the floor.
+LINEAGE_AGE = 365
+LINEAGE_EXCLUDES = ("spore",)
 #: Share of the sector's *markets* whose prices you have written down. Not an
 #: absolute count: a sector has 17 to 24 markets across seeds, so the first
 #: version of this asked for 25 and was unreachable in every one of them —
@@ -45,7 +90,12 @@ RUIN_SHARE = 0.9           # of the sector held by the Bloom, and you alive
 
 
 def bloom_systems(game):
-    return [s for s in game.galaxy.systems if s.bloom > 0.02]
+    """The Verge's infested systems — what containment and Ruin count.
+
+    Verge only (`galaxy.verge`): growth that crossed a deep gate is ground
+    lost beyond the rim, not a new condition on an ending about the Verge.
+    """
+    return [s for s in verge(game.galaxy) if s.bloom > 0.02]
 
 
 def _seed_system(game, target, events) -> None:
@@ -59,6 +109,23 @@ def _seed_system(game, target, events) -> None:
     if target.id == game.location_id or watching(game, target.id):
         events.append(("bad",
                        f"Unlicensed growth detected at {target.name}."))
+
+
+def _harbour_lost(game, system) -> None:
+    """A quay drowned, sent as news the way news travels.
+
+    The harbour count is the bar the loss is measured on (`harbours_left`),
+    and it fell in silence: a captain learned a port had gone only by flying
+    to it. A steady Bloom is only visible pressure if the steps are told.
+    """
+    from . import comms as comms_sim
+    left, total = harbours_left(game)
+    comms_sim.send(game, "news", "Sector bulletin", "news",
+                   f"{system.name} has gone quiet",
+                   f"The quay at {system.name} stopped answering this month; "
+                   "the growth has it. "
+                   f"{left} of the Verge's {total} harbours are still open.",
+                   system_id=system.id)
 
 
 def known_bloom(game) -> dict:
@@ -76,18 +143,20 @@ def known_bloom(game) -> dict:
     the census is complete.
     """
     from . import intel as intel_sim
-    seen = [s for s in game.galaxy.systems if intel_sim.sees_bloom(game, s)]
+    home = verge(game.galaxy)        # the ending's census: see `bloom_systems`
+    seen = [s for s in home if intel_sim.sees_bloom(game, s)]
     held = [s for s in seen if s.bloom > 0.02]
     return {"systems": held,
             "count": len(held),
             "burden": sum(s.bloom for s in held),
             "seen": len(seen),
-            "total": len(game.galaxy.systems),
-            "unscouted": len(game.galaxy.systems) - len(seen)}
+            "total": len(home),
+            "unscouted": len(home) - len(seen)}
 
 
 def bloom_burden(game) -> float:
-    return sum(s.bloom for s in game.galaxy.systems if s.bloom > 0.02)
+    """The Verge's burden, which is what paces the Bloom's stages."""
+    return sum(s.bloom for s in verge(game.galaxy) if s.bloom > 0.02)
 
 
 def tick(game, days: float, rng) -> list[tuple[str, str]]:
@@ -100,6 +169,8 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
         game.bloom_clock -= SPREAD_INTERVAL
         systems = game.galaxy.systems
         held = [s for s in systems if s.bloom > 0.02]
+        bare = {s.id for s in systems if s.bloom <= 0.02}
+        open_ports = [s for s in systems if s.port and s.bloom <= 0.5]
 
         stage = bloom_sim.ensure(game).definition
         provoked = response_sim.growth_multiplier(game)
@@ -171,23 +242,34 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
         # system throw long once its neighbourhood filled in, and six
         # long-fixture sectors drowned ~40% faster — the stall is the
         # *sector's* condition, so the long throw is the sector's one move.
-        throwers = [x for x in held if x.bloom > 0.6]
-        ground_in_range = False
+        throwers = [x for x in held if x.bloom > THROW_AT]
+        fronts = []
         for s in throwers:
-            clean = sorted((t for t in systems
-                            if t.bloom < 0.02 and distance(s, t) < SPREAD_LY),
-                           key=lambda t: distance(s, t))
-            if clean and rng.chance(0.14 * stage.spread
-                                    * (1 - ward_at(game, clean[0].id))):
-                _seed_system(game, clean[0], events)
-            ground_in_range = ground_in_range or bool(clean)
-        if throwers and not ground_in_range:
+            clean = [t for t in systems
+                     if t.bloom < 0.02 and distance(s, t) < SPREAD_LY]
+            if clean:
+                fronts.append((s, min(clean, key=lambda t: distance(s, t))))
+        #
+        # The masses under way are the other way it takes new ground, so
+        # they move first and the throws make up the month's pace: a ring or
+        # an instar that took a system this month *is* this month's throw.
+        events.extend(bloom_sim.tick_instars(game, SPREAD_INTERVAL, rng))
+        taken = len([s for s in systems if s.id in bare and s.bloom > 0.02])
+        pace = THROW_RATE * stage.spread ** 0.5 * provoked
+        throws = int(pace) + (1 if rng.chance(pace - int(pace)) else 0)
+        for _ in range(max(0, throws - taken) if fronts else 0):
+            _s, target = rng.pick(fronts)
+            if target.bloom < 0.02 and rng.chance(1 - ward_at(game, target.id)):
+                _seed_system(game, target, events)
+        if throwers and not fronts:
             stalled = int(game.flags.get("bloom_stalled", 0)) + 1
             game.flags["bloom_stalled"] = stalled
             if stalled >= STALL_TICKS:
                 game.flags["bloom_stalled"] = 0
+                # Never across the rim: that pair is infinitely far, and
+                # the only road there is a deep gate (`gates.bloom_links`).
                 spear = min(((s, t) for s in throwers for t in systems
-                             if t.bloom < 0.02),
+                             if t.bloom < 0.02 and distance(s, t) < math.inf),
                             key=lambda pair: distance(*pair), default=None)
                 if spear is not None:
                     _seed_system(game, spear[1], events)
@@ -196,8 +278,15 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
 
         game.bloom_total = bloom_burden(game)
         events.extend(bloom_sim.review_stage(game, game.bloom_total))
-        events.extend(bloom_sim.tick_instars(game, SPREAD_INTERVAL, rng))
-        if len([s for s in systems if s.bloom > 0.02]) >= len(systems) // 2:
+        for port in open_ports:
+            if port.bloom > 0.5:
+                _harbour_lost(game, port)
+        home = verge(game.galaxy)        # "a quarter of the Verge" means it
+        if len([s for s in home if s.bloom > 0.02]) >= len(home) // 4:
+            b = bloom_sim.beat(game, "quarter_the_verge")
+            if b:
+                events.append(b)
+        if len([s for s in home if s.bloom > 0.02]) >= len(home) // 2:
             b = bloom_sim.beat(game, "half_the_verge")
             if b:
                 events.append(b)
@@ -209,7 +298,8 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
     # Ruin could fire; victory is checked first, so a living captain could
     # not lose to the Bloom at all and pure passivity was rewarded with an
     # ending. Harbours are what a hull needs to go on existing.
-    systems = game.galaxy.systems
+    # The sector lost is the Verge lost; a region's quays are not its harbours.
+    systems = verge(game.galaxy)
     harbours = [s for s in systems if s.port]
     if all(s.bloom > 0.5 for s in systems) or (
             harbours and all(s.bloom > 0.5 for s in harbours)):
@@ -219,7 +309,7 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
 
 def harbours_left(game) -> tuple[int, int]:
     """Ports not yet drowned, and how many there were. The loss, as a bar."""
-    harbours = [s for s in game.galaxy.systems if s.port]
+    harbours = [s for s in verge(game.galaxy) if s.port]
     return len([s for s in harbours if s.bloom <= 0.5]), len(harbours)
 
 
@@ -233,6 +323,11 @@ def cleanse(game, system, rng):
         return None, ("Insufficient firepower — you would need about "
                       f"{round(need)} points of armament against a mass this size.")
     cut = min(system.bloom, 0.25 + (firepower - need) / 300 + rng.float(0, 0.15))
+    # Kessel-steady (`sim/arcs`): an officer who has read their brother's log
+    # holds the burn line. After the draw, so the luck is the same either way.
+    from . import arcs
+    cut = min(system.bloom, cut * (1 + arcs.signature_effects(
+        game.officers).get("burn", 0.0)))
     system.bloom = max(0.0, system.bloom - cut)
     # The burn is made with the fitted guns, so it teaches the Bloom what it
     # was burned with — combat already reported its hits per family and the
@@ -242,6 +337,7 @@ def cleanse(game, system, rng):
         bloom_sim.record_damage(game, w.family, w.wpn.dmg)
     if system.bloom <= 0.02:
         loyalty.record(game, "bloom_cleansed")
+        renown_sim.note(game, "cleansed")     # Containment's track
     return {"cut": cut,
             "backlash": round(cut * 260 * rng.float(0.6, 1.3)),
             "cleared": system.bloom <= 0.02}, ""
@@ -259,7 +355,10 @@ def victory_progress(game, seen_only: bool = False) -> dict:
     true, not by what has been looked at, or a captain could take
     Containment by keeping their eyes shut.
     """
-    total = len(game.galaxy.systems)
+    # Every count here is the Verge's (`galaxy.verge`): the endings are about
+    # the Verge, and opening a region must neither pad a bar nor move one.
+    home = verge(game.galaxy)
+    total = len(home)
     infested = len(bloom_systems(game))
     shown = known_bloom(game)["count"] if seen_only else infested
     concord = dip_sim.concord_progress(game)
@@ -274,11 +373,9 @@ def victory_progress(game, seen_only: bool = False) -> dict:
     # exists. None of them is gated behind any of the others.
     from ..data.xenotech import XENOTECH
     from . import xeno as xeno_sim
-    grown_line = [s for s in game.fleet
-                  if CHASSIS_BY_ID.get(s.chassis)
-                  and CHASSIS_BY_ID[s.chassis].family == "grown"]
+    grown_line = line_of(game)
     understood = [t for t in XENOTECH if xeno_sim.is_incorporated(game, t.id)]
-    markets = [s for s in game.galaxy.systems if s.market]
+    markets = [s for s in home if s.market]
     # A cartel corners *living* prices. This counted register keys — quotes
     # twenty years stale, and ports that have since closed — so the ending
     # credited a filing cabinet. A quote counts while `market.confidence`
@@ -286,6 +383,7 @@ def victory_progress(game, seen_only: bool = False) -> dict:
     from . import market as market_sim
     priced = len([k for k in game.register if str(k).isdigit()
                   and game.galaxy.systems[int(k)].market is not None
+                  and game.galaxy.systems[int(k)].region == "verge"
                   and market_sim.confidence(
                       market_sim.age_of(game, int(k))) > 0.5])
     cartel_need = max(1, int(len(markets) * CARTEL_SHARE))
@@ -319,8 +417,10 @@ def victory_progress(game, seen_only: bool = False) -> dict:
                     len(understood) >= len(XENOTECH)),
         "cartel": (min(priced, cartel_need), cartel_need,
                    priced >= cartel_need and game.credits >= CARTEL_PURSE),
+        # The card says "at Kin with the Dry Choir", and this asked 75 when
+        # Kin starts at 70. The band is the promise; the number follows it.
         "apostasy": (1 if crewless else 0, 1,
-                     bool(crewless) and game.rep.get("sanhedrin", 0) >= 75),
+                     bool(crewless) and game.rep.get("sanhedrin", 0) >= KIN),
         # **Outlived, not waited out.** The goal on the card is "Outlive the
         # sector", and the prose is a captain who "was right about all of
         # it" — but the test was 90% drowned and a hull over a quarter,
@@ -331,6 +431,21 @@ def victory_progress(game, seen_only: bool = False) -> dict:
                  drowned >= total * RUIN_SHARE and not game.dead
                  and hull_pct(game.ship) > 0.25 and _stood_through_it(game)),
     }
+
+
+def line_of(game) -> list:
+    """The hulls Lineage counts: grown, launched from a cradle of yours, not
+    a pod, and flying at least `LINEAGE_AGE` days."""
+    out = []
+    for ship in game.fleet:
+        chassis = CHASSIS_BY_ID.get(ship.chassis)
+        born = getattr(ship, "launched_on", None)
+        if (chassis is None or chassis.family != "grown" or born is None
+                or ship.chassis in LINEAGE_EXCLUDES):
+            continue
+        if game.day - born >= LINEAGE_AGE:
+            out.append(ship)
+    return out
 
 
 def _stood_through_it(game) -> bool:

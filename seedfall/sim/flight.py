@@ -12,15 +12,15 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from ..data.starclasses import SOLAR_MU, mu_of
-from . import elements
-from .ship import add_cargo, add_heat, apply_damage, cook
+from ..data.starclasses import mu_of
+from .ship import add_cargo, add_heat, cook
+# Heliocentric orbits and the incident table, split out at 498 lines; both
+# are re-exported so `flight.position` and `flight._incident` still answer.
+from .burn_incidents import _INCIDENTS, _incident  # noqa: F401
+from .heliocentric import (R_INNER, R_OUTER, YEAR_AT_1AU,  # noqa: F401
+                           distance_from_star, elements_of, period_days,
+                           position, semi_major, separation)
 
-#: Orbital radius in AU for a body's normalised orbit slot (0 inner, 1 outer).
-R_INNER, R_OUTER = 0.4, 9.0
-
-#: Days for a one-AU circular orbit, scaled by Kepler's third law from there.
-YEAR_AT_1AU = 365.0
 
 
 @dataclass(frozen=True)
@@ -58,71 +58,6 @@ BURNS = [
          heat=0.62),
 ]
 BURNS_BY_ID = {b.id: b for b in BURNS}
-
-
-def semi_major(body) -> float:
-    """The long half-axis of this body's orbit, in AU.
-
-    Was `orbit_radius`, and the rename is the point: an orbit no longer
-    *has* a radius. `body.orbit` places the ellipse; `sim/elements` gives it
-    a shape, a tilt and a direction, and how far the body actually is from
-    the star is now a question about a day (`distance_from_star`).
-    """
-    return R_INNER + (R_OUTER - R_INNER) * body.orbit
-
-
-def period_days(body, star_mu: float) -> float:
-    """A body's year, in days. Kepler's third law, with the mass put back.
-
-    `T = 2π·sqrt(a³/mu)`, so `T ∝ a^1.5 / sqrt(M)`. The `sqrt(M)` was missing:
-    the game had one period function for the whole sector and it quietly
-    assumed every star weighed exactly one Sun. A world at one AU took the
-    same year round a 0.32-solar M dwarf as round an A-type nearly six times
-    heavier, when the real difference is a factor of 2.4 — visible on the helm
-    chart, in every launch window, and in where anything is on any given day.
-
-    `star_mu` is required rather than defaulted on purpose. A default is how
-    half the call sites end up quietly assuming the Sun while the other half
-    do it properly, which is the same two-doors-disagreeing fault this file
-    has been bitten by before.
-    """
-    r = semi_major(body)
-    scale = math.sqrt(SOLAR_MU / max(star_mu, 1.0))
-    return max(30.0, YEAR_AT_1AU * (r ** 1.5) * scale)
-
-
-def elements_of(body) -> elements.Elements:
-    """This body's orbit. **One door**, so nothing derives a second one.
-
-    Six elements where there used to be a radius. They are not stored: see
-    `sim/elements`, which draws them off a stable hash of the body's own
-    identity, so an old chronicle grows real orbits the moment it is loaded
-    and the save does not gain a byte.
-    """
-    return elements.of(body, semi_major(body))
-
-
-def position(body, day: float, star_mu: float) -> tuple:
-    """Where a body is, in AU, on a given day, round a star of this mass.
-
-    **Three dimensions now, and not a circle.** This used to be
-    `r·cos θ, r·sin θ` with a constant radius, which made every orbit in the
-    game the same orbit: circular, in one shared plane, all going the same way
-    round. A player looking at the plotting board said so, and they were
-    right — there was nothing else to draw.
-    """
-    return elements.at(elements_of(body), day, period_days(body, star_mu))
-
-
-def distance_from_star(body, day: float, star_mu: float) -> float:
-    """How far out the body actually is today — which now varies over its
-    year, and is the number `semi_major` used to be mistaken for."""
-    return math.dist(position(body, day, star_mu), (0.0, 0.0, 0.0))
-
-
-def separation(a, b, day: float, star_mu: float) -> float:
-    """AU between two bodies right now."""
-    return math.dist(position(a, day, star_mu), position(b, day, star_mu))
 
 
 #: Where a jump leaves you: inside the system, not beyond its outermost orbit.
@@ -404,6 +339,12 @@ def travel_to(game, body_index: int, burn_id: str = "standard") -> dict:
         return {"ok": False,
                 "why": f"That burn needs {q['fuel']} t of reaction mass; you "
                        f"have {int(have)}. You can always coast."}
+    # A comet or rogue passing through (`sim/phenomena`) will not wait: a
+    # flight that would arrive after it leaves is not begun.
+    until = getattr(body, "transient_until", None)
+    if until is not None and game.day + q["days"] >= until:
+        return {"ok": False, "why": f"{body.name} will be gone before you "
+                                    "get there."}
 
     add_cargo(game.ship, "volatiles", -q["fuel"])
     game.advance_days(q["days"])
@@ -431,41 +372,6 @@ def travel_to(game, body_index: int, burn_id: str = "standard") -> dict:
     game.add_log(f"{q['burn'].name} to {body.name}: {q['days']} days, "
                  f"{q['fuel']} t of reaction mass.", "")
     return out
-
-
-_INCIDENTS = [
-    ("Dust at closing speed", "A stream of grains the survey did not plot. The "
-     "epidermis takes it, which is what it is for.", "damage"),
-    ("Radiator flutter", "A bloom lobe fails to deploy cleanly and the hull runs "
-     "hot for a week.", "heat"),
-    ("Attitude fault", "The platform drifts mid-burn and the correction costs "
-     "reaction mass nobody budgeted.", "fuel"),
-    ("Debris field", "Somebody else's bad day, spread across four hundred "
-     "kilometres of the approach.", "damage"),
-]
-
-
-def _incident(game, rng, burn: Burn) -> dict:
-    name, text, effect = rng.pick(_INCIDENTS)
-    detail = ""
-    if effect == "damage":
-        dmg = rng.int(10, 40)
-        apply_damage(game.ship, dmg)
-        detail = f"{dmg} points off the hull."
-    elif effect == "heat":
-        add_heat(game.ship, rng.int(10, 26), game.ship_stats.heat_cap)
-        detail = "The hull is running hot."
-    else:
-        # Report what was actually taken, not what was rolled. A hull with
-        # three tonnes aboard and an eight-tonne fault was told "8 t of
-        # reaction mass gone" and had lost three — one in five of these.
-        want = rng.int(2, 8)
-        lost = min(want, game.ship.cargo.get("volatiles", 0))
-        add_cargo(game.ship, "volatiles", -lost)
-        detail = (f"{lost:g} t of reaction mass gone."
-                  if lost > 0 else "The tank was already dry.")
-    game.add_log(f"{name}: {detail}", "warn")
-    return {"name": name, "text": text, "detail": detail}
 
 
 def ensure_at(game, body_index: int) -> dict:
@@ -496,3 +402,5 @@ def ensure_at(game, body_index: int) -> dict:
 def arrive_in_system(game) -> None:
     """A jump drops you at the edge, not alongside anything."""
     stand_off(game)
+    from . import kith              # the Cradle: the Kith's first sighting
+    kith.arrive(game)

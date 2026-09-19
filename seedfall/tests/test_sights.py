@@ -158,8 +158,7 @@ def run(suite: Suite) -> bool:
         # draws a dashed bracket labelled "Fleet Hub · 130.3 km", and a sight
         # label landed across it. `_target` hands back the box it used and
         # `draw_sights` keeps off it.
-        import inspect
-        from ..ui import viewport, viewport_mark
+        from ..ui import viewport_mark
         from ..ui.viewport_math import project
 
         cam = ((0.0, 1.0, 0.0), (1.0, 0.0, 0.0), (0.0, 0.0, 1.0))
@@ -172,23 +171,17 @@ def run(suite: Suite) -> bool:
             [(200.0, 100.0, 320.0, 160.0)]) == 0, (
             "a sight was drawn across the target's own bracket")
 
-        # **And the window really does hand the box over.** Read the call
-        # itself, not the word: the first draft asserted `"taken" in src`,
-        # which stays true when the argument is dropped from the call and the
-        # local left behind. That mutation survived.
-        import ast as _ast
-        import textwrap
-        tree = _ast.parse(textwrap.dedent(
-            inspect.getsource(viewport.Viewport.draw)))
-        calls = [n for n in _ast.walk(tree) if isinstance(n, _ast.Call)
-                 and getattr(n.func, "attr", "") == "draw_sights"]
-        assert calls, "the viewport never draws sights at all"
-        assert len(calls[0].args) == 7, (
-            f"draw_sights is called with {len(calls[0].args)} arguments — the "
-            f"reticle's box is not among them")
-        assert "return (sx - box" in inspect.getsource(viewport.Viewport._target), (
-            "_target does not report the pixels its reticle took")
-        return "a sight that would land on the reticle is dropped"
+        # **And the window really does hand the box over.** Watched rather
+        # than read: the first draft asserted `"taken" in src`, which stays
+        # true when the argument is dropped from the call, and the AST read
+        # that replaced it counted arguments, which stays true when the box is
+        # swapped for anything else seven-long. Now the window paints each
+        # camera into an image and the box `_target` returns has to be the
+        # one `draw_sights` is told to keep off.
+        handed = _hands_over_box()
+        assert handed, "no camera drew the target's reticle at all"
+        return (f"a sight that would land on the reticle is dropped; "
+                f"{handed} camera(s) handed their reticle over")
 
     @check("two things on the same bearing do not print over each other")
     def _():
@@ -303,3 +296,59 @@ def run(suite: Suite) -> bool:
 
 
     return True
+
+
+def _hands_over_box() -> int:
+    """Paint every camera of a Conn screen with a target, spying on both
+    sides of the hand-over. Returns how many cameras drew a reticle.
+
+    Painted into a `QImage` with a painter of its own, not through
+    `paintEvent`: `Painted` declines to draw when the platform refuses a
+    backing store, and this must not depend on that.
+    """
+    from PyQt6.QtGui import QImage, QPainter
+
+    from ..sim import conn as conn_sim
+    from ..ui import viewport_mark, viewport_target
+    from ..ui.conn_window import open_conn
+    from .test_pilot_screen import _bridge
+
+    _game, win, view = _bridge("sightsbox")
+    view.use_main = True
+    for _ in range(40):
+        view.burn("forward")
+    window = open_conn(win)
+    screen, boxes, told = window.screen, [], []
+    real_target, real_sights = viewport_target.draw, viewport_mark.draw_sights
+
+    def target(*args):
+        box = real_target(*args)
+        boxes.append(box)
+        return box
+
+    def sights(p, marks, project, cam, w, h, taken=()):
+        told.append(list(taken))
+        return real_sights(p, marks, project, cam, w, h, taken)
+
+    viewport_target.draw, viewport_mark.draw_sights = target, sights
+    try:
+        for vid, _label, _vec in conn_sim.VIEWS:
+            screen.view_id = vid
+            image = QImage(screen.width(), screen.height(),
+                           QImage.Format.Format_ARGB32)
+            painter = QPainter(image)
+            screen.draw(painter)
+            painter.end()
+    finally:
+        viewport_target.draw = real_target
+        viewport_mark.draw_sights = real_sights
+        window.close()
+    assert len(boxes) == len(told) == len(conn_sim.VIEWS), (boxes, told)
+    drew = [(box, taken) for box, taken in zip(boxes, told) if box is not None]
+    for box, taken in drew:
+        assert taken == [box], f"the reticle took {box}; draw_sights was told {taken}"
+        x0, y0, x1, y1 = box
+        # The bracket is at least 18 px each side of the target, and the
+        # label sits above it: a box narrower than that is not the reticle.
+        assert x1 - x0 >= 36 and y1 - y0 >= 36, f"a reticle box of {box}"
+    return len(drew)

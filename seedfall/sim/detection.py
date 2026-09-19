@@ -105,7 +105,10 @@ def sensor_of(game, conn=None) -> float:
         return max(0.1, float(getattr(conn, "array", 2.0)))
     if game is None:
         return 2.0
-    return max(0.1, float(getattr(game.ship_stats, "sensor", 2.0)))
+    from . import phenomena as sky_sim
+    from . import regions as regions_sim
+    return max(0.1, float(getattr(game.ship_stats, "sensor", 2.0))
+               * regions_sim.sensor_scale(game) * sky_sim.sensor_scale(game))
 
 
 def for_hull(errand: str, hull_id) -> cm.Countermeasure:

@@ -15,12 +15,8 @@ from __future__ import annotations
 import os
 import tempfile
 
-from ..core.rng import RNG
 from ..core.state import new_game
 from ..data.lessons import LESSONS, LESSONS_BY_ID
-from ..sim import contracts as contract_sim
-from ..sim import market as market_sim
-from ..sim import trade as trade_sim
 from ..sim import tutorial as tutorial_sim
 from ..sim.actions import survey
 from .harness import Suite
@@ -80,6 +76,34 @@ def run(suite: Suite) -> None:
         assert not tutorial_sim.running(game), "it did not finish"
         assert tutorial_sim.state(game)["finished"]
         return f"{len(walked)} lessons walked in order by doing each one"
+
+    @check("a berth made since the lesson opened counts, at the same quay too")
+    def _():
+        # Opened while alongside, the berth lesson asked for an arrival the
+        # captain could never make again at that quay — break off, berth
+        # once more, and it stayed at 7 of 30 (play-test, 2026-09-18).
+        from ..sim import berthing as berth_sim
+        from ..sim import conn as conn_sim
+        from ..sim import autopilot as pilot_sim
+        from ..sim import track as track_sim
+        game = _at_a_port("tut-reberth")
+        quay = next(c for c in track_sim.contacts(game)
+                    if c.kind == "anchorage")
+
+        def berth():
+            conn = conn_sim.start(game, quay)
+            pilot_sim.fly(conn, "close", 1200)
+            assert conn.outcome == "alongside", conn.outcome
+            berth_sim.commit(game, conn)
+        berth()
+        tutorial_sim.begin(game)
+        held = tutorial_sim.held(game)
+        held.step = next(i for i, l in enumerate(LESSONS) if l.id == "berth")
+        held.mark = tutorial_sim.mark_of(game)
+        assert not tutorial_sim.check(game), "waved through, already alongside"
+        berth()
+        assert tutorial_sim.check(game), "berthed again and it was not seen"
+        return "alongside at the lesson's open; a second berth there passes it"
 
     @check("not doing the thing leaves it exactly where it was")
     def _():

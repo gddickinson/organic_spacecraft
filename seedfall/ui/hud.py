@@ -1,4 +1,4 @@
-"""The heading bar: the stardate, the purse, the meters, and two buttons.
+"""The heading bar: the stardate, the purse, the meters, and the despatches.
 
 Lifted out of `window.py` when that file crossed five hundred lines. It is
 presentation and nothing else — every number it shows is read from the game
@@ -7,27 +7,42 @@ each refresh, and it writes nothing.
 
 from __future__ import annotations
 
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (QGridLayout, QHBoxLayout, QLabel, QVBoxLayout,
+                             QWidget)
 
 # Imported under its own name on purpose. `credits` is a *builtin* — the
 # interpreter's easter-egg `_Printer` — so importing it as `cr` and then
 # calling `credits(...)` by mistake does not raise NameError. It calls the
 # builtin, and the failure surfaces two suites away as
 # "_Printer.__call__() takes 1 positional argument but 2 were given".
-from ..core.util import credits, mass, pct, stardate
+from ..core.util import credits, pct, stardate
 from ..data.chassis import CHASSIS_BY_ID
 from ..data.lore import TITLE
 from ..sim.ship import cargo_used, hull_pct, is_breached
 from . import theme
-from .widgets import Bar, Pill, button, label, mono_label
+from . import soundmap
+from . import hunt_marks
+from . import renown_chip
+from .widgets import Bar, Elided, Pill, button, label, mono_label
 
 
 def build(win) -> QWidget:
+    """The bar. **It has to fit the narrowest window the game allows.**
+
+    Laid out in one line it needed at least 1,411 px against the 1,360 px
+    default, so at every size the game opens at, captions overprinted each
+    other ("INTEGRITY · 1AIR · 100%") and the ship's name ran under the
+    meters. Now the four meters are a two-by-two block, the position and
+    the ship's name shorten with "…" (the whole text on the tooltip), and
+    the Instruments and Help buttons are gone — both were already on the
+    menu bar, Help on F1.
+    """
     bar = QWidget()
     bar.setFixedHeight(54)
     h = QHBoxLayout(bar)
-    h.setContentsMargins(16, 6, 16, 6)
-    h.setSpacing(20)
+    h.setContentsMargins(16, 4, 16, 4)
+    h.setSpacing(18)
 
     brand = label(TITLE, "", "chloro")
     brand.setStyleSheet(
@@ -43,29 +58,40 @@ def build(win) -> QWidget:
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(1)
         v.addWidget(mono_label(cap))
-        val = label("—")
+        val = Elided("—") if key in ("place", "hull") else label("—")
         val.setStyleSheet("font-size: 14px; font-weight: 600;")
         win.hud_stats[key] = val
         v.addWidget(val)
+        # The names give way first (down to `Elided`'s floor); the date and
+        # the purse never shorten.
         h.addWidget(block)
     h.addStretch(1)
 
+    grid = QWidget()
+    g = QGridLayout(grid)
+    g.setContentsMargins(0, 0, 0, 0)
+    g.setHorizontalSpacing(16)
+    g.setVerticalSpacing(5)
     win.meters: dict[str, tuple[QLabel, Bar]] = {}
-    for key, cap, tintname in (("integrity", "Integrity", "chloro"),
-                               ("air", "Air", "lumen"),
-                               ("hold", "Hold", "osteo"),
-                               ("crew", "Crew", "steel")):
-        block = QWidget()
-        block.setFixedWidth(132)      # wide enough for "Integrity · 100%"
-        v = QVBoxLayout(block)
-        v.setContentsMargins(0, 0, 0, 0)
-        v.setSpacing(3)
+    for i, (key, cap, tintname) in enumerate((
+            ("integrity", "Integrity", "chloro"), ("air", "Air", "lumen"),
+            ("hold", "Hold", "osteo"), ("crew", "Crew", "steel"))):
+        cell = QWidget()
+        row = QHBoxLayout(cell)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(8)
         cap_lb = mono_label(cap)
+        cap_lb.setFixedWidth(128)     # wide enough for "Hold · 340/340 t"
+        # Against the bar, so the four bars line up in two tidy columns.
+        cap_lb.setAlignment(Qt.AlignmentFlag.AlignRight
+                            | Qt.AlignmentFlag.AlignVCenter)
         bar_w = Bar(0, tintname)
+        bar_w.setFixedWidth(64)
         win.meters[key] = (cap_lb, bar_w)
-        v.addWidget(cap_lb)
-        v.addWidget(bar_w)
-        h.addWidget(block)
+        row.addWidget(cap_lb)
+        row.addWidget(bar_w)
+        g.addWidget(cell, i // 2, i % 2)
+    h.addWidget(grid)
 
     win.breach_pill = Pill("breached", "warn")
     win.breach_pill.hide()
@@ -76,18 +102,18 @@ def build(win) -> QWidget:
     win.clock_pill = Pill("under way", "chloro")
     win.clock_pill.hide()
     h.addWidget(win.clock_pill)
+    h.addWidget(hunt_marks.dark_chip(win))     # the transponder, on every screen
     # Unread despatches, on the one bar every screen shows — the inbox
     # ticked for six passes with no way to know it held anything. A button,
     # not a Pill, because a count you cannot press is a taunt.
     win.despatch_btn = button("✉", lambda: win.go("despatches"), kind="flat",
                               tip="Despatches waiting on the board")
+    win.despatch_btn.setAccessibleName("Despatches waiting")
     win.despatch_btn.hide()
     h.addWidget(win.despatch_btn)
-    # Instruments pop out into their own windows, so a player can watch
-    # heat or the scope while flying rather than switching to a tab.
-    h.addWidget(button("▣ Instruments", win.instruments, kind="flat"))
-    h.addWidget(button("? Help", win.help_here, kind="flat",
-                       tip="Help about the screen you are on"))
+    # The mute chip, in the menu bar's empty corner rather than on this bar:
+    # here it cost each name 10 px at 1,040 and "Thule's Rise" elided.
+    win.menuBar().setCornerWidget(renown_chip.corner(win, soundmap.chip(win)))
     return bar
 
 
@@ -96,9 +122,9 @@ def refresh(win) -> None:
     st = g.ship_stats
     ch = CHASSIS_BY_ID[g.ship.chassis]
     win.hud_stats["date"].setText(stardate(g.day))
-    win.hud_stats["place"].setText(g.system.name)
+    win.hud_stats["place"].set_full(g.system.name)
     win.hud_stats["money"].setText(credits(g.credits))
-    win.hud_stats["hull"].setText(f"{ch.name} «{g.ship.name}»")
+    win.hud_stats["hull"].set_full(f"{ch.name} «{g.ship.name}»")
 
     hp = hull_pct(g.ship)
     used = cargo_used(g.ship)
@@ -116,11 +142,14 @@ def refresh(win) -> None:
         cap.setText(f"{key.title()} · {text}")
         bar.set_value(frac, tintname)
     win.breach_pill.setVisible(is_breached(g.ship))
+    hunt_marks.sync_chip(win)
+    renown_chip.sync(win)
     from ..sim import comms as comms_sim
     waiting = comms_sim.unread(g)
     if waiting:
         win.despatch_btn.setText(f"✉ {waiting}")
     win.despatch_btn.setVisible(bool(waiting))
+    soundmap.hud(win, waiting)
     conn = getattr(win, "conn", None)
     wanted = conn is not None and getattr(conn, "clock_on", False)
     if wanted:

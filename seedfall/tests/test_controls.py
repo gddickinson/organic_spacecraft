@@ -219,6 +219,10 @@ def run(suite: Suite, app, window, _stocked, NAV, _Trap) -> None:
         from ..core.rng import RNG
         from . import interact
 
+        # This ran 153 days alone and 151 after another suite, while the id
+        # counters belonged to the process and ids reach the dice. They belong
+        # to the chronicle now (`core/ids.bind`), so the session is a function
+        # of its seed whatever this process did first.
         game = _stocked("session")
         game.credits = 300_000
         _g, win = window("session", "map", state=lambda _s: game)

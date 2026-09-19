@@ -17,9 +17,11 @@ is on the one you are looking at.
 
 from __future__ import annotations
 
+import pathlib
 import queue
+import re
 
-from PyQt6.QtCore import QObject, Qt, QTimer, pyqtSignal
+from PyQt6.QtCore import QObject, Qt, pyqtSignal
 
 from .protocol import verb
 from .server import Bridge
@@ -86,7 +88,7 @@ def go(game, screen: str) -> dict:
     if win is None:
         return {"ok": False, "why": "No window attached."}
     from ..data.screens import KEY_FOR
-    if screen not in KEY_FOR:
+    if not isinstance(screen, str) or screen not in KEY_FOR:
         return {"ok": False, "why": f"No such screen: {screen}.",
                 "screens": sorted(KEY_FOR)}
     win.go(screen)
@@ -113,7 +115,8 @@ def tab(game, name: str) -> dict:
     view = win.views.get(win.current)
     if view is None or not hasattr(view, "tab"):
         return {"ok": False, "why": f"{win.current} has no tabs."}
-    view.tab = name
+    from .checks import words
+    view.tab = words(name, "name", 40, required=True)
     win.go(win.current)
     return {"ok": True, "screen": win.current, "tab": view.tab}
 
@@ -144,17 +147,41 @@ def blocked(game) -> dict:
     return {"ok": True, "blocked": bool(modal), "dialogs": modal}
 
 
-@verb("shot", "Save a picture of the window, so the caller can see it too.")
+@verb("shot", "Save a picture of the window to a .png in the temp folder.")
 def shot(game, path: str = "") -> dict:
+    """`path` is a file *name*, and the picture goes in the temp folder.
+
+    It was any path at all: whoever held the token could write a PNG over
+    any file this user can write — a save, a dotfile, a script. A name is
+    all a caller watching the window needs, and the reply says where it went.
+    """
     win = _window_of(game)
     if win is None:
         return {"ok": False, "why": "No window attached."}
-    import os
     import tempfile
-    target = path or os.path.join(tempfile.gettempdir(),
-                                  f"seedfall-{win.current}.png")
+    name = shot_name(path, win.current)
+    if name is None:
+        return {"ok": False,
+                "why": "A shot is saved by file name only — letters, digits, "
+                       "'.', '_' and '-', ending .png — into the temp folder."}
+    target = str(pathlib.Path(tempfile.gettempdir()) / name)
     ok = win.grab().save(target)
     return {"ok": bool(ok), "path": target, "screen": win.current}
+
+
+def shot_name(path, screen: str) -> str | None:
+    """The bare `.png` name a shot may be saved as, or None if it may not.
+
+    No directory part, no leading dot, nothing but a short run of safe
+    characters: the check is on the name as given, so `../x.png` and
+    `/tmp/x.png` are refused rather than quietly trimmed to `x.png`.
+    """
+    if not path:
+        return f"seedfall-{screen}.png"
+    if not isinstance(path, str) or not re.fullmatch(
+            r"[A-Za-z0-9_-][A-Za-z0-9._-]{0,62}\.png", path):
+        return None
+    return path
 
 
 #: Set when a bridge attaches, so the verbs above can find the window.

@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import math
 
-from .control import step, welcome
+from .control import welcome
 #: The port level at which a structure keeps tugs. A wayside quay has one arm
 #: and a docking light; somewhere a fleet lives has boats.
 TUG_FROM = 2

@@ -19,7 +19,6 @@ from ..sim import colony as colony_sim
 from ..sim import threat
 from ..sim.ship import build_layers, make_ship
 from ..world.galaxy import in_range
-from .captain_bot import _bot
 from .harness import Suite
 
 
@@ -90,11 +89,16 @@ def run(suite: Suite) -> None:
         fired["dominion"] = threat.check_victory(g)
 
         # Lineage: four grown hulls of your own, and the licence to sign them.
+        # Launched from your own cradles a year ago — the starting hull and
+        # a fresh litter are not a line (`threat.line_of`).
         g = _stocked()
         for i in range(4):
             hull = make_ship("navis", [], f"Cutting {i}")
             build_layers(hull, g.bonuses)
             g.fleet.append(hull)
+        assert threat.check_victory(g) is None, "a line nobody launched counted"
+        for hull in g.fleet[-4:]:
+            hull.launched_on = g.day - threat.LINEAGE_AGE
         fired["lineage"] = threat.check_victory(g)
 
         # Xenarchy: all twelve alien technologies incorporated.
@@ -424,10 +428,8 @@ def run(suite: Suite) -> None:
         # failing. The claim this check owns is the *economy*: nobody goes
         # into debt, nobody starves, and the sector's own ending is the only
         # thing allowed to stop a run.
-        results = []
-        for seed in ("run-a", "run-b", "run-c", "run-d", "run-e", "run-f"):
-            g = _bot(seed, years=5)
-            results.append(g)
+        from .captain_bot import five_year_runs
+        results = [g for _seed, g in five_year_runs()]
         broke = [g for g in results if g.credits < 0]
         starved = [g for g in results if g.dead and g.ending != "overgrown"]
         assert not broke, f"{len(broke)} runs ended in debt"

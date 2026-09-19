@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from ..core.save import register
 from ..data.commodities import BY_ID, COMMODITIES
 from ..data.factions import FACTIONS_BY_ID, price_mod
+from ..data.regions import NATIVE_GLUT
 
 
 @register
@@ -47,6 +48,15 @@ class Stock:
 class Market:
     stock: dict[str, Stock] = field(default_factory=dict)
     day: int = 0
+    #: What the captain has bought over this counter lately and not sold
+    #: back: commodity -> [tonnes, day of the last purchase]. Written and read
+    #: only by `sim/trade.py`, which is where selling a port its own goods
+    #: back stops counting as trade.
+    yours: dict = field(default_factory=dict)
+    #: A Kith gathering's: nothing is posted and nothing sold over a counter
+    #: — a gift is offered and answered (`sim/kith`). `sim/enforce.may_trade`
+    #: refuses a buy or a sale here, with the reason.
+    gift_economy: bool = False
 
 
 def make_market(rng, system) -> Market:
@@ -60,8 +70,16 @@ def make_market(rng, system) -> Market:
         for k in rich:
             rich[k] = max(rich[k], b.resources.get(k, 0.0))
 
+    region = getattr(system, "region", "verge")
     for c in COMMODITIES:
+        # A good native to a region is made only there, and skipped *before*
+        # any draw: a Verge market is built from exactly the numbers it
+        # always was. See `Commodity.native`.
+        if c.native and c.native != region:
+            continue
         supply = rng.gauss(1, 0.42, 0.3, 2.1)
+        if c.native:
+            supply *= NATIVE_GLUT
         if c.id in rich:
             supply *= 1 + rich[c.id] * 0.75
         if fac:
@@ -76,6 +94,20 @@ def make_market(rng, system) -> Market:
                             round(supply * level * rng.int(30, 140)),
                             rng.float(-0.02, 0.02), base=supply)
     return Market(stock)
+
+
+def add_line(market: Market, cid: str, supply: float, level: int, rng) -> Stock:
+    """Give an existing market a good it was not built with.
+
+    How the Verge's buyers come to trade nebular condensate the day the
+    Shoals open: a line of its own, drawn from a seed of its own, added to a
+    market that is otherwise untouched. `supply` is where it settles — under
+    one is a port short of it, which is what makes it dear there.
+    """
+    stock = Stock(supply, round(supply * max(1, level) * rng.int(30, 140)),
+                  rng.float(-0.02, 0.02), base=supply)
+    market.stock[cid] = stock
+    return stock
 
 
 def buy_price(market: Market, cid: str, rep: float = 0, trade_bonus: float = 0):
@@ -138,6 +170,12 @@ def apply_sale(market: Market, cid: str, units: float) -> None:
     s.supply += units * 0.0013
 
 
+#: `RNG.float(lo, hi)` is `lo + next() * (hi - lo)`; these are its operands
+#: for the daily walk and a change of trend, computed the way it computes them.
+_WALK_LO, _WALK = -0.012, 0.012 - -0.012
+_TREND_LO, _TREND = -0.03, 0.03 - -0.03
+
+
 def tick_market(market: Market, days: float, rng, level: int = 1) -> None:
     """Daily drift back toward equilibrium, plus a small random walk.
 
@@ -152,7 +190,21 @@ def tick_market(market: Market, days: float, rng, level: int = 1) -> None:
     promote them up the ladder (`sim/exchequer.py`), so a berth's size is a
     thing that changes over a chronicle rather than a fact of generation. A hub
     is a deep market and an outpost is a thin one, permanently.
+
+    **The hottest loop in the game**: 24 markets x ~20 goods, every day, is
+    about half of a tick (47% by the 2026-09-17 profile). So the draws go
+    straight to `rng.next`, spelling out `RNG.float` and `RNG.chance`
+    (`lo + next() * (hi - lo)`, `next() < p`) rather than paying two Python
+    calls for each of the ~250,000 draws a year, and what does not change per
+    good is worked out once. Every float is the same operation on the same
+    operands in the same order, so it is bit-identical — the same seed hashes
+    the same over a played year — and measured, this loop went from 0.57 to
+    0.49 ms a simulated day, and the whole tick from 0.86 to 0.79.
     """
+    nxt = rng.next
+    pull = min(0.6, 0.018 * days)
+    turn = 0.02 * days
+    size = max(1, level)
     for cid, s in market.stock.items():
         c = BY_ID.get(cid)
         if s.base <= 0 and s.supply <= 0:
@@ -186,14 +238,16 @@ def tick_market(market: Market, days: float, rng, level: int = 1) -> None:
         # Toward what this port is, not toward the sector mean. The
         # docstring at the top of this module has always said "its own
         # equilibrium"; for a long time the arithmetic said 1.0.
-        eq = (s.base * getattr(s, "works", 1.0)
+        eq = (s.base * s.works
               * (1 + (c.volatility if c else 0.3) * s.trend * 12))
-        s.supply += (eq - s.supply) * min(0.6, 0.018 * days)
-        s.supply = max(0.02, s.supply + rng.float(-0.012, 0.012) * days)
-        deep = s.supply * 60 * max(1, level)
-        s.units = max(0, round(s.units + (deep - s.units) * 0.03 * days))
-        if rng.chance(0.02 * days):
-            s.trend = rng.float(-0.03, 0.03)
+        supply = s.supply
+        supply += (eq - supply) * pull
+        supply = max(0.02, supply + (_WALK_LO + nxt() * _WALK) * days)
+        s.supply = supply
+        s.units = max(0, round(s.units + (supply * 60 * size - s.units)
+                                * 0.03 * days))
+        if nxt() < turn:
+            s.trend = _TREND_LO + nxt() * _TREND
     market.day += days
 
 

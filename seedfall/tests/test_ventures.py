@@ -29,7 +29,7 @@ from __future__ import annotations
 from ..core.rng import RNG
 from ..core.state import new_game
 from ..data.factions import FACTIONS_BY_ID
-from ..data.ventures import RIGHT_BACKED, RIGHT_OPPOSED, SWAY, VENTURES
+from ..data.ventures import RIGHT_BACKED, SWAY, VENTURES
 from ..sim import diplomacy as dip, ventures
 from .harness import Suite
 

@@ -13,8 +13,10 @@ from .hull_types import (ACCEPTS, BASE_POWER, BUILD_NEED, FAMILY_LABEL,
                          Chassis, Layer, accepts_family, slots)
 from .hulls_built import BUILT, FABRICATED, HYBRID, SYNTHETIC, XENO
 from .hulls_grown import GROWN
+from .kith import KITH_HULLS
 
-CHASSIS: list[Chassis] = [*GROWN, *BUILT]
+#: The Kith's two hulls are classes within the xeno family (`data/kith`).
+CHASSIS: list[Chassis] = [*GROWN, *BUILT, *KITH_HULLS]
 CHASSIS_BY_ID: dict[str, Chassis] = {c.id: c for c in CHASSIS}
 
 #: Display order for the codex and the hull picker.

@@ -11,12 +11,15 @@ The screen calls these and draws what comes back.
 from __future__ import annotations
 
 from ..data.commodities import BY_ID, bulk_of
+from . import assembly
 from . import customs as customs_sim
+from . import inquiry
 from . import market as market_sim
 from . import officials as officials_sim
 from . import wharfage as wharfage_sim
 from . import diplomacy as dip_sim
 from . import loyalty as loyalty_sim
+from . import renown as renown_sim
 from .ship import add_cargo, cargo_free
 from ..world.economy import apply_sale, apply_trade
 
@@ -32,6 +35,49 @@ SELL_TAINT = 8.0
 
 #: What "a quiet price" is worth: goods move at the office rate, which is
 #: about twelve per cent inside the posted one, in whichever direction helps.
+
+
+#: How long a counter remembers selling you something.
+#:
+#: **Standing was for sale.** Every sale granted `min(2, n * 0.05)` with no
+#: cooldown and no question of where the goods came from, so buying at a
+#: counter and selling straight back to it bought standing with the spread:
+#: measured, 40 to 100 with the Charter in **zero game days** for about 8,000
+#: credits — which, with the survey loop, opened Concord and Apostasy by day
+#: 201. A port is glad of what you *bring*; its own stock handed back is not
+#: trade. So a sale counts for standing only on tonnes this counter did not
+#: sell you inside this window — long enough to cover a loiter, short enough
+#: that a round trip away and back is ordinary business.
+BOUGHT_MEMORY = 60
+
+
+def _bought(game, system, cid: str, units: float) -> None:
+    """Remember that this counter sold you these."""
+    ledger = system.market.yours
+    had, _day = ledger.get(cid, (0.0, game.day))
+    ledger[cid] = [(had if game.day - _day <= BOUGHT_MEMORY else 0.0) + units,
+                   game.day]
+
+
+def imported(game, system, cid: str, units: float) -> float:
+    """How many of these tonnes this counter did *not* sell you lately.
+
+    Spends the memory as it goes: tonnes sold back are forgotten, so the
+    next honest cargo is counted in full.
+    """
+    ledger = getattr(system.market, "yours", None) if system.market else None
+    if not ledger or cid not in ledger:
+        return units
+    had, day = ledger[cid]
+    if game.day - day > BOUGHT_MEMORY:
+        ledger.pop(cid, None)
+        return units
+    back = min(units, had)
+    if had - back > 1e-6:
+        ledger[cid] = [had - back, day]
+    else:
+        ledger.pop(cid, None)
+    return units - back
 
 
 def buy(game, cid: str, units: int) -> dict:
@@ -73,6 +119,7 @@ def buy(game, cid: str, units: int) -> dict:
     officials_sim.spend_once(game, system, "quiet_price")
     add_cargo(game.ship, cid, n)
     apply_trade(system.market, cid, n)
+    _bought(game, system, cid, n)
     officials_sim.dealt_with(game, system, min(2.0, n * price / 9000))
     if not BY_ID[cid].legal:
         game.adjust_rep(system.port.faction, -BUY_TAINT)
@@ -98,6 +145,9 @@ def sell(game, cid: str, units: int) -> dict:
     if customs_sim.outlaws(system.port.faction, cid):
         return {"ok": False,
                 "why": "Not over this counter. Not on this station."}
+    barred = assembly.embargoed(game, system.port.faction, cid)
+    if barred:
+        return {"ok": False, "why": barred}
 
     price = market_sim.quote_sell(game, system, cid)
     n = min(units, game.ship.cargo.get(cid, 0))
@@ -115,21 +165,28 @@ def sell(game, cid: str, units: int) -> dict:
     out["due"] = wharfage_sim.collect(game, system, n * price)
     out["net"] = n * price - out["due"]
     officials_sim.spend_once(game, system, "quiet_price")
-    if n * price >= NOTICED:
+    # Only what you brought counts as trade — for the crew's pride as much as
+    # for the port's regard. See `BOUGHT_MEMORY`.
+    brought = imported(game, system, cid, n)
+    out["brought"] = brought
+    if brought * price >= NOTICED:
         loyalty_sim.record(game, "trade_profit",
-                           scale=min(2.0, n * price / 6000))
+                           scale=min(2.0, brought * price / 6000))
     add_cargo(game.ship, cid, -n)
     apply_sale(system.market, cid, n)
+    from . import nemeses as nemeses_sim      # the cartel keeps a ledger
+    nemeses_sim.undercut(game, system, brought * price)
     # Trading here is dealing with whoever runs the quay. This and `buy` are
     # the only routes by which a harbourmaster comes to know you at all.
     officials_sim.dealt_with(game, system, min(2.0, n * price / 9000))
     game.adjust_rep(system.port.faction,
-                    min(2, n * 0.05)
+                    min(2, brought * 0.05)
                     * dip_sim.agenda_bonus(game, system.port.faction, cid))
     game.add_log(f"Sold {round(n)} {BY_ID[cid].short} at {price:,} — "
                  f"{round(n * price):,}."
                  + (f" Wharfage {out['due']:,}, {out['net']:,} clear."
                     if out["due"] else ""))
+    renown_sim.note(game, "sales", int(brought > 0))   # only what you brought
     return out
 
 
@@ -169,9 +226,19 @@ def sell_survey_data(game) -> dict:
     officials_sim.spend_once(game, system, "quiet_price")
     officials_sim.dealt_with(game, system, min(2.0, took / 9000))
     add_cargo(game.ship, "survey", -n)
+    # **And it floods the office like any other sale.** This never called
+    # `apply_sale`, so the hundredth set handed in fetched what the first did.
+    # Charts bought over this very counter are its own charts back: no
+    # standing and nothing for the bench.
+    brought = n
+    if system.market:
+        brought = imported(game, system, "survey", n)
+        apply_sale(system.market, "survey", n)
     game.adjust_rep(system.port.faction,
-                    min(SURVEY_REP_CAP, n * SURVEY_REP_PER_SET))
-    game.research.banked += n * 6
+                    min(SURVEY_REP_CAP, brought * SURVEY_REP_PER_SET))
+    game.research.banked += brought * 6
+    renown_sim.note(game, "survey_sales", int(brought > 0))
+    inquiry.add(game.research, "survey", brought * assembly.effect(game, "commons", 0.0))
     game.add_log(f"Sold {round(n)} survey sets for {took:,}."
                  + (f" Wharfage {due:,}, {took - due:,} clear." if due else ""),
                  "good")

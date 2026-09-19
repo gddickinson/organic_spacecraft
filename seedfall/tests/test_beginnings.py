@@ -17,7 +17,6 @@ from __future__ import annotations
 from ..core.state import new_game
 from ..data.beginnings import ORIGINS, POSTINGS, STOCKS
 from ..data.chassis import CHASSIS_BY_ID
-from ..data.factions import FACTIONS_BY_ID
 from ..data.hull_types import ACCEPTS
 from ..data.parts import PARTS_BY_ID
 from ..data.tech import STARTING_TECH
@@ -82,6 +81,7 @@ def run(suite: Suite) -> None:
                 assert game.system.port, "opened somewhere with no quay"
                 assert game.credits >= 0, f"{origin.id} opens in debt"
                 opened += 1
+        assert opened >= 12, f"measured 12 stock/origin openings, now {opened}"
         return f"{opened} stock/origin openings, every one flyable"
 
     @check("the opening screen's forecast is the game you get")
@@ -111,6 +111,7 @@ def run(suite: Suite) -> None:
                         f"{origin.id}: said {tonnes:g} t of {cid}, opened with "
                         f"{got.ship.cargo.get(cid, 0):g}")
                 checked += 1
+        assert checked >= 12, f"measured 12 openings, now {checked}"
         return f"{checked} openings, every figure on the screen matching"
 
     @check("the bridge on the card is the bridge that sails")
@@ -289,6 +290,7 @@ def run(suite: Suite) -> None:
                                    for p in fitted), (
                             f"{chassis.id} opens with no drive")
                     seen += 1
+        assert seen >= 12, f"measured 12 offered hulls, now {seen}"
         return f"{seen} offered hulls, each with a legal working outfit"
 
     @check("every posting opens somewhere with a quay")

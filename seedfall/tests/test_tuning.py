@@ -233,16 +233,22 @@ def run(suite: Suite) -> None:
 
     @check("a levy takes a real share, and not the whole holding")
     def _():
+        # Through `collect_tithe`, the one door every levied holding goes
+        # through. This used to ask for a `territory.levy_on` that has never
+        # existed and fall back to reading `LEVY_SHARE` itself — a range check
+        # on the constant under test, which this file exists not to write.
+        from types import SimpleNamespace
         from ..sim import territory
         game = new_game("levy")
+        held = SimpleNamespace(tithe_to="charter", name="Levy Test")
         taken = []
         for amount in (1000.0, 5000.0, 20000.0):
-            share = territory.levy_on(game, amount) \
-                if hasattr(territory, "levy_on") else None
-            if share is None:
-                from ..data.territory import LEVY_SHARE
-                share = amount * LEVY_SHARE
-            taken.append(share / amount)
+            gains = {"ore": amount}
+            levied = territory.collect_tithe(game, held, gains, 30.0)
+            assert levied and abs(gains["ore"] + levied["goods"]["ore"]
+                                  - amount) < 1e-6, (amount, levied, gains)
+            taken.append(levied["goods"]["ore"] / amount)
+        assert len(taken) == 3, taken
         for fraction in taken:
             assert 0.05 <= fraction <= 0.6, (
                 f"a levy takes {fraction*100:.0f}% — either nothing worth "
@@ -275,17 +281,42 @@ def run(suite: Suite) -> None:
 
     @check("a consort breaks off hurt rather than fighting to the wreck")
     def _():
-        from ..data.consorts import WITHDRAW_AT
-        assert 0.02 < WITHDRAW_AT < 0.7, (
-            f"a consort withdraws at {WITHDRAW_AT*100:.0f}% hull — either "
-            "never, or before the first exchange")
-        # And the rule is read where it matters.
-        from ..sim import consorts
-        import inspect
-        src = inspect.getsource(consorts)
-        assert "WITHDRAW_AT" in src, (
-            "nothing in `consorts` reads the withdrawal threshold")
-        return f"consorts break off at {WITHDRAW_AT*100:.0f}% of hull"
+        # **By what a consort does, not by what `WITHDRAW_AT` says.** This
+        # used to range-check the constant between 2% and 70% and then look
+        # for its name in the source — doubling it passed, and so did halving.
+        # `test_combat` brackets it at 35% and 10%, which halving also slips
+        # through. Measured: a consort holds the line down to 22% of its hull
+        # and breaks off below it; the bracket here is 26% and 18%, so a move
+        # of a fifth either way has to be re-measured.
+        from ..sim import combat, consorts as cs, encounters
+        from ..sim.ship import build_layers, make_ship, stats as ship_stats
+        game, rng = new_game("withdraw"), RNG("withdraw")
+        flag = make_ship("navis", ["slug_battery", "reaction_organ", "opsin_eyes"])
+        escort = make_ship("vesper", ["mag_lance", "reaction_organ",
+                                      "opsin_eyes"], "Escort")
+        for ship in (flag, escort):
+            build_layers(ship, game.bonuses)
+            ship.cargo = {"ore": 400}
+        game.ship, game.fleet = flag, [escort]
+        game.recompute()
+        battle = combat.start(flag, ship_stats(flag),
+                              encounters.make_enemy(rng, "concordat", 1.0),
+                              rng=rng, game=game, officers=game.officers)
+        cs.deploy(battle, [escort], rng, game.bonuses)
+        assert battle.consorts, "no consort was deployed"
+        consort = battle.consorts[0]
+
+        def in_line(fraction: float) -> bool:
+            consort.withdrawn = False
+            for layer in consort.ship.layers:
+                layer.hp = layer.max * fraction
+            cs.run(battle, rng, lambda *a, **k: None, lambda *a, **k: None)
+            return not consort.withdrawn
+
+        assert in_line(0.26), "a consort at 26% hull broke off"
+        assert not in_line(0.18), "a consort at 18% hull is still in the line"
+        assert in_line(0.90) and not in_line(0.02), "the rule is upside down"
+        return "in the line at 26% of hull, broken off at 18%"
 
     @check("the Bloom's heart is worth a fight and can be finished")
     def _():

@@ -29,8 +29,11 @@ def _satisfy(game, contract) -> None:
         game.location_id = (contract.target_system if contract.kind == "deliver"
                             else contract.issued_at)
     elif contract.kind == "survey":
+        # Charted *since* the job was taken — a survey stage counts nothing
+        # done before it (`Contract.taken_on`), so the fixture stamps the day.
         for body in game.galaxy.systems[contract.target_system].bodies:
             body.surveyed = True
+            body.surveyed_on = game.day
     else:                                    # expedition, bounty
         contract.progress = contract.amount
         if contract.kind == "bounty":
@@ -56,6 +59,8 @@ def run(suite: Suite) -> None:
     @check("every commission is coherent and its stages are postable")
     def _():
         from ..data.factions import FACTIONS_BY_ID
+        # Four when this guard went in; an empty table passed every line below.
+        assert len(CHAINS) >= 4, f"only {len(CHAINS)} commissions left"
         for chain in CHAINS:
             assert chain.issuer in FACTIONS_BY_ID, f"{chain.id} has no issuer"
             assert chain.stages, f"{chain.id} has no stages"
@@ -224,6 +229,9 @@ def run(suite: Suite) -> None:
                 assert other in CHAINS_BY_ID, (
                     f"{chain.id} closes {other!r}, which is not a commission")
             assert chain.issuer in FACTIONS_BY_ID, chain.issuer
+        # One commission (the Reliquary's) grants a technology today. With
+        # none, the namespace check above has nothing left to guard.
+        assert granted >= 1, "no commission grants a technology to check"
         return (f"{granted} commission(s) grant a technology, every one of them "
                 f"real; {sum(len(c.stages) for c in CHAINS)} stages posting "
                 "kinds the book knows, and every rival named")

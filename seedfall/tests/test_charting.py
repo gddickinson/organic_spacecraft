@@ -64,6 +64,7 @@ def run(suite: Suite) -> None:
         # every player uses the screen door; only one of them dated the chart,
         # so the drivers all saw a system that worked.
         seeds = ("doors", "doors2", "doors3")
+        agreed = []
         for seed in seeds:
             screen = _state(_chart(seed, "screen"))
             bridge = _state(_chart(seed, "bridge"))
@@ -74,6 +75,8 @@ def run(suite: Suite) -> None:
             assert screen["stamped"], (
                 f"{seed}: neither door dates the chart, so nothing can ever "
                 "go stale")
+            agreed.append(seed)
+        assert agreed == list(seeds), agreed
         return f"{len(seeds)} systems, both doors agreeing on every one"
 
     @check("a finished chart is dated and an unfinished one is not")

@@ -6,16 +6,17 @@ navigation, engineering, medicine, communications, tactical.
 
 from __future__ import annotations
 
-import itertools
 from dataclasses import dataclass, field
 
 from ..core.save import register
+from ..core import ids
+from ..core.rng import RNG
 from ..data import convictions
 from ..data import lineages
 from . import loyalty
 from ..data.lore import CREW_FIRST, CREW_LAST, CREW_ROLES
+from ..data.milestones import RECRUIT_FLOOR
 
-_uid = itertools.count(1)
 
 #: (id, name, note, effect key, magnitude)
 TRAITS = [
@@ -83,6 +84,17 @@ class Officer:
     #: Fractional levels shed to decline, carried so it is a slope not a step.
     wear: float = 0.0
     retired: bool = False
+    #: Whether this officer has already said their piece about the way the
+    #: ship is run (`sim/loyalty.py`), so they warn once, not every day.
+    warned: bool = False
+    # Innovation 8, officer arcs (`sim/arcs.py`): their own story, how far
+    # through it they are (beats resolved, 0-3), its clocks and answers, and
+    # the signature a story well finished left them. Dealt on the first tick
+    # from their own key, so an officer from an older save gets theirs too.
+    arc: str | None = None
+    arc_beat: int = 0
+    arc_state: dict = field(default_factory=dict)
+    signature: str | None = None
 
     @property
     def label(self) -> str:
@@ -103,7 +115,7 @@ def make_officer(rng, role_id: str | None = None, min_level: int = 1) -> Officer
                           (2, min_level + 2), (1, min_level + 3)])
     trait = rng.pick(TRAITS) if rng.chance(0.55) else None
     officer = Officer(
-        id=next(_uid),
+        id=ids.next_id("officer"),
         name=f"{rng.pick(CREW_FIRST)} {rng.pick(CREW_LAST)}",
         role=role[0], role_name=role[1], stat=role[2], note=role[3],
         level=level, wage=40 + level * 55 + (25 if trait else 0),
@@ -148,11 +160,12 @@ def hiring_lineage(rng) -> str:
     return rng.weighted([(6 if l.id == "wet" else 2, l.id) for l in pool])
 
 
-def recruit_pool(rng, port_level: int) -> list[Officer]:
-    """Candidates on offer. Bigger ports attract better officers."""
+def recruit_pool(rng, port_level: int, floor: int = 0) -> list[Officer]:
+    """Candidates on offer. Bigger ports attract better officers; `floor`
+    lifts every one of them (a Commodore's perk, `sim/renown`)."""
     out = []
     for _ in range(2 + port_level):
-        officer = make_officer(rng, None, port_level)
+        officer = make_officer(rng, None, port_level + floor)
         # Left unset an officer is assumed to be of the captain's own stock,
         # which is right for the crew you launched with and wrong for a quay.
         officer.lineage = hiring_lineage(rng)
@@ -325,3 +338,62 @@ def pay_bonus(game) -> dict:
     loyalty.record(game, "bonus_paid")
     game.add_log("A bonus went round the bridge.", "good")
     return {"ok": True, "cost": cost}
+
+
+def pool_at(game, system) -> list[Officer]:
+    """Who is looking for a berth at this quay this month.
+
+    **Seeded from its own key.** The berths tab drew `game.rng("recruit")` the
+    first time it was opened and kept the answer on the screen, so the hands
+    on offer depended on *when* you first looked — and, because `game.rng`
+    advances the save's seed, looking moved the luck of everything rolled
+    after it. Measured: 20 ports of 20 offered a different board on a second
+    ask. Seed, port and month make it a fact about the quay instead.
+
+    Anybody already on your bridge is not still looking, so a hand signed on
+    this month drops off the board rather than being offered twice.
+    """
+    if not getattr(system, "port", None):
+        return []
+    rng = RNG(f"{game.seed}:recruit:{system.id}:{game.day // 30}")
+    aboard = {(o.name, o.role) for o in game.officers}
+    from . import renown
+    floor = RECRUIT_FLOOR if renown.perk(game, "recruits") else 0
+    return [o for o in recruit_pool(rng, system.port.level, floor)
+            if (o.name, o.role) not in aboard]
+
+
+#: How long shore leave keeps the ship alongside, in days.
+SHORE_LEAVE_DAYS = 7
+
+
+def shore_leave(game) -> dict:
+    """A week alongside: the calendar moves and the bridge mends.
+
+    It lived in `ui/berths_panel.py` — a loyalty event, seven days off the
+    clock and a line in the log, performed by a button handler — so nothing
+    but a screen could grant it and no check could measure what it cost.
+    """
+    if not game.officers:
+        return {"ok": False, "why": "Nobody on the bridge to send ashore.",
+                "text": ""}
+    loyalty.record(game, "shore_leave")
+    game.advance_days(SHORE_LEAVE_DAYS)
+    text = "Seven days alongside. The bridge came back better company."
+    game.add_log(text, "good")
+    return {"ok": True, "why": "", "text": text, "days": SHORE_LEAVE_DAYS}
+
+
+def pay_off(game, officer) -> dict:
+    """Let an officer go. The station is empty until somebody signs on.
+
+    The berths tab assigned `game.officers` itself, and said nothing — an
+    officer could leave the bridge without the chronicle noticing.
+    """
+    if not any(o is officer for o in game.officers):
+        return {"ok": False, "why": f"{officer.name} is not on your bridge.",
+                "text": ""}
+    game.officers = [o for o in game.officers if o is not officer]
+    text = f"{officer.name} was paid off and went ashore."
+    game.add_log(text, "")
+    return {"ok": True, "why": "", "text": text, "officer": officer}

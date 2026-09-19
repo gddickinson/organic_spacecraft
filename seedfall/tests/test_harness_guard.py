@@ -228,7 +228,7 @@ def run(suite: Suite) -> None:
         "empire", "evidence", "exchequer", "fence", "fleets",
         "fog", "freight", "gates", "geography", "grants",
         "grudges", "hands", "helm", "industry", "landing",
-        "levy", "life3d", "lopsided", "mining", "notes",
+        "levy", "licences", "life3d", "lopsided", "mining", "notes",
         "officials", "options", "orbits", "orders", "orrery",
         "parley", "picture", "pilot", "politics", "postings",
         "programmes", "provisional", "public", "readiness", "research",
@@ -261,3 +261,63 @@ def run(suite: Suite) -> None:
     # `tests/test_length.py` is the one door now: it holds the ceilings, and
     # it refuses a row for a debt that has been paid, which is what would have
     # caught the drift had there been only one list to drift from.
+
+    @check("every check module runs exactly once")
+    def _():
+        # **`bridge` and `bridge2` both named `test_bridge`**, so the Pilot
+        # screen's bridge ran twice a run, and the protocol and socket checks
+        # that module used to hold ran never — `bridge/server.py`,
+        # `client.py` and `attached.py` sat at 0% coverage behind a green
+        # line. Two rows for one module is one of those two faults, and a
+        # module with no row is the other: it is written, it is read in
+        # review, and it never runs.
+        import collections
+
+        from .suites import SUITES
+        rows = collections.Counter(s.module for s in SUITES)
+        twice = sorted(m for m, n in rows.items() if n > 1)
+        assert not twice, f"registered more than once: {twice}"
+        here = pathlib.Path(__file__).resolve().parent
+        found = {p.stem for p in here.glob("test_*.py")}
+        orphans = sorted(found - set(rows) - set(HELPERS))
+        assert not orphans, (
+            f"check modules no suite runs: {orphans} — register them in "
+            "`suites.py`, or name them in HELPERS with who drives them")
+        stale = sorted(m for m in HELPERS if m in rows or m not in found)
+        assert not stale, f"HELPERS rows that are registered or gone: {stale}"
+        return (f"{len(rows)} modules, one row each; {len(HELPERS)} driven "
+                "from another suite")
+
+    @check("no check can pass by looking at nothing")
+    def _():
+        # **A loop is where a check goes to pass on nothing** — see
+        # `checkscan.py`. Measured when this went in: 85 checks had every
+        # assertion inside a loop; 30 of those looped over a literal and
+        # could not run empty, and the other 55 needed a guard. Four more in
+        # `test_ui` asserted nothing at all, and one of those, given an
+        # assertion, found the shipyard's "All" hull tab snapping back.
+        from . import checkscan
+        flagged = {(f, label): "loop" for f, _n, label in checkscan.loop_only()}
+        flagged.update({(f, label): "none"
+                        for f, _n, label in checkscan.assertion_free()})
+        new = sorted(f"{f}: {label!r} ({why})" for (f, label), why
+                     in flagged.items() if (f, label) not in VACUOUS_OK)
+        assert not new, (
+            "checks that pass whatever happens — put an assertion outside "
+            "the loop (`assert rows`, or a counted minimum):\n       "
+            + "\n       ".join(new))
+        stale = sorted(k for k in VACUOUS_OK if k not in flagged)
+        assert not stale, f"VACUOUS_OK rows that no longer need to be: {stale}"
+        total = sum(1 for _c in checkscan.checks())
+        return (f"{total} checks read; none passes on an empty loop, and "
+                f"{len(VACUOUS_OK)} excused")
+
+
+#: Check modules that are not suites of their own, and what drives them.
+HELPERS = {
+    "test_controls": "run from `test_verbs`, whose offscreen app it borrows",
+}
+
+#: (file, check label) → why a check may keep every assertion inside a loop,
+#: or assert nothing itself. Empty is the goal; a row needs a reason.
+VACUOUS_OK: dict = {}

@@ -109,6 +109,16 @@ GATE_KINDS = {
         "Your anchor",
         "Laid at your own expense, onto a ring you did not make and do not "
         "understand. The invoice is the part you understand."),
+    # The Far Reaches (`data/regions.py`, `sim/relight.py`).
+    "deep": (
+        "Deep anchor",
+        "A Weave gate on the Verge's rim that answers nothing in the Verge. "
+        "It was built to reach somewhere else, and it belongs to nobody — "
+        "relit, it charges no toll, and the Bloom uses it like any ring."),
+    "inner": (
+        "Hollow ring",
+        "One of the rings the Hollow's makers left behind: a lit link across "
+        "the void, older than the Weave and owned by nobody."),
 }
 
 #: Names for the ancient sites, in the order they are found.

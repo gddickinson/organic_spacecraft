@@ -153,8 +153,12 @@ def gate_body(system):
     # *is* often the one the quay is built over, and a Weave anchor came out
     # standing on top of a port: arriving through the Weave dropped you in
     # the middle of the traffic, which is the one thing this is for.
-    order = sorted(range(len(system.bodies)),
+    # Never a body passing through (`sim/phenomena`): the anchor would leave.
+    order = sorted((i for i, b in enumerate(system.bodies)
+                    if getattr(b, "transient_until", None) is None),
                    key=lambda i: -flight.semi_major(system.bodies[i]))
+    if not order:
+        return None, -1
     taken = anchor_body(system)[1] if len(system.bodies) > 1 else -1
     index = next((i for i in order if i != taken), order[0])
     return system.bodies[index], index
@@ -172,7 +176,8 @@ def anchor_body(system):
         return None, -1
     ranked = sorted(
         enumerate(system.bodies),
-        key=lambda pair: (pair[1].kind == "comet",
+        key=lambda pair: (getattr(pair[1], "transient_until", None) is not None,
+                          pair[1].kind == "comet",
                           -getattr(pair[1], "radius", 0), pair[0]))
     index, body = ranked[0]
     return body, index

@@ -5,9 +5,10 @@
 
 ![The sector chart](../assets/seedfall/01-sector.png)
 
-You command a GESTALT hull in the Verge: forty-two stars, six powers, and something in the
+You command a GESTALT hull in the Verge: forty-two stars, four powers, three regions beyond the
+rim, and something in the
 dark that eats rock, ice and colonies and is more of it every fortnight than it was. Survey
-and trade, fight or refuse to, research a sixty-one-node tech tree, design hulls out of
+and trade, fight or refuse to, research a sixty-three-node tech tree, design hulls out of
 grown organs and fabricated machinery, plant colonies, dig up alien technology nobody can
 reason out, and deal with the Bloom.
 
@@ -21,7 +22,7 @@ pip install PyQt6
 python -m seedfall                  # title screen
 python -m seedfall --new            # straight into a new chronicle
 python -m seedfall --seed verge-7   # a specific sector
-python -m seedfall.tests            # 55 suites, 458 checks
+python -m seedfall.tests -j 8       # ~235 suites, ~1,750 checks, ~3 minutes
 ```
 
 No network, no server, no browser. Saves live in `~/.seedfall/save.json`.
@@ -37,12 +38,13 @@ No network, no server, no browser. Saves live in `~/.seedfall/save.json`.
 [Diplomacy](#diplomacy-has-two-axes) ·
 [Research](#research-and-the-bench) ·
 [Empire](#an-empire-you-have-to-defend) ·
-[Hulls](#thirty-five-hulls-and-eighty-four-fittings) ·
+[Hulls](#thirty-seven-hulls-and-eighty-nine-fittings) ·
 [Combat](#combat-is-positional-and-you-only-have-one-seat) ·
 [The ground](#there-is-a-game-on-the-ground) ·
 [Xenology](#alien-technology-you-cannot-reason-out) ·
 [Mini-games](#two-mini-games) ·
 [The codex](#what-the-ground-told-you) ·
+[Beyond the Verge](#beyond-the-verge--what-2026-09-added) ·
 [Design rules](#how-it-is-built)
 
 ---
@@ -78,7 +80,7 @@ and the panel forecasts what a spell will actually raise.
 
 ## Trade, and the freight desk
 
-Fourteen goods, per-port supply and demand drifting daily toward each port's own
+Sixteen goods (two of them only from beyond the rim), per-port supply and demand drifting daily toward each port's own
 equilibrium — so the profitable run between two systems stays profitable for a while and
 then quietly stops being.
 
@@ -127,7 +129,7 @@ cost of working for a power, it pays for itself in ordinary play: the same 28 jo
 
 ## Research, and the bench
 
-A sixty-one-node tree across ten branches and five tiers. A programme is fed by **evidence**
+A sixty-three-node tree across ten branches and five tiers. A programme is fed by **evidence**
 in four kinds, and the four come from four different parts of the job — a propulsion
 programme cannot be fed by botany.
 
@@ -152,7 +154,7 @@ standing, and at Distrusted they will not have you. And a power will annex a sys
 hold in, which is a question rather than a news item: pay the levy and keep it, hand it
 over, or refuse — and live with somebody eventually coming for it.
 
-## Thirty-five hulls and eighty-four fittings
+## Thirty-seven hulls and eighty-nine fittings
 
 Five families, and which parts graft to which frame is a rule, not a suggestion: a grown
 hull refuses a fusion lance, a Yards hull refuses an intima, a hybrid takes either.
@@ -163,7 +165,7 @@ hull refuses a fusion lance, a Yards hull refuses an intima, a hybrid takes eith
 | Fabricated | 13 | Concordat of Yards. Welded in weeks, dear, and never mends. |
 | Hybrid | 4 | Freehold grafts. Both bills, both gifts. |
 | Synthetic | 4 | Dry Choir. Crewless, superb instruments, no self-repair. |
-| Xeno | 2 | Not ours. It mends, and nobody has explained how. |
+| Xeno | 4 | Not ours: two relic hulls nobody can explain, and two the Kith grow at an accord. |
 
 ![The shipyard](../assets/seedfall/09-shipyard.png)
 
@@ -241,6 +243,46 @@ bench, and you can read them again.
 
 ![The codex](../assets/seedfall/14-codex.png)
 
+## Beyond the Verge — what 2026-09 added
+
+Ten systems, each with its own suite, and each stating its cost before you commit:
+
+- **The Far Reaches** (Sector Chart tabs; the System screen at a rim anchor) — relight a deep
+  anchor with a survey, the *Deep Weave* technology and a material bill, and three regions
+  open: the **Shoals** (a nebula that halves your sensors, rich in *condensate*), the
+  **Hollow** (long dark lanes, sunless rogue worlds, a dead culture's ruins), the **Cradle**
+  (young hot stars, hard radiation, and the Kith).
+- **The Kith** (a gathering's quay; the Codex) — a living people who speak in light. Learn
+  their 24 signs by listening, on the decoding bench and in exchanges; trade by gift, never
+  by price; a misread costs standing and sometimes a fight; an accord grows their hulls.
+- **Stellar phenomena** (the System screen's Sky strip; the chart) — flares (shelter in a
+  body's shadow), comets to mine, ion storms that close lanes, and one nova, all forecast
+  honestly on the despatch board; *observe* them for evidence the Charter and Choir buy.
+- **Rivals and the hunt** (The law → Hunts) — named captains who remember you, come back a
+  level stronger, and can be spared into allies; a bounty board, searches with stated odds,
+  trophies, and a switch to **run dark**.
+- **The living hull** (Ship → Body) — a grown hull records what it goes through and grows
+  adaptations (a callused rind, radiator fronds, a melanised skin); encourage, suppress or
+  have one pruned at a Fleet Hub. Welded hulls never change.
+- **Freight lines** (Holdings → Trading house) — charter a house, put haulers on routes,
+  hire masters; every trip trades through the real markets, saturates them, and pays its
+  way or does not, with a forecast that matches the ledger.
+- **The Assembly** (Diplomacy → The Assembly) — every season the powers vote on two or three
+  resolutions that change the rules for a term; lobby, pay, leak or speak in person.
+- **Officer arcs** (Ship → Crew; the Despatches board) — each officer's own three-beat story,
+  answered in costed choices, ending in a signature ability.
+- **Renown and the Voyage** (Holdings → Voyage; the Sector Chart's counsel card) — ranks with
+  real perks, three milestones on every ending, the first officer's three next moves, and a
+  memoir kept in the Hall of Captains.
+- **Sound** (Options → Sound) — about thirty cues synthesised at first run: the log's news,
+  a held burn, the collision guard, a berth made fast, the guns, and the Bloom's slow swell.
+
+| The Voyage | The trading house | The Assembly |
+|---|---|---|
+| ![Renown and the Voyage](../assets/seedfall/15-voyage.png) | ![The trading house](../assets/seedfall/16-house.png) | ![The Assembly](../assets/seedfall/17-assembly.png) |
+| **The hunt** | **The living hull** | **Officer arcs** |
+| ![The bounty board and the search](../assets/seedfall/18-hunts.png) | ![What the hull has been through](../assets/seedfall/19-body.png) | ![Each officer's own story](../assets/seedfall/20-crew.png) |
+
 ## How it is built
 
 ```
@@ -272,7 +314,8 @@ Four rules the suite enforces rather than states:
   claims to change a number is switched off by an efficacy harness that fails if the
   measurement does not move.
 
-**239 modules, every one under 500 lines. 55 suites, 458 checks.**
+**About 730 modules, every one under 500 lines, each listed in a generated map. About 235
+suites and 1,750 checks.**
 
 ---
 

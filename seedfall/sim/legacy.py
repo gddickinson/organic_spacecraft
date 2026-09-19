@@ -141,12 +141,17 @@ def _rewrite(game, epoch) -> None:
         game.bloom_total = 0.0
         game.bloom_clock = 0.0
     if epoch.id == "ruin":
-        # It is all of it, everywhere. Nothing to clean and nothing to reach.
-        for system in game.galaxy.systems:
+        # It is all of it, everywhere in the Verge. Nothing to clean and
+        # nothing to reach — and past the rim, whatever was not overgrown
+        # before is not now: Ruin is the Verge's ending.
+        from ..world.galaxy import verge
+        for system in verge(game.galaxy):
             system.bloom = max(system.bloom, 0.95)
     if epoch.id == "concord":
         for faction_id in list(game.rep):
-            if faction_id not in ("bloom",):
+            # Not the Kith: the Concord is the Verge's powers, and a people
+            # of the Cradle is not signed into it (`sim/kith`).
+            if faction_id not in ("bloom", "kith"):
                 game.rep[faction_id] = max(game.rep.get(faction_id, 0), 60)
     game.flags[f"epoch_{epoch.id}"] = True
 

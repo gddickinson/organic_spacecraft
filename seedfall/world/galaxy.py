@@ -13,7 +13,8 @@ from ..core.save import register
 from ..core.rng import RNG
 from ..data.factions import FACTIONS
 from ..data.lore import STAR_PREFIX, STAR_SUFFIX
-from ..data.xenotech import CULTURES, XENOTECH, by_culture
+from ..data.regions import VERGE
+from ..data.xenotech import CULTURES, XENOTECH
 from .economy import Market, make_market
 from ..data import remnants as remnant_data
 from .planets import Body, make_body
@@ -84,6 +85,13 @@ class System:
     visited: bool = False
     scanned: bool = False
     note: str | None = None
+    #: Systems a charted lane joins this one to, past the drive's rated
+    #: reach. Filed only for a boxed-in opening — see `sim/passage.py`.
+    lanes: list = field(default_factory=list)
+    #: Which region of the sky it is in (`data/regions.py`). Everything the
+    #: Verge generator grows is the Verge; a Reaches system is appended when
+    #: its deep anchor is relit, and its `x`/`y` are in that region's frame.
+    region: str = VERGE
 
 
 @register
@@ -93,10 +101,49 @@ class Galaxy:
     systems: list[System]
     w: float = SECTOR_W
     h: float = SECTOR_H
+    #: The Far Reaches opened so far, as `world/regions.Region` records, in
+    #: the order they were relit. Empty for every chronicle until then.
+    regions: list = field(default_factory=list)
 
 
 def distance(a, b) -> float:
+    """Light years between two systems — **infinite across regions**.
+
+    Each region is laid out in its own frame, so the arithmetic between two
+    of them means nothing; and nothing crosses the rim except through a deep
+    gate. Making that the answer here is what makes every reach, jump, raid,
+    Bloom throw and patrol computation treat the Reaches as unreachable
+    without one, with no second rule anywhere to forget.
+    """
+    if getattr(a, "region", VERGE) != getattr(b, "region", VERGE):
+        return math.inf
     return math.hypot(a.x - b.x, a.y - b.y)
+
+
+def verge(galaxy) -> list:
+    """The Verge's own systems. **The one door for what the endings count.**
+
+    Containment, the cartel's markets, the harbours, "a quarter of the
+    Verge", Kessel's Reach, the ancient Weave: all of them are about the
+    Verge, and a Bloom that crosses a deep gate takes lost ground rather than
+    setting a new requirement. Until a region opens this *is*
+    `galaxy.systems`, the same list, so nothing already measured moves.
+    """
+    if not getattr(galaxy, "regions", None):
+        return galaxy.systems
+    return [s for s in galaxy.systems if getattr(s, "region", VERGE) == VERGE]
+
+
+def local(galaxy, system) -> list:
+    """Every system in the same region as `system`, itself included.
+
+    What a hop, a patrol or a rumour can actually touch: the answer
+    `distance` already gives, without walking the far side of the rim.
+    """
+    if not getattr(galaxy, "regions", None):
+        return galaxy.systems
+    here = getattr(system, "region", VERGE)
+    return [s for s in galaxy.systems if getattr(s, "region", VERGE) == here]
 
 
 def _system_name(rng, used: set) -> str:
@@ -270,11 +317,23 @@ def transit_days(ly: float, speed: float) -> int:
     return max(1, round((2.2 + ly * 1.35) / max(0.25, speed)))
 
 
-def nearest_port(systems, origin):
+def nearest_port(systems, origin, galaxy=None):
     """The closest port that is not the one you are already sitting at.
 
     A tow that answers with "towed to Amber Anchorage" while you are moored at
     Amber Anchorage reads as a bug even when the fuel it brings is real.
+
+    **Across the rim, by way of the gate.** Every port in another region is
+    infinitely far by `distance`, so a hull in the Cradle — which has none —
+    used to tie on the first port in the list. The tie is broken by the
+    distance through the deep gates (`world/regions.span`), which is why the
+    galaxy is asked for.
     """
     ports = [s for s in systems if s.port and s is not origin]
-    return min(ports, key=lambda s: distance(s, origin)) if ports else None
+    if not ports:
+        return None
+    if galaxy is None or not getattr(galaxy, "regions", None):
+        return min(ports, key=lambda s: distance(s, origin))
+    from .regions import span
+    return min(ports, key=lambda s: (distance(s, origin),
+                                     span(galaxy, s, origin)))

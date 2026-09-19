@@ -30,6 +30,7 @@ from ..sim import law as law_sim
 from ..sim import tribunal as tribunal_sim
 from ..sim import warrants as warrants_sim
 from .widgets import Panel, View, button, label, note, spacer
+from . import hunts_panel
 
 
 def _short(power: str) -> str:
@@ -46,6 +47,8 @@ class LawView(View):
         self.head("The law",
                   "There is no law of the Verge. There are four powers, each "
                   "with its own, and each only as long as its own reach.")
+        if hunts_panel.tabbed(self):        # the Hunts tab: rivals and the board
+            return
 
         if not gov_sim.any_business(g):
             self.col.addWidget(Panel("Nothing outstanding").add(
@@ -127,8 +130,6 @@ class LawView(View):
             if not out.get("ok"):
                 self.win.toast(out.get("why", "Refused."), "warn")
                 return
-            for kind, text in out.get("lines") or []:
-                self.game.add_log(text, kind)
             self.win.toast(out.get("said", ""))
             self.win.refresh()
         return go
@@ -159,8 +160,6 @@ class LawView(View):
             if not out.get("ok"):
                 self.win.toast(out.get("why", "Refused."), "warn")
                 return
-            for kind, text in out.get("lines") or []:
-                self.game.add_log(text, kind)
             self.win.toast(out["said"])
             self.win.refresh()
         return go
@@ -189,12 +188,9 @@ class LawView(View):
 
     def _pay(self, debt):
         def go():
-            out = debts_sim.pay(self.game, debt)
+            out = clemency_sim.pay_debt(self.game, debt)
             self.win.toast(out.get("said") or out.get("why", ""),
                            "" if out.get("ok") else "warn")
-            if out.get("ok"):
-                for kind, text in clemency_sim.settled_up(self.game):
-                    self.game.add_log(text, kind)
             self.win.refresh()
         return go
 
@@ -227,8 +223,6 @@ class LawView(View):
             if not out.get("ok"):
                 self.win.toast(out.get("why", "Refused."), "warn")
                 return
-            for kind, text in out.get("lines") or []:
-                self.game.add_log(text, kind)
             self.win.toast(out["said"])
             self.win.refresh()
         return go

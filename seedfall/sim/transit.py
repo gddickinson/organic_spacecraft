@@ -11,16 +11,15 @@ you flew, which is the point of being able to abort it.
 
 from __future__ import annotations
 
-import itertools
 from dataclasses import dataclass, field
 
 from ..core.save import register
+from ..core import ids
 from . import crew as crew_sim
 from ..data.watches import EVENT_CHANCE, WATCHES, WATCHES_BY_ID, watches_for
 from . import flight
 from .ship import add_cargo, add_heat, apply_damage, cook
 
-_uid = itertools.count(1)
 
 
 @register
@@ -85,7 +84,7 @@ def begin(game, body_index: int, burn_id: str) -> dict:
                 "why": f"That burn needs {quote['fuel']} t of reaction mass; "
                        f"you have {int(held)}. You can always coast."}
 
-    transit = Transit(id=next(_uid), body_index=body_index, body_name=body.name,
+    transit = Transit(id=ids.next_id("transit", game), body_index=body_index, body_name=body.name,
                       burn=burn_id, watches=watches_for(quote["days"]),
                       days_planned=quote["days"], fuel_planned=quote["fuel"],
                       risk=float(quote.get("risk", 0.0)))

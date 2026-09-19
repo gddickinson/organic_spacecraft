@@ -39,7 +39,6 @@ The claims:
 
 from __future__ import annotations
 
-from ..core.rng import RNG
 from ..core.state import new_game
 from ..sim import actions, mining
 from ..world.economy import buy_price
@@ -262,11 +261,12 @@ def run(suite: Suite) -> None:
         # and nothing was checking that it reached the end of its run. Two of
         # six five-year runs stopped short, one of them at day 1406, and the
         # solvency check beside it passed on the mean of all six.
-        from .captain_bot import _bot
+        from .captain_bot import five_year_runs
 
         short = []
-        for seed in ("run-a", "run-b", "run-c", "run-d", "run-e", "run-f"):
-            game = _bot(seed, years=5)
+        runs = five_year_runs()
+        assert len(runs) == 6, runs
+        for seed, game in runs:
             if game.dead or game.victory:
                 continue
             if game.day < 365 * 5 - 120:

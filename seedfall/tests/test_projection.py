@@ -39,17 +39,9 @@ import math
 
 from ..data import surfaces, worlds3d
 from .harness import Suite
+from .qtkit import app as _app
 
 FRAME = (360, 290)
-
-
-def _app():
-    from .test_ui import _use_offscreen
-    _use_offscreen()
-    from PyQt6.QtWidgets import QApplication
-    app = QApplication.instance() or QApplication([])
-    assert app is not None
-    return app
 
 
 def _camera(at=(0.0, -1.4, 0.0), forward=(0.0, 1.0, 0.0)):

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QInputDialog, QWidget
 
 from ..core.util import credits as cr
@@ -92,7 +93,9 @@ class YardView(View):
     def _hull_picker(self) -> None:
         buildable = self._buildable()
         families = [f for f in FAMILY_ORDER if any(c.family == f for c in buildable)]
-        if self.hull_family not in families:
+        # "all" is a tab too. Leaving it out of this guard snapped the All
+        # tab straight back to the first family, so it showed 5 of 11 hulls.
+        if self.hull_family != "all" and self.hull_family not in families:
             self.hull_family = families[0] if families else "grown"
 
         tabs = TabBar([("all", f"All ({len(buildable)})")]
@@ -180,8 +183,15 @@ class YardView(View):
                 text.setToolTip(m.blurb)
                 h.addWidget(text)
                 h.addStretch(1)
-                h.addWidget(label(self._fx_line(m), "dim"))
-                h.addWidget(button("Remove", lambda _=False, x=pid: self._remove(x)))
+                # Wrapped: unbroken, these lines set the panel's minimum and
+                # with it the Shipyard's 938 px — wider than the column at
+                # every window size up to 1,360, so "After refit" was cut.
+                fx = label(self._fx_line(m), "dim", wrap=True)
+                fx.setAlignment(Qt.AlignmentFlag.AlignRight
+                                | Qt.AlignmentFlag.AlignVCenter)
+                h.addWidget(fx, 1)
+                h.addWidget(button("Remove", lambda _=False, x=pid: self._remove(x),
+                                   tip=f"Take the {m.name} off the design"))
                 p.add(row)
             if len(here) < cap:
                 options = parts_available(slot, ch, self.game.research.unlocked)
@@ -331,8 +341,6 @@ class YardView(View):
         if not job:
             self.win.toast(why, "warn")
             return
-        self.game.add_log(f"{job.name} laid down at {job.system_name}. "
-                          f"Ready in {job.need} days.", "good")
         self.win.toast(f"{job.name} laid down.", "chloro")
         self.win.refresh()
 
@@ -341,7 +349,6 @@ class YardView(View):
         if not ok:
             self.win.toast(why, "warn")
             return
-        self.game.add_log("Refit complete.", "good")
         self.win.toast("Refit complete.", "chloro")
         self.design_chassis = None
         self.win.refresh()
@@ -387,6 +394,8 @@ class YardView(View):
             h.addStretch(1)
             if active:
                 h.addWidget(Pill("flagship", "chloro"))
+            elif getattr(s, "line_id", None) is not None:
+                h.addWidget(Pill("away on a freight line", "osteo"))
             elif getattr(s, "escort", False):
                 h.addWidget(Pill("in company", "lumen"))
                 h.addWidget(button("Send to berth",
@@ -425,14 +434,16 @@ class YardView(View):
         self.win.refresh()
 
     def _switch_ship(self, ship: Ship) -> None:
-        g = self.game
-        old = g.ship
-        old.docked_at = g.system.id
-        g.ship = ship
-        for cid, n in old.cargo.items():
-            ship.cargo[cid] = ship.cargo.get(cid, 0) + n
-        old.cargo = {}
-        g.add_log(f"Transferred your flag to {ship.name}.", "good")
+        """Move the flag through `consorts.take_command`, which owns the rule
+        — it poured the whole hold across from here, 148 t into a 12 t SPORE.
+        What will not fit is stated before it is left behind."""
+        terms = consort_sim.take_command_terms(self.game, ship)
+        if not terms["ok"]:
+            self.win.toast(terms["why"], "warn")
+            return
+        if terms["left"] and not self.win.confirm("Take command", terms["line"]):
+            return
+        consort_sim.take_command(self.game, ship)
         self.design_chassis = None
         self.win.refresh()
 

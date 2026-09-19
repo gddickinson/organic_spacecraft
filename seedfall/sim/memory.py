@@ -24,13 +24,12 @@ or without a language model.
 
 from __future__ import annotations
 
-import itertools
 from dataclasses import dataclass, field
 
 from ..core.rng import RNG
 from ..core.save import register
+from ..core import ids
 
-_uid = itertools.count(1)
 
 #: How fast a memory fades, as a share of salience per day.
 DECAY = 0.00055
@@ -128,7 +127,7 @@ class Mind:
                     MOST, existing.salience + salience * AGAIN)
                 existing.day = day
                 return existing
-        made = Memory(id=next(_uid), day=day, kind=kind, text=text,
+        made = Memory(id=ids.next_id("memory"), day=day, kind=kind, text=text,
                       salience=max(0.05, salience), tags=list(tags or []),
                       about=about, source=source)
         self.memories.append(made)
@@ -262,8 +261,12 @@ def _prior(game, mind: Mind) -> None:
                            "broke it")],
     }
     pool = seeds.get(mind.kind, seeds["captain"])
-    systems = [s.name for s in game.galaxy.systems] or ["the Verge"]
-    ports = [s.port.name for s in game.galaxy.systems if s.port] or ["a quay"]
+    # What a mind remembers from before the chronicle is the Verge's history:
+    # nobody had been past the rim to remember it.
+    from ..world.galaxy import verge
+    home = verge(game.galaxy)
+    systems = [s.name for s in home] or ["the Verge"]
+    ports = [s.port.name for s in home if s.port] or ["a quay"]
     for kind, template in rng.shuffle(list(pool))[:2]:
         mind.remember(day, kind,
                       template.format(system=rng.pick(systems),

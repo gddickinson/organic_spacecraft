@@ -7,16 +7,16 @@ at Kessel's Reach that Containment has to actually reach and kill.
 
 from __future__ import annotations
 
-import itertools
+import math
 from dataclasses import dataclass, field
 
 from ..core.save import register
+from ..core import ids
 from ..data.bloom import (BEATS, HEART_HP, MAX_RESIST, RESIST_DECAY,
                           RESIST_PER_HIT, STAGE_BY_ANSWERS, STAGES,
                           STAGES_BY_ID)
 from ..world.galaxy import distance
 
-_uid = itertools.count(1)
 
 
 @register
@@ -68,7 +68,10 @@ def ensure(game) -> BloomState:
     """
     if getattr(game, "bloom_state", None) is None:
         state = BloomState()
-        origin = max(game.galaxy.systems, key=lambda s: s.x + s.y)
+        # The Verge's far corner: a region's own frame would out-rank it.
+        from ..world.regions import heart
+        from ..world.galaxy import verge
+        origin = heart(verge(game.galaxy))
         state.heart_system = origin.id
         game.bloom_state = state
     return game.bloom_state
@@ -178,14 +181,17 @@ def _spawn_instar(game, rng, from_heart: bool = False) -> Instar | None:
     A wave is an event; the top-up is a standing condition.
     """
     state = ensure(game)
-    held = [s for s in game.galaxy.systems if s.bloom > 0.4]
+    # The masses are the Verge's Bloom — its stage, its heart — so they come
+    # off the Verge; growth that crossed a deep gate is lost ground there.
+    from ..world.galaxy import verge
+    held = [s for s in verge(game.galaxy) if s.bloom > 0.4]
     if (not held and from_heart and state.heart_hp > 0
             and state.heart_system is not None):
         held = [game.galaxy.systems[state.heart_system]]
     if not held:
         return None
     home = rng.pick(held)
-    inst = Instar(id=next(_uid), system_id=home.id,
+    inst = Instar(id=ids.next_id("instar", game), system_id=home.id,
                   mass=rng.float(0.8, 1.0) + state.stage * 0.35)
     _retarget(game, inst)
     return inst
@@ -204,15 +210,20 @@ def _retarget(game, inst: Instar) -> None:
     # so it stopped being true after the first two masses. The rule above
     # still holds: never the system the mass is standing in.
     from . import responses as response_sim
+    here = game.galaxy.systems[inst.system_id]
+    # Only what a mass can fly to: nothing across the rim, which is
+    # infinitely far and would leave it under way for ever.
     if (response_sim.hunting(game)
-            and game.location_id != inst.system_id):
+            and game.location_id != inst.system_id
+            and distance(here, game.system) < math.inf):
         inst.target_id = game.location_id
         inst.days = 0.0
         return
-    here = game.galaxy.systems[inst.system_id]
     yours = [game.galaxy.systems[c.system_id] for c in game.colonies if c.online]
+    yours = [s for s in yours if distance(s, here) < math.inf]
     pool = [s for s in (yours or [t for t in game.galaxy.systems
-                                  if t.bloom < 0.3])
+                                  if t.bloom < 0.3
+                                  and distance(t, here) < math.inf])
             if s.id != inst.system_id]
     if not pool:
         inst.target_id = None

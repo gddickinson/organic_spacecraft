@@ -207,7 +207,12 @@ def _target_of(game, contact, conn):
     from . import conn as conn_sim
     try:
         return conn_sim.target_from_contact(game, contact)
-    except Exception:
+    except LookupError:
+        # A contact naming a body index the system no longer has.
+        return None
+    except Exception as err:                           # noqa: BLE001
+        from ..core.guard import swallowed
+        swallowed("clearance building a target", err)
         return None
 
 

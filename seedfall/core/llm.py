@@ -10,10 +10,24 @@ So the contract is deliberately narrow:
 
 - `providers()` reports what is reachable, without asking any of them anything.
 - `enabled()` is false unless the player turned it on *and* something answers.
-- `complete()` returns a string or `None`. `None` is not an error — it is the
-  normal state of a machine with nothing installed, and callers must already
-  be handling it because they had to work offline anyway.
-- Everything has a hard timeout. A model that hangs must not hang the game.
+- `complete()` returns a string or `None`, **and never raises**. `None` is
+  not an error — it is the normal state of a machine with nothing installed,
+  and callers must already be handling it because they had to work offline
+  anyway. It used to raise `AttributeError` on `{"response": null}` or on a
+  reply that was a JSON list, which is a promise broken by a stranger's
+  server.
+- **Nothing touches the network unless `SEEDFALL_LLM` is set in the
+  environment.** The options screen can turn speech off, and choose among
+  what is allowed, but it cannot grant the permission itself (`permitted`).
+- Every call has a **total deadline**, not a per-read timeout: a server that
+  accepts and then drips one byte every eleven seconds held the old per-read
+  timeout open for ever. And a failure **opens a circuit breaker**: measured
+  against an endpoint that accepts and never answers, `voice.speak` blocked
+  12 s, and then 12 s again on the next line, and again — with no backoff it
+  paid the full timeout on every line. Now the first failure costs one
+  deadline and the next minute costs nothing (`cooling`).
+- None of it runs on the window's thread: `ui/comms_window.py` shows the
+  written line at once and swaps the model's in when it arrives.
 
 Nothing here knows what a ship is. `sim/voice.py` builds the prompts.
 """
@@ -22,12 +36,28 @@ from __future__ import annotations
 
 import json
 import os
+import threading
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
 
 #: Never let a model hold the game up. Speech is a garnish, not a mechanism.
+#: The per-read socket timeout, and no longer the whole bound — see DEADLINE.
 TIMEOUT = 12.0
+
+#: The most a completion may take, start to finish, in seconds. Twelve was a
+#: per-read timeout and bounded nothing: a reply that trickles resets it on
+#: every byte. A local model writing a line of 160 tokens answers in two to
+#: five seconds on a laptop, so this leaves it twice that and more.
+DEADLINE = 12.0
+
+#: How long to leave a model alone after it failed, doubling with each
+#: failure in a row up to `COOL_OFF_MAX`. A minute is several lines of
+#: dialogue: long enough that a dead endpoint costs one deadline, not one per
+#: line; short enough that a model that was merely restarting is back soon.
+COOL_OFF = 60.0
+COOL_OFF_MAX = 600.0
 
 #: The environment switch. Absent or "0" means the deterministic path only.
 SWITCH = "SEEDFALL_LLM"
@@ -73,8 +103,19 @@ def candidates() -> list:
     return found
 
 
+def permitted() -> bool:
+    """Whether this process may reach a model at all: `SEEDFALL_LLM` is set.
+
+    The one gate on the network. `_probe` and `_post` both ask it, so a
+    check, a screen or a stray call cannot open a socket by any other route.
+    """
+    return _env(SWITCH) not in ("", "0", "off", "false")
+
+
 def _probe(provider: Provider) -> bool:
     """Is it actually answering? Only ever called for a local endpoint."""
+    if not permitted():
+        return False
     if not provider.local:
         return True                      # a key is as much as we can check
     root = provider.endpoint.rsplit("/api/", 1)[0]
@@ -110,10 +151,24 @@ def settings() -> dict:
 
 
 def switched_on() -> bool:
-    """The player's switch if they set one, otherwise the environment's."""
+    """The player's switch if they set one, otherwise the environment's.
+
+    This is whether a model is *wanted*. Whether one may be reached is
+    `permitted`, and the options screen cannot grant that: with the switch
+    thrown and `SEEDFALL_LLM` unset, nothing is asked and `describe` says why.
+    """
     if _asked["enabled"] is not None:
         return bool(_asked["enabled"])
-    return _env(SWITCH) not in ("", "0", "off", "false")
+    return permitted()
+
+
+def may_ask() -> bool:
+    """Worth asking a model for a line — without asking anything to find out.
+
+    Wanted, permitted, and not cooling off after a failure. The window's
+    test, because `enabled` probes the provider and a window must not.
+    """
+    return switched_on() and permitted() and not cooling()
 
 
 def wanted_provider() -> str:
@@ -154,9 +209,38 @@ def enabled() -> bool:
 
 
 def reset() -> None:
-    """Forget what was probed, so the next call looks again."""
+    """Forget what was probed, so the next call looks again — and close the
+    breaker, because a player pressing "look again" means *now*."""
     global _chosen, _looked
     _chosen, _looked = None, False
+    with _lock:
+        _breaker.update(until=0.0, fails=0)
+
+
+# ── the circuit breaker ────────────────────────────────────────────────────
+
+#: Consecutive failures, and the monotonic time before which nothing is
+#: asked. Shared by every thread that speaks, so behind one lock.
+_breaker: dict = {"until": 0.0, "fails": 0}
+_lock = threading.Lock()
+
+
+def cooling() -> bool:
+    """Is the model being left alone after a failure?"""
+    with _lock:
+        return time.monotonic() < _breaker["until"]
+
+
+def _failed() -> None:
+    with _lock:
+        _breaker["fails"] += 1
+        wait = min(COOL_OFF_MAX, COOL_OFF * 2 ** (_breaker["fails"] - 1))
+        _breaker["until"] = time.monotonic() + wait
+
+
+def _answered() -> None:
+    with _lock:
+        _breaker.update(until=0.0, fails=0)
 
 
 def forget() -> None:
@@ -187,6 +271,10 @@ def describe() -> str:
     if not switched_on():
         return ("Off. Every voice in the game is written by the game itself, "
                 "which is the default and is not a lesser mode.")
+    if not permitted():
+        return ("On, but nothing answered: SEEDFALL_LLM is not set, so the "
+                "game does not reach out to any model. Set SEEDFALL_LLM=1 "
+                "before starting it to allow that.")
     live = provider()
     if live is None:
         configured = ", ".join(p.name for p in candidates())
@@ -194,51 +282,111 @@ def describe() -> str:
     return f"On, through {live.name} ({live.model})."
 
 
-def _post(url: str, payload: dict, headers: dict) -> dict | None:
+def _post(url: str, payload: dict, headers: dict):
+    """POST and parse, inside `DEADLINE` from start to finish, or None.
+
+    The request runs on a daemon thread that is abandoned at the deadline:
+    `urlopen`'s timeout is per socket operation, so it cannot bound a reply
+    that arrives slowly, and nothing short of a thread can. An abandoned
+    request dies at its own socket timeout, and the breaker stops another
+    being started meanwhile.
+    """
+    if not permitted():
+        return None
     body = json.dumps(payload).encode()
     request = urllib.request.Request(url, data=body, headers=headers)
-    try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT) as reply:
-            return json.loads(reply.read().decode())
-    except (urllib.error.URLError, OSError, ValueError, json.JSONDecodeError):
-        return None
+    box: list = []
+
+    def fetch() -> None:
+        try:
+            with urllib.request.urlopen(request, timeout=TIMEOUT) as reply:
+                box.append(json.loads(reply.read().decode()))
+        except Exception:                                  # noqa: BLE001
+            # Anything at all: the contract is "a string or None", and a
+            # traceback on a daemon thread is noise on the player's console.
+            pass
+
+    worker = threading.Thread(target=fetch, daemon=True, name="seedfall-llm")
+    worker.start()
+    worker.join(DEADLINE)
+    return box[0] if box else None
 
 
-def complete(prompt: str, system: str = "", temperature: float = 0.8,
-             limit: int = 160) -> str | None:
-    """One completion, or None. None is ordinary and callers must expect it."""
-    live = provider()
-    if live is None:
+def _text(kind: str, data) -> str | None:
+    """The words in a reply, or None — whatever shape the reply came in.
+
+    Every provider's JSON is read defensively: a `null` where a string goes,
+    a list where an object goes, or a field missing altogether is a reply
+    with nothing in it, not an exception.
+    """
+    if not isinstance(data, dict):
         return None
+    text = None
+    if kind == "ollama":
+        text = data.get("response")
+    elif kind == "anthropic":
+        blocks = data.get("content")
+        if isinstance(blocks, list):
+            text = "".join(b["text"] for b in blocks
+                           if isinstance(b, dict)
+                           and isinstance(b.get("text"), str))
+    elif kind == "openai":
+        choices = data.get("choices")
+        first = choices[0] if isinstance(choices, list) and choices else None
+        message = first.get("message") if isinstance(first, dict) else None
+        text = message.get("content") if isinstance(message, dict) else None
+    if not isinstance(text, str):
+        return None
+    return text.strip() or None
+
+
+def _request(live: Provider, prompt: str, system: str, temperature: float,
+             limit: int) -> tuple:
+    """(url, payload, headers) for one completion from this provider."""
     if live.kind == "ollama":
-        data = _post(live.endpoint, {
+        return live.endpoint, {
             "model": live.model, "prompt": prompt, "system": system,
             "stream": False,
             "options": {"temperature": temperature, "num_predict": limit},
-        }, {"Content-Type": "application/json"})
-        return (data or {}).get("response", "").strip() or None
+        }, {"Content-Type": "application/json"}
     if live.kind == "anthropic":
-        data = _post(live.endpoint, {
+        return live.endpoint, {
             "model": live.model, "max_tokens": limit,
             "temperature": temperature, "system": system,
             "messages": [{"role": "user", "content": prompt}],
         }, {"Content-Type": "application/json",
             "x-api-key": _env(live.key_env),
-            "anthropic-version": "2023-06-01"})
-        blocks = (data or {}).get("content") or []
-        text = "".join(b.get("text", "") for b in blocks if isinstance(b, dict))
-        return text.strip() or None
-    if live.kind == "openai":
-        messages = ([{"role": "system", "content": system}] if system else [])
-        messages.append({"role": "user", "content": prompt})
-        data = _post(live.endpoint, {
-            "model": live.model, "messages": messages,
-            "temperature": temperature, "max_tokens": limit,
-        }, {"Content-Type": "application/json",
-            "Authorization": f"Bearer {_env(live.key_env)}"})
-        choices = (data or {}).get("choices") or []
-        if not choices:
+            "anthropic-version": "2023-06-01"}
+    messages = ([{"role": "system", "content": system}] if system else [])
+    messages.append({"role": "user", "content": prompt})
+    return live.endpoint, {
+        "model": live.model, "messages": messages,
+        "temperature": temperature, "max_tokens": limit,
+    }, {"Content-Type": "application/json",
+        "Authorization": f"Bearer {_env(live.key_env)}"}
+
+
+def complete(prompt: str, system: str = "", temperature: float = 0.8,
+             limit: int = 160) -> str | None:
+    """One completion, or None. Never raises; None is ordinary.
+
+    A provider that fails — no answer inside the deadline, an error, a
+    reply with no words in it — opens the breaker, and until it closes this
+    returns None without asking anything.
+    """
+    try:
+        if cooling():
             return None
-        return (choices[0].get("message", {}).get("content") or "").strip() \
-            or None
-    return None
+        live = provider()
+        if live is None:
+            return None                  # nothing configured: not a failure
+        url, payload, headers = _request(live, prompt, system, temperature,
+                                         limit)
+        text = _text(live.kind, _post(url, payload, headers))
+    except Exception:                                      # noqa: BLE001
+        text = None
+    if text is None:
+        _failed()
+        return None
+    _answered()
+    return text

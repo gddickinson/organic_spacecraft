@@ -2,6 +2,13 @@
 
 from __future__ import annotations
 
+from ..core.util import spelled
+from .factions import FACTIONS_BY_ID, THE_POWERS
+
+_NAMES = [FACTIONS_BY_ID[p].short for p in THE_POWERS]
+#: Every pair of powers, which Concord asks to be at peace as well as fond.
+_PAIRS = len(THE_POWERS) * (len(THE_POWERS) - 1) // 2
+
 TITLE = "SEEDFALL"
 SUBTITLE = "A GESTALT Programme Chronicle"
 TAGLINE = "We do not build the ship. We ripen it."
@@ -38,7 +45,8 @@ VICTORIES = [
      "Twelve drums, ten million berths and a course out. Concede the sector and "
      "carry the biology somewhere it can start again with better rules."),
     ("concord", "Concord", "lumen",
-     "Reach Kin standing with Charter, Concordat, Freeholds and Dry Choir",
+     f"Reach Kin with {', '.join(_NAMES[:-1])} and {_NAMES[-1]}, and keep all "
+     f"{spelled(_PAIRS)} pairs of them at peace",
      "Get four powers who agree on nothing to sign one canon. The registry calls "
      "schism the hardest problem in the design and the least solved. Solve it."),
     ("genesis", "Genesis", "xeno", "Complete First Contact with the Abyssals",
@@ -48,7 +56,8 @@ VICTORIES = [
     ("dominion", "Dominion", "steel", "Hold twelve colonies and a million citizens",
      "Never mind the philosophy. Own the rocks, own the ice, own the lanes, and "
      "let whoever comes after you write the charter."),
-    ("lineage", "Lineage", "chloro", "Gestate four grown hulls that outlive you",
+    ("lineage", "Lineage", "chloro",
+     "Gestate four grown hulls bigger than a pod, and keep them flying a year",
      "The licence regime exists because a hull that reproduces is a hull that "
      "can get away from you. Prove it can be done deliberately: raise a line "
      "of your own, sign for every one of them, and let the line be the point."),

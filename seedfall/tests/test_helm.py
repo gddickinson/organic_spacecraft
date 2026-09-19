@@ -374,6 +374,10 @@ def run(suite: Suite) -> None:
                       if s.id != game.location_id),
                      key=lambda s: distance(game.system, s))
         rows = []
+        # Both branches below have to be exercised: measured, coast and steady
+        # keep one clock, hard and relativistic dilate 4x and 11x.
+        assert any(c.dilation == 1.0 for c in CROSSINGS), "nothing is steady"
+        assert any(c.dilation != 1.0 for c in CROSSINGS), "nothing dilates"
         for crossing in CROSSINGS:
             q = jump_quote(game, target, crossing.id)
             assert q["days"] >= 1 and q["ship_days"] >= 1, q

@@ -46,7 +46,7 @@ from ..data.exchequer import (BLOOM_YIELD_LOSS, CAPITAL_BONUS, FOUND_COST,
 from ..data.factions import FACTIONS_BY_ID
 from ..world.economy import make_market
 from ..world.galaxy import PORT_KINDS
-from . import diplomacy as dip
+from . import assembly, diplomacy as dip
 from . import market as market_sim
 
 
@@ -81,6 +81,9 @@ class Purse:
 @dataclass
 class Exchequer:
     purses: dict = field(default_factory=dict)
+    #: `income`'s memo, (what it read, {power: income}). Derived; not saved.
+    memo: tuple = field(default=(), compare=False, repr=False,
+                        metadata={"transient": True})
 
 
 def ensure(game) -> Exchequer:
@@ -167,9 +170,51 @@ def upkeep_of(port) -> float:
 
 
 def income(game, power: str) -> float:
+    """What this power's berths and settlements pay it a day.
+
+    **Memoised, and validated rather than invalidated.** Asked 2,920 times a
+    simulated year (`settle`, then `enforce.watchers` through `fleets.stations
+    → margin`) and once per power per system by a screen drawing the order of
+    battle. Clearing a memo on write would need a hook at each of the two
+    dozen places that move a port, a flag, the Bloom, a shortage, a licence
+    or a settlement, and the one missed is a ledger a day stale — so it is
+    keyed on everything the sum reads instead. Measured: half the tick's
+    calls hit (1,486 sums a year, not 2,920) and the key costs what they
+    saved, so the tick is level; an order-of-battle pass over 42 systems
+    goes 2.6 → 2.2 ms.
+    """
+    state = getattr(game, "exchequer", None)
+    if state is None:
+        # `ensure` would open the books on the day somebody first *asked*.
+        return _income(game, power)
+    seen = _inputs(game)
+    if not state.memo or state.memo[0] != seen:
+        state.memo = (seen, {})
+    known = state.memo[1]
+    if power not in known:
+        known[power] = _income(game, power)
+    return known[power]
+
+
+def _income(game, power: str) -> float:
     from . import settlement as settlement_sim
     return (sum(yield_of(game, s) for s in holdings(game, power))
             + settlement_sim.income(game, power))
+
+
+def _inputs(game) -> tuple:
+    """Everything `_income` reads: the day (a settlement's maturity), each
+    berth's flag, level and standing and its system's Bloom, the shortages
+    and where, the licences held, and who founded what when."""
+    from . import industry
+    from . import settlement as settlement_sim
+    ports = tuple((s.id, p.faction, p.level, p.capital, p.independent,
+                   p.player_built, s.bloom)
+                  for s in game.galaxy.systems if (p := s.port) is not None)
+    return (game.day, ports,
+            tuple((k.system_id, k.kind) for k in market_sim.all_shocks(game)),
+            tuple((t, tuple(w)) for t, w in industry.state(game).held.items()),
+            tuple((g.power, g.founded) for g in settlement_sim.held(game)))
 
 
 def outlay(game, power: str) -> float:
@@ -248,51 +293,11 @@ def demote(game, system) -> str | None:
     kind = _kind(port.level - 1)
     was = port.name
     port.id, port.name, port.level, port.services = kind[0], kind[1], kind[2], kind[3]
-    return f"{was} at {system.name} is cut back to a {port.name}"
+    return (f"{was} at {system.name} is cut back to "
+            f"{'an' if port.name[:1].lower() in 'aeiou' else 'a'} {port.name}")
 
 
 # ── what a power does with the money ───────────────────────────────────────
-
-def payback(game, power: str, cost: int, what: str, system=None) -> float:
-    """Days for one work to pay for itself, or `inf` if it never does.
-
-    **The exchequer chose by price, and price is not value.** `_invest` took the
-    cheapest work it could afford, and the equilibrium the upkeep curve is built
-    on means the cheap works are the ones that never pay: promoting an outpost to
-    a station adds 90 a day of yield and 90 a day of upkeep — *net nothing* — and
-    promoting a station to a hub is 60 a day worse than not bothering. Founding a
-    berth clears 60 a day for 40,000, and settling ground clears 32 for 32,000.
-    So the rule "take the cheapest" bought the two works with no return before
-    either of the two with one, and a sector's powers planted **six settlements
-    in year one and none in the seven years after**.
-
-    Sorting by payback fixes it without inventing a preference: a power does the
-    thing that pays for itself soonest, and the works that never pay are what it
-    does with money it has nothing better to do with — which is exactly what a
-    Fleet Hub is.
-    """
-    if what.startswith("settle:"):
-        # Asked of the settlement module, which counts the years a new one
-        # *loses* money — see `settlement.payback_days`. Dividing the cost by the
-        # mature rate reads 1,000 days where the truth is 1,485.
-        from . import settlement as settlement_sim
-        return settlement_sim.payback_days()
-    if what == "found":
-        base = PORT_KINDS[0][2]
-        gain = would_yield(game, power, system, base) - upkeep_at(base)
-    else:
-        # The *real* marginal gain, with this port's own multipliers — a
-        # thriving capital is worth promoting and a bare outpost is not,
-        # which is a texture the bare constants cannot express (they say
-        # exactly zero for level 2, everywhere, for everyone).
-        level = int(what.split(":", 1)[1]) if ":" in what else 0
-        gain = ((would_yield(game, power, system, level) - upkeep_at(level))
-                - (would_yield(game, power, system, level - 1)
-                   - upkeep_at(level - 1)))
-    if gain <= 0:
-        return float("inf")
-    return cost / gain
-
 
 def upkeep_at(level: int) -> float:
     """What a berth of this level costs a day. The curve, without a port."""
@@ -437,7 +442,7 @@ def _books(game, power: str, p, days: float) -> list[tuple[str, str]]:
     while left > 0.0:
         span = min(left, float(SETTLE_DAYS))
         left -= span
-        p.credits += (income(game, power) - outlay(game, power)) * span
+        p.credits += (income(game, power) * (1.0 - assembly.effect(game, "tithe", 0.0)) - outlay(game, power)) * span
         # Against how long the books have gone undone, not against today —
         # `game.day` has already been advanced by the whole span before this
         # runs, so testing it directly fires once and only once.
@@ -452,3 +457,9 @@ def _books(game, power: str, p, days: float) -> list[tuple[str, str]]:
             events.append(("warn" if p.credits < 0 else "",
                            f"{short}: {told}."))
     return events
+
+
+# How long a work takes to pay for itself — split out at five hundred lines,
+# and re-exported here because the investment rule and its checks ask for it
+# as `exchequer.payback`.
+from .exchequer_payback import payback  # noqa: E402,F401

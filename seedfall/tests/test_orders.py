@@ -13,15 +13,17 @@ from __future__ import annotations
 from ..core.rng import RNG
 from ..core.state import new_game
 from ..data import chassis as chassis_data
-from ..data.orders import ORDERS, ORDERS_BY_ID, SHOWN
+from ..data.orders import ORDERS, SHOWN
 from ..data.parts import PARTS
 from ..sim import colony as colony_sim
-from ..sim import loading, orders
+from ..sim import orders
 from ..sim import research as research_sim
 from ..sim import ventures as venture_sim
 from ..sim.orders import PREDICATES
 from ..sim.ship import build_layers, make_ship
-from ..ui.window import NAV
+# From the data table, not `ui.window`, which re-exports it: importing the
+# window needs PyQt6, and this suite is about the rules, not the screen.
+from ..data.screens import NAV
 from .harness import Suite
 
 
@@ -155,7 +157,11 @@ def run(suite: Suite) -> None:
         # sim.orders swallows exceptions so a broken predicate cannot take a
         # screen down with it. That means the suite is the only thing that will
         # ever see one, so call them unguarded.
-        for label, game in _states().items():
+        states = _states()
+        # 20 predicates over 10 states when measured; zero of either is a pass.
+        assert len(PREDICATES) >= 20 and len(states) >= 10, (
+            f"{len(PREDICATES)} predicates × {len(states)} states")
+        for label, game in states.items():
             for order_id, predicate in PREDICATES.items():
                 try:
                     predicate(game)
@@ -163,7 +169,7 @@ def run(suite: Suite) -> None:
                     raise AssertionError(
                         f"{order_id} raised {type(err).__name__} on the "
                         f"{label!r} state: {err}") from err
-        return f"{len(PREDICATES)} predicates × {len(_states())} states, all clean"
+        return f"{len(PREDICATES)} predicates × {len(states)} states, all clean"
 
     @check("a brand-new captain is told something useful")
     def _():
@@ -256,9 +262,13 @@ def run(suite: Suite) -> None:
     @check("the panel never floods the screen")
     def _():
         worst = 0
-        for label, game in _states().items():
+        states = _states()
+        assert len(states) >= 10, f"only {len(states)} states to try"
+        for label, game in states.items():
             shown = orders.standing(game)
             worst = max(worst, len(shown))
             assert len(shown) <= SHOWN, (
                 f"{len(shown)} orders shown on the {label!r} state")
+        # A cap that is never approached proves nothing about flooding.
+        assert worst > 0, "no state showed any orders at all"
         return f"at most {worst} shown of {SHOWN} allowed"

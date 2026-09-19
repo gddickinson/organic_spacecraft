@@ -69,8 +69,7 @@ class HelpView(View):
             # again: at this point the box is not yet in the visible layout,
             # so `setFocus` here sets the cursor and nothing else.
             self._typing = False
-            defer(lambda b=box: (b.setFocus(),
-                                 b.setCursorPosition(len(self.query))))
+            defer(self._refocus)
         row.addStretch(1)
         self.col.addWidget(search_row)
 
@@ -93,6 +92,21 @@ class HelpView(View):
     def _open(self, topic_id: str) -> None:
         self.topic = topic_id
         self.refresh()
+
+    def _refocus(self) -> None:
+        """Put the cursor back in the search box — the box that exists *now*.
+
+        The deferred call used to capture the box it was scheduled from. Two
+        keys queued in one pass rebuilt the view twice before it ran, so it
+        reached for a box Qt had already freed: RuntimeError inside a slot,
+        which was exit 134 before the app had an exception hook.
+        """
+        from PyQt6 import sip
+        box = getattr(self, "_box", None)
+        if box is None or sip.isdeleted(box):
+            return
+        box.setFocus()
+        box.setCursorPosition(len(self.query))
 
     def _search(self, text: str) -> None:
         """Filter as they type, without destroying the box they are typing in.

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ..data.chassis import CHASSIS_BY_ID, accepts_family
+from ..data.chassis import CHASSIS_BY_ID
 from ..data.lore import HULL_NAMES
 from ..data.factions import FACTIONS_BY_ID, is_hostile
 from ..data.parts import parts_available
@@ -283,6 +283,14 @@ def roll_encounter(game, system, rng):
 
     from . import piracy as piracy_sim
 
+    # A named rival in this system rolls first, on its own luck; and a hull
+    # running dark has to be seen before anything else can come for it.
+    from . import rivals, running_dark
+    met = rivals.meet(game, system)
+    if met:
+        return met
+    seen = running_dark.exposure(game)
+
     # A hunt warrant is a hull with your name on it, not weather — it does
     # not wait on the lawlessness roll. `warrants.bites` documented that
     # "encounters asks for 'hunt'" and encounters never asked; `enforce`
@@ -295,7 +303,7 @@ def roll_encounter(game, system, rng):
         posted = game.flags.pop("law_hunted_by", "")
     hunters = warrants_sim.holders(game, "hunt", system)
     who = posted or (rng.pick(hunters)
-                     if hunters and rng.chance(HUNTER_ODDS) else "")
+                     if hunters and rng.chance(HUNTER_ODDS * seen) else "")
     if who:
         # A price is a price, whoever posted it: the Charter fields no armed
         # vessel, so its paper is collected by Freeholds hulls.
@@ -317,7 +325,7 @@ def roll_encounter(game, system, rng):
     # same volume and nothing would notice.
     danger = (piracy_sim.lawlessness(game, system) * LAW_WORTH
               + 0.09 * len(dark))
-    if not rng.chance(min(0.7, danger)):
+    if not rng.chance(min(0.7, danger) * seen):
         return None
 
     if system.bloom > 0.25 and rng.chance(system.bloom):

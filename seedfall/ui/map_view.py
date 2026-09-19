@@ -1,254 +1,57 @@
-"""The sector chart. Forty-odd stars, a jump circle, and a growing red stain in
-one corner of it."""
+"""The sector chart screen: the chart, what you know about the star you have
+picked, and the ways to fly there.
+
+The chart itself is `ui/star_chart.py`. **Its panel used to sit under it.**
+The chart takes the full width and 420 px of height, and under it came the
+orders, the legend, the reach note, the wall, the mesh and the Weave — so the
+Fly buttons were about 1,100 px below the chart that chose where they went.
+The picked star's panel stands beside the chart now, with a list of every
+destination above it: the list is also the keyboard's way to a star, since
+the chart is a picture and takes no focus.
+"""
 
 from __future__ import annotations
 
-import math
-
-from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QFont, QPainter, QPen, QRadialGradient
-from PyQt6.QtWidgets import QSizePolicy, QWidget
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (QListWidget, QListWidgetItem, QVBoxLayout,
+                             QWidget)
 
 from ..core.util import credits as cr
-from ..core.util import duration, num
-from ..data.factions import FACTIONS_BY_ID
+from ..core.util import duration, num, reaction_mass
+from ..data.factions import FACTIONS, FACTIONS_BY_ID
 from ..sim import intel as intel_sim
-from . import mesh_panel, orders_panel, weave_panel
+from . import counsel_card, mesh_panel, orders_panel, weave_panel
 from ..sim import rumours as rumour_sim
 from ..sim import reach as reach_sim
 from ..sim import anchorage as anchorage_sim
 from ..sim.actions import distress_call, is_stranded, jump_quote, jump_to
 from ..world.galaxy import distance
 from . import theme
-from .widgets import Panel, View, button, label, mono_label, note, spacer
-from . import painting
-
-FACTION_COLOUR = {k: theme.tint(v) for k, v in theme.FACTION_TINT.items()}
-
-
-#: What an uncatalogued star's marker is drawn as, in bodies. A fixed stand-in,
-#: because the alternative is the true count — and the marker was measuring out
-#: the very number the panel withholds and the chart's price used to quote.
-UNKNOWN_MARKER_BODIES = 2
+from . import soundmap
+from .flow import Flow
+from .star_chart import FACTION_COLOUR, StarChart, marker_radius  # noqa: F401
+from .view_base import WrapRow
+from .widgets import (Panel, TabBar, View, button, label, mono_label, note,
+                      spacer)
+from . import reaches_chart, reaches_panel
 
 
-def marker_radius(game, system) -> float:
-    """How big to draw a star, in pixels. Sized by bodies only where known."""
-    counted = intel_sim.body_count(game, system)
-    if counted is None:
-        counted = UNKNOWN_MARKER_BODIES
-    return 2.6 + counted * 0.3
+class PickList(QListWidget):
+    """A list where Enter picks, on every platform.
 
+    Qt's item views emit `itemActivated` on Enter everywhere except macOS,
+    where Enter starts an edit and activation is Cmd+O — so on the platform
+    this game is played on most, the list could be walked and never chosen
+    from. Enter and Return are answered here, the same everywhere.
+    """
 
-class StarChart(QWidget):
-    picked = pyqtSignal(int)
-
-    def __init__(self, win):
-        super().__init__()
-        self.win = win
-        self.selected: int | None = None
-        self.setMinimumHeight(420)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.setMouseTracking(True)
-        self.setCursor(Qt.CursorShape.CrossCursor)
-
-    # geometry -------------------------------------------------------------
-
-    def _projection(self):
-        g = self.win.game.galaxy
-        pad = 30
-        w, h = self.width(), self.height()
-        scale = min((w - pad * 2) / g.w, (h - pad * 2) / g.h)
-        ox = (w - g.w * scale) / 2
-        oy = (h - g.h * scale) / 2
-        return scale, ox, oy
-
-    def _to_screen(self, sys) -> QPointF:
-        s, ox, oy = self._projection()
-        return QPointF(ox + sys.x * s, oy + sys.y * s)
-
-    def _pick(self, pos) -> int | None:
-        best, bd = None, 16.0
-        for sys in self.win.game.galaxy.systems:
-            p = self._to_screen(sys)
-            d = math.hypot(p.x() - pos.x(), p.y() - pos.y())
-            if d < bd:
-                best, bd = sys.id, d
-        return best
-
-    def mousePressEvent(self, ev):  # noqa: N802
-        sid = self._pick(ev.position())
-        if sid is not None:
-            self.selected = sid
-            self.picked.emit(sid)
-            self.update()
-
-    def mouseMoveEvent(self, ev):  # noqa: N802
-        hit = self._pick(ev.position()) is not None
-        self.setCursor(Qt.CursorShape.PointingHandCursor if hit
-                       else Qt.CursorShape.CrossCursor)
-
-    # painting -------------------------------------------------------------
-
-    @painting.safe_paint
-    def paintEvent(self, _ev):  # noqa: N802
-        g = self.win.game
-        p = QPainter(self)
-        if not painting.alive(self, p):
+    def keyPressEvent(self, ev):  # noqa: N802
+        if ev.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter) \
+                and self.currentItem() is not None:
+            ev.accept()
+            self.itemActivated.emit(self.currentItem())
             return
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        p.fillRect(self.rect(), QColor("#060f0d"))
-
-        scale, _ox, _oy = self._projection()
-        here = g.system
-        hs = self._to_screen(here)
-        reach = g.ship_stats.jump
-
-        # jump envelope
-        pen = QPen(QColor(84, 207, 124, 90), 1, Qt.PenStyle.DashLine)
-        p.setPen(pen)
-        p.setBrush(Qt.BrushStyle.NoBrush)
-        p.drawEllipse(hs, reach * scale, reach * scale)
-
-        # reachable lanes
-        p.setPen(QPen(QColor(150, 196, 176, 38), 1))
-        for sys in g.galaxy.systems:
-            if sys.id != here.id and distance(sys, here) <= reach:
-                p.drawLine(hs, self._to_screen(sys))
-
-        # The Weave. Lit rings first, in gold, because they are the only
-        # lines on this chart that cost no time at all — and the dark ones
-        # behind them, so a captain can see what the sector *would* be.
-        self._draw_weave(p, g)
-
-        # Which stars are reachable *at all*, by hopping. The dashed ring
-        # only ever said what is one jump away, so a star behind a gap no
-        # amount of hopping closes was drawn exactly like the one next door.
-        within = reach_sim.component(g)
-        for sys in g.galaxy.systems:
-            self._draw_system(p, sys, here, reach, sys.id in within)
-
-        self._draw_marker(p, hs, QColor(theme.tint("chloro")), 13)
-        if self.selected is not None:
-            self._draw_marker(p, self._to_screen(g.galaxy.systems[self.selected]),
-                              QColor(theme.tint("lumen")), 10)
-        p.end()
-
-    def _draw_weave(self, p: QPainter, g) -> None:
-        """Ancient rings and the anchors that stand on them."""
-        from ..sim import weave as weave_sim
-        anchors = {gate.system_id: gate for gate in weave_sim.gates(g)}
-        drawn = set()
-        for gate in anchors.values():
-            for other in gate.links:
-                if other not in anchors or (other, gate.system_id) in drawn:
-                    continue
-                drawn.add((gate.system_id, other))
-                far = anchors[other]
-                both = gate.lit and far.lit
-                a = self._to_screen(g.galaxy.systems[gate.system_id])
-                b = self._to_screen(g.galaxy.systems[other])
-                if both:
-                    p.setPen(QPen(QColor(226, 186, 96, 190), 2.0))
-                else:
-                    pen = QPen(QColor(120, 104, 74, 70), 1.0)
-                    pen.setStyle(Qt.PenStyle.DotLine)
-                    p.setPen(pen)
-                p.drawLine(a, b)
-        for gate in anchors.values():
-            at = self._to_screen(g.galaxy.systems[gate.system_id])
-            tint = QColor(226, 186, 96) if gate.lit else QColor(120, 104, 74)
-            p.setBrush(Qt.BrushStyle.NoBrush)
-            p.setPen(QPen(tint, 1.6 if gate.lit else 1.0))
-            p.drawEllipse(at, 11, 11)
-            if gate.lit:
-                p.drawEllipse(at, 14, 14)
-
-    def _draw_system(self, p: QPainter, sys, here, reach,
-                     reachable: bool = True) -> None:
-        g = self.win.game
-        pt = self._to_screen(sys)
-        rank = intel_sim.level(g, sys)
-        known = rank >= 1 or any(c.system_id == sys.id for c in g.colonies)
-
-        if sys.bloom > 0.02 and intel_sim.sees_bloom(g, sys):
-            radius = 9 + sys.bloom * 24
-            grad = QRadialGradient(pt, radius)
-            grad.setColorAt(0.0, QColor(224, 104, 95, int(70 * sys.bloom + 30)))
-            grad.setColorAt(1.0, QColor(224, 104, 95, 0))
-            p.setPen(Qt.PenStyle.NoPen)
-            p.setBrush(grad)
-            p.drawEllipse(pt, radius, radius)
-
-        r = marker_radius(g, sys)
-        # How well a system is known reads off the marker: an outline for a
-        # name in a registry, a filled disc once you have been, and a ring
-        # around anything charted to the last body.
-        if rank >= 2:
-            p.setPen(Qt.PenStyle.NoPen)
-            p.setBrush(QColor(sys.tint))
-            p.drawEllipse(pt, r, r)
-        elif rank == 1:
-            faded = QColor(sys.tint)
-            faded.setAlpha(120)
-            p.setPen(QPen(QColor(150, 196, 176, 110), 1))
-            p.setBrush(faded)
-            p.drawEllipse(pt, r, r)
-        else:
-            p.setPen(QPen(QColor(150, 196, 176, 70), 1))
-            p.setBrush(Qt.BrushStyle.NoBrush)
-            p.drawEllipse(pt, r, r)
-
-        if rank >= 3:
-            p.setPen(QPen(QColor(theme.tint("chloro")), 1.0, Qt.PenStyle.DotLine))
-            p.setBrush(Qt.BrushStyle.NoBrush)
-            p.drawEllipse(pt, r + 5.5, r + 5.5)
-
-        # Anything anybody has told you about sits on the chart as a caret.
-        if rumour_sim.about(g, sys.id):
-            p.setPen(QPen(QColor(theme.tint("xeno")), 1.6))
-            p.setBrush(Qt.BrushStyle.NoBrush)
-            top = QPointF(pt.x(), pt.y() - r - 9)
-            p.drawLine(QPointF(top.x() - 4, top.y() + 5), top)
-            p.drawLine(top, QPointF(top.x() + 4, top.y() + 5))
-
-        if sys.port and known:
-            colour = QColor(FACTION_COLOUR.get(sys.faction, theme.INK3))
-            p.setPen(QPen(colour, 1.6 if sys.port.capital else 1.0))
-            p.setBrush(Qt.BrushStyle.NoBrush)
-            p.drawEllipse(pt, r + 3.6, r + 3.6)
-
-        if any(c.system_id == sys.id for c in g.colonies):
-            pen = QPen(QColor(84, 207, 124, 150), 1, Qt.PenStyle.DashLine)
-            p.setPen(pen)
-            p.setBrush(Qt.BrushStyle.NoBrush)
-            p.drawEllipse(pt, r + 6.8, r + 6.8)
-
-        if not reachable:
-            # A bar through the star: this one is not far, it is walled off.
-            p.setPen(QPen(QColor(224, 104, 95, 130), 1.2))
-            p.setBrush(Qt.BrushStyle.NoBrush)
-            p.drawLine(QPointF(pt.x() - r - 4, pt.y() - r - 4),
-                       QPointF(pt.x() + r + 4, pt.y() + r + 4))
-
-        if mesh_panel.chart_mark(g, sys):        # see `ui/mesh_panel`
-            self._draw_marker(p, pt, QColor(224, 104, 95), r + 4.5)
-
-        if known:
-            f = QFont(theme.mono_family(), 8)
-            p.setFont(f)
-            p.setPen(QColor(169, 194, 182, 190 if reachable else 90))
-            rect = QRectF(pt.x() - 70, pt.y() + r + 3, 140, 14)
-            p.drawText(rect, Qt.AlignmentFlag.AlignHCenter, sys.name)
-
-    def _draw_marker(self, p: QPainter, pt: QPointF, colour: QColor, size: float):
-        p.setPen(QPen(colour, 1.4))
-        p.setBrush(Qt.BrushStyle.NoBrush)
-        for dx, dy in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
-            p.drawLine(QPointF(pt.x() + dx * size, pt.y() + dy * size * 0.55),
-                       QPointF(pt.x() + dx * size, pt.y() + dy * size))
-            p.drawLine(QPointF(pt.x() + dx * size, pt.y() + dy * size),
-                       QPointF(pt.x() + dx * size * 0.55, pt.y() + dy * size))
+        super().keyPressEvent(ev)
 
 
 class MapView(View):
@@ -257,45 +60,95 @@ class MapView(View):
         self.chart = StarChart(win)
         self.chart.picked.connect(self._on_pick)
         self.selected: int | None = None
+        #: Which region's tab is up, and the region the ship was in when it
+        #: was chosen: when the ship crosses the rim the tab follows it.
+        self.region: str | None = None
+        self._aboard: str | None = None
 
     def _on_pick(self, sid: int) -> None:
         self.selected = sid
         self.refresh()
 
+    def _show(self, region: str) -> None:
+        """Switch tabs: the ship's star if it is there, else the far end."""
+        from ..sim import regions as regions_sim
+        self.region = region
+        here = self.game.system
+        mine = regions_sim.region_of(here)
+        opened = {r.id: r for r in self.game.galaxy.regions}
+        if mine == region:
+            self.selected = here.id
+        elif region == "verge":
+            self.selected = opened[mine].anchor_id       # the way home
+        else:
+            self.selected = (opened[region].entry_id if region in opened
+                             else None)
+        from .widgets import defer
+        defer(self.refresh)
+
+    def _tabs(self, g) -> TabBar:
+        """The Verge and the three regions past its rim, dark or open."""
+        from ..data.regions import REGIONS
+        from ..sim import regions as regions_sim
+        names = regions_sim.names(g)
+        tabs = [("verge", names["verge"])] + [
+            (spec.id, spec.name + ("" if reaches_chart.is_open(g, spec.id)
+                                   else " · dark")) for spec in REGIONS]
+        bar = TabBar(tabs, self.region)
+        bar.changed.connect(self._show)
+        return bar
+
     def build(self) -> None:
         g = self.game
-        known = intel_sim.summary(g)
+        from ..sim import regions as regions_sim
+        aboard = regions_sim.region_of(g.system)
+        if self.region is None or aboard != self._aboard:
+            self.region, self._aboard = aboard, aboard
+            self.selected = None
+        self.chart.region = self.region
+        known = intel_sim.summary(g, reaches_chart.systems(g, self.region))
         leads = rumour_sim.summary(g)
+        sealed = not reaches_chart.is_open(g, self.region)
         self.head("Sector Chart",
-                  f"The Verge · {known['total']} stars · "
-                  f"{known['counts'][0]} names only · "
-                  f"{known['counts'][1]} scanned · "
-                  f"{known['counts'][2]} visited · "
-                  f"{known['charted']} charted"
+                  f"{regions_sim.names(g)[self.region]} · "
+                  + ("dark — nothing past its deep anchor has been seen"
+                     if sealed else
+                     f"{known['total']} stars · "
+                     f"{known['counts'][0]} names only · "
+                     f"{known['counts'][1]} scanned · "
+                     f"{known['counts'][2]} visited · "
+                     f"{known['charted']} charted")
                   + (f" · {leads['held']} lead(s) to follow" if leads["held"] else ""))
 
-        self.col.addWidget(orders_panel.build(self, g))
-
-        if self.selected is None:
+        self.col.addWidget(counsel_card.build(self, g))   # "what now"
+        self.col.addWidget(self._tabs(g))
+        if self.selected is None and not sealed:
             self.selected = g.location_id
         self.chart.selected = self.selected
         self.chart.setParent(None)
-        self.col.addWidget(self.chart, 1)
+        # Beside the chart: where to go, and what flying there costs.
+        side = QWidget()
+        down = QVBoxLayout(side)
+        down.setContentsMargins(0, 0, 0, 0)
+        down.setSpacing(10)
+        if sealed:
+            down.addWidget(reaches_panel.sealed(self, g, self.region))
+        else:
+            down.addWidget(self._destinations())
+            down.addWidget(self._info())
+        down.addStretch(1)
+        across = WrapRow(14)
+        across.add(self.chart, 3, Qt.AlignmentFlag.AlignTop)
+        across.add(side, 2)
+        self.col.addWidget(across)
         self.chart.show()
         self.chart.update()
 
-        legend = " · ".join([
-            "Charter", "Concordat", "Freeholds", "Dry Choir", "Bloom",
-            "○ catalogued", "◍ scanned", "● visited", "◌ charted",
-            "◎ port", "∧ something said about it",
-            "dashed ring = jump range", "╲ beyond reach",
-            "◉ Weave anchor (gold = lit)", "gold line = a ring you can use",
-            "red corners = hulls nobody claims, heard by the mesh",
-        ])
-        self.col.addWidget(note(legend))
+        self.col.addWidget(legend())
         # What the ring never said: how much of the sector this drive can
         # actually get to, and what the next one would open.
         self.col.addWidget(note(reach_sim.note(self.game)))
+        self.col.addWidget(orders_panel.build(self, g))
         wall = self._way_out()
         if wall is not None:
             self.col.addWidget(wall)
@@ -303,7 +156,49 @@ class MapView(View):
         if heard is not None:
             self.col.addWidget(heard)
         self.col.addWidget(weave_panel.build(self, g))
-        self.col.addWidget(self._info())
+
+    def _destinations(self) -> QListWidget:
+        """Every star by distance: the chart's choices, for the keyboard.
+
+        Arrows move through it and Enter (or a click) picks, which does what
+        clicking the star does. Picking rebuilds this screen and with it the
+        list, so the pick is deferred past the signal (`widgets.defer`).
+        """
+        g = self.game
+        here = g.system
+        reach = g.ship_stats.jump
+        within = reach_sim.component(g)
+        box = PickList()
+        box.setObjectName("destinations")
+        box.setAccessibleName("Destinations, nearest first")
+        box.setMaximumHeight(170)
+        stars = sorted(reaches_chart.systems(g, self.region),
+                       key=lambda s: (distance(s, here), s.id))
+        for sys in stars:
+            ly = distance(sys, here)
+            tags = ["here" if sys.id == here.id else f"{ly:.1f} ly"
+                    if ly < float("inf") else "beyond the rim"]
+            if sys.id != here.id and reach < ly < float("inf"):
+                tags.append("beyond one jump" if sys.id in within
+                            else "beyond reach")
+            if sys.port and intel_sim.level(g, sys) >= 1:
+                tags.append("port")
+            item = QListWidgetItem(f"{sys.name} — " + " · ".join(tags))
+            item.setData(Qt.ItemDataRole.UserRole, sys.id)
+            box.addItem(item)
+            if sys.id == self.selected:
+                box.setCurrentItem(item)
+
+        def pick(item):
+            sid = item.data(Qt.ItemDataRole.UserRole)
+            if sid == self.selected:
+                return          # a click can also activate: pick once
+            self.selected = sid
+            from .widgets import defer
+            defer(lambda: self._on_pick(sid))
+        box.itemActivated.connect(pick)
+        box.itemClicked.connect(pick)
+        return box
 
     def _step(self, dest: int) -> None:
         from ..sim import gates as gates_sim
@@ -312,6 +207,8 @@ class MapView(View):
             self.win.toast(out["why"], "warn")
             return
         self.selected = dest
+        from ..sim import regions as regions_sim
+        self.region = regions_sim.region_of(self.game.galaxy.systems[dest])
         self.win.toast(f"{out['ly_saved']:.0f} light years, no time at all. "
                        f"₡{out['credits']:,.0f} in tolls.", "good")
         self.win.refresh()
@@ -442,11 +339,15 @@ class MapView(View):
             panel.add(label(kind.name, "", kind.tint))
             panel.add(note(kind.claim.format(system=sys.name)))
 
+        if q.get("beyond"):
+            # Past the rim from here: the way is a deep gate, not a drive.
+            panel.add(reaches_panel.beyond(self, g, sys))
+            return panel
         panel.add(mono_label("Passage"))
         panel.add_row("Distance", f"{q['ly']:.1f} ly")
         panel.add_row("Jump range", f"{g.ship_stats.jump:.1f} ly")
         panel.add_row("Transit", "—" if here else duration(q["days"]))
-        panel.add_row("Reaction mass", "—" if here else f"{q['fuel']} t",
+        panel.add_row("Reaction mass", "—" if here else reaction_mass(q["fuel"]),
                       "warn" if (not here and
                                  g.ship.cargo.get("volatiles", 0) < q["fuel"]) else "")
         panel.add_row("Port", (sys.port.name + (" (capital)" if sys.port.capital else ""))
@@ -511,6 +412,7 @@ class MapView(View):
         if not res["ok"]:
             self.win.toast(res["why"], "warn")
             return
+        soundmap.act(self.win, "jump")
         if self.win.check_ending():
             return
         if res.get("event"):
@@ -524,3 +426,27 @@ class MapView(View):
             return
         self.selected = self.game.location_id
         self.win.go("system")
+
+
+def legend() -> QWidget:
+    """What the chart's marks mean, with the colours shown, not named.
+
+    It was a line of words — "Charter · Concordat · Freeholds …" — naming the
+    six powers' colours without showing one of them, so the only way to read
+    whose a port was, was to already know.
+    """
+    marks = [f"<span style='color:{FACTION_COLOUR.get(f.id, theme.INK3)}'>◎"
+             f"</span> {f.short}" for f in FACTIONS if not f.hidden]
+    marks += ["○ catalogued", "◍ scanned", "● visited", "◌ charted",
+              "∧ something said about it", "dashed ring = jump range",
+              "╲ beyond reach", "<span style='color:#e2ba60'>◉</span> Weave "
+              "anchor (gold = lit)", "<span style='color:#b084ee'>◇</span> "
+              "deep anchor (violet = relit)",
+              "<span style='color:#e0685f'>⌜⌟</span> "
+              "hulls nobody claims, heard by the mesh"]
+    made = []
+    for mark in marks:
+        lb = label(mark, "note")
+        lb.setTextFormat(Qt.TextFormat.RichText)
+        made.append(lb)
+    return Flow(made, spacing=14, line=2)

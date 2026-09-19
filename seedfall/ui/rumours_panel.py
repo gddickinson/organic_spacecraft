@@ -13,17 +13,16 @@ from ..core.util import credits as cr
 from ..sim import charts as chart_sim
 from ..sim import intel as intel_sim
 from ..sim import rumours as rumour_sim
-from .widgets import Panel, Pill, button, label, mono_label, note, spacer
+from .widgets import Panel, button, label, mono_label, note, spacer
 
 
 def board(view, game, system) -> Panel | None:
     """What is being said at this port. Regenerated, never stored."""
     if not system.port:
         return None
-    # Seeded by port and season so the same stories are going round all month.
-    rng = game.rng(f"rumour-{system.id}-{game.day // 30}")
-    going = [r for r in rumour_sim.circulating(game, system, rng)
-             if not rumour_sim.about(game, r.system_id)]
+    # The same stories all month, seeded by the sim from its own key — the
+    # screen drew `game.rng` here, which reshuffled the board on every redraw.
+    going = rumour_sim.board(game, system)
 
     p = Panel("Word going round")
     p.add(note("Nobody is paying you and nobody is checking. Some of this is "

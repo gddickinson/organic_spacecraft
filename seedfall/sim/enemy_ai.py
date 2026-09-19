@@ -11,7 +11,7 @@ from __future__ import annotations
 from . import consorts
 from . import stations as st_mod
 from . import tactical as tac
-from .ship import hull_pct, is_destroyed
+from .ship import hull_pct
 
 STYLES = {
     "aggressive": (0.55, 0.90, 0.05),

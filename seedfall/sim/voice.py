@@ -17,9 +17,16 @@ The rules that keep it honest:
   leaked instructions — and any failure falls back silently.
 - **Nothing a voice says changes the game.** Speech reads state; it never
   writes it. That is why this can be off without breaking anything.
+- **A window does not wait for a model.** `speak(..., wait=False)` returns
+  the written line at once with an `Ask` beside it — the prompt, already
+  built from the game on the caller's thread — and `model_line(ask)` is the
+  part that may take seconds, touches no game state, and so may run on any
+  thread. `ui/comms_window.py` does exactly that.
 """
 
 from __future__ import annotations
+
+from dataclasses import dataclass
 
 from ..core import llm
 from ..core.rng import RNG
@@ -83,7 +90,10 @@ def _as_said(mind, recalled) -> str:
         "prior": "Before any of this,",
         "meeting": "We have met before:",
     }.get(recalled.kind, "There was this:")
-    body = recalled.text.rstrip(".")
+    # `str(... or "")`: a memory written with no text — the remote bridge's
+    # `remember` took `text=null` until it validated — used to raise here on
+    # every later line from that speaker, for the rest of the chronicle.
+    body = str(recalled.text or "").rstrip(".")
     if recalled.source == "heard":
         return f"Word reached us: {body}."
     return f"{lead} {body}."
@@ -132,10 +142,35 @@ def _acceptable(text: str) -> bool:
     return "\n" not in text.strip()
 
 
+@dataclass(frozen=True)
+class Ask:
+    """What to ask a model for one line: plain strings, no game in it."""
+    prompt: str
+    system: str
+    temperature: float
+
+
+def model_line(ask: Ask) -> str | None:
+    """The model's line for this ask, if it gave an acceptable one.
+
+    Safe off the main thread: it reads nothing but the ask, and
+    `llm.complete` holds its own lock and never raises.
+    """
+    got = llm.complete(ask.prompt, ask.system, temperature=ask.temperature)
+    if got and _acceptable(got.strip()):
+        return got.strip()
+    return None
+
+
 def speak(game, key: str, *, name: str = "", kind: str = "captain",
           persona: str = "plain", situation: str = "", tags=(),
-          fact: str = "") -> dict:
-    """One line from one speaker. Always returns something."""
+          fact: str = "", wait: bool = True) -> dict:
+    """One line from one speaker. Always returns something.
+
+    `wait=False` is for a window: no model is asked here and nothing here
+    touches the network — the written line comes back with `"ask"`, an `Ask`
+    to hand to `model_line` on another thread, or None when speech is off.
+    """
     mind = memory_sim.mind_for(game, key, name=name, kind=kind,
                                persona=persona)
     if mind.persona != persona and persona != "plain":
@@ -145,16 +180,24 @@ def speak(game, key: str, *, name: str = "", kind: str = "captain",
     line = offline(game, mind, mood, facts)
     source = "written"
 
-    if llm.enabled():
+    ask = None
+    # `enabled` probes the provider; `may_ask` asks no one, and a window must
+    # not be the thing that probes.
+    live = llm.enabled() if wait else llm.may_ask()
+    if live:
         system, prompt = _prompt(game, mind, mood, facts, situation)
-        got = llm.complete(prompt, system,
-                           temperature=persona_for(mind).temperature)
-        if got and _acceptable(got.strip()):
-            line, source = got.strip(), "model"
+        ask = Ask(prompt, system, persona_for(mind).temperature)
+    if wait and ask is not None:
+        got = model_line(ask)
+        if got:
+            line, source = got, "model"
 
-    return {"line": line, "mood": mood, "source": source,
-            "speaker": mind.name, "persona": mind.persona,
-            "impression": mind.impression(), "facts": facts}
+    out = {"line": line, "mood": mood, "source": source,
+           "speaker": mind.name, "persona": mind.persona,
+           "impression": mind.impression(), "facts": facts}
+    if not wait:
+        out["ask"] = ask
+    return out
 
 
 def hail(game, key: str, **kwargs) -> str:

@@ -30,7 +30,6 @@ from ..core.state import new_game
 from ..sim import berthing as berth_sim
 from ..sim import conn as conn_sim
 from ..sim import flight
-from ..sim import impulse
 from ..sim import knock as knock_sim
 from ..sim import track as track_sim
 from .harness import Suite

@@ -86,6 +86,17 @@ def toggle(win, instrument: str) -> None:
         return
     monitor = Monitor(win, instrument)
     open_now[instrument] = monitor
+    # Freed on close, and out of the registry however it closed — the rule
+    # `ui/popout.py` sets for the flying windows. Esc closes a dialog without
+    # the `closeEvent` that pops it, and a registry holding a deleted window
+    # is a `RuntimeError` the next time the options push a new pace.
+    monitor.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+
+    def gone(*_):
+        if open_now.get(instrument) is monitor:
+            open_now.pop(instrument, None)
+
+    monitor.destroyed.connect(gone)
     monitor.show()
 
 

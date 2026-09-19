@@ -13,7 +13,6 @@ import sys
 
 from ..core.rng import RNG
 from ..core.state import new_game
-from ..data.tech import TECH
 from ..data.xenotech import XENOTECH
 from ..sim import charts as chart_sim
 from ..sim import colony as colony_sim
@@ -102,6 +101,11 @@ def _shot(app, win, view_id: str, out: pathlib.Path, name: str,
           setup=None) -> None:
     if setup:
         setup(win)
+    # A setup that works a day (the dig) can bring an envoy, a demand or a
+    # situation, and each holds the window: shots 12-20 once all came out
+    # as one envoy's screen. The shot is of the screen it names.
+    game = win.game
+    game.envoy = game.demand = game.situation = None
     win.go(view_id)
     for _ in range(5):
         app.processEvents()
@@ -199,6 +203,18 @@ def main(argv=None) -> int:
             notes_sim.file(w.game, note_id, "Solace Span I", "Solace Span")
         w.views["codex"].tab = "notes"
     _shot(app, win, "codex", out, "14-codex", notes)
+
+    # What 2026-09 added, one screen each (the README's "Beyond the Verge").
+    for name, view, attr, tab in (
+            ("15-voyage", "empire", "tab", "voyage"),
+            ("16-house", "empire", "tab", "house"),
+            ("17-assembly", "diplomacy", "tab", "assembly"),
+            ("18-hunts", "law", "hunts_tab", "hunts"),
+            ("19-body", "ship", "tab", "body"),
+            ("20-crew", "ship", "tab", "crew")):
+        def pick(w, view=view, attr=attr, tab=tab):
+            setattr(w.views[view], attr, tab)
+        _shot(app, win, view, out, name, pick)
 
     win.close()
     print(f"\n{len(list(out.glob('*.png')))} screens in {out}")

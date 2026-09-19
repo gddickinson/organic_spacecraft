@@ -26,12 +26,15 @@ KIN = {
     "officials": ("counter", "officials"),
     # `ticks` caught `ODDS_PER_DAY` at double when `envoy`, `approach`,
     # `politics`, `play`, `sim`, `courting` and `overtures` all ran green.
-    "approaches": ("envoy", "approach", "ticks", "tuning"),
-    "approach": ("envoy", "approach"),
-    "surveys": ("surveys",), "survey": ("charting", "surveys"),
+    "approaches": ("envoy", "approach", "ticks", "tuning", "rulebook"),
+    "approach": ("envoy", "approach", "rulebook"),
+    "surveys": ("surveys",), "survey": ("charting", "surveys", "exploits"),
+    "passage": ("rulebook",),
     "anchorage": ("anchorage",),
     "doctrine": ("doctrine",), "firing": ("firing", "gunnery"),
     "tactical": ("gunnery", "combat"), "combat": ("seatwork", "combat", "gunnery"),
+    # Split out of `combat` (#35): one shot and one salvo, DAZZLE_CAP with them.
+    "shooting": ("seatwork", "combat", "gunnery"),
     "abilities": ("abilities", "combat"),
     "encounters": ("magazine", "readiness"),
     "impulse": ("impulse", "conn"),
@@ -41,18 +44,22 @@ KIN = {
     "freeflight": ("freeflight", "freeframe", "conn", "pilotscreen"),
     "berths3d": ("standoff", "silhouettes"),
     "works3d": ("works3d",),
-    "robots": ("robots",),
+    # Split out of `works3d` (#35) with the geometry its parts share.
+    "works3d_parts": ("works3d", "bay"),
+    "robots": ("robots", "unattended"),
     # Split out of `robots` (#138). Earned: `robots` catches HALF_LIFE_S,
     # LIGHT_S_PER_AU and AU_PER_LY; `swarm` catches GUARD_DUTY.
-    "telepresence": ("robots", "swarm"),
+    "telepresence": ("robots", "unattended", "swarm"),
     "robots3d": ("robots3d",),
     "bays": ("bay", "berthing"),
     "control": ("control", "berthing"),
+    # Split out of `control` (#35): standing off, constants and all.
+    "sheer": ("control", "berthing"),
     "forcing": ("forcing", "control", "berthing"),
     # Split out of `control` (#138), constants and all. Measured: `control`
     # catches `TUG_FROM` at half. Speed, not safety — `control` is not in
     # `SLOW`, so the broad stage would catch it with or without this row.
-    "tug": ("control", "clearance"),
+    "tug": ("boats", "control", "clearance"),
     "landing": ("setdown", "landing"),
     "interdiction": ("interdiction",),
     "relics3d": ("relics3d",),
@@ -75,6 +82,8 @@ KIN = {
     "grudge": ("grudges",), "colonies": ("works", "founding"),
     "works": ("works",), "mining": ("mining",), "research": ("bench",),
     "inquiry": ("evidence", "bench"), "flight": ("helm", "flight", "burns"),
+    # Split out of `flight` (#35): the orbits every quote asks about.
+    "heliocentric": ("helm", "flight", "burns"),
     "path": ("helm", "flight", "burns"),   # split from `flight`, same pins
     "collision": ("collision", "detection", "byhand", "conn"),
     "elements": ("elements", "flight", "orrery"),
@@ -89,11 +98,13 @@ KIN = {
     "countermeasures": ("detection", "collision"),
     "contracts": ("postings", "missions", "cargo"), "chains": ("missions",),
     "expedition": ("landing", "ground", "wayhome"), "weather": ("ground",),
+    # Split out of `expedition` (#35): generation and the haul home.
+    "expedition_gen": ("landing", "ground", "wayhome"),
     "territory": ("territory", "levy"), "allegiance": ("allegiance",),
     "charts": ("provenance", "charting", "charts"),
     "notes": ("notes",),
     "freight": ("freight",),
-    "market": ("trade",), "economy": ("trade", "solvency"),
+    "market": ("trade", "rulebook"), "economy": ("trade", "solvency"),
     "commodities": ("trade",),
     "loyalty": ("conviction", "crew"), "convictions": ("conviction", "crew"),
     "crew": ("conviction", "crew"),
@@ -104,8 +115,8 @@ KIN = {
     # `bloom` green, `tuning` green — `tuning` is the only suite that imports
     # the module — and `play` red. A fast path written by reading the imports
     # would have missed the only suite that guards the constant.
-    "bloom": ("bloom", "play", "tuning"),
-    "threat": ("bloom",), "ventures": ("politics",),
+    "bloom": ("bloom", "play", "tuning", "rulebook"),
+    "threat": ("bloom", "rulebook", "exploits"), "ventures": ("politics",),
     "intel": ("explore",), "transit": ("transit",), "shipyard": ("design",),
 
     # Modules that had no entry at all and so paid the wide run for every
@@ -116,7 +127,7 @@ KIN = {
     "minigames": ("approaching", "approach"),
     "plans": ("picture",), "ship": ("thermal_doors", "thermal", "feedstock"),
     "shocks": ("trade",), "tech": ("evidence", "bench"),
-    "trade": ("counter", "trade"), "orders": ("orders",),
+    "trade": ("counter", "trade", "exploits"), "orders": ("orders",),
     "legacy": ("legacy",), "beginning": ("beginnings",),
     "watches": ("transit",),
     "services": ("trade",),
@@ -132,9 +143,12 @@ KIN = {
     # The conn and the plotting board. Both own a lot of tuning — thruster
     # impulses, the orbit band, the horizon — and all of it is answered by
     # the one suite, so neither should ever pay for the wide run.
-    "conn": ("conn",), "autopilot": ("conn",), "track": ("conn",),
+    "conn": ("conn", "plotting"), "autopilot": ("conn", "plotting"),
+    "track": ("conn", "plotting"),
     "viewport": ("cameras",), "berthing": ("berthing", "conn", "pilotscreen"),
-    "orbits": ("orbits", "conn", "berthing", "climbs"),
+    "orbits": ("orbits", "orbitheight", "conn", "berthing", "climbs"),
+    # Split out of `orbits` (#35): the height ladder, constants and all.
+    "orbit_heights": ("orbits", "orbitheight", "conn", "berthing", "climbs"),
     "outcome": ("orbits", "conn", "berthing"), "targets": ("conn", "berthing"),
     "thrusters": ("thrusters",), "attitude": ("thrusters", "conn"),
     "weave": ("weave",), "gates": ("weave",),
@@ -150,7 +164,7 @@ KIN = {
     "battle3d": ("gunfire",),
     "burnplan": ("thrusters", "helm"),
     "exchequer": ("exchequer", "industry", "politics"),
-    "industry": ("industry", "exchequer"),
+    "industry": ("industry", "licences", "exchequer"),
     # Measured constant by constant (#134): `exchequer` catches seven of its
     # thirteen in 3.5 s and `industry` catches two more in 7.5 — INDUSTRY_YIELD
     # and WAR_CHEST — which used to fall through to `politics` at 145.4 s a
@@ -172,4 +186,41 @@ KIN = {
     "hulls3d": ("hullshapes", "combat"),
     "stars3d": ("starlight", "cameras"),
     "ships3d": ("silhouettes",),          # berths3d is above, with "standoff"
+    # `core/slots.py`: its name limit and the head it reads a summary from
+    # are what the named-chronicle checks pin.
+    "slots": ("slots",),
+    # `data/sounds.py`: the loop rate. Halved, a loop asks for more than its
+    # file can hold; doubled, the cache passes its budget (`test_audio`).
+    "sounds": ("audio",),
+    # Innovation 3: the rivals, the hunt and the switch — one suite knows them
+    # all, and it plays their constants (win rates, odds, the dark cut).
+    "nemeses": ("nemeses",), "rivals": ("nemeses",),
+    "rival_ends": ("nemeses",), "hunts": ("nemeses",),
+    "running_dark": ("nemeses",),
+    # Innovation 5, freight lines: the house's tables (data and sim share the
+    # stem), the hulls it buys and the masters it hires.
+    "freightlines": ("freightlines",), "haulers": ("freightlines",),
+    "masters": ("freightlines",),
+    # The living hull: a sweep of its eleven found every one caught here.
+    "adaptations": ("adaptation",),
+    # `data/regions.py`: the Far Reaches' rules, relight bill and condensate.
+    "regions": ("reaches",),
+    # Innovation 6: `data/assembly` and `sim/assembly` share the stem.
+    "assembly": ("assembly",), "assembly_lobby": ("assembly",),
+    "assembly_session": ("assembly",), "assembly_vote": ("assembly",),
+    # Innovation 2: `data/kith` and `sim/kith` share the stem; the gift
+    # economy and the placement are theirs too.
+    "kith": ("kith", "kithgift"), "kith_acts": ("kithgift", "kith"),
+    "kith_world": ("kith", "kithgift"),
+    # Innovation 8, officer arcs: `data/arcs` and `sim/arcs` share the stem;
+    # `arc_places` holds the race's distances.
+    "arcs": ("arcs",), "arc_places": ("arcs",),
+    # Innovation 9: the ranks and rewards (data), the check, the facts, the
+    # counsel's thresholds and the Hall — one suite plays them all.
+    "milestones": ("renown",), "renown": ("renown",),
+    "renown_facts": ("renown",), "counsel": ("renown",),
+    "counsel_sources": ("renown",), "counsel_doors": ("renown",),
+    "memoir": ("renown",),
+    # Innovation 7: `data/phenomena` and `sim/phenomena` share the stem.
+    "phenomena": ("phenomena",),
 }

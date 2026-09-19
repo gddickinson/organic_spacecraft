@@ -12,11 +12,10 @@ it has landed.
 
 from __future__ import annotations
 
-from ..core.util import clamp
 from ..data.parts import part
-from . import loyalty as loyalty_sim
+from . import adaptation
 from .battle_state import Battle, Side
-from .ship import add_cargo, add_heat, is_breached, stats
+from .ship import add_cargo, add_heat, stats
 
 
 def _apply_to_layers(b: Battle, to: Side, dmg: float, traits, rng) -> float:
@@ -56,6 +55,7 @@ def _apply_to_layers(b: Battle, to: Side, dmg: float, traits, rng) -> float:
                 _say(b, f"— {_who(b, to)} is on bottled air.", "warn")
         first = False
         idx += 1
+    adaptation.record(to.ship, "impact", total)
     return total
 
 

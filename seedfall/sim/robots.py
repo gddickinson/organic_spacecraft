@@ -24,12 +24,11 @@ Postings are deliberately few and all of them are places the game already has:
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 
 from ..core.save import register
 from ..data.robots import ROBOTS_BY_ID
-from . import flight
+from . import stores
 # **The law of telepresence lives in its own file** (#138): how far a
 # machine is and how much of it survives the delay. One way — that module
 # imports the roster lazily, inside the two functions that need it.
@@ -266,7 +265,7 @@ def can_build(game, class_id: str) -> tuple[bool, str]:
     for key, amount in klass.cost.items():
         if key == "credits":
             continue
-        if _held(game, key) < amount:
+        if stores.held(game, key) < amount:
             return False, f"Short of {key}."
     # A frame you cannot lift is a frame you cannot carry to the work.
     if klass.mass_t > _hold_free(game):
@@ -283,10 +282,11 @@ def build(game, class_id: str, rng=None):
     game.credits -= klass.cost.get("credits", 0)
     for key, amount in klass.cost.items():
         if key != "credits":
-            _take(game, key, amount)
+            stores.take(game, key, amount)
     made = Robot(id=_next_id(game), class_id=class_id,
                  name=_name_for(game, klass), posting=ABOARD)
     game.robots = owned(game) + [made]
+    game.add_log(f"{klass.name} {made.name} came off the shop floor.", "good")
     return made
 
 
@@ -301,6 +301,9 @@ def scrap(game, robot) -> dict:
             game.stores[key] = game.stores.get(key, 0) + got
             back[key] = got
     game.robots = [r for r in owned(game) if r.id != robot.id]
+    got = ", ".join(f"{amount:g} {key}" for key, amount in sorted(back.items()))
+    game.add_log(f"{robot.name} was broken up" + (f" for {got}." if got else "."),
+                 "warn")
     return back
 
 
@@ -358,7 +361,7 @@ def tick(game, days: float, rng) -> list:
             else:
                 starved.append(key)
             continue
-        if _take(game, key, need) > need * 0.02:
+        if stores.take(game, key, need) > need * 0.02:
             starved.append(key)
 
     for robot in owned(game):
@@ -388,26 +391,6 @@ def tick(game, days: float, rng) -> list:
 
 
 # ── plumbing ───────────────────────────────────────────────────────────────
-
-def _held(game, key: str) -> float:
-    return game.stores.get(key, 0) + game.ship.cargo.get(key, 0)
-
-
-def _take(game, key: str, amount: float) -> float:
-    """Draw from the hold first, then the depot. Returns what was missing."""
-    left = amount
-    have = game.ship.cargo.get(key, 0)
-    if have > 0:
-        spent = min(have, left)
-        game.ship.cargo[key] = have - spent
-        left -= spent
-    if left > 0:
-        have = game.stores.get(key, 0)
-        spent = min(have, left)
-        game.stores[key] = have - spent
-        left -= spent
-    return left
-
 
 def _hold_free(game) -> float:
     stats = game.recompute() if hasattr(game, "recompute") else None

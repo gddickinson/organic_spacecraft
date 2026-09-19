@@ -8,6 +8,7 @@ from four different parts of the game.
 
 from __future__ import annotations
 
+from ..data.inquiry import TECH_MIX
 from ..data.inquiry import (APPROACHES_BY_ID, BRANCH_MIX, BREAKTHROUGH_GAIN,
                             DEFAULT_APPROACH, DEFAULT_MIX, EVIDENCE_BY_ID,
                             CONFIRM_DAYS_PER_COST, MAX_SHARE, SETBACK_LOSS,
@@ -38,7 +39,8 @@ def mix_for(tech_id: str) -> dict:
     tech = TECH_BY_ID.get(tech_id)
     if tech is None:
         return dict(DEFAULT_MIX)
-    return dict(BRANCH_MIX.get(tech.branch, DEFAULT_MIX))
+    return dict(TECH_MIX.get(tech_id)
+                or BRANCH_MIX.get(tech.branch, DEFAULT_MIX))
 
 
 def needs(tech_id: str, res=None) -> dict:
@@ -129,7 +131,28 @@ def draw(res, tech_id: str, days: float,
             missing.append(kind)
     fraction = sum(served) / len(served) if served else 1.0
     fed = STARVED_FLOOR + (1.0 - STARVED_FLOOR) * fraction
-    return fed, missing
+    return fed * _uplift(res, tech_id, days, span), missing
+
+
+def _uplift(res, tech_id: str, days: float, span: float) -> float:
+    """What watched phenomena add to a programme they feed, 1 to 1 + UPLIFT.
+
+    A bonus, never a want: a sensor, shielding or Deep Weave programme draws
+    phenomena evidence at `FEED_SHARE` of its cost over its run, and runs up
+    to `UPLIFT` faster for as much of that as the bench holds.
+    """
+    from ..data.phenomena import FEED_SHARE, FEEDS, UPLIFT
+    tech = TECH_BY_ID.get(tech_id)
+    if tech is None or tech_id not in FEEDS:
+        return 1.0
+    want = (tech.cost * FEED_SHARE * 0.5 * approach_of(res).draw
+            / max(1.0, span) * days)
+    have = held(res, "phenomena")
+    if want <= 0 or have <= 0:
+        return 1.0
+    taken = min(have, want)
+    store(res)["phenomena"] = have - taken
+    return 1.0 + UPLIFT * taken / want
 
 
 def unconfirmed(res, rng) -> bool:
@@ -142,16 +165,42 @@ def unconfirmed(res, rng) -> bool:
     return rng.chance(approach_of(res).provisional)
 
 
-def confirm_cost(res, tech_id: str) -> float:
+def confirm_cost(res, tech_id: str, officers=()) -> float:
     """Days on the bench to check a provisional result.
 
     Cheaper than the programme was, and not free — going back over unchecked
-    work is the price of having skipped it.
+    work is the price of having skipped it. Peer reviewed (`sim/arcs`) — an
+    officer whose own work survived an inquiry — checks it faster.
     """
     tech = TECH_BY_ID.get(tech_id)
     if tech is None:
         return 0.0
-    return max(10.0, tech.cost * CONFIRM_DAYS_PER_COST)
+    from . import arcs
+    lift = 1.0 + arcs.signature_effects(officers).get("confirm", 0.0)
+    return max(10.0, tech.cost * CONFIRM_DAYS_PER_COST) / lift
+
+
+def begin_confirming(game, tech_id: str) -> dict:
+    """Put the bench on checking a result nobody replicated.
+
+    Moved out of the Research screen, which wrote `confirming` and
+    `confirm_days` itself — a rule about what the bench is doing, decided in
+    a button handler.
+    """
+    res = game.research
+    if getattr(res, "confirming", None):
+        return {"ok": False, "why": "Something is already being checked.",
+                "text": ""}
+    if tech_id not in getattr(res, "provisional", ()):
+        return {"ok": False, "why": "That result is not waiting on a check.",
+                "text": ""}
+    res.confirming = tech_id
+    res.confirm_days = confirm_cost(res, tech_id, game.officers)
+    tech = TECH_BY_ID.get(tech_id)
+    text = (f"The bench goes back over {tech.name if tech else tech_id}: "
+            f"{res.confirm_days:.0f} days to confirm it.")
+    game.add_log(text, "")
+    return {"ok": True, "why": "", "text": text, "days": res.confirm_days}
 
 
 def roll(res, rng, days: float) -> str | None:

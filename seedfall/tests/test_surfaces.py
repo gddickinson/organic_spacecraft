@@ -35,15 +35,7 @@ import math
 
 from ..data import surfaces, worlds3d
 from .harness import Suite
-
-
-def _app():
-    from .test_ui import _use_offscreen
-    _use_offscreen()
-    from PyQt6.QtWidgets import QApplication
-    app = QApplication.instance() or QApplication([])
-    assert app is not None
-    return app
+from .qtkit import app as _app
 
 
 def _render(kind: str, name: str, dist_km: float, radius_km: float = 3000.0,

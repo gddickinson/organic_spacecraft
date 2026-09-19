@@ -134,7 +134,7 @@ def best_unfinished(game, culture_id: str | None = None) -> XenoTech | None:
 
 
 __all__ = ["study_of", "is_incorporated", "is_known", "progress", "add_study",
-           "incorporate", "settle", "bonuses", "incorporated", "known",
+           "incorporate", "settle", "bonuses", "incorporated",
            "culture_standing", "dig_value", "analyse_value", "best_unfinished",
            "prerequisites_met", "ready_to_incorporate", "CULTURES",
            "CULTURES_BY_ID", "XENOTECH", "XENOTECH_BY_ID", "by_culture"]

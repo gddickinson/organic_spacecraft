@@ -33,7 +33,6 @@ from __future__ import annotations
 
 from ..core.state import new_game
 from ..sim import traffic as traffic_sim
-from ..ui import mesh_panel
 from .harness import Suite
 
 
@@ -150,6 +149,9 @@ def run(suite: Suite) -> None:
         assert pairs > 4, pairs
 
         # And the panel and the chart read the same function as the sim.
+        # Imported here, not at the top: it is the one Qt module this suite
+        # needs, and without PyQt6 the rest of the suite still has a say.
+        from ..ui import mesh_panel
         for system in away:
             mark = mesh_panel.chart_mark(game, system)
             assert mark == sum(1 for h in traffic_sim.plotted(game, system)
@@ -164,6 +166,7 @@ def run(suite: Suite) -> None:
         # The complaint `sim/traffic.py` opens with is that "a Concordat patrol
         # jumped me at Loam Span" arrived with no warning it could have given.
         # This is that warning being worth something.
+        from ..ui import mesh_panel
         game = new_game("mesh-true")
         away = _elsewhere(game, limit=12)
         for system in away:

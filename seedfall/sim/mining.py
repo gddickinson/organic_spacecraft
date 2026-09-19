@@ -120,22 +120,15 @@ def upkeep_for(method_id: str, days: int) -> dict:
 
 
 def can_afford(game, method_id: str, days: int) -> tuple[bool, str]:
-    for key, need in upkeep_for(method_id, days).items():
-        held = game.ship.cargo.get(key, 0) + game.stores.get(key, 0)
-        if held < need:
-            return False, f"That needs {round(need)} t of {key}; you have {round(held)}."
+    from . import stores
+    for key, need, held in stores.lacking(game, upkeep_for(method_id, days)):
+        return False, f"That needs {round(need)} t of {key}; you have {round(held)}."
     return True, ""
 
 
 def spend_upkeep(game, method_id: str, days: int) -> None:
-    from .ship import add_cargo
-    for key, need in upkeep_for(method_id, days).items():
-        from_ship = min(game.ship.cargo.get(key, 0), need)
-        if from_ship > 0:
-            add_cargo(game.ship, key, -from_ship)
-        rest = need - from_ship
-        if rest > 0:
-            game.stores[key] = max(0.0, game.stores.get(key, 0) - rest)
+    from . import stores
+    stores.spend(game, upkeep_for(method_id, days))
 
 
 def apply_wear(game, method_id: str, days: int) -> float:

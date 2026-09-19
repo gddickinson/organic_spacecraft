@@ -42,20 +42,9 @@ from ..sim import freeflight as free_sim
 from ..sim import engage as engage_sim
 from ..sim import track as track_sim
 from .harness import Suite
+from .qtkit import app as _app
 
 KM_PER_AU = berth_sim.KM_PER_AU
-
-_HELD = None
-
-
-def _app():
-    from .test_ui import _use_offscreen
-    _use_offscreen()
-    from PyQt6.QtWidgets import QApplication
-    global _HELD
-    _HELD = QApplication.instance() or QApplication([])
-    return _HELD
-
 
 def _flying(seed: str = "free"):
     """A game with the conn taken on open space."""

@@ -71,11 +71,11 @@ SLOW = {
     "fence", "fleets", "fog", "freight",
     "gates", "geography", "grants", "grudges",
     "hands", "helm", "industry", "instruments",
-    "landing", "layers", "levy", "life3d",
+    "landing", "layers", "levy", "licences", "life3d",
     "lopsided", "manual", "mining", "notes",
     "officials", "options", "orbits", "orders",
     "orrery", "parley", "picture", "pilot",
-    "pilotscreen", "firecontrol", "bridge2", "sights",
+    "pilotscreen", "firecontrol", "bridgescreen", "sights",
     "plans", "play", "politics", "postings",
     "programmes", "provisional", "public", "reachable",
     "readiness", "research", "resume", "reticle",
@@ -101,7 +101,8 @@ SUITES = _suites()
 # **How to find a constant and how to change it lives in `sweepkit`**, split
 # out when this file hit five hundred lines exactly. This file is the other
 # half: which suites speak for which module, and what a sweep concluded.
-from .sweepkit import ROOT, constants, put, rewrite, variants  # noqa: E402
+from . import sweepkit  # noqa: E402
+from .sweepkit import constants, put, rewrite, variants  # noqa: E402
 
 
 #: A clean run of the subset takes about ten seconds. Sixty is generous, and
@@ -141,7 +142,8 @@ def _run(suites) -> bool:
     env.pop(SAVE_ENV, None)
     done = subprocess.run(
         [sys.executable, "-B", "-m", "seedfall.tests", *suites],
-        capture_output=True, text=True, cwd=ROOT, timeout=LIMIT, env=env)
+        capture_output=True, text=True, cwd=sweepkit.ROOT, timeout=LIMIT,
+        env=env)
     return done.returncode == 0
 
 
@@ -205,7 +207,14 @@ def suite_passes(module: str = "") -> bool:
 
 
 def main(argv: list) -> int:
-    """Sweep, restoring the tree whatever happens.
+    """Sweep a sandbox copy of the package (`sweepkit.sandbox`), so the
+    working tree is never written — not even to be put back."""
+    with sweepkit.sandbox():
+        return _sweep(argv)
+
+
+def _sweep(argv: list) -> int:
+    """Sweep, restoring the copy whatever happens.
 
     A killed sweep used to leave the constant it was holding mutated — I
     stopped one mid-trial and left `QUIET_DAYS = 0` sitting in the working
@@ -230,7 +239,7 @@ def main(argv: list) -> int:
     found = constants(only)
     # Any bytecode left over from an earlier run may have been compiled from
     # a mutated source. Start clean.
-    for cache in ROOT.rglob("__pycache__"):
+    for cache in sweepkit.ROOT.rglob("__pycache__"):
         for stale in cache.glob("*.pyc"):
             stale.unlink(missing_ok=True)
 

@@ -75,6 +75,7 @@ def mark_of(game) -> dict:
         "systems": len(game.discovered.get("systems", ())),
         "standing": _best_standing(game),
         "docked": _docked(game),
+        "berths": int(getattr(game, "flags", {}).get("berths", 0)),
         "deeds": sorted(k for k, v in getattr(game, "flags", {}).items()
                         if v is True),
         "seen": list(_seen(game)),
@@ -187,9 +188,14 @@ def _berthed(game, mark) -> bool:
 
     Derived from where she is standing, so a save reloaded still counts —
     and measured against the mark, so a captain who was already at a quay
-    when the lesson opened is asked to do it rather than waved through.
+    when the lesson opened is asked to do it rather than waved through. And
+    a berth made since counts even at the quay she stood at: breaking off and
+    berthing again did not, and left the lesson stuck at 7 of 30.
     """
-    return _docked(game) and not mark.get("docked", False)
+    return _docked(game) and (
+        not mark.get("docked", False)
+        or int(getattr(game, "flags", {}).get("berths", 0))
+        > int(mark.get("berths", 0)))
 
 
 # ── watchers: money and science ────────────────────────────────────────────

@@ -177,6 +177,30 @@ def open_fire(game, conn, contact, rng):
     return battle, ""
 
 
+def fire_on(game, conn, contact) -> dict:
+    """The trigger: open fire, or say why not — in the log either way.
+
+    `ui/fire_panel.open_fire` held all of this — the refusal written to the
+    log as well as the toast (a pilot who pressed a button and got a sentence
+    should be able to read it again), the engagement's luck drawn from
+    `game.rng`, and the line that says fire was opened. Here, so the bridge
+    and a check pull the same trigger the button does. `battle` is handed
+    over to be fought as built; rebuilding it would lose the band.
+    """
+    ok, why = may_engage(game, conn, contact)
+    if not ok:
+        game.add_log(why, "")
+        return {"ok": False, "why": why, "text": why, "battle": None}
+    km = range_km(game, conn, contact)
+    battle, why = open_fire(game, conn, contact, game.rng("engagement"))
+    if battle is None:
+        game.add_log(why, "")
+        return {"ok": False, "why": why, "text": why, "battle": None}
+    text = f"Opened fire on {contact.name} at {km:,.0f} km."
+    game.add_log(text, "bad")
+    return {"ok": True, "why": "", "text": text, "battle": battle}
+
+
 def price(game, contact) -> list:
     """What killing this hull would cost, with its flag and with its friends.
 

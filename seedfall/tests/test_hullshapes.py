@@ -37,22 +37,15 @@ import math
 from ..core.rng import RNG
 from ..core.state import new_game
 from ..data import hulls3d
-from ..data.chassis import CHASSIS, CHASSIS_BY_ID
+from ..data.chassis import CHASSIS
 from ..data.hullforms import FORMS
 from ..sim import combat, encounters
 from ..sim.ship import build_layers, make_ship, stats
 from .harness import Suite
+from .qtkit import app as _app
+from .qtkit import overlap as _overlap
 
 SIZE = 150
-
-
-def _app():
-    from .test_ui import _use_offscreen
-    _use_offscreen()
-    from PyQt6.QtWidgets import QApplication
-    app = QApplication.instance() or QApplication([])
-    assert app is not None
-    return app
 
 
 def _mask(family: str, yaw: float = 0.0, tilt: float | None = None) -> set:
@@ -80,12 +73,6 @@ def _mask(family: str, yaw: float = 0.0, tilt: float | None = None) -> set:
     painter.end()
     return {(x, y) for y in range(SIZE) for x in range(SIZE)
             if image.pixel(x, y) != sky.rgb()}
-
-
-def _overlap(a: set, b: set) -> float:
-    if not a or not b:
-        return 0.0
-    return len(a & b) / len(a | b)
 
 
 def _engaged(hull: str, seed: str = "shapes"):

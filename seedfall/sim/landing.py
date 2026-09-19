@@ -95,6 +95,10 @@ def kind_allows(body) -> bool:
     # both called kind said every world in the sector had no surface.
     kind = (getattr(body, "look", "") or getattr(body, "kind", "") or "")
     entry = BODY_KINDS.get(kind)
+    # A comet or rogue passing through (`sim/phenomena`) is no ground for a
+    # party that has to walk home before it leaves — nor for a posting.
+    if getattr(body, "transient_until", None) is not None:
+        return False
     return bool(entry and entry[2])
 
 

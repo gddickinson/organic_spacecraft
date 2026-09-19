@@ -8,12 +8,10 @@ gives up less each time you return to it.
 
 from __future__ import annotations
 
-from ..core.rng import RNG
 from ..core.state import new_game
 from ..data import chassis as chassis_data
 from ..data import parts as parts_data
-from ..data.xenotech import CULTURES, XENOTECH, XENOTECH_BY_ID
-from ..sim import actions
+from ..data.xenotech import XENOTECH, XENOTECH_BY_ID
 from ..sim import fieldwork
 from ..sim import xeno as xeno_sim
 from ..world import galaxy

@@ -11,8 +11,6 @@ from dataclasses import dataclass
 from typing import Callable
 
 from ..core.util import clamp
-from ..data.factions import FACTIONS_BY_ID
-from . import tactical as tac
 from .battle_state import Battle
 from .ship import hull_pct, is_destroyed
 
@@ -133,7 +131,11 @@ def _memory(b: Battle) -> float:
     from . import grudge
     try:
         return grudge.feeling(game, faction) * MEMORY_WEIGHT
-    except Exception:                       # a battle without a real chronicle
+    except AttributeError:                  # a battle without a real chronicle
+        return 0.0
+    except Exception as err:                # noqa: BLE001
+        from ..core.guard import swallowed
+        swallowed("parley weighing a memory", err)
         return 0.0
 
 

@@ -144,8 +144,14 @@ def can_study(game, system) -> tuple[bool, str]:
 
 def study_value(game, system) -> dict:
     mass = system.bloom
-    return {"xenolith": STUDY.xenolith * mass * (1 + game.ship_stats.scan),
-            "readings": STUDY.readings * mass * (1 + game.ship_stats.scan),
+    # Unafraid (`sim/arcs`): an officer who stood up for studying it takes
+    # more from a mass — not the growth, which is the mass's own business.
+    from . import arcs
+    lift = 1.0 + arcs.signature_effects(game.officers).get("study", 0.0)
+    return {"xenolith": STUDY.xenolith * mass * (1 + game.ship_stats.scan)
+            * lift,
+            "readings": STUDY.readings * mass * (1 + game.ship_stats.scan)
+            * lift,
             "growth": STUDY.growth * mass}
 
 

@@ -14,7 +14,7 @@ import math
 
 from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
-from ..core.util import duration
+from ..core.util import duration, reaction_mass
 from ..data.starclasses import mu_of
 from ..sim import anchorage as anchorage_sim
 from ..data import orbit_shapes as shapes
@@ -42,6 +42,10 @@ class HelmView(View):
         # they had launched from a fleet hub except by opening the shipyard
         # window, which is not an answer to "where am I".
         self.head(f"Helm — {g.system.name}", anchorage_sim.where_am_i(g))
+        from . import sky_strip          # a flare on this system: shelter
+        light = sky_strip.shelter(self, g)
+        if light is not None:
+            self.col.addWidget(light)
 
         if self.target >= len(g.system.bodies):
             self.target = 0
@@ -240,7 +244,7 @@ class HelmView(View):
         else:
             p.add_row("From its star", f"{out:.2f} AU")
         p.add_row("Reaction mass aboard",
-                  f"{round(g.ship.cargo.get('volatiles', 0))} t")
+                  reaction_mass(g.ship.cargo.get("volatiles", 0)))
         cap = g.ship_stats.heat_cap
         p.add_row("Hull heat", f"{round(g.ship.heat)} / {round(cap)}",
                   "warn" if g.ship.heat > cap else
@@ -262,7 +266,12 @@ class HelmView(View):
             p.add(note(hazard))
 
         p.add(spacer(4), mono_label("Plot"))
-        tabs = TabBar([(b.id, b.name) for b in flight.BURNS], self.burn)
+        # Two to a row: four on one asked 423 px, and beside the chart that
+        # tipped the row over and dropped this whole panel under the left
+        # column, 2,000 px down, the moment a body was picked (play-test,
+        # 2026-09-18).
+        tabs = TabBar([(b.id, b.name) for b in flight.BURNS], self.burn,
+                      per_row=2)
         tabs.changed.connect(self._plot_burn)
         p.add(tabs)
 
@@ -272,8 +281,10 @@ class HelmView(View):
         from ..sim import burnplan
         p.add(spacer(4), mono_label("The crossing"))
         p.add(note(burnplan.note(g, body, self.burn)))
+        # Stacked: side by side, each row asked its whole sentence as a
+        # minimum width (371 px for the braking burn).
         for phase, when, detail in burnplan.rows(g, body, self.burn):
-            p.add_row(f"{phase} · {when}", detail)
+            p.add_stacked(f"{phase} · {when}", detail)
 
         p.add(spacer(4), mono_label("Burn profiles"))
         for q in flight.options(g, body):

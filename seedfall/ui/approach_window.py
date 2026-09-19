@@ -404,12 +404,7 @@ class ApproachWindow(QDialog):
 
 def open_approach(win) -> ApproachWindow:
     """Open the approach view, or raise the one already open."""
-    existing = getattr(win, "approach_window", None)
-    if existing is not None:
-        existing.raise_()
-        existing.activateWindow()
-        return existing
-    window = ApproachWindow(win)
-    win.approach_window = window
-    window.show()
-    return window
+    # Freed on close, and its slot cleared — `ui/popout.py`.
+    from . import popout
+    return popout.open_one(win, "approach_window",
+                           lambda: ApproachWindow(win))

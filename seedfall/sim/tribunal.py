@@ -289,16 +289,31 @@ def plead(game, charge, plea: str, rng=None) -> dict:
         charge.outcome = "settled"
         charge.plea = plea
         charge.verdict = f"Settled before a {forum.occasion} for ₡{price:,.0f}."
-        return {"ok": True, "outcome": "settled", "paid": price,
-                "said": charge.verdict, "lines": [
-                    ("", f"{quote['who']}: settled for ₡{price:,.0f}. "
-                         "Nothing goes on the record.")]}
+        return _entered(game, {
+            "ok": True, "outcome": "settled", "paid": price,
+            "said": charge.verdict, "lines": [
+                ("", f"{quote['who']}: settled for ₡{price:,.0f}. "
+                     "Nothing goes on the record.")]})
     charge.plea = plea
     charge.state = "answered"
-    return {"ok": True, "outcome": "answered",
-            "said": f"Your plea is entered. The {forum.occasion} will decide.",
-            "lines": [("", f"{quote['who']}: plea entered — "
-                           f"{'contested' if plea == 'contest' else 'admitted'}.")]}
+    return _entered(game, {
+        "ok": True, "outcome": "answered",
+        "said": f"Your plea is entered. The {forum.occasion} will decide.",
+        "lines": [("", f"{quote['who']}: plea entered — "
+                       f"{'contested' if plea == 'contest' else 'admitted'}.")]})
+
+
+def _entered(game, out: dict) -> dict:
+    """Write a plea's lines to the chronicle, and hand the answer back.
+
+    The law screen used to copy `lines` into the log itself, so a plea made
+    by any other door — the bridge, a check — was entered and never recorded.
+    """
+    for kind, text in out.get("lines") or []:
+        game.add_log(text, kind)
+    out.setdefault("why", "")
+    out.setdefault("text", out.get("said", ""))
+    return out
 
 
 def hear(game, charge, rng) -> list:

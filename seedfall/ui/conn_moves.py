@@ -30,9 +30,7 @@ def _leave_flight(self) -> None:
     conn = self.conn
     if conn is None or conn.landed:
         return
-    if not conn.over:
-        conn.outcome = "broken off"
-        conn.log.append("Approach broken off.")
+    berth_sim.break_off(conn)
     berth_sim.commit(self.game, conn)
 
 

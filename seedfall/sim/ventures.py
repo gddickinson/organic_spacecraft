@@ -7,15 +7,16 @@ with somebody — there is no neutral way to be involved.
 
 from __future__ import annotations
 
-import itertools
 from dataclasses import dataclass
 
 from ..core.save import register
+from ..core import ids
 from ..data.ventures import (BASE_ODDS, MAX_PER_POWER, ONSET_PER_MONTH,
                              RIGHT_BACKED, RIGHT_OPPOSED, SWAY,
                              VENTURES, VENTURES_BY_ID)
 from ..data.diplomacy import AGENDAS
 from ..data.factions import FACTIONS_BY_ID
+from . import assembly
 from . import diplomacy as dip
 from . import exchequer
 from . import territory
@@ -23,7 +24,6 @@ from . import loyalty
 from . import market as market_sim
 from . import war as war_sim
 
-_uid = itertools.count(1)
 
 
 @register
@@ -82,8 +82,12 @@ def _claimable(game, power: str) -> list:
     # map could therefore fill in but never change hands: measured over 1,800
     # days across three seeds, 0 systems were ever taken from another power and
     # 0 ports ever changed flag.
+    # Not past the rim (`regions.claimable`): the powers' reach is the Verge's,
+    # and the Cradle is left unclaimed for whoever lives there.
+    from . import regions as regions_sim
     open_ground = [s for s in game.galaxy.systems
-                   if s.faction is None and s.bloom < 0.5]
+                   if s.faction is None and s.bloom < 0.5
+                   and regions_sim.claimable(game, s)]
     return open_ground + [s for s in war_sim.spoils(game, power)
                           if s.bloom < 0.5 and s not in open_ground]
 
@@ -104,7 +108,10 @@ def _infested(game) -> list:
     before `containment` existed nobody in the game but the captain ever
     reduced `system.bloom` by a single point.
     """
-    return [s for s in game.galaxy.systems if s.bloom >= CONTAIN_FLOOR]
+    # The Verge's fire: growth past the rim is lost ground, and a flotilla
+    # fitted out at a Verge quay does not cross a deep gate to burn it.
+    from ..world.galaxy import verge
+    return [s for s in verge(game.galaxy) if s.bloom >= CONTAIN_FLOOR]
 
 
 def _open_to(game, power: str, kind) -> bool:
@@ -164,7 +171,7 @@ def start(game, rng, power: str):
     # never charged for an initiative it then declines to start.
     if not exchequer.stake(game, power):
         return None
-    venture = Venture(id=next(_uid), kind=kind.id, power=power, other=other,
+    venture = Venture(id=ids.next_id("venture", game), kind=kind.id, power=power, other=other,
                       place=place, until=game.day + rng.int(*kind.days))
     ensure(game).append(venture)
     return venture
@@ -204,6 +211,8 @@ def hulls(game, power: str) -> int:
 def odds(game, venture) -> float:
     """How likely this is to come off, given who is leaning on it."""
     chance = BASE_ODDS
+    if venture.kind == "containment":     # the Bloom Levy's fund
+        chance += assembly.effect(game, "containment", 0.0)
     if venture.stance == "backed":
         chance += SWAY
     elif venture.stance == "opposed":
@@ -377,7 +386,7 @@ def _apply(game, venture, rng) -> list[tuple[str, str]]:
                        if s.market and s.faction == venture.other), None)
         if good and target:
             market_sim.all_shocks(game).append(market_sim.Shock(
-                id=next(_uid) + 90000, kind="rearm", system_id=target.id,
+                id=ids.next_id("shock", game), kind="rearm", system_id=target.id,
                 commodity=good, until=game.day + 150))
             market_sim.apply_to_markets(game)
     elif kind.id == "courtship" and venture.other:

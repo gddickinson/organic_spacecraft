@@ -42,7 +42,7 @@ drift from the sector it describes and cannot repeat itself.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from ..core.save import register
 from ..data import signals as sig_data
@@ -209,13 +209,23 @@ def lag_days(game, frm: int, to: int) -> float:
     if a is None or b is None:
         return sig_data.DAYS_PER_LY
     apart = distance(a, b)
+    if apart == float("inf"):
+        # Across the rim, word rides whatever crosses the deep gate: the same
+        # shipped rate, over the road through it (`world/regions.span`).
+        from ..world.regions import span
+        return span(game.galaxy, a, b) * sig_data.DAYS_PER_LY_SHIPPED
     # Off the Weave, word still travels — aboard whatever is crossing on its
     # own drive. Slow, but not light-slow. Only somewhere no hull can reach
     # at all is genuinely cut off.
     from . import reach as reach_sim
     try:
         shipped = to in reach_sim.component(game, start=frm)
-    except Exception:                                          # noqa: BLE001
+    except LookupError:
+        # A system id off the end of the chart: say it can be shipped.
+        shipped = True
+    except Exception as err:                                   # noqa: BLE001
+        from ..core.guard import swallowed
+        swallowed("comms timing a despatch", err)
         shipped = True
     if shipped:
         return apart * sig_data.DAYS_PER_LY_SHIPPED
@@ -225,10 +235,16 @@ def lag_days(game, frm: int, to: int) -> float:
 # ── sending, reading, answering ────────────────────────────────────────────
 
 def send(game, frm: str, name: str, channel: str, subject: str, body: str,
-         system_id: int | None = None, replies=()) -> Signal:
-    """Put something on the wire. It arrives when the distance says it does."""
+         system_id: int | None = None, replies=(), aboard: bool = False) -> Signal:
+    """Put something on the wire. It arrives when the distance says it does.
+
+    `aboard` is a word from somebody on this ship — an officer's own story —
+    which crosses no distance and no weather: a flare that holds up the
+    sector's traffic does not hold up the person at the next station."""
     where = game.system.id if system_id is None else int(system_id)
-    lag = lag_days(game, where, game.system.id)
+    from . import phenomena as sky_sim          # a flare at either end
+    lag = 0.0 if aboard else lag_days(game, where, game.system.id) + \
+        sky_sim.comms_delay(game, where, game.system.id)
     sig = Signal(id=f"sig-{len(_all(game))}-{int(game.day)}-{frm}",
                  frm=frm, name=name, channel=channel, subject=subject,
                  body=body, sent_day=float(game.day),
@@ -270,6 +286,12 @@ def answer(game, signal_id: str, key: str) -> bool:
             continue
         if key not in {k for k, _words in sig.replies}:
             return False
+        # A beat of an officer's own story is *done* by its answer, and one
+        # the ship cannot pay for is refused here (`sim/arcs.answered`).
+        if sig.frm.startswith("arc:"):
+            from . import arcs
+            if not arcs.answered(game, sig, key)["ok"]:
+                return False
         sig.answered = key
         sig.read = True
         return True

@@ -16,9 +16,15 @@ class Client:
         payload = {"verb": verb, "token": self.token}
         if args:
             payload["args"] = args
-        self.stream.write((json.dumps(payload) + "\n").encode())
-        self.stream.flush()
-        line = self.stream.readline()
+        try:
+            self.stream.write((json.dumps(payload) + "\n").encode())
+            self.stream.flush()
+            line = self.stream.readline()
+        except (ConnectionError, OSError):
+            # A far end that has already hung up answers a write with a
+            # reset rather than an empty read — the same fact, and the
+            # protocol promises a caller an answer, never a traceback.
+            line = b""
         if not line:
             return {"ok": False, "why": "The bridge closed."}
         try:

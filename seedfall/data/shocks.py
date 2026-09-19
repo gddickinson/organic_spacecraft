@@ -74,6 +74,16 @@ SHOCKS: list[ShockKind] = [
 
 SHOCKS_BY_ID = {s.id: s for s in SHOCKS}
 
+#: Innovation 7: a comet's volatiles on the quays near its passage. Not in
+#: `SHOCKS`, so the market's own onset roll never draws it, and never stored:
+#: `sim/phenomena_bodies.gluts` derives it for as long as the comet lasts.
+COMET_GLUT = ShockKind(
+    "comet", "A comet is passing", "lumen",
+    "A comet is passing near {place}, and every hull with a tank is cutting "
+    "ice off it. {commodity} is cheap on the quay.",
+    goods=("volatiles",), supply=1.8, days=(60, 200), weight=0)
+SHOCKS_BY_ID[COMET_GLUT.id] = COMET_GLUT
+
 #: Chance per system per 30 days that something happens somewhere.
 ONSET_PER_MONTH = 0.020
 

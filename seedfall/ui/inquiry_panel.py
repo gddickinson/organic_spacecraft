@@ -7,7 +7,7 @@ from ..core.util import num
 from ..data.inquiry import EVIDENCE, EVIDENCE_BY_ID
 from ..data.tech import PROVISIONAL_WORTH, TECH_BY_ID
 from ..sim import inquiry
-from .widgets import Panel, Pill, TabBar, button, label, mono_label, note, spacer
+from .widgets import Panel, TabBar, button, label, note, spacer
 
 
 def lockers(game) -> Panel:
@@ -102,7 +102,7 @@ def unconfirmed(view, game) -> Panel | None:
         tech = TECH_BY_ID.get(tid)
         if tech is None:
             continue
-        cost = inquiry.confirm_cost(res, tid)
+        cost = inquiry.confirm_cost(res, tid, game.officers)
         p.add_row(tech.name, f"{cost:.0f} days to check", "warn")
         p.add_buttons(button(f"Confirm {tech.name}",
                              lambda t=tid: view.confirm(t),

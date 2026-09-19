@@ -154,6 +154,41 @@ def run(suite: Suite) -> None:
         assert checked > 15, checked
         return f"{checked} promised movements across five kinds, all landing"
 
+    @check("an envoy's money comes out of a power's purse or goes into one")
+    def _():
+        # A denunciation paid +3,810 with no purse moving, and a levy's
+        # credits went nowhere (play-test, 2026-09-18). Count the captain
+        # and every purse together: accepting moves money, never makes it.
+        from ..sim import exchequer
+        moved = 0
+        for kind in ("requisition", "denounce_rival", "levy"):
+            game = _feuding(f"purse-{kind}")
+            envoy = _envoy(game, kind)
+            if envoy is None:
+                continue
+
+            def total():
+                return game.credits + sum(
+                    exchequer.purse(game, p).credits for p in dip.POWERS)
+            before = total()
+            assert approach.answer(game, envoy, "accept").get("ok"), kind
+            assert abs(total() - before) < 1, (
+                f"{kind}: {total() - before:+,.0f} credits appeared")
+            assert game.log and "credits" in game.log[-1][1], game.log[-1:]
+            moved += 1
+        # A purse that cannot cover the offer pays what it holds — and the
+        # preview says so before the captain says yes.
+        game = _feuding("purse-thin")
+        envoy = _envoy(game, "denounce_rival")
+        exchequer.purse(game, envoy.faction).credits = 500.0
+        said = approach.preview(game, envoy, "accept")
+        cash = game.credits
+        approach.answer(game, envoy, "accept")
+        assert said["credits"] == 500 and game.credits - cash == 500, (
+            said["credits"], game.credits - cash)
+        assert any("holds only 500" in line for line in said["lines"])
+        return f"{moved} kinds conserve money; a thin purse pays 500 and says so"
+
     @check("accepting a denunciation drives the two powers apart, and says so")
     def _():
         game = _feuding("denounce", rift=-20.0)

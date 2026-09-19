@@ -213,4 +213,9 @@ def run(suite: Suite) -> None:
         }
         for what, fn in moved.items():
             assert callable(fn), f"{what} has no home in the sim"
+        # A home *in the sim*: a screen-side function would pass `callable`.
+        homes = {what: fn.__module__ for what, fn in moved.items()}
+        astray = {w: m for w, m in homes.items()
+                  if not m.startswith("seedfall.sim.")}
+        assert len(homes) == 11 and not astray, astray or homes
         return f"{len(moved)} operations, all performable without a screen"

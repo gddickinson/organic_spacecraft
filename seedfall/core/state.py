@@ -11,32 +11,16 @@ from dataclasses import dataclass, field
 from ..data.chassis import CHASSIS_BY_ID
 from ..data.factions import FACTIONS
 from ..data.tech import STARTING_TECH, bonuses
-from ..sim import allegiance
 from ..sim import colony as colony_sim
 from ..sim import crew as crew_sim
-from ..sim import lifespan as lifespan_sim
-from ..sim import customs as customs_sim
 from ..sim import inquiry as inquiry_sim
-from ..sim import market as market_sim
 from ..sim import diplomacy as dip_sim
-from ..sim import responses as response_sim
-from ..sim import ventures as venture_sim
-from ..sim import legacy as legacy_sim
-from ..sim import memory as memory_sim
 from ..sim import loyalty as loyalty_sim
 from ..sim import research as research_sim
-from ..sim import shipyard as shipyard_sim
-from ..sim import threat as threat_sim
 from ..sim import xeno as xeno_sim
-from ..sim import chains as chain_sim
-from ..sim import contracts as contract_sim
-from ..sim import territory as territory_sim
-from ..sim import upkeep as upkeep_sim
-from ..data.territory import SEIZED as TERRITORY_SEIZED
-from ..sim.ship import (Ship, build_layers, cool, is_breached, make_ship,
-                        repair_tick, stats)
-from ..world.economy import tick_market
+from ..sim.ship import Ship, build_layers, make_ship, stats
 from ..world.galaxy import Galaxy, generate_sector
+from . import ids as ids_mod
 from . import save as save_mod
 from .rng import RNG
 from .save import register
@@ -216,6 +200,24 @@ class Game:
     #: a crew that skipped four years did not do four years of work either.
     ship_day: int = 0
     _part_ship: float = 0.0
+    #: The id counters (`core/ids.py`), written at every save so a chronicle
+    #: resumed in a fresh process never issues an id it already holds.
+    ids: dict = field(default_factory=dict)
+    #: Days of hunger banked against the crew (`sim/upkeep.py`). Set at
+    #: runtime until 2026-09 and therefore dropped by every reload — a crew
+    #: twelve days from losing a hand came back with a clean slate.
+    short_days: float = 0.0
+    #: Seconds spent flying by hand, for the tutorial's "fly five minutes".
+    conn_seconds: float = 0.0
+    #: The fraction of a crew member a failing lineage has shed, carried so
+    #: the losses come as a slope and survive a save.
+    crew_leaving: float = 0.0
+    hunt: object | None = None  # innovation 3, nemeses: sim/nemeses.HuntState
+    house: object | None = None  # innovation 5: sim/freightlines.TradingHouse
+    assembly: object | None = None  #: Innovation 6, the Assembly: sim/assembly
+    kith: object | None = None  #: Innovation 2, the Kith: sim/kith.KithState
+    renown: object | None = None  #: Innovation 9, renown: sim/renown
+    sky: object | None = None  #: Innovation 7, the living sky: sim/phenomena
 
     # Derived, never saved — recomputed by recompute() on load.
     bonuses: dict = field(default_factory=dict, compare=False,
@@ -230,9 +232,6 @@ class Game:
     @property
     def system(self):
         return self.galaxy.systems[self.location_id]
-
-    def system_by_id(self, sid: int):
-        return self.galaxy.systems[sid]
 
     def rng(self, tag: str = "") -> RNG:
         """A generator that advances with the save, so reloads do not reroll luck."""
@@ -330,6 +329,8 @@ class Game:
         self.dead = True
         self.ending = "lost"
         self.death_reason = reason
+        from ..sim import memoir as memoir_sim      # the career, written up
+        memoir_sim.record(self)
 
     # ── persistence ────────────────────────────────────────────────────────
 
@@ -350,12 +351,15 @@ def new_game(seed: str | None = None, systems: int = 42, choices=None) -> Game:
     all zero.
     """
     import random
-    from ..sim import beginning as beginning_sim
+    from ..sim import beginning as beginning_sim, passage as passage_sim
     seed_str = seed or f"verge-{random.randrange(10 ** 9):x}"
     rng = RNG(f"{seed_str}:start")
     choices = choices or beginning_sim.default()
 
     galaxy = generate_sector(seed_str, systems)
+    # A fresh book of ids for this chronicle, bound before the first hull and
+    # officer are made — see `core/ids.bind`.
+    book = ids_mod.bind({})
     start = (_pick_start(galaxy) if beginning_sim.is_default(choices)
              else beginning_sim.start_system(galaxy, choices.posting))
 
@@ -386,6 +390,7 @@ def new_game(seed: str | None = None, systems: int = 42, choices=None) -> Game:
                 "silicon": 0, "alloy": 0},
         discovered={"systems": [start.id], "bodies": 0, "lifeforms": 0, "anomalies": 0},
         rng_seed=rng.int(1, 2 ** 30),
+        ids=book,
     )
     start.visited = True
     start.scanned = True
@@ -403,6 +408,7 @@ def new_game(seed: str | None = None, systems: int = 42, choices=None) -> Game:
     beginning_sim.apply(game, choices, rng)
     game.recompute()
     game.add_log(f"The {ship.name} is under way from {start.name}.", "good")
+    passage_sim.chart(game)       # a boxed-in opening's way out; see there
     if not beginning_sim.is_default(choices):
         game.add_log(beginning_sim.blurb(choices), "")
     return game
@@ -413,36 +419,6 @@ def _pick_start(galaxy: Galaxy):
     if charter:
         return next((s for s in charter if s.port.capital), charter[0])
     return next((s for s in galaxy.systems if s.port), galaxy.systems[0])
-
-
-def load_game() -> Game | None:
-    data = save_mod.read()
-    if not data:
-        return None
-    game = data.get("game")
-    if not isinstance(game, Game):
-        return None
-    # The active ship must be the same object as its entry in the fleet, or
-    # damage would apply to a copy.
-    for i, f in enumerate(game.fleet):
-        if f.uid == game.ship.uid:
-            game.fleet[i] = game.ship
-            break
-    # A chronicle saved before there were two clocks has lived every day the
-    # Verge has. Left at zero, a twenty-year captain's crew would be younger
-    # than the chronicle and their whole span would come back.
-    if not game.ship_day and game.day:
-        game.ship_day = game.day
-    game.recompute()
-    return game
-
-
-def has_save() -> bool:
-    return save_mod.exists()
-
-
-def clear_save() -> None:
-    save_mod.clear()
 
 
 def _moor_at_home(game, start) -> None:
@@ -459,3 +435,9 @@ def _moor_at_home(game, start) -> None:
         flight_sim.hold_at(game, body)
     else:
         flight_sim.stand_off(game)
+
+
+# Loading, checking and clearing the chronicle on disk live in `core/loading.py`
+# (split out at 500 lines); re-exported so `state.load_game` stays the door.
+from .loading import (clear_save, has_save, load_game,  # noqa: E402,F401
+                      load_problem, validate)

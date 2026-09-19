@@ -13,11 +13,7 @@ pilot who flies here and then secures does not pay twice for the same hour.
 from __future__ import annotations
 
 from ..core.state import new_game
-from ..data.screens import SCREENS
-from ..sim import berthing as berth_sim
-from ..sim import conn as conn_sim
 from ..sim import engage as engage_sim
-from ..sim import instruments as panel_sim
 from .harness import Suite
 
 

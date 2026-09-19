@@ -49,7 +49,7 @@ def run(suite: Suite) -> None:
         # The pools hold four or five names and a capital works five hulls, so
         # two turned up on the chart identically named — which makes "the hull
         # you plotted" meaningless exactly when it starts to matter.
-        checked = 0
+        checked = crowded = 0
         for seed in ("dup-a", "dup-b", "dup-c"):
             game = new_game(seed)
             for system in game.galaxy.systems:
@@ -58,7 +58,12 @@ def run(suite: Suite) -> None:
                 ids = [h.id for h in traffic.in_system(game, system)]
                 assert len(ids) == len(set(ids)), ids
                 checked += 1
-        return f"{checked} systems, every hull distinctly named"
+                crowded += len(names) >= 2
+        # A clash needs two hulls in one place. Measured: 63 of 126 systems
+        # over these seeds have that, so the question is really being asked.
+        assert crowded >= 30, f"only {crowded} systems hold two hulls or more"
+        return (f"{checked} systems, every hull distinctly named "
+                f"({crowded} with two or more)")
 
     @check("a hull keeps its name through time, luck and a reload")
     def _():

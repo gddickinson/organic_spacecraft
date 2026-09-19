@@ -11,8 +11,9 @@ from ..sim import inquiry
 from ..sim import research as research_sim
 from . import industry_panel
 from . import inquiry_panel, programmes_panel
+from .tech_tree import TechTree
 from .widgets import (Card, Panel, Pill, TabBar, View, button, label,
-                      mono_label, note)
+                      note)
 from .xeno_view import build_xeno
 
 
@@ -20,6 +21,7 @@ class TechView(View):
     def __init__(self, win):
         super().__init__(win)
         self.branch = "all"
+        self._trees: dict[str, TechTree] = {}
 
     def build(self) -> None:
         g = self.game
@@ -55,23 +57,38 @@ class TechView(View):
 
         tabs = TabBar([("all", "All")] + [(k, v[0]) for k, v in BRANCHES.items()]
                       + [("xeno", "Xenotech ✦")], self.branch)
+        for tid, b in tabs.buttons.items():
+            b.setToolTip("Every technology" if tid == "all" else
+                         "The xenology desk: what the dead left behind"
+                         if tid == "xeno" else BRANCHES[tid][2])
         tabs.changed.connect(self._switch)
         self.col.addWidget(tabs)
 
         if self.branch == "xeno":
+            for tree in self._trees.values():
+                tree.hide()
             build_xeno(self)
             return
 
-        techs = [t for t in TECH if self.branch in ("all", t.branch)]
-        techs.sort(key=lambda t: (t.tier, t.name))
-        self.grid([self._card(t) for t in techs], cols=3)
+        tree = self._trees.get(self.branch)
+        if tree is None:
+            tree = self._trees[self.branch] = TechTree(self, self.branch)
+        for other in self._trees.values():
+            if other is not tree:
+                other.hide()
+        self.col.addWidget(tree)
+        tree.show()
+        tree.sync(g)
+
+    def keep(self) -> tuple:
+        """Every branch's tree: shown or not, it is changed in place."""
+        return tuple(self._trees.values())
 
     def sell_process(self, process, power: str) -> None:
         res = industry_sim.licence(self.game, process, power)
         if not res.get("ok"):
             self.win.toast(res["why"], "warn")
             return
-        self.game.add_log(res["text"], "good")
         self.win.toast(f"Licensed for {round(res['price']):,}.", "good")
         self.win.refresh()
 
@@ -106,27 +123,29 @@ class TechView(View):
         p.add_row(f"{round(res.progress)} / {num(t.cost)} points",
                   duration(left) + " remaining" if math.isfinite(left)
                   else "stalled — no research rate")
-        p.add_buttons(button("Set aside", self._clear, kind="flat"))
+        p.add_buttons(button("Set aside", self._clear, kind="flat",
+                             tip="Take the bench off this project. What it has "
+                                 "banked stays banked."))
         return p
 
     def confirm(self, tech_id: str) -> None:
         """Put the bench on checking a result nobody replicated."""
-        from ..sim import inquiry as inquiry_sim
-        res = self.game.research
-        if getattr(res, "confirming", None):
-            self.win.toast("Something is already being checked.", "warn")
+        res = inquiry.begin_confirming(self.game, tech_id)
+        if not res["ok"]:
+            self.win.toast(res["why"], "warn")
             return
-        res.confirming = tech_id
-        res.confirm_days = inquiry_sim.confirm_cost(res, tech_id)
         self.win.save()
-        self.refresh()
+        self.win.refresh()
 
     def set_approach(self, approach_id: str) -> None:
         inquiry.set_approach(self.game.research, approach_id)
         self.win.refresh()
 
     def _clear(self) -> None:
-        self.game.research.current = None
+        res = research_sim.set_aside(self.game)
+        if not res["ok"]:
+            self.win.toast(res["why"], "warn")
+            return
         self.win.refresh()
 
     def _card(self, t) -> Card:

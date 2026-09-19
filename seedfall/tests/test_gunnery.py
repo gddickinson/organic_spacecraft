@@ -17,7 +17,6 @@ exactly nothing to any armoured hull, thirty turns running, while the log said
 
 from __future__ import annotations
 
-import statistics
 
 from ..core.rng import RNG
 from ..core.state import new_game

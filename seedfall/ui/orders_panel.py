@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import QHBoxLayout, QWidget
 
 from ..data.orders import SHOWN
 from ..sim import orders as orders_sim
-from .widgets import Panel, button, label, note, spacer
+from .widgets import Panel, button, label, note
 
 
 def build(view, game) -> Panel:

@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from ..core.util import credits as cr
-from ..core.util import duration, num
+from ..core.util import duration
 from ..data.works import MAX_WORKS, WORKS_BY_ID
 from ..sim import works as works_sim
-from .widgets import Panel, Pill, button, label, mono_label, note, spacer
+from .widgets import Panel, button, label, mono_label, note, spacer
 
 
 def _cost_line(cost: dict) -> str:

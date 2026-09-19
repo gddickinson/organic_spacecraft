@@ -32,25 +32,7 @@ from ..core.state import new_game
 from ..sim import combat, consorts as consort_sim, encounters, flight
 from ..sim import readiness as ready_sim
 from .harness import Suite
-
-
-#: The QApplication, held at module scope on purpose. `_window` builds a
-#: window and returns it, so a `keep = _app()` local inside that helper dies
-#: on return — and if it was the last Python reference, Qt takes the whole
-#: application down with it and every widget in it. The symptom is a
-#: `RuntimeError: wrapped C/C++ object of type QLabel has been deleted` on
-#: the *next* line, which reads like a Qt mystery and is a lifetime bug.
-_HELD = None
-
-
-def _app():
-    from .test_ui import _use_offscreen
-    _use_offscreen()
-    from PyQt6.QtWidgets import QApplication
-    global _HELD
-    _HELD = QApplication.instance() or QApplication([])
-    assert _HELD is not None
-    return _HELD
+from .qtkit import app as _app
 
 
 def _fighting(seed: str = "fight"):

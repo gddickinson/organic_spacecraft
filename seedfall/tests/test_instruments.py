@@ -236,9 +236,11 @@ def run(suite: Suite) -> None:
         # The defect this exists for. A dial paints `now`/`cap` in the middle
         # of the face and `note` along the bottom, so a reading that omits
         # `now` draws "0/0" under a caption saying something else entirely.
+        readings = 0
         for name in DIALS:
             for game in (new_game("dial-fresh"), _battered("dial-worn")):
                 reading = telemetry.read(game, name)
+                readings += 1
                 assert "now" in reading and "cap" in reading, (
                     f"{name} is drawn as a dial and supplies no now/cap — the "
                     f"face would read 0/0 beside {reading.get('note')!r}")
@@ -248,6 +250,7 @@ def run(suite: Suite) -> None:
                     or reading["fraction"] >= 1.0, (
                     f"{name}: needle at {reading['fraction']:.2f} for "
                     f"{reading['now']:.0f}/{reading['cap']:.0f}")
+        assert readings == 2 * len(DIALS) >= 6, readings
         return f"{len(DIALS)} dials, needle and number from the same numbers"
 
     @check("the bands move when the ship is actually in trouble")

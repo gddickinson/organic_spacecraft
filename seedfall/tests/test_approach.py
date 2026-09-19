@@ -61,6 +61,7 @@ def run(suite: Suite) -> None:
 
     @check("every kind of approach states its ask, its price and its refusal")
     def _():
+        assert len(APPROACHES) >= 5, [a.id for a in APPROACHES]
         for action in APPROACHES:
             assert action.opening and action.ask, action.id
             assert action.gives and action.costs, action.id
@@ -97,14 +98,20 @@ def run(suite: Suite) -> None:
         # requisitions could never fire at all; the second found every power
         # short of `wildseed`, which nothing stocks and no captain hauls.
         game = _rich("short")
+        asked = []
         for fid in dip.POWERS:
             found = approach._shortage(game, fid)
             if found is None:
                 continue
             cid, supply = found
+            asked.append(f"{fid} {cid}")
             assert game.ship.cargo.get(cid, 0) >= approach.MIN_REQUISITION, (
                 f"{fid} asked for {cid}, which you are not carrying")
             assert supply <= approach.SHORT_SUPPLY, (cid, supply)
+        # Measured: two of the four powers (charter, freeholds) are short of
+        # silicon in this sector. None at all would leave the loop above
+        # vouching for a reader that never reads anything.
+        assert asked, "no power is short of anything a rich hold carries"
         # And with an empty hold there is nothing to requisition.
         game.ship.cargo.clear()
         for fid in dip.POWERS:

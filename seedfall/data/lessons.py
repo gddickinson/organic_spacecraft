@@ -1,4 +1,4 @@
-"""The tutorial, as a curriculum: ten chapters, twenty-nine things to do.
+"""The tutorial, as a curriculum: ten chapters, thirty things to do.
 
 Not a wall of text and not a script that assumes you complied. Each lesson
 names one thing, and `sim/tutorial.py` watches the game until that thing has
@@ -23,7 +23,10 @@ the hull tables.
 
 from __future__ import annotations
 
+from ..core.util import spelled
+from .factions import THE_POWERS
 from .lesson_types import Chapter, Lesson  # noqa: F401  (re-exported)
+from .lore import VICTORIES
 from .lessons_early import EARLY
 from .lessons_late import LATE
 
@@ -54,10 +57,12 @@ CHAPTERS = [
             "Holdings: the only thing that pays you while you are away.",
             "Plant a colony and read what it yields against what it costs."),
     Chapter("powers", "Powers",
-            "Six powers, two axes of opinion, and what standing buys.",
+            f"{spelled(len(THE_POWERS)).capitalize()} powers, two axes of "
+            "opinion, and what standing buys.",
             "Move a power's opinion of you, and know what it costs elsewhere."),
     Chapter("the-long-game", "The long game",
-            "Yards, refits, contracts, and the five ways this ends.",
+            "Yards, refits, contracts, and the "
+            f"{spelled(len(VICTORIES))} ways this ends.",
             "Design and change a hull, take work, and read the record."),
 ]
 

@@ -71,7 +71,8 @@ def age_of(officer, game=None) -> float:
     born = lineage.prime * share
     try:
         officer.age = born
-    except Exception:                                  # frozen or exotic
+    except AttributeError:
+        # Frozen (`FrozenInstanceError` is one) or slotted without `age`.
         return born
     return born
 
@@ -142,7 +143,7 @@ def tick(game, days: float, rng) -> list:
             gone = int(leaving)
             # The remainder is carried so a slow trickle is not rounded to
             # nothing every tick and then never happens at all.
-            game.crew_leaving = getattr(game, "crew_leaving", 0.0) + \
+            game.crew_leaving = game.crew_leaving + \
                 (leaving - gone)
             if game.crew_leaving >= 1.0:
                 extra = int(game.crew_leaving)
@@ -309,8 +310,12 @@ def sign_on(game, count: int) -> dict:
     ship.crew_spread = max(2.0, read["spread"] * (1 - share)
                            + INTAKE_SPREAD * share)
     game.recompute()
+    # Logged here, where it is done: ₡5,200 for twenty hands left no line.
+    game.add_log(f"{count} hands signed on for {SIGNING_FEE * count:,.0f} "
+                 f"credits. The crew's average age is {ship.crew_age:.0f}, "
+                 f"from {read['mean']:.0f}.", "good")
     return {"ok": True, "count": count, "mean": ship.crew_age,
-            "fresh": fresh, "paid": SIGNING_FEE * count}
+            "was": read["mean"], "fresh": fresh, "paid": SIGNING_FEE * count}
 
 
 def active(officers) -> list:

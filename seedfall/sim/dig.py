@@ -11,10 +11,10 @@ something you can put down.
 
 from __future__ import annotations
 
-import itertools
 from dataclasses import dataclass, field
 
 from ..core.save import register
+from ..core import ids
 from ..data.strata import FINDS, METHODS_BY_ID, SPOILS, STRATA
 from ..data.xenotech import XENOTECH_BY_ID
 from . import inquiry
@@ -23,7 +23,6 @@ from . import xeno as xeno_sim
 from .crew import grant_xp
 from .ship import add_cargo, apply_damage, cargo_free
 
-_uid = itertools.count(1)
 
 
 @register
@@ -79,7 +78,7 @@ def begin(game, body_index: int) -> dict:
     if xeno_sim.is_incorporated(game, tech.id):
         return {"ok": False, "why": "You already understand what is down there."}
 
-    dig = Dig(id=next(_uid), body_index=body_index, body_name=body.name,
+    dig = Dig(id=ids.next_id("dig", game), body_index=body_index, body_name=body.name,
               system_id=game.location_id, tech_id=tech.id)
     say(dig, f"A trench opened on {body.name}. Four strata to the bottom.", "")
     return {"ok": True, "dig": dig}

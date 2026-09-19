@@ -27,6 +27,7 @@ from __future__ import annotations
 from ..data import life3d
 from ..data.lifeforms import FORMS, METABOLISMS
 from .harness import Suite
+from .qtkit import app as _app
 
 SIZE = 150
 
@@ -45,15 +46,6 @@ ALIKE = 0.82
 #: as an artefact. Both defects this caught were far below it — a magnetotactic
 #: organism at **0** and an armoured grazer's silaffin spines at **3**.
 SHOWS = 40
-
-
-def _app():
-    from .test_ui import _use_offscreen
-    _use_offscreen()
-    from PyQt6.QtWidgets import QApplication
-    app = QApplication.instance() or QApplication([])
-    assert app is not None
-    return app
 
 
 def _mask(spec) -> set:
@@ -133,6 +125,9 @@ def run(suite: Suite) -> None:
         for met in METABOLISMS:
             assert met[0] in life3d.LIVERY, f"{met[0]} has no livery"
             seen[met[0]] = _colours(("drifting bell", met[0], ()))
+        # Measured: eight biochemistries. Fewer than two leaves no pair to
+        # compare and the claim is vacuous.
+        assert len(seen) >= 8, sorted(seen)
         for one, other in ((a, b) for i, a in enumerate(seen)
                            for b in list(seen)[i + 1:]):
             shared = len(seen[one] & seen[other]) / len(seen[one] | seen[other])

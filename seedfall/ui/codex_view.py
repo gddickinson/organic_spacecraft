@@ -24,6 +24,8 @@ from ..data import works3d
 from ..data.worlds3d import WORLD_PAINTS
 from ..sim import notes as notes_sim
 from ..sim.traffic import ERRANDS
+from . import kith_codex
+from . import arc_panel
 from .thumb3d import Thumb
 from .widgets import (Card, Panel, Pill, TabBar, View, label, note, spacer)
 
@@ -63,8 +65,10 @@ class CodexView(View):
                        ("machines", "Machines"), ("fittings", "Fittings"),
                        ("sky", "The sky"), ("relics", "Relics"),
                        ("factions", "Powers"), ("life", "Life"),
-                       ("notes", "Field notes"), ("glossary", "Glossary"),
-                       ("about", "About")], self.tab)
+                       ("notes", "Field notes"), ("crew", "The crew"),
+                       ("glossary", "Glossary"), ("about", "About")]
+                      + ([("kith", "The Kith")]
+                         if kith_codex.shown(self.game) else []), self.tab)
         tabs.changed.connect(self._switch)
         self.col.addWidget(tabs)
 
@@ -73,7 +77,9 @@ class CodexView(View):
          "sky": self._sky, "relics": self._relics,
          "factions": self._factions, "life": self._life,
          "notes": self._notes, "glossary": self._glossary,
-         "about": self._about}[self.tab]()
+         "crew": lambda: arc_panel.codex(self),
+         "about": self._about, "kith": lambda: kith_codex.codex(self),
+         }[self.tab]()
 
     def _switch(self, tid: str) -> None:
         self.tab = tid
@@ -139,10 +145,20 @@ class CodexView(View):
         self.col.addWidget(spacer(8))
         self.col.addWidget(label("Stars", "h3", "osteo"))
         self.col.addWidget(note(
-            "Nine classes, and the light every one of them throws is the light "
-            "on your hull."))
+            f"{len(STAR_CLASSES)} classes, and the light every one of them "
+            "throws is the light on your hull."))
         self.grid([self._sky_card("star", key, star.name, star.blurb)
                    for key, star in STAR_CLASSES.items()], cols=3)
+
+        # One entry per region past the rim (`ui/reaches_panel.codex`).
+        from . import reaches_panel
+        self.col.addWidget(spacer(8))
+        self.col.addWidget(label("The Far Reaches", "h3", "xeno"))
+        self.grid([self._sky_card("star", star, name, blurb)
+                   for star, name, blurb in reaches_panel.codex(self.game)],
+                  cols=3)
+        from . import sky_strip          # what the sky does: innovation 7
+        sky_strip.codex(self)
 
         self.col.addWidget(spacer(8))
         self.col.addWidget(label("Traffic", "h3", "steel"))
@@ -349,7 +365,9 @@ class CodexView(View):
     def _factions(self) -> None:
         g = self.game
         for f in FACTIONS:
-            if f.hidden and not g.flags.get("contact_made"):
+            # The Kith are revealed by their own first sighting (`sim/kith`).
+            if f.hidden and not (kith_codex.shown(g) if f.id == "kith"
+                                 else g.flags.get("contact_made")):
                 continue
             rep = g.rep.get(f.id, 0)
             band, tint = standing(rep)

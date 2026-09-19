@@ -25,7 +25,6 @@ pretending to a line of battle the economy cannot pay for.
 
 from __future__ import annotations
 
-from . import diplomacy as dip
 from . import fleets as fleets_sim
 from . import war as war_sim
 

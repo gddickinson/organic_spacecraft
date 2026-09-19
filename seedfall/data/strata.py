@@ -14,7 +14,7 @@ days and may take the find apart on the way out.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)

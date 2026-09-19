@@ -6,7 +6,7 @@ import dataclasses
 from dataclasses import dataclass, field
 
 from ..core.save import register
-from ..data.lifeforms import (ANOMALIES, BEHAVIOURS, BIOMES, FORMS, METABOLISMS,
+from ..data.lifeforms import (ANOMALIES, BEHAVIOURS, FORMS, METABOLISMS,
                               TRAITS, biome_life, biome_name, specimen_value)
 
 #: kind -> (label, tint, landable)
@@ -68,6 +68,20 @@ class Body:
     relic: str | None = None      # xenotech id buried here
     relic_found: bool = False
     digs: int = 0                 # how often it has been worked
+    #: The best look anybody of yours has had, 0..1 — what a second survey
+    #: has to beat before the chart it makes is worth anything new.
+    survey_q: float = 0.0
+    #: The day it was last surveyed, or -1. What a survey commission counts
+    #: against the day it was taken (`contracts.check`).
+    surveyed_on: int = -1
+    #: A rogue: a world with no star-lit face at all. Only the Hollow grows
+    #: them (`world/regions._make_over`); a grown hull's intima makes no air
+    #: alongside one (`sim/regions.lit`).
+    sunless: bool = False
+    #: A comet or a rogue passing through (innovation 7, `sim/phenomena`):
+    #: the day it leaves, or None for a body that stays. Always the last in
+    #: its system's list, and nothing permanent may be put on it.
+    transient_until: int | None = None
 
     @property
     def kind_name(self) -> str:
@@ -238,7 +252,15 @@ def _dead_biome(kind: str) -> str:
     return {"gas": "aerial", "comet": "cryo", "ice": "cryo"}.get(kind, "barren")
 
 
-def survey_body(body: Body, quality: float, rng, finds=None) -> dict:
+#: How much sharper a second look has to be before it counts as seeing more.
+#: Under this the chart is the one already made, and a survey set of it is a
+#: copy. Sensor fittings step `scan` by about 0.05-0.15, so an upgrade clears
+#: it and a repeat never does.
+SHARPER_BY = 0.05
+
+
+def survey_body(body: Body, quality: float, rng, finds=None,
+                day: int | None = None) -> dict:
     """Survey quality 0..1 decides how much of a body you actually learn.
 
     `finds` is what the method being used can detect at all — see
@@ -246,12 +268,25 @@ def survey_body(body: Body, quality: float, rng, finds=None) -> dict:
     anything that moves; only a deep survey reliably reaches what is buried.
     Left as None, everything is detectable, which is what a close pass does
     and what this did before there was a choice.
+
+    **A body already charted pays only for what is new.** Every look paid
+    `(1 + lifeforms) * (0.6 + quality)` sets and `8 + quality * 22` research
+    whatever had been seen before, so sweeping the same rock daily was the
+    best job in the game: one day and one set, about 580 credits, measured at
+    415-586 a day and 447k-643k over three years against 49k-110k for an
+    honest explorer, and the whole research tree by about day 1,710. A second
+    look now pays for new finds, plus the base chart pro rata to how much
+    sharper it saw — nothing at all for the same look twice.
     """
     can = set(finds if finds is not None else
               ("resources", "lifeforms", "anomaly", "relic"))
     found = {"new_body": not body.surveyed, "lifeforms": [], "anomaly": None,
              "data": 0, "research": 0, "relic": None}
+    seen = getattr(body, "survey_q", 0.0) if body.surveyed else 0.0
     body.surveyed = True
+    body.survey_q = max(seen, quality)
+    if day is not None:
+        body.surveyed_on = day
 
     # Buried alien work is easy to walk past and hard to miss twice.
     if "relic" in can and body.relic and not body.relic_found \
@@ -279,8 +314,16 @@ def survey_body(body: Body, quality: float, rng, finds=None) -> dict:
         found["anomaly"] = body.anomaly
         found["research"] += body.anomaly.research
 
-    found["data"] = round((1 + len(found["lifeforms"])) * (0.6 + quality))
-    found["research"] += round(8 + quality * 22)
+    # The base chart, pro rata to what this look saw that the last did not.
+    gain = quality - seen
+    share = 1.0 if found["new_body"] else (
+        min(1.0, gain / max(quality, 1e-9)) if gain >= SHARPER_BY else 0.0)
+    finds_n = len(found["lifeforms"]) + (0 if found["new_body"] else
+                                         bool(found["relic"])
+                                         + bool(found["anomaly"]))
+    found["data"] = round((share + finds_n) * (0.6 + quality))
+    found["research"] += round((8 + quality * 22) * share)
+    found["sharper"] = round(max(0.0, gain), 3)
     return found
 
 

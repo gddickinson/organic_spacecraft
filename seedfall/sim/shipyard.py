@@ -8,18 +8,17 @@ entire reason anyone builds one.
 
 from __future__ import annotations
 
-import itertools
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from ..core.save import register
+from ..core import ids
 from ..data.chassis import (BUILD_NEED, CHASSIS_BY_ID, Chassis,
                             accepts_family)
 from ..data.colonies import COLONIES_BY_ID
 from ..data.parts import material_value, part, part_value
-from . import colony
+from . import colony, stores
 from .ship import Ship, build_layers, make_ship, stats
 
-_uid = itertools.count(1)
 
 
 @register
@@ -108,28 +107,8 @@ def build_days(chassis: Chassis, game, system_id: int) -> int:
 
 def affordable(game, cost: dict) -> tuple[bool, list[tuple[str, float, float]]]:
     """Do we have the money and the matter? Hold and depot both count."""
-    missing = []
-    for key, n in cost.items():
-        have = (game.credits if key == "credits"
-                else game.stores.get(key, 0) + game.ship.cargo.get(key, 0))
-        if have < n:
-            missing.append((key, n, int(have)))
+    missing = [(key, n, int(have)) for key, n, have in stores.lacking(game, cost)]
     return (not missing), missing
-
-
-def pay(game, cost: dict) -> None:
-    for key, n in cost.items():
-        if key == "credits":
-            game.credits -= n
-            continue
-        owed = n
-        from_store = min(game.stores.get(key, 0), owed)
-        game.stores[key] = game.stores.get(key, 0) - from_store
-        owed -= from_store
-        if owed > 0:
-            game.ship.cargo[key] = game.ship.cargo.get(key, 0) - owed
-            if game.ship.cargo[key] <= 0.0001:
-                game.ship.cargo.pop(key, None)
 
 
 _BUILD_REFUSAL = {
@@ -154,7 +133,8 @@ def can_build_here(game, system, chassis: Chassis) -> tuple[bool, str]:
                    for c in game.colonies)
 
     if need == "xenoyard":
-        if colony_offers("xenoyard"):
+        from . import kith          # a Kith hull, grown at a gathering
+        if colony_offers("xenoyard") or kith.grows(game, system, chassis):
             return True, ""
         return False, _BUILD_REFUSAL["xenoyard"]
     if need in services or colony_offers("build_here"):
@@ -172,17 +152,31 @@ def start_build(game, chassis_id: str, fitted, system, name: str | None = None):
         return None, why
     if chassis.tech and chassis.tech not in game.research.unlocked:
         return None, "That hull is not yet researched."
+    # **A cradle is seed going in the ground.** `colony.found` asked the
+    # licence and this did not, so a captain whose licence had been
+    # suspended — "no settlement, no lineage, until it is restored", in the
+    # forum's own words — could still lay down grown hulls, and Lineage is
+    # four of them. Welded hulls are not seed and are not asked.
+    if BUILD_NEED.get(chassis.family) == "gestation":
+        from . import enforce as enforce_sim
+        licensed, refusal = enforce_sim.may_seed(game)
+        if not licensed:
+            return None, refusal
     cost = cost_of(chassis, fitted, colony.fabricating(game, system.id))
     can, missing = affordable(game, cost)
     if not can:
         key, need, have = missing[0]
         return None, f"Short of {key}: need {need:g}, have {have}."
 
-    pay(game, cost)
-    job = BuildJob(id=next(_uid), chassis_id=chassis_id, fitted=list(fitted),
+    stores.spend(game, cost)
+    job = BuildJob(id=ids.next_id("build", game), chassis_id=chassis_id, fitted=list(fitted),
                    name=name or chassis.name, system_id=system.id,
                    system_name=system.name, need=build_days(chassis, game, system.id))
     game.building.append(job)
+    # The chronicle hears it from the act, not from the yard screen that
+    # happened to press it (`ui/yard_view` wrote this line itself).
+    game.add_log(f"{job.name} laid down at {job.system_name}. "
+                 f"Ready in {job.need} days.", "good")
     return job, ""
 
 
@@ -201,6 +195,7 @@ def tick_builds(game, days: float) -> list[Ship]:
         ship = make_ship(job.chassis_id, job.fitted, job.name)
         build_layers(ship, game.bonuses)
         ship.docked_at = job.system_id
+        ship.launched_on = game.day
         game.fleet.append(ship)
         launched.append(ship)
     return launched
@@ -278,7 +273,7 @@ def apply_refit(game, ship: Ship, new_fitted) -> tuple[bool, str]:
     if not can:
         key, need, have = missing[0]
         return False, f"Short of {key}: need {need:g}, have {have}."
-    pay(game, cost)
+    stores.spend(game, cost)
 
     fractions = [l.hp / l.max if l.max else 1 for l in ship.layers]
     ship.fitted = list(new_fitted)
@@ -287,6 +282,7 @@ def apply_refit(game, ship: Ship, new_fitted) -> tuple[bool, str]:
     for i, L in enumerate(ship.layers):
         if i < len(fractions):
             L.hp = round(L.max * fractions[i])
+    game.add_log("Refit complete.", "good")
     return True, ""
 
 
@@ -321,6 +317,8 @@ def scrap(game, ship) -> dict:
     """Break a hull up for what it is worth. Was done from the yard screen."""
     if ship is game.ship:
         return {"ok": False, "why": "You are standing in it."}
+    if getattr(ship, "line_id", None) is not None:
+        return {"ok": False, "why": f"{ship.name} is working a freight line."}
     value = scrap_value(ship)
     game.credits += value
     game.fleet = [s for s in game.fleet if s is not ship]

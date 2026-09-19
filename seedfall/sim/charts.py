@@ -17,7 +17,6 @@ from __future__ import annotations
 from ..data.charts import (APPETITES, APPETITES_BY_FACTION, FRESH_DAYS,
                            KNOWN_WORTH, PRIZED, STALE_FLOOR, WORTH)
 from ..data.factions import FACTIONS_BY_ID
-from ..world.galaxy import distance
 from . import memory as memory_sim
 
 #: Resources a buyer is actually paying to hear about.
@@ -54,7 +53,9 @@ def _reach(game, system, faction: str | None) -> float:
               or (s.port and s.port.faction == faction)]
     if not theirs:
         return 0.0
-    return min(distance(system, s) for s in theirs)
+    # Through the gates: the Reaches are far, and exactly as far as the road.
+    from ..world.regions import span
+    return min(span(game.galaxy, system, s) for s in theirs)
 
 
 def _made(game) -> dict:

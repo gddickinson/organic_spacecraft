@@ -12,14 +12,16 @@ from ..data.commodities import BY_ID
 from ..data.lore import VICTORIES
 from ..data.bloom import HEART_HP
 from ..sim import threat as threat_sim
-from ..sim.threat import victory_progress
 from ..sim import bloom as bloom_sim
 from ..sim.actions import launch_exodus
-from .widgets import Panel, Pill, View, button, label, mono_label, note, spacer
+from .widgets import (Panel, TabBar, View, button, label, mono_label, note,
+                      spacer)
 
 
 class EmpireView(View):
     focus: int | None = None
+    #: Which tab: the holdings themselves, or the trading house.
+    tab: str = "holdings"
 
     def begin_work(self, col, work_id: str) -> None:
         res = works_sim.begin(self.game, col, work_id)
@@ -49,6 +51,8 @@ class EmpireView(View):
         self.head("Holdings",
                   f"{len(online)} colonies online · {len(g.colonies) - len(online)} "
                   f"gestating · {num(pop)} citizens")
+        if self._tabs():
+            return
 
         self.buttons(
             button("Wait 30 days", lambda: self._wait(30)),
@@ -59,12 +63,31 @@ class EmpireView(View):
         ark = self._exodus()
         if ark is not None:
             self.col.addWidget(ark)
-        self.row(self._colonies(), self._victories())
+        self.row(self._colonies(), self._bloom())
         focused = next((c for c in g.colonies
                         if c.id == self.focus and c.online), None)
         if focused is not None:
             self.col.addWidget(works_panel.build(self, g, focused))
         self.col.addWidget(self._depot())
+
+    def _tabs(self) -> bool:
+        """The tab bar; True when a tab other than the holdings drew itself.
+        The trading house is `ui/house_panel.py` (innovation 5); the Voyage,
+        where the ending bars used to be, is `ui/voyage_panel.py` (9)."""
+        from . import house_panel, voyage_panel
+        bar = TabBar([("holdings", "Holdings"), ("house", "Trading house"),
+                      ("voyage", "Voyage")], self.tab)
+        bar.changed.connect(self._switch)
+        self.col.addWidget(bar)
+        if self.tab == "house":
+            house_panel.build(self)
+        elif self.tab == "voyage":
+            voyage_panel.build(self)
+        return self.tab != "holdings"
+
+    def _switch(self, tid: str) -> None:
+        self.tab = tid
+        self.refresh()
 
     def _wait(self, days: int, ignoring=()) -> None:
         """Sit still, and be told what happened while you did.
@@ -201,27 +224,14 @@ class EmpireView(View):
             p.add_row(BY_ID[cid].name if cid in BY_ID else cid, f"{round(n)} t")
         return p
 
-    def _victories(self) -> Panel:
+    def _bloom(self) -> Panel:
+        """The Bloom census. The ending bars that shared this panel are the
+        Voyage tab's ladders now (`ui/voyage_panel`)."""
         g = self.game
-        # Fogged for display; the achieved flag inside is still
-        # decided by what is true. See `threat.victory_progress`.
-        progress = victory_progress(g, seen_only=True)
-        p = Panel("Ways this ends")
-        # Counted, not stated: it said "five" from the day there were five,
-        # and there have been ten for some time.
-        p.add(note(f"{len(VICTORIES)} of them. You do not have to pick one "
-                   "now, and nothing stops you from working two at once."))
-
-        for vid, name, tint, goal, blurb in VICTORIES:
-            have, need, done = progress[vid]
-            p.add(spacer(5))
-            row_label = label(name, "h3", tint)
-            p.add(row_label)
-            if done:
-                p.add(Pill("achieved", "chloro"))
-            p.add(note(goal))
-            p.add_bar(have / need if need else 0, tint)
-            p.add_row(blurb[:70] + "…", f"{num(have)}/{num(need)}")
+        p = Panel("The Bloom")
+        p.add(note(f"{len(VICTORIES)} ways this ends, each a ladder on the "
+                   "Voyage tab. This one is the clock under all of them."))
+        p.add_buttons(button("The Voyage", lambda: self._switch("voyage")))
 
         # **What you have looked at, not what is there.** This counted every
         # infested system in the sector and printed the sector-wide burden —
@@ -230,7 +240,7 @@ class EmpireView(View):
         # census is what is *known* now, and it says how much is unlooked-at
         # rather than quietly folding it in.
         known = threat_sim.known_bloom(g)
-        total = max(1, len(g.galaxy.systems))
+        total = max(1, known["total"])      # the Verge's, as the census is
         st = bloom_sim.summary(g)
         stage = st["stage"]
         p.add(spacer(6))

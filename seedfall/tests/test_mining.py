@@ -25,7 +25,7 @@ from ..core.state import new_game
 from ..data.mining import METHODS, METHODS_BY_ID
 from ..sim import mining
 from ..sim.actions import extract
-from ..sim.ship import cargo_free, hull_pct
+from ..sim.ship import hull_pct
 from .harness import Suite
 
 

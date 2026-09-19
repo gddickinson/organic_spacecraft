@@ -146,6 +146,9 @@ def run(suite: Suite) -> None:
         assert len(drawn) > 60, len(drawn)
         # The profile has to be monotone into the shadow and cover the range
         # the law covers — a flat band is a facet however smooth it looks.
+        # (Imported for the message: it used to name `render3d` without
+        # importing it, so the one moment this failed it raised NameError.)
+        from ..ui import render3d
         span = max(drawn) - min(drawn)
         assert span > 90, (
             f"the lit face spans {span:.0f} levels; the law runs from "

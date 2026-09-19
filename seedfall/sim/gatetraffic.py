@@ -40,7 +40,11 @@ def demand(game, system_id: int) -> float:
     from . import traffic as traffic_sim
     try:
         hulls = len(traffic_sim.in_system(game, system))
-    except Exception:                                          # noqa: BLE001
+    except LookupError:
+        hulls = 0
+    except Exception as err:                                   # noqa: BLE001
+        from ..core.guard import swallowed
+        swallowed("gatetraffic counting hulls", err)
         hulls = 0
     return (rings.DEMAND_BASE + level * rings.DEMAND_PER_LEVEL
             + hulls * rings.DEMAND_PER_HULL)

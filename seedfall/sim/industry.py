@@ -304,12 +304,14 @@ def licence(game, process, power: str) -> dict:
             game.adjust_rep(other, ILLICIT_COST if other != power else 0.0)
 
     short = FACTIONS_BY_ID[power].short
+    text = (f"{short} has the {process.name} licence, and "
+            f"{len(exchequer.holdings(game, power))} berth(s) to run "
+            f"it at. Paid {price:,}.")
+    # Logged here, not by the screen that pressed it — the act says itself.
+    game.add_log(text, "good")
     return {"ok": True, "price": price, "power": power,
             "berths": len(exchequer.holdings(game, power)),
-            "brought": sorted(set(brought)),
-            "text": (f"{short} has the {process.name} licence, and "
-                     f"{len(exchequer.holdings(game, power))} berth(s) to run "
-                     f"it at. Paid {price:,}.")}
+            "brought": sorted(set(brought)), "text": text}
 
 
 # ── what the screens read ──────────────────────────────────────────────────

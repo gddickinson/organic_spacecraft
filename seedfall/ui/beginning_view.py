@@ -17,11 +17,10 @@ from PyQt6.QtWidgets import (QDialog, QHBoxLayout, QLineEdit, QScrollArea,
                              QVBoxLayout, QWidget)
 
 from ..core.util import credits as cr
-from ..data.beginnings import (CREW_CHOICES, ORIGINS, POSTINGS,
+from ..data.beginnings import (CREW_CHOICES, POSTINGS,
                                STOCKS)
 from ..data.factions import FACTIONS_BY_ID
 from ..sim import beginning as beginning_sim
-from . import theme
 from ..sim.crew import CREW_ROLES
 from .widgets import (Card, Panel, button, label, mono_label,
                       note, spacer)

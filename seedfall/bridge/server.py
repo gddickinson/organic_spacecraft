@@ -4,7 +4,9 @@ Deliberately small and deliberately local:
 
 - it binds **127.0.0.1 only**, never a routable address;
 - it requires a token, minted per session and printed once at start;
-- it speaks one JSON object per line, and answers one per line;
+- it speaks one JSON object per line, and answers one per line — and a line
+  is at most `checks.MAX_LINE` bytes, where it was as long as the sender
+  liked and read whole into memory before anything looked at it;
 - it holds the `Game` on its own thread and serialises every command, so two
   seats cannot interleave halfway through a jump.
 
@@ -20,7 +22,14 @@ import secrets
 import socket
 import threading
 
+from .checks import MAX_LINE
 from .protocol import describe, dispatch, snapshot
+
+
+def _no_constant(name: str):
+    """`json.loads` reads `NaN` and `Infinity` as numbers unless told not to,
+    and a `NaN` that is let in is a `NaN` in the purse. Refused at parse."""
+    raise ValueError(f"{name} is not a number JSON allows")
 
 HOST = "127.0.0.1"
 #: 0 asks the OS for a free port, which is what you want by default.
@@ -74,11 +83,38 @@ class Bridge:
                              daemon=True).start()
 
     def _talk(self, conn) -> None:
+        # A caller that resets mid-conversation used to raise out of this
+        # thread (on the buffered stream's flush at close) as an uncaught
+        # exception. The far end going away ends the conversation, quietly.
+        try:
+            self._converse(conn)
+        except OSError:
+            pass
+
+    def _converse(self, conn) -> None:
         with conn, conn.makefile("rwb") as stream:
-            for raw in stream:
-                if not self.running:
+            while self.running:
+                try:
+                    raw = stream.readline(MAX_LINE + 1)
+                except (OSError, ValueError):
                     return
-                reply = self.handle_line(raw.decode("utf-8", "replace"))
+                # Asked again after the read, not only before it: a line that
+                # was already blocked in `readline` when the bridge stopped
+                # would otherwise be served — one command past the stop.
+                if not raw or not self.running:
+                    return
+                if len(raw) > MAX_LINE and not raw.endswith(b"\n"):
+                    # Read the rest of the line and throw it away, a bounded
+                    # chunk at a time, so the next line is a command again.
+                    # Hanging up instead would close a socket with unread
+                    # bytes in it, which is a reset — and a reset can take
+                    # the refusal down with it before the caller reads it.
+                    if not self._skip_line(stream):
+                        return
+                    reply = {"ok": False,
+                             "why": f"A line is at most {MAX_LINE:,} bytes."}
+                else:
+                    reply = self.handle_line(raw.decode("utf-8", "replace"))
                 try:
                     body = json.dumps(reply)
                 except (TypeError, ValueError) as err:
@@ -96,21 +132,40 @@ class Bridge:
                 if reply.get("closed"):
                     return
 
+    @staticmethod
+    def _skip_line(stream) -> bool:
+        """Discard up to the end of the current line. False at end of file."""
+        while True:
+            try:
+                chunk = stream.readline(MAX_LINE + 1)
+            except (OSError, ValueError):
+                return False
+            if not chunk:
+                return False
+            if chunk.endswith(b"\n"):
+                return True
+
     def handle_line(self, line: str) -> dict:
         """One line in, one reply out. Exposed so the suite can skip sockets."""
+        if len(line.rstrip("\r\n")) > MAX_LINE:
+            return {"ok": False, "why": f"A line is at most {MAX_LINE:,} bytes."}
         line = line.strip()
         if not line:
             return {"ok": False, "why": "Empty."}
         try:
-            command = json.loads(line)
-        except json.JSONDecodeError as err:
+            command = json.loads(line, parse_constant=_no_constant)
+        except (ValueError, RecursionError) as err:
+            # `JSONDecodeError` is a `ValueError`; so is a refused NaN. A
+            # line of 60,000 open brackets is a `RecursionError`.
             return {"ok": False, "why": f"Not JSON: {err}"}
         return self.handle(command)
 
     def handle(self, command: dict) -> dict:
         if not isinstance(command, dict):
             return {"ok": False, "why": "A command is an object."}
-        if command.get("token") != self.token:
+        token = command.get("token")
+        if not isinstance(token, str) or not secrets.compare_digest(
+                token.encode(), self.token.encode()):
             return {"ok": False, "why": "Bad or missing token."}
 
         verb = command.get("verb")
@@ -137,13 +192,15 @@ class Bridge:
         stepping away survivable.
         """
         args = command.get("args") or {}
-        name = str(args.get("name") or "").strip()
+        if not isinstance(args, dict):
+            return {"ok": False, "why": "args is an object of named arguments."}
+        name = str(args.get("name") or "").strip()[:80]
         if not name:
             return {"ok": True, "seats": self.seats}
         if args.get("release"):
             self.seats.pop(name, None)
             return {"ok": True, "released": name, "seats": self.seats}
-        self.seats[name] = {"held_by": str(args.get("by") or "agent"),
+        self.seats[name] = {"held_by": str(args.get("by") or "agent")[:80],
                             "since": self.game.day}
         return {"ok": True, "claimed": name, "seats": self.seats}
 

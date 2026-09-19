@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from ..core.rng import RNG
 from ..core.state import new_game
-from ..data.dormancy import METHODS, METHODS_BY_ID, MIN_WATCH
+from ..data.dormancy import METHODS, METHODS_BY_ID
 from ..sim import dormancy, lifespan, upkeep
 from .harness import Suite
 
@@ -33,6 +33,9 @@ def run(suite: Suite) -> None:
 
     @check("every way of sleeping states what it saves, risks and costs")
     def _():
+        # The watch plus at least one way of sleeping, or there is no trade.
+        assert any(m.id == "watch" for m in METHODS), "no watch to stand"
+        assert sum(m.id != "watch" for m in METHODS) >= 1, "no way to sleep"
         for method in METHODS:
             assert method.blurb and method.gives and method.costs, method.id
             assert 0.0 <= method.ageing <= 1.0, method.id

@@ -1,6 +1,6 @@
 """The Academy: the whole curriculum, and a way into any part of it.
 
-The tutorial is twenty-nine lessons in ten courses, and a curriculum you can
+The tutorial is thirty lessons in ten courses, and a curriculum you can
 only take from the beginning is one most players abandon at lesson three. This
 is the page that makes it a *menu*: every chapter, what it teaches, how much
 of it you have done, and a button that starts the tutorial there.
@@ -27,8 +27,10 @@ def build(view) -> None:
     total = sum(r["of"] for r in rows)
 
     head = Panel("The Academy")
+    # Counted, not written: the words said twenty-nine over a count of 30.
     head.add(note(
-        "Twenty-nine things to do, in ten short courses. Every one is watched "
+        f"{total} things to do, in {len(rows)} short courses. Every one is "
+        "watched "
         "in the world rather than taken on trust: a lesson finishes when you "
         "have actually done the thing, and it will wait as long as you like. "
         "Nothing here is a cage — the tutorial never blocks a screen, and you "
@@ -57,8 +59,10 @@ def build(view) -> None:
             got = index < row["done"]
             here = row["here"] and index == row["done"]
             mark = "✓" if got else ("▶" if here else "·")
-            panel.add_row(f"{mark}  {lesson.title}", lesson.ask,
-                          "chloro" if got else ("lumen" if here else ""))
+            # Stacked: a row of these was each whole instruction wide, and
+            # at 1360×880 the page scrolled sideways (play-test, 2026-09-18).
+            panel.add_stacked(f"{mark}  {lesson.title}", lesson.ask,
+                              "chloro" if got else ("lumen" if here else ""))
         panel.add_buttons(button(
             "Teach me this" if not row["here"] else "Back to this one",
             lambda _=False, cid=chapter.id: _jump(view, cid), kind="flat"))

@@ -3,16 +3,16 @@ ship's log. Also the host for dialogs and the combat hand-off."""
 
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import (QFrame, QHBoxLayout, QMainWindow,
                              QVBoxLayout, QWidget)
 
-from ..core.util import stardate
 from ..data.screens import KEY_FOR, NAV as SCREENS_NAV
 from ..data.lore import TITLE
+from ..sim.approach import holds as envoy_holds
 from . import flight_clock, theme, window_dialogs
-from .widgets import (button, label, mono_label,
-                      hrule)
+from . import soundmap
+from .widgets import button, hrule, label
 
 #: The rail, and the key for each screen, from `data/screens.py` — which
 #: `sim/manual.py` also reads, so the Keys page cannot drift from the rail.
@@ -111,9 +111,9 @@ class MainWindow(QMainWindow):
 
     def begin_again(self) -> None:
         if not self.confirm("Begin again",
-                            "This chronicle is abandoned and another opens in "
-                            "its place. There is one save and this overwrites "
-                            "it."):
+                            "This chronicle is set aside and another opens "
+                            "over the save in play. Keep it as a slot first "
+                            "(Save as…) if you want to come back to it."):
             return
         # No `clear_save()` here: the title dialog's own buttons clear it at
         # the moment a new game actually exists. Clearing first meant that
@@ -139,8 +139,14 @@ class MainWindow(QMainWindow):
         self.go("help")
 
     def instruments(self) -> None:
+        # Shown, not `exec()`ed: it lives on the menu now (`ui/menubar.py`),
+        # and a modal loop there stopped the game — and the check that fires
+        # every menu action — until somebody pressed Done. Freed on close.
+        from PyQt6.QtCore import Qt
         from .monitors import chooser
-        chooser(self).exec()
+        dlg = chooser(self)
+        dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        dlg.show()
 
     def _build_nav(self) -> QWidget:
         rail = QWidget()
@@ -156,39 +162,29 @@ class MainWindow(QMainWindow):
             # 0 for the rest" meant the tenth and eleventh screens both bound
             # 0, and the Aftermath had no key of its own at all.
             key = KEY_FOR.get(vid, "")
-            if key:
-                b.setShortcut(key)
+            # The Screens menu owns the key: bound here too, Qt fired neither
+            # ("Ambiguous shortcut overload") and all fifteen keys were dead.
             b.setToolTip(f"Shortcut: {key}" if key else "")
             b.clicked.connect(lambda _=False, v_=vid: self.go(v_))
             self.nav_buttons[vid] = b
             v.addWidget(b)
         v.addStretch(1)
-        v.addWidget(label("  every screen has a key — see Help", "note"))
+        # Wrapped: on one line the 158 px rail cut it to "see He".
+        hint = label("every screen has a key — see Help", "note", wrap=True)
+        hint.setContentsMargins(10, 0, 8, 0)
+        v.addWidget(hint)
         return rail
 
     def _build_log(self) -> QWidget:
-        panel = QWidget()
-        panel.setFixedWidth(300)
-        v = QVBoxLayout(panel)
-        v.setContentsMargins(0, 0, 0, 0)
-        v.setSpacing(0)
-        cap = mono_label("  Ship's Log")
-        cap.setContentsMargins(12, 12, 12, 8)
-        v.addWidget(cap)
-        v.addWidget(hrule())
+        from . import log_panel
+        return log_panel.build(self)
 
-        from PyQt6.QtWidgets import QScrollArea
-        self.log_area = QScrollArea()
-        self.log_area.setWidgetResizable(True)
-        self.log_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.log_inner = QWidget()
-        self.log_col = QVBoxLayout(self.log_inner)
-        self.log_col.setContentsMargins(12, 8, 12, 20)
-        self.log_col.setSpacing(6)
-        self.log_col.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.log_area.setWidget(self.log_inner)
-        v.addWidget(self.log_area, 1)
-        return panel
+    def resizeEvent(self, ev) -> None:           # noqa: N802
+        # The log folds below `log_panel.FOLD_BELOW`, so a narrow window
+        # gives its width to the screen rather than to the sidebar.
+        super().resizeEvent(ev)
+        from . import log_panel
+        log_panel.fit(self, ev.size().width())
 
     def _make_views(self) -> None:
         from .battle_view import BattleView
@@ -273,8 +269,7 @@ class MainWindow(QMainWindow):
             self.toast("A power is waiting on an answer about your holding.",
                        "warn")
             view_id = "demand"
-        elif self.envoy is not None and not self.envoy.over \
-                and view_id not in ("envoy", "battle"):
+        elif envoy_holds(self.game) and view_id not in ("envoy", "battle"):
             self.toast("There is an envoy waiting on an answer.", "warn")
             view_id = "envoy"
         elif self.situation is not None and not self.situation.over \
@@ -330,6 +325,7 @@ class MainWindow(QMainWindow):
         for vid, b in self.nav_buttons.items():
             b.setChecked(vid == view_id)
         self.refresh()
+        soundmap.screen(self)
 
     def refresh(self) -> None:
         """Redraw the status bar, the log and the active screen."""
@@ -408,44 +404,9 @@ class MainWindow(QMainWindow):
         refresh(self)
 
     def _refresh_log(self) -> None:
-        while self.log_col.count():
-            item = self.log_col.takeAt(0)
-            w = item.widget()
-            if w is not None:
-                w.setParent(None)
-        for day, text, kind in reversed(self.game.log[-60:]):
-            entry = QWidget()
-            v = QVBoxLayout(entry)
-            v.setContentsMargins(0, 0, 0, 0)
-            v.setSpacing(1)
-            v.addWidget(mono_label(stardate(day)))
-            lb = label(text, "", kind if kind in theme.TINTS else "", wrap=True)
-            lb.setStyleSheet(
-                f"color: {theme.tint(kind) if kind in theme.TINTS else theme.INK2};"
-                "font-size: 12.5px;")
-            v.addWidget(lb)
-            self.log_col.addWidget(entry)
-        # **Tell the scroll area its contents changed size.** The same fault
-        # `widgets.View._sync_scroll` exists for, in the one panel that fix
-        # never reached: a column of wrapping labels rebuilt inside a scroll
-        # area does not update the inner widget's minimum, so once the log
-        # held more than a screenful every entry was squeezed into a few
-        # pixels and the whole sidebar — the game's only notification
-        # channel — became an unreadable smear. Found by playing to day 569.
-        self.log_col.invalidate()
-        self.log_col.activate()
-        self.log_inner.setMinimumHeight(self.log_col.minimumSize().height())
-        QTimer.singleShot(0, self._settle_log)
-
-    def _settle_log(self) -> None:
-        """The true minimum is not known until the new labels are polished."""
-        try:
-            self.log_col.activate()
-        except RuntimeError:
-            return          # the window went down before the loop came back
-        need = self.log_col.minimumSize().height()
-        if need != self.log_inner.minimumHeight():
-            self.log_inner.setMinimumHeight(need)
+        # Incremental: only entries logged since the last refresh are drawn.
+        from . import log_panel
+        log_panel.refresh(self)
 
     # ── dialogs ────────────────────────────────────────────────────────────
     # `ui/window_dialogs.py`, bound as methods like the flight clock's.
@@ -471,6 +432,7 @@ class MainWindow(QMainWindow):
         # no view to ask, so the setting is pushed to the widget module rather
         # than threaded through all of them. See `widgets.HINTS`.
         widgets.HINTS = bool(options_sim.get(self.game, "hints"))
+        soundmap.configure(self)
 
     # ── combat ─────────────────────────────────────────────────────────────
 

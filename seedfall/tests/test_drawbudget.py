@@ -31,22 +31,13 @@ The claims:
 from __future__ import annotations
 
 import math
-import time
 
 from ..core.state import new_game
 from ..sim import conn as conn_sim
 from ..sim import flight
 from ..sim import track as track_sim
 from .harness import Suite
-
-
-def _app():
-    from .test_ui import _use_offscreen
-    _use_offscreen()
-    from PyQt6.QtWidgets import QApplication
-    app = QApplication.instance() or QApplication([])
-    assert app is not None
-    return app
+from .qtkit import app as _app
 
 
 def _approach(kind: str = "anchorage", range_km: float | None = 1.4,

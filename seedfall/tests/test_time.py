@@ -159,6 +159,14 @@ def run(suite: Suite) -> None:
         start_level = who.level
         epochs = 0
         for _ in range(40):
+            # **And the harbours are kept open.** Since the Bloom's pace went
+            # steady (`threat.THROW_RATE`) this sector drowns in its eighth
+            # year, and a lost chronicle stops the clock a year before the
+            # retirement this check waits for. The career is the subject
+            # here; the pace is `test_sim`'s and `test_exploits`'s.
+            for system in game.galaxy.systems:
+                if system.port:
+                    system.bloom = min(system.bloom, 0.4)
             game.advance_days(365)
             if getattr(who, "retired", False):
                 break

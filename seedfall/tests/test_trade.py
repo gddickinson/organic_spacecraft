@@ -31,6 +31,7 @@ def run(suite: Suite) -> None:
     def _():
         # A stray brace in one of these would crash the port screen the first
         # time that shock landed, months into somebody's game.
+        assert len(SHOCKS) >= 7, f"only {len(SHOCKS)} shocks"      # measured: 7
         for kind in SHOCKS:
             assert kind.goods or kind.supply != 1.0, f"{kind.id} does nothing"
             shock = Shock(id=1, kind=kind.id, system_id=0,

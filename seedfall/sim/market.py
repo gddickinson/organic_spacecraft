@@ -8,17 +8,17 @@ what you saw, and what you wrote down goes stale.
 
 from __future__ import annotations
 
-import itertools
 from dataclasses import dataclass, field
 
 from ..core.save import register as save_register
+from ..core import ids
 from ..data.commodities import BY_ID, COMMODITIES
 from ..data.officials import QUIET_SHARE
 from ..data.shocks import (MAX_PER_SYSTEM, ONSET_PER_MONTH, SHOCKS,
                            SHOCKS_BY_ID, STALE_DAYS)
 from ..world.economy import buy_price, sell_price
+from . import phenomena_bodies as sky_bodies     # a comet's glut, derived
 
-_uid = itertools.count(1)
 
 
 @save_register
@@ -48,6 +48,29 @@ class Quote:
     day: int
     buy: dict = field(default_factory=dict)
     sell: dict = field(default_factory=dict)
+    #: Goods whose price was moved by a shock when this was written, and the
+    #: day that shock ends — so the register knows a shortage price from a
+    #: price. See `SHOCK_SPENT`.
+    shocked: dict = field(default_factory=dict)
+
+
+#: What a price written down during a shock is still worth once the shock is
+#: over, as a share of what its age alone would say.
+#:
+#: The register dated a quote and nothing else, so a port paying double for
+#: alloy through a blight read as a 0.94-confidence run for weeks after the
+#: blight lifted and the price fell back — one scripted career lost 12,000
+#: credits on exactly that. A quarter keeps the port on the list, because it
+#: still buys, and takes it off the top.
+SHOCK_SPENT = 0.25
+
+
+def shock_discount(game, until: int | None, by_day: int | None = None) -> float:
+    """What a shock-marked quote is worth on `by_day` (default today)."""
+    if until is None:
+        return 1.0
+    return SHOCK_SPENT if until <= (game.day if by_day is None else by_day) \
+        else 1.0
 
 
 # ── shocks ─────────────────────────────────────────────────────────────────
@@ -65,7 +88,7 @@ def at(game, system_id: int) -> list:
 def factor(game, system_id: int, cid: str) -> float:
     """How much a shock is moving one good at one port."""
     out = 1.0
-    for shock in at(game, system_id):
+    for shock in at(game, system_id) + sky_bodies.glut_on(game, system_id, cid):
         if shock.commodity == cid:
             out *= shock.definition.supply
     return out
@@ -100,7 +123,7 @@ def tick(game, days: float, rng) -> list[tuple[str, str]]:
         cid = _pick_commodity(kind, system, rng)
         if cid is None:
             continue
-        shock = Shock(id=next(_uid), kind=kind.id, system_id=system.id,
+        shock = Shock(id=ids.next_id("shock", game), kind=kind.id, system_id=system.id,
                       commodity=cid, until=game.day + rng.int(*kind.days))
         live.append(shock)
         # You only hear about it if you have some way of knowing.
@@ -124,7 +147,7 @@ def apply_to_markets(game) -> None:
     Recomputed wholesale each tick rather than adjusted, so a shock that has
     expired lifts cleanly and two overlapping ones cannot drift out of step.
     """
-    touched = {s.system_id for s in all_shocks(game)}
+    touched = {s.system_id for s in all_shocks(game)} | set(sky_bodies.gluts(game))
     for system in game.galaxy.systems:
         if not system.market:
             continue
@@ -211,6 +234,9 @@ def note_prices(game, system, rep: float = 0.0, trade: float = 0.0) -> None:
             quote.buy[cid] = b
         if s is not None:
             quote.sell[cid] = s
+    for shock in at(game, system.id) + sky_bodies.gluts(game).get(system.id, []):
+        quote.shocked[shock.commodity] = max(
+            shock.until, quote.shocked.get(shock.commodity, 0))
     book(game)[str(system.id)] = quote
 
 
@@ -270,8 +296,10 @@ def best_markets(game, cid: str, selling: bool = True, limit: int = 4) -> list[d
         route = routes.get(quote.system_id)
         days = route["days"] if route else None
         price = prices[cid]
+        until = getattr(quote, "shocked", {}).get(cid)
         out.append({"system": system, "price": price, "age": age,
-                    "confidence": confidence(age),
+                    "confidence": confidence(age) * shock_discount(game, until),
+                    "shock_until": until,
                     "hops": route["hops"] if route else None,
                     "days": days,
                     "reachable": route is not None,

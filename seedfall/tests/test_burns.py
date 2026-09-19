@@ -148,6 +148,7 @@ def run(suite: Suite) -> None:
     @check("what the helm says you will arrive at is what happens")
     def _():
         # The panel prints `heat + burn.heat * cap`. It has to be the truth.
+        assert len(flight.BURNS) >= 4, "the claim is about all four profiles"
         for burn in flight.BURNS:
             game = _fuelled(f"quote-{burn.id}", heat=10.0)
             cap = game.ship_stats.heat_cap

@@ -22,6 +22,11 @@ class Commodity:
     legal: bool
     blurb: str
     bulk: float = 1.0  # tonnes of hold consumed per unit
+    #: The region whose markets make it, or "" for a good every market has.
+    #: `world/economy.make_market` stocks a native good only in its own
+    #: region, which is what keeps the Verge's markets — and the draws that
+    #: build them — exactly what they were before the Reaches existed.
+    native: str = ""
 
 
 COMMODITIES: list[Commodity] = [
@@ -83,6 +88,23 @@ COMMODITIES: list[Commodity] = [
         "A viable seed husk with the Hayflick counter cut out of it. Grows "
         "anything, anywhere, forever. This is precisely how the Bloom started.",
         bulk=0.05),
+    # Made only in the Shoals (`data/regions.py`), bought dear by the
+    # Concordat and the Dry Choir once the Shoals are open.
+    Commodity(
+        "condensate", "Nebular Condensate", "Cond", 780, 0.45, "strategic", True,
+        "Emission-nebula gas frozen out on a cold baffle: ionised metals and "
+        "heavy isotopes in a lattice nobody can make on purpose. The Yards "
+        "dope drive plasma with it; the Dry Choir will not say what for.",
+        native="shoals"),
+    # Innovation 2: what the Kith give back (`data/kith`). Made only in the
+    # Cradle, so no Verge market draws for it; bought by the Charter and the
+    # Dry Choir once the Cradle is open (`sim/kith_world.open_buyers`).
+    Commodity(
+        "songglass", "Songglass", "Song", 1400, 0.40, "strategic", True,
+        "Kith light-song set in a grown glass: tune a lens to it and it plays "
+        "the colour back. The Charter grinds optics from it; the Dry Choir "
+        "listens to it for hours and will not say what it hears.",
+        bulk=0.5, native="cradle"),
 ]
 
 BY_ID: dict[str, Commodity] = {c.id: c for c in COMMODITIES}

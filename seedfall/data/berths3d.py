@@ -29,7 +29,7 @@ import math
 
 from . import works3d
 from .models3d import (GOLD, LUMEN, PLATE, PLATE_DARK, ROCK, ROCK_DARK, WARN,
-                       _box, _build, _cap, _ring, _shift, _tube)
+                       _box, _build, _cap, _shift, _tube)
 
 
 def quay() -> tuple:

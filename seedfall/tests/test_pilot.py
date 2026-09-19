@@ -203,6 +203,8 @@ def run(suite: Suite) -> None:
         # press spends one burn's mass and fifteen minutes of clock.
         game = new_game("coast")
         spent, elapsed = {}, {}
+        # (1, 5, 15) when measured; one setting leaves nothing to compare.
+        assert len(pilot.COAST_MINUTES) >= 3, pilot.COAST_MINUTES
         for minutes in pilot.COAST_MINUTES:
             conn = _conn(game)
             pilot.set_coast(conn, minutes)

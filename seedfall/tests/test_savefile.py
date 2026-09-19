@@ -93,9 +93,22 @@ def run(suite: Suite) -> None:
             assert save_mod.write({"marker": "moved"}), "save returned False"
             assert moved.is_file(), f"{moved} was not written"
             os.environ.pop(save_mod.SAVE_ENV)
-            assert save_mod.save_path() == \
-                save_mod.SAVE_DIR / save_mod.SAVE_NAME, (
-                "with the variable unset it should fall back to the player's")
+            platform = os.environ.get("QT_QPA_PLATFORM")
+            try:
+                os.environ["QT_QPA_PLATFORM"] = "cocoa"
+                assert save_mod.save_path() == \
+                    save_mod.SAVE_DIR / save_mod.SAVE_NAME, (
+                    "with the variable unset it should fall back to the "
+                    "player's")
+                # …unless nobody is looking: a headless process gets a
+                # scratch file (an offscreen probe once overwrote the save).
+                os.environ["QT_QPA_PLATFORM"] = "offscreen"
+                assert save_mod.save_path().parent != save_mod.SAVE_DIR
+            finally:
+                if platform is None:
+                    os.environ.pop("QT_QPA_PLATFORM", None)
+                else:
+                    os.environ["QT_QPA_PLATFORM"] = platform
         finally:
             if was is None:
                 os.environ.pop(save_mod.SAVE_ENV, None)

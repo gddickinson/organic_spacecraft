@@ -36,12 +36,11 @@ from dataclasses import dataclass, field
 # so they live with the mounts. Re-exported because every caller in the conn
 # and its windows reaches for them through this module.
 from ..data.mounts import AXES, AXES_BY_ID, VIEWS  # noqa: F401
-from ..data.starclasses import of as star_class
 from . import outcome as outcome_sim
-from .orbits import (ORBIT_BAND, ORBIT_BAND_SHARE, ORBIT_FLOOR_KM, in_orbit,
-                     orbit_band, orbit_note, orbital_speed, semi_major_km)
-from .targets import (G0, Target, approach_range, is_open, starlight,
-                      target_from_body, target_from_contact)
+from .targets import Target
+# Asked for through this module by the conn's windows and the clearance desk.
+from .orbits import orbit_note  # noqa: F401
+from .targets import target_from_contact  # noqa: F401
 
 #: Delta-v from one thruster pulse and one main-drive burn, in m/s.
 RCS_DV = 0.4

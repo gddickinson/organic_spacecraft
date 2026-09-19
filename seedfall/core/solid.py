@@ -95,10 +95,6 @@ def centre_of(points) -> Point:
 
 # ── building blocks ────────────────────────────────────────────────────────
 
-def _quad(a, b, c, d, tint, tag) -> Face:
-    return Face([a, b, c, d], tint, tag)
-
-
 def ellipsoid(rx, ry, rz, tint, at=(0, 0, 0), tag="", rings=10, segments=16,
               taper=0.0) -> list:
     """A uv-sphere, scaled. `taper` narrows it toward +z, as a hull does."""

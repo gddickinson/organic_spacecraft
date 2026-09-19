@@ -13,7 +13,7 @@ of sixty-one entries, so adding a technology needs no work here.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
@@ -38,6 +38,12 @@ EVIDENCE: list[Evidence] = [
     Evidence("reading", "Xenolith readings", "xeno",
              "What the Abyssals left, and what it does when you look at it.",
              "Digs, relic sites and the Dry Choir's own work."),
+    # Innovation 7. In no branch mix: a bonus on the programmes it feeds
+    # (`data/phenomena.FEEDS`), never a want — a captain who never chases
+    # the sky researches exactly as before.
+    Evidence("phenomena", "Phenomena", "osteo",
+             "Flares, comets, storms and a star going nova, watched.",
+             "Observing a live phenomenon (the System screen's Sky strip)."),
 ]
 
 EVIDENCE_BY_ID = {e.id: e for e in EVIDENCE}
@@ -58,6 +64,13 @@ BRANCH_MIX: dict[str, dict[str, float]] = {
 
 #: What a branch falls back on if it is not listed above.
 DEFAULT_MIX = {"survey": 0.4, "hardware": 0.3, "specimen": 0.3}
+
+#: A technology whose evidence is not its branch's. Deep Weave sits in
+#: xenology and is learned by looking — reading a rim anchor — so it eats
+#: what surveys and specimens bring back rather than what the bench reads.
+TECH_MIX: dict[str, dict[str, float]] = {
+    "deepweave": {"survey": 0.55, "specimen": 0.45},
+}
 
 #: A programme never needs more than this share of its cost in one kind, so a
 #: run of bad luck in one activity cannot lock a whole branch.

@@ -28,6 +28,7 @@ the copy. Both are slow enough to be a problem you can see coming and fix.
 from __future__ import annotations
 
 from ..data.lineages import LINEAGES_BY_ID, of_stock
+from . import stores
 from .lifespan import active, lineage_of
 
 #: Days of going short before it starts costing anything. A crossing that
@@ -108,27 +109,6 @@ def breathers(game) -> int:
                and LINEAGES_BY_ID[lineage_id].breathes)
 
 
-def _take(game, commodity: str, amount: float) -> float:
-    """Spend from the hold first, then stores. Returns what was not found."""
-    short = amount
-    held = game.ship.cargo.get(commodity, 0.0)
-    if held > 0:
-        taken = min(held, short)
-        left = held - taken
-        if left <= 0.0001:
-            game.ship.cargo.pop(commodity, None)
-        else:
-            game.ship.cargo[commodity] = left
-        short -= taken
-    if short > 0.0001:
-        stored = game.stores.get(commodity, 0.0)
-        if stored > 0:
-            taken = min(stored, short)
-            game.stores[commodity] = stored - taken
-            short -= taken
-    return max(0.0, short)
-
-
 def forecast(game, days: float) -> dict:
     """What a crossing of this length will eat, and whether it is aboard.
 
@@ -200,17 +180,19 @@ def tick(game, days: float, rng) -> list:
         need = rate * days
         if need <= 0.00001:
             continue
-        short = _take(game, commodity, need)
+        # The crew eat what is aboard, and only then send to the depot —
+        # the one draw in `sim/stores` that wants the hold first.
+        short = stores.take(game, commodity, need, hold_first=True)
         if short > need * 0.02:
             missing.append(commodity)
 
     if not missing:
         # Eating properly walks the debt back down, so one bad leg is not a
         # permanent mark against the crew.
-        game.short_days = max(0.0, getattr(game, "short_days", 0.0) - days * 0.5)
+        game.short_days = max(0.0, game.short_days - days * 0.5)
         return out
 
-    game.short_days = getattr(game, "short_days", 0.0) + days
+    game.short_days = game.short_days + days
     over = game.short_days - GRACE
     if over <= 0:
         if rng.chance(0.3):
@@ -227,8 +209,10 @@ def tick(game, days: float, rng) -> list:
         if wet > 0 and any(c in ("biomass",) for c in missing):
             gone = min(wet, lost)
             game.ship.crew = max(0, game.ship.crew - gone)
-            out.append(("bad", f"{gone} of the crew are dead of hunger. There "
-                               "was nothing left in the hold to give them."))
+            who = ("One of the crew is" if gone == 1
+                   else f"{gone} of the crew are")
+            out.append(("bad", f"{who} dead of hunger. There was nothing "
+                               "left in the hold to give them."))
         else:
             hit = [o for o in active(game.officers) if o.level > 1]
             if hit:

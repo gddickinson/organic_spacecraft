@@ -81,6 +81,29 @@ def clear(game, hull_id: str) -> bool:
     return True
 
 
+def toggle(game, contact) -> dict:
+    """Mark a hull an enemy, or take the mark off, and write it down.
+
+    The captain pressed something, so the chronicle hears about it — which
+    `ui/fire_panel` did itself, around `mark` and `clear`, so a mark made by
+    any other door went unrecorded.
+    """
+    hull_id = getattr(contact, "hull_id", "") or ""
+    name = getattr(contact, "name", "It")
+    if not hull_id:
+        return {"ok": False, "why": note(game, contact), "text": "",
+                "marked": False}
+    if is_marked(game, hull_id):
+        clear(game, hull_id)
+        text, kind, now = f"The mark is off {name}.", "", False
+    else:
+        mark(game, hull_id)
+        text = f"{name} is marked an enemy. It costs nothing and tells nobody."
+        kind, now = "warn", True
+    game.add_log(text, kind)
+    return {"ok": True, "why": "", "text": text, "marked": now}
+
+
 def note(game, contact) -> str:
     """One line for a screen about what a mark would mean."""
     hull_id = getattr(contact, "hull_id", "") or ""

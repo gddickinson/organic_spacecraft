@@ -7,7 +7,7 @@ from ..core.util import num
 from ..data.factions import FACTIONS_BY_ID
 from ..data.programmes import PROGRAMMES_BY_ID
 from ..sim import programmes as prog_sim
-from .widgets import Panel, button, label, mono_label, note
+from .widgets import Panel, button, mono_label, note
 
 
 def running(view, game) -> Panel | None:

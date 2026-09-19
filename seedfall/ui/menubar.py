@@ -1,7 +1,6 @@
 """The menu bar: everything the window can do, in one place you can find.
 
-The rail reaches the screens and the HUD has two buttons, which leaves a
-handful of things — options, the instruments, saving, starting again — with no
+The rail reaches the screens, which leaves a handful of things — options, the instruments, saving, starting again — with no
 obvious home. This is that home.
 
 Built from the same tables as everything else: the screens and their keys come
@@ -14,7 +13,7 @@ from __future__ import annotations
 from PyQt6.QtGui import QAction, QKeySequence
 
 from ..data.screens import SCREENS
-from . import monitors
+from . import chronicle_picker, counsel_card, monitors
 
 
 def _act(parent, text: str, on_go, shortcut: str = "", tip: str = "") -> QAction:
@@ -36,6 +35,9 @@ def build(win) -> None:
     chronicle = bar.addMenu("&Chronicle")
     chronicle.addAction(_act(win, "Save now", win.save, "Ctrl+S",
                              "The chronicle also saves itself as time passes"))
+    chronicle.addAction(_act(win, "Save as…", lambda: chronicle_picker.save_as(win),
+                             "Ctrl+Shift+S",
+                             "Keep a copy of this chronicle under a name"))
     chronicle.addAction(_act(win, "Options…", win.open_options, "Ctrl+,",
                              "Everything you can set"))
     chronicle.addSeparator()
@@ -49,6 +51,11 @@ def build(win) -> None:
         screens.addAction(_act(win, name, lambda s=sid: win.go(s), key))
 
     instruments = bar.addMenu("&Instruments")
+    # The chooser used to be a heading-bar button; the bar gave the room
+    # back to its meters (`ui/hud.py`) and the chooser lives here.
+    instruments.addAction(_act(win, "Choose…", win.instruments,
+                               tip="Pick which instruments to pop out"))
+    instruments.addSeparator()
     for name, (title, _cls, _size) in monitors.SHAPES.items():
         instruments.addAction(_act(
             win, title, lambda i=name: monitors.toggle(win, i),
@@ -64,4 +71,7 @@ def build(win) -> None:
     help_menu.addAction(_act(win, "Manual", lambda: win.open_help("manual")))
     help_menu.addAction(_act(win, "Keys", lambda: win.open_help("keys")))
     help_menu.addAction(_act(win, "Options…", win.open_options))
+    help_menu.addAction(_act(win, "The first officer's counsel",
+                             lambda: counsel_card.recall(win),
+                             tip="Three next moves, on the Sector Chart"))
     return bar

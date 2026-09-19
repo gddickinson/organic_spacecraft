@@ -337,6 +337,7 @@ def run(suite: Suite) -> None:
 
         worst = 0.0
         seeds = ("tag-a", "tag-b", "tag-c")
+        measured = []
         for seed in seeds:
             game = new_game(seed)
             rows = [(intel.chart_price(game, s), len(s.bodies))
@@ -351,6 +352,8 @@ def run(suite: Suite) -> None:
             worst = max(worst, leak)
             assert leak < 0.35, (
                 f"{seed}: the price still tracks the body count at r={leak:.2f}")
+            measured.append(seed)
+        assert measured == list(seeds), measured
         return (f"over {len(seeds)} sectors the worst price-to-body-count "
                 f"correlation is {worst:.2f}, against 1.00 for the old formula")
 

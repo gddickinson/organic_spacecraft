@@ -14,14 +14,11 @@ that and was worthless.
 
 from __future__ import annotations
 
-from ..core.state import new_game
 from ..data.screens import SCREENS
 from ..sim import conn as conn_sim
-from ..sim import engage as engage_sim
 from ..sim import instruments as panel_sim
 from .harness import Suite
 from .test_pilot_screen import _bridge
-from .test_sights import _Blind
 
 
 def run(suite: Suite) -> bool:
@@ -56,8 +53,17 @@ def run(suite: Suite) -> bool:
         # was: the pilot could look anywhere and fly nowhere. Every axis
         # `conn.AXES` offers has a button, and the drive and throttle the
         # console has taken since it was written are reachable.
-        for _aid, axis_label, _vec in conn_sim.AXES:
-            assert axis_label in labels, f"no {axis_label!r} thrust: {labels}"
+        #
+        # By object name, then by the first line: the pad is the one widget
+        # all three flying screens share (`ui/thrust_pad.py`) and prints what
+        # a press is worth under the name, so a button's whole text is no
+        # longer the bare axis.
+        named = {b.objectName(): b.text()
+                 for b in view.findChildren(QPushButton)}
+        for aid, axis_label, _vec in conn_sim.AXES:
+            said = named.get(f"thr_{aid}", "")
+            assert said.split("\n")[0].endswith(axis_label), (
+                f"no {axis_label!r} thrust: {labels}")
         assert any("Main drive" in t for t in labels), labels
         assert any("Throttle" in t for t in labels), labels
         assert any("coast" in t.lower() for t in labels), labels
@@ -207,10 +213,10 @@ def run(suite: Suite) -> bool:
             f"buttons went away")
 
         # The press survives too: a player lets go over the button they
-        # aimed at, by label. The pad is press-and-hold: the beat consumes
+        # aimed at, by name. The pad is press-and-hold: the beat consumes
         # the order, and the release must not fire a second one.
         def ahead():
-            return next(b for b in live() if b.text() == "Ahead")
+            return next(b for b in live() if b.objectName() == "thr_forward")
         took = ahead()
         QTest.mousePress(took, Qt.MouseButton.LeftButton,
                          Qt.KeyboardModifier.NoModifier,

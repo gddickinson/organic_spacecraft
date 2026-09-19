@@ -113,6 +113,20 @@ APPROACHES_BY_ID = {a.id: a for a in APPROACHES}
 #: nagging inbox rather than a decision.
 QUIET_DAYS = 120
 
+#: Days into a chronicle before any power sends anybody at all.
+#:
+#: Envoys arrived from day one — median day 12 across the play-test's
+#: careers, and as early as day 1 — and an envoy holds the window, so the
+#: first thing a new captain met in the tutorial was a screen that would not
+#: let them leave it. Two months is the opening chapters with room to spare;
+#: the powers have always had reasons to call, and now they give you time to
+#: find your feet first.
+GRACE_DAYS = 60
+
+#: How long "Leave it for now" buys before the envoy asks again. The offer
+#: still lapses on its own day, and lapsing is refusing.
+SET_ASIDE_DAYS = 10
+
 #: Chance per day that a power with a live reason actually sends somebody.
 #: Deliberately low: an approach should feel like something happening to you,
 #: not a weekly appointment.

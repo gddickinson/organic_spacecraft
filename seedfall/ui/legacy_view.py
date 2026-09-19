@@ -14,6 +14,7 @@ from ..core.util import credits as cr
 from ..core.util import duration
 from ..data.factions import FACTIONS_BY_ID
 from ..sim import legacy as legacy_sim
+from . import memoir_panel
 from .widgets import Bar, Card, Panel, View, button, label, note, spacer
 
 
@@ -43,9 +44,13 @@ class LegacyView(View):
     def build(self) -> None:
         g = self.game
         standing = legacy_sim.gauge(g)
+        written = memoir_panel.page(g)          # innovation 9: the memoir
         if not standing:
-            self.head("No aftermath yet",
-                      "The chronicle has not reached an ending.")
+            self.head("No aftermath yet" if written is None else "Aftermath",
+                      "The chronicle has not reached an ending."
+                      if written is None else "The career, written up.")
+            if written is not None:
+                self.col.addWidget(written)
             self.buttons(button("Back to the chart",
                                 lambda: self.win.go("map")))
             return
@@ -57,6 +62,8 @@ class LegacyView(View):
         if waiting:
             self.col.addWidget(self._situation(waiting))
         self.row(self._state(standing), self._history())
+        if written is not None:
+            self.col.addWidget(written)
         if not waiting:
             self.buttons(button("Back to the chart",
                                 lambda: self.win.go("map"), kind="primary"))

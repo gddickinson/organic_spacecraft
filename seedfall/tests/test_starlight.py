@@ -35,17 +35,9 @@ import math
 from ..data.starclasses import STAR_CLASSES
 from ..sim.sky import Sight
 from .harness import Suite
+from .qtkit import app as _app
 
 SIZE = 120
-
-
-def _app():
-    from .test_ui import _use_offscreen
-    _use_offscreen()
-    from PyQt6.QtWidgets import QApplication
-    app = QApplication.instance() or QApplication([])
-    assert app is not None
-    return app
 
 
 def _sight(key: str, distance_km: float | None = None, want_px: float = 22.0):
@@ -229,7 +221,6 @@ def run(suite: Suite) -> None:
     def _():
         # Most stars in the game are seen from across a system. The floor is
         # what keeps one from rounding away to nothing.
-        from ..ui import stars3d
         AU = 149_597_870.7
         for key in ("A", "M", "N"):
             image, radius = _paint(key, distance_km=4.0 * AU)

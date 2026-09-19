@@ -93,11 +93,12 @@ def settle_bounty(game, power: str) -> dict:
     for warrant in posted:
         warrants_sim.lift(game, warrant, "bought back")
     who = FACTIONS_BY_ID.get(power)
-    return {"ok": True, "paid": price,
-            "said": (f"Bought back for ₡{price:,.0f}. Whoever held it is "
-                     "content, and nobody is coming."),
-            "lines": [("", f"{who.short if who else power}: the price on "
-                           "your hull has been bought back.")]}
+    return _written(game, {
+        "ok": True, "paid": price,
+        "said": (f"Bought back for ₡{price:,.0f}. Whoever held it is "
+                 "content, and nobody is coming."),
+        "lines": [("", f"{who.short if who else power}: the price on "
+                       "your hull has been bought back.")]})
 
 
 def pardon_price(game, power: str) -> dict:
@@ -152,11 +153,37 @@ def pardon(game, system, power: str) -> dict:
     warrants_sim.lift_for(game, power)
     who = FACTIONS_BY_ID.get(power)
     short = who.short if who else power
-    return {"ok": True, "wiped": wiped, "paid": price["credits"],
-            "said": (f"{wiped} matter(s) closed. Nothing is explained and "
-                     "nothing is written down."),
-            "lines": [("", f"{short}: the file is closed. Somebody at this "
-                           "office owed somebody a favour.")]}
+    return _written(game, {
+        "ok": True, "wiped": wiped, "paid": price["credits"],
+        "said": (f"{wiped} matter(s) closed. Nothing is explained and "
+                 "nothing is written down."),
+        "lines": [("", f"{short}: the file is closed. Somebody at this "
+                       "office owed somebody a favour.")]})
+
+
+def pay_debt(game, debt) -> dict:
+    """Pay what is owed, and let whatever it bought them lapse with it.
+
+    Two calls the law screen made in a row — `debts.pay`, then `settled_up`
+    and a loop writing its lines — so the lifting of a judgment happened
+    only if the payment came through that one button.
+    """
+    from . import debts as debts_sim
+    out = debts_sim.pay(game, debt)
+    if not out.get("ok"):
+        out.setdefault("text", "")
+        return out
+    out["lines"] = list(settled_up(game))
+    return _written(game, out)
+
+
+def _written(game, out: dict) -> dict:
+    """Write an act's lines to the chronicle, and hand the answer back."""
+    for kind, text in out.get("lines") or []:
+        game.add_log(text, kind)
+    out.setdefault("why", "")
+    out.setdefault("text", out.get("said", ""))
+    return out
 
 
 def _wipe(game, power: str) -> int:

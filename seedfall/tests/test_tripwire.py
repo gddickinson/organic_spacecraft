@@ -40,7 +40,7 @@ import pathlib
 
 from .harness import Suite
 from .sweepkit import constants
-from .tripwire import KIN, SLOW
+from .tripwire import KIN
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -95,7 +95,6 @@ def run(suite: Suite) -> None:
         # courtship curve gone. The sweep's own SIGTERM handler is no help
         # against SIGKILL: it never runs. `os.replace` is atomic, so the path
         # names the old contents or the new one and never a half.
-        import os
         from . import sweepkit
 
         scratch = ROOT / "tests" / "_atomic_probe.txt"
@@ -148,7 +147,7 @@ def run(suite: Suite) -> None:
 
         real_run, real_clean = tripwire._run, dict(tripwire._CLEAN)
         target = ROOT / "sim" / "exchequer.py"
-        before = target.read_text()
+        before, mtime = target.read_text(), target.stat().st_mtime_ns
         try:
             tripwire._run = stub
             tripwire._CLEAN.clear()
@@ -160,7 +159,11 @@ def run(suite: Suite) -> None:
             tripwire._run = real_run
             tripwire._CLEAN.clear()
             tripwire._CLEAN.update(real_clean)
-            target.write_text(before)
+        # **The sweep works on a copy** (`sweepkit.sandbox`): the working
+        # tree must come out byte for byte *and* untouched — it used to be
+        # rewritten and put back on every run, and left mode 600.
+        assert (target.read_text(), target.stat().st_mtime_ns) == (before, mtime), (
+            f"the sweep wrote the working tree ({target.name})")
 
         assert code == 0, code
         assert asked, "the sweep never ran a suite"
@@ -186,7 +189,7 @@ def run(suite: Suite) -> None:
         asked = []
         real_run, real_clean = tripwire._run, dict(tripwire._CLEAN)
         target = ROOT / "data" / "bloom.py"
-        before = target.read_text()
+        before, mtime = target.read_text(), target.stat().st_mtime_ns
         try:
             tripwire._run = lambda suites: asked.append(tuple(suites)) or True
             tripwire._CLEAN.clear()
@@ -199,7 +202,11 @@ def run(suite: Suite) -> None:
             tripwire._run = real_run
             tripwire._CLEAN.clear()
             tripwire._CLEAN.update(real_clean)
-            target.write_text(before)
+        # **The sweep works on a copy** (`sweepkit.sandbox`): the working
+        # tree must come out byte for byte *and* untouched — it used to be
+        # rewritten and put back on every run, and left mode 600.
+        assert (target.read_text(), target.stat().st_mtime_ns) == (before, mtime), (
+            f"the sweep wrote the working tree ({target.name})")
 
         assert code == 0, code
         wide = [a for a in asked if len(a) > 3]
@@ -232,7 +239,7 @@ def run(suite: Suite) -> None:
         from . import sweepkit, tripwire
 
         target = ROOT / "sim" / "tug.py"
-        before = target.read_text()
+        before, mtime = target.read_text(), target.stat().st_mtime_ns
         import contextlib
         import io
         out = io.StringIO()
@@ -258,6 +265,7 @@ def run(suite: Suite) -> None:
         assert f"0 of {many} constants are unprotected" in said, (
             f"expected all {many} caught: {said[-300:]}")
         after = target.read_text()
+        assert target.stat().st_mtime_ns == mtime, "the sweep wrote sim/tug.py"
         assert after == before, (
             "the sweep did not put sim/tug.py back the way it found it — "
             f"{len(before)} bytes before, {len(after)} after")
@@ -290,17 +298,21 @@ def run(suite: Suite) -> None:
         # `data/gates.py` sitting on disk with `TOLL_REFUSED_BELOW = 0`. A
         # check that cleans up through the thing it is testing has no cleanup.
         path, name, value = negatives[0]
-        target = ROOT / f"{'data' if (ROOT / 'data' / f'{path}.py').exists() else 'sim'}" / f"{path}.py"
-        before = target.read_text()
-        try:
-            original = sweepkit.rewrite(target, name, 0)
-            assert original == before, "rewrite did not hand back the original"
-            now = target.read_text()
-            assert now != before, f"{path}.{name} was not actually changed"
-            assert f"{name} = 0" in now, f"{name} not set in {path}"
-        finally:
-            target.write_text(before)
-        assert target.read_text() == before, "the file was not put back"
+        folder = "data" if (ROOT / "data" / f"{path}.py").exists() else "sim"
+        with sweepkit.sandbox() as copy:
+            target = copy / "seedfall" / folder / f"{path}.py"
+            before = target.read_text()
+            mode = target.stat().st_mode
+            try:
+                original = sweepkit.rewrite(target, name, 0)
+                assert original == before, "rewrite did not hand back the original"
+                now = target.read_text()
+                assert now != before, f"{path}.{name} was not actually changed"
+                assert f"{name} = 0" in now, f"{name} not set in {path}"
+                assert target.stat().st_mode == mode, "rewrite changed the mode"
+            finally:
+                sweepkit.put(target, before)
+            assert target.read_text() == before, "the file was not put back"
         return (f"{len(every)} constants, {len(negatives)} negative; "
                 f"{path}.{name} = {value} rewritten and restored")
 
@@ -311,6 +323,9 @@ def run(suite: Suite) -> None:
         # doing the pinning and the broad stage does not run it either — so
         # neither stage ran the only check that would have gone red.
         held = {}
+        # Four rows when this guard went in. An emptied table has no row to
+        # go stale, and would read as every fast path being right.
+        assert len(MEASURED) >= 4, f"only {len(MEASURED)} measured guards"
         for module, name, guard in MEASURED:
             named = KIN.get(module)
             assert named, f"{module} has no fast path at all"

@@ -8,7 +8,9 @@ each one, from the state of the chronicle rather than from a claim.
 
 from __future__ import annotations
 
+from ..core.util import spelled
 from .lesson_types import Lesson
+from .tech import BRANCHES, TECH
 
 EARLY = [
     # ── I. First light ────────────────────────────────────────────────────
@@ -95,7 +97,7 @@ EARLY = [
            "Take the conn on a quay and let the computer close and berth — "
            "or fly her in by hand if you would rather.",
            "pilot", "berthed",
-           "Alongside is a *place*: a named berth on the structure, at "
+           "Alongside is a place: a named berth on the structure, at "
            "walking pace. Arrive fast and it is a collision, and both hulls "
            "pay. A structure that has cleared you will send boats out to "
            "walk you in for nothing, which is what being welcome is worth. "
@@ -113,14 +115,19 @@ EARLY = [
            "voyage clears, not by the spread.",
            chapter="bread-and-salt", skip_if="have_prices"),
 
-    Lesson("sell", "Sell what you have learned",
-           "Sell your survey data at the port. It is the first money most "
-           "captains make.",
+    # This asked for survey data two lessons before the first survey, when the
+    # opening hold carries none. The watcher is "sold anything"; the ore
+    # aboard is what there is to sell.
+    Lesson("sell", "Sell something",
+           "Sell a little of what is in the hold at the port — the ore "
+           "aboard will do.",
            "port", "sold_something",
-           "Survey data is a commodity like any other and it regenerates "
-           "every time you look at something new. A completed chart is worth "
-           "more than the sum of its bodies, and different powers pay for "
-           "different things — the Codex says which.",
+           "A counter always pays less than it asks, and that spread is the "
+           "whole of trade: buy where a thing is plentiful and sell where it "
+           "is short. A port's standing goes up for what you bring it, not "
+           "for its own stock sold back. Survey data sells the same way once "
+           "you have looked at something — the next chapter — and different "
+           "powers pay for different charts; the Codex says which.",
            chapter="bread-and-salt"),
 
     Lesson("fuel", "Buy reaction mass",
@@ -147,8 +154,9 @@ EARLY = [
            "tech", "set_project",
            "Research runs on ship time, so it keeps going while you fly, and "
            "surveys feed it: what you look at becomes evidence on the bench. "
-           "The tree is fifty-eight nodes across ten branches, and nothing "
-           "in it is required — it is a set of doors, not a track.",
+           f"The tree is {spelled(len(TECH))} nodes across "
+           f"{spelled(len(BRANCHES))} branches, and nothing in it is "
+           "required — it is a set of doors, not a track.",
            chapter="looking-closely"),
 
     Lesson("unlock", "Finish something",

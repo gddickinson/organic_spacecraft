@@ -43,21 +43,14 @@ from ..sim import sky as sky_sim
 from ..sim import targets as targets_sim
 from ..sim import track as track_sim
 from .harness import Suite
+from .qtkit import app as _app
+from .qtkit import overlap as _overlap
 
 SIZE = 150
 
 #: What the GESTALT habitat document states, and the one figure the scale in
 #: `works3d` is pinned to: ARCA is a 2.5 km drum holding a million people.
 ARCA_KM = 2.5
-
-
-def _app():
-    from .test_ui import _use_offscreen
-    _use_offscreen()
-    from PyQt6.QtWidgets import QApplication
-    app = QApplication.instance() or QApplication([])
-    assert app is not None
-    return app
 
 
 def _mask(look: str) -> set:
@@ -78,12 +71,6 @@ def _mask(look: str) -> set:
     painter.end()
     return {(x, y) for y in range(SIZE) for x in range(SIZE)
             if image.pixel(x, y) != sky.rgb()}
-
-
-def _overlap(a: set, b: set) -> float:
-    if not a or not b:
-        return 0.0
-    return len(a & b) / len(a | b)
 
 
 def _settled(seed="works3d"):
@@ -140,27 +127,30 @@ def run(suite: Suite) -> None:
     def _():
         # Not "it has some furniture" — the specific features the card's own
         # words demand, on the classes that print those words.
-        want = {
-            "radix_mine": "roots",          # yields ore
-            "medusa_still": "bell",         # yields volatiles
-            "lichen_dome": "dome",          # grown, solid ground, a town
-            "pomona_grove": "fronds",       # yields biomass
-            "gravid_nursery": "womb",       # gestates hulls, not welds them
-            "orbital_dock": "cradle",       # a drydock, so a slipway
-            "vesper_picket": "masts",       # a sensor picket
-            "chorus_node": "dish",          # yields research
-            "tardigrade_vault": "vault",
-            "solforge": "mirror",           # the only class sited at a star
-            "arca_drum": "drum",            # a million people, living inside
-            "coral_reef": "ring",           # a town of two thousand
-            "chorus_node": "vanes",         # it holds no station
-            "monitor_station": "guns",      # wards the system
-            "skimmer": "scoop",             # gas giants and nothing else
-            "free_port": "arm",             # a port, so somewhere to tie up
-            "xeno_array": "shards",
-            "refinery": "stacks",           # yields alloy
-        }
-        for look, trait in want.items():
+        # Pairs, not a dict: `chorus_node` carries two features the card
+        # demands, and as dict keys the second silently replaced the first —
+        # the dish was never checked.
+        want = (
+            ("radix_mine", "roots"),          # yields ore
+            ("medusa_still", "bell"),         # yields volatiles
+            ("lichen_dome", "dome"),          # grown, solid ground, a town
+            ("pomona_grove", "fronds"),       # yields biomass
+            ("gravid_nursery", "womb"),       # gestates hulls, not welds them
+            ("orbital_dock", "cradle"),       # a drydock, so a slipway
+            ("vesper_picket", "masts"),       # a sensor picket
+            ("chorus_node", "dish"),          # yields research
+            ("tardigrade_vault", "vault"),
+            ("solforge", "mirror"),           # the only class sited at a star
+            ("arca_drum", "drum"),            # a million people, living inside
+            ("coral_reef", "ring"),           # a town of two thousand
+            ("chorus_node", "vanes"),         # it holds no station
+            ("monitor_station", "guns"),      # wards the system
+            ("skimmer", "scoop"),             # gas giants and nothing else
+            ("free_port", "arm"),             # a port, so somewhere to tie up
+            ("xeno_array", "shards"),
+            ("refinery", "stacks"),           # yields alloy
+        )
+        for look, trait in want:
             traits = works3d.WORKS[look].traits
             assert trait in traits, f"{look} has no {trait}: {traits}"
         # And no two classes are the same list of features.
@@ -169,7 +159,8 @@ def run(suite: Suite) -> None:
             sets.setdefault(works3d.WORKS[c.id].traits, []).append(c.id)
         same = {t: ids for t, ids in sets.items() if len(ids) > 1}
         assert not same, f"classes built from the same features: {same}"
-        return (f"{len(want)} classes carry the feature their entry demands; "
+        return (f"{len({look for look, _t in want})} classes carry the "
+                f"{len(want)} features their entries demand; "
                 f"{len(sets)} distinct builds across {len(COLONIES)}")
 
     @check("a berth is a fitting the structure actually has")

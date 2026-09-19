@@ -17,8 +17,11 @@ from ..sim import plans as plans_sim
 from ..sim.actions import transfer
 from ..sim import trade as trade_sim
 from ..sim.ship import cargo_used, hull_pct, is_breached
+from . import arc_panel, body_panel
+from .layer_row import layer_row
 from .plans_panel import ShipPlan
 from . import robots_panel
+from . import hunt_marks
 from .widgets import (body_or, Bar, Panel, Pill, TabBar, View, button, label,
                       mono_label, note, spacer)
 
@@ -41,16 +44,24 @@ class ShipView(View):
             sub += f" · {ch.binomial}"
         self.head(f"{ch.name} «{ship.name}»", sub)
 
-        tabs = TabBar([("readout", "Readout"), ("plans", "Plans")], self.tab)
+        tabs = TabBar([("readout", "Readout"), ("plans", "Plans"),
+                       ("body", "Body"), ("crew", "Crew")], self.tab)
         tabs.changed.connect(self._switch)
         self.col.addWidget(tabs)
 
         if self.tab == "plans":
             self._plans(ship, ch, st)
             return
+        if self.tab == "body":
+            body_panel.build(self)
+            return
+        if self.tab == "crew":                  # the officers' own stories
+            arc_panel.crew(self)
+            return
 
         self.row(self._layers(ship), self._performance(st, ch))
         self.row(self._fitted(ship), self._crew())
+        self.col.addWidget(hunt_marks.dark_row(self))    # the transponder
         # Hands that are not people, kept in their own panel because
         # nothing about morale, loyalty or a working life applies to a
         # frame with a hull number.
@@ -73,13 +84,11 @@ class ShipView(View):
         self.refresh()
 
     def wake_crew(self) -> None:
-        res, lines = dormancy_sim.wake(self.game, self.game.rng("wake"))
+        res = dormancy_sim.bring_up(self.game)        # rolls and logs itself
         if not res.get("ok"):
             self.win.toast(res.get("why", "Nobody is under."), "warn")
             return
-        for kind, text in lines:
-            self.game.add_log(text, kind)
-        body = [text for _kind, text in lines] or \
+        body = [text for _kind, text in res["lines"]] or \
             ["They are all up, and none the worse."]
         self.win.dialog(f"Up after {res['days']} days", body,
                         [("Back to work", None)])
@@ -167,21 +176,7 @@ class ShipView(View):
         p.add(note("Damage lands outermost first. The critical layer is the pressure "
                    "vessel; below it there is only crew."))
         for L in ship.layers:
-            frac = L.hp / L.max if L.max else 0
-            row = QWidget()
-            h = QHBoxLayout(row)
-            h.setContentsMargins(0, 1, 0, 1)
-            name = label(L.name, "", "warn" if L.hp <= 0 else
-                         ("osteo" if L.critical else ""))
-            name.setToolTip(L.note)
-            name.setMinimumWidth(180)
-            h.addWidget(name)
-            bar = Bar(frac, "warn" if frac < 0.3 else ("osteo" if L.critical else "chloro"))
-            h.addWidget(bar, 1)
-            v = label(pct(frac), "dim")
-            v.setFixedWidth(42)
-            h.addWidget(v)
-            p.add(row)
+            p.add(layer_row(L, 180))
         p.add(spacer(4))
         hp = hull_pct(ship)
         p.add_row("Overall integrity", pct(hp), "warn" if hp < 0.4 else "")

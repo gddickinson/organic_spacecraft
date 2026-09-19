@@ -10,7 +10,6 @@ from ..core.rng import RNG
 from ..core.state import new_game
 from ..sim import aftermath as aftermath_sim
 from ..sim import allegiance
-from ..sim import bloom as bloom_sim
 from ..sim import charts as chart_sim
 from ..sim import colony as colony_sim_for_lever
 from ..sim import combat, consorts, contracts as contract_sim_for_lever

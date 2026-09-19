@@ -30,7 +30,7 @@ import math
 from dataclasses import dataclass
 
 from .hullforms import FORMS, LIVING, ROCK, STRUCT, SYSTEM, VOID, WARM
-from .models3d import _box, _build, _cap, _ring, _shift, _tube
+from .models3d import _box, _build, _cap, _tube
 
 #: The skins, in the same colours the plans panel paints them, so a hull on
 #: the tactical plot and the same hull in its own cutaway are the same ship.

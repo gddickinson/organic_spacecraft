@@ -13,7 +13,6 @@ says what it means.
 from __future__ import annotations
 
 from ..data.part_types import BANDS
-from . import stations as st_mod
 from . import tactical as tac
 from .ship import hull_pct
 

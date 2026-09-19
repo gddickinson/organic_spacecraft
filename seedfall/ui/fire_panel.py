@@ -163,14 +163,10 @@ def marks(win, game, rows, after=None) -> list:
 
 
 def _flip(win, game, contact, after=None) -> None:
-    hull_id = getattr(contact, "hull_id", "")
-    if hostiles_sim.is_marked(game, hull_id):
-        hostiles_sim.clear(game, hull_id)
-        game.add_log(f"The mark is off {contact.name}.", "")
-    else:
-        hostiles_sim.mark(game, hull_id)
-        game.add_log(f"{contact.name} is marked an enemy. It costs nothing "
-                     f"and tells nobody.", "warn")
+    res = hostiles_sim.toggle(game, contact)       # logs itself
+    if not res["ok"]:
+        win.toast(res["why"], "warn")
+        return
     if after is not None:
         after()
     win.refresh()
@@ -179,25 +175,15 @@ def _flip(win, game, contact, after=None) -> None:
 def open_fire(win, game, conn, contact) -> bool:
     """Open fire, or say why not. Returns whether a fight began.
 
-    The refusal goes to the log as well as the toast, because a pilot who
-    presses a button and gets a sentence should be able to read it again.
+    `engage.fire_on` is the trigger, and it writes the refusal to the log as
+    well as handing it here for the toast.
     """
-    ok, why = engage_sim.may_engage(game, conn, contact)
-    if not ok:
-        win.toast(why, "warn")
-        game.add_log(why, "")
+    res = engage_sim.fire_on(game, conn, contact)
+    if not res["ok"]:
+        win.toast(res["why"], "warn")
         return False
-    battle, why = engage_sim.open_fire(game, conn, contact,
-                                       game.rng("engagement"))
-    if battle is None:
-        win.toast(why, "warn")
-        game.add_log(why, "")
-        return False
-    game.add_log(
-        f"Opened fire on {contact.name} at "
-        f"{engage_sim.range_km(game, conn, contact):,.0f} km.", "bad")
     # **Handed over, not rebuilt.** `battle_view.begin` would construct a
     # second `Battle` from an encounter dict and lose the band with it.
-    win.battle = battle
+    win.battle = res["battle"]
     win.go("battle")
     return True

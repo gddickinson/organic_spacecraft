@@ -26,7 +26,6 @@ import collections
 
 from ..core.rng import RNG
 from ..core.state import new_game
-from ..data.expedition import REWARD_SCALE
 from ..sim import expedition as ex
 from .harness import Suite
 
@@ -42,7 +41,7 @@ def _on_a_feature(seed: str):
         return game, None
     index = spots[0]
     party.x, party.y = index % 7, index // 7
-    party.tiles[index].revealed = True
+    party.tiles[index].seen = True
     return game, party
 
 

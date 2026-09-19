@@ -23,6 +23,7 @@ from ..data.colonies import effect_text
 from ..data.factions import FACTIONS_BY_ID
 from ..data.territory import TRESPASS_NOTE
 from ..sim import colony as colony_sim
+from ..sim import commitments as commitments_sim
 from ..sim import territory as territory_sim
 from .widgets import Card, label, note
 
@@ -99,11 +100,9 @@ def colonise(self) -> None:
     if not chosen["id"]:
         self.win.toast("No class selected.", "warn")
         return
-    col, why = colony_sim.found(g, sys, body, chosen["id"])
-    if not col:
-        self.win.toast(why, "warn")
+    res = commitments_sim.plant_seed(g, sys, body, chosen["id"])
+    if not res["ok"]:
+        self.win.toast(res["why"], "warn")
         return
-    g.add_log(f"Seed planted at {body.name}. Gestation {col.need} days.",
-              "good")
     self.win.toast("Seed planted.", "chloro")
     self.win.refresh()

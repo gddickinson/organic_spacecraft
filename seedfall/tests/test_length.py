@@ -26,8 +26,11 @@ import pathlib
 
 from .harness import Suite
 
-#: The rule, from the project's own standing instructions.
-LIMIT = 500
+#: The rule, from the project's own standing instructions: files stay
+#: *under* 500 lines. This was 500, which let a file sit at exactly the line
+#: the rule says to stay below; with every debt paid off (2026-09) the check
+#: can say what the rule says.
+LIMIT = 499
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -37,15 +40,6 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 #: **not** here: it was 612 and the tick integrator came out into
 #: `sim/conn_step.py`, leaving 484. That is the shape of paying one off.
 ALLOWED = {
-    "data/works3d.py": 635,
-    "ui/viewport.py": 533,
-    "ui/map_view.py": 526,
-    "ui/widgets.py": 516,
-    "tests/test_robots.py": 624,
-    "tests/test_orbits.py": 567,
-    "tests/test_control.py": 560,
-    "tests/test_conn.py": 523,
-    "tests/test_industry.py": 520,
 }
 
 
@@ -105,5 +99,7 @@ def run(suite: Suite) -> None:
         assert not paid, (
             "under the limit now and still listed as a debt — strike them "
             f"off: {paid}")
+        if not ALLOWED:
+            return "no debts recorded: every file is inside the limit"
         worst = max(ALLOWED.items(), key=lambda kv: kv[1])
         return f"no stale rows; the longest left is {worst[0]} at {worst[1]}"

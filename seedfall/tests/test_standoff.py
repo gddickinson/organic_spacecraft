@@ -28,7 +28,6 @@ import dataclasses
 import math
 
 from ..core.state import new_game
-from ..sim import autopilot as pilot_sim
 from ..sim import clearance as clearance_sim
 from ..sim import conn as conn_sim
 from ..sim import flight
@@ -36,17 +35,7 @@ from ..sim import moorings
 from ..sim import outcome as outcome_sim
 from ..sim import track as track_sim
 from .harness import Suite
-
-_HELD = None
-
-
-def _app():
-    from .test_ui import _use_offscreen
-    _use_offscreen()
-    from PyQt6.QtWidgets import QApplication
-    global _HELD
-    _HELD = QApplication.instance() or QApplication([])
-    return _HELD
+from .qtkit import app as _app
 
 
 def _standoff(seed: str = "boom"):

@@ -187,14 +187,14 @@ def tick(game, days: float, paid: bool) -> list[tuple[str, str]]:
         events.append(("bad", f"{officer.name} has left the ship at the first "
                               "port that would take them."))
     for officer in restless(game):
-        if getattr(officer, "_warned", False):
+        if officer.warned:
             continue
-        officer._warned = True
+        officer.warned = True
         events.append(("warn", f"{officer.name} wants a word about how things "
                                "are being run."))
     for officer in getattr(game, "officers", []):
         if loyalty_of(officer) >= RESTLESS:
-            officer._warned = False
+            officer.warned = False
     return events
 
 

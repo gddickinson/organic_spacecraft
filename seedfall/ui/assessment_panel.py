@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from ..core.util import num, pct
+from ..core.util import num
 from ..data.part_types import BANDS
 from ..sim import assessment
-from ..sim import tactical as tac
 from .widgets import Panel, Pill, label, mono_label, note, spacer
 
 

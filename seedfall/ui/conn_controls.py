@@ -17,8 +17,7 @@ from __future__ import annotations
 
 from PyQt6.QtWidgets import QGridLayout, QWidget
 
-from ..sim import conn as conn_sim
-from ..sim import instruments
+from ..core.util import reaction_mass
 from ..sim import orbits
 from ..sim import pilot as pilot_sim
 from .widgets import button, light
@@ -55,22 +54,16 @@ class ConnControls(QWidget):
         grid.setVerticalSpacing(4)
         win = self.window
 
-        # Two rows of three: the six axes, laid out the way a pilot's hand
-        # sits on them rather than alphabetically.
-        order = [("left", 0, 0), ("forward", 0, 1), ("right", 0, 2),
-                 ("down", 1, 0), ("back", 1, 1), ("up", 1, 2)]
-        self.axis_buttons = {}
-        from . import flight_clock
-        for axis_id, row, col in order:
-            _aid, axis_label, _vec = conn_sim.AXES_BY_ID[axis_id]
-            # Held, not clicked — `flight_clock.hold_wire`, the same pair of
-            # doors as the bridge pad, so a held burn builds and a press is
-            # one tick. `win._burn` remains the programmatic door.
-            btn = button(axis_label, None)
-            btn.setObjectName(f"thr_{axis_id}")
-            flight_clock.hold_wire(win.win, btn, axis_id)
-            grid.addWidget(btn, row, col)
-            self.axis_buttons[axis_id] = btn
+        # The one pad — `ui/thrust_pad.py`: the six axes two by three, the
+        # drive and the coast, the same widget the bridge and the flight
+        # controls fly with. Held, not clicked; `win._burn` remains the
+        # programmatic door.
+        from .thrust_pad import ThrustPad
+        self.pad = ThrustPad(win.win, self._toggle_drive,
+                             lambda: win._burn(None))
+        self.axis_buttons = self.pad.buttons
+        self.main_btn = self.pad.drive
+        grid.addWidget(self.pad, 0, 0, 2, 4)
 
         # The one act that gets a hull alongside somewhere it was refused. It
         # is a button rather than a mode because it is a decision: see
@@ -96,11 +89,6 @@ class ConnControls(QWidget):
         self.safe_btn = button("Safeties: on", self._safeties, kind="flat")
         self.safe_btn.setObjectName("safeties")
         grid.addWidget(self.safe_btn, 3, 7)
-
-        self.main_btn = button("Main drive: off", self._toggle_drive,
-                               kind="flat")
-        grid.addWidget(self.main_btn, 0, 3)
-        grid.addWidget(button("Hold (coast)", lambda: win._burn(None)), 1, 3)
 
         self.mode_buttons = {}
         # "Hold station", in the same words as the bridge and the flight
@@ -248,13 +236,10 @@ class ConnControls(QWidget):
     def sync(self, conn) -> None:
         """Relabel every control from the live approach."""
         live = not conn.over
-        # "armed", in the same words as the bridge and the flight panel — the
-        # three said ON / on / armed for one fact, which reads as three facts.
-        # One door for the words: `instruments.drive_note`. This said
-        # "off" while the computer was burning, because it read the arming
-        # switch and not what the drive was doing.
-        self.main_btn.setText(
-            f"Main drive: {instruments.drive_note(conn)}")
+        # The pad — the drive switch's words ("armed", in the same words as
+        # the bridge and the flight panel, off `instruments.drive_note`), what
+        # every thruster promises, and which one is lit — is `ThrustPad.sync`.
+        self.pad.sync(conn, self.use_main)
         self.run_btn.setText(
             "Stop clock" if self.window.running else "Run clock")
         self.scale_btn.setText(
@@ -278,15 +263,8 @@ class ConnControls(QWidget):
             btn.setEnabled(ok or self.window.mode == mode)
             btn.setToolTip(why if not ok else "")
 
-        # **Lit where the ship is actually firing.** The computer flies this
-        # console as much as the pilot does, and until now a captain watching
-        # it work saw six identical buttons and no sign of which one the
-        # autopilot was using. `conn.fired_axis` is what the ship did last
-        # tick — not what the computer would ask for if asked again, which is
-        # a fresh forecast and disagrees the moment anything moves.
-        for axis_id, btn in self.axis_buttons.items():
-            light(btn, conn.fired_axis == axis_id)
-        light(self.main_btn, bool(conn.fired_axis) and conn.fired_main)
+        # **Lit where the ship is actually firing** — the pad lights its own
+        # thruster in `sync`, off `conn.fired_axis`; the modes are lit here.
         for mode, (btn, _text) in self.mode_buttons.items():
             light(btn, self.window.mode == mode)
         light(self.manual_btn, self.window.mode is None, "warn")
@@ -296,7 +274,6 @@ class ConnControls(QWidget):
 
         self._sync_heights(conn, live)
         self._sync_throttle(conn, live)
-        self._sync_axes(conn, live)
         self._sync_force(conn, live)
         self._sync_ditch(conn, live)
 
@@ -354,8 +331,9 @@ class ConnControls(QWidget):
             label = row["label"] if row["afford"] else f"{row['label']} ✕"
             btn.setText(f"▶ {label}" if chosen else label)
             btn.setEnabled(live and row["afford"])
-            price = (f"{row['dv']:,.0f} m/s — allow about {row['mass']:,.0f} t "
-                     f"of mass, and you have {row['tank']:,.0f}."
+            price = (f"{row['dv']:,.0f} m/s — allow about "
+                     f"{reaction_mass(row['mass'])} of reaction mass, and "
+                     f"you have {reaction_mass(row['tank'])}."
                      if row["dv"] > 0 else "You are already at this height.")
             btn.setToolTip(
                 f"{row['label']} orbit — {row['up']:,.0f} km up. {price} "
@@ -391,22 +369,3 @@ class ConnControls(QWidget):
             btn.setToolTip(f"Every press lets {minutes} minute"
                            f"{'' if minutes == 1 else 's'} of flight run "
                            "afterwards.")
-
-    def _sync_axes(self, conn, live: bool) -> None:
-        ok, why = conn_sim.can_burn(conn, self.use_main)
-        for axis_id, btn in self.axis_buttons.items():
-            btn.setEnabled(live and ok)
-            if not live:
-                btn.setToolTip(why)
-                continue
-            # `pilot.quote` reads the throttle and the coast the pilot has set,
-            # so the promise is the act. Before this the tooltip was computed at
-            # full power for one minute whatever the console said.
-            said = pilot_sim.quote(conn, axis_id, main=self.use_main)
-            btn.setToolTip(
-                f"{conn_sim.AXES_BY_ID[axis_id][1]} at {said['dv']:,.2f} m/s, "
-                f"{said['minutes']} min: range "
-                f"{said['range_km'] * 1000:,.0f} m, closing "
-                f"{said['closing']:+,.1f} m/s, "
-                f"{said['rcs']:,.2f} mass left"
-                + ("" if ok else f" — {why}"))

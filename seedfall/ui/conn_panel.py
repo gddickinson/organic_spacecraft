@@ -17,7 +17,7 @@ readouts changes when the situation does.
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QWidget
+from PyQt6.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QWidget
 
 from ..sim import conn as conn_sim
 from ..sim import freeflight as free_sim
@@ -119,11 +119,20 @@ def apply(window, conn) -> None:
             # the side panel and was clipped mid-word — the pilot read
             # "she flies as you f". Wrapped and right-aligned it keeps the
             # column's shape and says the whole thing.
+            #
+            # **All the room there is, not half of it.** A stretch sat
+            # between the name and the value and took an equal share of the
+            # row, so the value wrapped in about a hundred pixels: measured,
+            # "100% — 2.65 m/s" and "closing to berth" broke onto two lines
+            # and the rows read as a column of fragments. The name keeps its
+            # own width and the value takes the rest, so a reading wraps only
+            # when it genuinely will not fit.
             right.setWordWrap(True)
             right.setAlignment(Qt.AlignmentFlag.AlignRight
                                | Qt.AlignmentFlag.AlignVCenter)
+            left.setSizePolicy(QSizePolicy.Policy.Fixed,
+                               QSizePolicy.Policy.Preferred)
             line.addWidget(left, 0)
-            line.addStretch(1)
             line.addWidget(right, 1)
             window.side.addWidget(row)
             made.append(right)

@@ -21,7 +21,11 @@ class Stage:
     threshold: float
     growth: float          # multiplier on per-tick growth
     spread: float          # multiplier on the chance to seed a clean system
-    instars: int           # roaming masses it will keep in the field
+    #: Roaming masses it keeps in the field. Each arrival takes new ground,
+    #: so these are part of the sector's pace (`threat.THROW_RATE`): at 2, 3
+    #: and 5 they took about one system a month at Sovereign on their own
+    #: and were most of why the curve bent upward in years three to five.
+    instars: int
     blurb: str
     herald: str            # what the log says when it arrives
 
@@ -36,18 +40,18 @@ STAGES: list[Stage] = [
           "collars are opening on their own schedule now.",
           "The Bloom has passed vegetative threshold. It is growing faster than "
           "the registry's worst curve."),
-    Stage(2, "Motile", "warn", 9.0, 1.35, 1.55, 2,
+    Stage(2, "Motile", "warn", 9.0, 1.35, 1.55, 1,
           "It has stopped waiting. Masses the size of freighters are moving "
           "between systems under their own power, and they are not drifting.",
           "Motile instars sighted under way between systems. It is coming to "
           "us now."),
-    Stage(3, "Adaptive", "warn", 15.0, 1.45, 1.70, 3,
+    Stage(3, "Adaptive", "warn", 15.0, 1.45, 1.70, 2,
           "Whatever killed the last one does not work as well on the next. "
           "There is no nervous system in it: the lineages that survived you "
           "are simply the ones still here.",
           "Tissue recovered from a burn shows resistance to the weapons that "
           "made it. It is learning by dying."),
-    Stage(4, "Sovereign", "warn", 23.0, 1.55, 1.90, 5,
+    Stage(4, "Sovereign", "warn", 23.0, 1.55, 1.90, 3,
           "Coordinated across light-hours, with no signal anyone can find. It "
           "is taking ports now, and it is choosing which.",
           "It is coordinating. Nobody can find the signal and nobody doubts "
@@ -99,6 +103,9 @@ BEATS = {
     "adaptation_noticed":
         "The physician has been comparing burn samples. Whatever you have been "
         "using most, it is working less well than it did.",
+    "quarter_the_verge":
+        "A quarter of the systems on the chart carry it now. Harbourmasters "
+        "have started asking every inbound hull where it last put in.",
     "half_the_verge":
         "Half the systems on the chart carry it now. The Charter has stopped "
         "issuing guidance and started issuing evacuation orders.",

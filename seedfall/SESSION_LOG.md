@@ -426,17 +426,54 @@ The first full run then surfaced four stragglers, each its own lesson:
   is the same probe-misses-the-move lesson as the bot's pantry, at a yard
   instead of a counter.
 
+## 2026-09-17 → 18 — the whole-project review, fixed, and ten new systems
+
+The review (`../reviews/2026-09-17/`) found 60 things; `STATUS.md` there maps
+each to its fix and the suite that pins it, and `changes/` holds each work
+stream's merge notes. In order:
+
+- **Phase 0, the core.** A save resumed in a fresh process for the first time
+  (`core/save.ensure_registry`), ids per chronicle (`core/ids`), no luck on a
+  sub-day step, a crash handler, the screen keys alive, the tripwire on a copy.
+  A headless probe overwrote the player's save during this; it was restored
+  from the `.bak`, and `save_path()` now sends offscreen processes elsewhere.
+- **Phase 1, five parallel streams** (rules, interface, engine, tooling,
+  documents): exploits closed, every screen fits 1040×680, a parallel runner
+  (17 min → 3), `pyproject.toml`, CI, every file under 500 lines.
+- **Waves A and B, ten innovations:** the Far Reaches, the Kith, stellar
+  phenomena, nemeses and the hunt, the living hull, freight lines, the
+  Assembly, officer arcs, renown and the Voyage, a synthesised soundscape.
+  Each has a design in `innovations/` and its merge notes in `changes/`.
+- **Phase 3, upkeep:** generated package maps (`tests/maps.py`, the `maps`
+  suite), the `exports` suite (a ruff sweep had removed six re-exports that
+  callers read), INTERFACE 6,383 → 182 lines, IMPROVEMENTS 1,098 → 133,
+  twenty screenshots, the renown chip given room in the menu-bar corner, and
+  a column measured by height-for-width so wrapped text is whole on the
+  first frame.
+
+- **A final, independent play-test** (the first hour over the bridge, and
+  three strategies for two years each) found eleven defects. Nine were
+  fixed with checks, among them envoy deals that minted money, a test import
+  that deleted the save its caller named, a sale that paid less than its
+  button, a lesson that could stick, and three layouts. The open two (where
+  one may trade from, and small words) are in `IMPROVEMENTS.md`.
+
+Measured at the end: **235 suites, 1,763 checks, 0 failed, 201 s at `-j 8`**.
+A two-year chronicle saved in one process and resumed in another hashes
+identically, and still does 60 days on. The careful captain reaches Genesis
+on 7 of 10 seeds inside five years with no deaths; a day costs about 1.4 ms
+with everything on. Nothing was committed.
+
 ## Standing facts about working here
 
-- `python -m seedfall.tests` runs the lot (~25 min, 192 suites); one suite by
-  name for a cycle. A suite that reports must `return True` from `run()`.
+- `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one
+  suite by name for a cycle, `--list` for the names.
 - **Read the exit code from the interpreter, never through a pipe.**
   `... | tail -50; echo $?` reports `tail`'s status and is always 0. Send the
   run to a file: `python -m seedfall.tests > run.log 2>&1; echo "EXIT: $?"`.
   A failing check was committed once because of exactly this.
-- **500 lines is the ceiling**, held by `tests/test_length.py`. The `ALLOWED`
-  debt list may shrink and never grow — pay it by finding the seam, not by
-  recording a new debt.
+- **500 lines is the ceiling**, held by `tests/test_length.py`, and the
+  `ALLOWED` debt list is empty. Split at a real seam; never record a debt.
 - New `Conn` fields must be carried into `sim/preview._copy` or explicitly
   excused in `tests/test_conn.py`; the guard there will say so.
 - `sim/` never imports Qt. `data → world → sim → ui`, one direction.

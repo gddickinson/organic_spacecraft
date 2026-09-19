@@ -6,10 +6,12 @@ from __future__ import annotations
 from .armaments import ARMAMENTS
 from .chassis import Chassis, accepts_family
 from .modules import MODULES
+from .nemeses import SHROUDS
 from .xenoparts import XENOPARTS
+from .kith import KITH_PARTS
 from .part_types import Part
 
-PARTS: list[Part] = [*MODULES, *ARMAMENTS, *XENOPARTS]
+PARTS: list[Part] = [*MODULES, *ARMAMENTS, *XENOPARTS, *SHROUDS, *KITH_PARTS]
 PARTS_BY_ID: dict[str, Part] = {p.id: p for p in PARTS}
 
 # Rough credit value of a tonne of each material, for resale valuation.

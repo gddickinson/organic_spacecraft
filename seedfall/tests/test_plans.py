@@ -62,6 +62,9 @@ def run(suite: Suite) -> None:
             "box": (solid_mod.box(1.2, 1.2, 1.2, "x"), None),
             "ring": (solid_mod.ring_of(1.0, 0.25, "x"), 1.0),
         }
+        # A primitive that builds no faces has none wound wrong, and passes.
+        empty = [name for name, (faces, _axis) in cases.items() if not faces]
+        assert not empty, f"primitives that built no faces: {empty}"
         for name, (faces, axis) in cases.items():
             inward = [f for f in faces if _outward(f, axis) < 0]
             assert not inward, (

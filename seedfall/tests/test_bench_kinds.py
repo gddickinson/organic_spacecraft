@@ -154,13 +154,27 @@ def run(suite: Suite) -> None:
 
         # And a real chronicle produces all of them, or a mix is asking for
         # something no captain can ever bring back.
+        # **Counted as it is brought back, not as it is left over.** This read
+        # what the bench still *held* after a decade, which was the same thing
+        # only while the chronicle never researched: once it did (2026-09, it
+        # had been passing approach ids to `set_project`), a kind the bench
+        # spent as fast as it arrived read as "never produced".
         from . import chronicle
+        from ..sim import actions as actions_sim
         held = {k: 0.0 for k in wanted}
-        for seed in ("kinds1", "kinds2"):
-            game = new_game(seed)
-            chronicle.play(game, years=10)
-            for kind in wanted:
-                held[kind] += inquiry.held(game.research, kind)
+        real_add = inquiry.add
+
+        def counting(res, kind, amount):
+            if kind in held and amount > 0:
+                held[kind] += amount
+            return real_add(res, kind, amount)
+
+        inquiry.add, actions_sim._add_evidence = counting, counting
+        try:
+            for seed in ("kinds1", "kinds2"):
+                chronicle.play(new_game(seed), years=10)
+        finally:
+            inquiry.add, actions_sim._add_evidence = real_add, real_add
         dry = sorted(k for k, v in held.items() if v <= 0)
         assert not dry, (
             f"two decades of play produced none of: {dry} — a programme that "

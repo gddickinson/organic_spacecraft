@@ -17,6 +17,14 @@ them *in the window*. Four aids, each off a door the sim already owns:
 
 `points` computes, `draw` paints — split so a check can ask where everything
 landed without rendering a pixel.
+
+**The flying is done once a beat, not once a camera.** The path and the hazard
+are facts about the ship, not about a lens, and `points` used to fly the
+48-tick twin and run the collision scan inside every `paintEvent` — seven
+feeds on the Conn window, so seven identical dry runs a beat. Measured on a
+berthing with the computer flying: 143 ms of every 250 ms beat. `world` now
+answers both once per state of the flight and every camera projects the same
+answer; see `world` for what the key holds.
 """
 
 from __future__ import annotations
@@ -41,21 +49,48 @@ def _rel(conn, at) -> list:
     return [a - p for a, p in zip(at, conn.pos)]
 
 
-def points(conn, cam, w: int, h: int) -> dict:
-    """Everything the HUD would draw, as screen points. The testable half."""
-    out = {"path": [], "prograde": None, "retrograde": None,
-           "aim": None, "mouth": [], "threat": None}
-    if conn is None or conn.landed:
-        return out
+#: The one remembered answer: `(key, world)`. One slot, because there is one
+#: flight — every window looks through the same `game.conn`.
+_LAST: list = [None, None]
+
+#: How many times `world` has actually flown the twin. Read by the check that
+#: seven feeds in one beat cost one dry run; nothing in the game reads it.
+FLOWN = [0]
+
+
+def _state(conn) -> tuple:
+    """Everything the path and the hazard depend on, as a comparable key.
+
+    `elapsed` moves every tick, so a beat always misses; a repaint with the
+    clock held (a resize, a camera switch, the six thumbnails after the main
+    screen) always hits. The rest is what a pilot can change *without* a tick
+    passing — arming a mode, the drive, the throttle, the safeties, a new
+    target, a burn pressed with the clock held, an ordered cut or descent
+    (which the collision guard stands aside for) — so none of those can leave
+    a stale line on the glass.
+    """
+    return (id(conn), id(conn.target), conn.elapsed, conn.over,
+            tuple(conn.pos), tuple(conn.vel), tuple(conn.nose or ()),
+            conn.auto, conn.arm_main, conn.throttle, conn.rcs, conn.safeties,
+            conn.forcing, conn.ditching, conn.orbit_want_km,
+            len(getattr(conn, "sky", ()) or ()))
+
+
+def world(conn) -> dict:
+    """The path ahead and the thing in the way, in the frame, once a beat.
+
+    `path` is a list of bearings from the ship; `hazard` is the collision
+    scan's answer and `bearing` the unit vector to it. Cameras project these;
+    none of them flies anything.
+    """
+    key = _state(conn)
+    if _LAST[0] == key:
+        return _LAST[1]
+    FLOWN[0] += 1
     # What is in the way, from the one door that answers it.
     from ..sim import collision
     hazard = collision.scan(None, conn)
-    if hazard is not None:
-        vec = collision._bearing(conn, hazard)
-        spot = project(vec, cam, w, h)
-        if spot is not None:
-            out["threat"] = (spot, hazard.level,
-                             f"{hazard.name} · {hazard.seconds:,.0f}s")
+    bearing = collision._bearing(conn, hazard) if hazard is not None else None
     # The path: a twin flown under whatever has the conn. `preview.track`
     # coasts for modes it cannot fly ("run" needs the game), which is still
     # the honest ballistic answer.
@@ -67,11 +102,31 @@ def points(conn, cam, w: int, h: int) -> dict:
     mode = {"brake": "null"}.get(conn.auto, conn.auto)
     if mode in ("run", "depart"):
         mode = None
+    path = []
     for _s, at, _km, _v in preview.track(conn, mode or None,
                                          ticks=PATH_TICKS, every=PATH_EVERY):
         vec = _rel(conn, at)
-        if math.dist(vec, (0.0, 0.0, 0.0)) < 1e-6:
-            continue
+        if math.dist(vec, (0.0, 0.0, 0.0)) >= 1e-6:
+            path.append(vec)
+    found = {"path": path, "hazard": hazard, "bearing": bearing}
+    _LAST[0], _LAST[1] = key, found
+    return found
+
+
+def points(conn, cam, w: int, h: int) -> dict:
+    """Everything the HUD would draw, as screen points. The testable half."""
+    out = {"path": [], "prograde": None, "retrograde": None,
+           "aim": None, "mouth": [], "threat": None}
+    if conn is None or conn.landed:
+        return out
+    ahead = world(conn)
+    hazard = ahead["hazard"]
+    if hazard is not None:
+        spot = project(ahead["bearing"], cam, w, h)
+        if spot is not None:
+            out["threat"] = (spot, hazard.level,
+                             f"{hazard.name} · {hazard.seconds:,.0f}s")
+    for vec in ahead["path"]:
         spot = project(vec, cam, w, h)
         if spot is not None:
             out["path"].append(spot)

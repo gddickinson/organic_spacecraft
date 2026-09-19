@@ -131,8 +131,6 @@ class MachineShop:
         if made is None:
             self.view.win.toast(robots_sim.can_build(game, class_id)[1])
             return
-        game.add_log(f"{ROBOTS_BY_ID[class_id].name} {made.name} came off the "
-                     "shop floor.", "good")
         game.recompute()
         self.view.refresh()
 
@@ -190,10 +188,6 @@ class MachineShop:
 
     def _scrap(self, robot) -> None:
         game = self.view.game
-        name = robot.name
-        back = robots_sim.scrap(game, robot)
-        got = ", ".join(f"{amount:g} {key}" for key, amount in sorted(back.items()))
-        game.add_log(f"{name} was broken up" + (f" for {got}." if got else "."),
-                     "warn")
+        robots_sim.scrap(game, robot)       # it says so in the log itself
         game.recompute()
         self.view.refresh()

@@ -90,7 +90,29 @@ def greeting(game, contact) -> str:
     A body and a star do not answer, and saying so is better than an empty
     pane: what comes back is the instrument reading, which is the honest
     thing a hull gets from a rock.
+
+    Waits on a model if one is switched on — for a script or a check. The
+    window asks `opening` instead and does not wait.
     """
+    return opening(game, contact, wait=True)["line"]
+
+
+def opening(game, contact, wait: bool = False) -> dict:
+    """`greeting` for a caller that must not block: `{"line", "ask"}`.
+
+    `line` is always ready. `ask` is a `voice.Ask` to hand to
+    `voice.model_line` on another thread, or None — for anything that does
+    not speak in its own voice, when speech is off, and whenever `wait` was
+    true (the line is then already the model's, if it gave one).
+    """
+    said = _opening(game, contact, wait)
+    if isinstance(said, str):
+        return {"line": said, "ask": None}
+    return {"line": said["line"], "ask": said.get("ask")}
+
+
+def _opening(game, contact, wait: bool):
+    """The greeting's decision: a finished line, or what `voice.speak` said."""
     from . import voice as voice_sim
 
     who = about(game, contact)
@@ -118,13 +140,13 @@ def greeting(game, contact) -> str:
                     "with a handshake and a toll schedule, and nothing else.")
         return voice_sim.speak(
             game, f"harbour:{contact.name}", name=contact.name,
-            kind="official", persona="plain", situation="greet")["line"]
+            kind="official", persona="plain", situation="greet", wait=wait)
     if contact.kind == "hull":
         return voice_sim.speak(
             game, f"hull:{contact.id}", name=contact.name, kind="captain",
             persona="plain",
             situation="hostile" if getattr(contact, "hostile", False)
-            else "greet")["line"]
+            else "greet", wait=wait)
     return f"{contact.name} does not answer."
 
 

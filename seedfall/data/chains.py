@@ -11,7 +11,7 @@ that already knows how to track a delivery or a bounty needs no changes.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)

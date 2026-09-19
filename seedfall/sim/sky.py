@@ -110,7 +110,12 @@ def build(game, contact=None) -> list:
     else:
         try:
             tx, ty, tz = track_sim.at(game, contact, game.day)
-        except Exception:
+        except LookupError:
+            # A contact whose body is no longer in this system's list.
+            return []
+        except Exception as err:                       # noqa: BLE001
+            from ..core.guard import swallowed
+            swallowed("sky.scene placing the target", err)
             return []
         skip = contact.id
 
@@ -161,7 +166,11 @@ def build(game, contact=None) -> list:
             continue
         try:
             x, y, z = track_sim.at(game, other, game.day)
-        except Exception:
+        except LookupError:
+            continue
+        except Exception as err:                       # noqa: BLE001
+            from ..core.guard import swallowed
+            swallowed("sky.scene placing a contact", err)
             continue
         if other.kind == "body" and other.body_index is not None:
             body = system.bodies[other.body_index]
@@ -223,7 +232,12 @@ def _berth_spot(game, structure, berth: str, tx: float, ty: float,
         if at is None:
             return None
         sx, sy, sz = track_sim.at(game, structure, game.day)
-    except Exception:
+    except LookupError:
+        # A structure or a berth that is not in the tables any more.
+        return None
+    except Exception as err:                           # noqa: BLE001
+        from ..core.guard import swallowed
+        swallowed("sky placing a docked hull", err)
         return None
     dx, dy, dz = ((sx - tx) * AU_KM, (sy - ty) * AU_KM, (sz - tz) * AU_KM)
     return (dx + at[0], dy + at[1], dz + at[2])

@@ -16,7 +16,7 @@ import tempfile
 
 from ..core import llm
 from ..core.state import new_game
-from ..data.personas import MOODS, PERSONAS, PERSONAS_BY_ID
+from ..data.personas import MOODS, PERSONAS
 from ..sim import memory as memory_sim
 from ..sim import voice as voice_sim
 from .harness import Suite
@@ -267,6 +267,8 @@ def run(suite: Suite) -> None:
     def _():
         # "Harbourmaster Vell, harbourmaster." A frame that prefixes a title
         # onto a name that already carries it.
+        # 8 personas × 7 moods when measured; either table empty asks nothing.
+        assert len(PERSONAS) >= 8 and len(MOODS) >= 7, (len(PERSONAS), len(MOODS))
         with _NoNetwork():
             game = new_game("titles")
             for persona in PERSONAS:

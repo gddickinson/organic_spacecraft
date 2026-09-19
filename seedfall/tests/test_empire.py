@@ -53,6 +53,7 @@ def run(suite: Suite) -> None:
         produced = set()
         for c in COLONIES:
             produced |= set(c.yields)
+        assert len(WORKS) >= 8, f"measured 8 works, now {len(WORKS)}"
         for work in WORKS:
             bad = set(work.effects) - KNOWN_EFFECTS
             assert not bad, f"{work.id} has unhandled effect {bad}"

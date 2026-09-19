@@ -12,7 +12,6 @@ from dataclasses import dataclass
 
 from . import doctrine
 from . import tactical as tac
-from .ship import HEAT_CEILING
 
 STATIONS = [
     ("helm", "Helm", "nav", "Heading and throttle. Where you will be next turn "
@@ -96,7 +95,7 @@ def run_helm(side, other, order_id: str | None, directed: bool, officers) -> str
         # because "close" was the last thing anybody said.
         chosen = doctrine.order_for(side, other, "helm")
         order_id = chosen[0] if chosen else (side.helm_order or "hold")
-        turn_limit *= min(1.0, UNATTENDED_TURN + TURN_PER_LEVEL * skill)
+        turn_limit *= helm_share(officers, skill)
     side.helm_order = order_id
 
     rel = tac.relative_bearing(side.body, other.body)
@@ -206,6 +205,16 @@ UNATTENDED_TURN = 0.7
 #: And what each level of nav buys back.
 TURN_PER_LEVEL = 0.06
 
+
+def helm_share(officers, nav: float) -> float:
+    """The share of the turn rate an unattended helm keeps — the one number
+    `run_helm` flies and `seat_value` quotes. Drill (`sim/arcs`), a
+    deserter's old unit's habit, is read here and nowhere else."""
+    from . import arcs
+    drill = arcs.signature_effects(officers).get("drill", 0.0)
+    return min(1.0, (UNATTENDED_TURN + TURN_PER_LEVEL * nav) * (1 + drill))
+
+
 #: Heat an unattended engineering section sheds, as a share of the vent rate.
 UNATTENDED_VENT = 0.5
 VENT_PER_LEVEL = 0.08
@@ -230,7 +239,7 @@ def seat_value(side, officers) -> dict:
     tactical = officer_level(officers, "tactical")
     engineering = officer_level(officers, "engineering")
 
-    turn_share = min(1.0, UNATTENDED_TURN + TURN_PER_LEVEL * nav)
+    turn_share = helm_share(officers, nav)
     vent_share = UNATTENDED_VENT + VENT_PER_LEVEL * engineering
     directed_vent = side.st.vent * 2.2 + 12
     idle_vent = side.st.vent * vent_share

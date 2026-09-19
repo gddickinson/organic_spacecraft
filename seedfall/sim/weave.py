@@ -30,7 +30,7 @@ from ..core.rng import RNG
 from ..core.save import register
 from ..data.gates import (ANCIENT_CHORDS, ANCIENT_LIT, ANCIENT_NAMES,
                           ANCIENT_SITES)
-from ..world.galaxy import distance
+from ..world.galaxy import distance, verge
 
 
 @register
@@ -46,6 +46,9 @@ class WeaveState:
     transits: int = 0
     #: Tolls paid, all told.
     tolls: float = 0.0
+    #: Deep anchors whose system has been read by a deep survey — the first
+    #: of the three things a relight needs (`sim/relight.py`). System ids.
+    read: list = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -54,14 +57,23 @@ class Gate:
 
     system_id: int
     name: str
-    kind: str                 # ancient | charter | yours
+    kind: str                 # ancient | charter | yours | deep | inner
     lit: bool
     #: System ids on the other end of its rings.
     links: tuple = ()
 
     @property
     def id(self) -> str:
+        # A deep anchor can share a system with an ancient one, so it is
+        # named for what it is as well as where.
+        if self.kind in DEEP_KINDS:
+            return f"{self.kind}:{self.system_id}"
         return f"gate:{self.system_id}"
+
+
+#: Gates that belong to nobody: a relit deep anchor and the far end it
+#: reaches, and the Hollow's own rings. No toll, and never in `gates`.
+DEEP_KINDS = ("deep", "inner")
 
 
 def ensure(game) -> WeaveState:
@@ -79,12 +91,14 @@ _SHAPE: dict = {}
 def _key(galaxy) -> tuple:
     """What a galaxy's shape depends on: its seed, and nothing else.
 
-    A `Galaxy` is generated deterministically from its seed and is never added
-    to afterwards — the one `systems.append` in `world/galaxy.py` runs while it
-    is being built. The system count rides along as a cheap guard against a
-    galaxy assembled some other way.
+    A `Galaxy` is generated deterministically from its seed, and the Verge is
+    never added to afterwards. **The Verge's count, not the list's**: the Far
+    Reaches append to `galaxy.systems` when a deep anchor is relit, and a key
+    on the whole list would re-sample every ancient gate in the save the day
+    a region opened. The count rides along as a cheap guard against a galaxy
+    assembled some other way.
     """
-    return (galaxy.seed, len(galaxy.systems))
+    return (galaxy.seed, len(verge(galaxy)))
 
 
 def sites(galaxy) -> list[int]:
@@ -105,7 +119,8 @@ def sites(galaxy) -> list[int]:
     hit = _SHAPE.get(("sites", _key(galaxy)))
     if hit is not None:
         return hit
-    systems = galaxy.systems
+    # The ancient Weave is the Verge's. See `_key`.
+    systems = verge(galaxy)
     if len(systems) <= 2:
         return [s.id for s in systems]
     mid_x = sum(s.x for s in systems) / len(systems)
@@ -130,7 +145,7 @@ def sites(galaxy) -> list[int]:
 
 def _ring_order(galaxy, ids: list[int]) -> list[int]:
     """The sites sorted by where they lie around the sector's middle."""
-    systems = galaxy.systems
+    systems = verge(galaxy)
     mid_x = sum(s.x for s in systems) / len(systems)
     mid_y = sum(s.y for s in systems) / len(systems)
     return sorted(ids, key=lambda i: math.atan2(systems[i].y - mid_y,
@@ -251,9 +266,76 @@ def _ancient_gates(game) -> list[Gate]:
             for i, sid in enumerate(sites(game.galaxy))]
 
 
-def gate_at(game, system_id: int) -> Gate | None:
-    """The anchor standing in a system, if any."""
+def anchor_at(game, system_id: int) -> Gate | None:
+    """The ancient or laid anchor in a system, lit or dark — never a deep one.
+
+    What waking and laying ask about: a relit deep gate standing beside a
+    dark ancient anchor must not make the ancient one read as burning.
+    """
     return next((g for g in gates(game) if g.system_id == system_id), None)
+
+
+def gate_at(game, system_id: int) -> Gate | None:
+    """The anchor standing in a system, if any.
+
+    A *lit* deep gate answers where no burning ancient or laid one does —
+    so a relit anchor is a berth, busy and rideable, from the day it burns.
+    A dark one never answers: until it is relit it is a mark on the chart
+    and nothing else, and the Verge's berths and traffic are what they were.
+    """
+    here = anchor_at(game, system_id)
+    if here is not None and here.lit:
+        return here
+    if not getattr(game.galaxy, "regions", None):
+        return here
+    deep = next((g for g in deep_gates(game)
+                 if g.system_id == system_id and g.lit), None)
+    return deep or here
+
+
+def deep_gates(game) -> list[Gate]:
+    """The deep anchors on the Verge's rim, dark or relit, and — for every
+    region that is open — the far end of each and the Hollow's own rings.
+
+    Derived like the rest: where each anchor stands is the Verge's geometry
+    (`world/regions.anchors`), and whether it burns is whether its region is
+    on record. Nothing about them is stored but the region itself.
+    """
+    from ..data.regions import ANCHOR_NAMES, REGIONS
+    from ..world import regions as world_regions
+    galaxy = game.galaxy
+    rims = world_regions.anchors(galaxy)
+    out = []
+    for spec in REGIONS:
+        sid = rims.get(spec.id)
+        if sid is None:
+            continue
+        opened = world_regions.region(galaxy, spec.id)
+        name = ANCHOR_NAMES.get(spec.id, f"{spec.name} gate")
+        out.append(Gate(system_id=sid, name=name, kind="deep",
+                        lit=opened is not None,
+                        links=(opened.entry_id,) if opened else ()))
+        if opened is None:
+            continue
+        out.append(Gate(system_id=opened.entry_id, name=name, kind="deep",
+                        lit=True, links=(sid,)))
+        for a, b in opened.rings:
+            for here, there in ((a, b), (b, a)):
+                out.append(Gate(system_id=here, name=f"{spec.name} ring",
+                                kind="inner", lit=True, links=(there,)))
+    return out
+
+
+def deep_links(game) -> list[tuple[int, int]]:
+    """Every lit link that belongs to nobody, as (a, b) pairs, once each."""
+    if not getattr(game.galaxy, "regions", None):
+        return []
+    out = set()
+    for gate in deep_gates(game):
+        if gate.lit:
+            for other in gate.links:
+                out.add((min(gate.system_id, other), max(gate.system_id, other)))
+    return sorted(out)
 
 
 def network(game) -> dict:
@@ -276,6 +358,11 @@ def network(game) -> dict:
                 reach.append(other)
         if reach:
             live[sid] = sorted(set(reach))
+    # The deep gates and the Hollow's rings: lit both ends by construction,
+    # so a relit anchor joins its region to whatever it already rode.
+    for a, b in deep_links(game):
+        live[a] = sorted(set(live.get(a, [])) | {b})
+        live[b] = sorted(set(live.get(b, [])) | {a})
     return live
 
 

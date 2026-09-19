@@ -195,8 +195,13 @@ def answer(game, system, power: str, choice: str) -> dict:
 
     if game.demand is not None:
         game.demand.over = True
-    return {"ok": True, "choice": choice, "power": power,
-            "colonies": list(held), "system": system}
+    # Written here rather than by the demand screen, so an answer given over
+    # the bridge reaches the chronicle the same as one given by hand.
+    who = FACTIONS_BY_ID.get(power)
+    text = f"{where}: you {choice} to {who.short if who else power}."
+    game.add_log(text, "good" if choice != "defy" else "warn")
+    return {"ok": True, "why": "", "text": text, "choice": choice,
+            "power": power, "colonies": list(held), "system": system}
 
 
 # ── living with the answer ─────────────────────────────────────────────────

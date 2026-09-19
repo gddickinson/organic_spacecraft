@@ -38,6 +38,8 @@ class Research:
     spare: float = 0.0
     #: Which inputs the bench ran short of last tick, for the readout only.
     starved: list = field(default_factory=list, metadata={"transient": True})
+    #: The shortage the log was last told about — see `shortage_news`.
+    starve_said: list = field(default_factory=list)
     last_event: str | None = field(default=None, metadata={"transient": True})
 
 
@@ -122,6 +124,24 @@ def confirm_tick(res: Research, days: float) -> str | None:
     return done
 
 
+def shortage_news(res: Research, done: str | None) -> str | None:
+    """The bench's shortage, once per spell of it. None when nothing is new.
+
+    **It was a quarter chance a day, for as long as the shortage lasted.**
+    `MAX_STEP` is one day, so "the bench is short of hardware" came round
+    every one to five days for the whole of a programme that wanted salvage
+    nobody was carrying — a line the log holds 300 of, so a single stalled
+    project wrote over months of news. Said when a shortage starts or
+    changes; said again only after the bench has been supplied and run short
+    again.
+    """
+    starved = sorted(res.starved or []) if not done else []
+    if starved == sorted(res.starve_said or []):
+        return None
+    res.starve_said = starved
+    return ", ".join(starved) or None
+
+
 def take_spare(res: Research) -> float:
     """Hand over the points the tree could not use, and forget them.
 
@@ -155,5 +175,19 @@ def days_remaining(res: Research, rate: float) -> float:
     return math.ceil((t.cost - res.progress) / rate)
 
 
+def set_aside(game) -> dict:
+    """Take the bench off its project. The act the Research screen's "Set
+    aside" button used to do itself, by assigning `research.current`."""
+    res = game.research
+    if not res.current:
+        return {"ok": False, "why": "Nothing is under way.", "text": ""}
+    tech = TECH_BY_ID.get(res.current)
+    res.current = None
+    text = f"{tech.name if tech else 'The project'} is set aside."
+    game.add_log(text, "")
+    return {"ok": True, "why": "", "text": text}
+
+
 __all__ = ["Research", "set_project", "tick", "grant", "progress_pct",
-           "days_remaining", "researchable", "can_research", "bonuses", "inquiry"]
+           "days_remaining", "researchable", "can_research", "bonuses", "inquiry",
+           "set_aside"]

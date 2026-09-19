@@ -26,7 +26,6 @@ from __future__ import annotations
 
 from ..sim import berthing as berth_sim
 from ..sim import conn as conn_sim
-from ..sim import engage as engage_sim
 from ..sim import freeflight as free_sim
 from ..sim import pilot as pilot_sim
 from ..sim import track as track_sim
@@ -162,18 +161,16 @@ class PilotView(View):
 
     def fly_at(self, contact) -> None:
         """Lay the course on something in view. The hull comes about itself."""
-        self.mark = contact.name
-        self.hold_course()
-        self.game.add_log(
-            f"Course laid on {contact.name}, "
-            f"{engage_sim.range_km(self.game, self.conn, contact):,.0f} km off.",
-            "")
+        from ..sim import flightdeck as deck_sim
+        res = deck_sim.lay_course(self.game, self.conn, contact)   # logs it
+        if not res["ok"]:
+            self.win.toast(res["why"], "warn")
+            return
         self.refresh()
 
     def break_off(self) -> None:
-        self.mark = ""
-        if self.auto == "run":
-            self.auto = ""
+        from ..sim import flightdeck as deck_sim
+        deck_sim.drop_course(self.conn)
         self.refresh()
 
     def burn(self, axis_id: str | None) -> dict:
@@ -222,15 +219,10 @@ class PilotView(View):
         self.set_running(False)
         if self.conn is None:
             return
-        if free_sim.is_free(self.conn):
-            said = free_sim.secure(self.game, self.conn)
-            berth_sim.commit(self.game, self.conn)
-            self.game.add_log(said, "")
-        else:
-            if not self.conn.over:
-                self.conn.outcome = "broken off"
-                self.conn.log.append("Approach broken off from the bridge.")
-            berth_sim.commit(self.game, self.conn)
+        # Secured, broken off and billed by `berthing.stand_down`, which
+        # writes the line — this used to do all three here.
+        berth_sim.stand_down(self.game, self.conn,
+                             "Approach broken off from the bridge.")
         self.conn = None
         self.stood_down = True
         self.win.refresh()
@@ -307,7 +299,7 @@ class PilotView(View):
         self.feed.view_id = self.camera
         panels.aim_feed(self, rows)
         self.feed.update()
-        self._btn_main.setText(panels.main_label(self))
+        self._pad.sync(self.conn, self.use_main)
         self._btn_throttle.setText(panels.throttle_label(self))
         self._btn_clock.setText(panels.clock_label(self))
         self._btn_scale.setText(panels.scale_label(self))
@@ -372,10 +364,13 @@ class PilotView(View):
         # The camera row and the thruster pad — `panels`, because they are
         # furniture; the naming rule (#153) is recorded there.
         left.addWidget(panels.camera_row(self))
-        left.addWidget(panels.axis_pad(self))
+        # The one pad, with the drive and the coast in it — the same widget
+        # as the conn console and the flight controls (`ui/thrust_pad.py`).
+        self._pad = panels.axis_pad(self)
+        self._pad.sync(self.conn, self.use_main)
+        self._btn_main = self._pad.drive
+        left.addWidget(self._pad)
         # Held, because a beat updates their text rather than replacing them.
-        self._btn_main = button(panels.main_label(self), self._toggle_main,
-                                kind="flat")
         self._btn_throttle = button(panels.throttle_label(self),
                                     self._cycle_throttle, kind="flat")
         self._btn_clock = button(panels.clock_label(self), self._toggle,
@@ -385,9 +380,6 @@ class PilotView(View):
                                  tip="How many minutes of flight one beat "
                                      "runs. The burn, the computer and the "
                                      "bill all scale with it.")
-        left.addWidget(panels.row_of(
-            button("Hold (coast)", lambda: self.burn(None), kind="flat"),
-            self._btn_main, self._btn_throttle))
         # **The channel is one control, in the left column, always there.**
         # Offered per contact in the right-hand list it broke two of this
         # screen's rules at once: the set of controls changed on a beat as
@@ -396,7 +388,7 @@ class PilotView(View):
         # bar below the fold. Which contact you are talking to is picked
         # inside the channel, where switching costs the bridge nothing.
         left.addWidget(panels.stack_of([
-            self._btn_clock, self._btn_scale,
+            self._btn_throttle, self._btn_clock, self._btn_scale,
             button("Secure from the conn", self.secure, kind="flat"),
             button("Take the conn on something…", self._to_conn, kind="flat"),
             button("Open a channel…", self._open_channel, kind="flat")],

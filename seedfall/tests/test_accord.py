@@ -138,6 +138,7 @@ def run(suite: Suite) -> None:
                     f"{power}: quoted {said} and the dialogue says "
                     f"{res['lines']}")
             rows.append(f"{power} {told['charts']}/{told['worth']:,}")
+        assert len(rows) >= 4, f"the claim is about all four powers: {rows}"
         return "quote matched the act for all four — " + " · ".join(rows)
 
     @check("the relief applies at their quays and nobody else's")

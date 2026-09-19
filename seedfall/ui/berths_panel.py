@@ -9,11 +9,11 @@ from __future__ import annotations
 from ..sim import crew as crew_sim
 from ..sim import lifespan as lifespan_sim
 
-from PyQt6.QtWidgets import QHBoxLayout, QWidget
+from PyQt6.QtWidgets import QWidget
 
 from ..core.util import credits as cr
 from ..sim import loyalty as loyalty_sim
-from ..sim.crew import daily_wages, recruit_pool
+from ..sim.crew import daily_wages
 from .widgets import (Card, Panel, Pill, button, label, mono_label, note,
                       spacer)
 
@@ -23,9 +23,10 @@ class BerthsMixin:
 
     def _berths(self, sys) -> None:
         g = self.game
-        if self._pool is None or self._pool_system != sys.id:
-            self._pool = recruit_pool(g.rng("recruit"), sys.port.level)
-            self._pool_system = sys.id
+        # Who is on the board is the quay's, seeded by the sim from its own
+        # key — this used to draw `g.rng("recruit")` the first time the tab
+        # was opened. Kept on the view only so a check can read what it drew.
+        self._pool = crew_sim.pool_at(g, sys)
 
         self.col.addWidget(note(
             f"Bridge wages run {cr(round(daily_wages(g.officers)))} a day. Six roles; "
@@ -98,7 +99,6 @@ class BerthsMixin:
         if not res["ok"]:
             self.win.toast(res["why"], "warn")
             return
-        self._pool = [o for o in self._pool if o is not officer]
         self.win.refresh()
 
     def _bonus_cost(self) -> int:
@@ -112,17 +112,19 @@ class BerthsMixin:
         self.win.refresh()
 
     def _shore_leave(self) -> None:
-        g = self.game
-        loyalty_sim.record(g, "shore_leave")
-        g.advance_days(7)
-        g.add_log("Seven days alongside. The bridge came back better company.",
-                  "good")
+        res = crew_sim.shore_leave(self.game)
+        if not res["ok"]:
+            self.win.toast(res["why"], "warn")
+            return
         if self.win.check_ending():
             return
         self.win.refresh()
 
     def _dismiss(self, officer) -> None:
-        self.game.officers = [o for o in self.game.officers if o is not officer]
+        res = crew_sim.pay_off(self.game, officer)
+        if not res["ok"]:
+            self.win.toast(res["why"], "warn")
+            return
         self.win.refresh()
 
     # ── the hands ──────────────────────────────────────────────────────────
@@ -163,7 +165,9 @@ class BerthsMixin:
         if not res.get("ok"):
             self.win.toast(res.get("why", "No."), "warn")
             return
-        self.win.toast(f"{res['count']} signed on. The mess deck is younger "
-                       f"by {res['mean']:.0f} on average.", "")
+        # The mean age, not a difference: "younger by 25" was the new
+        # average (29 → 25), read as a drop of twenty-five years.
+        self.win.toast(f"{res['count']} signed on. The mess deck's average "
+                       f"age is {res['mean']:.0f}, from {res['was']:.0f}.", "")
         self.win.save()
         self.refresh()

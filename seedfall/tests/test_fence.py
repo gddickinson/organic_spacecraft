@@ -34,7 +34,6 @@ The claims:
 
 from __future__ import annotations
 
-import math
 
 from ..core.state import new_game
 from ..sim import customs

@@ -158,7 +158,8 @@ FAMILY_NOTE = {
 
 #: Which module families each hull family will physically accept.
 ACCEPTS: dict[str, frozenset[str]] = {
-    "grown": frozenset({"grown", "any"}),
+    # "kith": the Kith's grafts (`data/kith`), grown for a grown body only.
+    "grown": frozenset({"grown", "kith", "any"}),
     "fabricated": frozenset({"fabricated", "any"}),
     "hybrid": frozenset({"grown", "fabricated", "hybrid", "any"}),
     "synthetic": frozenset({"fabricated", "synthetic", "any"}),

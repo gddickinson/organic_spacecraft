@@ -15,19 +15,20 @@ from __future__ import annotations
 import math
 
 from ..data.surveys import CATEGORIES, DEFAULT, METHODS, METHODS_BY_ID
-from ..world.planets import survey_body
+from ..world.planets import SHARPER_BY, survey_body
+from . import adaptation
 from . import biology
 from . import flight
 from . import charts as chart_sim
 from . import inquiry
+from . import kith as kith_sim
+from . import phenomena as sky_sim
+from . import regions as regions_sim
+from . import relight as relight_sim
 from . import research as research_sim
+from . import stores
 from .crew import grant_xp
 from .ship import add_cargo, cargo_free
-
-
-def _held(game, commodity: str) -> float:
-    return (game.ship.cargo.get(commodity, 0)
-            + game.stores.get(commodity, 0))
 
 
 def reach(game) -> float:
@@ -41,7 +42,8 @@ def reach(game) -> float:
     """
     here = (game.colony_fx.get("sensor_by_system", {})
             .get(game.system.id, 0.0) if game.colony_fx else 0.0)
-    return max(0.5, game.ship_stats.sensor + here)
+    return max(0.5, (game.ship_stats.sensor + here)
+               * regions_sim.sensor_scale(game))
 
 
 def reach_to(game, body) -> float:
@@ -128,12 +130,11 @@ def available(game, body) -> list:
                 why = (f"{span:.2f} AU away and your array reaches "
                        f"{far:.2f}.")
         if ok:
-            for commodity, amount in method.cost.items():
-                if _held(game, commodity) < amount:
-                    ok = False
-                    why = (f"Short of {commodity}: needs {amount:g}, you have "
-                           f"{_held(game, commodity):.0f}.")
-                    break
+            for commodity, amount, have in stores.lacking(game, method.cost):
+                ok = False
+                why = (f"Short of {commodity}: needs {amount:g}, you have "
+                       f"{have:.0f}.")
+                break
         out.append((method, ok, why))
     return out
 
@@ -148,6 +149,9 @@ def preview(game, body, method_id: str) -> dict:
     if method is None:
         return {}
     blind = [c for c in CATEGORIES if c not in method.finds]
+    quality = round(min(1.0, game.ship_stats.scan * method.quality
+                        * regions_sim.survey_scale(game)
+                        * sky_sim.survey_scale(game)), 3)
     return {
         "method": method,
         "days": days_for(game, method, body),
@@ -155,7 +159,12 @@ def preview(game, body, method_id: str) -> dict:
         "flies": method.alongside and game.orbit_body != body.id,
         "finds": list(method.finds),
         "blind": blind,
-        "quality": round(min(1.0, game.ship_stats.scan * method.quality), 3),
+        "quality": quality,
+        # Whether the chart itself is worth anything: a first look, or one
+        # sharp enough to see more than the last. A repeat pays only for
+        # whatever it happens to turn up — `world/planets.survey_body`.
+        "charts": (not body.surveyed
+                   or quality - body.survey_q >= SHARPER_BY),
     }
 
 
@@ -187,30 +196,33 @@ def perform(game, body_index: int, method_id: str = DEFAULT) -> dict:
     span = days_for(game, method, body)
     if method.alongside:
         flight.ensure_at(game, body_index)     # spends the flight itself
-    for commodity, amount in method.cost.items():
-        taken = min(amount, game.ship.cargo.get(commodity, 0))
-        add_cargo(game.ship, commodity, -taken)
-        if taken < amount:
-            game.stores[commodity] = max(
-                0.0, game.stores.get(commodity, 0) - (amount - taken))
+    stores.spend(game, method.cost)
     game.advance_days(work_days(game, method))
 
     # How close you are holding is part of how well you see. The other half
     # of the trade the orbit height buys: a low orbit resolves about a fifth
     # more than a standard one and costs about a seventh more to leave.
-    quality = min(1.0, game.ship_stats.scan * method.quality * look_bonus(game, body))
-    found = survey_body(body, quality, game.rng("survey"), finds=method.finds)
+    quality = min(1.0, game.ship_stats.scan * method.quality * look_bonus(game, body)
+                  * regions_sim.survey_scale(game) * sky_sim.survey_scale(game))
+    found = survey_body(body, quality, game.rng("survey"), finds=method.finds,
+                        day=game.day)
     # Priced for the captain who found it, not for the body it was on.
     found["catch"] = biology.harvest(game, found["lifeforms"])
     found["research"] += found["catch"]["research"]
+    # A look that saw nothing new teaches the eyes nothing either.
+    adaptation.record(game.ship, "eyes", 1.0 if found["research"] > 0 else 0.0)
     found["ok"] = True
     found["method"] = method
     found["days"] = span
 
     research_sim.grant(game.research, found["research"])
+    relight_sim.note_survey(game, method.id)      # reading a deep anchor
+    kith_sim.observe(game, found["research"])     # they sing of their stars
     inquiry.add(game.research, "survey", found["research"] * 0.9)
     inquiry.add(game.research, "specimen", len(found["lifeforms"]) * 9)
-    grant_xp(game.officers, "science", 25, game=game)
+    # The same look twice teaches the science officer nothing either.
+    if found["research"] > 0:
+        grant_xp(game.officers, "science", 25, game=game)
 
     free = cargo_free(game.ship, game.ship_stats)
     data = min(found["data"], int(free / 0.1))
@@ -224,8 +236,9 @@ def perform(game, body_index: int, method_id: str = DEFAULT) -> dict:
     # `FRESH_DAYS` and `STALE_FLOOR` decided nothing at all: a chart made in
     # year one sold in year ten for the same money.
     system = game.system
-    system.scanned = bool(system.bodies) and all(b.surveyed
-                                                 for b in system.bodies)
+    # A comet passing through is not part of the chart (`sim/phenomena`).
+    system.scanned = bool(system.bodies) and all(
+        b.surveyed for b in system.bodies if b.transient_until is None)
     if system.scanned:
         chart_sim.stamp(game, system)
     return found

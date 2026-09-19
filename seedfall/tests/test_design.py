@@ -89,6 +89,11 @@ def run(suite: Suite) -> None:
                         ship.cargo = {"ore": CHASSIS_BY_ID[chassis_id].cargo * hold}
                         reads, _tint = loading.note(ship)
                         seen.setdefault(reads, []).append(loading.factor(ship))
+        # Every band the loop below judges has to turn up, or it judges
+        # nothing: measured, the sweep lands 27 light, 10 on the marks, 11
+        # overloaded and 6 grossly overloaded.
+        judged = {"light", "on the marks", "overloaded", "grossly overloaded"}
+        assert judged <= set(seen), f"never read: {sorted(judged - set(seen))}"
         for reads, values in seen.items():
             if reads in ("light", "on the marks"):
                 assert min(values) >= 0.95, (

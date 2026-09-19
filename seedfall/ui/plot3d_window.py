@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (QComboBox, QDialog, QHBoxLayout, QLabel,
                              QListWidget, QListWidgetItem, QSlider,
                              QVBoxLayout, QWidget)
 
+from ..core.util import reaction_mass
 from ..sim import flight
 from ..sim import track as track_sim
 from . import theme
@@ -296,7 +297,7 @@ class PlotWindow(QDialog):
         rows = [
             ("Distance", f"{solved['au']:.2f} AU"),
             ("Flight time", f"{solved['days']:,.0f} days"),
-            ("Reaction mass", f"{solved['fuel']:,.0f}"),
+            ("Reaction mass", reaction_mass(solved["fuel"])),
             ("Arrives", f"day {solved['arrive_day']:,.0f}"),
             ("Lead", f"{solved.get('lead', 0):.2f} AU"),
         ]
@@ -359,12 +360,7 @@ class PlotWindow(QDialog):
 
 def open_plot(win) -> PlotWindow:
     """Open the plotting board, or raise the one already open."""
-    existing = getattr(win, "plot_window", None)
-    if existing is not None:
-        existing.raise_()
-        existing.activateWindow()
-        return existing
-    window = PlotWindow(win)
-    win.plot_window = window
-    window.show()
-    return window
+    # Freed on close, and its slot cleared — `ui/popout.py`.
+    from . import popout
+    return popout.open_one(win, "plot_window",
+                           lambda: PlotWindow(win))

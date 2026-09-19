@@ -21,11 +21,11 @@ from __future__ import annotations
 
 import math
 
-from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtCore import QSize
 from PyQt6.QtGui import QColor, QPainter
 from PyQt6.QtWidgets import QSizePolicy, QWidget
 
-from ..data import berths3d, hulls3d, models3d, surfaces, worlds3d
+from ..data import hulls3d, models3d, surfaces, worlds3d
 from . import render3d, spheres, stars3d
 from . import painting
 

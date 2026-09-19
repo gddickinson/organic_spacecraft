@@ -36,7 +36,7 @@ from __future__ import annotations
 
 from .ship import HEAT_CEILING
 from .stations import (ORDERS_BY_ID, ROUTE_ACCURACY, ROUTE_SPEED, ROUTE_ACCEL,
-                       UNATTENDED_VENT, VENT_PER_LEVEL, bears_on, doctrine,
+                       UNATTENDED_VENT, VENT_PER_LEVEL, doctrine,
                        officer_level, run_helm)
 
 

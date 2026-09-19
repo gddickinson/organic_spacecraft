@@ -223,6 +223,8 @@ def run(suite: Suite) -> None:
         battle, rng = _engage(game, ship, "volley")
         rated = battle.player.st.heat_cap
         battle.player.ship.heat = rated * 1.9        # already nearly cooked
+        # Five mounts on this warship, measured; none would fire nothing.
+        assert len(battle.player.st.weapons) >= 5, battle.player.st.weapons
         for weapon in battle.player.st.weapons:
             combat._fire(battle, battle.player, battle.enemy, weapon.id, rng)
             assert battle.player.ship.heat <= rated * 2.5, (

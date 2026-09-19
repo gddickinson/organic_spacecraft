@@ -5,7 +5,7 @@ from __future__ import annotations
 from ..core.util import credits as cr
 from ..data.factions import FACTIONS_BY_ID
 from ..sim import chains as chain_sim
-from .widgets import Panel, Pill, button, label, mono_label, note, spacer
+from .widgets import Panel, Pill, button, label, note, spacer
 
 
 def held_panel(view, game) -> Panel | None:

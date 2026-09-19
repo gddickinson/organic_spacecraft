@@ -267,3 +267,30 @@ def computer(game, conn) -> tuple:
     return auto_sim.autopilot(conn, mode)
 
 
+def lay_course(game, conn, contact) -> dict:
+    """Lay the course on something in view. The hull comes about itself.
+
+    The Pilot screen wrote `conn.mark` through a property and the log line
+    itself; the mark is the computer's to steer by, so laying it is a verb of
+    the computer, and the chronicle hears it whichever door pressed it.
+    """
+    if conn is None:
+        return {"ok": False, "why": "Nothing is being flown.", "text": ""}
+    from . import engage as engage_sim
+    from .freeflight import hold_course
+    conn.mark = contact.name
+    hold_course(game, conn)
+    text = (f"Course laid on {contact.name}, "
+            f"{engage_sim.range_km(game, conn, contact):,.0f} km off.")
+    game.add_log(text, "")
+    return {"ok": True, "why": "", "text": text}
+
+
+def drop_course(conn) -> dict:
+    """Take the course off the mark. A run at it has nothing left to run at."""
+    if conn is None:
+        return {"ok": False, "why": "Nothing is being flown.", "text": ""}
+    conn.mark = ""
+    if conn.auto == "run":
+        conn.auto = ""
+    return {"ok": True, "why": "", "text": ""}

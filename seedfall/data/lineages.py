@@ -117,6 +117,17 @@ LINEAGES = [
         time_sense="It does not appear to distinguish between a crossing and "
                    "a berth.",
         boredom=0.0, ending="went quiet", common=False),
+
+    # Innovation 2: a Kith pilot, given at an accord (`sim/kith`). One body
+    # of a colony, carried: it drinks, it eats light and a little rock, and
+    # it lives about as long as the colony it budded from.
+    Lineage(
+        "kith", "Kith", "A body loosed from a Kith colony to fly with you. "
+        "It sings to the hull in light and waits for an answer.",
+        prime=140.0, span=260.0, ageing=0.4, decline=0.03,
+        upkeep={"volatiles": 0.003, "ore": 0.001}, breathes=False, draw=0.2,
+        time_sense="A crossing is a long note; it holds it.",
+        boredom=0.002, ending="went quiet", common=False),
 ]
 LINEAGES_BY_ID = {lineage.id: lineage for lineage in LINEAGES}
 

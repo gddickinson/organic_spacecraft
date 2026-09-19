@@ -8,17 +8,16 @@ cargo, bounties, expeditions — happens without knowing a chain is involved.
 
 from __future__ import annotations
 
-import itertools
 from dataclasses import dataclass, field
 
 from ..core.save import register
+from ..core import ids
 from ..data.chains import CHAINS, CHAINS_BY_ID
 from ..data.contracts import KINDS
 from ..data.tech import TECH_BY_ID
 from . import contracts as contract_sim
 from . import loyalty
 
-_uid = itertools.count(9000)
 
 
 @register
@@ -134,7 +133,7 @@ def _post(game, held: Commission, system):
     rng = game.rng(f"chain-{chain.id}-{held.stage}")
     d = KINDS[stage.kind]
     contract = contract_sim.Contract(
-        id=next(_uid), kind=stage.kind, issuer=chain.issuer,
+        id=ids.next_id("contract", game), kind=stage.kind, issuer=chain.issuer,
         issued_at=system.id, title="", posting=stage.posting,
         rep=d.rep + 2, deadline=game.day + stage.days,
         chain=chain.id, stage=held.stage)
@@ -144,6 +143,7 @@ def _post(game, held: Commission, system):
     contract.reward = round(contract.reward * stage.pay)
     contract.title = f"{stage.title} — {contract.title}"
     contract.accepted = True
+    contract.taken_on = game.day
     game.contracts.append(contract)
     held.contract_id = contract.id
     return contract

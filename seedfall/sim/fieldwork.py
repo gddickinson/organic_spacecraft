@@ -7,12 +7,11 @@ ground. All of it takes days off the ship's clock and returns plain data.
 
 from __future__ import annotations
 
-from ..data.xenotech import CULTURES_BY_ID, XENOTECH_BY_ID
+from ..data.xenotech import XENOTECH_BY_ID
 from . import inquiry
 from . import notes as notes_sim
 from . import research as research_sim
 from . import xeno as xeno_sim
-from .actions import jump_quote
 from . import flight
 from .crew import grant_xp
 from .ship import add_cargo, apply_damage, cargo_free

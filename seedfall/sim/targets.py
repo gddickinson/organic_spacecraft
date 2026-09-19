@@ -150,7 +150,11 @@ def starlight(game, contact) -> tuple:
     from . import track as track_sim
     try:
         x, y, z = track_sim.at(game, contact, game.day)
-    except Exception:
+    except LookupError:
+        return (0.0, 1.0, 0.0)
+    except Exception as err:                           # noqa: BLE001
+        from ..core.guard import swallowed
+        swallowed("targets.starlight", err)
         return (0.0, 1.0, 0.0)
     span = math.dist((x, y, z), (0.0, 0.0, 0.0))
     if span < 1e-9:

@@ -130,7 +130,7 @@ def run(suite: Suite) -> None:
     @check("consorts fight, and screening pulls fire off the flag")
     def _():
         from ..core.state import new_game
-        from ..sim import combat, consorts as cs, encounters
+        from ..sim import combat, encounters
         from ..sim.ship import build_layers, make_ship, stats as ship_stats
         from . import captain_ai
 
@@ -182,7 +182,7 @@ def run(suite: Suite) -> None:
     @check("a consort lost in action is gone from the fleet for good")
     def _():
         from ..core.state import new_game
-        from ..sim import combat, consorts as cs
+        from ..sim import consorts as cs
         from ..sim.ship import build_layers, make_ship
 
         g = new_game("loss")

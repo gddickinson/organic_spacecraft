@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from ..data.commodities import BY_ID
 from ..data.contraband import (CLEARANCES, REGIMES_BY_FACTION, SEIZURES)
+from . import assembly
 from . import officials as officials_sim
 
 #: Scrutiny at or above this and they are waiting for you.
@@ -76,8 +77,10 @@ def aboard(game, faction: str | None) -> list[tuple[str, float]]:
     reg = regime(faction)
     if not reg or not reg.outlaws:
         return []
+    amnesty = assembly.effect(game, "amnesty", 0.0)     # seed, for the term
     return [(cid, tonnes) for cid, tonnes in game.ship.cargo.items()
-            if cid in reg.outlaws and tonnes > 0.01]
+            if cid in reg.outlaws and tonnes > 0.01
+            and not (amnesty and cid == "wildseed")]
 
 
 # ── what it pays ───────────────────────────────────────────────────────────
@@ -125,6 +128,9 @@ def chance(game, faction: str | None, approach: float = 0.0) -> float:
     level = port.level if port else 1
 
     odds = reg.zeal * (0.14 + 0.06 * level) + heat(game, faction) * 0.45
+    from . import running_dark
+    odds += running_dark.suspicion(game)       # a quay wants a transponder
+    odds *= assembly.effect(game, "search", 1.0)    # the Contraband Accord
     relief = ((1 - min(0.45, getattr(game.ship_stats, "conceal", 0.0)))
               * (1 - min(0.22, max(0.0, game.rep.get(faction, 0)) / 100 * 0.22))
               * (1 - min(0.18, approach * 0.06)))

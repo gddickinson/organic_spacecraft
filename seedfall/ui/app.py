@@ -43,6 +43,9 @@ def main(argv=None) -> int:
             return 0
 
     win = MainWindow(game)
+    # Installed once the window exists, so a crash can save what it holds.
+    from . import crash
+    crash.install(lambda: getattr(win, "game", None))
     win.show()
     QGuiApplication.processEvents()
 

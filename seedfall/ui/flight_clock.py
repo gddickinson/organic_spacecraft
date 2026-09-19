@@ -14,6 +14,8 @@ is driving exactly what the timer fires.
 
 from __future__ import annotations
 
+from . import soundmap
+
 
 #: The screens the flight deck is *on*. Anywhere else, a running clock is
 #: held: time passing while a captain browses a market or a tech tree is
@@ -100,8 +102,9 @@ def fly_beat(win) -> None:
         if out.get("lost"):
             win.toast("The hull is gone.", "bad")
         elif out.get("moved"):
+            from ..core.util import reaction_mass
             win.toast(f"{conn.outcome.title()} at {out['moved']}. "
-                      f"{out['fuel']:.2f} t spent.", "good")
+                      f"{reaction_mass(out['fuel'])} spent.", "good")
         win.set_conn_clock(False)
         win.refresh()
         return
@@ -125,6 +128,7 @@ def fly_beat(win) -> None:
     if win.check_ending():
         win.set_conn_clock(False)
         return
+    soundmap.beat(win)          # the collision guard's ping, once a beat
     win.beat_refresh()
 
 
@@ -161,6 +165,7 @@ def start_burn(win, axis: str) -> None:
         return
     win.burn_order = axis
     win.burn_fired = False
+    soundmap.burn(win)
 
 
 def end_burn(win, quiet: bool = False) -> None:
@@ -186,6 +191,7 @@ def end_burn(win, quiet: bool = False) -> None:
     fired = getattr(win, "burn_fired", False)
     win.burn_order = None
     win.burn_fired = False
+    soundmap.burn(win)
     conn = win.conn
     if not axis or fired or conn is None or conn.over or conn.landed:
         return
@@ -200,6 +206,41 @@ def end_burn(win, quiet: bool = False) -> None:
     berth_sim.charge_flown(win.game, conn)
     if not quiet:
         win.beat_refresh()
+
+
+def computer_press(win, mode: str) -> None:
+    """One tick of the computer's `mode`, asked for by hand.
+
+    "Kill relative motion" on the flight controls is this: the computer's
+    `null`, for one minute and no more. It called `conn.apply` itself, so
+    with the clock running it flew a minute *between* beats — a second clock
+    for one button — and it skipped `hold_course` and the bridge's record of
+    what the last press did.
+
+    Now it is `end_burn`'s rule for the computer: with the clock held it is
+    one precise tick, billed and redrawn like any press; with the clock
+    running the one beat already flies every minute, so the press arms the
+    mode and the beat does the rest.
+    """
+    from ..sim import autopilot as pilot_sim
+    from ..sim import berthing as berth_sim
+    from ..sim import conn as conn_sim
+    from ..sim import freeflight as free_sim
+    conn = win.conn
+    if conn is None or conn.over or conn.landed:
+        return
+    if getattr(conn, "clock_on", False):
+        if (conn.auto or "") != mode:
+            arm_mode(win, mode)
+        return
+    free_sim.hold_course(win.game, conn)
+    axis, main, throttle = pilot_sim.autopilot(conn, mode)
+    last = conn_sim.apply(conn, axis, main=main, ticks=1, throttle=throttle)
+    pilot = win.views.get("pilot")
+    if pilot is not None:
+        pilot.last = last
+    berth_sim.charge_flown(win.game, conn)
+    win.beat_refresh()
 
 
 def arm_mode(win, mode: str | None) -> None:

@@ -126,7 +126,10 @@ def crew(game) -> dict:
         "now": days, "cap": AIR_FULL,
         "officers": officers, "berths": st.berths,
         "aboard": game.ship.crew, "o2_days": days,
-        "morale": getattr(game, "morale", 1.0),
+        # The hull's, because nothing else has any: `getattr(game, "morale",
+        # 1.0)` read an attribute `Game` has never had, so this said 1.0 on a
+        # ship whose crew was mutinous.
+        "morale": game.ship.morale,
         "fraction": min(1.0, days / AIR_FULL) if days else 0.0,
         "band": _band(days / AIR_FULL if days else 0.0, watch=0.25, bad=0.08),
         "note": (f"{days:.0f} days of air." if days
@@ -157,7 +160,10 @@ def scope(game) -> dict:
             "range": float(radius), "surveyed": bool(body.surveyed),
             "relic": bool(getattr(body, "relic", None)),
         })
-    reach = st.sensor * SCOPE_MARGIN
+    from . import regions as regions_sim        # the Shoals' gas halves it
+    from . import phenomena as sky_sim          # and a flare lights it up
+    reach = (st.sensor * SCOPE_MARGIN * regions_sim.sensor_scale(game)
+             * sky_sim.sensor_scale(game))
     neighbours = []
     for system in game.galaxy.systems:
         if system.id == here.id:

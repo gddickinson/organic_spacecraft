@@ -28,7 +28,6 @@ import math
 
 from PyQt6.QtCore import QPointF
 from PyQt6.QtGui import QColor, QPen, QPolygonF
-from PyQt6.QtCore import Qt
 
 from ..data import models3d
 

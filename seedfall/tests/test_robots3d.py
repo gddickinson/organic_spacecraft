@@ -26,6 +26,7 @@ from __future__ import annotations
 from ..data import robots3d
 from ..data.robots import ROBOTS, ROBOTS_BY_ID
 from .harness import Suite
+from .qtkit import app as _app
 
 SIZE = 150
 
@@ -45,15 +46,6 @@ SIZE = 150
 #: so a senior machine looked like a junior one). All three were differences
 #: that existed in the data and could not be seen.
 ALIKE = 0.88
-
-
-def _app():
-    from .test_ui import _use_offscreen
-    _use_offscreen()
-    from PyQt6.QtWidgets import QApplication
-    app = QApplication.instance() or QApplication([])
-    assert app is not None
-    return app
 
 
 def _mask(look: str) -> set:

@@ -288,7 +288,6 @@ def run(suite: Suite) -> bool:
         # well asks the drive to cancel the whole orbit — measured at a
         # world, 2,779 m/s of it — so the hull decayed and went **aground**.
         from ..sim import flightdeck as deck_sim
-        from ..sim import orbits
         grounded = flown = refused = 0
         for seed in range(6):
             game = new_game(f"deck-o{seed}")

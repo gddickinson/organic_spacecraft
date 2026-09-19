@@ -16,7 +16,6 @@ from ..data.territory import ANSWERS, LEVY_SHARE, UNWELCOME
 from ..sim import colony as colony_sim
 from ..sim import territory as territory_sim
 from ..sim import ventures as venture_sim
-from ..sim import works as works_sim
 from .harness import Suite
 
 

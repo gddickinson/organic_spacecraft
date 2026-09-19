@@ -18,7 +18,6 @@ from ..data.chassis import CHASSIS_BY_ID
 from ..data.colonies import COLONIES
 from ..data.parts import material_value
 from ..data.robots import ROBOTS
-from ..sim import diplomacy as dip
 from ..sim import exchequer as ex
 from ..sim import market as market_sim
 from ..sim import robots as robots_sim
@@ -86,6 +85,8 @@ def run(suite: Suite) -> None:
                 hulls.append((CHASSIS_BY_ID[enemy["ship"].chassis],
                               enemy["ship"]))
         margins = []
+        # 35 hulls off the table and nine enemies, measured.
+        assert len(hulls) >= 44, f"only {len(hulls)} hulls to scrap"
         for chassis, ship in hulls:
             cheap = _worth(shipyard.cost_of(chassis, ship.fitted,
                                             fabricator=True))
@@ -201,6 +202,8 @@ def run(suite: Suite) -> None:
             game = new_game(seed)
             for system in game.galaxy.systems:
                 producible |= {b.kind for b in system.bodies}
+        # 19 classes when measured, over whatever ground three sectors grow.
+        assert len(COLONIES) >= 19 and producible, (len(COLONIES), producible)
         for c in COLONIES:
             assert set(c.sites) & producible, (
                 f"{c.name} sites on {c.sites}, and no generated sector grows "

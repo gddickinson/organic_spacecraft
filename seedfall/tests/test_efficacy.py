@@ -13,7 +13,7 @@ patch genuinely changes the number rather than quietly missing its target.
 
 from __future__ import annotations
 
-from .efficacy import Lever, measure, neutralised, verdict
+from .efficacy import Lever, measure, verdict
 from .harness import Suite
 from .levers import LEVERS, LEVERS_BY_ID
 

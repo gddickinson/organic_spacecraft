@@ -20,12 +20,16 @@ from __future__ import annotations
 
 from ..data.factions import FACTIONS_BY_ID
 from . import allegiance
+from . import arcs
+from . import assembly
 from . import bloom as bloom_sim
 from . import consorts as consort_sim
 from . import contracts as contract_sim
 from . import inquiry
 from . import loyalty as loyalty_sim
+from . import renown as renown_sim
 from . import research as research_sim
+from . import rival_ends
 from .fieldwork import seize_notes
 from .ship import add_cargo, cargo_free
 
@@ -174,6 +178,7 @@ def _salvage(game, battle, out: dict) -> None:
             room -= take
             out["recovered"][cid] = out["recovered"].get(cid, 0) + take
     out["recovered_worth"] = worth_of(out["recovered"])
+    assembly.tax_salvage(game, credits + out["recovered_worth"])   # Salvage Law
 
 
 def worth_of(goods: dict) -> int:
@@ -204,8 +209,13 @@ def resolve(game, battle, rng) -> dict:
         out["already"] = True
         return out
     battle.settled = True
+    renown_sim.note(game, f"battle:{battle.result}")   # the career's record
 
     fid = battle.enemy_faction
+    # Innovation 3: a named rival's meeting, and the rivals ordinary fights
+    # raise. Before the loss below returns, so a rival who won is told.
+    out["nemesis"] = rival_ends.settle(game, battle, out)
+    arcs.witness(game, "fight")      # innovation 8: an event beat waits on it
 
     killed = getattr(battle, "instar", None)
     if killed is not None and battle.result in ("destroyed", "driven-off"):
@@ -234,6 +244,15 @@ def resolve(game, battle, rng) -> dict:
     out["dead"] = [c.name for c in dead]
 
     if battle.result == "lost":
+        # **The hull is gone, and that is decided here.** Only the battle
+        # screen called `die`, so a defeat anywhere else — the bridge, a
+        # scripted career, `tests/chronicle` — was a loss the captain walked
+        # away from: measured, 36% of an unarmed opening's encounters lost
+        # and every one of them survived off-screen. `die` is the one door,
+        # and a TARDIGRADE vault can still answer it.
+        if not game.dead:
+            game.die("Destroyed in action.")
+        out["died"] = game.dead
         return out
 
     if battle.result == "destroyed":

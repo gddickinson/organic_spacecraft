@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from ..data.starclasses import of as star_class
 from .conn import Conn, TICK
+from . import regions as regions_sim
 from .orbits import in_orbit, orbit_band, orbital_speed
 from .targets import (Target, approach_range, is_open, starlight,
                       target_from_contact)
@@ -34,7 +35,8 @@ def observe(game) -> Conn:
     conn = Conn(target=watching, pos=[0.0, 0.0, 0.0], vel=[0.0, 0.0, 0.0],
                 start_km=1.0, rcs=float(game.ship.cargo.get("volatiles", 0)),
                 opening_rcs=float(game.ship.cargo.get("volatiles", 0)),
-                array=float(getattr(game.ship_stats, "sensor", 2.0)))
+                array=float(getattr(game.ship_stats, "sensor", 2.0))
+                * regions_sim.sensor_scale(game))
     conn.outcome = "watching"
     conn.landed = True                      # nothing to charge for looking
     conn.sky = sky_sim.build(game, None)
@@ -76,7 +78,8 @@ def start(game, contact, range_km: float | None = None,
                 hold=kit["hold"],
                 rcs_dv=kit["rcs_accel"] * TICK,
                 slew_rate=kit["slew_rate"],
-                array=float(getattr(game.ship_stats, "sensor", 2.0)),
+                array=float(getattr(game.ship_stats, "sensor", 2.0))
+                * regions_sim.sensor_scale(game),
                 turn_rate_cost=attitude_sim.turn_cost(game.ship, 6.283185))
     # Pointing at the target — except on a free flight, where the ship *is*
     # the origin and there is nothing to point at. `unit` of a zero vector has

@@ -32,6 +32,7 @@ mode a governance layer must not have.
 from __future__ import annotations
 
 from ..data.factions import FACTIONS_BY_ID
+from . import assembly
 from . import warrants as warrants_sim
 
 #: Chance a patrol takes an interest, per day in a system, at full attention.
@@ -97,6 +98,10 @@ def may_trade(game, system) -> tuple[bool, str]:
     the difference between a power that excludes you and one that has removed
     you from the record.
     """
+    from . import kith                  # a Kith gathering posts no price
+    gift = kith.refusal(system)
+    if gift:
+        return False, gift
     if not warrants_sim.bites(game, "shun", system):
         return True, ""
     from . import wharfage
@@ -117,6 +122,8 @@ def may_seed(game) -> tuple[bool, str]:
     revocation, and it is the sharpest instrument in the game against a
     captain whose whole plan was an empire of holdings.
     """
+    if assembly.effect(game, "amnesty", 0.0):
+        return True, ""      # the Assembly's Licence Amnesty
     for warrant in warrants_sim.in_force(game):
         if warrant.bite != "licence":
             continue
@@ -147,12 +154,14 @@ def watchers(game, system=None) -> list[str]:
         return []
     from . import dockets
     from . import fleets as fleets_sim
+    from . import running_dark
     out = []
     for power in ("charter", "concordat", "freeholds", "sanhedrin"):
         if not fleets_sim.guard_at(game, system, power):
             continue
         if (dockets.exposure(game, power) > 0
-                or warrants_sim.in_force(game, power)):
+                or warrants_sim.in_force(game, power)
+                or running_dark.dark(game)):     # an unlit hull is their job
             out.append(power)
     return out
 
@@ -295,12 +304,14 @@ def tick(game, days: float, rng) -> list:
     system = getattr(game, "system", None)
     if system is None:
         return out
+    from . import running_dark
     for power in watchers(game, system):
         odds = stopped_odds(game, power, system) * min(3.0, max(0.2, days))
-        if not rng.chance(min(0.75, odds)):
+        if not rng.chance(min(0.75, odds) * running_dark.exposure(game)):
             continue
         result = stop(game, power, rng, system)
         out.extend(result.get("lines") or [])
+        out.extend(running_dark.caught(game, power))
         if result["kind"] == "hunt":
             game.flags["law_hunted_by"] = power
         break                       # one boarding a tick is plenty

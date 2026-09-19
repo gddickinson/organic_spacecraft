@@ -83,8 +83,18 @@ class EnvoyView(View):
             answers.add(card)
 
         self.row(said, answers)
-        self.buttons(button("Leave it for now",
-                            lambda: self.win.go("diplomacy")))
+        # A real deferral, with its consequence stated: `approach.set_aside`.
+        later = approach_sim.set_aside_terms(g, envoy)
+        self.col.addWidget(note(later["line"]))
+        self.buttons(button("Leave it for now", self._set_aside,
+                            tip=later["line"]))
+
+    def _set_aside(self) -> None:
+        g = self.game
+        res = approach_sim.set_aside(g, getattr(g, "envoy", None))
+        if not res.get("ok"):
+            self.win.toast(res.get("why", "No."), "warn")
+        self.win.go("diplomacy")
 
     @staticmethod
     def _usable(g, envoy, choice: str) -> tuple[bool, str]:

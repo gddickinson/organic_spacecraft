@@ -12,7 +12,6 @@ genuinely cannot see.
 
 from __future__ import annotations
 
-from ..core.rng import RNG
 from ..core.state import new_game
 from ..data.surveys import CATEGORIES, METHODS, METHODS_BY_ID
 from ..sim import flight
@@ -101,6 +100,11 @@ def run(suite: Suite) -> None:
                         f"{method.id} claims not to see underground and found "
                         "a buried site")
                 blind_held += 1
+        # Four methods, six tries each, measured; and at least one has to be
+        # blind to something, or no line above was ever asked.
+        assert blind_held >= 24, f"only {blind_held} surveys ran"
+        assert any(len(m.finds) < len(METHODS_BY_ID["deep"].finds)
+                   for m in METHODS), "no method is blind to anything"
         return f"{blind_held} surveys, every method blind to what it said"
 
     @check("only a deep look reliably finds what is buried")
@@ -173,15 +177,24 @@ def run(suite: Suite) -> None:
         # a coast is slower — a forecast that always quotes the standard burn
         # promises twelve days for a fourteen-day trip. Without this case the
         # coast path is never taken and the fix is unproven.
-        coasted = 0
+        coasted = slower = 0
         for method in METHODS:
             if not method.alongside:
                 continue
             game, index, body = _rich(f"dry-{method.id}")
+            # **The ship starts alongside the body `_rich` picks**, so this
+            # used to skip every method and report "0 re-checked on a dry
+            # tank" — the coast path it exists for was never flown. Aim at a
+            # body the ship has to travel to instead.
+            if game.orbit_body == body.id:
+                index, body = next((i, b) for i, b in enumerate(game.system.bodies)
+                                   if b.id != game.orbit_body)
+                body.surveyed = False
             _sharpen(game, scan=0.6, sensor=99.0)
             standard = flight.quote(game, body, "standard")
             if standard["fuel"] <= 0 or game.orbit_body == body.id:
                 continue
+            burning = survey_sim.preview(game, body, method.id)["days"]
             # Enough for the charges, not enough to burn hard.
             game.ship.cargo["volatiles"] = max(
                 0.0, float(method.cost.get("volatiles", 0)))
@@ -194,6 +207,13 @@ def run(suite: Suite) -> None:
                 f"{method.id} on a dry tank: said {said['days']} days, took "
                 f"{game.day - before_day} — the coast was not forecast")
             coasted += 1
+            slower += said["days"] > burning
+        # Measured: all four forecast on a full tank; both methods that fly
+        # alongside re-checked on a dry one, and `pass` really coasts there
+        # (7 days burning, 15 coasting). `deep` carries four tonnes for its
+        # charges, which is enough to burn, so it proves nothing on its own.
+        assert checked >= 4 and coasted >= 2, (checked, coasted)
+        assert slower >= 1, "no dry tank was ever forced onto the coast"
         return (f"{checked} methods, days and stores exactly as forecast; "
                 f"{coasted} re-checked on a dry tank")
 

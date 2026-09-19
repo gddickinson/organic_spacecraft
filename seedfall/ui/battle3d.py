@@ -24,7 +24,7 @@ from PyQt6.QtCore import QPointF, Qt
 from PyQt6.QtGui import (QColor, QFont, QPainter, QPen, QRadialGradient)
 from PyQt6.QtWidgets import QSizePolicy, QWidget
 
-from ..data import hulls3d, models3d
+from ..data import hulls3d
 from ..sim import gunfire
 from ..sim import tactical as tac
 from . import render3d, theme

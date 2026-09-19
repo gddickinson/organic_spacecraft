@@ -14,11 +14,11 @@ from __future__ import annotations
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QComboBox, QDialog, QHBoxLayout, QLineEdit,
-                             QScrollArea, QVBoxLayout, QWidget)
+                             QScrollArea, QSlider, QVBoxLayout, QWidget)
 
 from ..core import llm
 from ..sim import options as options_sim
-from . import theme
+from . import audio, soundmap, theme
 from .widgets import Card, Panel, button, defer, label, note, spacer
 
 
@@ -48,12 +48,15 @@ class OptionsPanel(QWidget):
             "read."))
 
         play = Panel("Play")
+        sound = Panel("Sound")
         speech = Panel("Speech")
         for entry in options_sim.summary(self.win.game):
             target = speech if entry["name"].startswith(("llm_", "voices")) \
-                else play
+                else sound if entry["name"].startswith("sound") else play
             target.add(self._setting(entry))
         self.column.addWidget(play)
+        sound.add_row("Speaker", audio.status())
+        self.column.addWidget(sound)
         speech.add(spacer(4))
         speech.add(self._state())
         self.column.addWidget(speech)
@@ -66,6 +69,8 @@ class OptionsPanel(QWidget):
             return
         self.win.apply_options()
         self.win.save()
+        if name.startswith("sound"):
+            soundmap.sample(self.win)       # heard at the level just set
         self.rebuild()
 
     # ── one setting ────────────────────────────────────────────────────────
@@ -75,7 +80,8 @@ class OptionsPanel(QWidget):
         card.add(label(entry["label"], "h3"))
         card.add(note(entry["doc"]))
         card.add({"bool": self._toggle, "choice": self._choice,
-                  "text": self._text}.get(entry["kind"], self._number)(entry))
+                  "text": self._text, "percent": self._slider}.get(
+                      entry["kind"], self._number)(entry))
         return card
 
     def _toggle(self, entry) -> QWidget:
@@ -97,6 +103,28 @@ class OptionsPanel(QWidget):
         line.addWidget(button("+", lambda n=entry["name"], v=entry["value"]:
                               self._set(n, v + step)))
         line.addWidget(label(f"({low}–{high})", "dim"))
+        line.addStretch(1)
+        return row
+
+    def _slider(self, entry) -> QWidget:
+        """A volume. Not tracking: `_set` rebuilds this page, so the value
+        is taken once, on release, rather than freeing the slider mid-drag."""
+        low, high = entry["bounds"]
+        row = QWidget()
+        line = QHBoxLayout(row)
+        line.setContentsMargins(0, 0, 0, 0)
+        bar = QSlider(Qt.Orientation.Horizontal)
+        bar.setRange(low, high)
+        bar.setValue(entry["value"])
+        bar.setSingleStep(5)
+        bar.setPageStep(10)
+        bar.setTracking(False)
+        bar.setFixedWidth(320)
+        bar.setAccessibleName(entry["label"])
+        bar.valueChanged.connect(
+            lambda v, n=entry["name"]: defer(lambda: self._set(n, v)))
+        line.addWidget(bar)
+        line.addWidget(label(f"{entry['value']}%", "label"))
         line.addStretch(1)
         return row
 

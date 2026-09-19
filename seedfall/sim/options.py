@@ -56,6 +56,19 @@ class Options:
     #: to tell" and nothing paused to let anybody act on it.
     wait_stands_down: bool = True
 
+    #: Sound at all. Off, `ui/audio` plays nothing and never opens the device.
+    sound: bool = True
+
+    #: Master volume, per cent. On a square law in `ui/audio`, so half-way is
+    #: a quarter of the power — about where the ear hears half as loud.
+    sound_volume: int = 70
+
+    #: The cues: clicks, the log's chimes, flying, combat and work.
+    sound_effects: bool = True
+
+    #: The drones: one for each kind of system, and the Bloom's swell.
+    sound_ambience: bool = True
+
 
 
 #: id -> (label, kind, what it does, bounds)
@@ -91,6 +104,22 @@ FIELDS = (
     ("llm_model", "Model name", "text",
      "Left blank, each provider uses its own default — llama3.2 for Ollama, "
      "and the current Sonnet or GPT for the hosted ones.", None),
+    ("sound", "Sound", "bool",
+     "Everything the game plays. Off, nothing is played and the sound device "
+     "is never opened. The speaker at the window's top right is the same "
+     "switch.", None),
+    ("sound_volume", "Volume", "percent",
+     "How loud all of it is. Half-way is a quarter of the power, which is "
+     "about where the ear hears half as loud.", (0, 100)),
+    ("sound_effects", "Effects", "bool",
+     "The cues: a click under a button, a chime for good, bad and uneasy "
+     "news, the burn while a thruster is held, the collision guard's ping, a "
+     "berth made fast, the guns, the survey ping and the despatch bell.",
+     None),
+    ("sound_ambience", "Ambience", "bool",
+     "A drone under each system — a red dwarf, a bright star, the Shoals' "
+     "hiss, the Hollow's near-silence, the Cradle's choir — and the Bloom's "
+     "swell, which grows as what you have seen of it grows.", None),
 )
 
 

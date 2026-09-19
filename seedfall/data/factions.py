@@ -94,9 +94,30 @@ FACTIONS: list[Faction] = [
         "there is more of it than there was. This is the failure mode the "
         "containment regime existed to prevent.",
         (), (), ("navis", "radix", "atlas", "testudo"), -100, hostile=True),
+    # Innovation 2: a living people of the Cradle (`data/kith`, `sim/kith`).
+    # Hidden until first contact, outside the Concord's four, and in no
+    # hostile encounter pool: they fight only a captain they misread.
+    Faction(
+        "kith", "The Kith", "Kith", "lumen", "xeno",
+        "Many bodies, one song.",
+        "A gift asks to be answered. An answer withheld is a debt, and a debt "
+        "left long enough is an insult.",
+        "A communal people native to the Cradle, flying colonies of many "
+        "bodies grown on one stem and speaking in modulated light. They post "
+        "no prices. They are curious about grown ships and wary of welded "
+        "ones, and they sing about their stars.",
+        # No `buys` or `sells`: nothing of theirs is priced (`WORTH` in
+        # `data/kith` is what a gift is to them).
+        (), (), ("drifter", "choir"), 0, hidden=True),
 ]
 
 FACTIONS_BY_ID: dict[str, Faction] = {f.id: f for f in FACTIONS}
+
+#: The powers a captain deals with: not the hidden, not the Bloom. The counts
+#: in the tutorial and on the ending cards are taken from this — they said
+#: "six powers" of these four.
+THE_POWERS: tuple[str, ...] = tuple(f.id for f in FACTIONS
+                                    if not (f.hidden or f.hostile))
 
 #: Reputation bands, worst to best: (threshold, label, tint).
 STANDINGS = [
@@ -108,6 +129,9 @@ STANDINGS = [
     (40, "Trusted", "chloro"),
     (70, "Kin", "chloro"),
 ]
+
+#: Where "Kin" starts, for any rule the text says "Kin" about.
+KIN = next(floor for floor, label, _tint in STANDINGS if label == "Kin")
 
 
 def standing(rep: float) -> tuple[str, str]:

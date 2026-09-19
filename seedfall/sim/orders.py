@@ -7,10 +7,10 @@ called as often as a screen is drawn.
 
 from __future__ import annotations
 
-from ..data.orders import ORDERS, ORDERS_BY_ID, SHOWN
+from ..data.orders import ORDERS, SHOWN
 from . import chains
-from . import consorts, colony as colony_sim, intel
-from . import inquiry, loading, loyalty, market as market_sim
+from . import consorts, intel
+from . import loading, loyalty
 from . import rumours as rumour_sim
 from . import ventures as venture_sim
 from . import works as works_sim
@@ -74,8 +74,12 @@ def applies(game, order_id: str) -> bool:
         return False
     try:
         return bool(predicate(game))
-    except Exception:
-        # An order that cannot be evaluated is not worth crashing a screen for.
+    except Exception as err:                           # noqa: BLE001
+        # An order that cannot be evaluated is not worth crashing a screen
+        # for — but it is a bug in the predicate, so it is said, once, and
+        # fails the check that found it.
+        from ..core.guard import swallowed
+        swallowed(f"orders.applies({order_id!r})", err)
         return False
 
 

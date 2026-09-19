@@ -6,7 +6,9 @@ lesson and `sim/tutorial_watch.py` for the watchers that decide them.
 
 from __future__ import annotations
 
+from ..core.util import spelled
 from .lesson_types import Lesson
+from .lore import VICTORIES
 
 LATE = [
     # ── VI. Rock and ice ──────────────────────────────────────────────────
@@ -153,8 +155,9 @@ LATE = [
            "Open the Codex — the class reference, the powers, and the "
            "glossary.",
            "codex", "saw_codex",
-           "That is the whole tutorial. What is left is the game: five "
-           "endings open from turn one, a sector that keeps moving whether "
+           "That is the whole tutorial. What is left is the game: "
+           f"{spelled(len(VICTORIES))} endings open from turn one, a sector "
+           "that keeps moving whether "
            "you are watching or not, and a Bloom that is somebody's "
            "containment failure with a Charter serial still on it. The "
            "Academy tab under Help will take you through any course again.",

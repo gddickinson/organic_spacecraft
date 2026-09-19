@@ -20,11 +20,13 @@ from ..data.parts import PARTS
 from ..data.tech import TECH, TECH_BY_ID
 from ..data.works import WORKS
 from ..data.xenotech import XENOTECH_BY_ID
+from ..data.kith import GATES as KITH_GATES
 from ..sim import works as works_sim
 from ..sim.colony import Colony
 from .harness import Suite
 
-KNOWN_TECH = set(TECH_BY_ID) | set(XENOTECH_BY_ID)
+#: Research, incorporated alien work, and a Kith gift (a graft, the accord).
+KNOWN_TECH = set(TECH_BY_ID) | set(XENOTECH_BY_ID) | set(KITH_GATES)
 
 
 def _omniscient(seed: str = "works-all"):

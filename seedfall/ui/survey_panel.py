@@ -118,7 +118,10 @@ def report(res, game) -> list:
     if res.get("relic"):
         tech = XENOTECH_BY_ID[res["relic"]]
         culture = CULTURES_BY_ID[tech.culture]
-        lines.append(f"A {culture.name} site, buried and largely intact. "
+        # Every culture's name carries its article ("The Tessellate"), so
+        # "A {name} site" read "A The Tessellate site" (play-test).
+        of = culture.name[:1].lower() + culture.name[1:]
+        lines.append(f"A site of {of}, buried and largely intact. "
                      f"The work appears to be {tech.name}. It can be "
                      "excavated.")
     elif res.get("method") is not None and "relic" not in res["method"].finds:

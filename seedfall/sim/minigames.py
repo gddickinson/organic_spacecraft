@@ -309,3 +309,47 @@ def decode_result(d: Decoding) -> dict:
         return {"won": False, "points": 0}
     spare = max(0, d.tries)
     return {"won": True, "points": 40 + spare * 12}
+
+
+def begin_decoding(game, subject: str, tech_id: str | None) -> Decoding:
+    """Put a recording on the bench. The pattern's luck is drawn here.
+
+    `ui/minigame_view` drew `game.rng("decode")` and wrote both fields on the
+    game itself; the bench belongs to the chronicle, so opening it does too.
+    """
+    game.decoding = start_decoding(game.rng("decode"), subject,
+                                   game.ship_stats, game.officers)
+    from . import arcs          # Second mind: a recording at the bench
+    game.decoding.tries += int(arcs.signature_effects(
+        game.officers).get("decode", 0))
+    game.decoding_tech = tech_id
+    return game.decoding
+
+
+def finish_decoding(game) -> dict:
+    """Close the bench: bank what it earned against the technology, and clear it.
+
+    It was the screen's `_finish` — the study banked, the log line written and
+    the bench cleared by a button handler — so a decoding closed by any other
+    door earned nothing and left the bench open.
+    """
+    d = getattr(game, "decoding", None)
+    if d is None:
+        return {"ok": False, "why": "Nothing is on the bench.", "text": ""}
+    res = decode_result(d)
+    tech_id = getattr(game, "decoding_tech", None)
+    out = {"ok": True, "why": "", "text": "", "won": res["won"],
+           "points": res["points"], "tech_id": tech_id, "incorporated": False}
+    if tech_id and tech_id.startswith("kith:"):     # a Kith song: sim/kith
+        from . import kith
+        out.update(kith.decoded(game, tech_id, res))
+        tech_id = None
+    if res["won"] and tech_id:
+        from . import xeno as xeno_sim
+        _applied, out["incorporated"] = xeno_sim.add_study(game, tech_id,
+                                                           res["points"])
+        out["text"] = f"Decoded a {d.subject} emission: {res['points']} points."
+        game.add_log(out["text"], "good")
+    game.decoding = None
+    game.decoding_tech = None
+    return out

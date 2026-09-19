@@ -8,19 +8,18 @@ than when you remember to hand it in.
 
 from __future__ import annotations
 
-import itertools
 from dataclasses import dataclass, field
 
 from ..core.save import register
 from ..core.util import credits as cr
+from ..core import ids
 from ..data.commodities import BY_ID
 from ..data.contracts import CARGO_WANTED, KINDS, POSTINGS
 from ..data.factions import FACTIONS_BY_ID
 from ..world.galaxy import distance
-from . import allegiance
+from . import allegiance, stores
 from . import loyalty as loyalty_sim
 
-_uid = itertools.count(1)
 
 MAX_ACTIVE = 6
 
@@ -135,6 +134,9 @@ class Contract:
     #: tally of tonnes bought there, which never came down: a captain who
     #: *refuelled* had an honest cargo refused.
     travelled: bool = False
+    #: Day accepted. A survey counts bodies charted *since* — it counted any,
+    #: and 2 of 18 paid out inside a day. -1 on an old save, which counts all.
+    taken_on: int = -1
 
     @property
     def definition(self):
@@ -204,8 +206,12 @@ def board_for(game, sysm) -> list[Contract]:
     level = sysm.port.level if sysm.port else 0
     turnover = max(30, BOARD_TURNOVER - BOARD_TURNOVER_PER_LEVEL * level)
     if entry is None or game.day - entry["day"] >= turnover:
-        entry = {"day": game.day,
-                 "posts": generate(game.rng("board"), game, sysm)}
+        # **Its own seed, never the game's.** `game.rng` advances the one
+        # stream every later draw comes from, so *opening this panel* on day
+        # 0 changed the markets by day 200. `test_exploits` pins it.
+        from ..core.rng import RNG
+        seed = RNG(f"{game.seed}:board:{sysm.id}:{game.day // turnover}")
+        entry = {"day": game.day, "posts": generate(seed, game, sysm)}
     entry["posts"] = [c for c in entry["posts"]
                       if not c.accepted and c.deadline > game.day]
     game.boards[key] = entry
@@ -240,7 +246,7 @@ def generate(rng, game, sysm) -> list[Contract]:
         ])
         d = KINDS[kind]
         deadline = game.day + rng.int(*d.deadline)
-        c = Contract(id=next(_uid), kind=kind, issuer=faction, issued_at=sysm.id,
+        c = Contract(id=ids.next_id("contract", game), kind=kind, issuer=faction, issued_at=sysm.id,
                      title="", posting=rng.pick(POSTINGS[kind]),
                      rep=d.rep, deadline=deadline)
 
@@ -343,6 +349,7 @@ def accept(game, contract: Contract) -> tuple[bool, str]:
     if len(active) >= MAX_ACTIVE:
         return False, f"You are already carrying {MAX_ACTIVE} contracts."
     contract.accepted = True
+    contract.taken_on = game.day
     game.contracts.append(contract)
     return True, ""
 
@@ -374,7 +381,7 @@ def check(game) -> list[tuple[Contract, str]]:
         if c.kind == "deliver":
             if (game.location_id == c.target_system
                     and _cargo_held(game, c.commodity) >= c.amount):
-                _take_cargo(game, c.commodity, c.amount)
+                stores.take(game, c.commodity, c.amount, hold_first=True)
                 _pay(game, c)
                 events.append((c, "done"))
         elif c.kind in ("prospect", "relic"):
@@ -382,12 +389,13 @@ def check(game) -> list[tuple[Contract, str]]:
             if not here:
                 c.travelled = True
             if here and c.travelled and _cargo_held(game, c.commodity) >= c.amount:
-                _take_cargo(game, c.commodity, c.amount)
+                stores.take(game, c.commodity, c.amount, hold_first=True)
                 _pay(game, c)
                 events.append((c, "done"))
         elif c.kind == "survey":
             target = game.galaxy.systems[c.target_system]
-            c.progress = sum(1 for b in target.bodies if b.surveyed)
+            c.progress = sum(1 for b in target.bodies if b.surveyed
+                             and b.surveyed_on >= c.taken_on)
             if c.progress >= c.amount:
                 _pay(game, c)
                 events.append((c, "done"))
@@ -422,15 +430,6 @@ def note_landing(game, system_id: int, body_id: str) -> list[Contract]:
             c.progress = 1
             hit.append(c)
     return hit
-
-
-def _take_cargo(game, cid: str, amount: float) -> None:
-    from .ship import add_cargo
-    from_ship = min(game.ship.cargo.get(cid, 0), amount)
-    add_cargo(game.ship, cid, -from_ship)
-    rest = amount - from_ship
-    if rest > 0:
-        game.stores[cid] = max(0.0, game.stores.get(cid, 0) - rest)
 
 
 def _remember_done(game, contract: Contract) -> None:

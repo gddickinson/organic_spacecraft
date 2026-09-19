@@ -26,8 +26,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..core.save import register
-from ..data.approaches import (APPROACHES_BY_ID, AS_ANSWERED,
-                               ODDS_PER_DAY, QUIET_DAYS)
+from ..data.approaches import (APPROACHES_BY_ID, AS_ANSWERED, GRACE_DAYS,
+                               ODDS_PER_DAY, QUIET_DAYS, SET_ASIDE_DAYS)
 from ..data.commodities import TRADE_IDS
 from ..data.diplomacy import TREATY_WEIGHT
 from ..data.factions import FACTIONS_BY_ID
@@ -65,6 +65,10 @@ class Envoy:
     #: Set once, when the offer is haggled, so it cannot be milked.
     pushed: bool = False
     log: list = field(default_factory=list)
+    #: The day a set-aside envoy asks again; -1 when it is not set aside.
+    #: Until then it waits in the anteroom without holding the window — see
+    #: `holds` and `set_aside`.
+    aside_until: int = -1
 
     @property
     def action(self):
@@ -202,11 +206,16 @@ def tick(game, days: float, rng) -> list:
             _apply_refusal(game, live)
             return [("warn", f"{_short(live.faction)}'s envoy has gone. You "
                              "did not answer, which is an answer.")]
+        if 0 <= live.aside_until <= game.day:
+            live.aside_until = -1
+            return [("warn", f"{_short(live.faction)}'s envoy is asking for "
+                             "an answer again.")]
         return []
 
-    quiet = getattr(state, "approached", None)
-    if quiet is None:
-        state.approached = quiet = {}
+    quiet = state.approached
+    # A new captain is given time to find their feet — `GRACE_DAYS`.
+    if game.day < GRACE_DAYS:
+        return []
 
     for faction in dip.POWERS:
         if game.day < quiet.get(faction, -9999) + QUIET_DAYS:
@@ -225,6 +234,43 @@ def tick(game, days: float, rng) -> list:
     return []
 
 
+def holds(game) -> bool:
+    """Is an envoy waiting *and* holding the window right now?
+
+    The one question `ui/window.go` and the clock's wait both ask. "Leave it
+    for now" sent the captain to Diplomacy, and `go` bounced every screen
+    straight back to the envoy — its own button was a door into the same
+    room. A set-aside envoy is still waiting and still lapses on its day; it
+    simply does not stand in the doorway until `aside_until`.
+    """
+    envoy = getattr(game, "envoy", None)
+    if envoy is None or envoy.over:
+        return False
+    return game.day >= getattr(envoy, "aside_until", -1)
+
+
+def set_aside_terms(game, envoy) -> dict:
+    """What "Leave it for now" does, stated before it is done."""
+    until = game.day + SET_ASIDE_DAYS
+    lapses = until >= envoy.expires
+    line = (f"The offer lapses on day {envoy.expires} before they would ask "
+            "again — leaving it that long is refusing it."
+            if lapses else
+            f"They will ask again on day {until}. The offer lapses on day "
+            f"{envoy.expires}, and letting it lapse is refusing it.")
+    return {"until": until, "expires": envoy.expires, "lapses": lapses,
+            "line": line}
+
+
+def set_aside(game, envoy) -> dict:
+    """Leave the envoy waiting and go about your business. See `holds`."""
+    if envoy is None or envoy.over:
+        return {"ok": False, "why": "There is nobody waiting."}
+    terms = set_aside_terms(game, envoy)
+    envoy.aside_until = terms["until"]
+    return {"ok": True, **terms}
+
+
 def preview(game, envoy, answer: str) -> dict:
     """What each answer will actually do, before it does it."""
     action = envoy.action
@@ -234,21 +280,22 @@ def preview(game, envoy, answer: str) -> dict:
            "goods": None, "relations": None, "lines": []}
     if answer == "accept":
         out["rep"][envoy.faction] = action.accept_rep
+        paid = out["credits"] = _changes_hands(game, envoy)
+        if 0 <= paid < envoy.credits and envoy.kind != "levy":
+            out["lines"].append(f"Their purse holds only {paid:,} of the "
+                                f"{envoy.credits:,} offered.")
         if envoy.kind == "requisition":
-            out["credits"] = envoy.credits
             out["goods"] = (envoy.goods, -envoy.amount)
             out["lines"].append(
                 f"{envoy.amount:g} t of {envoy.goods} off the manifest, "
-                f"{envoy.credits:,} credits on.")
+                f"{paid:,} credits on.")
         elif envoy.kind == "levy":
-            out["credits"] = -envoy.credits
             out["lines"].append(f"{envoy.credits:,} credits paid over.")
         elif envoy.kind == "denounce_rival":
-            out["credits"] = envoy.credits
             out["rep"][envoy.rival] = -18.0
             out["relations"] = (envoy.faction, envoy.rival, -6.0)
             out["lines"].append(
-                f"{envoy.credits:,} credits, and {_short(envoy.rival)} hears "
+                f"{paid:,} credits, and {_short(envoy.rival)} hears "
                 f"every word of it. It also drives {_short(envoy.faction)} "
                 f"and {_short(envoy.rival)} six further apart.")
         elif envoy.kind == "treaty_offer":
@@ -288,6 +335,21 @@ def preview(game, envoy, answer: str) -> dict:
                 f"{better:,} credits {way}, and they will think slightly "
                 "less of you for the asking.")
     return out
+
+
+def _changes_hands(game, envoy) -> int:
+    """Credits to the captain if the offer is taken (a levy is negative).
+    **Nothing is conjured:** a power pays out of its own purse — what it
+    holds, no more — and a levy goes into it. Both ways were once minted and
+    burned, with no purse moving and no line in the log (play-test,
+    2026-09-18). One function for `preview` and `answer`."""
+    if envoy.kind == "levy":
+        return -int(envoy.credits)
+    if envoy.kind not in ("requisition", "denounce_rival"):
+        return 0
+    from . import exchequer
+    held = exchequer.purse(game, envoy.faction).credits
+    return int(max(0.0, min(float(envoy.credits), held)))
 
 
 def _apply_refusal(game, envoy) -> None:
@@ -358,16 +420,19 @@ def answer(game, envoy, choice: str) -> dict:
                     "why": f"You no longer have {envoy.amount:g} t of "
                            f"{envoy.goods} aboard."}
         add_cargo(game.ship, envoy.goods, -envoy.amount)
-        game.credits += envoy.credits
-    elif envoy.kind == "levy":
-        if game.credits < envoy.credits:
-            return {"ok": False, "why": "You cannot cover the levy."}
-        game.credits -= envoy.credits
-    elif envoy.kind == "denounce_rival":
-        game.credits += envoy.credits
-        if envoy.rival:
-            game.adjust_rep(envoy.rival, -18.0)
-            dip.shift_relation(game, envoy.faction, envoy.rival, -6.0)
+    elif envoy.kind == "levy" and game.credits < envoy.credits:
+        return {"ok": False, "why": "You cannot cover the levy."}
+    moved = _changes_hands(game, envoy)
+    if moved:
+        from . import exchequer
+        exchequer.purse(game, envoy.faction).credits -= moved
+        game.credits += moved
+        game.add_log(f"{_short(envoy.faction)}: {abs(moved):,} credits "
+                     + ("from their purse." if moved > 0 else "paid over."),
+                     "good" if moved > 0 else "warn")
+    if envoy.kind == "denounce_rival" and envoy.rival:
+        game.adjust_rep(envoy.rival, -18.0)
+        dip.shift_relation(game, envoy.faction, envoy.rival, -6.0)
     elif envoy.kind == "treaty_offer":
         from . import accord
         dip.ensure(game).treaties.append(envoy.faction)

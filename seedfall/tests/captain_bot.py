@@ -121,6 +121,12 @@ def _bot(seed: str, years: int = 5):
         affordable = [s for s in reach
                       if g.ship.cargo.get("volatiles", 0)
                       >= actions.jump_quote(g, s)["fuel"]]
+        # An ion storm (`sim/phenomena`) shuts lanes for days: wait it out.
+        clear = [s for s in affordable if not actions.jump_quote(g, s)["closed"]]
+        if affordable and not clear:
+            g.advance_days(1)
+            continue
+        affordable = clear or affordable
         if not affordable:
             # top up from ice rather than sitting there
             # The richest ice a rig will actually go on. Taking the first
@@ -158,7 +164,38 @@ def _bot(seed: str, years: int = 5):
                 if not actions.distress_call(g).get("ok"):
                     break
             continue
+        # **A broke captain flies to a counter.** Exploring comes first only
+        # while there is money to explore on: on "run-a" the Bloom's steadier
+        # curve left a portless neighbour clean where it used to be grown
+        # over, and this bot, broke since day 500, flew out to it and on
+        # through three more with no quay among them, and starved on day
+        # 1,160 — the probe walking away from the move in front of it, not
+        # the game dead-ending. With this, all six seeds see five years.
+        if g.credits < BROKE:
+            affordable = [s for s in affordable if s.port] or affordable
         target = next((s for s in affordable if not s.visited), r.pick(affordable))
         if not actions.jump_to(g, target.id)["ok"]:
             break
     return g
+
+
+#: The sectors both `test_play` (solvency) and `test_stranded` (stalls) send
+#: the naive captain through for five years.
+FIVE_YEAR_SEEDS = ("run-a", "run-b", "run-c", "run-d", "run-e", "run-f")
+_RUNS: dict = {}
+
+
+def five_year_runs() -> list:
+    """`(seed, game)` for the six five-year runs, flown once per process.
+
+    Two checks flew the same six sectors and read only how they ended —
+    about ten seconds of simulation each, measured, and in a serial run the
+    second flight was not even guaranteed to be the same flight, since the
+    id counters (`core/ids.py`) carry over between chronicles in a process.
+    One flight, read twice. **The games are shared: read them, never
+    change them.**
+    """
+    for seed in FIVE_YEAR_SEEDS:
+        if seed not in _RUNS:
+            _RUNS[seed] = _bot(seed, years=5)
+    return [(seed, _RUNS[seed]) for seed in FIVE_YEAR_SEEDS]

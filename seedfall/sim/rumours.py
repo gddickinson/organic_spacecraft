@@ -19,16 +19,16 @@ it. A price that did not follow the provenance would be charging for volume.
 
 from __future__ import annotations
 
-import itertools
 from dataclasses import dataclass
 
 from ..core.save import register
+from ..core import ids
+from ..core.rng import RNG
 from ..data.rumours import (BEST_ODDS, FAR_LY, FAR_UNRELIABLE, KINDS,
                             KINDS_BY_ID, LOCAL_LY, PER_PORT, PRICE_FLOOR,
                             PRICE_RANGE, QUAY_TRUST, WORST_ODDS)
 from ..world.galaxy import distance
 
-_uid = itertools.count(1)
 
 
 @register
@@ -190,7 +190,10 @@ def circulating(game, system, rng) -> list:
     """What is being said at this port. Stable for a given port and day."""
     if not system.port:
         return []
-    candidates = [s for s in game.galaxy.systems if s.id != system.id]
+    # Talk at a quay is about its own side of the rim: the one door for how
+    # far a story travelled (`provenance`) is a light-year count.
+    from ..world.galaxy import local
+    candidates = [s for s in local(game.galaxy, system) if s.id != system.id]
     if not candidates:
         return []
     out = []
@@ -210,11 +213,30 @@ def circulating(game, system, rng) -> list:
             continue
         # Built before the roll, because whether it is true now depends on
         # where it is being told — which is a property of the rumour.
-        story = Rumour(id=next(_uid), kind=pick.id, system_id=target.id,
+        story = Rumour(id=ids.next_id("rumour", game), kind=pick.id, system_id=target.id,
                        heard_at=system.id)
         story.true = _truth(game, story, rng)
         out.append(story)
     return out
+
+
+def board(game, system) -> list:
+    """What is going round this quay this month that you have not taken up.
+
+    **Seeded from its own key, not from `game.rng`.** The desk drew
+    `game.rng(f"rumour-{port}-{month}")` inside `ui/rumours_panel.py`, and
+    `game.rng` advances the save's seed on every call — so the "same stories
+    all month" its comment promised were new stories on every redraw
+    (measured: 20 ports of 20 showed a different board on a second draw the
+    same day), and merely *looking* at the desk moved the chronicle's luck
+    for everything rolled after it. A key of seed, port and month is stable
+    and costs the rest of the game nothing.
+    """
+    if not system.port:
+        return []
+    rng = RNG(f"{game.seed}:rumour:{system.id}:{game.day // 30}")
+    return [r for r in circulating(game, system, rng)
+            if not about(game, r.system_id)]
 
 
 def take(game, rumour, paid: bool = False) -> None:

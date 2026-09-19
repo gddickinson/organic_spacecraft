@@ -246,6 +246,8 @@ def run(suite: Suite) -> None:
                 list(loyalty.tick(game, float(step), True))
             runs[step] = [loyalty.loyalty_of(o) for o in game.officers]
         base = runs[30]
+        # Three officers aboard, measured; `zip` over none compares nothing.
+        assert len(base) >= 3 and all(len(g) == len(base) for g in runs.values()), runs
         for step, got in runs.items():
             for want, have in zip(base, got):
                 assert abs(want - have) < 0.5, (
@@ -291,12 +293,13 @@ def run(suite: Suite) -> None:
         from ..core.rng import RNG
         from ..sim import approach, ventures
 
-        def sweep(name, run, count=200):
+        def sweep(name, run, count=200, start=0):
             got = {}
             for step in (30, 1):
                 seen = []
                 for trial in range(count):
                     game = new_game(f"{name}{trial}")
+                    game.day = start
                     rng = RNG(f"{name}r{trial}")
                     for _ in range(30 // step):
                         game.day += step
@@ -311,10 +314,15 @@ def run(suite: Suite) -> None:
                 return len(ventures.live(game))
             return 1 if getattr(game, "envoy", None) is not None else 0
 
+        # Envoys wait out `GRACE_DAYS` before anybody calls, so their month
+        # is measured from the day they may: inside the grace both arms are
+        # zero and there is no spread to compare against.
         said = []
-        for name, run in (("v", lambda g, n, r: list(ventures.tick(g, n, r))),
-                          ("a", lambda g, n, r: list(approach.tick(g, n, r)))):
-            got = sweep(name, run)
+        for name, run, start in (
+                ("v", lambda g, n, r: list(ventures.tick(g, n, r)), 0),
+                ("a", lambda g, n, r: list(approach.tick(g, n, r)),
+                 approach.GRACE_DAYS)):
+            got = sweep(name, run, start=start)
             (whole, e_w), (walked, e_k) = got[30], got[1]
             spread = (e_w ** 2 + e_k ** 2) ** 0.5
             assert abs(walked - whole) < 3.0 * spread, (

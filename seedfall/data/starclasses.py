@@ -107,6 +107,29 @@ STAR_CLASSES = {
         "Eight suns' worth of mass and nothing to see. The accretion disc "
         "is the only reason you know where it is, and the reason nobody "
         "holds an orbit here casually."),
+    # ── the Far Reaches (`data/regions.py`) ────────────────────────────────
+    # Only a region's generator makes these: the Verge's own class table
+    # (`world/galaxy.STAR_CLASSES`) is a compatibility surface and is never
+    # added to. Radii, luminosities and masses are the real classes'.
+    "T": StarClass(
+        # A pre-main-sequence star still pulling in its disc: bigger and
+        # brighter than it will be, and variable while it settles.
+        "T", "T-Tauri young star", SOLAR_RADIUS_KM * 2.5, 3.0, 1.1,
+        "#ffd2e4", "#f0a6c8",
+        "Not yet a star in the grown-up sense — still contracting, still "
+        "feeding from the disc around it, and flaring when it swallows a "
+        "clump of it. Every world here is new."),
+    "BG": StarClass(
+        "BG", "B-type blue giant", SOLAR_RADIUS_KM * 6.0, 2_800.0, 8.5,
+        "#e3ecff", "#aac6ff",
+        "Eight suns of mass burning through them in a few tens of millions "
+        "of years. The light off one is a working hazard at an AU."),
+    "O": StarClass(
+        "O", "O-type blue giant", SOLAR_RADIUS_KM * 12.0, 180_000.0, 30.0,
+        "#d9e2ff", "#7f9cff",
+        "The hottest class there is, and the shortest-lived: it will be a "
+        "supernova while the worlds round it are still cooling. Nothing "
+        "unshielded stays near one for long."),
 }
 
 #: What to use for a class the generator has invented since this was written.

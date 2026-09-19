@@ -32,11 +32,9 @@ _APP = None
 
 
 def _qt():
-    from .test_ui import _use_offscreen
-    _use_offscreen()
-    from PyQt6.QtWidgets import QApplication
+    from . import qtkit
     global _APP
-    _APP = QApplication.instance() or QApplication([])
+    _APP = qtkit.app()
     return _APP
 
 
@@ -361,14 +359,40 @@ def run(suite: Suite) -> bool:
     def _():
         # The plotting board's Engage used to call `flight.travel_to`, the
         # *instant* transfer — two interplanetary autopilots, picked by
-        # which window you pressed. The wiring is in the source and can be
-        # read (the same rule `test_bridge` uses).
-        import inspect
-        from ..ui import plot3d_window
-        body = inspect.getsource(plot3d_window.PlotWindow._engage)
-        assert "transit_sim.begin" in body, "the board no longer flies transit"
-        assert "travel_to(" not in body, (
-            "the board still has its own instant executor")
+        # which window you pressed. This read the source for the call until
+        # it was pressed instead: the instant executor arrives on the spot
+        # and bills the days, the crossing leaves the ship where it is with
+        # a transit under way and the window watching it.
+        from ..sim import flight
+        from ..sim import transit as transit_sim
+        from ..ui.plot3d_window import PlotWindow
+        from . import qtkit
+        _qt()
+        game = new_game("engage-one")
+        win = qtkit.main_window(game)
+        board = PlotWindow(win)
+        there = next(c for c in track_sim.contacts(game)
+                     if c.body_index is not None
+                     and game.system.bodies[c.body_index].id != game.orbit_body)
+        board.canvas.selected = there.id
+        used = []
+        real_begin, real_travel = transit_sim.begin, flight.travel_to
+        transit_sim.begin = lambda *a, **k: used.append("crossing") or \
+            real_begin(*a, **k)
+        flight.travel_to = lambda *a, **k: used.append("instant") or \
+            real_travel(*a, **k)
+        day, orbit = game.day, game.orbit_body
+        try:
+            board._engage()
+        finally:
+            transit_sim.begin, flight.travel_to = real_begin, real_travel
+            board.close()
+            win.close()
+        assert used == ["crossing"], f"Engage flew by {used}"
+        assert win.current == "transit" and win.transit is not None, (
+            f"Engage left the window on {win.current} with no crossing")
+        assert (game.day, game.orbit_body) == (day, orbit), (
+            "the ship arrived the moment Engage was pressed")
         return "the board hands its course to the same crossing the helm flies"
 
     return True

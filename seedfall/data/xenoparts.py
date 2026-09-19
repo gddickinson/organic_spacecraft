@@ -8,7 +8,7 @@ bolting it to the hull you already fly.
 
 from __future__ import annotations
 
-from .part_types import Ability, Part, Weapon
+from .part_types import Part, Weapon
 
 XENOPARTS: list[Part] = [
     # ── ABYSSAL ─────────────────────────────────────────────────────────────

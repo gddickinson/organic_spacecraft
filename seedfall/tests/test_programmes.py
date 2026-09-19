@@ -33,10 +33,9 @@ The claims:
 from __future__ import annotations
 
 from ..core.state import new_game
-from ..data.programmes import PROGRAMMES, PROGRAMMES_BY_ID, ROUND_GROWTH
+from ..data.programmes import PROGRAMMES, ROUND_GROWTH
 from ..data.tech import TECH
 from ..sim import programmes as prog_sim
-from ..sim import research as research_sim
 from .harness import Suite
 
 

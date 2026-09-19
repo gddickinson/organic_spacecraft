@@ -61,8 +61,6 @@ class DemandView(View):
             self.win.toast(res.get("why", "No."), "warn")
             self.win.go("empire")
             return
-        g.add_log(f"{system.name}: you {choice} to {power.short}.",
-                  "good" if choice != "defy" else "warn")
         self.win.dialog(
             power.short,
             [label(OUTCOMES[choice].format(system=system.name), "", wrap=True)],

@@ -68,4 +68,23 @@ def _fight(game, encounter, rng) -> str:
         battle.over = True
         battle.result = "driven-off"
     aftermath_sim.resolve(game, battle, rng)
+    if battle.result == "lost" and game.dead:
+        _refloat(game)
     return battle.result or "unresolved"
+
+
+def _refloat(game) -> None:
+    """The patron buys the captain back after a lost fight.
+
+    **A lost fight kills now, everywhere** — `aftermath.resolve` calls `die`,
+    where only the battle screen used to, so this driver's captain lived
+    through every defeat and its decade of state was built on that. Measured
+    on `chronicle-ground`: dead on day 195 of a six-year run, which leaves
+    every screen this driver exists to feed looking at a chronicle that never
+    happened. The patron already tops up the purse (`chronicle.play`); this
+    is the same gift, stated as plainly, and it is the only place it is
+    given. The loss itself is `test_exploits`' and `test_aftermath`'s to pin.
+    """
+    game.dead = False
+    game.ending = None
+    game.death_reason = ""

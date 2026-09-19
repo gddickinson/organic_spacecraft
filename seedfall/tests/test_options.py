@@ -18,7 +18,9 @@ player would notice has to differ**:
 - `autosave_days` — the chronicle is written on the cadence asked for;
 - `voices`, `llm_provider`, `llm_model` — reach `core/llm.py`, which is outside
   the `Game` and has to be pushed to;
-- `tutorial` — the title screen offers it, or does not.
+- `tutorial` — the title screen offers it, or does not;
+- `sound`, `sound_volume`, `sound_effects`, `sound_ambience` — what reaches
+  the speaker follows each, counted by `ui/audio` (asked for, played).
 
 Plus the structural pair: every field is on the screen and every screen row is a
 field, and the bounds are enforced in the sim where a second UI cannot disagree
@@ -115,7 +117,8 @@ def run(suite: Suite) -> None:
             assert len(row["doc"]) > 40, (
                 f"{row['name']} is described in {len(row['doc'])} characters; "
                 "the options page is where the game explains itself")
-            assert row["kind"] in ("bool", "days", "ms", "choice", "text"), row
+            assert row["kind"] in ("bool", "days", "ms", "choice", "text",
+                                   "percent"), row
         return f"{len(fields)} settings, every one offered and described"
 
     @check("the bounds live in the sim, and a bad value cannot get in")
@@ -299,3 +302,45 @@ def run(suite: Suite) -> None:
         assert options_sim.get(back, "llm_model") == "some-model"
         assert options_sim.get(back, "tutorial") is True
         return "offered only with the switch on; a reload keeps all of it"
+
+    @check("each sound setting silences what it says, and nothing else")
+    def _():
+        # Through the façade's counters: `REQUESTED` is what the game asked
+        # for, `PLAYED` what reached a speaker. Offscreen there is no speaker,
+        # which is the façade's whole point, so a fake one stands in.
+        from ..ui import audio, soundmap
+        from .test_audio import Recorder
+        game, win = _window("opt-sound")
+
+        def heard(**settings) -> tuple:
+            for name, value in settings.items():
+                options_sim.set_to(game, name, value)
+            win.apply_options()                  # what the options page calls
+            ear = Recorder()
+            audio.install(ear)
+            soundmap.click()                     # an effect
+            audio.set_level("amb_red", 1.0)      # an ambience
+            return (dict(audio.REQUESTED), dict(audio.PLAYED),
+                    {c: v for _verb, c, v in ear.heard})
+
+        try:
+            asked, played, level = heard(sound=True, sound_volume=70,
+                                         sound_effects=True,
+                                         sound_ambience=True)
+            assert played == asked == {"click": 1, "amb_red": 1}, played
+            loud = level["click"]
+            _a, played, _l = heard(sound=False)
+            assert not played, f"sound off and still played {played}"
+            _a, played, _l = heard(sound=True, sound_effects=False)
+            assert played == {"amb_red": 1}, played
+            _a, played, _l = heard(sound_effects=True, sound_ambience=False)
+            assert played == {"click": 1}, played
+            _a, _p, level = heard(sound_ambience=True, sound_volume=30)
+            assert 0 < level["click"] < loud, (level, loud)
+            asked, played, _l = heard(sound_volume=0)
+            assert asked and not played, "a volume of nought still played"
+        finally:
+            options_sim.set_to(game, "sound_volume", 70)
+            audio.install(None)
+        return (f"all four heard, then each muted alone; the click fell from "
+                f"{loud} to {level['click']} at 30%")

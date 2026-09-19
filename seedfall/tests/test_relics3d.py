@@ -35,6 +35,7 @@ import itertools
 from ..data import relics3d
 from ..data.xenotech import CULTURES, XENOTECH
 from .harness import Suite
+from .qtkit import app as _app
 
 SIZE = 160
 
@@ -42,18 +43,6 @@ SIZE = 160
 #: anything. Tighter than `parts3d`'s 0.72, because that separates seven slots
 #: while this separates four cultures built deliberately unlike each other.
 ALIKE = 0.70
-
-_APP = []
-
-
-def _app():
-    import os
-    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-    from PyQt6.QtWidgets import QApplication
-    if not _APP:
-        _APP.append(QApplication.instance() or QApplication([]))
-    return _APP[0]
-
 
 def _shot(relic):
     """(lit pixels, the shades among them) for one relic's portrait."""
@@ -157,6 +146,9 @@ def run(suite: Suite) -> None:
         # wearing each other's paint when they are only sharing one node.
         shades = {c: _shot_mesh(m)[1]
                   for c, m in relics3d.BY_CULTURE.items()}
+        # Four makers when measured; fewer than two makes no pairs at all.
+        assert len(shades) >= 4, f"only {len(shades)} makers drawn"
+        assert all(shades.values()), "a maker drew with no colour at all"
         for a, b in itertools.combinations(sorted(shades), 2):
             both = shades[a] & shades[b]
             assert len(both) <= 4, (
@@ -183,6 +175,9 @@ def run(suite: Suite) -> None:
                 "depth of study is not reaching the picture")
             said.append(f"{culture} {small}→{large} px")
             assert relics3d.bulk_of(deep) > relics3d.bulk_of(shallow)
+        # Four makers with three relics each when measured. A maker with only
+        # one is skipped, so a table thinned to that would compare nothing.
+        assert len(said) >= 4, f"only {len(said)} makers compared: {said}"
         return " · ".join(said)
 
     @check("a relic that fits a ship is marked; one that teaches is not")

@@ -4,39 +4,44 @@ not shooting at all."""
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt
-import math
 
-from PyQt6.QtCore import QPointF, QRectF
-from PyQt6.QtGui import QColor, QFont, QPainter, QPen, QPolygonF
-from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QSizePolicy, QWidget
+from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget
 
 from ..core.util import credits as cr
 from ..core.util import num, pct
 from ..data.chassis import CHASSIS_BY_ID
 from ..data.part_types import BANDS
-from ..sim import abilities as abilities_sim
 from ..sim import aftermath as aftermath_sim
 from ..sim import prize as prize_sim
+from ..sim import rivals as rivals_sim
 from ..sim import stations as st_mod
-from ..sim import turnplan
 from ..sim import tactical as tac
 from ..sim import combat as combat_sim
 from ..sim import consorts as consort_sim
-from ..sim import parley as parley_sim
 from ..sim import firing
 from . import assessment_panel
 from ..data.consorts import ORDERS as CONSORT_ORDERS
 from ..data.consorts import ORDERS_BY_ID as CONSORT_ORDERS_BY_ID
 from ..sim.ship import hull_pct, is_destroyed
 from . import theme
-from .widgets import (Bar, Panel, Pill, TabBar, View, button, label,
+from . import soundmap
+from . import hunt_marks
+from .layer_row import layer_row
+from .view_base import Pane, WrapRow
+from .widgets import (Panel, TabBar, View, button, defer, label,
                       mono_label, note, spacer)
 
 
-from .battle_text import aftermath_lines, parley_lines, parley_tip
+from .battle_text import aftermath_lines
 
 
 class BattleView(View):
+    def __init__(self, win):
+        super().__init__(win)
+        # The panes scroll themselves; a deep bottom margin on the screen
+        # would only push the whole of it past the viewport.
+        self.col.setContentsMargins(22, 14, 22, 10)
+
     def begin(self, encounter: dict) -> None:
         g = self.game
         self.win.battle = combat_sim.start(
@@ -46,41 +51,129 @@ class BattleView(View):
             no_parley=encounter.get("no_parley", False), game=g,
             # Without an rng the opening is always bow-on at band 3, which left
             # the varied initial aspect the tactical model was built for unused.
-            rng=g.rng("engagement"), fleet=consort_sim.escorts_of(g))
+            rng=g.rng("engagement"), fleet=consort_sim.escorts_of(g),
+            band=encounter.get("band") or 3)
         self.win.battle.intro = encounter.get("intro", "")
+        rivals_sim.opening(g, self.win.battle, encounter)     # first volley
         # Carried so the outcome can strike the roaming mass off the board.
         self.win.battle.instar = encounter.get("instar")
 
+    #: The orders and the readout are panes of their own (`view_base.Pane`),
+    #: so the screen fills the window rather than running down the page.
+    fills = True
+
     def build(self) -> None:
         b = self.win.battle
+        soundmap.battle(self.win, b)       # once a turn, however often drawn
         if b is None:
             self.head("No engagement", "Nothing is shooting at you.")
             self.buttons(button("Back", lambda: self.win.go("system")))
+            self.col.addStretch(1)
             return
 
-        self.head("Engagement", f"{b.enemy_name} · turn {b.turn}")
+        self.col.addWidget(label(f"Engagement — {b.enemy_name} · turn {b.turn}",
+                                 "h2"))
+        hunt_marks.battle_header(self.col, self.game, b)     # a named rival
         if b.intro and b.turn == 1:
             self.col.addWidget(label(b.intro, "", wrap=True))
+        report = self._last_turn(b)
+        if report is not None:
+            self.col.addWidget(report)
 
-        holder = QWidget()
-        hh = QHBoxLayout(holder)
-        hh.setContentsMargins(0, 0, 0, 0)
-        hh.setSpacing(14)
-        hh.addWidget(self._plot(b), 0)
-        hh.addWidget(self._firing(b), 1)
-        hh.addWidget(assessment_panel.build(b), 1)
-        self.col.addWidget(holder)
-        self.col.addWidget(self._band_track(b))
+        # **The orders are pinned; the readout scrolls beside them.** See
+        # `ui/battle_orders.py` for what this replaced: every action button
+        # sat below the fold at every window size up to 1560×1000.
+        from . import battle_orders
+        body = QWidget()
+        across = QHBoxLayout(body)
+        across.setContentsMargins(0, 0, 0, 0)
+        across.setSpacing(14)
+        orders = Pane(margins=(0, 0, 10, 12))
+        orders.setObjectName("battle_orders")
+        if b.over:
+            orders.col.addWidget(self._outcome(b))
+        else:
+            orders.col.addWidget(battle_orders.acts(self, b))
+            orders.col.addWidget(battle_orders.consequences(self, b))
+        orders.col.addStretch(1)
+        readout = Pane(margins=(0, 0, 10, 12))
+        readout.setObjectName("battle_readout")
+        for part in self._readout_parts(b):
+            readout.col.addWidget(part)
+        readout.col.addStretch(1)
+        # Four to five: the readout's plot is a fixed 380 px square, and at
+        # the 1040 px minimum an even split left it 4 px short of room.
+        across.addWidget(orders, 4)
+        across.addWidget(readout, 5)
+        self.col.addWidget(body, 1)
+        self._keep_places(orders, readout)
+
+    def _readout_parts(self, b) -> list:
+        """Everything that says how the fight stands, in reading order."""
+        parts = [self._plot_row(b), assessment_panel.build(b),
+                 self._band_track(b)]
         if b.consorts:
-            self.col.addWidget(self._company(b))
-        self.row(self._ship_panel(b, b.player, self.game.ship.name),
-                 self._ship_panel(b, b.enemy, b.enemy_name))
+            parts.append(self._company(b))
+        hulls = WrapRow()
+        hulls.add(self._ship_panel(b, b.player, self.game.ship.name))
+        hulls.add(self._ship_panel(b, b.enemy, b.enemy_name))
+        parts.append(hulls)
         if not b.over:
             # What the seats you are not in will do, before the turn resolves.
             from .doctrine_panel import intentions
-            self.col.addWidget(intentions(self, b))
-        self.col.addWidget(self._orders(b) if not b.over else self._outcome(b))
-        self.col.addWidget(self._log(b))
+            parts.append(intentions(self, b))
+        parts.append(self._log(b))
+        return parts
+
+    def _plot_row(self, b) -> QWidget:
+        row = WrapRow(14)
+        row.add(self._plot(b), 0)
+        row.add(self._firing(b), 1)
+        return row
+
+    def _last_turn(self, b):
+        """What happened last turn, under the heading, where it is read first.
+
+        It was at the very bottom of the screen, below the orders — the one
+        thing a captain wants after pressing a button was the furthest thing
+        from it.
+        """
+        from .log_panel import marked
+        if not b.log:
+            return None
+        last = b.log[-1][0]
+        lines = [(text, kind) for turn, text, kind in b.log if turn == last]
+        p = Panel()
+        p.box.setContentsMargins(13, 8, 13, 8)
+        p.box.setSpacing(3)
+        p.add(mono_label(f"Last turn — turn {last}"))
+        for text, kind in lines[-3:]:
+            tinted = kind in theme.TINTS
+            p.add(label(marked(text, kind), "", kind if tinted else "",
+                        wrap=True))
+        if len(lines) > 3:
+            p.add(note(f"{len(lines) - 3} more in the action report."))
+        return p
+
+    def _keep_places(self, orders, readout) -> None:
+        """A turn rebuilds both panes; put each back where it was scrolled to,
+        so reading the enemy's hull does not end at the top every turn."""
+        was = getattr(self, "_places", None)
+        self._places = (orders, readout)
+        if not was:
+            return
+        try:
+            marks = [p.verticalScrollBar().value() for p in was]
+        except RuntimeError:
+            return
+
+        def put_back():
+            for pane, mark in zip((orders, readout), marks):
+                try:
+                    pane.verticalScrollBar().setValue(mark)
+                except RuntimeError:
+                    return
+        defer(put_back)
 
     # ── display ────────────────────────────────────────────────────────────
 
@@ -132,20 +225,7 @@ class BattleView(View):
         p = Panel(name)
         p.add(note(f"{ch.name} · {ch.family} hull · {side.ship.crew} crew"))
         for L in side.ship.layers:
-            frac = L.hp / L.max if L.max else 0
-            row = QWidget()
-            h = QHBoxLayout(row)
-            h.setContentsMargins(0, 0, 0, 0)
-            lb = label(L.name, "", "warn" if L.hp <= 0 else
-                       ("osteo" if L.critical else ""))
-            lb.setMinimumWidth(168)
-            h.addWidget(lb)
-            h.addWidget(Bar(frac, "warn" if frac < 0.3 else
-                            ("osteo" if L.critical else "chloro")), 1)
-            v = label(pct(frac), "dim")
-            v.setFixedWidth(40)
-            h.addWidget(v)
-            p.add(row)
+            p.add(layer_row(L, 150))
         p.add(spacer(3))
         p.add_row("Integrity", pct(hull_pct(side.ship)))
         p.add_row("Resolve", num(max(0, side.resolve)))
@@ -214,143 +294,6 @@ class BattleView(View):
         consort.order = order_id
         self.refresh()
 
-    def _orders(self, b) -> Panel:
-        st = b.player.st
-        p = Panel("Orders")
-
-        p.add(mono_label("Fire a single mount"))
-        fire_row = QWidget()
-        fh = QHBoxLayout(fire_row)
-        fh.setContentsMargins(0, 0, 0, 0)
-        fh.setSpacing(6)
-        if not st.weapons:
-            fh.addWidget(note("No armament fitted. Charter doctrine, or an oversight "
-                              "— either way you must outlast them, talk them down, "
-                              "or run."))
-        # Enabled on the whole rule, not just the range. These buttons tested
-        # `bears_at` alone, so a mount sixty degrees off the beam or with an
-        # empty magazine was offered, taken, and spent the turn on a log line
-        # explaining why it had not fired.
-        picture = {x.mount_id: x for x in
-                   firing.solution(b.player, b.enemy, b.band)}
-        for w in st.weapons:
-            shot = picture.get(w.id)
-            live = shot.can_fire if shot else False
-            tag = ("" if not shot or shot.in_band
-                   else " (long shot)" if live else "")
-            fh.addWidget(button(w.name + tag,
-                                lambda _=False, wid=w.id: self._act(
-                                    {"type": "fire", "weapon_id": wid}),
-                                tip=(shot.why if shot else w.blurb),
-                                enabled=live))
-        fh.addStretch(1)
-        p.add(fire_row)
-
-        if st.abilities:
-            p.add(spacer(3), mono_label("Systems"))
-            ab_row = QWidget()
-            ah = QHBoxLayout(ab_row)
-            ah.setContentsMargins(0, 0, 0, 0)
-            ah.setSpacing(6)
-            told = {}
-            for part_ in st.abilities:
-                ab = part_.ability
-                cd = b.player.cd.get(ab.id, 0)
-                # Through `abilities.preview`, which is what `use_ability` reads.
-                # The button used to offer the part's flavour text and a cooldown
-                # — the one control on this panel with a permanent effect on the
-                # hull, and the only one that named no number.
-                say = abilities_sim.preview(b, b.player, ab.id)
-                told[ab.id] = say
-                ah.addWidget(button(f"{ab.name}" + (f" ({cd})" if cd else ""),
-                                    lambda _=False, aid=ab.id: self._act(
-                                        {"type": "ability", "id": aid}),
-                                    tip=(part_.blurb + "  "
-                                         + (" · ".join(say["lines"]) if say["can"]
-                                            else say["why"])),
-                                    enabled=say["can"]))
-            ah.addStretch(1)
-            p.add(ab_row)
-            for aid, say in told.items():
-                if say["can"]:
-                    p.add_row(say["name"], " · ".join(say["lines"]), "chloro")
-                else:
-                    p.add_row(say["name"], say["why"], "dim")
-
-        p.add(spacer(4), mono_label("Stations — you may take one this turn"))
-        p.add(note("The officers hold the other two at their own level, which is "
-                   "competent and not as good as you."))
-        seats = st_mod.seat_value(b.player, b.officers)
-        for sid, name, stat, blurb in st_mod.STATIONS:
-            level = st_mod.officer_level(b.officers, stat)
-            p.add(spacer(3))
-            p.add(label(f"{name}  ·  officer level {level}", "h3",
-                        "chloro" if sid == b.player.station else ""))
-            p.add(note(blurb))
-            # What sitting here yourself is worth, rather than only who is
-            # holding it. A green officer makes the seat worth twice what a
-            # veteran does, and the panel never said so.
-            seat = seats.get(sid, {})
-            if sid == "gunnery":
-                worth = f"+{seat.get('gain', 0):.0%} to hit over the officer"
-            elif sid == "helm":
-                worth = seat.get("says", "")
-            else:
-                worth = seat.get("says", "")
-            if worth:
-                p.add_row("Taking it yourself", worth,
-                          "chloro" if seat.get("gain", 0) > 0 else "dim")
-            row = QWidget()
-            h = QHBoxLayout(row)
-            h.setContentsMargins(0, 0, 0, 0)
-            h.setSpacing(6)
-            for order in st_mod.orders_for(sid):
-                h.addWidget(button(order.name, tip=order.blurb,
-                                   on_click=lambda _=False, o=order.id:
-                                       self._act({"type": "station", "order": o})))
-            h.addStretch(1)
-            p.add(row)
-            # What each order will actually do. They were bare buttons with a
-            # sentence of prose, so a captain at 30 of a 50 cap could fire
-            # everything, make 74 more, and find out afterwards.
-            for order in st_mod.orders_for(sid):
-                plan = turnplan.order_preview(b.player, b.enemy, order.id,
-                                            b.officers, b.band)
-                if not plan["lines"]:
-                    continue
-                p.add_row(order.name, " · ".join(plan["lines"]),
-                          "warn" if plan["over"] else "dim")
-
-        p.add(spacer(4), mono_label("Other"))
-        # A mute enemy's hail button is off, with the reason under it — the
-        # sim deliberately charges no turn for that press ("a category
-        # error, not a gamble"), so the screen must refuse it rather than
-        # let it read as a free re-roll.
-        mute = parley_sim.odds(b).get("mute", False)
-        p.add_buttons(
-            button("Gunnery…", self._open_gunnery, kind="flat",
-                   tip="The gunner's station: every mount's arc, and which of "
-                       "them fire this turn."),
-            button("Tactical…", self._open_tactical, kind="flat",
-                   tip="The tactical station, which is open whether or not "
-                       "anybody is shooting."),
-            button("Brace", lambda: self._act({"type": "brace"}), kind="flat",
-                   tip="Turn the thickest tissue into the fire and hold: "
-                       "vents heat, steadies the crew, and the gunner keeps "
-                       "working."),
-            button("Hail them", lambda: self._act({"type": "hail"}),
-                   enabled=not mute, tip=parley_tip(b, "hail")),
-            button("Disengage", lambda: self._act({"type": "flee"}), kind="flat",
-                   tip=parley_tip(b, "flee"))
-            if b.fleeable else None)
-        # And on the panel, not only under a hover: these two are the only acts
-        # on this screen whose failing side is "they shoot you for free", and the
-        # only ones that used to name no number at all.
-        for line, tint in parley_lines(b):
-            p.add(note(line) if tint == "dim" else label(line, "", tint,
-                                                         wrap=True))
-        return p
-
     def _outcome(self, b) -> Panel:
         p = Panel("Engagement over")
         if b.log:
@@ -399,8 +342,9 @@ class BattleView(View):
         out = aftermath_sim.resolve(g, b, g.rng("seize"))
 
         if b.result == "lost":
+            # `aftermath.resolve` has already killed the captain (or opened
+            # the vault); the screen only reads out what happened.
             self.win.battle = None
-            g.die("Destroyed in action.")
             if not self.win.check_ending():
                 self.win.go("system")
             return

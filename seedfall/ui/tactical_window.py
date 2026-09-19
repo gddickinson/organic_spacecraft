@@ -233,12 +233,7 @@ class TacticalWindow(QDialog):
 
 def open_tactical(win) -> TacticalWindow:
     """Open the tactical station, or raise the one already open."""
-    existing = getattr(win, "tactical_window", None)
-    if existing is not None:
-        existing.raise_()
-        existing.activateWindow()
-        return existing
-    window = TacticalWindow(win)
-    win.tactical_window = window
-    window.show()
-    return window
+    # Freed on close, and its slot cleared — `ui/popout.py`.
+    from . import popout
+    return popout.open_one(win, "tactical_window",
+                           lambda: TacticalWindow(win))

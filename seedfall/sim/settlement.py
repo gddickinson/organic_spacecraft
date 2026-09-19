@@ -19,16 +19,15 @@ functions writing one number is how they come to disagree.
 
 from __future__ import annotations
 
-import itertools
 from dataclasses import dataclass
 
 from ..core.save import register
+from ..core import ids
 from ..data.factions import FACTIONS_BY_ID
 from ..data.settlements import (DEMAND, FOUND_COST, MATURE_DAYS, NEWBORN,
                                 SUPPLY, UPKEEP, WORKABLE, WORTH_SETTLING,
                                 YIELD)
 
-_uid = itertools.count(1)
 
 
 @register
@@ -106,6 +105,7 @@ def sites_for(game, power: str) -> list[tuple[object, object, str]]:
             continue
         for body in system.bodies:
             if (body.colony is not None
+                    or getattr(body, "transient_until", None) is not None
                     or on_body(game, system.id, body.id) is not None):
                 continue
             good = worth_working(body)
@@ -125,7 +125,7 @@ def found(game, system, body, power: str) -> object | None:
     good = worth_working(body)
     if good is None:
         return None
-    made = Settlement(id=next(_uid), power=power, system_id=system.id,
+    made = Settlement(id=ids.next_id("settlement", game), power=power, system_id=system.id,
                       body_id=body.id, good=good, founded=game.day)
     held(game).append(made)
     # The market has to hear about it, and only one function tells it.

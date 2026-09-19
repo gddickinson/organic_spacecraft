@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from ..core.util import num, pct
+from ..core.util import pct, reaction_mass
 from ..data.watches import WATCHES_BY_ID
 from ..sim import transit as transit_sim
 from ..sim.ship import hull_pct
-from .widgets import (Panel, Pill, View, button, label, mono_label, note,
+from .widgets import (Panel, View, button, label, mono_label, note,
                       spacer)
 
 
@@ -49,7 +49,7 @@ class TransitView(View):
         p.add_row("Heat", f"{round(g.ship.heat)} / {round(g.ship_stats.heat_cap)}",
                   "warn" if g.ship.heat > g.ship_stats.heat_cap * 0.8 else "")
         p.add_row("Reaction mass aboard",
-                  f"{round(g.ship.cargo.get('volatiles', 0))} t",
+                  reaction_mass(g.ship.cargo.get("volatiles", 0)),
                   "warn" if g.ship.cargo.get("volatiles", 0) < 8 else "")
         return p
 

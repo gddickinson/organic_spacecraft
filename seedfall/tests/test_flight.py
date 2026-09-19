@@ -95,7 +95,7 @@ def run(suite: Suite) -> None:
         # the promise is not "never dips" — it is that the course clears the
         # star by a real margin instead of flying through it, and that going
         # the long way round costs the distance it should.
-        bent = worst_ratio = 0
+        bent = worst_ratio = flown = 0
         worst = None
         for seed in ("a", "b", "c"):
             g = new_game(seed)
@@ -122,6 +122,9 @@ def run(suite: Suite) -> None:
                         assert q["au"] > direct + 1e-9, (
                             "a course bent around the star that costs nothing")
                     assert q["detour"] >= -1e-9, "a detour that saves distance"
+                    flown += 1
+        # Measured: 32 courses across the three sectors, four of them bent.
+        assert flown >= 24, f"only {flown} courses were plotted"
         return (f"{bent} courses bent round the star; tightest pass "
                 f"{worst_ratio:.0%} of clearance ({worst})")
 

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from ..core.rng import RNG
 from ..core.state import new_game
-from ..data.fieldnotes import NOTES, NOTES_BY_ID
+from ..data.fieldnotes import NOTES
 from ..data.inquiry import EVIDENCE_BY_ID
 from ..sim import expedition as exp_sim
 from ..sim import fieldwork

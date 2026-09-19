@@ -37,7 +37,7 @@ from ..core.rng import RNG
 from ..core.state import new_game
 from ..sim import consorts as consort_sim
 from ..sim import upkeep as upkeep_sim
-from ..sim.ship import build_layers, is_destroyed, make_ship
+from ..sim.ship import build_layers, make_ship
 from .harness import Suite
 
 

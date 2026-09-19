@@ -11,7 +11,6 @@ from __future__ import annotations
 from ..core.rng import RNG
 from ..core.state import new_game
 from ..data.diplomacy import CONCORD_RELATION
-from ..data.factions import FACTIONS_BY_ID
 from ..data.ventures import VENTURES, VENTURES_BY_ID
 from ..sim import diplomacy as dip
 from ..sim import ventures as venture_sim
@@ -34,6 +33,8 @@ def run(suite: Suite) -> None:
     @check("every venture can name itself and has somewhere to happen")
     def _():
         game = new_game("venture-text")
+        # Seven kinds when measured; an empty table is legible by default.
+        assert len(VENTURES) >= 7, f"only {len(VENTURES)} ventures"
         for kind in VENTURES:
             venture = venture_sim.Venture(
                 id=1, kind=kind.id, power="charter",
@@ -49,10 +50,16 @@ def run(suite: Suite) -> None:
 
     @check("the powers act without being prompted")
     def _():
-        game = new_game("acting")
-        game.credits = 500000
-        _years(game, 12)
-        all_of = venture_sim.ensure(game)
+        # Two sectors, not one: which way one sector's ventures fall is its
+        # own history, and whatever moves the matrix moves it. With the
+        # Assembly sitting, "acting" alone went ten for ten; "acting-2" lost
+        # 11 of 26 (9 of 23 without it).
+        all_of = []
+        for seed in ("acting", "acting-2"):
+            game = new_game(seed)
+            game.credits = 500000
+            _years(game, 12)
+            all_of += venture_sim.ensure(game)
         assert all_of, "twelve years and no power did anything"
         resolved = [v for v in all_of if v.resolved]
         assert resolved, "nothing ever resolved"

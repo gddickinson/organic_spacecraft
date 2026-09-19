@@ -27,7 +27,9 @@ def build(view, g) -> Panel:
         f"{state['links']} ring(s) live. Transit is instant; the tolls "
         "are not. Growth crosses a lit ring as easily as you do."))
 
-    here = weave_sim.gate_at(g, g.location_id)
+    # The ancient or laid anchor here, whatever a relit deep gate beside it is
+    # doing: the deep gate has its own panel (`ui/reaches_panel.py`).
+    here = weave_sim.anchor_at(g, g.location_id)
     if here is not None:
         p.add(spacer(4))
         p.add(label(f"{here.name} — {gates_sim.kind_name(here)}", "h3",

@@ -41,7 +41,7 @@ quay, which is everything a bearing has to be here.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from ..core.rng import hash_seed
 from ..core.save import register

@@ -250,6 +250,8 @@ def run(suite: Suite) -> None:
     @check("every hull family draws")
     def _():
         drawn = []
+        # 35 hulls when measured. An empty table would draw nothing and pass.
+        assert len(CHASSIS) >= 35, f"only {len(CHASSIS)} hulls to draw"
         for chassis in CHASSIS:
             game = new_game("families")
             game.ship.chassis = chassis.id

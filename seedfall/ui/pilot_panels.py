@@ -23,11 +23,13 @@ from __future__ import annotations
 from PyQt6.QtWidgets import (QGridLayout, QHBoxLayout, QVBoxLayout,
                              QWidget)
 
+from ..core.util import reaction_mass
 from ..sim import conn as conn_sim
 from ..sim import engage as engage_sim
 from ..sim import freeflight as free_sim
 from ..sim import instruments as panel_sim
 from . import sights
+from . import sky_strip
 from .widgets import Panel, note
 
 #: How the width is split. The view wants room to be a view; the boards are
@@ -36,18 +38,21 @@ LEFT_SHARE, RIGHT_SHARE = 3, 2
 
 
 def two_columns() -> tuple:
-    """`(holder, left, right)` — a row of two vertical columns."""
-    holder = QWidget()
-    across = QHBoxLayout(holder)
-    across.setContentsMargins(0, 0, 0, 0)
-    across.setSpacing(16)
+    """`(holder, left, right)` — a row of two vertical columns.
+
+    A `WrapRow`: side by side whenever both columns fit, and the boards under
+    the view when they do not — rather than the right-hand column running off
+    the edge of a narrow window, which is what a fixed row did at 1040 px.
+    """
+    from .view_base import WrapRow
+    holder = WrapRow(16)
     made = []
     for share in (LEFT_SHARE, RIGHT_SHARE):
         side = QWidget()
         down = QVBoxLayout(side)
         down.setContentsMargins(0, 0, 0, 0)
         down.setSpacing(8)
-        across.addWidget(side, share)
+        holder.add(side, share)
         made.append(down)
     return holder, made[0], made[1]
 
@@ -73,25 +78,21 @@ def camera_row(view) -> QWidget:
     return stack_of(looks, per_row=3)
 
 
-def axis_pad(view) -> QWidget:
-    """The six thrust buttons, in the order a pilot's hand sits on them —
-    the same order `ui/conn_controls` uses.
+def axis_pad(view):
+    """The one thrust pad (`ui/thrust_pad.py`), wired to this screen's doors.
 
     **Held, not clicked.** A click was one instantaneous impulse — the
     engines worked in steps, with the speed jumping between frames. Pressed
     and released wire through `flight_clock.hold_wire`: hold a thruster
     with the clock running and the burn *builds*, minute after minute,
     until the hand comes off; a quick press is still one precise tick.
+
+    It was a single row of six here, two by three on the conn and on the
+    flight controls: three layouts for one hand. It is the same widget on all
+    three now, with the drive and the coast in its fourth column.
     """
-    from . import flight_clock
-    from .widgets import button
-    pad = []
-    for axis in ("left", "forward", "right", "down", "back", "up"):
-        btn = button(conn_sim.AXES_BY_ID[axis][1], None)
-        btn.setObjectName(f"thr_{axis}")
-        flight_clock.hold_wire(view.win, btn, axis)
-        pad.append(btn)
-    return row_of(*pad)
+    from .thrust_pad import ThrustPad
+    return ThrustPad(view.win, view._toggle_main, lambda: view.burn(None))
 
 
 def row_of(*btns) -> QWidget:
@@ -140,8 +141,8 @@ def stack_of(btns, per_row: int = 2) -> QWidget:
 
 
 def main_label(view) -> str:
-    from ..sim import instruments
-    return f"Main drive: {instruments.drive_note(view.conn)}"
+    from .thrust_pad import drive_label
+    return drive_label(view.conn)
 
 
 def throttle_label(view) -> str:
@@ -200,7 +201,11 @@ def ship_board(view) -> Panel:
                                "did not fire", "warn")
     elif view.last.get("burned"):
         board.add_row("Drive", "fired", "")
-    board.add_row("Autopilot", _computer_says(view))
+    # No "Autopilot" row: the readout above already carries "Computer", off
+    # `instruments.computer_note`, and this board printed the same fact
+    # twice, one row apart, in two sets of words ("closing to berth" and
+    # "closing to berth"; "holding —" and "holding station,").
+    sky_strip.shelter_row(board, view.game)       # a flare: out of it?
     aim = view.marked()
     if aim is None:
         board.add_row("Course", "none laid — the six axes fly her frame")
@@ -216,7 +221,8 @@ def ship_board(view) -> Panel:
     bill = free_sim.run_quote(view.game, view.conn, aim)
     if bill["dv"] > 0:
         board.add_row("Run bill",
-                      f"~{bill['mass']:.1f} t of {bill['tank']:.1f} aboard",
+                      f"~{reaction_mass(bill['mass'])} of "
+                      f"{reaction_mass(bill['tank'])} aboard",
                       "" if bill["afford"] else "warn")
     # **Closing on the mark, not on the place she left.** `conn.closing` is
     # measured against the conn's origin, which out here is where she was let
@@ -233,42 +239,6 @@ def ship_board(view) -> Panel:
     else:
         board.add_row("Closing", "holding the range")
     return board
-
-
-def _computer_says(view) -> str:
-    """What the flight computer is doing, in the words a pilot would use.
-
-    **It used to say six words the whole way in.** Measured on one run to a
-    contact 5,137 km off: the computer went `forward` on the torch, then
-    `back` on the thrusters to brake, then `None` to coast the last stretch —
-    and the screen read "running for Held Breath" at every one of those, so a
-    pilot could not tell accelerating from braking from arriving.
-    """
-    if view.auto == "":
-        return "off — she flies as you fly her"
-    if view.auto == "null":
-        return "holding station, killing what drift there is"
-    if view.auto in ("close", "orbit"):
-        from ..sim import instruments as panel_sim
-        return panel_sim.computer_note(view.conn)
-    aim = view.marked()
-    if aim is None:
-        return "running for nothing"
-    # **The burn that happened, off `conn.fired_*`.** This used to re-call
-    # `freeflight.run_for`, which is a fresh ask of the computer — a forecast
-    # of the *next* tick, one beat ahead of the ship, and exactly the
-    # anti-pattern `conn.fired_axis` was recorded to stop. Every other flying
-    # screen reads the record; now this one does.
-    conn = view.conn
-    if conn.fired_turning:
-        return "running her in — coming about to burn"
-    if conn.fired_axis is None:
-        return "running her in — coasting"
-    which = conn_sim.AXES_BY_ID[conn.fired_axis][1].lower()
-    share = (f" at {conn.fired_share:.0%}"
-             if conn.fired_main and conn.fired_share < 0.999 else "")
-    return (f"running her in — {which} on "
-            f"{'the torch' if conn.fired_main else 'thrusters'}{share}")
 
 
 def in_view_board(view, rows) -> Panel:

@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from ..data.commodities import BY_ID
 from ..world.economy import demands
 from ..world.galaxy import distance
+from ..world.regions import span
 from . import market as market_sim
 
 #: Standing below which the desk has nothing to say to you.
@@ -101,6 +102,9 @@ class Run:
     ly: float
     source: str          # "register" | "desk"
     confidence: float
+    #: Written down during a shock that will be over by the time you arrive
+    #: — a shortage price, not a price. `market.SHOCK_SPENT`.
+    shocked: bool = False
 
     @property
     def margin(self) -> int:
@@ -170,10 +174,22 @@ def from_register(game, here) -> list[Run]:
             target = row["system"]
             if target.id == here.id or row["price"] <= cost:
                 continue
+            # Through the gates when the port is past the rim — the road a
+            # condensate run actually flies (`world/regions.span`).
+            ly = span(game.galaxy, target, here)
+            # Judged on the day you would arrive, not the day you load: a
+            # blight that lifts mid-voyage takes the price with it.
+            until = row.get("shock_until")
+            arrive = game.day + round(DAYS_FIXED + DAYS_PER_LY * ly)
+            spent = market_sim.shock_discount(game, until, arrive)
+            trust = row["confidence"]
+            if spent < 1.0 and until is not None and until > game.day:
+                trust *= spent
             runs.append(Run(commodity=cid, target_id=target.id,
                             target_name=target.name, buy_here=cost,
-                            pays=row["price"], ly=distance(target, here),
-                            source="register", confidence=row["confidence"]))
+                            pays=row["price"], ly=ly,
+                            source="register", confidence=trust,
+                            shocked=until is not None and spent < 1.0))
     return runs
 
 
@@ -192,7 +208,9 @@ def from_desk(game, here) -> list[Run]:
     if not reach:
         return []
 
-    theirs = [s for s in game.galaxy.systems
+    # What this desk hears about: its own power's quays this side of the rim.
+    from ..world.galaxy import local
+    theirs = [s for s in local(game.galaxy, here)
               if s.id != here.id and s.market and s.port
               and s.port.faction == faction]
     theirs.sort(key=lambda s: distance(s, here))
@@ -243,7 +261,11 @@ def runs(game, here, limit: int = 6) -> list[Run]:
 
 
 def reachable(game, run) -> bool:
-    return run.ly <= game.ship_stats.jump
+    # `run.ly` is the road through the gates when the port is past the rim,
+    # and no single jump flies that however short it is.
+    target = game.galaxy.systems[run.target_id]
+    return (run.ly <= game.ship_stats.jump
+            and distance(game.system, target) < float("inf"))
 
 
 def voyage(game, run, tonnes: float | None = None) -> dict:
@@ -299,7 +321,7 @@ def voyage(game, run, tonnes: float | None = None) -> dict:
             "days": quote["days"], "fuel_t": fuel_t,
             "takings": round(run.pays * tonnes), "dues": dues,
             "net": round(expected - fuel - dues),
-            "in_range": quote["in_range"]}
+            "in_range": quote["in_range"], "shocked": run.shocked}
 
 
 def worth_flying(game, here, limit: int = 6) -> list[tuple]:

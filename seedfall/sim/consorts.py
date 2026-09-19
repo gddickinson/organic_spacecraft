@@ -10,7 +10,7 @@ the entire reason to bring one.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from ..data.consorts import DEFAULT_ORDER, ORDERS_BY_ID, WITHDRAW_AT
 from . import tactical as tac
@@ -252,6 +252,9 @@ def can_sail(game, ship) -> tuple[bool, str]:
         return False, f"{ship.name} is not yours to order."
     if getattr(ship, "escort", False):
         return False, f"{ship.name} is already sailing with you."
+    if getattr(ship, "line_id", None) is not None:
+        return False, (f"{ship.name} is working a freight line. Stand the "
+                       "line down first.")
     if is_destroyed(ship):
         return False, f"{ship.name} is a wreck."
     if getattr(ship, "crew", 0) < 1:
@@ -317,3 +320,102 @@ def keep(game) -> dict:
         "extra": extra,
         "a_day": sum(extra.values()),
     }
+
+
+# ── changing flag ──────────────────────────────────────────────────────────
+#
+# "Take command" was written in the yard screen: it swapped `game.ship` and
+# poured the whole hold into the new hull with no question of whether it
+# would go. Measured: 148 t into a 12 t SPORE, and the HUD read "Hold ·
+# 141/12 t" — a rule of the game broken from inside a window, the same shape
+# as the refit that could strip a hull in deep space. It is a rule here now,
+# with a refusal reason, and what does not fit stays aboard the hull you are
+# leaving, berthed where you left her.
+
+def can_take_command(game, ship) -> tuple[bool, str]:
+    """May the captain move their flag to this hull? The one rule."""
+    if ship is game.ship or ship.uid == game.ship.uid:
+        return False, "You are already aboard her."
+    if not any(s is ship or s.uid == ship.uid for s in getattr(game, "fleet", [])):
+        return False, f"{ship.name} is not yours to command."
+    if getattr(ship, "line_id", None) is not None:
+        return False, (f"{ship.name} is working a freight line. Stand the "
+                       "line down first.")
+    if is_destroyed(ship):
+        return False, f"{ship.name} is a wreck."
+    if getattr(ship, "crew", 0) < 1:
+        return False, f"{ship.name} has nobody aboard to stand a watch."
+    if not getattr(ship, "escort", False) and ship.docked_at != game.system.id:
+        return False, (f"{ship.name} is berthed elsewhere. Go to her, or "
+                       "send for her.")
+    return True, ""
+
+
+def _room_as_flag(game, ship) -> float:
+    """Her free hold with you aboard, from the same `recompute` that will be
+    true afterwards — officers, machines and research included."""
+    from .ship import cargo_free
+    was = game.ship
+    game.ship = ship
+    try:
+        return cargo_free(ship, game.recompute())
+    finally:
+        game.ship = was
+        game.recompute()
+
+
+def _loading_order(game, cargo: dict) -> list:
+    """What goes across first: what keeps the crew alive, then reaction
+    mass, then the rest dearest-per-tonne of hold first."""
+    from ..data.commodities import BY_ID, bulk_of
+    from . import upkeep
+    needs = set(upkeep.demand(game))
+
+    def rank(cid):
+        good = BY_ID.get(cid)
+        worth = (good.base if good else 0) / max(bulk_of(cid), 1e-6)
+        return (cid not in needs, cid != "volatiles", -worth, cid)
+    return sorted(cargo, key=rank)
+
+
+def take_command_terms(game, ship) -> dict:
+    """What moving the flag would carry across and what it would leave."""
+    from ..data.commodities import bulk_of
+    ok, why = can_take_command(game, ship)
+    if not ok:
+        return {"ok": False, "why": why}
+    room = _room_as_flag(game, ship)
+    moved, left = {}, {}
+    for cid in _loading_order(game, game.ship.cargo):
+        have = game.ship.cargo[cid]
+        take = max(0.0, min(have, room / bulk_of(cid)))
+        if take > 1e-6:
+            moved[cid] = take
+            room -= take * bulk_of(cid)
+        if have - take > 1e-6:
+            left[cid] = have - take
+    line = (f"Everything aboard fits in {ship.name}." if not left else
+            f"{ship.name} will not take it all: "
+            + ", ".join(f"{t:g} t {cid}" for cid, t in left.items())
+            + f" stays aboard {game.ship.name}, berthed here.")
+    return {"ok": True, "moved": moved, "left": left, "line": line}
+
+
+def take_command(game, ship) -> dict:
+    """Move the flag. Cargo crosses as far as it fits; the rest stays put."""
+    terms = take_command_terms(game, ship)
+    if not terms["ok"]:
+        return terms
+    from .ship import add_cargo
+    old = game.ship
+    for cid, tonnes in terms["moved"].items():
+        add_cargo(old, cid, -tonnes)
+        add_cargo(ship, cid, tonnes)
+    old.docked_at = game.system.id
+    old.escort = False
+    ship.escort = False
+    game.ship = ship
+    game.recompute()
+    game.add_log(f"Transferred your flag to {ship.name}."
+                 + (f" {terms['line']}" if terms["left"] else ""), "good")
+    return terms

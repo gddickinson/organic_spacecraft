@@ -21,11 +21,11 @@ from __future__ import annotations
 
 import math
 
-from .conn import (AXES, AXES_BY_ID, ALONGSIDE_KM, ALONGSIDE_RATE, TICK,
+from .conn import (AXES, AXES_BY_ID, ALONGSIDE_KM, TICK,
                    Conn, apply, can_burn)
 from .orbits import HEIGHT_TOLERANCE as orbits_HEIGHT_TOLERANCE
 from .orbits import (ORBIT_ECCENTRICITY, ORBIT_FLOOR_KM, eccentricity,
-                     orbit_band, orbital_speed, semi_major_km)
+                     orbital_speed, semi_major_km)
 from .conn import rotate
 
 #: How near the height you asked for counts as being at it. Lives in
@@ -411,14 +411,6 @@ def worth_turning(conn: Conn, axis_id: str, need: float) -> bool:
     swing = 2.0 * math.sqrt(angle / conn.slew_rate) / TICK
     on_main = swing + need / max(1e-6, conn.main_dv)
     return on_main < on_rcs
-
-
-def _against(conn: Conn, vec) -> tuple[str | None, bool, float]:
-    """Burn to cancel a velocity, using the drive only when it is worth it."""
-    speed = math.dist(vec, (0.0, 0.0, 0.0))
-    if speed < conn.rcs_dv * 0.5:
-        return None, False, 0.0
-    return _toward(conn, [-v for v in vec], speed)
 
 
 def fly(conn: Conn, mode: str, ticks: int = 240) -> Conn:

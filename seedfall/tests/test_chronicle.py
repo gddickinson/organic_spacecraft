@@ -211,12 +211,16 @@ def run(suite: Suite) -> bool:
                "finished a contract": summary["contracts"] > 0,
                "filed a field note": summary["notes"] > 0,
                "signed a treaty": summary["treaties"] > 0,
+               # Measured: 21 technologies past the starting tree. It was 0
+               # for as long as `_study_here` handed `set_project` approach
+               # ids, and nothing here asked.
+               "researched ten technologies": summary["researched"] >= 10,
                "flew for years": summary["days"] > 365 * 5}
         missing = [what for what, done in did.items() if not done]
         assert not missing, f"the chronicle never: {missing}"
         return (" · ".join(f"{k} {summary[k]}" for k in
                            ("charted", "colonies", "contracts", "notes",
-                            "treaties"))
+                            "treaties", "researched"))
                 + f" · {len(summary['fights'])} engagements")
 
     return True

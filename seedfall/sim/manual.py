@@ -244,6 +244,28 @@ def _keys(game) -> list:
                             for key, screen in NAV_KEYS]
 
 
+@fact("body")
+def _body(game) -> list:
+    from . import adaptation
+    return adaptation.reading(game)
+@fact("reaches")
+def _reaches(game) -> list:
+    """The three regions as they stand in *this* chronicle."""
+    from ..data.regions import (RELIGHT_CREDITS, RELIGHT_DAYS, RELIGHT_GOODS,
+                                REGIONS)
+    from . import relight as relight_sim
+    lines = [f"{len(REGIONS)} regions past the rim; relighting an anchor costs "
+             f"{RELIGHT_CREDITS:,.0f} credits, "
+             + ", ".join(f"{n} t {c}" for c, n in RELIGHT_GOODS.items())
+             + f" and {RELIGHT_DAYS} days:"]
+    for row in relight_sim.standing(game):
+        anchor = game.galaxy.systems[row["anchor_id"]].name
+        lines.append(f"  {row['region'].name} — behind {anchor}, "
+                     + ("open." if row["open"] else
+                        f"{row['done']} of 3 steps in hand."))
+    return lines
+
+
 # ── reading a topic ────────────────────────────────────────────────────────
 
 def resolve(game, name: str) -> list:
@@ -284,3 +306,52 @@ def search(query: str) -> list:
 
 def for_screen(screen: str) -> list:
     return [t for t in TOPICS if t.screen == screen]
+
+
+# Innovation 5: freight lines.
+@fact("house")
+def _house(game) -> list:
+    """What a house costs here, and what this chronicle's house is doing."""
+    from ..data.freightlines import (CHARTER_FEE, CHARTER_UPKEEP,
+                                     INSURANCE_LOADING, LINE_REGARD_CAP,
+                                     REGARD_PERIOD)
+    from . import freightlines, haulers
+    fees = " / ".join(f"{fee:,}" for _level, fee in sorted(CHARTER_FEE.items()))
+    lines = [f"A charter costs {fees} (Station / Fleet Hub) and "
+             f"{CHARTER_UPKEEP:,} a month. Insurance is priced at "
+             f"{INSURANCE_LOADING:g}x the expected claim. A house's trade "
+             f"earns at most {LINE_REGARD_CAP:g} standing with a power every "
+             f"{REGARD_PERIOD} days."]
+    used = haulers.used_terms(game, "tender")
+    if "price" in used:
+        lines.append(f"A used TENDER at the yard here: {used['price']:,}.")
+    house = getattr(game, "house", None)
+    if house is not None:
+        lines.append(f"Your house: {len(freightlines.running(game))} line(s) "
+                     f"running, {len(house.masters)} master(s), "
+                     f"{round(house.account):,} in the account.")
+    return lines
+
+
+@fact("kith")
+def _kith(game) -> list:
+    """The Kith as they stand in *this* chronicle, counted from the tables."""
+    from ..data import kith as kith_data
+    from . import kith
+    lines = [f"{len(kith_data.SIGNS)} signs in {len(kith_data.DOMAINS)} "
+             f"domains. A gift needs Exchange at {kith_data.TRADE_NEEDS:.1f}; "
+             f"a berth or passage, Place and Intent at "
+             f"{kith_data.PASSAGE_NEEDS:.1f}; the accord, every domain at "
+             f"{kith_data.ACCORD_NEEDS:.1f} and standing "
+             f"{kith_data.ACCORD_STANDING}. A debt waits "
+             f"{kith_data.DEBT_DAYS} days before it is an insult."]
+    said = kith.progress(game)
+    if not said["met"]:
+        lines.append("You have not met them.")
+        return lines
+    lines.append("Understood: " + ", ".join(
+        f"{kith_data.DOMAINS[d]} {v:.2f}"
+        for d, v in said["comprehension"].items())
+        + f"; {said['exchanges']} exchange(s)"
+        + ("; the accord is sung." if said["accord"] else "."))
+    return lines

@@ -8,7 +8,7 @@ from ..data.commodities import BY_ID
 from ..data.contraband import REGIMES
 from ..data.factions import FACTIONS_BY_ID
 from ..sim import customs as customs_sim
-from .widgets import Panel, Pill, button, label, mono_label, note, spacer
+from .widgets import Panel, button, label, mono_label, note, spacer
 
 
 def tipoff(game, system) -> Panel | None:

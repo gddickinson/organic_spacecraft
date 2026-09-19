@@ -25,27 +25,19 @@ The claims:
 
 from __future__ import annotations
 
-import math
 
 from ..core.state import new_game
 from ..data import hulls3d
 from ..data.berths3d import BERTHS
-from ..data.chassis import CHASSIS, CHASSIS_BY_ID
+from ..data.chassis import CHASSIS
 from ..data.starclasses import STAR_CLASSES
 from ..sim.traffic import ERRANDS
 from ..data.worlds3d import WORLD_PAINTS
 from .harness import Suite
+from .qtkit import app as _app
+from .qtkit import overlap as _overlap
 
 TILE = (150, 96)
-
-
-def _app():
-    from .test_ui import _use_offscreen
-    _use_offscreen()
-    from PyQt6.QtWidgets import QApplication
-    app = QApplication.instance() or QApplication([])
-    assert app is not None
-    return app
 
 
 def _portrait(kind: str, subject):
@@ -73,12 +65,6 @@ def _drawn(image) -> set:
     void = QColor(thumb3d.VOID).rgb()
     return {(x, y) for y in range(image.height()) for x in range(image.width())
             if image.pixel(x, y) != void}
-
-
-def _overlap(a: set, b: set) -> float:
-    if not a or not b:
-        return 0.0
-    return len(a & b) / len(a | b)
 
 
 def run(suite: Suite) -> None:

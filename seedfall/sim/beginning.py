@@ -15,9 +15,8 @@ outcome available.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-from ..core.rng import RNG
 from ..core.save import register
 from ..data.lineages import LINEAGES_BY_ID
 from ..data.lineages import of_stock as lineage_of_stock

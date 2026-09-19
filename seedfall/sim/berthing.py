@@ -159,11 +159,50 @@ def secure_underway(game) -> None:
     from . import freeflight as free_sim
     if free_sim.is_free(conn):
         game.add_log(free_sim.secure(game, conn), "")
-    elif not conn.over:
-        conn.outcome = "broken off"
-        conn.log.append("Secured for transfer.")
+    else:
+        break_off(conn, "Secured for transfer.")
     commit(game, conn)
     game.conn = None
+
+
+def break_off(conn, note: str = "Approach broken off.") -> bool:
+    """Give an approach up, unless it is already over. Returns whether it was.
+
+    Four places wrote these two fields by hand — this module, the Pilot
+    screen, the Conn window and its flight-swapping moves — which is four
+    chances for one of them to forget the note, or to break off an approach
+    that had already berthed. Billing it is still `commit`'s.
+    """
+    if conn is None or conn.over:
+        return False
+    conn.outcome = "broken off"
+    conn.log.append(note)
+    return True
+
+
+def stand_down(game, conn, note: str = "Approach broken off.") -> dict:
+    """Stop flying, write down where the ship is, and bill the flight.
+
+    A free flight secures where it stands and says how far it came; an
+    approach is broken off, because securing would stand the hull off a berth
+    it never reached. Either way `commit` charges it. This was the Pilot
+    screen's `secure`, state writes and log line included.
+    """
+    if conn is None:
+        return {"ok": False, "why": "Nothing is being flown.", "text": ""}
+    from . import freeflight as free_sim
+    text = ""
+    if free_sim.is_free(conn):
+        text = free_sim.secure(game, conn)
+        commit(game, conn)
+        # After the commit, so the flight is in the ledger before the line
+        # that says where it ended up — `freeflight.secure` explains why it
+        # writes no line of its own.
+        game.add_log(text, "")
+    else:
+        break_off(conn, note)
+        commit(game, conn)
+    return {"ok": True, "why": "", "text": text}
 
 
 def preview(game, conn) -> dict:
@@ -225,7 +264,7 @@ def charge_flown(game, conn) -> float:
     conn.charged = float(conn.elapsed)
     # A running total of time at the conn, for the tutorial's "fly her for
     # five minutes" — billed time, so a screen merely opened counts nothing.
-    game.conn_seconds = float(getattr(game, "conn_seconds", 0.0)) + owed
+    game.conn_seconds = game.conn_seconds + owed
     game.advance_days(owed / DAY_SECONDS)
     return owed
 
@@ -323,6 +362,11 @@ def commit(game, conn) -> dict:
         # quay rather than in orbit carries no height, and neither does one
         # where the captain never chose.
         game.orbit_alt_km = (conn.range_km if conn.outcome == "orbit" else 0.0)
+    if conn.outcome == "alongside":
+        # Counted, because standing at a quay is a place and not an act:
+        # the tutorial's berth lesson could not tell a second berth at the
+        # same quay from never having left (`tutorial_watch._berthed`).
+        game.flags["berths"] = int(game.flags.get("berths", 0)) + 1
 
     game.add_log(_line(conn, fuel, hurt), _tone(conn))
 

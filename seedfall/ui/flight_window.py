@@ -22,12 +22,11 @@ from __future__ import annotations
 import math
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (QDialog, QGridLayout, QHBoxLayout, QVBoxLayout,
-                             QWidget)
+from PyQt6.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QWidget
 
+from ..core.util import reaction_mass
 from ..sim import autopilot as pilot_sim
 from ..sim import conn as conn_sim
-from ..sim import instruments
 from ..sim import moorings
 from ..sim import thrusters
 from ..sim import pilot as quote_sim
@@ -38,13 +37,6 @@ def win_game(win):
     """The chronicle a window is on. One line, so the diagram is not handed a
     window and left to reach through it for the ship."""
     return win.game
-
-
-#: The pad, laid out the way a pilot's hand sits on it rather than
-#: alphabetically — translation left/right and up/down around the two along
-#: the line of flight.
-PAD = (("left", 0, 0), ("forward", 0, 1), ("right", 0, 2),
-       ("down", 1, 0), ("back", 1, 1), ("up", 1, 2))
 
 
 class FlightWindow(QDialog):
@@ -115,24 +107,14 @@ class FlightWindow(QDialog):
         column.addWidget(self.dials)
 
         column.addWidget(label("Thrusters", "h3"))
-        pad = QGridLayout()
-        pad.setHorizontalSpacing(6)
-        pad.setVerticalSpacing(4)
-        self.axis_buttons = {}
-        from . import flight_clock
-        for axis_id, row, col in PAD:
-            _aid, name, _vec = conn_sim.AXES_BY_ID[axis_id]
-            # Held, not clicked — `flight_clock.hold_wire`.
-            btn = button(name, None)
-            btn.setObjectName(f"thr_{axis_id}")
-            flight_clock.hold_wire(self.win, btn, axis_id)
-            pad.addWidget(btn, row, col)
-            self.axis_buttons[axis_id] = btn
-        self.main_btn = button("Main drive: off", self._toggle_main,
-                               kind="flat")
-        pad.addWidget(self.main_btn, 0, 3)
-        pad.addWidget(button("Hold (coast)", lambda: self._burn(None)), 1, 3)
-        column.addLayout(pad)
+        # The one pad — `ui/thrust_pad.py`, the same widget the conn console
+        # and the bridge fly with. Held, not clicked.
+        from .thrust_pad import ThrustPad
+        self.pad = ThrustPad(self.win, self._toggle_main,
+                             lambda: self._burn(None))
+        self.axis_buttons = self.pad.buttons
+        self.main_btn = self.pad.drive
+        column.addWidget(self.pad)
 
         column.addWidget(label("Throttle", "h3"))
         row = QHBoxLayout()
@@ -209,16 +191,16 @@ class FlightWindow(QDialog):
     def _null(self) -> None:
         """One tick of the computer's own null, by hand.
 
-        Through `autopilot` rather than a rule of this window's: killing the
-        relative motion is a thing the flight computer knows how to do, and a
-        pilot pressing this is asking it for one tick of that and no more.
+        Through `flight_clock.computer_press`, the one clock's door: killing
+        the relative motion is a thing the flight computer knows how to do,
+        and a pilot pressing this is asking it for one tick of that and no
+        more — not for a minute flown outside the beat.
         """
+        from . import flight_clock
         conn = self.conn
         if conn is None or conn.over:
             return
-        axis, main, throttle = pilot_sim.autopilot(conn, "null")
-        conn_sim.apply(conn, axis, main=main, throttle=throttle)
-        self._charge()
+        flight_clock.computer_press(self.win, "null")
         self._settle()
 
     def _auto(self, mode) -> None:
@@ -312,13 +294,10 @@ class FlightWindow(QDialog):
                 # once. Parenting to None takes it out now.
                 old.setParent(None)
                 old.deleteLater()
-        # The pad's switch and what the ship actually fired can differ — the
-        # computer opens the drive while the pad is set to clusters — and a
-        # button reading "off" with a light on it is a screen arguing with
-        # itself. `instruments.drive_note` is the one door, so this window,
-        # the conn console and the bridge cannot answer it three ways.
-        self.main_btn.setText(
-            f"Main drive: {instruments.drive_note(conn)}")
+        # The pad — its labels, locks and lights, the drive switch's words
+        # included — is `ThrustPad.sync`, so this window, the conn console
+        # and the bridge cannot answer "is the drive firing" three ways.
+        self.pad.sync(conn, self.use_main)
         self.run_btn.setText("Stop clock" if self.running else "Run clock")
         self.scale_btn.setText(
             f"Time ×{int(getattr(self.win, 'time_scale', 1))}")
@@ -333,11 +312,7 @@ class FlightWindow(QDialog):
         if conn is None:
             self.title.setText("Flight controls — nothing in reach")
             self.gate.setText("Take the conn on something first.")
-            for btn in self.axis_buttons.values():
-                btn.setEnabled(False)
             return
-        for btn in self.axis_buttons.values():
-            btn.setEnabled(not conn.over)
 
         self.title.setText(f"Flight controls — {conn.target.name}")
         # **What the structure actually said**, in its own words, rather than
@@ -368,7 +343,7 @@ class FlightWindow(QDialog):
             ("Closing", f"{conn.closing:+.2f} of {limit:.2f} m/s"),
             ("Lateral", f"{across:.2f} m/s"),
             ("Speed", f"{conn.speed:.2f} m/s"),
-            ("Thruster mass", f"{conn.rcs:.2f} t"),
+            ("Reaction mass", reaction_mass(conn.rcs)),
             ("Elapsed", f"{conn.elapsed / 60:.0f} min"),
         ]
         berth = moorings.nearest(conn)
@@ -418,34 +393,12 @@ class FlightWindow(QDialog):
             self.dial_box.addWidget(label(
                 f"Approach over: {conn.outcome}.", "", tint="warn"))
 
-        # What each press would do, on the button itself — off `pilot.quote`,
-        # which is the same door the conn's console reads.
-        # …and **whether it takes the ship toward the berth**, off
-        # `moorings.steer`, which reads the same `conn.thrust_axis` the burn
-        # does and points at the same `moorings.aim` the computer flies to.
-        #
-        # Without this the panel is not flyable: the pad is in the ship's
-        # frame and the berth is somewhere off the bow, so a pilot pressing
-        # *ahead* flies at the middle of the structure. Measured by hand,
-        # into the skin 477 m from the mast.
-        helps = moorings.steer(conn)
-        for axis_id, btn in self.axis_buttons.items():
-            _aid, name, _vec = conn_sim.AXES_BY_ID[axis_id]
-            said = quote_sim.quote(conn, axis_id, main=self.use_main)
-            toward = helps.get(axis_id, 0.0)
-            arrow = "▲" if toward > 0.25 else ("▼" if toward < -0.25 else "·")
-            # The coast on the button: a press is one minute of thrust and
-            # up to fifteen of clock, and the label used to imply the burn
-            # lasted the lot.
-            coast = (f" · {conn.coast_min} min"
-                     if conn.coast_min > 1 else "")
-            btn.setText(f"{arrow} {name}\n{said['dv']:.2f} m/s{coast}")
-            # **Lit when it is the one firing**, so a pilot watching the
-            # computer work can see which thruster it is using. Off
-            # `conn.fired_axis`, which is what the ship *did* rather than what
-            # the computer would ask for if asked again.
-            light(btn, conn.fired_axis == axis_id)
-        light(self.main_btn, bool(conn.fired_axis) and conn.fired_main)
+        # What each press would do, and whether it takes the ship toward the
+        # berth, is on the pad itself (`ThrustPad.sync`, above): without it
+        # the panel is not flyable — the pad is in the ship's frame and the
+        # berth is somewhere off the bow, so a pilot pressing *ahead* flies at
+        # the middle of the structure. Measured by hand, into the skin 477 m
+        # from the mast.
         for mode, btn in self.auto_buttons.items():
             light(btn, self.mode == mode)
         light(self.off_btn, not self.mode, "warn")
@@ -487,12 +440,7 @@ class FlightWindow(QDialog):
 
 def open_flight(win) -> FlightWindow:
     """Open the flight controls, or raise the ones already open."""
-    existing = getattr(win, "flight_window", None)
-    if existing is not None:
-        existing.raise_()
-        existing.activateWindow()
-        return existing
-    window = FlightWindow(win)
-    win.flight_window = window
-    window.show()
-    return window
+    # Freed on close, and its slot cleared — `ui/popout.py`.
+    from . import popout
+    return popout.open_one(win, "flight_window",
+                           lambda: FlightWindow(win))

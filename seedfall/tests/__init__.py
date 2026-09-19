@@ -25,17 +25,35 @@ import os
 import tempfile
 from pathlib import Path
 
+from ..core import save as _save_mod
 from ..core.save import SAVE_ENV
 
 _SAVE = Path(tempfile.gettempdir()) / f"seedfall-test-{os.getpid()}.json"
+#: Only a path this package chose is this package's to delete. The tidy-up
+#: used to remove whatever `SEEDFALL_SAVE` named, so a probe that pointed it
+#: at a file it meant to keep — or at the player's save — lost it, and its
+#: `.bak`, on exit (a play-test's three run saves, 2026-09-18).
+_OURS = SAVE_ENV not in os.environ
 os.environ.setdefault(SAVE_ENV, str(_SAVE))
+
+#: Under test, a saved object carrying an attribute that is not one of its
+#: fields fails the write instead of being silently dropped. Six such
+#: attributes lived in the game until 2026-09, and every one of them was
+#: lost on every reload.
+_save_mod.STRICT = True
 
 
 @atexit.register
 def _tidy_up() -> None:
     """Take the run's save away with it, and the staging file beside it."""
-    here = Path(os.environ[SAVE_ENV])
-    for leftover in (here, here.with_suffix(".tmp")):
+    if not _OURS:
+        return
+    here = _SAVE
+    staged = list(here.parent.glob(here.name + ".*.tmp"))
+    for leftover in [here, here.with_suffix(".tmp"),
+                     here.with_name(here.name + ".bak"), *staged,
+                     here.with_name(here.stem + ".hall.json"),  # sim/memoir
+                     *here.parent.glob(here.stem + ".*.bad")]:
         try:
             leftover.unlink(missing_ok=True)
         except OSError:

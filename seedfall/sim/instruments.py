@@ -10,6 +10,8 @@ ignore it.
 
 from __future__ import annotations
 
+from ..core.util import reaction_mass
+from ..data.mounts import AXES_BY_ID
 from .conn import (ALONGSIDE_RATE, MAIN_COST, SAFE_CLOSING, Conn)
 from .orbits import ORBIT_FLOOR_KM, in_orbit, orbit_band, orbital_speed
 from .targets import is_open
@@ -95,7 +97,12 @@ def readout(conn: Conn) -> list[tuple[str, str, str]]:
             ("Speed", f"{conn.speed:,.1f} m/s",
              "ok" if conn.speed <= ALONGSIDE_RATE else "warn"),
         ]
-    rows.append(("Thruster mass", f"{conn.rcs:,.1f}",
+    # **One name and one unit for the tank, on every window.** This row said
+    # "Thruster mass" and "19.4" with no unit while the flight controls said
+    # "19.42 t" and the helm "19 t" — `core.util.reaction_mass` is the one
+    # door, and "Reaction mass" is what the helm, the port and the crossing
+    # have always called it.
+    rows.append(("Reaction mass", reaction_mass(conn.rcs),
                  "bad" if conn.rcs < MAIN_COST else "ok"))
     # Only when there is something to say. A hull whose drive is on the
     # centreline reads 100% forever, and a row that is always fine is a row the
@@ -160,14 +167,13 @@ def computer_note(conn: Conn) -> str:
     if not mode:
         return "off — she flies as you fly her"
     if mode == "null":
-        return "holding — killing what drift there is"
+        return "holding station, killing what drift there is"
     if mode == "close":
         return "closing to berth"
     if mode == "orbit":
         return "making orbit"
     if mode == "run":
-        mark = getattr(conn, "mark", "")
-        return f"running for {mark}" if mark else "running for nothing"
+        return _running(conn)
     if mode == "brake":
         return "braking to zero, then handing back"
     if mode == "depart":
@@ -175,3 +181,31 @@ def computer_note(conn: Conn) -> str:
                 if getattr(conn.target, "mu", 0) > 0 else
                 "standing away to clear space")
     return mode
+
+
+def _running(conn: Conn) -> str:
+    """A run for a mark, narrated off the burn that actually happened.
+
+    **It used to say six words the whole way in.** Measured on one run to a
+    contact 5,137 km off: the computer went `forward` on the torch, then
+    `back` on the thrusters to brake, then `None` to coast the last stretch —
+    and the bridge read "running for Held Breath" at every one of those, so a
+    pilot could not tell accelerating from braking from arriving. Off
+    `conn.fired_*`, the record, not a fresh ask of the computer, which is a
+    forecast one tick ahead of the ship.
+
+    Here rather than on the bridge because the bridge printed it as an
+    "Autopilot" row directly under this panel's "Computer" row — the same
+    fact, twice, in two different sets of words.
+    """
+    if not getattr(conn, "mark", ""):
+        return "running for nothing"
+    if conn.fired_turning:
+        return "running her in — coming about to burn"
+    if conn.fired_axis is None:
+        return "running her in — coasting"
+    which = AXES_BY_ID[conn.fired_axis][1].lower()
+    share = (f" at {conn.fired_share:.0%}"
+             if conn.fired_main and conn.fired_share < 0.999 else "")
+    return (f"running her in — {which} on "
+            f"{'the torch' if conn.fired_main else 'thrusters'}{share}")

@@ -30,6 +30,7 @@ from ..core.save import register
 from ..data.dormancy import (METHODS, METHODS_BY_ID, MIN_WATCH, NOTICEABLE,
                              work_share)
 from ..data.lineages import LINEAGES_BY_ID, of_stock
+from . import stores
 from .lifespan import active, lineage_of
 
 
@@ -237,23 +238,18 @@ def tick(game, ship_days: float, rng) -> list:
     method = sleep.how
     if method is None or not method.cost:
         return []
-    from .ship import add_cargo
     out = []
     count = sleep.hands + len(sleep.officers)
     for cid, per in method.cost.items():
         need = per * count * ship_days / 100.0
-        held = game.ship.cargo.get(cid, 0) + game.stores.get(cid, 0)
-        if held < need:
+        if stores.held(game, cid) < need:
             # The medium ran out. They come up early, which is better than the
             # alternative and worse than planned.
             out.append(("bad", f"The {cid} for the sleepers has run out. They "
                                "are being brought up early."))
             out.extend(wake(game, rng, early=True)[1])
             return out
-        taken = min(need, game.ship.cargo.get(cid, 0))
-        add_cargo(game.ship, cid, -taken)
-        if taken < need:
-            game.stores[cid] = max(0.0, game.stores.get(cid, 0) - (need - taken))
+        stores.take(game, cid, need)
     return out
 
 
@@ -305,6 +301,24 @@ def wake(game, rng, early: bool = False) -> tuple[dict, list]:
     game.recompute()
     return ({"ok": True, "days": days, "lost": lost_hands + len(lost_officers),
              "early": early}, lines)
+
+
+def bring_up(game) -> dict:
+    """The captain's order to wake them: the roll, the chronicle, the answer.
+
+    `wake` returns its lines for whoever called it — the tick writes them
+    under its own "the medium ran out" — and the ship screen drew the roll
+    from `game.rng` and wrote the lines itself. This is the order's door.
+    """
+    res, lines = wake(game, game.rng("wake"))
+    if not res.get("ok"):
+        res.setdefault("text", "")
+        return res
+    for kind, text in lines:
+        game.add_log(text, kind)
+    res.update(why="", lines=lines,
+               text=" ".join(text for _kind, text in lines))
+    return res
 
 
 def note(game) -> str:

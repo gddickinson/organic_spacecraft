@@ -7,19 +7,19 @@ that never terminated. Run them with ``python -m seedfall.tests``.
 
 from __future__ import annotations
 
-import pathlib
+import math
 
 from ..core import save as save_mod
 from ..core.rng import RNG
-from ..core.state import Game, has_save, load_game, new_game
+from ..core.state import new_game
 from ..data import chassis as chassis_data
 from ..data.hull_types import BUILD_NEED, LAYER_SETS, NO_REGEN
 from ..data import parts as parts_data
-from ..data import tech as tech_data
+from ..data import kith as kith_data, tech as tech_data
 from ..data.colonies import COLONIES
 from ..data.xenotech import XENOTECH
 from ..sim import colony as colony_sim
-from ..sim import combat, encounters, shipyard, threat
+from ..sim import combat, encounters, shipyard, threat, warrants
 from ..sim import actions
 from ..sim.ship import make_ship, stats
 from ..world import economy, galaxy
@@ -30,7 +30,6 @@ def run(suite: Suite) -> None:
     check = suite.check
 
     game = {}
-
 
     @check("new game")
     def _():
@@ -50,10 +49,11 @@ def run(suite: Suite) -> None:
 
     @check("every chassis builds and derives finite stats")
     def _():
+        assert len(chassis_data.CHASSIS) >= 35, "the hull table has shrunk"
         for c in chassis_data.CHASSIS:
             sh = make_ship(c.id, [])
             st = stats(sh)
-            assert st.jump == st.jump and st.accuracy == st.accuracy, f"{c.id} NaN"
+            assert math.isfinite(st.jump) and math.isfinite(st.accuracy), c.id
             assert sh.layers, f"{c.id} has no layers"
         return f"{len(chassis_data.CHASSIS)} hulls"
 
@@ -84,8 +84,8 @@ def run(suite: Suite) -> None:
         for t in tech_data.TECH:
             for r in t.reqs:
                 assert r in ids, f"{t.id} requires missing {r}"
-        # A part or hull may be gated on research OR on incorporated alien work.
-        gates = ids | {x.id for x in XENOTECH}
+        # Gated on research, incorporated alien work, or a Kith gift.
+        gates = ids | {x.id for x in XENOTECH} | set(kith_data.GATES)
         for c in chassis_data.CHASSIS:
             assert not c.tech or c.tech in gates, f"chassis {c.id} → {c.tech}"
         for p in parts_data.PARTS:
@@ -112,7 +112,7 @@ def run(suite: Suite) -> None:
         d0 = g.day
         g.advance_days(120)
         assert g.day == d0 + 120, "day did not advance"
-        assert g.credits == g.credits, "credits went NaN"
+        assert math.isfinite(g.credits), f"credits went {g.credits}"
         return f"day {g.day}, treasury {round(g.credits)}"
 
     @check("jump to a reachable system")
@@ -183,6 +183,8 @@ def run(suite: Suite) -> None:
                   "magnetite", "spidroin", "trehalose"):
             g.stores[k] = 9999
         before = len(g.fleet)
+        for power in ("charter", "concordat", "freeholds", "sanhedrin"):
+            warrants.lift_for(g, power, "licence")   # a cradle asks it now
         job, why = shipyard.start_build(
             g, "spore", ["reaction_organ", "intima_bloom", "opsin_eyes",
                          "bioelectric_net"], sysm, "Test Instar")
@@ -206,6 +208,7 @@ def run(suite: Suite) -> None:
     @check("every technology family is complete and coherent")
     def _():
         report = []
+        assert len(chassis_data.FAMILY_ORDER) >= 5, chassis_data.FAMILY_ORDER
         for family in chassis_data.FAMILY_ORDER:
             hulls = chassis_data.by_family(family)
             assert hulls, f"{family} has no hulls"
@@ -232,10 +235,9 @@ def run(suite: Suite) -> None:
             ("palimpsest", "intima_bloom", True), ("palimpsest", "railgun", True),
             ("palimpsest", "coherent_beam", False),
         ]
-        for hull, pid, want in cases:
-            ch = chassis_data.CHASSIS_BY_ID[hull]
-            got = chassis_data.accepts_family(ch, parts_data.PARTS_BY_ID[pid].family)
-            assert got is want, f"{hull} + {pid}: expected {want}, got {got}"
+        wrong = [(h, p, want) for h, p, want in cases if want is not chassis_data.accepts_family(
+            chassis_data.CHASSIS_BY_ID[h], parts_data.PARTS_BY_ID[p].family)]
+        assert not wrong, f"graft rules broken (hull, part, expected): {wrong}"
         return f"{len(cases)} graft rules hold"
 
     @check("only the mechanical families refuse to heal")
@@ -254,6 +256,7 @@ def run(suite: Suite) -> None:
                          "diplomacy", "medical", "vault", "megastructure",
                          "fabricate", "ward", "port", "xenoyard", "drydock"}
         kinds = {"asteroid", "comet", "rocky", "ocean", "gas", "moon", "ice", "star"}
+        assert len(COLONIES) >= 19, f"only {len(COLONIES)} station classes"
         for c in COLONIES:
             assert c.sites, f"{c.id} can be planted nowhere"
             bad_sites = set(c.sites) - kinds
@@ -261,8 +264,7 @@ def run(suite: Suite) -> None:
             bad_fx = set(c.effects) - known_effects
             assert not bad_fx, f"{c.id} has unhandled effect {bad_fx}"
             assert c.family in chassis_data.FAMILY_LABEL, f"{c.id} odd family"
-        fams = {c.family for c in COLONIES}
-        return f"{len(COLONIES)} classes across {len(fams)} technologies"
+        return f"{len(COLONIES)} classes across {len({c.family for c in COLONIES})} technologies"
 
     @check("a Free Port opens a market where there was none")
     def _():
@@ -460,7 +462,7 @@ def run(suite: Suite) -> None:
         g = new_game("endurance")
         for _ in range(20):
             g.advance_days(180)
-        assert g.credits == g.credits, "credits went NaN"
+        assert math.isfinite(g.credits), f"credits went {g.credits}"
         assert 0 <= g.ship.morale <= 1, "morale left its range"
         infested = len([s for s in g.galaxy.systems if s.bloom > 0.02])
         return f"{g.day} days simulated, {infested} systems infested"

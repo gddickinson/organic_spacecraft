@@ -8,18 +8,17 @@ same way.
 
 from __future__ import annotations
 
-import itertools
 from dataclasses import dataclass, field
 
 from ..core.save import register
 from ..core.util import clamp
+from ..core import ids
 from ..data.chassis import (BASE_POWER, CHASSIS_BY_ID, LAYER_SETS, NO_REGEN,
                             Chassis)
 from ..data.commodities import bulk_of
 from ..data.parts import part
 from . import loading
 
-_uid = itertools.count(1)
 
 # Chassis hull figures are written on a descriptive scale (a NAVIS reads as a far
 # tougher thing than a SPORE, which it is). This converts that scale into combat
@@ -65,6 +64,19 @@ class Ship:
     docked_at: int | None = None
     #: Sails with the flag and fights alongside it, rather than sitting berthed.
     escort: bool = False
+    #: The day a slip or cradle of *yours* launched her. None for anything you
+    #: did not lay down — the hull you started in, a prize, a vault's second
+    #: instar — which is what `threat.line_of` needs: Lineage counted every
+    #: grown hull in the fleet, so the starting NAVIS was a quarter of it.
+    launched_on: int | None = None
+    #: Innovation 5, freight lines: the line this hull works, if any. A hauler
+    #: on a line is away — `consorts.can_sail` refuses her. `sim/freightlines`.
+    line_id: int | None = None
+    #: The living hull (`sim/adaptation.py`): load remembered by channel, the
+    #: adaptations set in, and the one emerging (`id`, `since_day`, `due`).
+    stress: dict = field(default_factory=dict)
+    adaptations: list = field(default_factory=list)
+    emerging: dict | None = None
 
     @property
     def chassis_def(self) -> Chassis:
@@ -118,14 +130,14 @@ class Stats:
 def next_uid() -> int:
     """A fresh hull identity. A captured ship keeps its layers and its cargo
     and cannot keep its uid — `consorts` and the fleet ledger both key on it."""
-    return next(_uid)
+    return ids.next_id("ship")
 
 
 def make_ship(chassis_id: str, fitted=(), name: str | None = None) -> Ship:
     ch = CHASSIS_BY_ID.get(chassis_id)
     if ch is None:
         raise ValueError(f"unknown chassis {chassis_id!r}")
-    ship = Ship(uid=next(_uid), name=name or ch.name, chassis=chassis_id,
+    ship = Ship(uid=ids.next_id("ship"), name=name or ch.name, chassis=chassis_id,
                 fitted=list(fitted), crew=max(1, round(ch.crew * 0.6)))
     build_layers(ship)
     return ship
@@ -193,6 +205,9 @@ def stats(ship: Ship, bonus: dict | None = None, officers=()) -> Stats:
     # the one that costs the same and reads as the strongest.
     from . import crew as crew_mod
     tr = crew_mod.trait_effects(officers)
+    from . import arcs as arcs_mod          # a finished story's signature
+    for key, value in arcs_mod.signature_effects(officers).items():
+        tr[key] = tr.get(key, 0.0) + value
     fight = tr.get("tactical", 0.0)
 
     # Power discipline: draw more than you generate and everything sags. A
@@ -211,7 +226,7 @@ def stats(ship: Ship, bonus: dict | None = None, officers=()) -> Stats:
     s = Stats(
         family=ch.family, power=power, draw=draw, brownout=brownout,
         jump=max(1, ((ch.jump + fx["jump"]) * (1 + bonus.get("jump", 0))
-                     + nav * 0.35) * jump_load),
+                     + nav * 0.35 + tr.get("jump", 0.0)) * jump_load),
         speed=max(0.2, (ch.speed * (1 + fx["speed"]) + nav * 0.03) * load),
         evade=clamp((ch.evade + fx["evade"] + tr.get("evade", 0.0) + fight
                      + tac * 0.02) * brownout * load, 0, 0.7),
@@ -256,7 +271,8 @@ def stats(ship: Ship, bonus: dict | None = None, officers=()) -> Stats:
     s.weapons = [part(pid) for pid in live if part(pid) and part(pid).wpn]
     s.abilities = [part(pid) for pid in live if part(pid) and part(pid).ability]
     s.flak = int(fx["flak"]) + sum(1 for p in s.weapons if "flak" in p.wpn.traits)
-    return s
+    from . import adaptation            # the body's own changes, last
+    return adaptation.apply(s, ship)
 
 
 # ── hull state ─────────────────────────────────────────────────────────────

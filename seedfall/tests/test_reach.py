@@ -114,8 +114,12 @@ def run(suite: Suite) -> None:
         game = new_game("reach-wall")
         within = reach_sim.component(game)
         beyond = reach_sim.walled(game)
-        if not beyond:
-            return "this sector has no wall; checked the other seed instead"
+        # Measured: 8 systems inside and 34 beyond. This used to return early
+        # on a sector with no wall and say it had checked another seed, which
+        # it had not — a pass on nothing.
+        assert within and beyond, (
+            f"reach-wall has no wall any more ({len(within)} inside, "
+            f"{len(beyond)} beyond); choose a seed that does")
         jump = game.ship_stats.jump
         for sid in within:
             here = game.galaxy.systems[sid]

@@ -13,14 +13,25 @@ the words the captain would use.
 
 It decides nothing. `sim/hail.py` says what to offer and the existing doors do
 the work, so a menu here cannot promise something the game will refuse.
+
+**And it never waits on a language model.** The greeting was asked for on
+the window's own thread, and against an endpoint that accepts a connection
+and never answers the whole game froze for twelve seconds per line. Now the
+written line goes up at once and, when speech is on, the model is asked on
+a worker thread; its line replaces the written one if it arrives while the
+same channel is still open, and is dropped if it does not.
 """
 
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt
+import threading
+import weakref
+
+from PyQt6.QtCore import QObject, Qt, pyqtSignal
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QWidget
 
 from ..sim import hail as hail_sim
+from ..sim import voice as voice_sim
 from . import theme
 from .widgets import Panel, button, label, mono_label, note, spacer
 
@@ -34,6 +45,9 @@ class CommsWindow(QDialog):
         self.game = win.game
         self.contact = contact
         self.exchange = hail_sim.Exchange()
+        #: Bumped whenever the channel changes hands, so a model's line that
+        #: arrives for the last contact is not put in this one's mouth.
+        self.channel = 0
         self.setWindowTitle(f"Comms — {contact.name}")
         self.setWindowFlag(Qt.WindowType.Window)
         self.setStyleSheet(theme.stylesheet())
@@ -41,7 +55,25 @@ class CommsWindow(QDialog):
         self.col = QVBoxLayout(self)
         self.col.setContentsMargins(16, 14, 16, 14)
         self.col.setSpacing(8)
-        self.exchange.add(contact.name, hail_sim.greeting(self.game, contact))
+        self._greet(contact)
+        self._build()
+
+    # ── the greeting, and a model's better one when it comes ───────────────
+
+    def _greet(self, contact) -> None:
+        """Say the written line now; ask a model for a better one elsewhere."""
+        said = hail_sim.opening(self.game, contact)
+        self.exchange.add(contact.name, said["line"])
+        if said["ask"] is not None:
+            _ask_later(self, self.channel, len(self.exchange.said) - 1,
+                       said["ask"])
+
+    def heard(self, channel: int, index: int, line: str) -> None:
+        """A model's line has arrived: swap it in, if it is still wanted."""
+        if channel != self.channel or index >= len(self.exchange.said):
+            return
+        who, _written = self.exchange.said[index]
+        self.exchange.said[index] = (who, line)
         self._build()
 
     # ── building ───────────────────────────────────────────────────────────
@@ -112,7 +144,8 @@ class CommsWindow(QDialog):
         self.contact = contact
         self.setWindowTitle(f"Comms — {contact.name}")
         self.exchange = hail_sim.Exchange()
-        self.exchange.add(contact.name, hail_sim.greeting(self.game, contact))
+        self.channel += 1
+        self._greet(contact)
         self._build()
 
     # ── acting ─────────────────────────────────────────────────────────────
@@ -137,8 +170,7 @@ class CommsWindow(QDialog):
         if oid == "talk":
             self.exchange.add("You", "This is the Patient Increment. Who are "
                                      "you and what are you carrying?")
-            self.exchange.add(contact.name,
-                              hail_sim.greeting(game, contact))
+            self._greet(contact)
             self._build()
             return
         if oid == "mark":
@@ -172,6 +204,61 @@ class CommsWindow(QDialog):
             self.win.go(option.goes_to)
             return
         self.win.toast(option.why or "Nothing came of it.", "warn")
+
+
+class _Courier(QObject):
+    """Carries a model's line from the worker back to the window's thread.
+
+    One for the process, made on the main thread the first time it is
+    needed and never destroyed, so a worker never emits on an object Qt has
+    already deleted. A queued connection is what puts `_deliver` on the
+    thread the window lives on.
+    """
+
+    heard = pyqtSignal(object)
+
+
+_COURIER: list = []
+
+
+def _courier() -> _Courier:
+    if not _COURIER:
+        courier = _Courier()
+        courier.heard.connect(_deliver, Qt.ConnectionType.QueuedConnection)
+        _COURIER.append(courier)
+    return _COURIER[0]
+
+
+def _ask_later(window, channel: int, index: int, ask) -> threading.Thread:
+    """Ask the model on a worker thread; deliver its line if it gives one.
+
+    The worker holds only the `Ask` — plain strings built from the game on
+    this thread — and a weak reference to the window, so nothing it does can
+    touch the chronicle or keep a closed window alive.
+    """
+    courier = _courier()
+    ref = weakref.ref(window)
+
+    def work() -> None:
+        line = voice_sim.model_line(ask)
+        if line:
+            courier.heard.emit((ref, channel, index, line))
+
+    worker = threading.Thread(target=work, daemon=True, name="seedfall-voice")
+    worker.start()
+    return worker
+
+
+def _deliver(packet) -> None:
+    ref, channel, index, line = packet
+    window = ref()
+    if window is None:
+        return
+    try:
+        window.heard(channel, index, line)
+    except RuntimeError:
+        # Closed and deleted on the C++ side while the model was talking.
+        pass
 
 
 def _in_reach(game) -> list:

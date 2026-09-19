@@ -55,6 +55,8 @@ def run(suite) -> bool:
         # `manual.for_screen` reads it for contextual help — so the rule is
         # asked of the built window, the only place the full set exists.
         from ..data.help import TOPICS
+        # 21 of 27 topics named a view when measured; none would pass this.
+        assert sum(1 for t in TOPICS if t.screen) >= 21, "topics name no views"
         for topic in TOPICS:
             assert topic.screen == "" or topic.screen in win.views, (
                 f"{topic.id} says it is about {topic.screen!r}, "

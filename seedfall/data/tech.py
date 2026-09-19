@@ -290,6 +290,18 @@ TECH: list[Tech] = [
        "lattice knits overnight and the spar grows along stress lines nobody "
        "chose. It works; the paper explaining why is still unwritten.",
        hull=0.10),
+    # The Far Reaches. The deep anchors on the rim are not dead, only aimed
+    # somewhere the Weave does not go; this is enough of the lattice's
+    # grammar to say where, and to wake one (`sim/relight.py`). Fed by survey
+    # and specimen evidence rather than the branch's reading
+    # (`data/inquiry.TECH_MIX`), because it is learned by looking.
+    _t("deepweave", "Deep Weave", "xenology", 3, ["xenobiology", "mea"], 560,
+       "A rim anchor answers a current at one frequency and nothing else, "
+       "and the answer is a direction that points out of the Verge. Reading "
+       "enough of it to relight one is a survey problem more than a "
+       "physics one — which is why it is within reach of a captain who "
+       "looks carefully, and was not of anybody who only theorised.",
+       scan=0.04),
     _t("firstcontact", "First Contact Protocol", "xenology", 4,
        ["abyssal", "consensus"], 1100,
        "A method for speaking to something that shares no ancestor with you, and "

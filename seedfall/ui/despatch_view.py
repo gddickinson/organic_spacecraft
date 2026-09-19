@@ -21,7 +21,7 @@ from __future__ import annotations
 from ..core.util import stardate
 from ..data import signals as signals_data
 from ..sim import comms as comms_sim
-from . import theme
+from . import arc_panel, theme
 from .widgets import Panel, TabBar, View, button, label, note, spacer
 
 #: How many despatches the tab lays out at once. The inbox is capped by
@@ -94,6 +94,9 @@ class DespatchView(View):
         p.add(label(f"{channel.name} · {sig.note}"
                     + ("" if sig.read else " · UNREAD"), "sub"))
         p.add(sig.body)
+        if arc_panel.owns(sig):       # an officer's story: each answer costed
+            arc_panel.beat(p, self.game, sig, self._answer)
+            return p
         if sig.asks:
             row = [button(words, self._answer(sig.id, key),
                           kind="primary" if index == 0 else "")

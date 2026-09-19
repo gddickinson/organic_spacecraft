@@ -12,8 +12,7 @@ from collections import Counter
 
 from ..core.rng import RNG
 from ..core.state import new_game
-from ..data.expedition import TERRAIN
-from ..data.weather import CLEAR, WEATHERS, WEATHERS_BY_ID
+from ..data.weather import CLEAR, WEATHERS
 from ..sim import expedition as exp_sim
 from ..sim import weather as weather_sim
 from .harness import Suite

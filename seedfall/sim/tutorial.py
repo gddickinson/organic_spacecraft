@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 
 from ..core.save import register
 from ..data.lessons import (CHAPTERS, CHAPTERS_BY_ID, LESSONS,
-                            LESSONS_BY_ID, first_step_of, lessons_in)
+                            first_step_of, lessons_in)
 # The watchers and the mark live next door; re-exported because eight
 # checks and the Academy page read them through this module.
 from .tutorial_watch import (SKIPS, WATCHERS, deed, did,  # noqa: F401

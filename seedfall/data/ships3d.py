@@ -24,7 +24,6 @@ Nose is +z, as everywhere else in this package.
 
 from __future__ import annotations
 
-import math
 
 from .models3d import (GOLD, LUMEN, PLATE, PLATE_DARK, ROCK, ROCK_DARK, WARN,
                        _box, _build, _cap, _shift, _tube)

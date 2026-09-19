@@ -26,7 +26,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from .models3d import (CHLORO, GOLD, LUMEN, PLATE, PLATE_DARK, ROCK,
+from .models3d import (CHLORO, LUMEN, PLATE, PLATE_DARK, ROCK,
                        ROCK_DARK, WARN, _box, _build, _cap, _tube)
 from .robots import ROBOTS
 from .works3d import ACCENT, DEFAULT_ACCENT

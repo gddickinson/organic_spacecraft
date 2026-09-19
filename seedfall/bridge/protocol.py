@@ -12,6 +12,11 @@ Three rules:
 - **Every verb answers `{"ok": …}`** and never raises across the boundary. A
   caller on the other end of a pipe cannot catch a traceback.
 - **Nothing here writes the ledger directly.** Same rule the UI lives under.
+- **Nothing from the pipe reaches a verb unchecked.** Every number is finite
+  and in range, every index is inside its list, every string is a string —
+  `bridge/checks.py`, which says what got through before it existed. And a
+  verb that *acts* (`verb(..., acts=True)`) is refused once the chronicle
+  has ended, or while an engagement is open (`bridge/battle.py`).
 """
 
 from __future__ import annotations
@@ -27,8 +32,14 @@ from ..sim import trade as trade_sim
 from ..sim import voice as voice_sim
 from ..sim.ship import cargo_used, hull_pct
 from ..world.galaxy import distance
+from . import checks
+from .checks import Refused
 
 VERBS: dict = {}
+
+#: Verbs that change the chronicle, as opposed to reading it: refused once it
+#: has ended, and while an engagement is waiting on an order.
+ACTS: set = set()
 
 #: What may cross the boundary untouched.
 PLAIN = (str, int, float, bool, type(None))
@@ -58,10 +69,12 @@ def plain(value, depth: int = 0):
     return str(value)
 
 
-def verb(name: str, doc: str):
+def verb(name: str, doc: str, acts: bool = False):
     """Register a verb and the one line that describes it."""
     def keep(fn):
         VERBS[name] = (fn, doc)
+        if acts:
+            ACTS.add(name)
         return fn
     return keep
 
@@ -158,11 +171,12 @@ def market(game) -> dict:
 
 @verb("log", "The last lines of the chronicle.")
 def log(game, count: int = 20) -> dict:
+    count = checks.whole(count, "count", 1, 300)
     return {"ok": True, "log": [
         {"day": entry[0] if isinstance(entry, (list, tuple)) else game.day,
          "text": entry[1] if isinstance(entry, (list, tuple)) and len(entry) > 1
          else str(entry)}
-        for entry in list(game.log)[-int(count):]]}
+        for entry in list(game.log)[-count:]]}
 
 
 @verb("despatches", "The inbox: what has arrived, and what asks an answer.")
@@ -172,7 +186,7 @@ def despatches(game, count: int = 20) -> dict:
     blocked set would deadlock every driven session on the first bulletin."""
     from ..sim import comms as comms_sim
     rows = []
-    for sig in comms_sim.inbox(game)[:int(count)]:
+    for sig in comms_sim.inbox(game)[:checks.whole(count, "count", 1, 200)]:
         rows.append({"id": sig.id, "from": sig.name, "channel": sig.channel,
                      "subject": sig.subject, "body": sig.body,
                      "age": sig.note, "read": sig.read,
@@ -183,9 +197,14 @@ def despatches(game, count: int = 20) -> dict:
             "asking": len(comms_sim.asking(game)), "despatches": rows}
 
 
-@verb("answer_signal", "Answer a despatch by id and reply key; or mark it read.")
+@verb("answer_signal", "Answer a despatch by id and reply key; or mark it read.",
+      acts=True)
 def answer_signal(game, signal_id: str, key: str = "") -> dict:
     from ..sim import comms as comms_sim
+    if isinstance(signal_id, int) and not isinstance(signal_id, bool):
+        signal_id = str(signal_id)          # ids are strings; a number is one
+    signal_id = checks.words(signal_id, "signal_id", 80, required=True)
+    key = checks.words(key, "key", 80)
     if key:
         if comms_sim.answer(game, str(signal_id), str(key)):
             return {"ok": True, "answered": str(key)}
@@ -198,41 +217,68 @@ def answer_signal(game, signal_id: str, key: str = "") -> dict:
 
 # ── doing ──────────────────────────────────────────────────────────────────
 
-@verb("survey", "Survey one body by index.")
+#: The most tonnes one trade can name. Holds run to hundreds of tonnes; this
+#: only has to be finite and far above any of them.
+MOST_TONNES = 1e6
+#: The longest single working or wait. A year of either is already more than
+#: any screen offers; ten of waiting is a long time to sit on one call.
+MOST_WORKING_DAYS = 365
+MOST_WAIT_DAYS = 3650
+
+
+@verb("survey", "Survey one body by index.", acts=True)
 def survey(game, index: int) -> dict:
-    result = action_sim.survey(game, int(index))
+    result = action_sim.survey(game, checks.index(index, "body",
+                                                  game.system.bodies))
     return {"ok": bool(result.get("ok", True)), **result}
 
 
-@verb("jump", "Jump to a system by id.")
+@verb("jump", "Jump to a system by id; an ambush on arrival must be fought.",
+      acts=True)
 def jump(game, system_id: int) -> dict:
-    return action_sim.jump_to(game, int(system_id))
+    target = checks.index(system_id, "system", game.galaxy.systems)
+    if target == game.location_id:
+        return {"ok": False, "why": "You are already there."}
+    result = action_sim.jump_to(game, target)
+    # What the window does with it: `map_view._jump` hands an encounter to
+    # the battle screen. Here it opens an engagement `fight` answers.
+    if result.get("encounter") and not game.dead:
+        from . import battle
+        result["encounter"] = battle.begin(game, result["encounter"])
+    return result
 
 
-@verb("extract", "Run the rig on a body: index, days of working, method.")
+@verb("extract", "Run the rig on a body: index, days of working, method.",
+      acts=True)
 def extract(game, index: int, days: float = 30, method: str = "cut") -> dict:
     # The parameter was called "tonnes" and it was days all along —
     # `actions.extract` takes a spell length, and a caller asking for 30
     # tonnes got a 30-day working that raised ~99.
-    return action_sim.extract(game, int(index), float(days), method)
+    body = checks.index(index, "body", game.system.bodies)
+    days = checks.amount(days, "days", MOST_WORKING_DAYS)
+    return action_sim.extract(game, body, days,
+                              checks.words(method, "method", 40))
 
 
-@verb("buy", "Buy tonnes of a commodity at this port.")
+@verb("buy", "Buy tonnes of a commodity at this port.", acts=True)
 def buy(game, commodity: str, tonnes: float) -> dict:
-    return trade_sim.buy(game, commodity, float(tonnes))
+    return trade_sim.buy(game, checks.words(commodity, "commodity", 40, True),
+                         checks.amount(tonnes, "tonnes", MOST_TONNES))
 
 
-@verb("sell", "Sell tonnes of a commodity at this port.")
+@verb("sell", "Sell tonnes of a commodity at this port.", acts=True)
 def sell(game, commodity: str, tonnes: float) -> dict:
-    return trade_sim.sell(game, commodity, float(tonnes))
+    return trade_sim.sell(game, checks.words(commodity, "commodity", 40, True),
+                          checks.amount(tonnes, "tonnes", MOST_TONNES))
 
 
-@verb("wait", "Let days pass.")
+@verb("wait", "Let days pass.", acts=True)
 def wait(game, days: float = 1) -> dict:
+    days = checks.whole(days, "days", 1, MOST_WAIT_DAYS)
     before = game.day
     # The same door the Holdings screen uses: a wait stands down on news
     # that deserves a hand rather than running blind to the end.
-    told = game.wait_days(int(days))
+    told = game.wait_days(days)
     return {"ok": True, "from": before, "to": game.day,
             "stopped": told["stopped"], "bad": told["bad"][-6:],
             "credits": told["credits"],
@@ -241,7 +287,8 @@ def wait(game, days: float = 1) -> dict:
 
 # ── talking ────────────────────────────────────────────────────────────────
 
-@verb("speak", "Have somebody in the world say something, in their own voice.")
+@verb("speak", "Have somebody in the world say something, in their own voice.",
+      acts=True)
 def speak(game, key: str, persona: str = "plain", situation: str = "greet",
           name: str = "", fact: str = "", kind: str = "captain") -> dict:
     """`kind` decides whose past they draw on — a ship is not a captain.
@@ -249,16 +296,31 @@ def speak(game, key: str, persona: str = "plain", situation: str = "greet",
     Without it every speaker got the captain's backstory, so the ship's own
     computer said "before any of this, *they* were refused a berth".
     """
-    said = voice_sim.speak(game, key, persona=persona, situation=situation,
-                           name=name, fact=fact, kind=kind)
+    said = voice_sim.speak(game, checks.words(key, "key", 80, required=True),
+                           persona=checks.words(persona, "persona", 40),
+                           situation=checks.words(situation, "situation", 40),
+                           name=checks.words(name, "name", 80),
+                           fact=checks.words(fact, "fact", 300),
+                           kind=checks.words(kind, "kind", 40))
     return {"ok": True, **said}
 
 
-@verb("remember", "Write a memory against somebody, as an event would.")
+#: Salience runs from a passing remark to a lifelong grudge; events write
+#: 0.3 to 2. Five is room for anything an event would, and finite.
+MOST_SALIENCE = 5.0
+
+
+@verb("remember", "Write a memory against somebody, as an event would.",
+      acts=True)
 def remember(game, key: str, kind: str, text: str, salience: float = 1.0,
              name: str = "", entity: str = "captain") -> dict:
-    made = memory_sim.note(game, key, kind, text, float(salience),
-                           name=name, entity=entity)
+    made = memory_sim.note(game, checks.words(key, "key", 80, required=True),
+                           checks.words(kind, "kind", 40, required=True),
+                           checks.words(text, "text", 400, required=True),
+                           checks.amount(salience, "salience", MOST_SALIENCE,
+                                         inclusive=True),
+                           name=checks.words(name, "name", 80),
+                           entity=checks.words(entity, "entity", 40))
     return {"ok": True, "id": made.id,
             "impression": memory_sim.impression_of(game, key)}
 
@@ -301,14 +363,22 @@ def waiting(game) -> dict:
     spot = legacy_sim.offer(game)
     if spot:
         out["situation"] = spot
-    out["blocked"] = any(k in out for k in ("envoy", "demand", "situation"))
+    from . import battle
+    fighting = battle.waiting_on(game)
+    if fighting is not None:
+        out["battle"] = fighting
+    out["blocked"] = any(k in out
+                         for k in ("envoy", "demand", "situation", "battle"))
     return out
 
 
-@verb("reply", "Answer the envoy or the demand: accept/push/refuse, or an id.")
+@verb("reply", "Answer the envoy or the demand: accept/push/refuse, or an id.",
+      acts=True)
 def reply(game, choice: str, what: str = "") -> dict:
     from ..sim import approach as approach_sim
     from ..sim import territory as territory_sim
+    choice = checks.words(choice, "choice", 40, required=True)
+    what = checks.words(what, "what", 20)
     envoy = getattr(game, "envoy", None)
     demand = getattr(game, "demand", None)
     if what == "envoy" or (not what and envoy is not None and not envoy.over):
@@ -328,9 +398,11 @@ def situation(game) -> dict:
         else {"ok": True, "waiting": False}
 
 
-@verb("answer", "Answer the waiting aftermath question by index.")
+@verb("answer", "Answer the waiting aftermath question by index.", acts=True)
 def answer(game, index: int) -> dict:
-    return legacy_sim.answer(game, int(index))
+    # From nought: `legacy.answer` checks the top of the range and a
+    # negative index used to reach round to the last answer on the card.
+    return legacy_sim.answer(game, checks.whole(index, "index", 0, 99))
 
 
 # ── dispatch ───────────────────────────────────────────────────────────────
@@ -345,15 +417,32 @@ def dispatch(game, command: dict) -> dict:
         return {"ok": False, "why": f"No such verb: {name!r}.",
                 "verbs": sorted(VERBS)}
     fn, _doc = entry
-    args = {k: v for k, v in (command.get("args") or {}).items()}
+    given = command.get("args")
+    if given is None:
+        given = {}
+    if not isinstance(given, dict) or not all(isinstance(k, str)
+                                              for k in given):
+        return {"ok": False, "why": "args is an object of named arguments."}
+    args = dict(given)
     allowed = {p for p in inspect.signature(fn).parameters if p != "game"}
     unknown = set(args) - allowed
     if unknown:
         return {"ok": False,
                 "why": f"{name} does not take {sorted(unknown)}.",
                 "args": sorted(allowed)}
+    if name in ACTS:
+        over = checks.ended(game)
+        if over:
+            return {"ok": False, "why": over, "ended": True}
+        from . import battle
+        if name not in battle.ORDERS_VERBS and battle.current(game) is not None:
+            return {"ok": False, "blocked": True,
+                    "why": "You are in an engagement: `fight` it through "
+                           "first (`waiting` shows it)."}
     try:
         return plain(fn(game, **args))
+    except Refused as err:
+        return {"ok": False, "why": str(err), "args": sorted(allowed)}
     except TypeError as err:
         return {"ok": False, "why": f"{name}: {err}", "args": sorted(allowed)}
     except Exception as err:                      # noqa: BLE001 - boundary
@@ -366,3 +455,8 @@ def snapshot(game) -> dict:
                   "neighbours": neighbours(game),
                   "instruments": instruments(game),
                   "situation": situation(game)})
+
+
+# The engagement's verbs, `fight` and `prize`, register themselves on import.
+# Imported last because they register through `verb` above.
+from . import battle as _battle  # noqa: E402,F401

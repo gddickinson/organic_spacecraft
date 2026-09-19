@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from PyQt6.QtWidgets import QGridLayout, QSpinBox, QWidget
-
 from ..core.util import credits as cr
 from ..core.util import pct
-from ..data.commodities import BY_ID, COMMODITIES
+from ..data.commodities import BY_ID
 from ..data.factions import FACTIONS_BY_ID, standing
 from ..sim import chains as chain_sim
 from ..sim import services as services_sim
@@ -16,6 +14,7 @@ from ..sim import customs as customs_sim
 from . import blackmarket_panel
 from . import board_panel
 from . import freight_panel
+from . import kith_panel
 from . import register_panel
 from ..sim import intel as intel_sim
 from ..sim import market as market_sim
@@ -23,11 +22,11 @@ from ..sim import wharfage as wharfage_sim
 from .berths_panel import BerthsMixin
 from ..sim.fieldwork import buy_field_notes, xeno_notes_price
 from ..sim import xeno as xeno_sim
-from ..sim import contracts as contract_sim
+from ..sim import commitments as commitments_sim
 from ..sim.ship import cargo_used, hull_pct
-from ..world.economy import demands, price_note
-from .widgets import (Panel, Pill, TabBar, View, button, label,
-                      mono_label, note)
+from ..world.economy import demands
+from .market_grid import MarketGrid
+from .widgets import Panel, TabBar, View, button, label, note
 
 
 class PortView(BerthsMixin, View):
@@ -35,7 +34,16 @@ class PortView(BerthsMixin, View):
         super().__init__(win)
         self.tab = "market"
         self._pool = None
-        self._pool_system = None
+        self._board = None
+
+    def keep(self) -> tuple:
+        """The price board, changed in place (`ui/market_grid.py`), while the
+        market tab is up at the port it was made for."""
+        board = self._board
+        if (board is not None and self.tab == "market"
+                and board.system_id == self.game.location_id):
+            return (board,)
+        return ()
 
     def build(self) -> None:
         g = self.game
@@ -43,6 +51,9 @@ class PortView(BerthsMixin, View):
         if not sys.port:
             self.head("No port here", "Nothing in this system will sell you anything.")
             self.buttons(button("Back to system", lambda: self.win.go("system")))
+            return
+        if kith_panel.hosts(sys):          # a Kith gathering has no market
+            kith_panel.build(self, sys)
             return
 
         fac = FACTIONS_BY_ID.get(sys.port.faction)
@@ -153,63 +164,12 @@ class PortView(BerthsMixin, View):
         if news is not None:
             self.col.addWidget(news)
 
-        panel = Panel()
-        grid = QWidget()
-        gl = QGridLayout(grid)
-        gl.setContentsMargins(0, 0, 0, 0)
-        gl.setHorizontalSpacing(12)
-        gl.setVerticalSpacing(6)
-        for i, head in enumerate(("Commodity", "Buy", "Sell", "Local", "Aboard", "")):
-            gl.addWidget(mono_label(head), 0, i)
-
-        row = 1
-        for c in COMMODITIES:
-            # A good this power seizes has no counter here. Leaving the posted
-            # sell price up let you hand unlicensed seed over the desk at a
-            # Yards station for a receipt, which is the exact thing the
-            # boarding party is there to stop.
-            banned = customs_sim.outlaws(sys.port.faction, c.id)
-            # `quote_buy`, not `buy_price`. These two columns were the third
-            # door onto a price: the till asks the quote helper, which carries
-            # the grudge bias and the office rate, and this grid asked the raw
-            # market. Measured with a quiet price in hand — the board said 36
-            # and 29, the counter charged 32 and paid 33, and the comment forty
-            # lines up claimed the board said so.
-            bp = market_sim.quote_buy(g, sys, c.id)
-            sp = None if banned else market_sim.quote_sell(g, sys, c.id)
-            held = g.ship.cargo.get(c.id, 0)
-            if bp is None and held <= 0:
-                continue
-            note_text, note_tint = (("seized on sight", "warn") if banned
-                                    else price_note(m, c.id))
-
-            name = label(c.name)
-            name.setToolTip(c.blurb)
-            gl.addWidget(name, row, 0)
-            gl.addWidget(label(cr(bp) if bp else "—"), row, 1)
-            gl.addWidget(label(cr(sp) if sp else "—"), row, 2)
-            gl.addWidget(Pill(note_text, note_tint), row, 3)
-            gl.addWidget(label(f"{held:g}" if held else "—"), row, 4)
-
-            actions = QWidget()
-            from PyQt6.QtWidgets import QHBoxLayout
-            ah = QHBoxLayout(actions)
-            ah.setContentsMargins(0, 0, 0, 0)
-            ah.setSpacing(4)
-            qty = QSpinBox()
-            qty.setRange(1, 9999)
-            qty.setValue(10)
-            qty.setFixedWidth(66)
-            ah.addWidget(qty)
-            ah.addWidget(button("Buy", lambda cid=c.id, q=qty: self._buy(cid, q.value()),
-                                enabled=bp is not None))
-            ah.addWidget(button("Sell", lambda cid=c.id, q=qty: self._sell(cid, q.value()),
-                                enabled=held > 0 and not banned))
-            gl.addWidget(actions, row, 5)
-            row += 1
-
-        panel.add(grid)
-        self.col.addWidget(panel)
+        board = self._board
+        if board is None or board.system_id != sys.id:
+            board = self._board = MarketGrid(self, sys.id)
+        self.col.addWidget(board)
+        board.show()
+        board.sync(g, sys)
         quiet = blackmarket_panel.offer(g, sys, self._sell_quietly, self._dump)
         if quiet is not None:
             self.col.addWidget(quiet)
@@ -273,11 +233,10 @@ class PortView(BerthsMixin, View):
         board_panel.build(self, sysm)
 
     def _accept(self, contract) -> None:
-        ok, why = contract_sim.accept(self.game, contract)
-        if not ok:
-            self.win.toast(why, "warn")
+        res = commitments_sim.take_contract(self.game, contract)
+        if not res["ok"]:
+            self.win.toast(res["why"], "warn")
             return
-        self.game.add_log(f"Contract taken: {contract.title}.", "good")
         self.win.refresh()
 
     def _abandon(self, contract) -> None:
@@ -285,16 +244,16 @@ class PortView(BerthsMixin, View):
                                 f"{contract.title}. Walking away costs standing "
                                 "with the issuer."):
             return
-        contract_sim.abandon(self.game, contract)
+        res = commitments_sim.abandon_contract(self.game, contract)
+        if not res["ok"]:
+            self.win.toast(res["why"], "warn")
+            return
         self.win.refresh()
 
     # ── services ───────────────────────────────────────────────────────────
 
     def take_rumour(self, rumour, paid: bool) -> None:
-        g = self.game
-        kind = rumour.definition
-        res = services_sim.buy_rumour(g, rumour, paid,
-                                      g.rng(f"listen-{rumour.id}"))
+        res = services_sim.buy_rumour(self.game, rumour, paid)
         if not res["ok"]:
             self.win.toast(res["why"], "warn")
             return
@@ -312,8 +271,9 @@ class PortView(BerthsMixin, View):
     def _services(self, sys, fac, rep) -> None:
         g = self.game
         st = g.ship_stats
-        damage = sum(l.max - l.hp for l in g.ship.layers)
-        repair_cost = round(damage * (26 if st.family == "fabricated" else 15))
+        # The drydock's price, from the drydock — `services.repair_quote`.
+        quote = services_sim.repair_quote(g)
+        damage, repair_cost = quote["damage"], quote["cost"]
 
         dock = Panel("Drydock")
         dock.add(label(f"Hull integrity {pct(hull_pct(g.ship))}. " + (
@@ -323,9 +283,14 @@ class PortView(BerthsMixin, View):
             "holding the torch."), "", wrap=True))
         dock.add_buttons(
             button("No damage" if damage < 1 else f"Full repair — {cr(repair_cost)}",
-                   lambda: self._repair(repair_cost), kind="primary",
-                   enabled=damage >= 1 and g.credits >= repair_cost),
-            button(f"Clear {len(g.ship.disabled)} fault(s)", self._clear_faults)
+                   self._repair, kind="primary",
+                   enabled=damage >= 1 and g.credits >= repair_cost,
+                   tip="Close every wound in the hull now, at the drydock's price.",
+                   why=("The hull is whole." if damage < 1 else
+                        f"You have {cr(g.credits)} of the {cr(repair_cost)} it "
+                        "costs.")),
+            button(f"Clear {len(g.ship.disabled)} fault(s)", self._clear_faults,
+                   tip="Put every disabled system back in service.")
             if g.ship.disabled else None)
 
         # The counter's own quote — the market grid twenty lines up was
@@ -336,7 +301,9 @@ class PortView(BerthsMixin, View):
                          "tonne per light-year.", "", wrap=True))
         bunker.add(note(f"Aboard: {round(g.ship.cargo.get('volatiles', 0))} t."))
         bunker.add_buttons(button(f"Take on 40 t — ~{cr(vp * 40)}",
-                                  lambda: self._buy("volatiles", 40)))
+                                  lambda: self._buy("volatiles", 40),
+                                  tip="Buy forty tonnes of volatiles over the "
+                                      "counter, at the market's price."))
 
         data_held = g.ship.cargo.get("survey", 0)
         office = Panel("Survey Office")
@@ -345,7 +312,11 @@ class PortView(BerthsMixin, View):
                          "as well as your balance.", "", wrap=True))
         office.add(note(f"{round(data_held)} data set(s) aboard."))
         office.add_buttons(button("Sell all survey data", self._sell_data,
-                                  kind="primary", enabled=data_held >= 1))
+                                  kind="primary", enabled=data_held >= 1,
+                                  tip="Every data set aboard, for credits and "
+                                      "standing with this port's power.",
+                                  why="No survey data aboard. Survey a system "
+                                      "first."))
 
         rep_panel = Panel("Standing")
         rep_panel.add(label(fac.doctrine if fac else
@@ -372,7 +343,9 @@ class PortView(BerthsMixin, View):
             notes.add_row("Understood so far", pct(xeno_sim.progress(g, target.id)))
             notes.add_buttons(button(f"Buy the notes — {cr(price)}",
                                      lambda t=target.id: self._buy_notes(t),
-                                     kind="primary", enabled=g.credits >= price))
+                                     kind="primary", enabled=g.credits >= price,
+                                     why=f"You have {cr(g.credits)} of the "
+                                         f"{cr(price)} they want."))
             self.col.addWidget(notes)
 
         if "research" in sys.port.services:
@@ -381,7 +354,11 @@ class PortView(BerthsMixin, View):
                           "worth as much as a month of your own instruments.", "",
                           wrap=True))
             lib.add_buttons(button(f"Study for a fortnight — {cr(4000)}",
-                                   self._study, enabled=g.credits >= 4000))
+                                   self._study, enabled=g.credits >= 4000,
+                                   tip="Two weeks alongside, reading. The "
+                                       "calendar moves.",
+                                   why=f"You have {cr(g.credits)} of the "
+                                       f"{cr(4000)} it costs."))
             self.col.addWidget(lib)
 
     def _buy_notes(self, tech_id: str) -> None:
@@ -397,8 +374,8 @@ class PortView(BerthsMixin, View):
         self.win.dialog("Field notes", lines, [("Log it", None)])
         self.win.refresh()
 
-    def _repair(self, cost: int) -> None:
-        res = services_sim.repair(self.game, cost)
+    def _repair(self) -> None:
+        res = services_sim.repair(self.game)
         if not res["ok"]:
             self.win.toast(res["why"], "warn")
             return

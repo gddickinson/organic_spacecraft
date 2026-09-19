@@ -1,16 +1,19 @@
-"""Reusable pieces of the interface: labels, panels, bars, cards and the base
-:class:`View` every screen subclasses."""
+"""Reusable pieces of the interface: labels, panels, bars, cards and tabs.
+
+The base :class:`View` every screen subclasses lives in `ui/view_base.py` and
+is re-exported here, so a screen still writes `from .widgets import View`.
+"""
 
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QColor, QPainter, QPainterPath
-from PyQt6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel,
-                             QPushButton, QScrollArea, QSizePolicy,
-                             QVBoxLayout, QWidget)
+from PyQt6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QPushButton,
+                             QSizePolicy, QVBoxLayout, QWidget)
 
 from . import theme
 from . import painting
+from . import soundmap
 
 ALIGN_L = Qt.AlignmentFlag.AlignLeft
 ALIGN_R = Qt.AlignmentFlag.AlignRight
@@ -90,14 +93,23 @@ def mono_label(text: str) -> QLabel:
 
 
 def button(text: str, on_click=None, kind: str = "", tip: str = "",
-           enabled: bool = True) -> QPushButton:
+           enabled: bool = True, why: str = "") -> QPushButton:
+    """A push button. `why` is what a *disabled* one says when hovered.
+
+    A greyed-out button that will not say why is a dead end: the Port's
+    thirteen Sell buttons and the Research screen had no tooltips at all.
+    The reason is the tooltip only while the button is off, so an enabled
+    button keeps its own `tip`.
+    """
     b = QPushButton(text)
     if kind:
         b.setProperty("kind", kind)
-    if tip:
-        b.setToolTip(tip)
+    shown = why if (why and not enabled) else tip
+    if shown:
+        b.setToolTip(shown)
     b.setEnabled(enabled)
     b.setCursor(Qt.CursorShape.PointingHandCursor)
+    b.clicked.connect(soundmap.click)   # first: it sounds before a dialog
     if on_click:
         b.clicked.connect(lambda: on_click())
     return b
@@ -173,17 +185,76 @@ class Bar(QWidget):
         p.end()
 
 
+class Elided(QLabel):
+    """One line of text that shortens itself with "…" rather than push.
+
+    The heading bar's ship name ran "NAVIS «Patient Incr" into the meters
+    beside it at 1360 px, and the position overprinted at 1040. This label
+    asks for its full width when there is room and gives it up when there
+    is not; the whole text stays on the tooltip.
+    """
+
+    def __init__(self, text: str = "", least: int = 60):
+        super().__init__()
+        self._full = ""
+        self._least = least
+        self.set_full(text)
+
+    def set_full(self, text: str) -> None:
+        if text == self._full:
+            return
+        self._full = text
+        self.setToolTip(text)
+        self.setAccessibleName(text)
+        self._fit(self.width())
+        self.updateGeometry()
+
+    def full(self) -> str:
+        return self._full
+
+    def sizeHint(self):  # noqa: N802
+        hint = super().sizeHint()
+        hint.setWidth(self.fontMetrics().horizontalAdvance(self._full) + 4)
+        return hint
+
+    def minimumSizeHint(self):  # noqa: N802
+        hint = super().minimumSizeHint()
+        hint.setWidth(min(self._least, self.sizeHint().width()))
+        return hint
+
+    def resizeEvent(self, ev):  # noqa: N802
+        super().resizeEvent(ev)
+        self._fit(ev.size().width())
+
+    def _fit(self, width: int) -> None:
+        shown = self.fontMetrics().elidedText(
+            self._full, Qt.TextElideMode.ElideRight, max(0, width - 2))
+        if shown != self.text():
+            self.setText(shown)
+
+
 class Pill(QLabel):
     """A hairline capsule label."""
 
     def __init__(self, text: str, tint: str = "dim"):
-        super().__init__(text.upper())
+        super().__init__()
+        self._tint = None
+        self.set_tint(text, tint)
+        self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
+
+    def set_tint(self, text: str, tint: str = "dim") -> None:
+        """Change what it says and its colour, restyling only on a change —
+        a board updated in place (`ui/market_grid.py`) calls this every
+        refresh, and a stylesheet set is a re-polish."""
+        self.setText(text.upper())
+        if tint == self._tint:
+            return
+        self._tint = tint
         colour = theme.tint(tint)
         self.setStyleSheet(
             f"font-family: '{theme.mono_family()}'; font-size: 8px;"
             f"letter-spacing: 1.3px; color: {colour};"
             f"border: 1px solid {colour}; border-radius: 8px; padding: 2px 8px;")
-        self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
 
 
 class Panel(QFrame):
@@ -225,6 +296,14 @@ class Panel(QFrame):
         self.box.addWidget(row)
         return self
 
+    def add_stacked(self, key: str, value: str, tint: str = "") -> "Panel":
+        """`add_row` for a sentence: the key above, the value wrapped under
+        it. Side by side, a row's minimum width is its whole sentence, and a
+        panel of them pushed the Academy and the Helm's burn board wide."""
+        self.box.addWidget(label(key, "dim", tint))
+        self.box.addWidget(label(str(value), "", wrap=True))
+        return self
+
     def add_bar(self, value: float, tint: str = "chloro") -> Bar:
         b = Bar(value, tint)
         self.box.addWidget(b)
@@ -248,7 +327,8 @@ class Panel(QFrame):
 
 
 class Card(QFrame):
-    """A clickable tile. Emits :attr:`clicked` when pressed."""
+    """A clickable tile. Emits :attr:`clicked` when pressed — by the mouse,
+    or by Space or Enter once it has the keyboard focus."""
 
     clicked = pyqtSignal()
 
@@ -259,6 +339,11 @@ class Card(QFrame):
         self._selectable = selectable
         if selectable:
             self.setCursor(Qt.CursorShape.PointingHandCursor)
+            # **A card is a button, so the keyboard reaches it.** Cards carry
+            # the system's bodies, the research tree, the hull classes and the
+            # new-game choices, and none of them took focus — so none of that
+            # could be played without a mouse.
+            self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.box = QVBoxLayout(self)
         self.box.setContentsMargins(13, 11, 13, 11)
         self.box.setSpacing(4)
@@ -267,16 +352,35 @@ class Card(QFrame):
         for w in widgets:
             if w is None:
                 continue
-            self.box.addWidget(body(w) if isinstance(w, str) else w)
+            made = body(w) if isinstance(w, str) else w
+            # The first line on a card is its name: what a screen reader
+            # says, and what `ui/focus.py` finds it by after a rebuild.
+            if not self.accessibleName() and isinstance(made, QLabel):
+                self.setAccessibleName(made.text())
+                self.setObjectName(f"card:{made.text()}")
+            self.box.addWidget(made)
         return self
 
     def set_selected(self, on: bool) -> None:
         self._selected = on
         colour = theme.tint("chloro") if on else theme.LINE
         bg = "rgba(84,207,124,0.07)" if on else theme.PANEL
+        # The focus ring is repeated here because a widget's own sheet beats
+        # the application's whatever the specificity — without it a selected
+        # card that had the focus showed no sign of it.
         self.setStyleSheet(
             f"QFrame[role='card'] {{ border: 1px solid {colour}; background: {bg};"
-            "border-radius: 3px; }")
+            "border-radius: 3px; }"
+            f"QFrame[role='card']:focus {{ border: 1px solid {theme.tint('lumen')}; }}")
+
+    def keyPressEvent(self, ev):  # noqa: N802
+        """Space and Enter press the card, deferred like a click is."""
+        keys = (Qt.Key.Key_Space, Qt.Key.Key_Return, Qt.Key.Key_Enter)
+        if self._selectable and ev.key() in keys:
+            ev.accept()
+            QTimer.singleShot(0, self.clicked.emit)
+            return
+        super().keyPressEvent(ev)
 
     def mousePressEvent(self, ev):  # noqa: N802
         """Emit *after* the event has finished being delivered.
@@ -342,171 +446,14 @@ class TabBar(QWidget):
         self.changed.emit(tid)
 
 
-class View(QScrollArea):
-    """Base class for every screen.
+def __getattr__(name: str):
+    """`View` and `WrapRow`, re-exported from `ui/view_base.py`.
 
-    Subclasses implement :meth:`build`, adding widgets to ``self.col``. The
-    window calls :meth:`refresh` whenever the world changes.
+    Lazily, because `view_base` builds on the pieces above: an eager import
+    at the top of this file would be circular, and one at the bottom breaks
+    the moment anything imports `view_base` first.
     """
-
-    heading = ""
-    subheading = ""
-
-    def __init__(self, win):
-        super().__init__()
-        self.win = win
-        self.setWidgetResizable(True)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self._inner = QWidget()
-        self.col = QVBoxLayout(self._inner)
-        self.col.setContentsMargins(22, 18, 22, 40)
-        self.col.setSpacing(12)
-        self.col.setAlignment(ALIGN_TOP)
-        self.setWidget(self._inner)
-
-    @property
-    def game(self):
-        return self.win.game
-
-    def hint(self, text: str):
-        """An inline explanation, or nothing if the player turned them off.
-
-        These are how most of this game explains itself, so the setting is not
-        a beginner toggle — it is for somebody who has read them all.
-        """
-        from ..sim import options as options_sim
-        if not options_sim.get(self.game, "hints"):
-            return None
-        return note(text)
-
-    def refresh_later(self) -> None:
-        """Rebuild after the current event, for handlers that would free their
-        own widget mid-signal. See `defer`."""
-        defer(self.refresh)
-
-    def refresh(self) -> None:
-        """Rebuild this screen, without freeing anything mid-event.
-
-        The rule that keeps costing us a segfault: **a signal handler must not
-        destroy the widget that emitted it.** Every handler here rebuilds, and
-        this used to drop the last reference to the old widgets synchronously
-        — so Qt returned from the emit into freed memory. It killed the
-        process through a `Card`, through a `QLineEdit` mid-keystroke, and
-        through a `QComboBox` whose popup was still delivering the click that
-        dismissed it.
-
-        Each was fixed at its call site with `defer`, one at a time, as players
-        found them. This closes the class instead: every outgoing widget goes
-        through `park`, whether or not the call site remembered.
-        """
-        while self.col.count():
-            item = self.col.takeAt(0)
-            if item.widget() is not None:
-                self.park(item.widget())
-        self.build()
-        self.col.addStretch(1)
-        # Rebuilding the column does not on its own tell the scroll area that
-        # its contents changed size, so a screen taller than the viewport was
-        # silently squashed instead of scrolling. Ask for the recalculation.
-        self._sync_scroll()
-
-    def park(self, w) -> None:
-        """Take one widget off the screen without freeing it mid-event.
-
-        The rule `refresh` explains, for one widget — used by it for the whole
-        column, and by a screen swapping one readout for a fresher one while
-        the pilot holds a button down elsewhere. Held on the view, not in a
-        local: a local dies with the calling frame and takes the C++ object
-        with it, which is the whole bug. *Appended*, never replaced — two
-        rebuilds in one event would otherwise drop the first batch, the same
-        bug in a rarer hat.
-        """
-        w.setParent(None)
-        w.hide()
-        if getattr(self, "_doomed", None) is None:
-            self._doomed = []
-            defer(self._release)
-        self._doomed.append(w)
-
-    def _release(self) -> None:
-        """Let the previous screen's widgets go, now the event has finished."""
-        self._doomed = None
-
-    def _sync_scroll(self) -> None:
-        """Let the scroll area find out that the screen changed height.
-
-        Rebuilding the column does not tell the scroll area its contents grew,
-        and the layout's true minimum is not known until the new widgets have
-        been polished — so a screen taller than the viewport was squashed into
-        it instead of scrolling. Measure once now for the common case and once
-        more after the event loop has settled, when the number is right.
-        """
-        self.col.invalidate()
-        self.col.activate()
-        self._inner.setMinimumHeight(self.col.minimumSize().height())
-        self.updateGeometry()
-        QTimer.singleShot(0, self._settle)
-
-    def _settle(self) -> None:
-        self.col.activate()
-        need = self.col.minimumSize().height()
-        if need != self._inner.minimumHeight():
-            self._inner.setMinimumHeight(need)
-            self.updateGeometry()
-
-    def showEvent(self, ev):  # noqa: N802
-        super().showEvent(ev)
-        self._sync_scroll()
-
-    def resizeEvent(self, ev):  # noqa: N802
-        super().resizeEvent(ev)
-        QTimer.singleShot(0, self._settle)
-
-    def build(self) -> None:      # pragma: no cover - overridden
-        raise NotImplementedError
-
-    def head(self, heading: str, sub: str = "") -> None:
-        self.col.addWidget(label(heading, "h1"))
-        if sub:
-            self.col.addWidget(label(sub, "sub", wrap=True))
-        self.col.addWidget(spacer(4))
-
-    def row(self, *widgets, spacing: int = 12) -> QWidget:
-        """A horizontal band of widgets, added to the column."""
-        w = QWidget()
-        h = QHBoxLayout(w)
-        h.setContentsMargins(0, 0, 0, 0)
-        h.setSpacing(spacing)
-        for x in widgets:
-            if x is not None:
-                h.addWidget(x, 1)
-        self.col.addWidget(w)
-        return w
-
-    def buttons(self, *btns) -> QWidget:
-        w = QWidget()
-        h = QHBoxLayout(w)
-        h.setContentsMargins(0, 4, 0, 4)
-        h.setSpacing(7)
-        for b in btns:
-            if b is not None:
-                h.addWidget(b)
-        h.addStretch(1)
-        self.col.addWidget(w)
-        return w
-
-    def grid(self, widgets, cols: int = 3, spacing: int = 12) -> QWidget:
-        w = QWidget()
-        g = QGridLayout(w)
-        g.setContentsMargins(0, 0, 0, 0)
-        g.setSpacing(spacing)
-        for i, item in enumerate(widgets):
-            # Cards hold wrapped text, so let them shrink rather than demand
-            # their natural width — otherwise the last column is clipped off.
-            item.setSizePolicy(QSizePolicy.Policy.Ignored,
-                               QSizePolicy.Policy.MinimumExpanding)
-            g.addWidget(item, i // cols, i % cols)
-        for c in range(cols):
-            g.setColumnStretch(c, 1)      # equal columns, sharing the width
-        self.col.addWidget(w)
-        return w
+    if name in ("View", "WrapRow"):
+        from . import view_base
+        return getattr(view_base, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

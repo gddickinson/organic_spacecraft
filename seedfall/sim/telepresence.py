@@ -19,9 +19,7 @@ the seam runs one way and neither file has to be loaded before the other.
 
 from __future__ import annotations
 
-import math
 
-from ..world import galaxy
 from . import flight
 
 #: Seconds of round trip at which each autonomy level has lost half its worth.
@@ -41,7 +39,6 @@ AU_PER_LY = 63_241.077
 ALONGSIDE_AU = 1e-6
 
 
-import math
 
 
 # ── the law ────────────────────────────────────────────────────────────────
@@ -91,13 +88,15 @@ def gap_au(game, robot) -> float:
         # of orbit, which is a lag of about a millisecond and reads on the
         # panel as a teleoperated frame mysteriously below its rating.
         return 0.0 if gap < ALONGSIDE_AU else gap
-    from ..world import galaxy
     here = game.system
     there = next((s for s in game.galaxy.systems if s.id == colony.system_id),
                  None)
     if there is None:
         return 0.0
-    return galaxy.distance(here, there) * AU_PER_LY
+    # Across the rim the order goes by way of the deep gate — the light-lag
+    # of the road through it, not an infinity (`world/regions.span`).
+    from ..world.regions import span
+    return span(game.galaxy, here, there) * AU_PER_LY
 
 
 def lag_seconds(game, robot) -> float:

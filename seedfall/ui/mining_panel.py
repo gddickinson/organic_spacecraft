@@ -7,7 +7,7 @@ from ..data.commodities import BY_ID
 from ..data.mining import METHODS_BY_ID
 from ..sim import mining
 from ..sim.ship import cargo_free
-from .widgets import Panel, Pill, TabBar, button, label, mono_label, note, spacer
+from .widgets import Panel, TabBar, button, label, mono_label, note, spacer
 
 
 def build(view, game, body, method_id: str) -> Panel:

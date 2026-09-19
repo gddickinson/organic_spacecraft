@@ -404,6 +404,10 @@ def run(suite: Suite) -> None:
                 got[conn.outcome or "never"] = got.get(conn.outcome or "never",
                                                        0) + 1
             outcomes[drives] = got
+        # A sector with no quay is skipped, and six skipped seeds would pass
+        # `0 >= 0 - 1`. Measured: all six seeds fly an approach either way.
+        assert all(sum(got.values()) >= 5 for got in outcomes.values()), (
+            f"too few approaches were flown to judge: {outcomes}")
         for drives, got in outcomes.items():
             assert got.get("alongside", 0) >= sum(got.values()) - 1, (
                 f"with {drives} engine(s) the approaches ended {got} — a hull "

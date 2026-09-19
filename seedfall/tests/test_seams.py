@@ -104,6 +104,8 @@ def run(suite: Suite) -> None:
         # extraction arithmetic moves and the estimate stops matching, it
         # fails here rather than misleading a captain.
         rows = []
+        # Four methods when measured; none would forecast nothing, truly.
+        assert len(METHODS) >= 4, f"only {len(METHODS)} methods"
         for method in METHODS:
             said, got = [], []
             for trial in range(6):

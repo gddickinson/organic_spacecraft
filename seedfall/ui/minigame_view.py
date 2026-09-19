@@ -10,8 +10,7 @@ from ..sim import customs as customs_sim
 from ..sim import minigames as mg
 from ..sim import xeno as xeno_sim
 from . import theme
-from .widgets import (Bar, Panel, Pill, View, button, label, mono_label, note,
-                      spacer)
+from .widgets import (Panel, Pill, View, button, label, note)
 
 
 class DockingView(View):
@@ -207,10 +206,7 @@ class DecodingView(View):
     """A hidden pattern, eight attempts, and feedback that withholds the where."""
 
     def begin(self, subject: str, tech_id: str) -> None:
-        g = self.game
-        self.win.decoding = mg.start_decoding(g.rng("decode"), subject,
-                                              g.ship_stats, g.officers)
-        self.win.decoding_tech = tech_id
+        mg.begin_decoding(self.game, subject, tech_id)
         self.draft: list[int] = [0] * mg.CODE_LENGTH
 
     def build(self) -> None:
@@ -235,6 +231,11 @@ class DecodingView(View):
         if d.over:
             self.col.addWidget(self._outcome(d))
 
+    def _glyphs(self) -> list:
+        """The bench's alphabet: the Kith's signs for a Kith song."""
+        from ..sim import kith as kith_sim
+        return kith_sim.bench_glyphs(self.game.decoding_tech) or mg.GLYPHS
+
     def _composer(self, d) -> Panel:
         p = Panel("Compose a response")
         row = QWidget()
@@ -247,7 +248,7 @@ class DecodingView(View):
             v.setContentsMargins(0, 0, 0, 0)
             v.setSpacing(2)
             v.addWidget(button("‹", lambda _=False, k=i: self._cycle(k, -1)))
-            glyph = label(mg.GLYPHS[self.draft[i]], "h2")
+            glyph = label(self._glyphs()[self.draft[i]], "h2")
             glyph.setFixedWidth(28)
             v.addWidget(glyph)
             v.addWidget(button("›", lambda _=False, k=i: self._cycle(k, 1)))
@@ -276,7 +277,8 @@ class DecodingView(View):
             h = QHBoxLayout(row)
             h.setContentsMargins(0, 0, 0, 0)
             h.setSpacing(10)
-            h.addWidget(label(" ".join(mg.GLYPHS[i] for i in attempt), "h3"))
+            h.addWidget(label(" ".join(self._glyphs()[i] for i in attempt),
+                              "h3"))
             h.addStretch(1)
             h.addWidget(Pill(f"{exact} exact", "chloro" if exact else "dim"))
             h.addWidget(Pill(f"{near} misplaced", "osteo" if near else "dim"))
@@ -297,17 +299,9 @@ class DecodingView(View):
         return p
 
     def _finish(self) -> None:
-        d = self.win.decoding
-        res = mg.decode_result(d)
-        tech_id = getattr(self.win, "decoding_tech", None)
-        if res["won"] and tech_id:
-            _p, done = xeno_sim.add_study(self.game, tech_id, res["points"])
-            self.game.add_log(f"Decoded a {d.subject} emission: "
-                              f"{res['points']} points.", "good")
-            if done:
-                self.win.dialog("Incorporated",
-                                [f"{xeno_sim.XENOTECH_BY_ID[tech_id].name} is "
-                                 "now yours."], [("Log it", None)])
-        self.win.decoding = None
-        self.win.decoding_tech = None
-        self.win.go("tech")
+        res = mg.finish_decoding(self.game)       # banks, logs and clears
+        if res.get("incorporated"):
+            self.win.dialog("Incorporated",
+                            [f"{xeno_sim.XENOTECH_BY_ID[res['tech_id']].name} "
+                             "is now yours."], [("Log it", None)])
+        self.win.go(res.get("back", "tech"))     # a Kith song: the gathering

@@ -96,4 +96,6 @@ def aftermath_lines(out: dict) -> list[str]:
         # The half that never existed: everyone glad to see them lose one.
         lines.append("Word travels — "
                      + aftermath_sim.phrase_pleased(out["pleased"]) + ".")
+    from .hunts_panel import rival_lines          # a named rival's ending
+    lines.extend(rival_lines(out.get("nemesis") or {}))
     return lines

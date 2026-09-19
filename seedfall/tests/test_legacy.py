@@ -111,6 +111,8 @@ def run(suite: Suite) -> None:
                     assert game.flags.get(want["flag"]) is True
                 assert game.situation is None, "the situation stayed open"
                 performed += 1
+        # Measured: forty scenarios, three answers apiece.
+        assert performed >= 120, f"only {performed} answers were performed"
         return f"{performed} answers performed, every stated figure exact"
 
     @check("you can carry on past an ending, and the clock runs again")
@@ -251,9 +253,11 @@ def run(suite: Suite) -> None:
 
         game = new_game("win-lineage")
         from ..sim.ship import build_layers, make_ship
+        from ..sim.threat import LINEAGE_AGE
         for index in range(4):
             hull = make_ship("navis", [], f"Cutting {index}")
             build_layers(hull, game.bonuses)
+            hull.launched_on = game.day - LINEAGE_AGE
             game.fleet.append(hull)
         reached["lineage"] = victory_progress(game)["lineage"][2]
 
@@ -344,6 +348,7 @@ def run(suite: Suite) -> None:
                 f"{epoch.id}: best play still breaks at {floor:.3f} — its "
                 "triumph is unreachable")
             rows.append(f"{epoch.id} {floor:.2f}–{ceiling:.2f}")
+        assert len(rows) == len(EPOCHS) >= 10, rows
         return "; ".join(rows)
 
     @check("a closed epoch turns the age or rests — the calendar never freezes")

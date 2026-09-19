@@ -11,10 +11,8 @@ from __future__ import annotations
 
 from ..core.rng import RNG
 from ..core.state import new_game
-from ..sim import aftermath as aftermath_sim
 from ..sim import allegiance
 from ..sim import diplomacy as dip
-from ..sim import customs as customs_sim
 from ..sim import dig as dig_sim
 from ..sim import inquiry
 

@@ -15,12 +15,10 @@ from __future__ import annotations
 
 from ..core.rng import RNG
 from ..core.state import new_game
-from ..data.factions import FACTIONS_BY_ID
 from ..sim import contracts as contract_sim
 from ..sim import diplomacy as dip_sim
 from ..sim import grudge as grudge_sim
 from ..sim import market as market_sim
-from ..sim import memory as memory_sim
 from ..sim import trade as trade_sim
 from .harness import Suite
 

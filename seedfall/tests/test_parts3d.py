@@ -28,6 +28,7 @@ from ..data import parts3d
 from ..data.part_types import SLOT_ORDER
 from ..data.parts import PARTS
 from .harness import Suite
+from .qtkit import app as _app
 
 SIZE = 150
 
@@ -35,15 +36,6 @@ SIZE = 150
 #: the honest worst as shipped is a power cell against a utility can, both of
 #: which are a drum with things on it.
 ALIKE = 0.72
-
-
-def _app():
-    from .test_ui import _use_offscreen
-    _use_offscreen()
-    from PyQt6.QtWidgets import QApplication
-    app = QApplication.instance() or QApplication([])
-    assert app is not None
-    return app
 
 
 def _shot(part):
@@ -108,6 +100,9 @@ def run(suite: Suite) -> None:
             _mask, tints = _shot(_Probe("utility", family=family))
             seen[family] = tints
         names = sorted(seen)
+        # Five yards when measured; with fewer than two there is no pair to
+        # tell apart and the loop below says nothing.
+        assert len(names) >= 5, f"only {len(names)} yards: {names}"
         for i, one in enumerate(names):
             for other in names[i + 1:]:
                 shared = (len(seen[one] & seen[other])

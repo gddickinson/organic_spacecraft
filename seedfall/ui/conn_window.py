@@ -17,10 +17,9 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QDialog, QHBoxLayout, QVBoxLayout,
                              QWidget)
 
-from ..sim import autopilot as pilot_sim
+from ..core.util import reaction_mass
 from ..sim import berthing as berth_sim
 from ..sim import freeflight as free_sim
-from ..sim import orbits
 from ..sim import pilot as console_sim
 from ..sim import conn as conn_sim
 from ..sim import track as track_sim
@@ -292,7 +291,7 @@ class ConnWindow(QDialog):
             self.win.toast("The hull is gone.", "bad")
         elif out.get("moved"):
             self.win.toast(f"{self.conn.outcome.title()} at {out['moved']}. "
-                           f"{out['fuel']:.2f} t spent.", "good")
+                           f"{reaction_mass(out['fuel'])} spent.", "good")
         self.win.refresh()
 
     def _burn(self, axis_id) -> None:
@@ -356,9 +355,7 @@ class ConnWindow(QDialog):
             self._reopen()
             self.refresh()
             return
-        if self.conn is not None and not self.conn.over:
-            self.conn.outcome = "broken off"
-            self.conn.log.append("Approach broken off.")
+        berth_sim.break_off(self.conn)
         self.win.set_conn_clock(False)
         self._settle()
         self.refresh()
@@ -452,12 +449,7 @@ class ConnWindow(QDialog):
 
 def open_conn(win, contact=None) -> ConnWindow:
     """Open the conn, or raise the one already open."""
-    existing = getattr(win, "conn_window", None)
-    if existing is not None:
-        existing.raise_()
-        existing.activateWindow()
-        return existing
-    window = ConnWindow(win, contact)
-    win.conn_window = window
-    window.show()
-    return window
+    # Freed on close, and its slot cleared — `ui/popout.py`.
+    from . import popout
+    return popout.open_one(win, "conn_window",
+                           lambda: ConnWindow(win, contact))

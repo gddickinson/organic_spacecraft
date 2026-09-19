@@ -14,10 +14,8 @@ the plane cost nothing and nobody noticed the heading had no second angle.
 
 from __future__ import annotations
 
-import math
 
 from ..core.state import new_game
-from ..sim import berthing as berth_sim
 from ..sim import conn as conn_sim
 from ..sim import engage as engage_sim
 from ..sim import flight

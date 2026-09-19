@@ -36,20 +36,7 @@ from ..sim import conn as conn_sim
 from ..sim import flight
 from ..sim import track as track_sim
 from .harness import Suite
-
-#: Held at module scope: a `keep = _app()` local dies when its helper returns,
-#: and if it was the last reference Qt takes every widget down with it.
-_HELD = None
-
-
-def _app():
-    from .test_ui import _use_offscreen
-    _use_offscreen()
-    from PyQt6.QtWidgets import QApplication
-    global _HELD
-    _HELD = QApplication.instance() or QApplication([])
-    assert _HELD is not None
-    return _HELD
+from .qtkit import app as _app
 
 
 def _closed_in(seed: str = "dock", to_km: float = 1.0):

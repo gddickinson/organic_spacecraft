@@ -11,10 +11,11 @@ from ..sim import settlement as settlement_sim
 from ..sim import dig as dig_sim
 from ..sim import mining
 from ..sim import responses as response_sim
-from ..sim.actions import burn_bloom, dive, extract, strike_heart, survey
+from ..sim.actions import burn_bloom, dive, extract, strike_heart
 from . import mining_panel, seed_dialog
+from . import soundmap
 from ..sim import bloom as bloom_sim
-from ..sim.fieldwork import excavate, launch_expedition
+from ..sim.fieldwork import launch_expedition
 from ..sim import xeno as xeno_sim
 from ..data.xenotech import CULTURES_BY_ID, XENOTECH_BY_ID
 from ..world.planets import BODY_KINDS
@@ -108,6 +109,15 @@ class SystemView(View):
                 hp.add(label("The husk is ash. Whatever is still growing out "
                              "here is growing on its own now.", "", wrap=True))
             self.col.addWidget(hp)
+
+        from . import reaches_panel      # a deep anchor here: relight it
+        deep = reaches_panel.build(self, g)
+        if deep is not None:
+            self.col.addWidget(deep)
+        from . import sky_strip          # the sky here: innovation 7
+        sky = sky_strip.build(self, g)
+        if sky is not None:
+            self.col.addWidget(sky)
 
         self.row(self._body_list(), self._detail(), spacing=14)
 
@@ -255,6 +265,7 @@ class SystemView(View):
         if not res.get("ok"):
             self.win.toast(res.get("why", "No."), "warn")
             return
+        soundmap.act(self.win, "survey")
         if self.win.check_ending():
             return
         self.win.dialog("Survey complete", report(res, self.game),

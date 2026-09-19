@@ -11,19 +11,7 @@ Topics are ordered the way a new captain meets them, not alphabetically.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
-
-@dataclass(frozen=True)
-class Topic:
-    id: str
-    title: str
-    screen: str              # which view this is about, "" for general
-    body: tuple              # paragraphs
-    #: Generated lines, by id, resolved in `sim/manual.py`.
-    facts: tuple = ()
-    see: tuple = ()          # other topic ids
-
+from .help_types import Topic
 
 TOPICS = [
     Topic("first", "The first thing to do", "",
@@ -116,7 +104,7 @@ TOPICS = [
     Topic("survey", "Surveying, and why it pays", "system",
           ("Surveying a body tells you what is on it — biomes, lifeforms, "
            "anomalies, buried alien sites — and feeds the research bench.",
-           "A chart is the record of a *completed* survey: every body in the "
+           "A chart is the record of a completed survey: every body in the "
            "system. It is priced on what is in the system rather than on how "
            "many rocks it has, and different powers pay for different things."),
           facts=("survey_pay",), see=("research", "trade")),
@@ -172,7 +160,7 @@ TOPICS = [
            "None can be derived. Understanding accumulates from excavating a "
            "site, taking relics apart, buying field notes, and seizing them "
            "off a hull you destroy.",
-           "At full understanding a technology is *incorporated* — it never "
+           "At full understanding a technology is incorporated — it never "
            "appears in the research tree, because you could not have worked "
            "it out."),
           facts=("xenotech",), see=("research", "ground")),
@@ -218,7 +206,7 @@ TOPICS = [
           facts=("hulls", "layers"), see=("shipyard", "instruments")),
 
     Topic("shipyard", "Refitting and building", "yard",
-          ("The yard shows the ship you *would* have beside the one you do, "
+          ("The yard shows the ship you would have beside the one you do, "
            "and the bill for the difference. Removed parts sell back at half.",
            "You hold the technology for everything already bolted to your "
            "hull, so anything you remove can be put back."),
@@ -268,10 +256,10 @@ TOPICS = [
     Topic("weave", "The Weave, and how to ride one", "map",
           ("A Weave anchor is a ring somebody else built, standing off a "
            "body in a system like a quay does. Two anchors that are both "
-           "*lit* and joined to each other make a ring you can transit — "
+           "lit and joined to each other make a ring you can transit — "
            "and a transit is instant. It is the only thing in the Verge "
            "that costs no days at all; what it costs is a toll.",
-           "**You do not fly to it to use it.** Flying alongside an anchor "
+           "You do not fly to it to use it. Flying alongside an anchor "
            "shows you what it is and nothing else, because a ring is ridden "
            "from the sector chart: the Weave panel there lists every "
            "destination a lit ring runs to from the system you are standing "
@@ -307,7 +295,7 @@ TOPICS = [
 
     # ── playing it well ───────────────────────────────────────────────────
     #
-    # The manual above says what each system *is*. These four say what to do
+    # The manual above says what each system is. These four say what to do
     # with them, which is a different question and the one a new captain
     # actually has. The Academy tab beside this one walks the same ground
     # with your hands on the controls; this is the reading.
@@ -348,7 +336,7 @@ TOPICS = [
            "show exactly what is firing. The clock runs at a minute a beat, "
            "and the Time button compresses it when a run is long.",
            "Watch two numbers on an approach: the closing rate, and the rate "
-           "you are *allowed*. The second is what the computer holds to, and "
+           "you are allowed. The second is what the computer holds to, and "
            "flying inside it is the whole of a clean berthing. Alongside "
            "means at a berth, slowly — arrive fast and both hulls pay.",
            "The computer will do any of it: hold station, brake to zero, "
@@ -380,5 +368,11 @@ TOPICS = [
            "decoding exchange, an open trench, a power waiting on an answer — "
            "survives a save and is still waiting when you come back."),
           facts=("keys",), see=()),
+
 ]
+# The topics the 2026-09 innovations added live in `data/help_more.py`,
+# split out at 500 lines; they follow the originals in the manual.
+from .help_more import MORE_TOPICS  # noqa: E402
+
+TOPICS += MORE_TOPICS
 TOPICS_BY_ID = {t.id: t for t in TOPICS}

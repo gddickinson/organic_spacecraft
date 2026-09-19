@@ -5,14 +5,14 @@ from __future__ import annotations
 from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QWidget
 
 from ..core.util import credits as cr
-from ..core.util import num, pct
 from ..data.diplomacy import AGENDAS, CONCORD_RELATION, CONCORD_STANDING
 from ..data.factions import FACTIONS_BY_ID, standing
 from ..sim import diplomacy as dip
 from ..sim import ventures as venture_sim
+from . import assembly_panel
 from . import exchequer_panel
 from . import ventures_panel
-from .widgets import (defer, Panel, Pill, TabBar, View, button, label, mono_label,
+from .widgets import (defer, Panel, TabBar, View, button, label, mono_label,
                       note, spacer)
 
 
@@ -32,6 +32,7 @@ class DiplomacyView(View):
         super().__init__(win)
         self.focus = "charter"
         self.partner = "concordat"
+        self.tab = "desk"
 
     def build(self) -> None:
         g = self.game
@@ -39,6 +40,14 @@ class DiplomacyView(View):
         self.head("Diplomacy",
                   f"{len(prog['kin'])}/{prog['kin_need']} powers at Kin · "
                   f"{len(prog['peace'])}/{prog['peace_need']} pairs at peace")
+        # The Assembly, innovation 6: a tab of its own (`ui/assembly_panel`).
+        top = TabBar([("desk", "The desk"), ("assembly", "The Assembly")],
+                     self.tab)
+        top.changed.connect(self._page)
+        self.col.addWidget(top)
+        if self.tab == "assembly":
+            assembly_panel.build(self, g)
+            return
 
         self.col.addWidget(ventures_panel.build(self, g))
         self.col.addWidget(exchequer_panel.build(g))
@@ -55,6 +64,10 @@ class DiplomacyView(View):
             self.win.toast(res["why"], "warn")
             return
         self.win.refresh()
+
+    def _page(self, tab: str) -> None:
+        self.tab = tab
+        self.refresh()
 
     def _switch(self, fid: str) -> None:
         self.focus = fid

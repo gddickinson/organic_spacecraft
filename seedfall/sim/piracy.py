@@ -95,14 +95,19 @@ def _reach(game, system) -> float:
     Capitals rather than any port, because reach is a thing governments have:
     an outpost three jumps beyond the last station is nobody's back yard.
     """
-    caps = [s for s in game.galaxy.systems
+    # Within its own region: coordinates in two frames mean nothing to each
+    # other, and there is no capital past the rim — so the Reaches read as
+    # nobody's back yard, and the Verge's figures are the ones they were.
+    from ..world.galaxy import local
+    ours = local(game.galaxy, system)
+    caps = [s for s in ours
             if getattr(s, "port", None) is not None and s.port.capital]
     if not caps:
         return 1.0
     here = (getattr(system, "x", 0.0), getattr(system, "y", 0.0))
     near = min(math.dist(here, (s.x, s.y)) for s in caps)
     span = max(1e-6, max(math.dist((a.x, a.y), (s.x, s.y))
-                         for a in game.galaxy.systems for s in caps[:1]))
+                         for a in ours for s in caps[:1]))
     return max(0.0, min(1.0, near / span))
 
 
@@ -114,7 +119,7 @@ def lawlessness(game, system) -> float:
     from its own arithmetic over the same field, so the two could disagree
     about the same volume and nothing would notice.
     """
-    from . import fleets
+    from . import assembly, fleets
     from . import territory as territory_sim
 
     loose = WILD
@@ -126,6 +131,9 @@ def lawlessness(game, system) -> float:
         loose -= CLAIM_WORTH
     loose += REACH_WORTH * _reach(game, system)
     loose += BLOOM_WORTH * float(getattr(system, "bloom", 0.0) or 0.0)
+    from . import regions as regions_sim
+    loose += regions_sim.lawless(game, system)     # the Shoals: nobody's law
+    loose *= assembly.effect(game, "lawless", {}).get(system.id, 1.0)  # convoys, privateers
     return max(0.0, min(1.0, loose))
 
 
@@ -179,7 +187,8 @@ def fence_pull(game, system) -> float:
     from . import traffic as traffic_sim
     here = (getattr(system, "x", 0.0), getattr(system, "y", 0.0))
     near = None
-    for other in getattr(game, "galaxy", None).systems:
+    from ..world.galaxy import local
+    for other in local(game.galaxy, system):
         if not traffic_sim.hostiles(game, other):
             continue
         gap = math.dist(here, (other.x, other.y))

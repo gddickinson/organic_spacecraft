@@ -6,7 +6,7 @@ from ..core.util import credits as cr
 from ..core.util import duration, pct
 from ..data.factions import FACTIONS_BY_ID
 from ..sim import ventures as venture_sim
-from .widgets import Panel, Pill, button, label, mono_label, note, spacer
+from .widgets import Panel, Pill, button, label, note, spacer
 
 
 def build(view, game) -> Panel:

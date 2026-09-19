@@ -16,6 +16,7 @@ from __future__ import annotations
 from ..data.factions import FACTIONS_BY_ID, standing
 from ..data.wharfage import LEVEL_STEP, RELIEF, RELIEF_AT, WHARFAGE
 from . import accord
+from . import assembly
 from . import diplomacy as dip
 from . import exchequer as exchequer_sim
 
@@ -49,6 +50,7 @@ def rate(game, system) -> float:
     base = WHARFAGE * (1.0 + LEVEL_STEP * (port.level - 1))
     lean = max(-1.0, min(1.0, game.rep.get(port.faction, 0) / RELIEF_AT))
     share = base * (1.0 - RELIEF * lean)
+    share *= assembly.effect(game, "wharfage", 1.0)   # Open Quays, Bloom Levy
     return max(0.0, share * (1.0 - accord.berth_relief(game, port.faction)))
 
 

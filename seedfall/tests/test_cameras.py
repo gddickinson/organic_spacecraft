@@ -366,7 +366,6 @@ def run(suite: Suite) -> None:
         _use_offscreen()
         from PyQt6.QtWidgets import QApplication
         from ..sim import conn as conn_sim_local
-        from ..sim import sky as sky_sim
         from ..ui.conn_window import ConnWindow
         from ..ui.viewport import Viewport
         from ..ui.window import MainWindow

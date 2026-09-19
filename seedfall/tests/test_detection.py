@@ -18,7 +18,6 @@ scale a collision happens on, and a countermeasure mean something at all:
 from __future__ import annotations
 
 import dataclasses
-import math
 
 from ..core.state import new_game
 from ..data import countermeasures as cm

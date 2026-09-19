@@ -36,8 +36,8 @@ from ..data.gates import (BLOOM_CARRY, BLOOM_CARRY_FLOOR, BUILD_CREDITS,
                           TOLL_REFUSED_BELOW, TOLL_STANDING_SWING, WAKE_CREDITS,
                           WAKE_DAYS, WAKE_GOODS, WAKE_TECH)
 from ..world.galaxy import distance
-from . import weave
-from .ship import add_cargo
+from ..world.regions import span
+from . import assembly, stores, weave
 
 
 def holder(game, system_id: int) -> str | None:
@@ -53,19 +53,32 @@ def toll(game, from_id: int, to_id: int) -> dict:
     across the sector is worth a great deal, which is also the order a
     captain would rank them in.
     """
-    span = distance(game.galaxy.systems[from_id], game.galaxy.systems[to_id])
+    if _nobodys(game, from_id, to_id):
+        # A deep gate, or one of the Hollow's own rings: nobody's gate, so
+        # nobody's toll, and no standing to be refused on.
+        return {"from": from_id, "to": to_id, "credits": 0, "holder": None,
+                "standing": 0.0, "refused": False, "why": "", "deep": True,
+                "ly": span(game.galaxy, game.galaxy.systems[from_id],
+                           game.galaxy.systems[to_id])}
+    span_ly = distance(game.galaxy.systems[from_id], game.galaxy.systems[to_id])
     who = holder(game, to_id)
     standing = game.rep.get(who, 0.0) if who else 0.0
     # Kin halves it, hated nearly doubles it.
     scale = 1.0 - TOLL_STANDING_SWING * (standing / 100.0)
-    fee = round(max(0.0, (TOLL_BASE + TOLL_PER_LY * span) * scale))
+    scale *= assembly.effect(game, "tolls", 1.0)      # Free Passage
+    fee = round(max(0.0, (TOLL_BASE + TOLL_PER_LY * span_ly) * scale))
     refused = bool(who) and standing < TOLL_REFUSED_BELOW
     return {
-        "from": from_id, "to": to_id, "ly": span, "credits": fee,
+        "from": from_id, "to": to_id, "ly": span_ly, "credits": fee,
         "holder": who, "standing": standing, "refused": refused,
         "why": (f"{FACTIONS_BY_ID[who].short} will not open the ring for you."
                 if refused else ""),
     }
+
+
+def _nobodys(game, a: int, b: int) -> bool:
+    """Is the hop from a to b a deep link — a gate that belongs to nobody?"""
+    return (min(a, b), max(a, b)) in set(weave.deep_links(game))
 
 
 def route(game, to_id: int, from_id: int | None = None) -> list[int] | None:
@@ -125,9 +138,16 @@ def quote(game, to_id: int) -> dict:
         tolls.append(toll(game, here, step))
         here = step
     refused = [t for t in tolls if t["refused"]]
+    # An ion storm at either end of any hop shuts the ring: `sim/phenomena`.
+    from . import phenomena as sky_sim
+    stormy = next((w for w in (sky_sim.lane_closed(game, a, b) for a, b in
+                   zip([game.location_id] + hops, hops)) if w), "")
+    wide = stormy or wide          # nothing passes a ring into a storm
     total = sum(t["credits"] for t in tolls)
-    saved = distance(game.galaxy.systems[game.location_id],
-                     game.galaxy.systems[to_id])
+    # Through the gates, which is the only way there is across the rim: a
+    # straight line to a Reaches system is infinite (`galaxy.distance`).
+    saved = span(game.galaxy, game.galaxy.systems[game.location_id],
+                 game.galaxy.systems[to_id])
     return {
         "ok": not refused and not wide and game.credits >= total,
         "why": (wide if wide else refused[0]["why"] if refused else
@@ -188,11 +208,19 @@ def use(game, to_id: int) -> dict:
     held = int(round(waited))
     if held >= 1:
         game.advance_days(held)
-    game.add_log(
-        f"Through the Weave to {target.name}: {len(said['hops'])} ring(s), "
-        f"₡{said['credits']:,.0f} in tolls, {said['ly_saved']:.0f} light "
-        + ("years, and no time at all." if waited < 0.01 else
-           f"years, and {waited:.1f} d waiting for a slot."), "good")
+    if any(t.get("deep") for t in said["tolls"]):
+        # Across the rim: a light-year count means nothing between frames.
+        game.add_log(
+            f"Through the deep gate to {target.name}: nobody's ring and "
+            "nobody's toll, " + ("and no time at all." if waited < 0.01 else
+                                 f"and {waited:.1f} d waiting for a slot."),
+            "good")
+    else:
+        game.add_log(
+            f"Through the Weave to {target.name}: {len(said['hops'])} ring(s), "
+            f"₡{said['credits']:,.0f} in tolls, {said['ly_saved']:.0f} light "
+            + ("years, and no time at all." if waited < 0.01 else
+               f"years, and {waited:.1f} d waiting for a slot."), "good")
     return {"ok": True, "hops": said["hops"], "credits": said["credits"],
             "ly_saved": said["ly_saved"], "first": first,
             "days": round(waited, 2)}
@@ -201,28 +229,15 @@ def use(game, to_id: int) -> dict:
 # ── waking what is dark ────────────────────────────────────────────────────
 
 def _afford(game, goods: dict) -> tuple[bool, str]:
-    for cid, need in goods.items():
-        have = game.ship.cargo.get(cid, 0) + game.stores.get(cid, 0)
-        if have < need:
-            return False, f"{need} {cid} needed; {have:g} to hand."
+    for cid, need, have in stores.lacking(game, goods):
+        return False, f"{need} {cid} needed; {have:g} to hand."
     return True, ""
-
-
-def _spend(game, credits: float, goods: dict) -> None:
-    game.credits -= credits
-    for cid, need in goods.items():
-        from_ship = min(game.ship.cargo.get(cid, 0), need)
-        if from_ship:
-            add_cargo(game.ship, cid, -from_ship)
-        rest = need - from_ship
-        if rest > 0:
-            game.stores[cid] = max(0.0, game.stores.get(cid, 0) - rest)
 
 
 def can_wake(game, system_id: int | None = None) -> tuple[bool, str]:
     """May this anchor be woken? The gate the button greys on."""
     system_id = game.location_id if system_id is None else system_id
-    gate = weave.gate_at(game, system_id)
+    gate = weave.anchor_at(game, system_id)
     if gate is None:
         return False, "No anchor stands in this system."
     if gate.lit:
@@ -247,9 +262,9 @@ def wake(game, system_id: int | None = None) -> dict:
     ok, why = can_wake(game, system_id)
     if not ok:
         return {"ok": False, "why": why}
-    gate = weave.gate_at(game, system_id)
+    gate = weave.anchor_at(game, system_id)
     state = weave.ensure(game)
-    _spend(game, WAKE_CREDITS, WAKE_GOODS)
+    stores.spend(game, {"credits": WAKE_CREDITS, **WAKE_GOODS})
     state.woken.append(system_id)
     game.advance_days(WAKE_DAYS)
     if game.dead:
@@ -303,7 +318,7 @@ def build(game, system_id: int | None = None) -> dict:
     if not ok:
         return {"ok": False, "why": why}
     state = weave.ensure(game)
-    _spend(game, BUILD_CREDITS, BUILD_GOODS)
+    stores.spend(game, {"credits": BUILD_CREDITS, **BUILD_GOODS})
     state.built.append((system_id, "yours"))
     game.advance_days(BUILD_DAYS)
     if game.dead:
@@ -334,7 +349,13 @@ def bloom_links(game) -> list[tuple[int, int, float]]:
     """
     state = weave.ensure(game)
     yours = set(state.woken) | {sid for sid, _kind in state.built}
-    if not yours:
+    # **A relit deep gate is yours too**, and so is every ring behind it: the
+    # captain opened the door, and growth walks through it at the same pace
+    # as any ring the captain woke — a share of the source a season. Only the
+    # deep links themselves, though: an anchor that also holds a ring lit at
+    # dawn does not make that ring the captain's.
+    deep = set(weave.deep_links(game))
+    if not yours and not deep:
         return []
     live = weave.network(game)
     out = []
@@ -343,7 +364,8 @@ def bloom_links(game) -> list[tuple[int, int, float]]:
         if source < BLOOM_CARRY_FLOOR:
             continue
         for there in there_list:
-            if here in yours or there in yours:
+            if (here in yours or there in yours
+                    or (min(here, there), max(here, there)) in deep):
                 out.append((here, there, source * BLOOM_CARRY))
     return out
 

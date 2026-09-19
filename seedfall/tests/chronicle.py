@@ -20,6 +20,7 @@ from __future__ import annotations
 from ..core.rng import RNG
 from ..data.chassis import CHASSIS_BY_ID
 from ..data.parts import PARTS, PARTS_BY_ID
+from ..data.tech import STARTING_TECH
 from ..sim import charts as chart_sim
 from ..sim import colony as colony_sim
 from ..sim import services as services_sim
@@ -34,7 +35,6 @@ from ..sim import wayhome as wayhome_sim
 from ..sim import anchorage as anchorage_sim
 from ..sim import flight as flight_sim
 from ..sim import freight as freight_sim
-from ..sim import inquiry as inquiry_sim
 from ..sim import market as market_sim
 from ..sim import notes as notes_sim
 from ..sim import research as research_sim
@@ -227,13 +227,20 @@ def _hire_here(game, rng, plan) -> None:
 
 
 def _study_here(game, rng, plan) -> None:
-    """Keep a programme running, so the tree and its gated content open up."""
+    """Keep a programme running, so the tree and its gated content open up.
+
+    **For a year of cycles this never researched anything.** It walked
+    `inquiry.available`, which lists the *approaches* to a programme —
+    careful, rapid — not technologies, and handed an approach id to
+    `set_project`, which refused it every time and said so only by returning
+    False. Ten years of chronicle ended with the starting tree: every screen
+    that shows research was painted empty and called covered.
+    """
     res = game.research
     if res.current:
         return
-    for tech, ok, _why in inquiry_sim.available(game):
-        if ok:
-            research_sim.set_project(res, tech.id)
+    for tech in research_sim.researchable(res.unlocked):
+        if research_sim.set_project(res, tech.id):
             return
 
 
@@ -397,7 +404,14 @@ def _move_on(game, rng, plan) -> bool:
     short = any(game.ship.cargo.get(cid, 0) < want * 0.15
                 for cid, want in STOCK.items())
     if short:
-        near.sort(key=lambda s: (not s.port, distance(s, game.system)))
+        # A quay that will *deal*: a power that has struck the captain from
+        # the record (`enforce.may_trade`) keeps its port and prices nothing.
+        # Once `_study_here` really researched, one chronicle's path took it
+        # past a shun and it shuttled between two such ports for five years,
+        # the crew starving beside counters that would not sell it biomass.
+        from ..sim import enforce as enforce_sim
+        near.sort(key=lambda s: (not (s.port and enforce_sim.may_trade(game, s)[0]),
+                                 distance(s, game.system)))
     else:
         near.sort(key=lambda s: (s.visited, s.id != bound,
                                  distance(s, game.system)))
@@ -468,4 +482,6 @@ def play(game, years: int = 10, on_beat=None, stipend: float = STIPEND) -> dict:
             "colonies": max(len(game.colonies), plan.get("planted", 0)),
             "notes": len(notes_sim.held(game)),
             "contracts": len([c for c in game.contracts if c.done]),
-            "treaties": len(dip_sim.ensure(game).treaties)}
+            "treaties": len(dip_sim.ensure(game).treaties),
+            "researched": len(set(game.research.unlocked)
+                              - set(STARTING_TECH))}

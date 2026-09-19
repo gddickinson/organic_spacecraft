@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from ..core.util import num, pct
+from ..core.util import pct
 from ..data.strata import METHODS, STRATA
 from ..sim import dig as dig_sim
 from ..sim import xeno as xeno_sim
 from ..sim.ship import hull_pct
-from .widgets import (Panel, Pill, View, button, label, mono_label, note,
+from . import soundmap
+from .widgets import (Panel, View, button, label, mono_label, note,
                       spacer)
 
 
@@ -91,6 +92,7 @@ class DigView(View):
         if not res.get("ok"):
             self.win.toast(res["why"], "warn")
             return
+        soundmap.act(self.win, "dig")          # a tick per stratum
         if self.win.check_ending():
             return
         lines = []

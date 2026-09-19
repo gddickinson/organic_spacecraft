@@ -29,6 +29,7 @@ ground still moves only the register.
 
 from __future__ import annotations
 
+from . import assembly
 from . import diplomacy as dip
 
 #: The relation at or below which two powers are fighting.
@@ -53,7 +54,7 @@ WAR_AT = -60.0
 
 def at_war(game, a: str, b: str) -> bool:
     """Are these two powers fighting? **The one door.**"""
-    if a == b:
+    if a == b or assembly.pair_key(a, b) in assembly.effect(game, "ceasefire", ()):
         return False
     return dip.relation(game, a, b) <= WAR_AT
 
@@ -87,7 +88,8 @@ def spoils(game, power: str) -> list:
             if getattr(s, "port", None) is not None
             and s.port.faction in foes
             and not s.port.independent
-            and not s.port.player_built]
+            and not s.port.player_built
+            and assembly.pair_key(power, s.port.faction) not in assembly.effect(game, "border", ())]
 
 
 def note(game, power: str) -> str:

@@ -107,16 +107,31 @@ def run(suite: Suite) -> bool:
 
         # **And the window calls it.** Asking the drawing directly proved only
         # that the drawing works — deleting the call from `Viewport.draw` left
-        # this check green, because it was never testing the wiring.
-        # Read the wiring rather than paint it: `Painted` declines to draw at
-        # all when the platform refuses a backing store, and a check that
-        # depends on a successful paint goes red on correct code.
-        import inspect
-        body = inspect.getsource(view.feed.draw)
-        assert "viewport_mark.draw_sights(" in body, (
-            "Viewport.draw never asks for the sights to be drawn")
-        assert "self.sights" in body, (
-            "it asks for sights to be drawn without handing them over")
+        # this check green, because it was never testing the wiring. Reading
+        # the source for the call came next, and stays green with the call
+        # commented out inside a string. So the feed paints into an image of
+        # its own (never through `paintEvent`, which `Painted` skips when the
+        # platform refuses a backing store) with the drawing watched.
+        from PyQt6.QtGui import QImage, QPainter
+        told = []
+        real = viewport_mark.draw_sights
+
+        def watched(p, sights, *rest):
+            told.append(sights)
+            return real(p, sights, *rest)
+
+        viewport_mark.draw_sights = watched
+        try:
+            image = QImage(view.feed.width(), view.feed.height(),
+                           QImage.Format.Format_ARGB32)
+            painter = QPainter(image)
+            view.feed.draw(painter)
+            painter.end()
+        finally:
+            viewport_mark.draw_sights = real
+        assert told, "Viewport.draw never asks for the sights to be drawn"
+        assert told == [view.feed.sights], (
+            "it asks for sights to be drawn without handing over its own")
         return (f"{len(named)} named at {km:,.0f} km off the quay, "
                 f"{drew} of them landing in one of the six cameras")
 
@@ -125,9 +140,14 @@ def run(suite: Suite) -> bool:
         # **It used to say six words the whole way in** — "running for Held
         # Breath" while the computer torched, braked and coasted in turn, so
         # a pilot could not tell accelerating from braking from arriving.
-        from ..sim import freeflight as free_sim
-        from ..ui import pilot_panels as panels
+        from ..sim import instruments as panel_sim
         game, _win, view = _bridge("auto")
+
+        # The bridge's own "Autopilot" row is gone: it repeated the panel's
+        # "Computer" row one line below it, so the words are asked of the
+        # one door both screens now read.
+        def says(view) -> str:
+            return panel_sim.computer_note(view.conn)
         # **The furthest in the band, not the first.** This took whichever
         # hull came to hand, and once orbits gained a tilt that was often a
         # hop short enough for the thrusters — so the computer swung, nudged
@@ -138,7 +158,7 @@ def run(suite: Suite) -> bool:
                  for c in view.in_view() if c.kind == "hull"}
         target = max((c for c, km in reach.items() if 100 < km < 200_000),
                      key=lambda c: reach[c])
-        assert panels._computer_says(view) == "off — she flies as you fly her"
+        assert says(view) == "off — she flies as you fly her"
 
         view.fly_at(target)
         view.set_auto("run")
@@ -157,7 +177,7 @@ def run(suite: Suite) -> bool:
         said, matched = [], 0
         for _ in range(1400):
             view.tick()
-            phrase = panels._computer_says(view)
+            phrase = says(view)
             said.append(phrase)
             conn = view.conn
             # Only while it is still *running*: the beat she arrives on, the
@@ -192,10 +212,10 @@ def run(suite: Suite) -> bool:
 
         # Holding station is not a course, and says its own thing.
         view.break_off()
-        assert "holding station" in panels._computer_says(view)
+        assert "holding station" in says(view)
         view.set_auto("hold")
-        assert panels._computer_says(view).startswith("off"), (
-            panels._computer_says(view))
+        assert says(view).startswith("off"), (
+            says(view))
         # The run in order, with each phrase said once: a thousand beats of
         # "coasting → astern on thrusters → coasting" is the same news three
         # hundred times, and a check's line has to be readable.

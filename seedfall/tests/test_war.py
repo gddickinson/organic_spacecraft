@@ -170,6 +170,16 @@ def run(suite: Suite) -> None:
             seen = set()
             for _ in range(24):                       # 3,600 days
                 _provisioned(game)
+                # **Harbours kept open, for the same reason the hull is fed.**
+                # Since the Bloom's pace went steady (`threat.THROW_RATE`) it
+                # is at the powers' ports from year two, not year four, and
+                # they spend their ventures containing it: unheld, twelve
+                # sectors gave 6 wars and no quay taken, against 12 and 2
+                # before. That is the Bloom doing its job; this asks whether
+                # the war machinery can move a berth when it is left to.
+                for system in game.galaxy.systems:
+                    if system.port:
+                        system.bloom = min(system.bloom, 0.3)
                 game.advance_days(150)
                 seen.update(war.wars(game))
             days.append(game.day)

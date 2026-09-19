@@ -9,12 +9,15 @@ from ..data.crossings import CROSSINGS_BY_ID
 from ..data.crossings import DEFAULT as CROSSING_DEFAULT
 from ..world.galaxy import distance, transit_days
 from ..world.planets import survey_body
+from . import adaptation
 from . import biology
 from . import charts as chart_sim
 from . import mining
+from . import phenomena as sky_sim
 from . import responses
-from .inquiry import add as _add_evidence
+from .passage import joined
 from . import inquiry
+from . import renown as renown_sim
 from . import research as research_sim
 from . import rumours as rumour_sim
 from .crew import grant_xp
@@ -35,9 +38,16 @@ def jump_quote(game, target, crossing: str = CROSSING_DEFAULT) -> dict:
     ly = distance(game.system, target)
     st = game.ship_stats
     how = CROSSINGS_BY_ID.get(crossing) or CROSSINGS_BY_ID[CROSSING_DEFAULT]
+    if ly == float("inf"):
+        # Across the rim: no drive reaches it, and only a deep gate goes.
+        return {"ly": ly, "in_range": False, "days": 0, "ship_days": 0,
+                "dilation": how.dilation, "crossing": how, "fuel": 0,
+                "beyond": True}
     base = transit_days(ly, st.speed)
     days = max(1, round(base * how.days))
-    return {"ly": ly, "in_range": ly <= st.jump,
+    # A charted lane (`sim/passage.py`) is in range whatever the drive says.
+    return {"ly": ly, "in_range": ly <= st.jump or joined(game.system, target),
+            "closed": sky_sim.lane_closed(game, game.system, target),
             "days": days,
             "ship_days": max(1, round(days / how.dilation)),
             "dilation": how.dilation, "crossing": how,
@@ -47,6 +57,11 @@ def jump_quote(game, target, crossing: str = CROSSING_DEFAULT) -> dict:
 def jump_to(game, system_id: int, crossing: str = CROSSING_DEFAULT) -> dict:
     target = game.galaxy.systems[system_id]
     q = jump_quote(game, target, crossing)
+    if q.get("beyond"):
+        return {"ok": False, "why": f"{target.name} is beyond the rim. Only a "
+                                    "deep gate goes there."}
+    if q["closed"]:
+        return {"ok": False, "why": q["closed"]}       # an ion storm
     if not q["in_range"]:
         return {"ok": False, "why": f"Out of reach — {q['ly']:.1f} ly against a "
                                     f"{game.ship_stats.jump:.1f} ly range."}
@@ -56,6 +71,8 @@ def jump_to(game, system_id: int, crossing: str = CROSSING_DEFAULT) -> dict:
                                     f"volatiles needed, {have} aboard."}
 
     add_cargo(game.ship, "volatiles", -q["fuel"])
+    adaptation.fleet_record(game, "crossing", q["ly"])
+    adaptation.fleet_record(game, "burn", 1.0 if q["dilation"] > 1 else 0.0)
     game.location_id = system_id
     flight.arrive_in_system(game)
     game.advance_days(q["days"], q["dilation"])
@@ -131,11 +148,12 @@ def survey(game, body_index: int) -> dict:
     days = 2 + round(3 * (1 - game.ship_stats.scan))
     game.advance_days(days)
 
-    found = survey_body(body, game.ship_stats.scan, r)
+    found = survey_body(body, game.ship_stats.scan, r, day=game.day)
     # What the catch is worth to *this* captain: a specimen nobody can read is
     # still catalogued and yields less. See `sim/biology.py`.
     catch = biology.harvest(game, found["lifeforms"])
     found["research"] += catch["research"]
+    adaptation.record(game.ship, "eyes", 1.0 if found["research"] > 0 else 0.0)
     research_sim.grant(game.research, found["research"])
     inquiry.add(game.research, "survey", found["research"] * 0.9)
     inquiry.add(game.research, "specimen", len(found["lifeforms"]) * 9)
@@ -176,6 +194,8 @@ def extract(game, body_index: int, days: int,
     """Work a body for a spell. How you work it is most of the decision."""
     from . import tutorial_watch
     tutorial_watch.deed(game, "mined")
+    if body_index >= len(game.system.bodies):   # a comet gone: `sim/phenomena`
+        return {"ok": False, "why": "Nothing is there any more."}
     body = game.system.bodies[body_index]
     st = game.ship_stats
     # Everything that can refuse the working is checked before the ship flies
@@ -230,7 +250,7 @@ def extract(game, body_index: int, days: int,
 
     def take(cid: str, rig: float) -> None:
         amount = mining.rate_for(body, method.id, cid, rig) * days
-        amount *= (1 - spoil) * (1 + bonus)
+        amount *= (1 - spoil) * (1 + bonus) * sky_sim.aurora_yield(game, body)
         if amount <= 0.01:
             return
         n = min(amount, cargo_free(game.ship, game.ship_stats))
@@ -243,6 +263,7 @@ def extract(game, body_index: int, days: int,
     take("phosphate", st.phos)
     take("volatiles", st.drink)
     take("biomass", st.graze)
+    adaptation.record(game.ship, "gut", sum(got.values()))
 
     wear = mining.apply_wear(game, method.id, days)
     mining.deplete(game, body, method.id, days,
@@ -271,15 +292,19 @@ def dive(game, body_index: int) -> dict:
         return {"ok": False, "why": "There is no ocean under that."}
 
     r = game.rng("dive")
+    adaptation.record(game.ship, "depth", 1.0)
+    renown_sim.note(game, "dives")          # Genesis's track
     game.advance_days(18)
     risk = 0.28 - game.ship_stats.armour * 0.01
+    risk *= sky_sim.aurora_risk(game, body)         # an aurora: calmer below
     if r.chance(max(0.05, risk)):
         dmg = r.int(60, 200)
         apply_damage(game.ship, dmg)
         game.add_log(f"The channel closed early. {dmg} points of hull crushed "
                      "before the tail could refreeze.", "bad")
 
-    found = survey_body(body, min(1.0, game.ship_stats.scan + 0.4), r)
+    found = survey_body(body, min(1.0, game.ship_stats.scan + 0.4), r,
+                        day=game.day)
     found["research"] += biology.harvest(game, found["lifeforms"])["research"]
     research_sim.grant(game.research, found["research"] + 60)
     inquiry.add(game.research, "specimen", 55 + len(found["lifeforms"]) * 12)
@@ -407,7 +432,7 @@ def distress_call(game) -> dict:
     from ..world.galaxy import nearest_port
     if not is_stranded(game):
         return {"ok": False, "why": "You are not stranded — you can still move."}
-    port = nearest_port(game.galaxy.systems, game.system)
+    port = nearest_port(game.galaxy.systems, game.system, game.galaxy)
     if port is None:
         return {"ok": False, "why": "There is no port left in the Verge to answer."}
 

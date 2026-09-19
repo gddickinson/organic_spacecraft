@@ -122,6 +122,8 @@ def run(suite: Suite) -> None:
         # Measured on the first draft: a drum at 0.78 of its radius gave a
         # 3.2 km opening through a 2.7 km solid middle, so every off-axis
         # approach flew past the structure entirely and there was no rim.
+        assert sum(bays.is_bay(k.id) for k in COLONIES) >= 2, (
+            "the nursery and the drum are both meant to be bays")
         for klass in COLONIES:
             if not bays.is_bay(klass.id):
                 continue
@@ -140,7 +142,9 @@ def run(suite: Suite) -> None:
 
     @check("on the centreline you get inside; off it you hit the structure")
     def _():
-        for look in [k.id for k in COLONIES if bays.is_bay(k.id)]:
+        looks = [k.id for k in COLONIES if bays.is_bay(k.id)]
+        assert len(looks) >= 2, f"'both bays' is {looks}"
+        for look in looks:
             _game, target = _at(look)
             solid = bays.hull_km(target)
             straight, deepest = _fly(look, 0.0)

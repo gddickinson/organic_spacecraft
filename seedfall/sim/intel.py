@@ -46,7 +46,9 @@ def survey_fraction(system) -> float:
 
 def in_sensor_range(game, system) -> bool:
     here = game.system
-    return distance(system, here) <= game.ship_stats.sensor
+    from . import regions as regions_sim        # the Shoals' gas halves it
+    return distance(system, here) <= (game.ship_stats.sensor
+                                      * regions_sim.sensor_scale(game))
 
 
 def sees_bloom(game, system) -> bool:
@@ -110,7 +112,10 @@ def chart_price(game, system) -> int:
     Distance, not contents. See `CHART_BASE`: pricing it on the body count told
     the buyer the body count, which is most of what they were buying.
     """
-    span = distance(system, game.system)
+    # By way of the gates: a chart of the Reaches bought in the Verge is priced
+    # on the road there, not on an infinity (`world/regions.span`).
+    from ..world.regions import span as gate_span
+    span = gate_span(game.galaxy, system, game.system)
     base = CHART_BASE + CHART_PER_LY * span
     return int(base * (1.0 - min(0.3, game.ship_stats.trade)))
 
@@ -209,9 +214,11 @@ def sell_survey(game, system, faction: str | None) -> dict:
     return {"ok": True, "value": value}
 
 
-def summary(game) -> dict:
+def summary(game, systems=None) -> dict:
+    """How well the sky is known — all of it, or `systems` (one region's)."""
+    systems = game.galaxy.systems if systems is None else systems
     counts = [0, 0, 0, 0]
-    for system in game.galaxy.systems:
+    for system in systems:
         counts[level(game, system)] += 1
-    return {"counts": counts, "total": len(game.galaxy.systems),
+    return {"counts": counts, "total": len(systems),
             "charted": counts[3], "unknown": counts[0]}

@@ -80,6 +80,8 @@ def run(suite: Suite) -> None:
 
     @check("nobody minds a cordial sector, everybody minds a war")
     def _():
+        # A war needs two sides; with fewer the loops below assert nothing.
+        assert len(POWERS) >= 2, POWERS
         calm = new_game("calm")
         _peace(calm)
         for power in POWERS:

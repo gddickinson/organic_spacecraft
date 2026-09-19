@@ -40,17 +40,10 @@ from ..sim import sky as sky_sim
 from ..sim import track as track_sim
 from ..sim import traffic as traffic_sim
 from .harness import Suite
+from .qtkit import app as _app
+from .qtkit import overlap as _overlap
 
 SIZE = 150
-
-
-def _app():
-    from .test_ui import _use_offscreen
-    _use_offscreen()
-    from PyQt6.QtWidgets import QApplication
-    app = QApplication.instance() or QApplication([])
-    assert app is not None
-    return app
 
 
 def _mask(kind: str, look: str) -> set:
@@ -74,13 +67,6 @@ def _mask(kind: str, look: str) -> set:
     painter.end()
     return {(x, y) for y in range(SIZE) for x in range(SIZE)
             if image.pixel(x, y) != sky.rgb()}
-
-
-def _overlap(a: set, b: set) -> float:
-    """How alike two silhouettes are, 0 (nothing shared) to 1 (identical)."""
-    if not a or not b:
-        return 0.0
-    return len(a & b) / len(a | b)
 
 
 def run(suite: Suite) -> None:
@@ -229,9 +215,11 @@ def run(suite: Suite) -> None:
         # come alongside, or the catalogue is two catalogues.
         game = new_game("silhouette")
         from ..sim import targets as target_sim
+        compared = {}
         for contact in track_sim.contacts(game):
             if contact.kind not in ("anchorage", "hull"):
                 continue
+            compared[contact.kind] = compared.get(contact.kind, 0) + 1
             target = target_sim.target_from_contact(game, contact)
             look = (target.berth if contact.kind == "anchorage"
                     else target.errand)
@@ -240,4 +228,8 @@ def run(suite: Suite) -> None:
             assert look == plot_look, (contact.name, look, plot_look)
             assert (models3d.present(contact.kind, look)["mesh"]
                     is models3d.present(contact.kind, plot_look)["mesh"])
-        return "every berth and hull resolves to one mesh from both doors"
+        # Measured: one anchorage and three hulls in this sector. Both kinds
+        # have to have been through both doors, or half the claim is unasked.
+        assert set(compared) == {"anchorage", "hull"}, compared
+        return ("every berth and hull resolves to one mesh from both doors "
+                f"({compared['anchorage']} anchorage, {compared['hull']} hulls)")

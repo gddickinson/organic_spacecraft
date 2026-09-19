@@ -8,9 +8,8 @@ finished work is felt everywhere without anything else knowing works exist.
 
 from __future__ import annotations
 
-from ..data.colonies import COLONIES_BY_ID
 from ..data.works import ADMIN_STEP, MAX_WORKS, WORKS_BY_ID, WORKS
-from . import loyalty
+from . import loyalty, stores
 
 
 # ── what a colony is, once its works are counted ───────────────────────────
@@ -66,6 +65,8 @@ def crewed_yields(game, col) -> dict:
     how much.
     """
     lift = 1.0 + YIELD_PER_LEVEL * hands_at(game, col)
+    from . import arcs          # Green thumb: a grower walks the holdings
+    lift *= 1.0 + arcs.signature_effects(game.officers).get("yield", 0.0)
     return {key: amount * lift for key, amount in yields_of(col).items()}
 
 
@@ -119,12 +120,6 @@ def pop_ceiling(col) -> float:
 
 # ── choosing one ───────────────────────────────────────────────────────────
 
-def _held(game, key: str) -> float:
-    if key == "credits":
-        return game.credits
-    return game.stores.get(key, 0) + game.ship.cargo.get(key, 0)
-
-
 def available(game, col) -> list[tuple]:
     """(work, ok, why) for everything this colony could be asked to do."""
     have = set(getattr(col, "works", []))
@@ -148,27 +143,12 @@ def available(game, col) -> list[tuple]:
         elif work.tech and work.tech not in game.research.unlocked:
             ok, why = False, "The research is not in hand."
         else:
-            short = [f"{round(n)} {k}" for k, n in work.cost.items()
-                     if _held(game, k) < n]
+            short = [f"{round(n)} {k}"
+                     for k, n, _have in stores.lacking(game, work.cost)]
             if short:
                 ok, why = False, "Short of " + ", ".join(short) + "."
         out.append((work, ok, why))
     return out
-
-
-def _spend(game, cost: dict) -> None:
-    for key, n in cost.items():
-        if key == "credits":
-            game.credits -= n
-            continue
-        from_ship = min(game.ship.cargo.get(key, 0), n)
-        if from_ship:
-            game.ship.cargo[key] = game.ship.cargo.get(key, 0) - from_ship
-            if game.ship.cargo[key] <= 0.0001:
-                game.ship.cargo.pop(key, None)
-        rest = n - from_ship
-        if rest > 0:
-            game.stores[key] = max(0.0, game.stores.get(key, 0) - rest)
 
 
 def begin(game, col, work_id: str) -> dict:
@@ -180,7 +160,7 @@ def begin(game, col, work_id: str) -> dict:
                    (False, "Not offered here."))
     if not ok:
         return {"ok": False, "why": why}
-    _spend(game, work.cost)
+    stores.spend(game, work.cost)
     col.job = work.id
     col.job_days = 0.0
     game.add_log(f"{col.name}: {work.name.lower()} begun.", "good")
