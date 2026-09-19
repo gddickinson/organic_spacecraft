@@ -18,6 +18,7 @@ scale a collision happens on, and a countermeasure mean something at all:
 from __future__ import annotations
 
 import dataclasses
+import pathlib
 
 from ..core.state import new_game
 from ..data import countermeasures as cm
@@ -25,6 +26,10 @@ from ..sim import collision
 from ..sim import detection
 from ..sim import freeflight as free_sim
 from .harness import Suite
+
+#: The repository root. Once written out as this machine's own path, which
+#: held on the machine and failed on the first CI runner (2026-09-19).
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 def _flight(seed="det"):
@@ -160,8 +165,8 @@ def run(suite: Suite) -> bool:
                 f"{ids!r}))")
         runs = {subprocess.run([sys.executable, "-c", code],
                                capture_output=True, text=True,
-                               cwd="/Users/george/claude_test/organic_spacecraft"
-                               ).stdout.strip() for _ in range(3)}
+                               cwd=str(ROOT)).stdout.strip()
+                for _ in range(3)}
         assert len(runs) == 1, f"three interpreters disagreed: {runs}"
         got = runs.pop()
         assert got and "," in got, got

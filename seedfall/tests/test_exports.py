@@ -85,6 +85,25 @@ def missing() -> list:
     return found
 
 
+#: Built, not written, or the check would find itself.
+HOMES = tuple(f"/{top}/" for top in ("Users", "home"))
+
+
+def machine_paths() -> list:
+    """String literals naming somebody's home directory. `test_detection`
+    ran its subprocess in "/Users/…/organic_spacecraft", which held for two
+    months on one machine and failed on the first CI runner."""
+    found = []
+    for path in sorted(ROOT.parent.rglob("*.py")):
+        if ".git" in path.parts or "site-packages" in path.parts:
+            continue
+        for node in ast.walk(ast.parse(path.read_text())):
+            if (isinstance(node, ast.Constant) and isinstance(node.value, str)
+                    and node.value.startswith(HOMES)):
+                found.append(f"{path.relative_to(ROOT.parent)}:{node.lineno}")
+    return found
+
+
 def run(suite: Suite) -> None:
     @suite.check("every module.name the tree reads is a name that module has")
     def _():
@@ -93,3 +112,9 @@ def run(suite: Suite) -> None:
         files = sum(1 for _ in ROOT.rglob("*.py"))
         assert files > 500, f"only {files} files scanned"
         return f"{files} files scanned, every module attribute read exists"
+
+    @suite.check("no source file names a machine's own home directory")
+    def _():
+        found = machine_paths()
+        assert not found, found[:6]
+        return "every path is derived, none written out"

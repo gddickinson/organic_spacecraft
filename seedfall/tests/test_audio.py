@@ -91,6 +91,23 @@ def read(path) -> tuple[int, list]:
     return rate, list(pcm)
 
 
+#: The synthesis budget, in units of `_reference()`: 2 s of CPU on the
+#: machine it was tuned on, where the reference loop takes about 0.05 s. A
+#: fixed "2 s" failed on CI's shared runners (3.35 s), which are slower at
+#: everything; this measures the synthesiser, not the hardware.
+SYNTH_REFERENCES = 40
+
+
+def _reference() -> float:
+    """CPU seconds for a fixed pure-Python loop, best of three."""
+    best = float("inf")
+    for _ in range(3):
+        start = time.process_time()
+        sum(i * i % 7 for i in range(1_000_000))
+        best = min(best, time.process_time() - start)
+    return best
+
+
 def _made():
     if not _MADE:
         folder = pathlib.Path(tempfile.mkdtemp(prefix="seedfall-sounds-"))
@@ -131,7 +148,7 @@ def run(suite: Suite) -> bool:
     """True: it ran. An optional suite returning nothing reads as skipped."""
     check = suite.check
 
-    @check("every cue synthesises to valid WAV, in under 2 s of CPU")
+    @check("every cue synthesises to valid WAV, within its CPU budget")
     def _():
         made = _made()
         files = made["files"]
@@ -164,8 +181,11 @@ def run(suite: Suite) -> bool:
             over = [_top_hz(layer) for layer in cue.layers
                     if _top_hz(layer) >= rate / 2]
             assert not over, f"{cue.id} asks for {over} Hz at {rate} Hz"
-        assert made["cpu"] < 2.0, (
-            f"first-run synthesis took {made['cpu']:.2f} s of CPU")
+        unit = _reference()
+        assert made["cpu"] < SYNTH_REFERENCES * unit, (
+            f"first-run synthesis took {made['cpu']:.2f} s of CPU, "
+            f"{made['cpu'] / unit:.0f} reference loops of "
+            f"{SYNTH_REFERENCES}")
         assert made["last"]["bytes"] < BUDGET, (
             f"the cache is {made['last']['bytes']:,} bytes")
         loops = sum(1 for c in CUES if c.loop)
