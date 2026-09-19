@@ -1,118 +1,112 @@
 # INTERFACE.md — GESTALT project navigation map
 
-The top-level map of this project. Read this before opening source files.
+The top-level map of this repository. Read it before opening source files.
+Every package has its own map, linked below.
 
 ## What this project is
 
-**GESTALT** is a conceptual design program for living, grown-from-a-seed
-spacecraft and habitats. The deliverables are thirteen self-contained, cross-linked
-HTML documents (published as web artifacts) plus a small Python viewer for
-reading them offline. Every quantitative claim in the documents is grounded in
-Python calculations and cited to real published sources.
+**GESTALT** is a conceptual design programme for living spacecraft and
+habitats grown from a seed. The main deliverable is **thirteen**
+self-contained, cross-linked HTML documents (published as claude.ai
+artifacts), readable offline through a small Python viewer.
 
-Alongside the documents the repository carries three working companions: Python
-simulations of the designs' major systems (`sim/`), exportable 3D models
-(`models3d/`), and **SEEDFALL** (`seedfall/`) — a playable PyQt6 space
-exploration, trading and combat RPG whose every system is drawn from these
-documents.
+The documents' load-bearing numbers are recomputed in Python and checked
+against the text: `calcs/` holds the calculations, and `python -m calcs
+--check` compares 291 tagged numbers. Every claim is cited to real published
+sources, with DOIs where one exists.
+
+Alongside the documents:
+- **`sim/`:** simulations of the main designs' systems, rendered as animated
+  GIFs.
+- **`models3d/`:** exportable 3D models of the designs.
+- **SEEDFALL (`seedfall/`):** a playable PyQt6 space exploration, trading and
+  combat RPG built on the documents. It is much the largest part of the
+  repository, with about 730 modules.
 
 ## Layout
 
 ```
 organic_spacecraft/
-├── INTERFACE.md          ← you are here (navigation map)
-├── README.md             ← how to run the viewer, what each doc is
-├── SESSION_LOG.md        ← running progress log
-├── deepen-roadmap.md     ← the design-loop state file + round-by-round history
-├── docs/                 ← the eleven published documents (HTML fragments)
-│   ├── gestalt.html            Design Dossier (starship)
-│   ├── gestalt-drawings.html   Starship architectural drawing set
-│   ├── gestalt-habitat.html    ARCA million-person habitat drawings
-│   ├── gestalt-lichen.html     LICHEN surface-dome settlement
-│   ├── gestalt-gravid.html     GRAVID nursery organism
-│   ├── gestalt-fleet.html      Fleet registry + readiness + governance
-│   ├── gestalt-classref.html   Fleet Class Reference (all 18 classes, detailed)
-│   ├── gestalt-compendium.html Engineering & Biology Compendium (deep reference)
-│   ├── gestalt-cells.html      Cell Atlas (all ~42 cell types, cytology reference)
-│   ├── gestalt-metabolism.html Metabolism (ingest/digest/metabolise/excrete + budget)
-│   ├── gestalt-nervous.html    Nervous System (sensing, computation, silicon interface, comms)
-│   ├── gestalt-earthprogram.html  Earth Program (ground R&D roadmap)
-│   └── gestalt-3d.html         Interactive 3D models (self-contained WebGL-free engine)
-├── assets/figures/       ← figures for the README, rendered from the docs' own SVGs
-│                            (see viewer note; each is extracted + var-resolved to PNG)
-├── assets/sim/           ← animated-GIF outputs of the design simulations
-├── assets/models3d/      ← exported 3D models (glb + obj + stl + preview) per design
-├── sim/                  ← Python simulations of the designs' major systems (see sim/INTERFACE.md)
-│   ├── params.py         canonical parameters per design (single source of truth)
-│   ├── systems.py        system dynamics (growth, life support, spin, thermal, gestation)
-│   ├── geometry.py       3D mesh / point generators
-│   ├── animate.py        builders: geometry + systems -> animated-GIF 3D scenes
-│   └── run.py            CLI entry point (`python -m sim.run`)
-├── models3d/             ← exportable 3D models (glTF/OBJ/STL) of the designs (see models3d/INTERFACE.md)
-│   ├── build.py          mesh builders per design (trimesh) -> coloured scene
-│   ├── render.py         static preview render
-│   └── run.py            CLI entry point (`python -m models3d.run`)
-├── seedfall/             ← SEEDFALL, the playable PyQt6 RPG (see seedfall/INTERFACE.md)
-│   ├── core/             seeded RNG, formatting, save codec, the Game + clock
-│   ├── data/             content tables: hulls, parts, tech tree, factions, lore
-│   ├── world/            sector, planet and market generation
-│   ├── sim/              game rules: ships, combat, colonies, research, the Bloom
-│   ├── ui/               PyQt6 views, one per screen, plus theme and widgets
-│   └── tests/            `python -m seedfall.tests`
-└── viewer/               ← zero-dependency local web viewer (stdlib only; /models 3D gallery)
-    ├── catalog.py        Document registry (source of truth)
-    ├── wrap.py           Fragment → standalone HTML + link rewriting
-    ├── index.py          Landing-page (index) HTML builder
-    └── app.py            HTTP server + CLI entry point
+├── INTERFACE.md          ← you are here
+├── README.md             how to run everything, and what each document is
+├── SESSION_LOG.md        the running log (recent); history in logs/
+├── pyproject.toml        packaging: `pip install -e ".[sim,models,dev]"`, pytest and ruff config
+├── .github/workflows/    CI: ruff, the doc/model checks, the fast suites; the full suite nightly
+├── docs/                 the thirteen documents (artifact fragments; see below)
+├── calcs/                the documents' numbers, computed and checked   (calcs/INTERFACE.md)
+├── sim/                  design simulations → animated GIFs              (sim/INTERFACE.md)
+├── models3d/             3D models → glb / obj / stl                     (models3d/INTERFACE.md)
+├── viewer/               zero-dependency local viewer for docs/ and the models
+├── seedfall/             the game                                        (seedfall/INTERFACE.md)
+├── assets/               figures (from the docs' SVGs), sim GIFs, model exports, game screenshots
+├── reviews/2026-09-17/   the whole-project review, the plan, ten innovation designs,
+│                         each work stream's merge notes (changes/), and STATUS.md
+└── logs/                 the session log archive (31 parts) and the finished design loop
 ```
 
 ## The documents (`docs/`)
 
-These files are **artifact fragments**, not complete HTML documents: they begin
-at `<style>` and contain only head-and-body content. When published as artifacts
-the host injects the `<!doctype html><head>…</head><body>` skeleton and a minimal
-CSS reset. The viewer re-creates that skeleton for offline reading (see
-`viewer/wrap.py`). Documents link to each other via
-`https://claude.ai/code/artifact/<id>` URLs; the viewer rewrites these to local
-`/d/<slug>` routes.
+These files are **artifact fragments**, not complete HTML documents: they
+begin at `<style>` and hold only head-and-body content. When they are
+published, the host adds the `<!doctype html><head>…</head><body>` skeleton
+and a minimal reset, and the viewer re-creates that skeleton offline.
 
-## The viewer (`viewer/`) — how the modules connect
+Documents link to each other through `https://claude.ai/code/artifact/<id>`
+URLs, which the viewer rewrites to local `/d/<slug>` routes. Every document
+carries the same 13-entry programme nav, in the catalogue's order.
 
-- **`catalog.py`** — the single source of truth. Defines the `Doc` dataclass and
-  the `DOCS` list (slug, filename, artifact id, title, kind, favicon, blurb).
-  Exposes `BY_SLUG`, `BY_ARTIFACT_ID`, and `artifact_id_to_slug()`. Everything
-  else imports from here; to add or rename a document, edit only this file.
-- **`wrap.py`** — `wrap(fragment, title, favicon, id_to_slug)` returns a complete
-  HTML document. `rewrite_links(fragment, id_to_slug)` swaps artifact URLs for
-  `/d/<slug>` routes (preserving `#anchors`). Holds the `SKELETON` template and
-  the `RESET` CSS that mirror the artifact host.
-- **`index.py`** — `render()` returns the themed landing page (a grid of document
-  cards) in the GESTALT dark-field visual identity, theme-aware (light/dark).
-- **`app.py`** — the entry point. `Handler` (a `BaseHTTPRequestHandler`) routes
-  `/` → `index.render()` and `/d/<slug>` → `load_document(slug)`. `load_document`
-  reads the fragment from `docs/` and wraps it. `check()` validates every
-  document loads. `main()` parses CLI args and runs a `ThreadingHTTPServer`.
+The fleet registry, dossier, drawings, habitat and compendium documents run
+to 600–1,300 lines each. They are single-file published artifacts and are the
+one deliberate exception to the 500-line rule.
 
-Data flow: `app.Handler` → `catalog` (which doc) → read `docs/<file>` →
-`wrap.wrap()` (skeleton + link rewrite) → HTTP response.
+## The viewer (`viewer/`)
 
-## Running
+Each module's job:
+- **`catalog.py`** is the single source of truth: `Doc` records (slug, file,
+  artifact id, title, kind, icon, blurb) in nav order. To add or rename a
+  document, edit only this file.
+- **`wrap.py`** turns a fragment into a standalone page and rewrites the
+  artifact links.
+- **`index.py`** is the landing page. **`models_page.py`** is the `/models`
+  gallery; it needs a network connection for model-viewer, while the model
+  files themselves are local.
+- **`links.py`** audits every document: the nav is in catalogue order, every
+  artifact id is known, and every `#anchor` exists.
+- **`app.py`** is the HTTP server and CLI. `--check` loads every document and
+  runs the link audit.
 
-```
-python3 viewer/app.py            # serve at http://127.0.0.1:8731
-python3 viewer/app.py --open     # and open a browser
-python3 viewer/app.py --check    # validate all docs load, then exit
-python3 viewer/app.py -p 9000    # choose a port
-```
-
-Routes: `/` index · `/d/<slug>` a document · `/models` the 3D gallery.
-
-The game is a separate desktop application, not part of the viewer:
+The data flows `app.Handler` → `catalog` → `docs/<file>` → `wrap.wrap()` →
+the response.
 
 ```
-python -m seedfall               # play SEEDFALL (needs PyQt6)
-python -m seedfall.tests         # its simulation + interface suites
+python3 viewer/app.py            # http://127.0.0.1:8731   (--open, -p PORT)
+python3 viewer/app.py --check    # every document loads, every link holds
+python -m calcs --check          # every tagged number matches its calculation
+python -m sim.run --check        # the simulations build; params match the docs
+python -m models3d.run --check   # the models build and validate
 ```
 
-No third-party dependencies; standard library only. All viewer modules are kept
-under 500 lines.
+The viewer is standard library only. `sim/` needs numpy, matplotlib and
+Pillow; `models3d/` needs trimesh. The game needs PyQt6. Each set is an extra
+in `pyproject.toml`.
+
+## SEEDFALL (`seedfall/`)
+
+The game is a separate desktop application, not part of the viewer. Start
+with [`seedfall/INTERFACE.md`](seedfall/INTERFACE.md), which covers the
+layers, the rules that bite, and a generated map for each package.
+
+```
+python -m seedfall                   # play
+python -m seedfall.tests -j 8        # every suite, about 3 minutes
+```
+
+## Standing rules for this repository
+
+- **Every source file is under 500 lines.** In the game, `tests/test_length`
+  enforces this with no debts left. The published HTML documents are the one
+  exception.
+- **Maps are kept honest.** Root and per-package `INTERFACE.md` files are
+  updated when structure changes. In the game they are generated
+  (`python -m seedfall.tests.maps --write`) and checked by the `maps` suite.
+- **`SESSION_LOG.md` is kept current.** Older entries go to `logs/`.

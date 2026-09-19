@@ -20,7 +20,7 @@ program to find out, cheaply and honestly, whether any of it can actually be bui
 
 - [The idea in one figure](#the-idea-in-one-figure)
 - [Program map](#program-map)
-- [The ten documents](#the-ten-documents)
+- [The thirteen documents](#the-thirteen-documents)
 - [The living starship](#the-living-starship) · [Worlds you live inside](#worlds-you-live-inside) · [The nursery](#the-nursery-that-grows-the-fleet)
 - [The fleet](#the-fleet) · [The science](#the-science) · [Building it on Earth](#building-it-on-earth) · [See them in 3D](#see-them-in-3d)
 - [By the numbers](#by-the-numbers)
@@ -84,8 +84,8 @@ set. **Open** goes to the live, interactive document; **Source** is the HTML in 
 
 | # | Document | What it is | Links |
 |--:|---|---|---|
-| 1 | **Design Dossier** | The living starship: anatomy, closed-loop metabolism, defenses, growth curve, bioengineering roadmap — 18 citations. | [Open](https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1) · [Source](docs/gestalt.html) |
-| 2 | **Starship Drawings** | Architectural drawing set of the 120 m grown vessel: elevation, sections A/B/C. | [Open](https://claude.ai/code/artifact/bd2c2c98-84cf-42c9-91ea-f0ec1c749fc5) · [Source](docs/gestalt-drawings.html) |
+| 1 | **Design Dossier** | The living starship: anatomy, closed-loop metabolism, defenses, growth curve, bioengineering roadmap — 19 citations. | [Open](https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1) · [Source](docs/gestalt.html) |
+| 2 | **Starship Drawings** | Architectural drawing set of the grown vessel (100 × 50 m body, ~120 m overall): elevation, sections A/B/C. | [Open](https://claude.ai/code/artifact/bd2c2c98-84cf-42c9-91ea-f0ec1c749fc5) · [Source](docs/gestalt-drawings.html) |
 | 3 | **Habitat · ARCA** | The million-person spin-gravity drum: sections, biomes, life-support budget. | [Open](https://claude.ai/code/artifact/9b90d7e5-2a71-426a-b2bf-d3a96b32a82e) · [Source](docs/gestalt-habitat.html) |
 | 4 | **LICHEN** | A settlement grown into Moon/Mars regolith: dome anatomy, perchlorate → O₂ chemistry. | [Open](https://claude.ai/code/artifact/94531439-d04d-480e-9d04-bad6fcdacd9a) · [Source](docs/gestalt-lichen.html) |
 | 5 | **GRAVID** | The nursery organism that gestates the fleet from seeds. | [Open](https://claude.ai/code/artifact/2433fa54-e582-4194-8245-d63acee8fb85) · [Source](docs/gestalt-gravid.html) |
@@ -117,7 +117,7 @@ not an exponential runaway:
 
 ![Growth curves — grown mass to 24 kt over five years, and the mining-limited deposition rate](assets/figures/dossier-growth-curve.png)
 
-*Left: cumulative grown mass reaching ~24,000 t over ~5 years (~13 t/day average). Right: deposition rate is held at a ~16 t/day mining ceiling — the unconstrained biological peak of ~440 t/day is off-chart and simply cannot be fed that fast.*
+*Left: cumulative grown mass reaching ~24,000 t over ~5 years (~13 t/day average). Right: deposition rate is held at a ~16 t/day mining ceiling — the unconstrained biological peak of ~440 t/day is off-chart and simply cannot be fed that fast. The five years assume the ship can power that growth; the rock alone can't (see Metabolism).*
 
 ---
 
@@ -144,7 +144,7 @@ vessel from a seed and releasing it from a de-spun dock.
 
 ![GRAVID nursery plan — cradles at all stages budding from a feedstock spine, a finished NAVIS hatching](assets/figures/gravid-nursery-plan.png)
 
-*GRAVID (GST·GRV·102): 12–24 cradles gestate in parallel at all stages along a ~1.2 km feedstock spine fed by mining tenders; a near-term cradle holds a nearly-complete hull, and a finished NAVIS hatches from the de-spun dock. Controlled feeding roughly halves wild gestation, to ~2–3 years per ship.*
+*GRAVID (GST·GRV·102): 12–24 cradles gestate in parallel at all stages along a ~1.2 km feedstock spine fed by mining tenders; a near-term cradle holds a nearly-complete hull, and a finished NAVIS hatches from the de-spun dock. Controlled feeding lifts the mining ceiling to ~26 t/day but cannot hurry the embryo's first, exponential year, so a NAVIS takes ~3.5 years in a cradle against ~5 in the wild.*
 
 ---
 
@@ -211,13 +211,16 @@ self-maintaining, cancer-proof body.
 
 The [Metabolism](docs/gestalt-metabolism.html) document follows nutrition and waste through four
 acts — **ingest, digest, metabolise, excrete** — and turns up the single most counter-intuitive
-fact about grown vessels. A NAVIS grows at ~13 t/day, but photosynthesis on its whole hull can only
-build ~0.45 t/day; matching growth with sunlight would need **29× the hull area**. So the ship does
-*not* photosynthesise its body:
+fact about grown vessels. A NAVIS grows at ~13 t/day, but photosynthesis on its whole lining can
+build only ~0.25 t/day; matching growth with sunlight would need **~33× the hull area**. So the ship
+does *not* photosynthesise its body. It eats the rock — but the rock is a fuel with almost no
+oxidiser: its ferric iron and the intima's spare O₂ unlock only ~0.2–0.5 MW of the ~1.7–5.4 MW that
+growth needs, so the five-year gestation rests on a named bet — an electro-organ that imports
+sunlight-derived energy at ~10% efficiency:
 
-![Energy and area budget — photosynthesis makes 0.45 t/day but growth needs 13; the growth energy comes from the feedstock's organics, not sunlight](assets/figures/metab-energy.png)
+![Energy and area budget — photosynthesis makes 0.25 t/day but growth needs 13; growth needs 1.7–5.4 MW and the rock's own oxidants unlock only 0.2–0.5](assets/figures/metab-energy.png)
 
-*The budget that forces the design. The intima's photosynthesis is a life-support organ that makes the crew's **air**; the **body** is grown by eating the rock — digesting a carbonaceous asteroid's reduced organic carbon (~1.4 MW of chemical energy) and oxidising its minerals. That is why growth is mining-limited, not light-limited.*
+*The budget that forces the design. The intima's photosynthesis is a life-support organ that makes the crew's **air**; the **body** is grown from the rock — and growth is set by mining *and* by an energy supply the rock alone cannot give.*
 
 The document works this through with diagrams of the two mouths (root and skin), the **mineral gut**
 (bioleaching → separation → refinery → organics → absorption), the two-sap bloodstream, and the four
@@ -274,19 +277,19 @@ hotspots** call out each feature.
 ## Simulations — the systems in motion
 
 A small Python package ([`sim/`](sim/)) models the **major systems** of each main design and
-renders them as animated 3D visualisations. Every number is grounded in the program's canonical
-parameters, so the curves match the documents. Run them with `python -m sim.run` (see
+renders them as animated 3D visualisations. Every number comes from `calcs/`, the same
+calculations the documents are checked against, so the curves match the documents. Run them with `python -m sim.run` (see
 [`sim/INTERFACE.md`](sim/INTERFACE.md)).
 
 | NAVIS — grows, mines & breathes | ARCA — spins up 1 g & holds its air |
 |---|---|
 | ![NAVIS simulation: the ship grows from a seed to ~24,000 t, mining root feeding it, intima glowing day/night](assets/sim/sim-navis.gif) | ![ARCA simulation: the drum spins to 1 g at the rim, crew on the inner surface, O2 reserve stable over 140 years](assets/sim/sim-arca.gif) |
-| *Grows from a seed to ~24,000 t on the mining-limited deposition curve; the intima glows through a day/night cycle; the body is mined, not photosynthesised.* | *Spins to 1 g at the 2.5 km rim (gravity fading to 0 at the axis), crew riding the inner surface, a Coriolis drop path, and the ~125-year O₂ reserve holding steady.* |
+| *Grows from a seed to ~24,000 t on the mining-limited deposition curve; the intima glows through a day/night cycle; the body is mined, not photosynthesised.* | *Spins to 1 g at the 2.5 km rim (gravity fading to 0 at the axis), crew riding the inner surface, a Coriolis drop path, and a ~142-year O₂ reserve that the crew's RQ of 0.92 slowly drains (~1.8 points a century) unless mined carbonate tops up the CO₂.* |
 
 | LICHEN — day/night on the surface | GRAVID — gestating the fleet |
 |---|---|
 | ![LICHEN simulation: a dome on Mars regolith, sun crossing the sky, surface temperature swinging while the interior stays at 293 K](assets/sim/sim-lichen.gif) | ![GRAVID simulation: cradles budding off a feedstock spine, embryos growing through their gestation cycles, one hatching](assets/sim/sim-gravid.gif) |
-| *The surface swings ~160–265 K through the Martian day while the buried interior stays a stable 293 K; the regolith over-blanket balances the 52 kPa inside.* | *Cradles bud off the feedstock spine and gestate vessels through staggered cycles (amber → green), releasing a finished ship when one reaches hatch.* |
+| *The surface swings ~160–265 K through the Martian day while the buried interior, a thermal RC circuit (τ ≈ 0.5 yr), settles near 280 K with its people's heat; the regolith over-blanket balances the 52 kPa inside.* | *Cradles bud off the feedstock spine and gestate vessels through staggered cycles (amber → green), releasing a finished ship when one reaches hatch.* |
 
 Each simulation is driven by a grounded model — the growth curve, a closed-loop O₂ buffer, the
 spin-gravity gradient, radiative day/night thermal balance — so the 3D motion and the gauges beside
@@ -318,26 +321,27 @@ and click **Working 3D Models** (route `/models`, built on `<model-viewer>`) —
 
 ## By the numbers
 
-Every figure below is grounded in a Python calculation and reconciled across documents to the
-Compendium's canonical-parameter table.
+Every figure below is recomputed by `calcs/` and checked against the documents
+(`python -m calcs --check`).
 
 | Quantity | Value | From |
 |---|---|---|
 | Seed → vessel mass ratio | **~48,000 : 1** | Compendium |
-| NAVIS starship | **120 m × 50 m · ~24,000 t · crew 50 · grown ~5 yr** | Dossier / Drawings |
+| NAVIS starship | **100 × 50 m body (~120 m overall) · ~24,000 t · crew 50 · grown ~5 yr** | Dossier / Drawings |
+| NAVIS wall | **5.5 m · ~215 g/cm² · ~13,400 m²** | Dossier |
 | Living hull wall | **6 grown layers · ~5.5 m total** | Dossier |
 | Habitat atmosphere | **52 kPa · 34% O₂** | Dossier / Habitat |
 | ARCA drum | **Ø5 km × 10 km · 0.6 rpm → 1.0 g · 1,000,000 people** | Habitat |
-| ARCA air / O₂ reserve | **~113 Mt air · ~140-year O₂ buffer** | Habitat |
+| ARCA air / O₂ reserve | **~113 Mt air · ~142-year O₂ buffer** | Habitat |
 | LICHEN dome | **~500 m span · ~150 m rise · 52 kPa** | LICHEN |
-| GRAVID nursery | **12–24 cradles · ~26 t/day each · ~2–3 yr per ship** | GRAVID |
+| GRAVID nursery | **12–24 cradles · ~26 t/day each · ~3.5 yr per ship** | GRAVID |
 | Fleet | **18 classes · 4 m SPORE → 40 km LEVIATHAN** | Fleet / Class Reference |
 | Cancer control | **7 layers · ~10¹³× tumour-lineage suppression** | Compendium |
 | Cells in one hull | **~10¹⁹ cells · ~42 cell types across 8 classes** | Cell Atlas |
-| Feeding | **mines ~100 t/day rock → 13 t/day tissue (~9:1); photosynthesis only breathes** | Metabolism |
+| Feeding | **mines ~240 t/day rock → 13 t/day tissue (~18:1, phosphorus-set); energy must be imported; photosynthesis only breathes** | Metabolism |
 | Mind | **two brains: a grown wet nervous system + a fabricated silicon core** | Nervous System |
 | Ground program | **5 phases · 6 work packages · ~40 yr · ~$30–40 B** | Earth Program |
-| This documentation | **13 documents · ~154 cited references** | — |
+| This documentation | **13 documents · 162 reference entries (~98 distinct works, 96 DOIs)** | — |
 
 ---
 
@@ -349,10 +353,12 @@ The program lives or dies on not fooling itself. Three conventions enforce that:
   science; cyan is engineered systems; amber is structure. An explicit **`gap:`** note names
   what is unproven (e.g. *stacking all seven cancer controls over a vessel's lifetime is
   unproven — the same reliability wall as biocontainment*).
-- **Python-grounded.** Numbers are recomputed, not asserted; a shared value that changes in
-  one document is propagated to every other. Past audits caught and fixed real errors (an
-  ARCA atmosphere off by ~7×, a pressure-wall unit slip, a mislabelled section cut).
-- **Cited.** ~108 references across the set tie the real science — Murray's law, the Krogh
+- **Checked, not asserted.** 291 numbers across 11 documents carry a `data-calc` tag, and
+  `python -m calcs --check` recomputes each from the physics and fails on any drift. The
+  2026-09 review caught a 50 m sphere standing in for the drawn 100 × 50 m hull, a
+  micrometeoroid flux 10⁴ too low, an unclosed energy budget and a spinning drum whose own
+  weight was missing from its hoop load.
+- **Cited.** ~98 cited works (162 reference entries, 96 with DOIs) across the set tie the real science — Murray's law, the Krogh
   diffusion limit, Peto's paradox, radiotrophic melanin, MELiSSA/BIOS-3 closure — to named
   published sources.
 
@@ -377,8 +383,8 @@ other two. The read panel is blunt — "Nothing bears. Your broadside mounts are
 **→ [The full game README, with screenshots of every major system](seedfall/README.md)**
 
 ```bash
-pip install PyQt6
-python3 -m seedfall               # title screen
+pip install -e .                  # or: pip install PyQt6
+python3 -m seedfall               # title screen: chronicles, slots, the Hall of Captains
 python3 -m seedfall --new         # straight into a new chronicle
 ```
 
@@ -404,32 +410,33 @@ take relics apart in a lab, buy somebody else's field notes, or seize them off a
 hull you destroy — and when you finally understand one, you can bolt it to the
 ship you already fly.
 
-**Five technologies, thirty-five hulls, nineteen stations.** Grow hulls from
-seeds; buy welded ones from the Concordat of Yards; graft the two together in a
-Freehold yard; fly crewless Dry Choir synthetics that think faster than their own
-guns can be aimed; or reactivate something nobody in the Verge designed. A grown
-hull refuses a fusion lance and a Yards hull refuses an intima, so the family you
-commit to shapes what you can fit. Combat is fought on a five-band
-range track, and killing is only one way to win it: TESTUDO doctrine carries a
-thousand grams per square centimetre of regrowing carapace and no weapons at
-all, and a hull that simply refuses to die will break the other side's will to
-keep paying for the ammunition. Five endings are open at once — **Containment**,
-**Exodus**, **Concord**, **Genesis** and **Dominion** — and none is locked behind
-another.
+**Five technologies, thirty-seven hulls, ten endings.** Grow hulls from seeds, buy welded
+ones from the Concordat of Yards, graft the two in a Freehold yard, fly crewless Dry Choir
+synthetics, or come to terms with the Kith. A grown hull refuses a fusion lance and a Yards
+hull refuses an intima, so the family you commit to shapes what you can fit — and a grown
+hull **remembers** what it goes through, growing adaptations of its own.
+
+**A larger universe (2026-09).** Three regions lie beyond the Verge behind relightable deep
+anchors — a nebula, a void with a dead culture's ruins, and a young cluster where the
+**Kith** live, met through a lexicon learned sign by sign and a gift economy with no posted
+prices. The sky moves: flares, comets, ion storms and one nova. Named **rivals** remember
+you and come back stronger; a **trading house** runs freight lines through the real
+markets; the four powers sit in an **Assembly** and vote on the rules; each officer carries
+a **story** of their own; and **renown** climbs ranks with real perks while the first
+officer's counsel says what to do next. It all sounds — every cue synthesised at first run.
 
 ```bash
-python3 -m seedfall.tests         # 55 suites, 458 checks
-python3 -m seedfall.tests.capture # re-render the README screenshots
+python3 -m seedfall.tests -j 8     # ~235 suites, ~1,750 checks, about 3 minutes
+python3 -m seedfall.tests --fast   # the cheap ones, as CI runs on every push
+python3 -m seedfall.tests.capture  # re-render the README screenshots
 ```
 
-The suite plays the game rather than inspecting it: it flies trading careers, works bodies
-to the bottom, fights engagements to a result, and clicks every control in the game on a
-fresh chronicle each time. The interface suite builds the real window on Qt's offscreen
-platform and paints every screen, so the rules and the GUI are both covered without a
-display. **239 modules, every one under 500 lines.**
-
-See [`seedfall/README.md`](seedfall/README.md) for the illustrated tour and
-[`seedfall/INTERFACE.md`](seedfall/INTERFACE.md) for the module map.
+The suite plays the game rather than inspecting it: it flies careers, fights engagements to
+a result, crosses a process boundary to resume saves, and paints every screen on Qt's
+offscreen platform. A careful scripted captain that follows the counsel reaches an ending in
+five years on seven seeds of ten. **About 730 modules, every one under 500 lines**, each
+listed in a generated map. See [`seedfall/README.md`](seedfall/README.md) for the tour and
+[`seedfall/INTERFACE.md`](seedfall/INTERFACE.md) for the map.
 
 ---
 
@@ -440,13 +447,13 @@ skeleton and rewriting cross-document links to local routes so navigation works 
 
 ```bash
 python3 viewer/app.py --open      # serve at http://127.0.0.1:8731/ and open a browser
-python3 viewer/app.py             # serve without opening a browser
-python3 viewer/app.py -p 9000     # choose a port
-python3 viewer/app.py --check     # validate every document loads, then exit
+python3 viewer/app.py --check     # every document loads, every nav/link/#anchor holds
+python -m calcs --check           # every tagged number matches its calculation
+python -m sim.run --check         # the simulations build; their params match the docs
 ```
 
-Requires only Python 3 (standard library). See [`INTERFACE.md`](INTERFACE.md) for the project
-map and how the viewer modules connect.
+The viewer needs only the standard library; `sim/` and `models3d/` need the `[sim]` and
+`[models]` extras (`pip install -e ".[sim,models]"`). See [`INTERFACE.md`](INTERFACE.md).
 
 ---
 
@@ -454,26 +461,16 @@ map and how the viewer modules connect.
 
 ```
 organic_spacecraft/
-├── README.md              ← you are here
-├── INTERFACE.md           ← navigation map (read before the source)
-├── SESSION_LOG.md         ← running progress log
-├── deepen-roadmap.md      ← the design-loop state + round-by-round history
-├── docs/                  ← the thirteen published documents (HTML fragments)
-├── assets/figures/        ← figures extracted from the documents (this README)
-├── sim/                   ← Python simulations of the designs' major systems
-├── models3d/              ← exportable 3D models (glTF / OBJ / STL)
-├── seedfall/              ← SEEDFALL, the playable RPG (see seedfall/INTERFACE.md)
-│   ├── core/              seeded RNG, formatting, save codec, the Game + clock
-│   ├── data/              hulls, parts, tech tree, factions, colonies, lore
-│   ├── world/             sector, planet and market generation
-│   ├── sim/               ships, combat, colonies, research, the Bloom
-│   ├── ui/                PyQt6 views, one per screen
-│   └── tests/             python -m seedfall.tests
-└── viewer/                ← zero-dependency local web viewer (stdlib only)
-    ├── catalog.py         document registry (source of truth)
-    ├── wrap.py            fragment → standalone HTML + link rewriting
-    ├── index.py           landing-page builder
-    └── app.py             HTTP server + CLI entry point (/, /d/<slug>, /models)
+├── README.md · INTERFACE.md · SESSION_LOG.md · pyproject.toml · .github/workflows/ci.yml
+├── docs/        the thirteen published documents (HTML fragments)
+├── calcs/       the documents' numbers, computed and checked (python -m calcs --check)
+├── assets/      figures from the documents' SVGs, sim GIFs, model exports, screenshots
+├── sim/         Python simulations of the designs' major systems
+├── models3d/    exportable 3D models (glTF / OBJ / STL)
+├── viewer/      zero-dependency local viewer (catalog, wrap, index, links, app)
+├── seedfall/    SEEDFALL, the playable RPG (core, data, world, sim, ui, bridge, tests)
+├── reviews/     the 2026-09 review, its plan, the ten innovation designs and STATUS.md
+└── logs/        the session-log archive and the finished design loop
 ```
 
 ### A note on the source files
