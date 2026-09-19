@@ -14,13 +14,16 @@
   @media (prefers-color-scheme: light){
     :root{
       --ground:#e9eee7;--ground-2:#e1e8df;--ground-3:#d8e1d5;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;
-      --line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;
+      --line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#166d36;--lumen:#0a6d67;--osteo:#895519;
       --chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);
       --sheet:#eef2ea;--sheet-line:rgba(30,70,52,.09);
     }
   }
-  :root[data-theme="dark"]{--ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;--line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);--chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;--chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);--sheet:#0b1714;--sheet-line:rgba(120,196,170,.10)}
-  :root[data-theme="light"]{--ground:#e9eee7;--ground-2:#e1e8df;--ground-3:#d8e1d5;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea;--sheet-line:rgba(30,70,52,.09)}
+  :root[data-theme="dark"]{--ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;--line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);--chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;--chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);--sheet:#0b1714;--sheet-line:rgba(120,196,170,.10);--ground-3:#12241f;}
+  :root[data-theme="light"]{--ground:#e9eee7;--ground-2:#e1e8df;--ground-3:#d8e1d5;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#166d36;--lumen:#0a6d67;--osteo:#895519;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea;--sheet-line:rgba(30,70,52,.09)}
+  body{background:var(--ground);color:var(--ink)}
+  caption{caption-side:top;text-align:left;font-family:var(--font-mono);font-size:.74rem;letter-spacing:.06em;color:var(--ink-3);padding:0 0 8px}
+
 
   *{box-sizing:border-box}body{margin:0}
   .page{background:radial-gradient(1100px 640px at 82% -6%,var(--chloro-soft),transparent 60%),radial-gradient(900px 520px at 6% 3%,var(--lumen-soft),transparent 55%),var(--ground);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.6;letter-spacing:.005em;overflow-x:hidden;min-height:100vh}
@@ -162,10 +165,10 @@
     </div>
     <p class="tag" style="margin-top:24px">The growth rates are grounded, not asserted — every class's pace is set by mining and deposition, and ultimately by its scarcest nutrient (the <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075">Compendium</a> works through the phosphorus bottleneck).</p>
     <div class="platform">
-      <div class="p"><div class="pk">NAVIS · deposition</div><div class="pv">~13 t/day average to grow a 24,000 t starship in ~5 yr; exponential while small, then capped by the mining/deposition rate so it plateaus rather than spiking (<a href="https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1">growth curve</a>).</div></div>
-      <div class="p"><div class="pk">GRAVID · throughput</div><div class="pv">each cradle's placenta pumps ~26 t/day of feedstock; ~5 finished ships a year across a dozen cradles.</div></div>
+      <div class="p"><div class="pk">NAVIS · deposition</div><div class="pv">~<span data-calc="growth.navis_avg">13</span> t/day average to grow a 24,000 t starship in ~<span data-calc="growth.navis_years">5</span> yr; exponential while small, then capped by the mining/deposition rate so it plateaus rather than spiking (<a href="https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1">growth curve</a>).</div></div>
+      <div class="p"><div class="pk">GRAVID · throughput</div><div class="pv">each cradle's placenta pumps ~26 t/day of feedstock, so a NAVIS takes ~<span data-calc="growth.gravid_years">3.5</span> yr in a cradle; ~<span data-calc="growth.gravid_ships_lo">3.5</span> finished ships a year across a dozen cradles, ~<span data-calc="growth.gravid_ships_hi">7</span> across two dozen.</div></div>
       <div class="p"><div class="pk">RADIX · biomining</div><div class="pv"><em>Acidithiobacillus</em> oxidises Fe/S to bioleach metals at tonnes/day — and spawns the seeds of every other class.</div></div>
-      <div class="p"><div class="pk">POMONA · yield</div><div class="pv">~18 km² of photosynthetic frond feeds ~100,000; just ~2.8 km² of algae covers their oxygen.</div></div>
+      <div class="p"><div class="pk">POMONA · yield</div><div class="pv">~18 km² of photosynthetic frond feeds ~100,000; just ~2.7 km² of algae covers their oxygen (at ~30 g O₂/m²·day).</div></div>
     </div>
   </section>
 
@@ -206,7 +209,7 @@
   <section class="section reveal">
     <p class="sec-eyebrow"><span class="num">◆</span> The leverage <span class="rule"></span></p>
     <h2>What you actually launch</h2>
-    <p class="tag">The program's whole thesis in one chart. For each class the small amber dot is the <strong>seed you launch</strong>; the green dot is what it <strong>grows into</strong> on arrival. The axis is logarithmic — every line spans four to nine orders of magnitude. One of each class: ~352 t of seeds becomes ~14.5 Gt of vessels.</p>
+    <p class="tag">The program's whole thesis in one chart. For each class the small amber dot is the <strong>seed you launch</strong>; the green dot is what it <strong>grows into</strong> on arrival. The axis is logarithmic — every line spans four to nine orders of magnitude. One of each class: ~352 t of seeds becomes ~44 Gt of vessels.</p>
     <div class="sheet">
       <svg viewBox="0 0 960 580" role="img" aria-label="Log-scale chart of launched seed mass versus grown mass for each fleet class">
         <!-- legend -->
@@ -230,7 +233,7 @@
           <g><text x="60" y="444" class="t-serif" font-size="12">LICHEN</text><text x="250" y="444" text-anchor="end" class="t-lab3 t-acc-c">3M×</text><line x1="398.5" y1="440" x2="697.4" y2="440" class="thin"/><circle cx="398.5" cy="440" r="3" style="fill:var(--osteo);stroke:var(--osteo)"/><circle cx="697.4" cy="440" r="5" style="fill:var(--chloro);fill-opacity:.5;stroke:var(--chloro)"/></g>
           <g><text x="60" y="472" class="t-serif" font-size="12">GRAVID</text><text x="250" y="472" text-anchor="end" class="t-lab3 t-acc-c">6M×</text><line x1="458.5" y1="468" x2="771.3" y2="468" class="thin"/><circle cx="458.5" cy="468" r="3" style="fill:var(--osteo);stroke:var(--osteo)"/><circle cx="771.3" cy="468" r="5" style="fill:var(--chloro);fill-opacity:.5;stroke:var(--chloro)"/></g>
           <g><text x="60" y="500" class="t-serif" font-size="12">ARCA</text><text x="250" y="500" text-anchor="end" class="t-lab3 t-acc-c">800M×</text><line x1="420.5" y1="496" x2="831.4" y2="496" class="thin"/><circle cx="420.5" cy="496" r="3" style="fill:var(--osteo);stroke:var(--osteo)"/><circle cx="831.4" cy="496" r="5" style="fill:var(--chloro);fill-opacity:.5;stroke:var(--chloro)"/></g>
-          <g><text x="60" y="528" class="t-serif" font-size="12">LEVIATHAN</text><text x="250" y="528" text-anchor="end" class="t-lab3 t-acc-c">40M×</text><line x1="512.8" y1="524" x2="863.7" y2="524" class="thin"/><circle cx="512.8" cy="524" r="3" style="fill:var(--osteo);stroke:var(--osteo)"/><circle cx="863.7" cy="524" r="5" style="fill:var(--chloro);fill-opacity:.5;stroke:var(--chloro)"/></g>
+          <g><text x="60" y="528" class="t-serif" font-size="12">LEVIATHAN</text><text x="250" y="528" text-anchor="end" class="t-lab3 t-acc-c">140M×</text><line x1="512.8" y1="524" x2="888.5" y2="524" class="thin"/><circle cx="512.8" cy="524" r="3" style="fill:var(--osteo);stroke:var(--osteo)"/><circle cx="888.5" cy="524" r="5" style="fill:var(--chloro);fill-opacity:.5;stroke:var(--chloro)"/></g>
         <text x="480" y="562" text-anchor="middle" class="t-lab3" font-size="11">ARCA: a 3-tonne seed becomes a 2.4-gigatonne world — a leverage of ~800,000,000 : 1. Rockets move the seed; the destination provides the rest.</text>
       </svg>
     </div>
@@ -390,7 +393,7 @@
       <!-- NAVIS -->
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><ellipse cx="29" cy="23" rx="24" ry="14" style="fill:var(--chloro);fill-opacity:.2;stroke:var(--chloro);stroke-width:1.5"/><circle cx="8" cy="23" r="4" style="fill:var(--lumen);fill-opacity:.4;stroke:var(--lumen)"/></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><ellipse cx="29" cy="23" rx="24" ry="14" style="fill:var(--chloro);fill-opacity:.2;stroke:var(--chloro);stroke-width:1.5"/><circle cx="8" cy="23" r="4" style="fill:var(--lumen);fill-opacity:.4;stroke:var(--lumen)"/></svg>
           <div class="v-title"><h3>NAVIS · GESTALT</h3><div class="v-bi">Navis viva</div></div>
           <span class="v-tier t-ship">Ship</span>
         </div>
@@ -414,7 +417,7 @@
       <!-- ARCA -->
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><rect x="8" y="14" width="42" height="18" rx="9" style="fill:var(--osteo);fill-opacity:.2;stroke:var(--osteo);stroke-width:1.5"/><line x1="8" y1="23" x2="50" y2="23" style="stroke:var(--lumen);stroke-width:1.5"/></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><rect x="8" y="14" width="42" height="18" rx="9" style="fill:var(--osteo);fill-opacity:.2;stroke:var(--osteo);stroke-width:1.5"/><line x1="8" y1="23" x2="50" y2="23" style="stroke:var(--lumen);stroke-width:1.5"/></svg>
           <div class="v-title"><h3>ARCA · GESTALT ARCA</h3><div class="v-bi">Arca viva</div></div>
           <span class="v-tier t-mega">Mega</span>
         </div>
@@ -430,7 +433,7 @@
           <div class="g-row"><span class="gk">SEED</span><span class="gv"><b>~few t</b> — biased toward tendon-cable and structural organs.</span></div>
           <div class="g-row"><span class="gk">FEEDSTOCK</span><span class="gv">Consumes a whole captured asteroid + ice over decades.</span></div>
           <div class="g-row"><span class="gk">GESTATION</span><span class="gv">Anchor → grow tendon cage + drum somites → sun-cord → seed the biomes → shield → occupy. Extends by adding somites.</span></div>
-          <div class="g-row"><span class="gk">CHALLENGE</span><span class="gv">Hoop load (230 MN/m) exceeds biology — needs engineered high-tensile cable.</span></div>
+          <div class="g-row"><span class="gk">CHALLENGE</span><span class="gv">Hoop load (~<span data-calc="habitat.n_total">430</span> MN/m, mostly the drum's own spinning weight) exceeds biology — needs engineered high-tensile cable.</span></div>
         </div>
         <div class="v-links"><a href="https://claude.ai/code/artifact/9b90d7e5-2a71-426a-b2bf-d3a96b32a82e">Drawing set ↗</a></div>
       </div>
@@ -438,7 +441,7 @@
       <!-- SPORE -->
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><ellipse cx="29" cy="23" rx="11" ry="15" style="fill:var(--lumen);fill-opacity:.25;stroke:var(--lumen);stroke-width:1.5"/><circle cx="29" cy="23" r="4" style="fill:var(--chloro);fill-opacity:.5;stroke:var(--chloro)"/></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><ellipse cx="29" cy="23" rx="11" ry="15" style="fill:var(--lumen);fill-opacity:.25;stroke:var(--lumen);stroke-width:1.5"/><circle cx="29" cy="23" r="4" style="fill:var(--chloro);fill-opacity:.5;stroke:var(--chloro)"/></svg>
           <div class="v-title"><h3>SPORE</h3><div class="v-bi">Semen vivum</div></div>
           <span class="v-tier t-pod">Pod</span>
         </div>
@@ -446,15 +449,15 @@
         <div class="spec">
           <div class="row"><span class="k">Crew</span><span class="val">1–2</span></div><div class="row"><span class="k">Size</span><span class="val">~4 m ovoid</span></div>
           <div class="row"><span class="k">Grown mass</span><span class="val">~60 t</span></div><div class="row"><span class="k">Seed</span><span class="val">~3 kg</span></div>
-          <div class="row"><span class="k">Site</span><span class="val">any ice / parent bay</span></div><div class="row"><span class="k">Gestation</span><span class="val">~3 weeks</span></div>
+          <div class="row"><span class="k">Site</span><span class="val">any ice / parent bay</span></div><div class="row"><span class="k">Gestation</span><span class="val">~<span data-calc="growth.spore_years">1.5</span> yr</span></div>
         </div>
-        <div class="v-anat">A functional cabin grown from the same seed the big ships start as — thin-walled, disposable, fast. Its trick is torpor: the occupant can drop into hibernation to stretch a few days of air into months.</div>
+        <div class="v-anat">A functional cabin grown from the same seed the big ships start as — small, disposable, and the quickest hull in the fleet to grow, though still not quick: a 3 kg seed doubling every ~38 days needs about a year and a half to reach 60 t, so parent ships grow lifeboats ahead and carry them. Its trick is torpor: the occupant can drop into hibernation to stretch a few days of air into months.</div>
         <div class="growth">
           <div class="gh">Growth protocol</div>
           <div class="g-row"><span class="gk">SEED</span><span class="gv"><b>3 kg</b>, palm-sized — or batch-grown in a parent ship's pod bay from spores.</span></div>
-          <div class="g-row"><span class="gk">FEEDSTOCK</span><span class="gv">A comet chip, cached water, or the parent's vascular feed — grams, not tonnes.</span></div>
-          <div class="g-row"><span class="gk">GESTATION</span><span class="gv">3 stages / ~3 wk: husk swells → cabin + seal close → thin intima + torpor gland mature.</span></div>
-          <div class="g-row"><span class="gk">CHALLENGE</span><span class="gv">Fast gestation with almost no feedstock; safe, reversible occupant torpor induction.</span></div>
+          <div class="g-row"><span class="gk">FEEDSTOCK</span><span class="gv">A comet chip, cached water, or the parent's vascular feed — about 60 t of it, tonnes rather than grams.</span></div>
+          <div class="g-row"><span class="gk">GESTATION</span><span class="gv">3 stages / ~1.5 yr, set by the seed's own ~38-day doubling: husk swells → cabin + seal close → thin intima + torpor gland mature.</span></div>
+          <div class="g-row"><span class="gk">CHALLENGE</span><span class="gv">Keeping a stock of ready lifeboats, since none can be grown in an emergency; safe, reversible occupant torpor induction.</span></div>
         </div>
         <div class="v-links"><span class="none">Round 1 · new</span></div>
       </div>
@@ -462,7 +465,7 @@
       <!-- RADIX -->
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><g style="fill:var(--osteo);fill-opacity:.2;stroke:var(--osteo);stroke-width:1.5"><circle cx="29" cy="23" r="10"/><line x1="29" y1="33" x2="29" y2="44"/><line x1="38" y1="29" x2="52" y2="38"/><line x1="20" y1="29" x2="6" y2="38"/><line x1="37" y1="16" x2="49" y2="6"/><line x1="21" y1="16" x2="9" y2="6"/></g></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><g style="fill:var(--osteo);fill-opacity:.2;stroke:var(--osteo);stroke-width:1.5"><circle cx="29" cy="23" r="10"/><line x1="29" y1="33" x2="29" y2="44"/><line x1="38" y1="29" x2="52" y2="38"/><line x1="20" y1="29" x2="6" y2="38"/><line x1="37" y1="16" x2="49" y2="6"/><line x1="21" y1="16" x2="9" y2="6"/></g></svg>
           <div class="v-title"><h3>RADIX</h3><div class="v-bi">Radix viva</div></div>
           <span class="v-tier t-ship">Uncrewed</span>
         </div>
@@ -486,7 +489,7 @@
       <!-- POMONA -->
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><g style="fill:var(--chloro);fill-opacity:.22;stroke:var(--chloro);stroke-width:1.3"><path d="M29 44 L29 10"/><path d="M29 20 C 12 16 8 4 20 2 C 28 4 30 14 29 20 Z"/><path d="M29 24 C 46 20 50 8 38 6 C 30 8 28 18 29 24 Z"/><path d="M29 32 C 14 30 12 20 22 18"/><path d="M29 36 C 44 34 46 24 36 22"/></g></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><g style="fill:var(--chloro);fill-opacity:.22;stroke:var(--chloro);stroke-width:1.3"><path d="M29 44 L29 10"/><path d="M29 20 C 12 16 8 4 20 2 C 28 4 30 14 29 20 Z"/><path d="M29 24 C 46 20 50 8 38 6 C 30 8 28 18 29 24 Z"/><path d="M29 32 C 14 30 12 20 22 18"/><path d="M29 36 C 44 34 46 24 36 22"/></g></svg>
           <div class="v-title"><h3>POMONA</h3><div class="v-bi">Hortus vivus</div></div>
           <span class="v-tier t-ship">Station</span>
         </div>
@@ -510,7 +513,7 @@
       <!-- GRAVID -->
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><g style="fill:var(--osteo);fill-opacity:.18;stroke:var(--osteo);stroke-width:1.4"><rect x="8" y="12" width="42" height="22" rx="4"/><ellipse cx="19" cy="23" rx="5" ry="8"/><ellipse cx="30" cy="23" rx="5" ry="8"/><ellipse cx="41" cy="23" rx="5" ry="8"/></g></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><g style="fill:var(--osteo);fill-opacity:.18;stroke:var(--osteo);stroke-width:1.4"><rect x="8" y="12" width="42" height="22" rx="4"/><ellipse cx="19" cy="23" rx="5" ry="8"/><ellipse cx="30" cy="23" rx="5" ry="8"/><ellipse cx="41" cy="23" rx="5" ry="8"/></g></svg>
           <div class="v-title"><h3>GRAVID</h3><div class="v-bi">Mater viva</div></div>
           <span class="v-tier t-mega">Nursery</span>
         </div>
@@ -520,7 +523,7 @@
           <div class="row"><span class="k">Cradles</span><span class="val">12–24</span></div><div class="row"><span class="k">Grown mass</span><span class="val">~120 Mt</span></div>
           <div class="row"><span class="k">Seed</span><span class="val">~20 t</span></div><div class="row"><span class="k">Gestation</span><span class="val">~12 yr</span></div>
         </div>
-        <div class="v-anat">The fleet's womb. A frame of gestation cradles — each a placental organ that feeds, lights and scaffolds a growing vessel — cutting a starship's wild 5-year gestation to two or three under controlled conditions.</div>
+        <div class="v-anat">The fleet's womb. A frame of gestation cradles — each a placental organ that feeds, lights and scaffolds a growing vessel — cutting a starship's wild 5-year gestation to ~<span data-calc="growth.gravid_years">3.5</span> under controlled conditions — about a third faster, because feeding lifts the mining ceiling but cannot hurry the embryo's own first year of exponential growth.</div>
         <div class="growth">
           <div class="gh">Growth protocol</div>
           <div class="g-row"><span class="gk">SEED</span><span class="gv"><b>~20 t</b>, cradle- and placenta-biased. The first unit is bootstrapped from a habitat-scale seed; later units are gestated inside an existing GRAVID.</span></div>
@@ -534,14 +537,14 @@
       <!-- LEVIATHAN -->
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><g style="fill:var(--osteo);fill-opacity:.2;stroke:var(--osteo);stroke-width:1.3"><line x1="29" y1="4" x2="29" y2="42" stroke-width="1.6"/><rect x="6" y="10" width="20" height="10" rx="5"/><rect x="32" y="18" width="20" height="10" rx="5"/><rect x="8" y="30" width="18" height="9" rx="4"/></g></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><g style="fill:var(--osteo);fill-opacity:.2;stroke:var(--osteo);stroke-width:1.3"><line x1="29" y1="4" x2="29" y2="42" stroke-width="1.6"/><rect x="6" y="10" width="20" height="10" rx="5"/><rect x="32" y="18" width="20" height="10" rx="5"/><rect x="8" y="30" width="18" height="9" rx="4"/></g></svg>
           <div class="v-title"><h3>LEVIATHAN</h3><div class="v-bi">Cetus vivus</div></div>
           <span class="v-tier t-mega">Ark</span>
         </div>
         <div class="v-role">Interstellar generation ark — a colony of worlds</div>
         <div class="spec">
           <div class="row"><span class="k">Population</span><span class="val">10,000,000</span></div><div class="row"><span class="k">Drums</span><span class="val">12 × 6×12 km</span></div>
-          <div class="row"><span class="k">Gravity</span><span class="val">0.91 g @ 0.52 rpm</span></div><div class="row"><span class="k">Grown mass</span><span class="val">~12 Gt</span></div>
+          <div class="row"><span class="k">Gravity</span><span class="val">0.91 g @ 0.52 rpm</span></div><div class="row"><span class="k">Grown mass</span><span class="val">~<span data-calc="habitat.lev_mass_gt">40</span> Gt</span></div>
           <div class="row"><span class="k">Seed</span><span class="val">GRAVID-grown</span></div><div class="row"><span class="k">Gestation</span><span class="val">~80 yr</span></div>
         </div>
         <div class="v-anat">A colonial super-organism after the siphonophore: twelve grown drums budded from one trunk, each a spinning ~0.9 g world, sharing a spine, a shield and a slow interstellar course. ~1,740 km² of land (~174 m²/person) carries ten million across centuries between stars.</div>
@@ -558,7 +561,7 @@
       <!-- LICHEN -->
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><g style="fill:var(--chloro);fill-opacity:.18;stroke:var(--chloro);stroke-width:1.4"><path d="M12 32 A 17 14 0 0 1 46 32 Z"/><line x1="8" y1="32" x2="50" y2="32"/></g><g fill="var(--l-regolith)" fill-opacity=".5"><circle cx="20" cy="24" r="1.4"/><circle cx="29" cy="20" r="1.4"/><circle cx="38" cy="24" r="1.4"/></g></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><g style="fill:var(--chloro);fill-opacity:.18;stroke:var(--chloro);stroke-width:1.4"><path d="M12 32 A 17 14 0 0 1 46 32 Z"/><line x1="8" y1="32" x2="50" y2="32"/></g><g fill="var(--l-regolith)" fill-opacity=".5"><circle cx="20" cy="24" r="1.4"/><circle cx="29" cy="20" r="1.4"/><circle cx="38" cy="24" r="1.4"/></g></svg>
           <div class="v-title"><h3>LICHEN</h3><div class="v-bi">Lichen vivum</div></div>
           <span class="v-tier t-ship">Surface</span>
         </div>
@@ -582,7 +585,7 @@
       <!-- TARDIGRADE -->
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><g style="stroke:var(--lumen);fill:none"><circle cx="29" cy="23" r="20" style="fill:var(--lumen);fill-opacity:.08"/><circle cx="29" cy="23" r="14" stroke-opacity=".6"/><circle cx="29" cy="23" r="8" stroke-opacity=".5"/></g><rect x="25" y="19" width="8" height="8" rx="1" style="fill:var(--lumen);fill-opacity:.5;stroke:var(--lumen)"/></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><g style="stroke:var(--lumen);fill:none"><circle cx="29" cy="23" r="20" style="fill:var(--lumen);fill-opacity:.08"/><circle cx="29" cy="23" r="14" stroke-opacity=".6"/><circle cx="29" cy="23" r="8" stroke-opacity=".5"/></g><rect x="25" y="19" width="8" height="8" rx="1" style="fill:var(--lumen);fill-opacity:.5;stroke:var(--lumen)"/></svg>
           <div class="v-title"><h3>TARDIGRADE</h3><div class="v-bi">Ursus vivus</div></div>
           <span class="v-tier t-pod">Vault</span>
         </div>
@@ -606,7 +609,7 @@
       <!-- CORAL -->
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><g style="stroke:var(--osteo);fill:none;stroke-width:1.4"><ellipse cx="29" cy="23" rx="22" ry="13"/><ellipse cx="29" cy="23" rx="11" ry="6.5"/></g><circle cx="29" cy="23" r="3" style="fill:var(--osteo);fill-opacity:.5;stroke:var(--osteo)"/><circle cx="7" cy="23" r="3.5" style="fill:var(--osteo);fill-opacity:.2;stroke:var(--osteo);stroke-width:1"/><circle cx="51" cy="23" r="3.5" style="fill:var(--osteo);fill-opacity:.2;stroke:var(--osteo);stroke-width:1"/></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><g style="stroke:var(--osteo);fill:none;stroke-width:1.4"><ellipse cx="29" cy="23" rx="22" ry="13"/><ellipse cx="29" cy="23" rx="11" ry="6.5"/></g><circle cx="29" cy="23" r="3" style="fill:var(--osteo);fill-opacity:.5;stroke:var(--osteo)"/><circle cx="7" cy="23" r="3.5" style="fill:var(--osteo);fill-opacity:.2;stroke:var(--osteo);stroke-width:1"/><circle cx="51" cy="23" r="3.5" style="fill:var(--osteo);fill-opacity:.2;stroke:var(--osteo);stroke-width:1"/></svg>
           <div class="v-title"><h3>CORAL</h3><div class="v-bi">Recif vivum</div></div>
           <span class="v-tier">Research</span>
         </div>
@@ -630,7 +633,7 @@
       <!-- MEDUSA -->
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><path d="M8 20 A 21 16 0 0 1 50 20 Z" style="fill:var(--lumen);fill-opacity:.16;stroke:var(--lumen);stroke-width:1.4"/><g style="stroke:var(--lumen);fill:none;stroke-width:1" opacity=".7"><path d="M14 20 C 12 30 16 36 13 44"/><path d="M23 21 C 22 32 24 38 22 45"/><path d="M32 21 C 33 32 31 38 33 45"/><path d="M41 20 C 44 30 40 36 43 44"/></g></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><path d="M8 20 A 21 16 0 0 1 50 20 Z" style="fill:var(--lumen);fill-opacity:.16;stroke:var(--lumen);stroke-width:1.4"/><g style="stroke:var(--lumen);fill:none;stroke-width:1" opacity=".7"><path d="M14 20 C 12 30 16 36 13 44"/><path d="M23 21 C 22 32 24 38 22 45"/><path d="M32 21 C 33 32 31 38 33 45"/><path d="M41 20 C 44 30 40 36 43 44"/></g></svg>
           <div class="v-title"><h3>MEDUSA</h3><div class="v-bi">Aequorea viva</div></div>
           <span class="v-tier t-pod">Harvester</span>
         </div>
@@ -654,7 +657,7 @@
       <!-- ATLAS -->
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><line x1="6" y1="23" x2="52" y2="23" style="stroke:var(--chloro);stroke-width:1.6"/><g style="fill:var(--chloro);fill-opacity:.16;stroke:var(--chloro);stroke-width:1.2"><circle cx="15" cy="23" r="7"/><circle cx="29" cy="23" r="8"/><circle cx="43" cy="23" r="7"/></g></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><line x1="6" y1="23" x2="52" y2="23" style="stroke:var(--chloro);stroke-width:1.6"/><g style="fill:var(--chloro);fill-opacity:.16;stroke:var(--chloro);stroke-width:1.2"><circle cx="15" cy="23" r="7"/><circle cx="29" cy="23" r="8"/><circle cx="43" cy="23" r="7"/></g></svg>
           <div class="v-title"><h3>ATLAS</h3><div class="v-bi">Onus vivum</div></div>
           <span class="v-tier t-ship">Freighter</span>
         </div>
@@ -678,7 +681,7 @@
       <!-- VESPER -->
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><path d="M14 34 A 20 20 0 0 1 44 34" style="fill:var(--lumen);fill-opacity:.12;stroke:var(--lumen);stroke-width:1.4"/><line x1="29" y1="34" x2="29" y2="14" style="stroke:var(--lumen);stroke-width:1.2"/><circle cx="29" cy="11" r="3.5" style="fill:var(--lumen);fill-opacity:.5;stroke:var(--lumen)"/><circle cx="22" cy="30" r="2.5" style="fill:none;stroke:var(--lumen);stroke-width:1"/><circle cx="36" cy="30" r="2.5" style="fill:none;stroke:var(--lumen);stroke-width:1"/></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><path d="M14 34 A 20 20 0 0 1 44 34" style="fill:var(--lumen);fill-opacity:.12;stroke:var(--lumen);stroke-width:1.4"/><line x1="29" y1="34" x2="29" y2="14" style="stroke:var(--lumen);stroke-width:1.2"/><circle cx="29" cy="11" r="3.5" style="fill:var(--lumen);fill-opacity:.5;stroke:var(--lumen)"/><circle cx="22" cy="30" r="2.5" style="fill:none;stroke:var(--lumen);stroke-width:1"/><circle cx="36" cy="30" r="2.5" style="fill:none;stroke:var(--lumen);stroke-width:1"/></svg>
           <div class="v-title"><h3>VESPER</h3><div class="v-bi">Vigil viva</div></div>
           <span class="v-tier t-pod">Sentinel</span>
         </div>
@@ -702,7 +705,7 @@
       <!-- AMBER -->
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><rect x="10" y="8" width="38" height="30" rx="6" style="fill:var(--osteo);fill-opacity:.2;stroke:var(--osteo);stroke-width:1.3"/><g style="fill:var(--osteo);fill-opacity:.5"><circle cx="20" cy="18" r="2.4"/><circle cx="30" cy="24" r="2.4"/><circle cx="40" cy="17" r="2.4"/><circle cx="24" cy="30" r="2.4"/><circle cx="38" cy="30" r="2.4"/></g></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><rect x="10" y="8" width="38" height="30" rx="6" style="fill:var(--osteo);fill-opacity:.2;stroke:var(--osteo);stroke-width:1.3"/><g style="fill:var(--osteo);fill-opacity:.5"><circle cx="20" cy="18" r="2.4"/><circle cx="30" cy="24" r="2.4"/><circle cx="40" cy="17" r="2.4"/><circle cx="24" cy="30" r="2.4"/><circle cx="38" cy="30" r="2.4"/></g></svg>
           <div class="v-title"><h3>AMBER</h3><div class="v-bi">Sucinum vivum</div></div>
           <span class="v-tier">Liner</span>
         </div>
@@ -710,12 +713,12 @@
         <div class="spec">
           <div class="row"><span class="k">Awake crew</span><span class="val">~20</span></div><div class="row"><span class="k">Berths</span><span class="val">~50,000</span></div>
           <div class="row"><span class="k">Size</span><span class="val">~150 m</span></div><div class="row"><span class="k">Grown mass</span><span class="val">~0.13 Mt</span></div>
-          <div class="row"><span class="k">Per passenger</span><span class="val">~3 t</span></div><div class="row"><span class="k">Gestation</span><span class="val">~3 yr</span></div>
+          <div class="row"><span class="k">Per passenger</span><span class="val">~3 t</span></div><div class="row"><span class="k">Gestation</span><span class="val">~<span data-calc="growth.amber_years">14</span> yr</span></div>
         </div>
         <div class="v-anat">The opposite bet from a habitat: instead of keeping people alive and awake behind gigatonnes of world, AMBER puts fifty thousand of them to sleep. Each rests in an amber-like resin in cryptobiosis — trehalose glass, tardigrade Dsup shielding their DNA, antifreeze in their cells — so the ship needs no biosphere, only a small crew and a revival organ. It moves a person for ~3 t instead of ARCA's ~2,400 — roughly <strong>900× less</strong>.</div>
         <div class="growth">
           <div class="gh">Growth protocol</div>
-          <div class="g-row"><span class="gk">SEED</span><span class="gv"><b>~5 t</b>, berth- and resin-biased; GRAVID-grown.</span></div>
+          <div class="g-row"><span class="gk">SEED</span><span class="gv"><b>~5 t</b>, berth- and resin-biased; GRAVID-grown. At one cradle's ~26 t/day, 0.13 Mt takes ~14 years; only a proportionally bigger placenta would shorten it.</span></div>
           <div class="g-row"><span class="gk">FEEDSTOCK</span><span class="gv">Metals + ice; grows the berth honeycomb, resin glands, a small life-support core and shield.</span></div>
           <div class="g-row"><span class="gk">GESTATION</span><span class="gv">Grow hull + shield → grow the honeycomb of stasis berths + resin glands → grow the awake-crew module + revival organs → commission.</span></div>
           <div class="g-row"><span class="gk">CHALLENGE</span><span class="gv">The fleet's deepest reach — mammals don't do anhydrobiosis; reversible human stasis and safe mass revival are far beyond today's science.</span></div>
@@ -726,7 +729,7 @@
       <!-- CHORUS -->
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><g style="stroke:var(--chloro);stroke-width:1" opacity=".6"><line x1="14" y1="14" x2="30" y2="10"/><line x1="30" y1="10" x2="46" y2="16"/><line x1="14" y1="14" x2="22" y2="30"/><line x1="46" y1="16" x2="40" y2="32"/><line x1="22" y1="30" x2="40" y2="32"/><line x1="30" y1="10" x2="22" y2="30"/></g><g style="fill:var(--chloro);fill-opacity:.5;stroke:var(--chloro)"><circle cx="14" cy="14" r="3"/><circle cx="30" cy="10" r="3.5"/><circle cx="46" cy="16" r="3"/><circle cx="22" cy="30" r="3"/><circle cx="40" cy="32" r="3"/></g></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><g style="stroke:var(--chloro);stroke-width:1" opacity=".6"><line x1="14" y1="14" x2="30" y2="10"/><line x1="30" y1="10" x2="46" y2="16"/><line x1="14" y1="14" x2="22" y2="30"/><line x1="46" y1="16" x2="40" y2="32"/><line x1="22" y1="30" x2="40" y2="32"/><line x1="30" y1="10" x2="22" y2="30"/></g><g style="fill:var(--chloro);fill-opacity:.5;stroke:var(--chloro)"><circle cx="14" cy="14" r="3"/><circle cx="30" cy="10" r="3.5"/><circle cx="46" cy="16" r="3"/><circle cx="22" cy="30" r="3"/><circle cx="40" cy="32" r="3"/></g></svg>
           <div class="v-title"><h3>CHORUS</h3><div class="v-bi">Memoria viva</div></div>
           <span class="v-tier t-ship">Archive</span>
         </div>
@@ -750,7 +753,7 @@
       <!-- TESTUDO -->
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><path d="M12 34 A 21 18 0 0 1 46 34 Z" style="fill:var(--osteo);fill-opacity:.2;stroke:var(--osteo);stroke-width:1.5"/><path d="M17 34 A 15 13 0 0 1 41 34" fill="none" class="thin2"/><path d="M22 34 A 9 8 0 0 1 36 34" fill="none" class="thin2"/><line x1="8" y1="34" x2="50" y2="34" style="stroke:var(--osteo);stroke-width:1.5"/></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><path d="M12 34 A 21 18 0 0 1 46 34 Z" style="fill:var(--osteo);fill-opacity:.2;stroke:var(--osteo);stroke-width:1.5"/><path d="M17 34 A 15 13 0 0 1 41 34" fill="none" class="thin2"/><path d="M22 34 A 9 8 0 0 1 36 34" fill="none" class="thin2"/><line x1="8" y1="34" x2="50" y2="34" style="stroke:var(--osteo);stroke-width:1.5"/></svg>
           <div class="v-title"><h3>TESTUDO</h3><div class="v-bi">Testudo viva</div></div>
           <span class="v-tier">Guardian</span>
         </div>
@@ -758,12 +761,12 @@
         <div class="spec">
           <div class="row"><span class="k">Crew</span><span class="val">~10 (or 0)</span></div><div class="row"><span class="k">Size</span><span class="val">~100 m</span></div>
           <div class="row"><span class="k">Armour</span><span class="val">~1,000 g/cm²</span></div><div class="row"><span class="k">Grown mass</span><span class="val">~150,000 t</span></div>
-          <div class="row"><span class="k">Seed</span><span class="val">~5 t</span></div><div class="row"><span class="k">Gestation</span><span class="val">~2–3 yr</span></div>
+          <div class="row"><span class="k">Seed</span><span class="val">~5 t</span></div><div class="row"><span class="k">Gestation</span><span class="val">~<span data-calc="growth.testudo_years">16</span> yr</span></div>
         </div>
-        <div class="v-anat">Strictly a shield — it survives hits and dodges, it does not shoot. The fleet's tortoise: a compact, extraordinarily armoured escort that interposes its regrowing carapace between a hazard and something vulnerable — a farm, a liner full of sleepers, a young thin-shelled habitat — or opens a shelter cavity for a crew to ride out a solar storm. Whipple layers and a deep water jacket give it ~1,000 g/cm² — about 50× what a solar storm requires, ~3× a normal hull — and VESPER-derived senses let it spot debris coming and nudge the fleet clear.</div>
+        <div class="v-anat">Strictly a shield — it survives hits and dodges, it does not shoot. The fleet's tortoise: a compact, extraordinarily armoured escort that interposes its regrowing carapace between a hazard and something vulnerable — a farm, a liner full of sleepers, a young thin-shelled habitat — or opens a shelter cavity for a crew to ride out a solar storm. Whipple layers and a deep water jacket give it ~1,000 g/cm² — about 50× what a solar storm requires, ~5× a NAVIS wall (<span data-calc="navis.column">215</span> g/cm²) — and VESPER-derived senses let it spot debris coming and nudge the fleet clear.</div>
         <div class="growth">
           <div class="gh">Growth protocol</div>
-          <div class="g-row"><span class="gk">SEED</span><span class="gv"><b>~5 t</b>, carapace- and shield-biased; GRAVID-grown.</span></div>
+          <div class="g-row"><span class="gk">SEED</span><span class="gv"><b>~5 t</b>, carapace- and shield-biased; GRAVID-grown. At one cradle's ~26 t/day, 150,000 t takes ~16 years (2–3 years would need ~160 t/day).</span></div>
           <div class="g-row"><span class="gk">FEEDSTOCK</span><span class="gv">Dense metal/rock for armour + ice for a deep water jacket.</span></div>
           <div class="g-row"><span class="gk">GESTATION</span><span class="gv">Grow the domed carapace (Whipple layers + ablative + water jacket) → grow a shelter cavity + hazard-sensing organs → grow positioning muscles → commission.</span></div>
           <div class="g-row"><span class="gk">CHALLENGE</span><span class="gv">Mass vs mobility (heavy armour is slow to interpose); keeping regrowth ahead of ablation; timing interposition from hazard prediction — all avoidance, never interception.</span></div>
@@ -774,7 +777,7 @@
       <!-- NEREUS -->
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><path d="M10 23 C 10 12 34 10 44 20 C 48 24 48 22 44 26 C 34 36 10 34 10 23 Z" style="fill:var(--lumen);fill-opacity:.16;stroke:var(--lumen);stroke-width:1.3"/><path d="M44 20 l8 -5 l-2 8 l2 5 z" style="fill:var(--lumen);fill-opacity:.2;stroke:var(--lumen)"/><circle cx="16" cy="20" r="2" style="fill:var(--lumen)"/><path d="M12 14 C 6 8 6 8 8 6" fill="none" class="stroke-l" stroke-width="1"/><circle cx="8" cy="6" r="2" style="fill:var(--lumen);fill-opacity:.6;stroke:var(--lumen)"/></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><path d="M10 23 C 10 12 34 10 44 20 C 48 24 48 22 44 26 C 34 36 10 34 10 23 Z" style="fill:var(--lumen);fill-opacity:.16;stroke:var(--lumen);stroke-width:1.3"/><path d="M44 20 l8 -5 l-2 8 l2 5 z" style="fill:var(--lumen);fill-opacity:.2;stroke:var(--lumen)"/><circle cx="16" cy="20" r="2" style="fill:var(--lumen)"/><path d="M12 14 C 6 8 6 8 8 6" fill="none" class="stroke-l" stroke-width="1"/><circle cx="8" cy="6" r="2" style="fill:var(--lumen);fill-opacity:.6;stroke:var(--lumen)"/></svg>
           <div class="v-title"><h3>NEREUS</h3><div class="v-bi">Abyssus viva</div></div>
           <span class="v-tier t-pod">Diver</span>
         </div>
@@ -798,7 +801,7 @@
       <!-- SOL-FORGE -->
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><path d="M6 8 A 26 26 0 0 1 6 38" fill="none" style="stroke:var(--osteo);stroke-width:1.6"/><g class="stroke-o" opacity=".5"><line x1="2" y1="14" x2="14" y2="20"/><line x1="2" y1="23" x2="16" y2="23"/><line x1="2" y1="32" x2="14" y2="26"/></g><circle cx="34" cy="23" r="5" style="fill:var(--osteo);fill-opacity:.3;stroke:var(--osteo)"/><g style="stroke:var(--ink-3);stroke-width:1" opacity=".7"><line x1="42" y1="16" x2="52" y2="14"/><line x1="42" y1="23" x2="52" y2="23"/><line x1="42" y1="30" x2="52" y2="32"/></g></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><path d="M6 8 A 26 26 0 0 1 6 38" fill="none" style="stroke:var(--osteo);stroke-width:1.6"/><g class="stroke-o" opacity=".5"><line x1="2" y1="14" x2="14" y2="20"/><line x1="2" y1="23" x2="16" y2="23"/><line x1="2" y1="32" x2="14" y2="26"/></g><circle cx="34" cy="23" r="5" style="fill:var(--osteo);fill-opacity:.3;stroke:var(--osteo)"/><g style="stroke:var(--ink-3);stroke-width:1" opacity=".7"><line x1="42" y1="16" x2="52" y2="14"/><line x1="42" y1="23" x2="52" y2="23"/><line x1="42" y1="30" x2="52" y2="32"/></g></svg>
           <div class="v-title"><h3>SOL-FORGE</h3><div class="v-bi">Fornax viva</div></div>
           <span class="v-tier">Foundry</span>
         </div>
@@ -831,20 +834,20 @@
 
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><g style="stroke:var(--osteo);fill:none;stroke-width:2" stroke-linecap="round"><path d="M6 10 C 24 20 34 20 52 10"/><path d="M6 36 C 24 26 34 26 52 36"/><path d="M10 8 C 20 23 20 23 12 40"/><path d="M48 8 C 38 23 38 23 46 40"/></g><ellipse cx="29" cy="23" rx="9" ry="7" style="fill:var(--osteo);fill-opacity:.2;stroke:var(--osteo)"/></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><g style="stroke:var(--osteo);fill:none;stroke-width:2" stroke-linecap="round"><path d="M6 10 C 24 20 34 20 52 10"/><path d="M6 36 C 24 26 34 26 52 36"/><path d="M10 8 C 20 23 20 23 12 40"/><path d="M48 8 C 38 23 38 23 46 40"/></g><ellipse cx="29" cy="23" rx="9" ry="7" style="fill:var(--osteo);fill-opacity:.2;stroke:var(--osteo)"/></svg>
           <div class="v-title"><h3>Tendon-cage Mk II</h3><div class="v-bi">structural upgrade</div></div>
           <span class="v-tier t-mega">Mk II</span>
         </div>
         <div class="v-role">Roughly doubles usable fibre stress</div>
         <div class="spec">
-          <div class="row"><span class="k">Usable stress</span><span class="val">100 → 200 MPa</span></div><div class="row"><span class="k">Tendon depth</span><span class="val">2.3 → 1.15 m</span></div>
-          <div class="row"><span class="k">ARCA mass</span><span class="val">−~290 Mt</span></div><div class="row"><span class="k">Hull-mass cut</span><span class="val">~12%</span></div>
+          <div class="row"><span class="k">Usable stress</span><span class="val">100 → 200 MPa</span></div><div class="row"><span class="k">Tendon depth</span><span class="val"><span data-calc="habitat.tendon_mk1">4.3</span> → <span data-calc="habitat.tendon_mk2">2.2</span> m</span></div>
+          <div class="row"><span class="k">ARCA mass</span><span class="val">−~<span data-calc="habitat.mk2_saving_gt">0.44</span> Gt</span></div><div class="row"><span class="k">Hull-mass cut</span><span class="val">~<span data-calc="habitat.mk2_saving_pct">18</span>%</span></div>
           <div class="row"><span class="k">Or bank as</span><span class="val">2× hoop margin</span></div><div class="row"><span class="k">Applies to</span><span class="val">all spin hulls</span></div>
         </div>
         <div class="v-anat">Mk I was engineered spider-silk over bone anchors. Mk II copies tendon's own trick — a crimped, hierarchical fibril bundle inside a mineral-reinforced sheath — so the cable shares load evenly and carries about twice the stress before yielding. Half the structure for the same strength.</div>
         <div class="growth">
           <div class="gh">Rollout</div>
-          <div class="g-row"><span class="gk">GAIN</span><span class="gv">Halves the load-bearing cross-section; ~12% off spin-habitat mass (≈290 Mt on ARCA, multi-gigatonne on LEVIATHAN), or banked as hoop margin.</span></div>
+          <div class="g-row"><span class="gk">GAIN</span><span class="gv">Halves the load-bearing cross-section; ~18% off spin-habitat mass (≈0.44 Gt of fibre on ARCA — 2.2 m × 1.3 t/m³ over 157 km² of rim — and several gigatonnes on LEVIATHAN), a little more once the lighter drum's smaller spin load is fed back; or banked as hoop margin.</span></div>
           <div class="g-row"><span class="gk">RETROFIT</span><span class="gv">New hulls grow it directly; existing hulls swap Mk I for Mk II gradually through bone-like resorption/deposition over years.</span></div>
           <div class="g-row"><span class="gk">CHALLENGE</span><span class="gv">Growing a defect-free hierarchical weave at kilometre scale; proving the stress before trusting the thinner cage.</span></div>
         </div>
@@ -853,7 +856,7 @@
 
       <div class="vessel">
         <div class="v-head">
-          <svg class="v-glyph" viewBox="0 0 58 46"><rect x="10" y="10" width="38" height="26" rx="3" style="fill:var(--chloro);fill-opacity:.08;stroke:var(--chloro);stroke-width:1.3"/><circle cx="29" cy="23" r="9" style="fill:none;stroke:var(--chloro);stroke-width:1.4" stroke-dasharray="3 3"/><circle cx="29" cy="23" r="3.5" style="fill:var(--chloro);fill-opacity:.4;stroke:var(--chloro)"/></svg>
+          <svg class="v-glyph" aria-hidden="true" focusable="false" viewBox="0 0 58 46"><rect x="10" y="10" width="38" height="26" rx="3" style="fill:var(--chloro);fill-opacity:.08;stroke:var(--chloro);stroke-width:1.3"/><circle cx="29" cy="23" r="9" style="fill:none;stroke:var(--chloro);stroke-width:1.4" stroke-dasharray="3 3"/><circle cx="29" cy="23" r="3.5" style="fill:var(--chloro);fill-opacity:.4;stroke:var(--chloro)"/></svg>
           <div class="v-title"><h3>Self-heal Mk II</h3><div class="v-bi">damage-control upgrade</div></div>
           <span class="v-tier t-ship">Mk II</span>
         </div>
@@ -932,9 +935,10 @@
     <h2>Getting light to the photosynthesis</h2>
     <p class="tag">Every class runs on photosynthesis, so every class has to get daylight-level light to living tissue that is usually behind heavy shielding. There is no single answer — the delivery method is set by the vessel's size, spin and distance from the Sun. Four strategies cover the fleet.</p>
     <div class="tbl-wrap" style="margin-top:18px"><table>
+          <caption>Getting light to the photosynthesis</caption>
       <thead><tr><th>Strategy</th><th>How it works</th><th>Classes</th><th>Why — the deciding number</th></tr></thead>
       <tbody>
-        <tr><td><b>Through the shield</b></td><td>Clarified <b>water</b> "windows": the same 3&nbsp;m of water is the radiation shield <em>and</em> the light-pipe</td><td>Compact free-flyers (NAVIS starship)</td><td>3&nbsp;m water = 305&nbsp;g/cm² shield <em>and</em> ~87% of blue-green light — so windows cost ~0 extra mass (<a href="https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1">see the dossier</a>)</td></tr>
+        <tr><td><b>Through the shield</b></td><td>Clarified <b>water</b> "windows": the same ~2&nbsp;m of water is the radiation shield <em>and</em> the light-pipe</td><td>Compact free-flyers (NAVIS starship)</td><td><span data-calc="navis.water_equiv">2.15</span>&nbsp;m water = <span data-calc="navis.column">215</span>&nbsp;g/cm² shield <em>and</em> ~<span data-calc="navis.t530">91</span>% of blue-green light — so windows cost ~0 extra mass (<a href="https://claude.ai/code/artifact/285ef29f-751e-4767-b5a6-9cd178faddb1">see the dossier</a>)</td></tr>
         <tr><td><b>Around the shield</b><br><span style="color:var(--ink-3);font-size:.85em">collect &amp; pipe</span></td><td>A sunward collector gathers light and pipes it to an axial <b>sun-cord</b> or light-guides deep inside</td><td>ARCA habitat; LICHEN buried dome</td><td>Windowing ARCA's 157&nbsp;km² wall would need ~479&nbsp;Mt of clear water; a <b>3.7&nbsp;km collector</b> film is ~10³–10⁴× lighter — and works despite spin</td></tr>
         <tr><td><b>Internal light</b></td><td>The structure lights the growing tissue directly; no solar path at all</td><td>GRAVID nursery cradles</td><td>A cradle already feeds, scaffolds and <em>lights</em> the ship it gestates — external sun is irrelevant</td></tr>
         <tr><td><b>None — go dark</b></td><td>Beyond the inner system, sunlight is too weak; photosynthesis gives way to stored or other energy</td><td>Deep-space / outer-system missions</td><td>Flux drops below the ~150&nbsp;W/m² daylight floor past <b>~3&nbsp;AU</b> (flux ∝ 1/r²)</td></tr>
@@ -1066,7 +1070,7 @@
     <div class="log-entry">
       <div class="lh">ROUND 23 · 2026-07-26 · the end</div>
       <h3>Coda — the program is complete, and the loop stops here</h3>
-      <p>With the safety capstone in place, the backlog is empty of anything substantive, so this round gives the program a proper ending rather than inventing filler: a closing statement, formally marking it complete at eighteen classes across every environment, two platform upgrades, six program-level studies, and six cross-linked documents. The 5-minute innovation loop that built rounds 1–23 has done its job and is being stopped. The work stands on its own; nothing essential remains to add.</p>
+      <p>With the safety capstone in place, the backlog is empty of anything substantive, so this round gives the program a proper ending rather than inventing filler: a closing statement, formally marking it complete at eighteen classes across every environment, two platform upgrades, six program-level studies, and six cross-linked documents (since grown to thirteen). The 5-minute innovation loop that built rounds 1–23 has done its job and is being stopped. The work stands on its own; nothing essential remains to add.</p>
     </div>
 
     <div class="log-entry">
@@ -1096,7 +1100,7 @@
     <div class="log-entry">
       <div class="lh">ROUND 18 · 2026-07-26 · the leverage</div>
       <h3>Seed mass vs grown mass — the whole thesis in one chart</h3>
-      <p>A development round that visualises the idea the program has rested on since the first dossier: you launch almost nothing and grow almost everything. On a log scale, every class's seed (grams to hundreds of tonnes) sits four to nine orders of magnitude left of what it becomes. One of each: ~352 tonnes of seeds → ~14.5 gigatonnes of vessels. The extreme is ARCA — a 3-tonne seed becomes a 2.4-gigatonne world, a leverage of ~800,000,000 to one. This is why growing beats building for anything far from Earth: rockets move the seed, the destination provides the rest.</p>
+      <p>A development round that visualises the idea the program has rested on since the first dossier: you launch almost nothing and grow almost everything. On a log scale, every class's seed (grams to hundreds of tonnes) sits four to nine orders of magnitude left of what it becomes. One of each: ~352 tonnes of seeds → ~44 gigatonnes of vessels. The extreme is ARCA — a 3-tonne seed becomes a 2.4-gigatonne world, a leverage of ~800,000,000 to one. This is why growing beats building for anything far from Earth: rockets move the seed, the destination provides the rest.</p>
     </div>
 
     <div class="log-entry">
@@ -1132,7 +1136,7 @@
     <div class="log-entry">
       <div class="lh">ROUND 12 · 2026-07-26 · the womb, drawn</div>
       <h3>GRAVID gets its own drawing set</h3>
-      <p>The nursery — the class that grows all the others — now has a full <a href="https://claude.ai/code/artifact/2433fa54-e582-4194-8245-d63acee8fb85" style="color:var(--lumen)">drawing set</a>: a section through a placental gestation cradle with a NAVIS starship 60% grown inside (fed ~26 t/day through an umbilical), a plan of cradles budding from the feedstock spine at every stage, and a five-step seed-to-ship sequence. It shows the reproduction loop up close — how a seed becomes a ship in ~2–3 years instead of five. Next: a development round scoring the fleet's readiness.</p>
+      <p>The nursery — the class that grows all the others — now has a full <a href="https://claude.ai/code/artifact/2433fa54-e582-4194-8245-d63acee8fb85" style="color:var(--lumen)">drawing set</a>: a section through a placental gestation cradle with a NAVIS starship 60% grown inside (fed ~26 t/day through an umbilical), a plan of cradles budding from the feedstock spine at every stage, and a five-step seed-to-ship sequence. It shows the reproduction loop up close — how a seed becomes a ship in ~3½ years instead of five. Next: a development round scoring the fleet's readiness.</p>
     </div>
 
     <div class="log-entry">
@@ -1156,7 +1160,7 @@
     <div class="log-entry">
       <div class="lh">ROUND 8 · 2026-07-26 · development, not expansion</div>
       <h3>Platform Mk II — the whole fleet gets lighter and tougher</h3>
-      <p>A development round rather than a new class. <strong>Tendon-cage Mk II</strong> borrows tendon's own crimped, hierarchical fibril structure and a mineral-reinforced sheath to roughly double usable fibre stress — halving the load-bearing cross-section and cutting ~12% off the mass of every spin habitat (≈290 Mt on ARCA, multi-gigatonne on LEVIATHAN), or banking it as extra hoop margin. <strong>Self-heal Mk II</strong> adds a hull-wide reflex mesh that clamps a breach in seconds and pre-stocked stem-cell caches that regrow layers ~3× faster. Both propagate through the shared genome to every class; grown hulls adopt them by remodelling, like bone. Next: ATLAS, a bulk cargo hauler.</p>
+      <p>A development round rather than a new class. <strong>Tendon-cage Mk II</strong> borrows tendon's own crimped, hierarchical fibril structure and a mineral-reinforced sheath to roughly double usable fibre stress — halving the load-bearing cross-section and cutting ~18% off the mass of every spin habitat (≈0.44 Gt on ARCA, several gigatonnes on LEVIATHAN), or banking it as extra hoop margin. <strong>Self-heal Mk II</strong> adds a hull-wide reflex mesh that clamps a breach in seconds and pre-stocked stem-cell caches that regrow layers ~3× faster. Both propagate through the shared genome to every class; grown hulls adopt them by remodelling, like bone. Next: ATLAS, a bulk cargo hauler.</p>
     </div>
 
     <div class="log-entry">
@@ -1198,7 +1202,7 @@
     <div class="log-entry">
       <div class="lh">ROUND 1 · 2026-07-25 · founding registry</div>
       <h3>Platform consolidated; the size ladder opened at both ends</h3>
-      <p>Formalised the shared living platform and admitted three new classes spanning the extremes the two flagships left open: <strong>SPORE</strong> (a 4 m lifeboat, gestated in weeks), <strong>RADIX</strong> (a crewless miner that also grows other ships' seeds), and <strong>POMONA</strong> (a near-massless agriculture station). Every entry now carries a growth protocol. All program documents cross-linked.</p>
+      <p>Formalised the shared living platform and admitted three new classes spanning the extremes the two flagships left open: <strong>SPORE</strong> (a 4 m lifeboat — first logged as gestating in weeks; the growth model gives ~1.5 years), <strong>RADIX</strong> (a crewless miner that also grows other ships' seeds), and <strong>POMONA</strong> (a near-massless agriculture station). Every entry now carries a growth protocol. All program documents cross-linked.</p>
     </div>
 
     <div class="backlog">
@@ -1226,7 +1230,7 @@
       <div class="p"><div class="pk">Classes</div><div class="pv">18 — from a 4 m lifeboat to a 40 km ark</div></div>
       <div class="p"><div class="pk">Upgrades</div><div class="pv">Mk II tendon-cage &amp; self-heal</div></div>
       <div class="p"><div class="pk">Program studies</div><div class="pv">scale · leverage · supply web · timeline · readiness · governance</div></div>
-      <div class="p"><div class="pk">Documents</div><div class="pv">six, cross-linked</div></div>
+      <div class="p"><div class="pk">Documents</div><div class="pv">thirteen, cross-linked</div></div>
     </div>
     <p class="tag" style="max-width:66ch;margin-top:22px">A vision built on real science, drawn to scale, costed in seeds, and bounded by its own safety. That is about as complete as a concept can be. <strong>— End of program · 23 rounds · 2026-07-26.</strong></p>
   </section>
@@ -1238,25 +1242,25 @@
     <div class="refs">
       <p class="refs-note">The readiness scorecard and governance regime above rest on real, published work — each "real basis" and containment mechanism is sourced here. Superscripts link to these entries. The fleet is a concept; the citations attest that its ingredients exist at the stated TRLs, not that any vessel has been grown.</p>
       <ol>
-        <li id="fref-1">Jones, M. et&nbsp;al. (2020). Engineered mycelium composite construction materials. <span class="rt">Mater. Des.</span> 187, 108397. — mycelium biocomposite (Ecovative, MycoWorks class).</li>
-        <li id="fref-2">Gosline, J. M. et&nbsp;al. (1999). The mechanical design of spider silks. <span class="rt">J. Exp. Biol.</span> 202, 3295–3303. — recombinant dragline silk (AMSilk, Bolt Threads class).</li>
-        <li id="fref-3">Wegst, U. G. K. et&nbsp;al. (2015). Bioinspired structural materials. <span class="rt">Nat. Mater.</span> 14, 23–36. — collagen–hydroxyapatite (osteoid) strength.</li>
-        <li id="fref-4">DeJong, J. T. et&nbsp;al. (2010). Bio-mediated soil improvement. <span class="rt">Ecol. Eng.</span> 36, 197–210. — microbially induced calcite precipitation (MICP).</li>
-        <li id="fref-5">Wiktor, V. &amp; Jonkers, H. M. (2011). Quantification of crack-healing in novel bacteria-based self-healing concrete. <span class="rt">Cem. Concr. Compos.</span> 33, 763–770. — the Basilisk self-healing principle.</li>
-        <li id="fref-6">Lasseur, C. et&nbsp;al. (2010). MELiSSA: the European project of a closed life-support system. <span class="rt">Gravit. Space Biol.</span> 23, 3–12. — algal photobioreactor life support.</li>
-        <li id="fref-7">Salisbury, F. B. et&nbsp;al. (1997). Bios-3: Siberian experiments in bioregenerative life support. <span class="rt">BioScience</span> 47, 575–585. — crews sustained for months.</li>
-        <li id="fref-8">Nelson, M. et&nbsp;al. (1993). Using a closed ecological system to study Earth's biosphere: Biosphere&nbsp;2. <span class="rt">BioScience</span> 43, 225–236. — long-term closed-ecology stability.</li>
-        <li id="fref-9">Dadachova, E. et&nbsp;al. (2007). Ionizing radiation changes the electronic properties of melanin and enhances the growth of melanized fungi. <span class="rt">PLoS ONE</span> 2, e457. — radiotrophic melanin.</li>
-        <li id="fref-10">Hashimoto, T. et&nbsp;al. (2016). Extremotolerant tardigrade genome and improved radiotolerance of human cells by Dsup. <span class="rt">Nat. Commun.</span> 7, 12808.</li>
-        <li id="fref-11">Jönsson, K. I. et&nbsp;al. (2008). Tardigrades survive exposure to space in low Earth orbit. <span class="rt">Curr. Biol.</span> 18, R729–R731. — cryptobiosis / dormancy in vacuum.</li>
-        <li id="fref-12">Cox, M. M. &amp; Battista, J. R. (2005). <em>Deinococcus radiodurans</em> — the consummate survivor. <span class="rt">Nat. Rev. Microbiol.</span> 3, 882–892.</li>
-        <li id="fref-13">Cockell, C. S. et&nbsp;al. (2020). Space station biomining experiment demonstrates rare-earth-element extraction in microgravity. <span class="rt">Nat. Commun.</span> 11, 5523. — ESA BioRock (ISS).</li>
-        <li id="fref-14">Lajoie, M. J. et&nbsp;al. (2013). Genomically recoded organisms expand biological functions. <span class="rt">Science</span> 342, 357–360. — recoded genome / genetic firewall.</li>
-        <li id="fref-15">Mandell, D. J. et&nbsp;al. (2015). Biocontainment of genetically modified organisms by synthetic protein design. <span class="rt">Nature</span> 518, 55–60. — synthetic auxotrophy, escape &lt;10⁻¹².</li>
-        <li id="fref-16">Chan, C. T. Y. et&nbsp;al. (2016). "Deadman" and "Passcode" microbial kill switches for bacterial containment. <span class="rt">Nat. Chem. Biol.</span> 12, 82–86.</li>
-        <li id="fref-17">Toda, S. et&nbsp;al. (2018). Programming self-organizing multicellular structures with synthetic cell–cell signaling. <span class="rt">Science</span> 361, 156–162. — synNotch tissue patterning.</li>
-        <li id="fref-18">Karig, D. et&nbsp;al. (2018). Stochastic Turing patterns in a synthetic bacterial population. <span class="rt">Proc. Natl. Acad. Sci. USA</span> 115, 6572–6577. — engineered Turing patterning.</li>
-        <li id="fref-19">Grebenyuk, S. &amp; Ranga, A. (2019). Engineering organoid vascularization. <span class="rt">Front. Bioeng. Biotechnol.</span> 7, 39. — vascularised organoids (the metre-scale plumbing gap).</li>
+        <li id="fref-1">Jones, M. et&nbsp;al. (2020). Engineered mycelium composite construction materials from fungal biorefineries: a critical review. <span class="rt">Mater. Des.</span> 187, 108397. doi:<a href="https://doi.org/10.1016/j.matdes.2019.108397">10.1016/j.matdes.2019.108397</a> — mycelium biocomposite (Ecovative, MycoWorks class).</li>
+        <li id="fref-2">Gosline, J. M. et&nbsp;al. (1999). The mechanical design of spider silks: from fibroin sequence to mechanical function. <span class="rt">J. Exp. Biol.</span> 202, 3295–3303. doi:<a href="https://doi.org/10.1242/jeb.202.23.3295">10.1242/jeb.202.23.3295</a> — recombinant dragline silk (AMSilk, Bolt Threads class).</li>
+        <li id="fref-3">Wegst, U. G. K. et&nbsp;al. (2015). Bioinspired structural materials. <span class="rt">Nat. Mater.</span> 14, 23–36. doi:<a href="https://doi.org/10.1038/nmat4089">10.1038/nmat4089</a> — collagen–hydroxyapatite (osteoid) strength.</li>
+        <li id="fref-4">DeJong, J. T. et&nbsp;al. (2010). Bio-mediated soil improvement. <span class="rt">Ecol. Eng.</span> 36, 197–210. doi:<a href="https://doi.org/10.1016/j.ecoleng.2008.12.029">10.1016/j.ecoleng.2008.12.029</a> — microbially induced calcite precipitation (MICP).</li>
+        <li id="fref-5">Wiktor, V. &amp; Jonkers, H. M. (2011). Quantification of crack-healing in novel bacteria-based self-healing concrete. <span class="rt">Cem. Concr. Compos.</span> 33, 763–770. doi:<a href="https://doi.org/10.1016/j.cemconcomp.2011.03.012">10.1016/j.cemconcomp.2011.03.012</a> — the Basilisk self-healing principle.</li>
+        <li id="fref-6">Lasseur, C. et&nbsp;al. (2010). MELiSSA: the European project of closed life support system. <span class="rt">Gravit. Space Biol.</span> 23(2), 3–12. — algal photobioreactor life support.</li>
+        <li id="fref-7">Salisbury, F. B., Gitelson, J. I. &amp; Lisovsky, G. M. (1997). Bios-3: Siberian experiments in bioregenerative life support. <span class="rt">BioScience</span> 47, 575–585. doi:<a href="https://doi.org/10.2307/1313164">10.2307/1313164</a> — crews sustained for months.</li>
+        <li id="fref-8">Nelson, M. et&nbsp;al. (1993). Using a closed ecological system to study Earth's biosphere: initial results from Biosphere&nbsp;2. <span class="rt">BioScience</span> 43, 225–236. doi:<a href="https://doi.org/10.2307/1312123">10.2307/1312123</a> — long-term closed-ecology behaviour, including the unanticipated O₂ decline (20.94% → below 14.5% by January 1993).</li>
+        <li id="fref-9">Dadachova, E. et&nbsp;al. (2007). Ionizing radiation changes the electronic properties of melanin and enhances the growth of melanized fungi. <span class="rt">PLoS ONE</span> 2, e457. doi:<a href="https://doi.org/10.1371/journal.pone.0000457">10.1371/journal.pone.0000457</a> — radiotrophic melanin.</li>
+        <li id="fref-10">Hashimoto, T. et&nbsp;al. (2016). Extremotolerant tardigrade genome and improved radiotolerance of human cultured cells by tardigrade-unique protein. <span class="rt">Nat. Commun.</span> 7, 12808. doi:<a href="https://doi.org/10.1038/ncomms12808">10.1038/ncomms12808</a></li>
+        <li id="fref-11">Jönsson, K. I. et&nbsp;al. (2008). Tardigrades survive exposure to space in low Earth orbit. <span class="rt">Curr. Biol.</span> 18, R729–R731. doi:<a href="https://doi.org/10.1016/j.cub.2008.06.048">10.1016/j.cub.2008.06.048</a> — cryptobiosis / dormancy in vacuum.</li>
+        <li id="fref-12">Cox, M. M. &amp; Battista, J. R. (2005). <em>Deinococcus radiodurans</em> — the consummate survivor. <span class="rt">Nat. Rev. Microbiol.</span> 3, 882–892. doi:<a href="https://doi.org/10.1038/nrmicro1264">10.1038/nrmicro1264</a></li>
+        <li id="fref-13">Cockell, C. S. et&nbsp;al. (2020). Space station biomining experiment demonstrates rare earth element extraction in microgravity and Mars gravity. <span class="rt">Nat. Commun.</span> 11, 5523. doi:<a href="https://doi.org/10.1038/s41467-020-19276-w">10.1038/s41467-020-19276-w</a> — ESA BioRock (ISS).</li>
+        <li id="fref-14">Lajoie, M. J. et&nbsp;al. (2013). Genomically recoded organisms expand biological functions. <span class="rt">Science</span> 342, 357–360. doi:<a href="https://doi.org/10.1126/science.1241459">10.1126/science.1241459</a> — recoded genome / genetic firewall.</li>
+        <li id="fref-15">Mandell, D. J. et&nbsp;al. (2015). Biocontainment of genetically modified organisms by synthetic protein design. <span class="rt">Nature</span> 518, 55–60. doi:<a href="https://doi.org/10.1038/nature14121">10.1038/nature14121</a> — synthetic auxotrophy, escape &lt;10⁻¹².</li>
+        <li id="fref-16">Chan, C. T. Y. et&nbsp;al. (2016). "Deadman" and "Passcode" microbial kill switches for bacterial containment. <span class="rt">Nat. Chem. Biol.</span> 12, 82–86. doi:<a href="https://doi.org/10.1038/nchembio.1979">10.1038/nchembio.1979</a></li>
+        <li id="fref-17">Toda, S. et&nbsp;al. (2018). Programming self-organizing multicellular structures with synthetic cell–cell signaling. <span class="rt">Science</span> 361, 156–162. doi:<a href="https://doi.org/10.1126/science.aat0271">10.1126/science.aat0271</a> — synNotch tissue patterning.</li>
+        <li id="fref-18">Karig, D. et&nbsp;al. (2018). Stochastic Turing patterns in a synthetic bacterial population. <span class="rt">Proc. Natl. Acad. Sci. USA</span> 115, 6572–6577. doi:<a href="https://doi.org/10.1073/pnas.1720770115">10.1073/pnas.1720770115</a> — engineered Turing patterning.</li>
+        <li id="fref-19">Grebenyuk, S. &amp; Ranga, A. (2019). Engineering organoid vascularization. <span class="rt">Front. Bioeng. Biotechnol.</span> 7, 39. doi:<a href="https://doi.org/10.3389/fbioe.2019.00039">10.3389/fbioe.2019.00039</a> — vascularised organoids (the metre-scale plumbing gap).</li>
       </ol>
     </div>
   </section>

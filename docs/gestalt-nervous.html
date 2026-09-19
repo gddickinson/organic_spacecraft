@@ -10,9 +10,12 @@
     --font-mono:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;
     --maxw:1180px;--spine:70ch;
   }
-  @media (prefers-color-scheme:light){:root{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}}
+  @media (prefers-color-scheme:light){:root{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#166d36;--lumen:#0a6d67;--osteo:#895519;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}}
   :root[data-theme="dark"]{--ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;--line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);--chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;--chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);--sheet:#0b1714}
-  :root[data-theme="light"]{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}
+  :root[data-theme="light"]{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#166d36;--lumen:#0a6d67;--osteo:#895519;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}
+  body{background:var(--ground);color:var(--ink)}
+  caption{caption-side:top;text-align:left;font-family:var(--font-mono);font-size:.74rem;letter-spacing:.06em;color:var(--ink-3);padding:0 0 8px}
+
 
   *{box-sizing:border-box}body{margin:0}
   .page{background:radial-gradient(1100px 640px at 82% -6%,var(--lumen-soft),transparent 60%),radial-gradient(900px 520px at 6% 3%,var(--chloro-soft),transparent 55%),var(--ground);color:var(--ink);font-family:var(--font-body);font-size:16.5px;line-height:1.66;letter-spacing:.005em;overflow-x:hidden;min-height:100vh}
@@ -146,7 +149,7 @@
       <p>There is no central brain. Coordination is spread across four layers, each on the substrate and timescale that suits its job — fast local reflexes at the bottom, slow global homeostasis and learning in the middle, and a dry silicon core at the top for everything biology is bad at. Each layer is as autonomous as it can be, so a severed or slow link never leaves the ship helpless.</p>
 
       <div class="fig" role="img" aria-label="A four-layer control stack: cellular reflexes (bioelectric, milliseconds, local); the autonomic net (bioelectric and chemical, seconds, body-wide homeostasis); the grown neural brain (neural tissue, adaptive control and learning); and the silicon core (fast deterministic compute, comms and the human interface), joined to the wet layers by a bio-electronic interface.">
-<svg viewBox="0 0 960 372" role="img">
+<svg viewBox="0 0 960 372" aria-hidden="true" focusable="false">
 <text x="18" y="26" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">The control stack — each job on the substrate that suits it</text>
 <rect x="150" y="50" width="750" height="52" rx="9" fill="var(--sheet)" stroke="var(--lumen)"/>
 <text x="166" y="74" font-family="var(--font-display)" font-size="15" fill="var(--lumen)">silicon core</text>
@@ -185,6 +188,7 @@
     </div>
     <div class="tbl-wrap">
       <table>
+          <caption>What the ship can feel</caption>
         <thead><tr><th>Sense</th><th>Organ &amp; how it works</th><th>What it is for</th><th>Real basis</th></tr></thead>
         <tbody>
           <tr><td>Sight <span class="rc">opsin eyes</span></td><td>Retinas of photoreceptor cells behind grown crystallin lenses — the same optics as the light-guides that feed the intima.<sup class="cite"><a href="#nref-1">[1]</a></sup></td><td>Navigation, docking, star-tracking, watching the crew &amp; the outside</td><td>Opsins; lens crystallins</td></tr>
@@ -208,7 +212,7 @@
       <div class="notes-grid">
         <div class="note cool"><div class="nh">Fast · bioelectric</div><p>Action-potential-analogues along grown nerve-tracts and the mycelial net carry reflexes: breach → seal, contact → grip. Milliseconds to seconds, but <em>local</em>.</p></div>
         <div class="note grn"><div class="nh">Slow · chemical &amp; hormonal</div><p>Broadcast molecules through the <a href="https://claude.ai/code/artifact/c6dd460f-700a-4b98-820a-0f75b0b1d973#vascular">vasculature</a> set body-wide state — grow here, throttle there. Minutes to hours; global.</p></div>
-        <div class="note warm"><div class="nh">The catch · latency</div><p>Nerve conduction tops out around tens of m/s; plant/fungal signalling is far slower. Across a 10 km ARCA that is <em>seconds to minutes</em> end-to-end — far too slow for fast global control.</p></div>
+        <div class="note warm"><div class="nh">The catch · latency</div><p>Nerve conduction tops out near ~120 m/s in the fastest myelinated axons and runs ~1 m/s in unmyelinated ones; plant and fungal signalling is slower still. Across a 10 km ARCA that is well over a minute end-to-end even at the vertebrate best — far too slow for fast global control.</p></div>
       </div>
       <p>This latency is the whole reason the architecture is layered and hybrid: anything needing millisecond, ship-wide coordination — attitude, engine timing — cannot wait for a wet signal to cross kilometres, so it lives on the <strong>fast silicon bus</strong> (§05) or is handled by <em>local autonomy</em>. The wet nervous system governs what is slow by nature: growth, healing, metabolism, mood.</p>
     </div>
@@ -222,6 +226,7 @@
       <p>Grown computation is real, and it is genuinely good at some things and hopeless at others. GESTALT uses four kinds, each already demonstrated in the lab:</p>
       <div class="tbl-wrap">
         <table>
+          <caption>Can it grow a brain? Yes — a certain kind</caption>
           <thead><tr><th>Kind of organic computer</th><th>What it is</th><th>Real basis</th></tr></thead>
           <tbody>
             <tr><td>Neural tissue</td><td>Grown neurons wire into trainable networks — living neural nets that learn. Cultured cortical neurons on an electrode array learned to play <em>Pong</em>.<sup class="cite"><a href="#nref-6">[6]</a></sup></td><td>DishBrain; brain organoids</td></tr>
@@ -249,7 +254,7 @@
       <p>The hard, interesting part is the <strong>bio-electronic interface</strong>: biology speaks in <em>ions and molecules</em>, electronics in <em>electrons and voltages</em>. Transducing between them is a real and active field.</p>
 
       <div class="fig" role="img" aria-label="The bio-electronic interface: ionic and chemical signals on the biological side are transduced to electronic signals on the silicon side by organic electrochemical transistors and conducting polymers, microelectrode arrays, electrogenetics, optogenetics with bioluminescence and photodetectors, and genetically encoded conductive nanowires.">
-<svg viewBox="0 0 960 380" role="img">
+<svg viewBox="0 0 960 380" aria-hidden="true" focusable="false">
 <text x="18" y="26" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">The bio-electronic interface — transducing ions ↔ electrons</text>
 <rect x="40" y="60" width="180" height="300" rx="12" fill="var(--chloro-soft)" stroke="var(--chloro)"/>
 <text x="130" y="92" text-anchor="middle" font-family="var(--font-display)" font-size="15" fill="var(--chloro)">BIOLOGY</text>
@@ -283,6 +288,7 @@
 
       <div class="tbl-wrap">
         <table>
+          <caption>The dry brain, and how to wire it to the wet</caption>
           <thead><tr><th>Interface</th><th>What it does</th><th>Real basis</th></tr></thead>
           <tbody>
             <tr><td>OECTs &amp; conducting polymers</td><td>Organic electrochemical transistors (PEDOT:PSS) turn ionic currents into electronic ones and back — the native translator between tissue and chip.</td><td>Organic bioelectronics<sup class="cite"><a href="#nref-11">[11]</a></sup></td></tr>
@@ -305,6 +311,7 @@
       <p>Communication splits the same way as everything else: the <em>rich, ambient, human</em> channels can be grown; the <em>fast, long-range, machine</em> channels are electronic.</p>
       <div class="tbl-wrap">
         <table>
+          <caption>Talking — to the crew and to other craft</caption>
           <thead><tr><th>Channel</th><th>How</th><th>Substrate</th></tr></thead>
           <tbody>
             <tr><td>To the crew — ambient</td><td>Bioluminescent displays (light), scent (chemical), and grown resonators (sound) — the ship can glow, signal and "speak". State you can feel without a screen.</td><td><span class="real">grown</span></td></tr>
@@ -326,7 +333,7 @@
       <p>One manoeuvre shows the division of labour end to end: the wet side senses and holds the ship alive, the dry side computes the precise trajectory, and the wet side actuates.</p>
 
       <div class="fig" role="img" aria-label="A docking control loop: eyes, magnetic sense and proprioception sense the target; the silicon core computes the precise trajectory and timing; commands cross the interface to fire muscles and sphincters through bioelectric reflexes; homeostasis holds pressure and the loop repeats.">
-<svg viewBox="0 0 960 360" role="img">
+<svg viewBox="0 0 960 360" aria-hidden="true" focusable="false">
 <text x="18" y="26" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">Coming in to dock — the sense → compute → act loop</text>
 <rect x="70" y="150" width="190" height="64" rx="9" fill="var(--sheet)" stroke="var(--chloro)"/><text x="165.0" y="172" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--chloro)">SENSE (wet)</text><text x="165.0" y="186" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">eyes · magneto</text><text x="165.0" y="200" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">proprioception</text>
 <rect x="400" y="52" width="200" height="64" rx="9" fill="var(--sheet)" stroke="var(--lumen)"/><text x="500.0" y="81" text-anchor="middle" font-family="var(--font-mono)" font-size="12" fill="var(--lumen)">COMPUTE (dry)</text><text x="500.0" y="95" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">trajectory &amp; timing</text>
@@ -356,26 +363,26 @@
         <div class="note warm"><div class="nh">Bet 2 · the interface at rate</div><p>The bio-electronic interface works at electrode scale; running it at spacecraft bandwidth and reliability, radiation-hardened, is unproven. <span class="gap">gap</span></p></div>
         <div class="note warm"><div class="nh">Bet 3 · latency &amp; autonomy</div><p>A km-scale body is latency-limited; making local autonomy add up to coherent whole-ship behaviour is a hard control problem. <span class="gap">gap</span></p></div>
       </div>
-      <p style="margin-top:20px">The honest thesis: <strong>a GESTALT vessel thinks with two brains.</strong> Grow the one that senses, heals and adapts; fabricate and carry the one that computes and talks; and treat the interface between them as the real frontier — the same reliability wall, in the end, as the <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#wp6">containment</a> and <a href="https://claude.ai/code/artifact/c6dd460f-700a-4b98-820a-0f75b0b1d973#coord">coordination</a> problems the rest of the program keeps running into. It is tested on the ground in the same <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed">Earth Program</a>.</p>
+      <p style="margin-top:20px">The honest thesis: <strong>a GESTALT vessel thinks with two brains.</strong> Grow the one that senses, heals and adapts; fabricate and carry the one that computes and talks; and treat the interface between them as the real frontier — the same reliability wall, in the end, as the <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#wp6">containment</a> and <a href="https://claude.ai/code/artifact/c6dd460f-700a-4b98-820a-0f75b0b1d973#coord">coordination</a> problems the rest of the program keeps running into. It is tested on the ground in the same <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed">Earth Program</a>. This is a concept study, not a build spec.</p>
 
       <div class="refs" id="refs">
         <h3>References</h3>
         <p class="refs-note">Representative sources for the claims; each supports a specific mechanism, not the integrated whole.</p>
         <ol>
-          <li id="nref-1">Opsin phototransduction &amp; lens crystallins — <span class="rt">the molecular basis of biological eyes.</span></li>
-          <li id="nref-2">Piezo &amp; MscL mechanosensitive ion channels — <span class="rt">touch, pressure and hearing at the cell.</span></li>
-          <li id="nref-3">Bazylinski, D.A. &amp; Frankel, R.B. (2004) <span class="rt">"Magnetosome formation in prokaryotes."</span> Nat. Rev. Microbiol.</li>
-          <li id="nref-4">Prindle, A. et al. (2015) <span class="rt">"Ion channels enable electrical communication in bacterial communities."</span> Nature.</li>
-          <li id="nref-5">Pfeffer, C. et al. (2012) <span class="rt">"Filamentous bacteria transport electrons over centimetre distances" (cable bacteria).</span> Nature.</li>
-          <li id="nref-6">Kagan, B.J. et al. (2022) <span class="rt">"In vitro neurons learn and exhibit sentience when embodied in a simulated game-world" (DishBrain).</span> Neuron.</li>
-          <li id="nref-7">Gardner, T.S., Cantor, C.R. &amp; Collins, J.J. (2000) <span class="rt">"Construction of a genetic toggle switch"</span>; synthetic gene logic gates.</li>
-          <li id="nref-8">Tanaka, G. et al. (2019) <span class="rt">"Recent advances in physical reservoir computing"</span>; Adamatzky — fungal computing.</li>
-          <li id="nref-9">Levin, M. (2021) <span class="rt">"Bioelectric signaling: reprogrammable circuits underlying pattern &amp; anatomy."</span> Cell.</li>
-          <li id="nref-10">Biomineralisation of semiconductors &amp; quantum dots — <span class="rt">peptide-templated inorganic nanostructures.</span></li>
-          <li id="nref-11">Rivnay, J. et al. (2018) <span class="rt">"Organic electrochemical transistors" (OECTs, PEDOT:PSS bioelectronics).</span> Nat. Rev. Mater.</li>
-          <li id="nref-12">Weber, W. et al. — <span class="rt">electrogenetics: electronic control of gene expression.</span></li>
-          <li id="nref-13">Boyden, E.S. et al. (2005) <span class="rt">"Millisecond-timescale, genetically targeted optical control of neural activity" (optogenetics).</span> Nat. Neurosci.</li>
-          <li id="nref-14">Reguera, G. et al. (2005) <span class="rt">"Extracellular electron transfer via microbial nanowires" (Geobacter/Shewanella).</span> Nature.</li>
+          <li id="nref-1">Shichida, Y. &amp; Matsuyama, T. (2009) <span class="rt">"Evolution of opsins and phototransduction."</span> Phil. Trans. R. Soc. B 364, 2881–2895. doi:<a href="https://doi.org/10.1098/rstb.2009.0051">10.1098/rstb.2009.0051</a>; Wistow, G.J. &amp; Piatigorsky, J. (1988) <span class="rt">"Lens crystallins: the evolution and expression of proteins for a highly specialized tissue."</span> Annu. Rev. Biochem. 57, 479–504. doi:<a href="https://doi.org/10.1146/annurev.bi.57.070188.002403">10.1146/annurev.bi.57.070188.002403</a> — opsin phototransduction &amp; lens crystallins: the molecular basis of biological eyes.</li>
+          <li id="nref-2">Coste, B. et al. (2010) <span class="rt">"Piezo1 and Piezo2 are essential components of distinct mechanically activated cation channels."</span> Science 330, 55–60. doi:<a href="https://doi.org/10.1126/science.1193270">10.1126/science.1193270</a>; Sukharev, S.I. et al. (1994) <span class="rt">"A large-conductance mechanosensitive channel in <em>E. coli</em> encoded by <em>mscL</em> alone."</span> Nature 368, 265–268. doi:<a href="https://doi.org/10.1038/368265a0">10.1038/368265a0</a> — Piezo &amp; MscL mechanosensitive ion channels: touch, pressure and hearing at the cell.</li>
+          <li id="nref-3">Bazylinski, D.A. &amp; Frankel, R.B. (2004) <span class="rt">"Magnetosome formation in prokaryotes."</span> Nat. Rev. Microbiol. 2, 217–230. doi:<a href="https://doi.org/10.1038/nrmicro842">10.1038/nrmicro842</a></li>
+          <li id="nref-4">Prindle, A. et al. (2015) <span class="rt">"Ion channels enable electrical communication in bacterial communities."</span> Nature 527, 59–63. doi:<a href="https://doi.org/10.1038/nature15709">10.1038/nature15709</a></li>
+          <li id="nref-5">Pfeffer, C. et al. (2012) <span class="rt">"Filamentous bacteria transport electrons over centimetre distances."</span> Nature 491, 218–221. doi:<a href="https://doi.org/10.1038/nature11586">10.1038/nature11586</a> — cable bacteria.</li>
+          <li id="nref-6">Kagan, B.J. et al. (2022) <span class="rt">"In vitro neurons learn and exhibit sentience when embodied in a simulated game-world."</span> Neuron 110, 3952–3969. doi:<a href="https://doi.org/10.1016/j.neuron.2022.09.001">10.1016/j.neuron.2022.09.001</a> — DishBrain.</li>
+          <li id="nref-7">Gardner, T.S., Cantor, C.R. &amp; Collins, J.J. (2000) <span class="rt">"Construction of a genetic toggle switch in <em>Escherichia coli</em>."</span> Nature 403, 339–342. doi:<a href="https://doi.org/10.1038/35002131">10.1038/35002131</a> — synthetic gene logic gates.</li>
+          <li id="nref-8">Tanaka, G. et al. (2019) <span class="rt">"Recent advances in physical reservoir computing: a review."</span> Neural Netw. 115, 100–123. doi:<a href="https://doi.org/10.1016/j.neunet.2019.03.005">10.1016/j.neunet.2019.03.005</a>; Adamatzky, A. (2018) <span class="rt">"Towards fungal computer."</span> Interface Focus 8, 20180029. doi:<a href="https://doi.org/10.1098/rsfs.2018.0029">10.1098/rsfs.2018.0029</a> — reservoir computing; fungal computing.</li>
+          <li id="nref-9">Levin, M. (2021) <span class="rt">"Bioelectric signaling: reprogrammable circuits underlying embryogenesis, regeneration, and cancer."</span> Cell 184, 1971–1989. doi:<a href="https://doi.org/10.1016/j.cell.2021.02.034">10.1016/j.cell.2021.02.034</a> — bioelectric networks that store and compute anatomical pattern.</li>
+          <li id="nref-10">Whaley, S.R. et al. (2000) <span class="rt">"Selection of peptides with semiconductor binding specificity for directed nanocrystal assembly."</span> Nature 405, 665–668. doi:<a href="https://doi.org/10.1038/35015043">10.1038/35015043</a>; Mao, C. et al. (2004) <span class="rt">"Virus-based toolkit for the directed synthesis of magnetic and semiconducting nanowires."</span> Science 303, 213–217. doi:<a href="https://doi.org/10.1126/science.1092740">10.1126/science.1092740</a> — biomineralisation of semiconductors &amp; quantum dots: peptide-templated inorganic nanostructures.</li>
+          <li id="nref-11">Rivnay, J. et al. (2018) <span class="rt">"Organic electrochemical transistors."</span> Nat. Rev. Mater. 3, 17086. doi:<a href="https://doi.org/10.1038/natrevmats.2017.86">10.1038/natrevmats.2017.86</a> — OECTs, PEDOT:PSS bioelectronics.</li>
+          <li id="nref-12">Weber, W. et al. (2009) <span class="rt">"A synthetic mammalian electro-genetic transcription circuit."</span> Nucleic Acids Res. 37, e33. doi:<a href="https://doi.org/10.1093/nar/gkp014">10.1093/nar/gkp014</a>; Krawczyk, K. et al. (2020) <span class="rt">"Electrogenetic cellular insulin release for real-time glycemic control in type 1 diabetic mice."</span> Science 368, 993–1001. doi:<a href="https://doi.org/10.1126/science.aau7187">10.1126/science.aau7187</a> — electrogenetics: electronic control of gene expression.</li>
+          <li id="nref-13">Boyden, E.S. et al. (2005) <span class="rt">"Millisecond-timescale, genetically targeted optical control of neural activity."</span> Nat. Neurosci. 8, 1263–1268. doi:<a href="https://doi.org/10.1038/nn1525">10.1038/nn1525</a> — optogenetics.</li>
+          <li id="nref-14">Reguera, G. et al. (2005) <span class="rt">"Extracellular electron transfer via microbial nanowires."</span> Nature 435, 1098–1101. doi:<a href="https://doi.org/10.1038/nature03661">10.1038/nature03661</a>; Gorby, Y.A. et al. (2006) <span class="rt">"Electrically conductive bacterial nanowires produced by <em>Shewanella oneidensis</em> strain MR-1 and other microorganisms."</span> Proc. Natl. Acad. Sci. USA 103, 11358–11363. doi:<a href="https://doi.org/10.1073/pnas.0604517103">10.1073/pnas.0604517103</a> — microbial nanowires (<em>Geobacter</em> pili; <em>Shewanella</em>).</li>
         </ol>
       </div>
     </div>

@@ -10,9 +10,12 @@
     --font-mono:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;
     --maxw:1180px;--spine:70ch;
   }
-  @media (prefers-color-scheme:light){:root{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}}
+  @media (prefers-color-scheme:light){:root{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#166d36;--lumen:#0a6d67;--osteo:#895519;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}}
   :root[data-theme="dark"]{--ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;--line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);--chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;--chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);--sheet:#0b1714}
-  :root[data-theme="light"]{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}
+  :root[data-theme="light"]{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#166d36;--lumen:#0a6d67;--osteo:#895519;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}
+  body{background:var(--ground);color:var(--ink)}
+  caption{caption-side:top;text-align:left;font-family:var(--font-mono);font-size:.74rem;letter-spacing:.06em;color:var(--ink-3);padding:0 0 8px}
+
 
   *{box-sizing:border-box}body{margin:0}
   .page{background:radial-gradient(1100px 640px at 82% -6%,var(--chloro-soft),transparent 60%),radial-gradient(900px 520px at 6% 3%,var(--lumen-soft),transparent 55%),var(--ground);color:var(--ink);font-family:var(--font-body);font-size:16.5px;line-height:1.66;letter-spacing:.005em;overflow-x:hidden;min-height:100vh}
@@ -78,6 +81,7 @@
   @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
   ::selection{background:var(--chloro);color:var(--ground)}
   :focus-visible{outline:2px solid var(--lumen);outline-offset:3px;border-radius:3px}
+  section.doc h3.h4{font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:22px 0 8px}
 </style>
 
 <div class="page"><div class="wrap">
@@ -160,6 +164,7 @@
     <h2>Six streams, run in parallel</h2>
     <p class="lead">Five of the six can advance independently and quickly; the sixth — morphogenesis — is the critical path, and a seventh discipline, containment, must lead all of them. Each package gets its own detailed plan in the rounds that follow.</p>
     <div class="tbl-wrap"><table>
+          <caption>Six streams, run in parallel</caption>
       <thead><tr><th>Work package</th><th>Lead question</th><th>Today → target</th><th>Phase</th></tr></thead>
       <tbody>
         <tr><td>WP1 · Structural biomaterials</td><td>Can grown mycelium, osteoid/MICP<sup class="cite"><a href="#eref-10">[10]</a></sup> and recombinant silk<sup class="cite"><a href="#eref-12">[12]</a></sup> meet hull specs in vacuum?</td><td class="trl">TRL 4 → 6</td><td>0–1</td></tr>
@@ -178,6 +183,7 @@
     <h2>Growing a hull that holds up in vacuum</h2>
     <p class="lead">The bricks of the hull — mycelium scaffold, osteoid bone, silk tendon — mostly exist as terrestrial materials. WP1 qualifies them for space and pushes each to a hull-relevant spec. Three tracks, each with a rig and a number to beat.</p>
     <div class="tbl-wrap"><table>
+          <caption>Growing a hull that holds up in vacuum</caption>
       <thead><tr><th>Track · experiment</th><th>Rig / method</th><th>Success criterion</th><th>TRL</th></tr></thead>
       <tbody>
         <tr><td>Mycelium · vacuum &amp; thermal survival</td><td>Grown panels in a 10⁻⁵ torr thermal-vacuum chamber, cycled −100…+120 °C</td><td>Outgassing <b>TML &lt;1.0% / CVCM &lt;0.10%</b> (ASTM E595<sup class="cite"><a href="#eref-19">[19]</a></sup>); retains &gt;80% strength after 100 cycles</td><td class="trl">4→5</td></tr>
@@ -199,6 +205,7 @@
     <h2>Closing the air and water loop, and keeping it closed</h2>
     <p class="lead">The individual reactions are demonstrated; the challenge is a living wall that runs for years without crashing. WP2 builds from a photosynthetic panel up to a sealed testbed that carries a real metabolic load.</p>
     <div class="tbl-wrap"><table>
+          <caption>Closing the air and water loop, and keeping it closed</caption>
       <thead><tr><th>Track · experiment</th><th>Rig / method</th><th>Success criterion</th><th>TRL</th></tr></thead>
       <tbody>
         <tr><td>Photosynthetic wall</td><td>Structural panel (from WP1) with an embedded algal intima layer under piped light</td><td>Sustained <b>~30 g O₂/m²·day</b> for &gt;1 yr; a ~28–56 m² panel = one crew-equivalent of oxygen</td><td class="trl">4→6</td></tr>
@@ -208,7 +215,7 @@
     </table></div>
     <div class="callout warm">
       <span class="lab">The counterintuitive hard part</span>
-      <p>A small testbed is <em>harder</em> to keep stable than a whole habitat. The million-person ARCA has a ~140-year oxygen buffer in its ~113 Mt of air; a sealed room has almost none, so the RQ ≈ 0.87 / PQ ≈ 1.0 gas mismatch and every transient bite immediately — which is exactly how Biosphere-2's oxygen crashed. The research problem is therefore <strong>active dynamic control of a low-inertia closed ecology</strong>: buffering, sensing and correcting faster than it can drift. Solve it small and it only gets easier at scale.</p>
+      <p>A small testbed is <em>harder</em> to keep stable than a whole habitat. The million-person ARCA has a ~140-year oxygen buffer in its ~113 Mt of air; a sealed room has almost none, so the RQ ≈ <span data-calc="life.rq">0.92</span> / PQ ≈ 1.0 gas mismatch and every transient bite immediately. (Biosphere 2 lost its oxygen more slowly and more subtly: its rich soils respired O₂ away, and the CO₂ this made vanished into the building's concrete, so the imbalance went unseen for over a year.) The research problem is therefore <strong>active dynamic control of a low-inertia closed ecology</strong>: buffering, sensing and correcting faster than it can drift. Solve it small and it only gets easier at scale.</p>
     </div>
     <p class="flow"><strong>Gate (exit Phase 1):</strong> a sealed system that keeps a crew-equivalent metabolic load in balance — O₂, CO₂, water and nitrogen — for a continuous year at &gt;90% closure, integrated with a WP1 structural wall. This is the living intima of a real hull, proven on the ground.</p>
   </section>
@@ -219,6 +226,7 @@
     <h2>Self-healing, radiation-hard, and able to sleep</h2>
     <p class="lead">Each of these tricks is proven in some extremophile; WP3's job is to express them together in one structural, photosynthetic lineage — and against space conditions, not lab ones.</p>
     <div class="tbl-wrap"><table>
+          <caption>Self-healing, radiation-hard, and able to sleep</caption>
       <thead><tr><th>Track · experiment</th><th>Rig / method</th><th>Success criterion</th><th>TRL</th></tr></thead>
       <tbody>
         <tr><td>Self-heal under vacuum ΔP</td><td>Puncture a pressurised living panel (fibrin-analogue clot + <em>Bacillus</em> calcite); high-speed + pressure log</td><td>Seals a mm puncture against a <b>52 kPa</b> gradient in seconds–minutes; regrows the layers over days</td><td class="trl">3→5</td></tr>
@@ -237,19 +245,20 @@
   <section class="doc reveal" id="wp4">
     <p class="eyebrow"><span class="num">WP4</span> The morphogenesis moonshot · critical path <span class="rule"></span></p>
     <h2>The one bet everything waits on</h2>
-    <p class="lead">Five of the six work packages qualify known biology. This one asks whether directed growth can climb ~14 orders of magnitude in cell number — from a millimetre organoid to a kilometre organism. It is the gate on the whole program, and it is deliberately built to be tested early and failed fast.</p>
+    <p class="lead">Five of the six work packages qualify known biology. This one asks whether directed growth can climb ~<span data-calc="budget.orders_gap">13</span> orders of magnitude in cell number — from a millimetre organoid to a vessel-scale organism. It is the gate on the whole program, and it is deliberately built to be tested early and failed fast.</p>
     <div class="tbl-wrap"><table>
+          <caption>The one bet everything waits on</caption>
       <thead><tr><th>Rung</th><th>Scale · cells</th><th>What must work</th><th>Go / no-go</th></tr></thead>
       <tbody>
         <tr><td>Today</td><td>1 mm · ~10⁶</td><td>Organoids &amp; synNotch<sup class="cite"><a href="#eref-8">[8]</a></sup> spheroids self-organise (avascular)</td><td>the starting point</td></tr>
         <tr><td>Rung 1</td><td>1 cm · ~10⁹</td><td>Patterned multi-tissue construct grown to a target 3D form, with a first internal vascular network</td><td>proceed only if it stays alive — no necrotic core</td></tr>
         <tr><td>Rung 2</td><td>1 dm · ~10¹²</td><td>Decimetre construct: a correctly layered wall <em>and</em> a branching vascular tree feeding it</td><td><b>make-or-break</b> — vasculature must scale with tissue</td></tr>
         <tr><td>Rung 3 <span class="crit">Phase 2 gate</span></td><td>1 m · ~10¹⁵</td><td>A metre mini-hull grown from a seed — layered, vascularised, holding pressure</td><td>reached ⇒ concept credible; not ⇒ program stops here</td></tr>
-        <tr><td>(Beyond)</td><td>10s of m · ~10¹⁹⁻²⁰</td><td>A full small vessel</td><td>Phase 3, only after Rung 3</td></tr>
+        <tr><td>(Beyond)</td><td>10s of m · ~<span data-calc="navis.cells">10¹⁹</span></td><td>A full small vessel</td><td>Phase 3, only after Rung 3</td></tr>
       </tbody>
     </table></div>
 
-    <h4 style="font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:22px 0 8px">The circuit stack to break the millimetre barrier</h4>
+    <h3 class="h4" style="font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:22px 0 8px">The circuit stack to break the millimetre barrier</h3>
     <p class="flow">A single morphogen gradient reaches only ~1 mm, so the program builds a hierarchical patterning stack: <strong>axis gradients</strong> (French-flag) to set the body's poles; a <strong>segmentation clock<sup class="cite"><a href="#eref-9">[9]</a></sup>-and-wavefront</strong> — an oscillator laying repeating units one at a time as the tissue grows, exactly as vertebrate somites form — to pattern <em>beyond</em> gradient range; <strong>synNotch</strong> contact circuits to build the radial wall layers; <strong>Turing</strong> reaction–diffusion for the fine texture; and <strong>stress-directed</strong> deposition with enforced apoptosis to shape and bound the growth.</p>
 
     <div class="callout warm">
@@ -266,6 +275,7 @@
     <h2>Turning a rock into feedstock — and packing it into grams</h2>
     <p class="lead">GESTALT's whole leverage — a half-tonne seed becoming a 24,000-tonne ship — rests on two capabilities: eating a resource body for its elements, and shipping the organism as a dormant package that revives on arrival. WP5 builds both on regolith and ice simulants.</p>
     <div class="tbl-wrap"><table>
+          <caption>Turning a rock into feedstock — and packing it into grams</caption>
       <thead><tr><th>Track · experiment</th><th>Rig / method</th><th>Success criterion</th><th>TRL</th></tr></thead>
       <tbody>
         <tr><td>Biomine metals</td><td><em>Acidithiobacillus</em><sup class="cite"><a href="#eref-18">[18]</a></sup> + phosphate-solubilisers on regolith simulant (JSC-1A, MGS-1)</td><td>Useful Fe/Ca leaching rates; concentrate the scarce <b>P from ~0.1% feed</b> (the ISRU bottleneck)</td><td class="trl">5→6</td></tr>
@@ -286,6 +296,7 @@
     <h2>The package that has to work before any of the others count</h2>
     <p class="lead">WP6 is numbered last and scheduled first. The moment an engineered lineage is asked to grow, self-repair and reproduce, its <em>containment</em> is no longer a compliance afterthought — it is the enabling technology. Every gram of biomass any other work package produces is only permitted because WP6 has shown that biomass cannot survive outside the rig, cannot swap genes with wild life, and can be switched off. So this package leads: it is the one whose exit criteria gate entry to every escalation everywhere else in the program.</p>
     <div class="tbl-wrap"><table>
+          <caption>The package that has to work before any of the others count</caption>
       <thead><tr><th>Track · experiment</th><th>Rig / method</th><th>Success criterion</th><th>TRL</th></tr></thead>
       <tbody>
         <tr><td>Recode &amp; make it dependent</td><td>Recoded chassis (freed codon reassigned) engineered for <b>synthetic auxotrophy</b> — obligate need for a non-natural amino acid absent from any environment</td><td>Measured <b>escape frequency &lt;10⁻¹¹</b> on rich media <em>and</em> soil extract; no growth without the synthetic nutrient over &gt;10¹² cells</td><td class="trl">4→5</td></tr>
@@ -350,6 +361,7 @@
       </svg>
     </div>
     <div class="tbl-wrap"><table>
+          <caption>Six work packages, one climbing artefact</caption>
       <thead><tr><th>Rung</th><th>What it is</th><th>Scale · cells</th><th>Packages folded in</th><th>Phase · TRL</th></tr></thead>
       <tbody>
         <tr><td><b>1 · Brick</b></td><td>Each work-package output on its own bench</td><td>cm · ~10⁹</td><td>one at a time (WP1–WP6 separately)</td><td class="trl">0 · 3–5</td></tr>
@@ -439,18 +451,19 @@
     <h3 class="sub-h">What it would cost</h3>
     <p class="flow">These are <strong>order-of-magnitude</strong> figures — the honest precision at this stage is one significant figure. They assume a distributed, publicly-funded effort at academic-plus-national-lab scale, and they deliberately <em>exclude</em> Phase 4 (spaceflight), whose cost is launch-dominated and separate.</p>
     <div class="tbl-wrap"><table>
+          <caption>What it would cost</caption>
       <thead><tr><th>Phase · focus</th><th>Span</th><th>Burn</th><th>Phase cost</th><th>Cumulative</th></tr></thead>
       <tbody>
         <tr><td><b>0</b> · Prove the bricks</td><td>0–5 yr</td><td>~$0.25B/yr</td><td>~$1–2B</td><td>~$1–2B</td></tr>
         <tr><td><b>1</b> · Integrate</td><td>5–12 yr</td><td>~$0.45B/yr</td><td>~$3B</td><td>~$4–5B</td></tr>
-        <tr><td><b>2</b> · Morphogenesis moonshot <span class="crit">critical path</span></td><td>10–25 yr</td><td>~$0.7B/yr</td><td><b>~$8–12B</b></td><td>~$15B</td></tr>
-        <tr><td><b>3</b> · Gestate a demonstrator</td><td>25–40 yr</td><td>~$1.2B/yr</td><td>~$15–20B</td><td><b>~$30–40B</b></td></tr>
+        <tr><td><b>2</b> · Morphogenesis moonshot <span class="crit">critical path</span></td><td>10–25 yr</td><td>~$0.7B/yr</td><td><b>~$8–12B</b></td><td>~$<span data-calc="budget.p2_cum">15</span>B</td></tr>
+        <tr><td><b>3</b> · Gestate a demonstrator</td><td>25–40 yr</td><td>~$1.2B/yr</td><td>~$15–20B</td><td><b>~$30–40B</b> (~$<span data-calc="budget.total">33</span>B)</td></tr>
         <tr><td>4 · Space qualification</td><td>40+ yr</td><td>launch-set</td><td>not costed</td><td>&mdash;</td></tr>
       </tbody>
     </table></div>
     <div class="callout warm">
       <span class="lab">Is ~$30–40B a lot? For a 40-year program, no.</span>
-      <p>Averaged over its life that is <b>~$0.8B/yr</b> — the running cost of a single national laboratory, and about <b>3–4%</b> of one space agency's annual budget. For comparison: the Human Genome Project ran ~$3B, JWST ~$10B, ITER ~$45B. GESTALT's ground program is roughly <em>one JWST per decade</em> — unremarkable for a civilisation-scale capability, and back-loaded so that the expensive phases only begin <strong>after</strong> the cheap early science has shown the hard bet can be won. If morphogenesis fails at Phase 2 (~$15B, ~year 25), the program stops there having spent a third of the total and delivered real materials, closed-life-support and biomining technology as spin-offs. That is the design: <em>fail cheap, before the costly chamber-and-gestation phase.</em></p>
+      <p>Averaged over its life that is <b>~$<span data-calc="budget.per_year">0.8</span>B/yr</b> — the running cost of a single national laboratory, and about <b>3–4%</b> of one space agency's annual budget. For comparison: the Human Genome Project ran ~$3B, JWST ~$10B, ITER ~$25B (its official baseline; outside estimates run far higher). GESTALT's ground program is roughly <em>one JWST per decade</em> — unremarkable for a civilisation-scale capability, and back-loaded so that the expensive phases only begin <strong>after</strong> the cheap early science has shown the hard bet can be won. If morphogenesis fails at Phase 2 (~$15B, ~year 25), the program stops there having spent ~<span data-calc="budget.p2_pct">45</span>% of the total and delivered real materials, closed-life-support and biomining technology as spin-offs. That is the design: <em>fail cheap, before the costly chamber-and-gestation phase.</em></p>
     </div>
     <h3 class="sub-h">Who builds it, and where</h3>
     <div class="notes-grid">
@@ -469,7 +482,7 @@
     <div class="notes-grid">
       <div class="note grn"><div class="nh">Mostly de-risking known biology</div><p>Five of six work packages are qualification of demonstrated science (TRL 3–5). That half is a normal, fundable engineering-biology program — worth doing for its own spin-offs (materials, closed life support, biomining) whether or not a spacecraft ever grows.</p></div>
       <div class="note warm"><div class="nh">One real bet</div><p>Morphogenesis at metre-to-kilometre scale (WP4) is TRL ~2 and may prove intractable. The program is deliberately structured to reach that gate early and fail fast if it must, rather than spend decades assuming it will open.</p></div>
-      <div class="note cool"><div class="nh">Decades and billions</div><p>Order-of-magnitude: ~40 years and tens of billions of dollars to a space-gestated vessel — comparable to fusion (ITER ~$25B) or a genome-scale program — and only if the moonshot lands. This is a civilisation-scale research bet, framed honestly as one.</p></div>
+      <div class="note cool"><div class="nh">Decades and billions</div><p>Order-of-magnitude: ~40 years and tens of billions of dollars to a space-gestated vessel — comparable to fusion (ITER ~$25B on its official baseline) or a genome-scale program — and only if the moonshot lands. This is a civilisation-scale research bet, framed honestly as one.</p></div>
     </div>
     <p class="lead" style="margin-top:24px">The point of writing it as a real program is not to promise the fleet. It is to show that the path from today's laboratory to a living starship is a <strong>finite, structured sequence of experiments with clear gates</strong> — most of them fundable now — and to name exactly where that path might end. The sections above fill in each stream; the gates below say how it ends.</p>
   </section>
@@ -480,6 +493,7 @@
     <h2>Every phase is allowed to say no</h2>
     <p class="lead">A program that could run 40 years and cost tens of billions has to be honest about how it ends — including badly. GESTALT's answer is that each phase turns on a <strong>single falsifiable question</strong>, and a clear "no" stops the work. The gates are ordered so the cheapest questions are asked first and the one most likely to fail — morphogenesis — is asked before the expensive chamber phase. Nothing here is open-ended; the whole thing is a sequence of yes/no experiments.</p>
     <div class="tbl-wrap"><table>
+          <caption>Every phase is allowed to say no</caption>
       <thead><tr><th>Phase</th><th>Exit gate — the "yes"</th><th>The one thing that ends it — the "no"</th><th>Spent if killed</th><th>What still survives</th></tr></thead>
       <tbody>
         <tr><td class="trl">0</td><td>Every subsystem meets a written spec <em>alone</em> (E595 outgassing, ~30 g O₂/m²·d, self-heal under 52 kPa ΔP, ~kGy tolerance, auxotrophy escape &lt;10⁻¹¹)</td><td>A subsystem simply cannot reach spec on the bench</td><td>~$1.5B · <b>5%</b></td><td>Everything — this is just qualification of known biology</td></tr>
@@ -518,7 +532,7 @@
     </div>
     <div class="callout warm">
       <span class="lab">The design goal in one number: 45%</span>
-      <p>The gate most likely to fail is Phase 2, and it lands at <strong>~45% of total spend</strong> — after which the program either graduates to gestation or stops, having answered whether directed growth can climb ~14 orders of magnitude in cell number. Either outcome is a result. That is the whole philosophy: <em>buy the answer to the hardest question before paying for the chamber that assumes the answer is yes.</em></p>
+      <p>The gate most likely to fail is Phase 2, and it lands at <strong>~<span data-calc="budget.p2_pct">45</span>% of total spend</strong> — after which the program either graduates to gestation or stops, having answered whether directed growth can climb ~<span data-calc="budget.orders_gap">13</span> orders of magnitude in cell number. Either outcome is a result. That is the whole philosophy: <em>buy the answer to the hardest question before paying for the chamber that assumes the answer is yes.</em></p>
     </div>
     <h3 class="sub-h">What would actually make us stop</h3>
     <div class="notes-grid">
@@ -541,25 +555,25 @@
     <div class="refs">
       <p class="refs-note">The point of this roadmap is that it is a <em>de-risking</em> program, not an invention program: five of six work packages qualify demonstrated science. Every named result and standard below is real and cited; the one genuine bet — directed morphogenesis at metre-to-kilometre scale — is flagged in the text as TRL&nbsp;~2, not sourced away.</p>
       <ol>
-        <li id="eref-1">Lajoie, M. J. et&nbsp;al. (2013). Genomically recoded organisms expand biological functions. <span class="rt">Science</span> 342, 357&ndash;360. — <em>E.&nbsp;coli</em> C321.&Delta;A (WP6 genetic firewall).</li>
-        <li id="eref-2">Ostrov, N. et&nbsp;al. (2016). Design, synthesis, and testing toward a 57-codon genome. <span class="rt">Science</span> 353, 819&ndash;822. — rE.coli-57.</li>
-        <li id="eref-3">Mandell, D. J. et&nbsp;al. (2015). Biocontainment of GMOs by synthetic protein design. <span class="rt">Nature</span> 518, 55&ndash;60. — synthetic auxotrophy, escape &lt;10&#8315;&sup1;&sup2;.</li>
-        <li id="eref-4">Rovner, A. J. et&nbsp;al. (2015). Recoded organisms engineered to depend on synthetic amino acids. <span class="rt">Nature</span> 518, 89&ndash;93.</li>
-        <li id="eref-5">Chan, C. T. Y. et&nbsp;al. (2016). "Deadman" and "Passcode" microbial kill switches for bacterial containment. <span class="rt">Nat. Chem. Biol.</span> 12, 82&ndash;86. — WP6 kill-switches.</li>
-        <li id="eref-6">Cox, M. M. &amp; Battista, J. R. (2005). <em>Deinococcus radiodurans</em> &mdash; the consummate survivor. <span class="rt">Nat. Rev. Microbiol.</span> 3, 882&ndash;892. — WP3 radiation repair.</li>
-        <li id="eref-7">Hashimoto, T. et&nbsp;al. (2016). Extremotolerant tardigrade genome and improved radiotolerance of human cells by Dsup. <span class="rt">Nat. Commun.</span> 7, 12808.</li>
-        <li id="eref-8">Toda, S. et&nbsp;al. (2018). Programming self-organizing multicellular structures with synthetic cell&ndash;cell signaling. <span class="rt">Science</span> 361, 156&ndash;162. — WP4 synNotch patterning (the moonshot's state of the art).</li>
-        <li id="eref-9">Elowitz, M. B. &amp; Leibler, S. (2000). A synthetic oscillatory network of transcriptional regulators. <span class="rt">Nature</span> 403, 335&ndash;338. — the segmentation-clock oscillator.</li>
-        <li id="eref-10">DeJong, J. T. et&nbsp;al. (2010). Bio-mediated soil improvement. <span class="rt">Ecol. Eng.</span> 36, 197&ndash;210. — MICP (WP1 osteoid/calcite).</li>
-        <li id="eref-11">Wiktor, V. &amp; Jonkers, H. M. (2011). Quantification of crack-healing in bacteria-based self-healing concrete. <span class="rt">Cem. Concr. Compos.</span> 33, 763&ndash;770. — WP3 self-healing.</li>
-        <li id="eref-12">Gosline, J. M. et&nbsp;al. (1999). The mechanical design of spider silks. <span class="rt">J. Exp. Biol.</span> 202, 3295&ndash;3303. — WP1 recombinant silk (&ge;1&nbsp;GPa).</li>
-        <li id="eref-13">Jones, M. et&nbsp;al. (2020). Engineered mycelium composite construction materials. <span class="rt">Mater. Des.</span> 187, 108397. — WP1 mycelium composites.</li>
-        <li id="eref-14">Lasseur, C. et&nbsp;al. (2010). MELiSSA: the European closed life-support project. <span class="rt">Gravit. Space Biol.</span> 23, 3&ndash;12. — WP2 algal life support.</li>
-        <li id="eref-15">Salisbury, F. B. et&nbsp;al. (1997). Bios-3: Siberian experiments in bioregenerative life support. <span class="rt">BioScience</span> 47, 575&ndash;585.</li>
-        <li id="eref-16">Nelson, M. et&nbsp;al. (1993). Using a closed ecological system to study Earth's biosphere: Biosphere&nbsp;2. <span class="rt">BioScience</span> 43, 225&ndash;236. — the O&#8322; crash (WP2 stability problem).</li>
-        <li id="eref-17">Cockell, C. S. et&nbsp;al. (2020). Space station biomining experiment demonstrates rare-earth extraction in microgravity. <span class="rt">Nat. Commun.</span> 11, 5523. — ESA BioRock (WP5).</li>
-        <li id="eref-18">Schippers, A. et&nbsp;al. (2014). Biomining: metal recovery from ores with microorganisms. <span class="rt">Adv. Biochem. Eng. Biotechnol.</span> 141, 1&ndash;47. — <em>Acidithiobacillus</em> bioleaching (WP5).</li>
-        <li id="eref-19">ASTM E595-15 (2015). <span class="rt">Standard Test Method for Total Mass Loss and Collected Volatile Condensable Materials from Outgassing in a Vacuum Environment.</span> ASTM International. — WP1 vacuum outgassing spec (TML&lt;1%, CVCM&lt;0.1%).</li>
+        <li id="eref-1">Lajoie, M. J. et&nbsp;al. (2013). Genomically recoded organisms expand biological functions. <span class="rt">Science</span> 342, 357&ndash;360. doi:<a href="https://doi.org/10.1126/science.1241459">10.1126/science.1241459</a> — <em>E.&nbsp;coli</em> C321.&Delta;A (WP6 genetic firewall).</li>
+        <li id="eref-2">Ostrov, N. et&nbsp;al. (2016). Design, synthesis, and testing toward a 57-codon genome. <span class="rt">Science</span> 353, 819&ndash;822. doi:<a href="https://doi.org/10.1126/science.aaf3639">10.1126/science.aaf3639</a> — rE.coli-57.</li>
+        <li id="eref-3">Mandell, D. J. et&nbsp;al. (2015). Biocontainment of genetically modified organisms by synthetic protein design. <span class="rt">Nature</span> 518, 55&ndash;60. doi:<a href="https://doi.org/10.1038/nature14121">10.1038/nature14121</a> — synthetic auxotrophy, escape &lt;10&#8315;&sup1;&sup2;.</li>
+        <li id="eref-4">Rovner, A. J. et&nbsp;al. (2015). Recoded organisms engineered to depend on synthetic amino acids. <span class="rt">Nature</span> 518, 89&ndash;93. doi:<a href="https://doi.org/10.1038/nature14095">10.1038/nature14095</a></li>
+        <li id="eref-5">Chan, C. T. Y. et&nbsp;al. (2016). "Deadman" and "Passcode" microbial kill switches for bacterial containment. <span class="rt">Nat. Chem. Biol.</span> 12, 82&ndash;86. doi:<a href="https://doi.org/10.1038/nchembio.1979">10.1038/nchembio.1979</a> — WP6 kill-switches.</li>
+        <li id="eref-6">Cox, M. M. &amp; Battista, J. R. (2005). <em>Deinococcus radiodurans</em> &mdash; the consummate survivor. <span class="rt">Nat. Rev. Microbiol.</span> 3, 882&ndash;892. doi:<a href="https://doi.org/10.1038/nrmicro1264">10.1038/nrmicro1264</a> — WP3 radiation repair.</li>
+        <li id="eref-7">Hashimoto, T. et&nbsp;al. (2016). Extremotolerant tardigrade genome and improved radiotolerance of human cultured cells by tardigrade-unique protein. <span class="rt">Nat. Commun.</span> 7, 12808. doi:<a href="https://doi.org/10.1038/ncomms12808">10.1038/ncomms12808</a></li>
+        <li id="eref-8">Toda, S. et&nbsp;al. (2018). Programming self-organizing multicellular structures with synthetic cell&ndash;cell signaling. <span class="rt">Science</span> 361, 156&ndash;162. doi:<a href="https://doi.org/10.1126/science.aat0271">10.1126/science.aat0271</a> — WP4 synNotch patterning (the moonshot's state of the art).</li>
+        <li id="eref-9">Elowitz, M. B. &amp; Leibler, S. (2000). A synthetic oscillatory network of transcriptional regulators. <span class="rt">Nature</span> 403, 335&ndash;338. doi:<a href="https://doi.org/10.1038/35002125">10.1038/35002125</a> — the segmentation-clock oscillator.</li>
+        <li id="eref-10">DeJong, J. T. et&nbsp;al. (2010). Bio-mediated soil improvement. <span class="rt">Ecol. Eng.</span> 36, 197&ndash;210. doi:<a href="https://doi.org/10.1016/j.ecoleng.2008.12.029">10.1016/j.ecoleng.2008.12.029</a> — MICP (WP1 osteoid/calcite).</li>
+        <li id="eref-11">Wiktor, V. &amp; Jonkers, H. M. (2011). Quantification of crack-healing in novel bacteria-based self-healing concrete. <span class="rt">Cem. Concr. Compos.</span> 33, 763&ndash;770. doi:<a href="https://doi.org/10.1016/j.cemconcomp.2011.03.012">10.1016/j.cemconcomp.2011.03.012</a> — WP3 self-healing.</li>
+        <li id="eref-12">Gosline, J. M. et&nbsp;al. (1999). The mechanical design of spider silks: from fibroin sequence to mechanical function. <span class="rt">J. Exp. Biol.</span> 202, 3295&ndash;3303. doi:<a href="https://doi.org/10.1242/jeb.202.23.3295">10.1242/jeb.202.23.3295</a> — WP1 recombinant silk (&ge;1&nbsp;GPa).</li>
+        <li id="eref-13">Jones, M. et&nbsp;al. (2020). Engineered mycelium composite construction materials from fungal biorefineries: a critical review. <span class="rt">Mater. Des.</span> 187, 108397. doi:<a href="https://doi.org/10.1016/j.matdes.2019.108397">10.1016/j.matdes.2019.108397</a> — WP1 mycelium composites.</li>
+        <li id="eref-14">Lasseur, C. et&nbsp;al. (2010). MELiSSA: the European project of closed life support system. <span class="rt">Gravit. Space Biol.</span> 23(2), 3&ndash;12. — WP2 algal life support.</li>
+        <li id="eref-15">Salisbury, F. B., Gitelson, J. I. &amp; Lisovsky, G. M. (1997). Bios-3: Siberian experiments in bioregenerative life support. <span class="rt">BioScience</span> 47, 575&ndash;585. doi:<a href="https://doi.org/10.2307/1313164">10.2307/1313164</a></li>
+        <li id="eref-16">Nelson, M. et&nbsp;al. (1993). Using a closed ecological system to study Earth's biosphere: initial results from Biosphere&nbsp;2. <span class="rt">BioScience</span> 43, 225&ndash;236. doi:<a href="https://doi.org/10.2307/1312123">10.2307/1312123</a> — the O&#8322; crash (WP2 stability problem).</li>
+        <li id="eref-17">Cockell, C. S. et&nbsp;al. (2020). Space station biomining experiment demonstrates rare earth element extraction in microgravity and Mars gravity. <span class="rt">Nat. Commun.</span> 11, 5523. doi:<a href="https://doi.org/10.1038/s41467-020-19276-w">10.1038/s41467-020-19276-w</a> — ESA BioRock (WP5).</li>
+        <li id="eref-18">Schippers, A. et&nbsp;al. (2014). Biomining: metal recovery from ores with microorganisms. <span class="rt">Adv. Biochem. Eng. Biotechnol.</span> 141, 1&ndash;47. doi:<a href="https://doi.org/10.1007/10_2013_216">10.1007/10_2013_216</a> — <em>Acidithiobacillus</em> bioleaching (WP5).</li>
+        <li id="eref-19">ASTM E595-15 (2015). <span class="rt">Standard Test Method for Total Mass Loss and Collected Volatile Condensable Materials from Outgassing in a Vacuum Environment.</span> ASTM International. doi:<a href="https://doi.org/10.1520/E0595-15">10.1520/E0595-15</a> — WP1 vacuum outgassing spec (TML&lt;1%, CVCM&lt;0.1%).</li>
       </ol>
     </div>
   </section>

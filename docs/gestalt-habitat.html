@@ -17,7 +17,7 @@
       --ground:#e9eee7;--ground-2:#e1e8df;--ground-3:#d8e1d5;
       --ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;
       --line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);
-      --chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;
+      --chloro:#166d36;--lumen:#0a6d67;--osteo:#895519;
       --chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);
       --l-regolith:#8b8072;--l-rind:#4a4038;--l-mycelium:#cfc9ad;--l-tendon:#d99b52;--l-pneumostat:#8fc0bd;--l-service:#7fa0b0;--l-soil:#8ba06d;--l-void:#c9d2c6;--l-air:#b6c6d4;
       --sheet:#eef2ea;--sheet-line:rgba(30,70,52,.09);
@@ -28,13 +28,16 @@
     --line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);--chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;
     --chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);
     --l-regolith:#5a5148;--l-rind:#2a2420;--l-mycelium:#c8c2a3;--l-service:#4c6a7a;--l-soil:#6b7d55;--l-void:#060d0b;--l-air:#0c1a2a;--sheet:#0b1714;--sheet-line:rgba(120,196,170,.10);
-  }
+  --l-tendon:#e6ac6d;--l-pneumostat:#7fb6b3;}
   :root[data-theme="light"]{
     --ground:#e9eee7;--ground-2:#e1e8df;--ground-3:#d8e1d5;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;
-    --line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;
+    --line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#166d36;--lumen:#0a6d67;--osteo:#895519;
     --chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);
     --l-regolith:#8b8072;--l-rind:#4a4038;--l-mycelium:#cfc9ad;--l-service:#7fa0b0;--l-soil:#8ba06d;--l-void:#c9d2c6;--l-air:#b6c6d4;--sheet:#eef2ea;--sheet-line:rgba(30,70,52,.09);
-  }
+  --l-tendon:#d99b52;--l-pneumostat:#8fc0bd;}
+  body{background:var(--ground);color:var(--ink)}
+  caption{caption-side:top;text-align:left;font-family:var(--font-mono);font-size:.74rem;letter-spacing:.06em;color:var(--ink-3);padding:0 0 8px}
+
 
   *{box-sizing:border-box}body{margin:0}
   .page{background:radial-gradient(1100px 640px at 82% -6%,var(--chloro-soft),transparent 60%),radial-gradient(900px 520px at 6% 3%,var(--lumen-soft),transparent 55%),var(--ground);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.6;letter-spacing:.005em;overflow-x:hidden;min-height:100vh}
@@ -207,7 +210,7 @@
       <div class="c"><div class="k">Living surface</div><div class="v">100<span class="u">km²</span></div><div class="s">≈100 m²/person · ~10,000/km², a garden-city density</div></div>
       <div class="c"><div class="k">Interior volume</div><div class="v">196<span class="u">km³</span></div><div class="s">lit from the axis by a ~15 GW piped-starlight sun-cord (~150 W/m²)</div></div>
       <div class="c"><div class="k">Atmosphere</div><div class="v">113<span class="u">Mt</span></div><div class="s">52 kPa rim / ~45 kPa axis; air adds ~140 g/cm² of radial shielding</div></div>
-      <div class="c"><div class="k">Hull hoop load</div><div class="v">230<span class="u">MN/m</span></div><div class="s">carried by a grown high-tensile tendon cage</div></div>
+      <div class="c"><div class="k">Hull hoop load</div><div class="v"><span data-calc="habitat.n_total">430</span><span class="u">MN/m</span></div><div class="s">air 130 + the spinning drum's own weight ~300 — carried by a grown tendon cage</div></div>
     </div>
   </header>
 
@@ -421,7 +424,7 @@
         <text x="30" y="546" font-family="var(--font-mono)" font-size="10" letter-spacing="2" fill="var(--osteo)">GENERAL NOTES</text>
         <text x="30" y="563" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">1  Drum Ø 5 km × 10 km long.</text>
         <text x="30" y="578" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">2  Grown as six segments @ ~1.7 km.</text>
-        <text x="30" y="593" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">3  Regolith over-blanket for shielding.</text>
+        <text x="30" y="593" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">3  1 m slag shield (~300 g/cm²), spins with drum.</text>
         <text x="30" y="608" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">4  De-spun docking hubs at each axis cap.</text>
 </svg>
     </div>
@@ -641,24 +644,24 @@
   <!-- ================= PLATE IV — RIM WALL DETAIL ================= -->
   <section class="plate reveal" id="h4">
     <div class="plate-head"><span class="plate-no">PLATE IV</span><h2>Rim wall · the ground you stand on</h2><div class="plate-meta">DETAIL 1 · SCALE 1 : 130 · DEEP SPACE (LEFT) → SOIL (RIGHT)</div></div>
-    <p class="plate-cap">A radial core through the ~33 m rim. Most of the depth is the <strong>tendon cage</strong> — a woven skeleton carrying <strong>230 MN per metre</strong> of hoop tension: 130 from air pressure (P·R) plus ~100 from the spin-weight of the soil, water and structures pressing outward at 1 g. That needs ~2.3 m of silk-bone fibre at a 100 MPa working stress<sup class="cite"><a href="#href-8">[8]</a><a href="#href-9">[9]</a><a href="#href-10">[10]</a></sup> — halved to ~1.15 m by the Mk II upgrade. Beneath it runs a habitable <strong>service deck</strong> of transit, water mains and vascular trunks. Note what the stack does <em>not</em> need: a dedicated radiation shield — the ~300 g/cm² regolith over-blanket is the real shield<sup class="cite"><a href="#href-6">[6]</a><a href="#href-7">[7]</a></sup>, and the ~140 g/cm² radial column of overhead air adds to it (~440 g/cm² together, comparable to several metres of water), so the habitat is self-shielded by the world around and inside it.</p>
+    <p class="plate-cap">A radial core through the ~25 m rim. The heart of it is the <strong>tendon cage</strong> — a woven skeleton carrying <strong>~<span data-calc="habitat.n_total">430</span> MN per metre</strong> of hoop tension: <span data-calc="habitat.n_air">130</span> from air pressure (P·R) plus ~<span data-calc="habitat.n_spin">300</span> from the spin-weight of everything that turns with the drum — soil, water, structure, shield and the cage itself, pressing outward at 1 g (σv², with the drum's ~2.4 Gt spread over its ~196 km² of wall and end caps: ~<span data-calc="habitat.sigma">12</span> t/m² at 157 m/s). That needs ~<span data-calc="habitat.tendon_mk1">4.3</span> m of silk-bone fibre at a 100 MPa working stress<sup class="cite"><a href="#href-8">[8]</a><a href="#href-9">[9]</a><a href="#href-10">[10]</a></sup> — halved to ~<span data-calc="habitat.tendon_mk2">2.2</span> m by the Mk II upgrade. Beneath it runs a habitable <strong>service deck</strong> of transit, water mains and vascular trunks. The shield is a single metre of compacted asteroid slag (~3 t/m³, ~<span data-calc="habitat.shield">300</span> g/cm²) that spins with the drum; an earlier drawing showed 10 m, which would be <span data-calc="habitat.shield_10m_lo">1,500</span>–<span data-calc="habitat.shield_10m_hi">3,000</span> g/cm² and more mass than the 2–3 Gt budget holds. That metre of slag is the real shield<sup class="cite"><a href="#href-6">[6]</a><a href="#href-7">[7]</a></sup>, and the ~140 g/cm² radial column of overhead air adds to it (~<span data-calc="habitat.shield_plus_air">440</span> g/cm² together, comparable to several metres of water), so the habitat is self-shielded by the world around and inside it.</p>
     <div class="sheet med">
-      <svg viewBox="0 0 960 506" role="img" aria-label="Detail of the habitat rim wall layers from regolith shield to soil">
-        <!-- bands x100..860 (760px = 33m => 23px/m). y 80..270 -->
-        <rect x="40" y="80" width="60" height="190" fill="var(--l-void)"/><text x="70" y="66" text-anchor="middle" class="t-lab3">SPACE</text>
-        <!-- regolith 10m 230 -->
-        <rect x="100" y="80" width="230" height="190" fill="var(--l-regolith)"/>
-        <g fill="#000" fill-opacity=".2"><circle cx="140" cy="120" r="2.5"/><circle cx="200" cy="180" r="2.5"/><circle cx="260" cy="130" r="2.5"/><circle cx="300" cy="220" r="2.5"/><circle cx="170" cy="230" r="2.5"/></g>
+      <svg viewBox="0 0 960 506" role="img" aria-label="Detail of the habitat rim wall layers, about 25 m in all: a 1 m slag shield, 2 m rind, 5 m mycelium, 4.3 m tendon cage, 2 m pneumostat, 8 m service deck and 3 m of soil">
+        <!-- bands x277..859 (582px = 25.3m => 23px/m). y 80..270 -->
+        <rect x="40" y="80" width="237" height="190" fill="var(--l-void)"/><text x="158" y="66" text-anchor="middle" class="t-lab3">SPACE</text>
+        <!-- regolith 1m 23 -->
+        <rect x="277" y="80" width="23" height="190" fill="var(--l-regolith)"/>
+        <g fill="#000" fill-opacity=".2"><circle cx="284" cy="120" r="2.5"/><circle cx="293" cy="180" r="2.5"/><circle cx="286" cy="230" r="2.5"/></g>
         <!-- rind 2m 46 -->
-        <rect x="330" y="80" width="46" height="190" fill="var(--l-rind)"/>
+        <rect x="300" y="80" width="46" height="190" fill="var(--l-rind)"/>
         <!-- mycelium 5m 115 -->
-        <rect x="376" y="80" width="115" height="190" fill="var(--l-mycelium)"/>
-        <g stroke="#000" stroke-opacity=".14" fill="none"><path d="M384 110 C 430 100 460 150 486 120"/><path d="M384 200 C 440 220 460 160 488 210"/></g>
-        <!-- tendon cage 3m 69 -->
-        <rect x="491" y="80" width="69" height="190" fill="var(--l-tendon)" fill-opacity=".9"/>
+        <rect x="346" y="80" width="115" height="190" fill="var(--l-mycelium)"/>
+        <g stroke="#000" stroke-opacity=".14" fill="none"><path d="M354 110 C 400 100 430 150 456 120"/><path d="M354 200 C 410 220 430 160 458 210"/></g>
+        <!-- tendon cage 4.3m 99 -->
+        <rect x="461" y="80" width="99" height="190" fill="var(--l-tendon)" fill-opacity=".9"/>
         <g stroke="#5b3d18" stroke-opacity=".5" stroke-width="1.6" fill="none">
-          <path d="M493 80 L558 150 M493 150 L558 220 M493 220 L558 270"/>
-          <path d="M558 80 L493 150 M558 150 L493 220 M558 220 L493 270"/>
+          <path d="M463 80 L558 150 M463 150 L558 220 M463 220 L558 270"/>
+          <path d="M558 80 L463 150 M558 150 L463 220 M558 220 L463 270"/>
         </g>
         <!-- pneumostat 2m 46 -->
         <rect x="560" y="80" width="46" height="190" fill="var(--l-pneumostat)"/>
@@ -677,18 +680,18 @@
         <text x="884" y="98" text-anchor="middle" class="t-lab3">1 g · people</text>
 
         <!-- dimension ladder -->
-        <g class="dim"><line x1="100" y1="52" x2="859" y2="52"/>
-          <line x1="100" y1="48" x2="100" y2="76"/><line x1="330" y1="48" x2="330" y2="76"/><line x1="376" y1="48" x2="376" y2="76"/><line x1="491" y1="48" x2="491" y2="76"/><line x1="560" y1="48" x2="560" y2="76"/><line x1="606" y1="48" x2="606" y2="76"/><line x1="790" y1="48" x2="790" y2="76"/><line x1="859" y1="48" x2="859" y2="76"/>
+        <g class="dim"><line x1="277" y1="52" x2="859" y2="52"/>
+          <line x1="277" y1="48" x2="277" y2="76"/><line x1="300" y1="48" x2="300" y2="76"/><line x1="346" y1="48" x2="346" y2="76"/><line x1="461" y1="48" x2="461" y2="76"/><line x1="560" y1="48" x2="560" y2="76"/><line x1="606" y1="48" x2="606" y2="76"/><line x1="790" y1="48" x2="790" y2="76"/><line x1="859" y1="48" x2="859" y2="76"/>
         </g>
-        <text x="480" y="40" text-anchor="middle" class="t-dim">TOTAL RIM ≈ 33 m</text>
+        <text x="568" y="40" text-anchor="middle" class="t-dim">TOTAL RIM ≈ 25 m</text>
 
         <!-- labels -->
         <g class="t-lab" text-anchor="middle">
-          <text x="215" y="292" class="t-serif" font-size="12">Regolith shield</text><text x="215" y="306" class="t-dim">10 m · asteroid slag</text>
-          <text x="353" y="292" class="t-serif" font-size="11">Rind</text><text x="353" y="306" class="t-dim">2 m</text>
-          <text x="433" y="292" class="t-serif" font-size="12">Mycelium</text><text x="433" y="306" class="t-dim">5 m</text>
-          <text x="525" y="292" class="t-serif" font-size="12">Tendon cage</text><text x="525" y="306" class="t-dim">3 m · 230 MN/m</text>
-          <text x="583" y="292" class="t-serif" font-size="10">Pneumostat</text><text x="583" y="306" class="t-dim">2 m</text>
+          <text x="272" y="292" class="t-serif" font-size="12" text-anchor="end">Regolith shield</text><text x="272" y="306" class="t-dim" text-anchor="end">1 m · slag · ~300 g/cm² · spins</text>
+          <text x="323" y="292" class="t-serif" font-size="11">Rind</text><text x="323" y="306" class="t-dim">2 m</text>
+          <text x="403" y="292" class="t-serif" font-size="12">Mycelium</text><text x="403" y="306" class="t-dim">5 m</text>
+          <text x="505" y="292" class="t-serif" font-size="12">Tendon cage</text><text x="505" y="306" class="t-dim">4.3 m · <tspan data-calc="habitat.n_total">430</tspan> MN/m</text>
+          <text x="585" y="292" class="t-serif" font-size="10">Pneumostat</text><text x="585" y="306" class="t-dim">2 m</text>
           <text x="698" y="292" class="t-serif" font-size="12">Service deck</text><text x="698" y="306" class="t-dim">8 m · habitable</text>
           <text x="824" y="292" class="t-serif" font-size="12">Soil</text><text x="824" y="306" class="t-dim">3 m</text>
         </g>
@@ -723,7 +726,7 @@
         <text x="814" y="482" font-family="var(--font-mono)" font-size="6.8" fill="var(--osteo)">CONCEPT — NOT FOR CONSTRUCTION</text>
         <text x="30" y="426" font-family="var(--font-mono)" font-size="10" letter-spacing="2" fill="var(--osteo)">MATERIAL LEGEND · outer → inner</text>
         <rect x="30" y="433" width="14" height="10" style="fill:var(--l-regolith);fill-opacity:.55;stroke:var(--l-regolith)"/>
-        <text x="50" y="441" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">Regolith over-blanket</text>
+        <text x="50" y="441" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">Regolith shield · 1 m slag</text>
         <rect x="30" y="448" width="14" height="10" style="fill:var(--l-rind);fill-opacity:.55;stroke:var(--l-rind)"/>
         <text x="50" y="456" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">Rind</text>
         <rect x="30" y="463" width="14" height="10" style="fill:var(--l-mycelium);fill-opacity:.55;stroke:var(--l-mycelium)"/>
@@ -736,6 +739,7 @@
         <text x="310" y="456" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">Service deck</text>
         <rect x="290" y="463" width="14" height="10" style="fill:var(--l-soil);fill-opacity:.55;stroke:var(--l-soil)"/>
         <text x="310" y="471" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">Soil · living ground</text>
+        <text x="290" y="486" font-family="var(--font-mono)" font-size="9.5" fill="var(--osteo)">Every layer spins with the drum.</text>
 </svg>
     </div>
   </section>
@@ -847,7 +851,7 @@
 
   <!-- ================= PLATE VI — UNROLLED BIOME MAP ================= -->
   <section class="plate reveal" id="h6">
-    <div class="plate-head"><span class="plate-no">PLATE VI</span><h2>Unrolled biome map · the plan view</h2><div class="plate-meta">INNER SURFACE FLATTENED · 15.7 × 10 km<br>SCALE 1 : 20,000</div></div>
+    <div class="plate-head"><span class="plate-no">PLATE VI</span><h2>Unrolled biome map · the plan view</h2><div class="plate-meta">INNER SURFACE FLATTENED · 15.7 × 10 km<br>SCALE 1 : 40,000 (1 px ≈ 20 m)</div></div>
     <p class="plate-cap">The cylinder's inner surface peeled off and laid flat: 15.7 km of circumference (the left edge wraps around to the right) by 10 km end to end. Six climate biomes ring the drum in sequence; a transit trunk runs the length between the de-spun hubs, and water gathers at the rim into ring-lakes and rivers. Each biome rings the full 15.7 km circumference over ~1.7 km of length — about 26 km² apiece — and the Urban stripe holds roughly 60% of the million people at a dense ~36,000/km².</p>
     <div class="sheet big">
       <svg viewBox="0 0 960 816" role="img" aria-label="Unrolled plan-view map of the habitat inner surface showing six biomes, transit, and water">
@@ -944,7 +948,7 @@
         <text x="624" y="757" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">DRAWING NO.</text>
         <text x="624" y="768" font-family="var(--font-mono)" font-size="11" fill="var(--lumen)">GST·HAB·106</text>
         <text x="774" y="757" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">SCALE</text>
-        <text x="774" y="768" font-family="var(--font-mono)" font-size="9" fill="var(--ink)">1 : 200,000</text>
+        <text x="774" y="768" font-family="var(--font-mono)" font-size="9" fill="var(--ink)">1 : 40,000</text>
         <text x="874" y="757" font-family="var(--font-mono)" font-size="6.5" fill="var(--ink-3)">REV</text>
         <text x="874" y="768" font-family="var(--font-mono)" font-size="11" fill="var(--ink)">C</text>
         <line x1="716" y1="772" x2="716" y2="796" stroke="var(--line)" stroke-width="0.8"/>
@@ -974,23 +978,23 @@
       </div>
       <div class="note cy">
         <div class="nh">Scale caveat</div>
-        <p>Orthographic plates are dimensioned; in the section views the rim stack is drawn far thicker than 1:scale (it is only ~33 m on a 5,000 m radius — a hair on the drawing). Plate 0 and the district study are perspective illustrations.</p>
+        <p>Orthographic plates are dimensioned; in the section views the rim stack is drawn far thicker than 1:scale (it is only ~25 m on a 2,500 m radius — a hair on the drawing). Plate 0 and the district study are perspective illustrations.</p>
       </div>
       <div class="note warm">
         <div class="nh">The hard part</div>
-        <p>At this scale biology alone can't hold the hoop load (~230 MN/m); the tendon cage likely needs engineered high-tensile cable, possibly reinforced. Gestation runs to decades and gigatonnes of in-situ material. Conceptual, not a build spec.</p>
+        <p>At this scale biology alone can't hold the hoop load (~<span data-calc="habitat.n_total">430</span> MN/m, most of it the drum's own spinning weight); the tendon cage likely needs engineered high-tensile cable, possibly reinforced. Gestation runs to decades and gigatonnes of in-situ material. Conceptual, not a build spec.</p>
       </div>
       <div class="note">
         <div class="nh">Life at 0.6 rpm</div>
-        <p>The spin is gentle enough to live in: Coriolis force on a walking person is only ~1.8% of gravity, and a ball dropped from 2 m lands ~5 cm spinward. And because the drum's 2.5 km radius is far shorter than the air's ~8.4 km scale height, the atmosphere barely thins with altitude — 52 kPa at the rim, still ~45 kPa and breathable on the 0-g axis. Spinning the ~2.5 Gt drum up to 0.6 rpm costs a one-time ~3×10¹⁶ J (~9 TWh, ~300 MW averaged over a 3-year spin-up) — then it simply keeps turning.</p>
+        <p>The spin is gentle enough to live in: Coriolis force on a walking person is only ~<span data-calc="habitat.coriolis_pct">1.8</span>% of gravity, and a ball dropped from 2 m lands ~<span data-calc="habitat.drop_cm">5</span> cm <em>anti</em>-spinward (it keeps the slower sideways speed of the height it fell from, so the floor runs ahead of it). And because the drum's 2.5 km radius is far shorter than the air's ~<span data-calc="life.arca_scale_h">8.4</span> km scale height, the atmosphere barely thins with altitude — 52 kPa at the rim, still ~<span data-calc="life.arca_p_axis">45</span> kPa and breathable on the 0-g axis. Spinning the ~2.5 Gt drum up to 0.6 rpm costs a one-time ~<span data-calc="habitat.spinup_j">3×10¹⁶</span> J (~<span data-calc="habitat.spinup_twh">9</span> TWh, ~<span data-calc="habitat.spinup_mw">300</span> MW averaged over a 3-year spin-up) — then it simply keeps turning.</p>
       </div>
       <div class="note grn">
         <div class="nh">The air is a century-scale buffer</div>
-        <p>A million people breathe ~840 t of O₂ and exhale ~1,000 t of CO₂ a day<sup class="cite"><a href="#href-1">[1]</a></sup>. Against that, the ~113 Mt atmosphere is still enormous: at its 34% O₂ it holds ~42 Mt of O₂ — about <strong>140 years' supply</strong> if photosynthesis stopped entirely — and CO₂ would take ~3 years to build to a hazardous 1%. The habitat's air is a giant flywheel; short outages of the living wall are non-events, not emergencies.</p>
+        <p>A million people breathe ~<span data-calc="life.arca_o2_t_day">816</span> t of O₂ and exhale ~<span data-calc="life.arca_co2_t_day">1,040</span> t of CO₂ a day<sup class="cite"><a href="#href-1">[1]</a></sup>. Against that, the ~<span data-calc="life.arca_air">113</span> Mt atmosphere is still enormous: at its 34% O₂ it holds ~<span data-calc="life.arca_o2_mt">42</span> Mt of O₂ — about <strong><span data-calc="life.arca_o2_reserve">140</span> years' supply</strong> if photosynthesis stopped entirely — and CO₂ would take ~<span data-calc="life.arca_co2_1pct_yr">4.5</span> years to build to a hazardous 1%. The habitat's air is a giant flywheel; short outages of the living wall are non-events, not emergencies.</p>
       </div>
       <div class="note warm">
         <div class="nh">The tight loop is food, not air</div>
-        <p>Oxygen is easy — ~56 km² of managed vegetation covers the crew's demand<sup class="cite"><a href="#href-3">[3]</a></sup>, well within the 100 km² of landscape. Food is the real constraint: feeding a million at open-field intensity would need ~150 km² (more surface than exists), so the habitat leans on multi-tier endcap farms (~15–30 km²). And full closure at this scale is unproven — BIOS-3 ran 2–3 crew for months at partial closure; Biosphere-2's oxygen crashed from 21% to 14% in two years.<sup class="cite"><a href="#href-4">[4]</a><a href="#href-5">[5]</a></sup> Buffered, but not solved.</p>
+        <p>Oxygen is easy — ~<span data-calc="life.arca_veg_km2">54</span> km² of managed vegetation (at ~15 g O₂/m²·day) covers the crew's demand<sup class="cite"><a href="#href-3">[3]</a></sup>, well within the 100 km² of landscape. Food is the real constraint: feeding a million at open-field intensity would need ~150 km² (more surface than exists), so the habitat leans on multi-tier endcap farms (~15–30 km²). And full closure at this scale is unproven — BIOS-3 ran 2–3 crew for months at partial closure; Biosphere-2's oxygen fell from 20.9% to below 14.5% in its first 16 months, until pure O₂ had to be injected.<sup class="cite"><a href="#href-4">[4]</a><a href="#href-5">[5]</a></sup> Buffered, but not solved.</p>
       </div>
     </div>
   </section>
@@ -1001,16 +1005,16 @@
     <div class="refs">
       <p class="refs-note">ARCA's life-support, shielding and light budgets rest on real, published standards and results; the spin-gravity geometry is textbook mechanics (ω²R). Each cited claim links here. Full closure at population scale is <em>unproven</em> — that gap is stated in the text, not cited away.</p>
       <ol>
-        <li id="href-1">Anderson, M. S. et&nbsp;al. (2018). <span class="rt">Life Support Baseline Values and Assumptions Document.</span> NASA/TP-2015-218570/REV1. — per-crew O₂ 0.84 kg·day⁻¹ (→ ~840 t·day⁻¹ for a million), CO₂, water, food.</li>
-        <li id="href-2">Kopp, G. &amp; Lean, J. L. (2011). A new, lower value of total solar irradiance. <span class="rt">Geophys. Res. Lett.</span> 38, L01706. — solar constant 1361 W·m⁻²: the 15 GW sun-cord and ~3.7 km collector at 1 AU.</li>
-        <li id="href-3">Lasseur, C. et&nbsp;al. (2010). MELiSSA: the European project of a closed life-support system. <span class="rt">Gravit. Space Biol.</span> 23, 3–12. — algal / managed-vegetation oxygen production.</li>
-        <li id="href-4">Salisbury, F. B. et&nbsp;al. (1997). Bios-3: Siberian experiments in bioregenerative life support. <span class="rt">BioScience</span> 47, 575–585. — 2–3 crew sustained for months at partial closure.</li>
-        <li id="href-5">Nelson, M. et&nbsp;al. (1993). Using a closed ecological system to study Earth's biosphere: Biosphere&nbsp;2. <span class="rt">BioScience</span> 43, 225–236. — the documented O₂ decline (21% → 14%).</li>
-        <li id="href-6">Zeitlin, C. et&nbsp;al. (2013). Measurements of energetic particle radiation in transit to Mars on the MSL. <span class="rt">Science</span> 340, 1080–1084. — deep-space GCR baseline the regolith over-blanket must stop.</li>
-        <li id="href-7">Durante, M. &amp; Cucinotta, F. A. (2011). Physical basis of radiation protection in space travel. <span class="rt">Rev. Mod. Phys.</span> 83, 1245–1281. — areal-density shielding and the secondary-particle floor.</li>
-        <li id="href-8">Gosline, J. M. et&nbsp;al. (1999). The mechanical design of spider silks. <span class="rt">J. Exp. Biol.</span> 202, 3295–3303. — silk-fibre working stress for the tendon cage (230 MN·m⁻¹).</li>
-        <li id="href-9">Wegst, U. G. K. et&nbsp;al. (2015). Bioinspired structural materials. <span class="rt">Nat. Mater.</span> 14, 23–36. — collagen–hydroxyapatite (bone) in the silk-bone fibre.</li>
-        <li id="href-10">DeJong, J. T. et&nbsp;al. (2010). Bio-mediated soil improvement. <span class="rt">Ecol. Eng.</span> 36, 197–210. — microbially induced calcite (MICP) mineralising the structure.</li>
+        <li id="href-1">Anderson, M. S. et&nbsp;al. (2018). <span class="rt">Life Support Baseline Values and Assumptions Document.</span> NASA/TP-2015-218570/REV1. NASA Johnson Space Center. <a href="https://ntrs.nasa.gov/citations/20180001338">ntrs.nasa.gov/citations/20180001338</a> — nominal per-crew O₂ 0.816 kg·day⁻¹ and CO₂ 1.04 kg·day⁻¹ (Table 3-33), with water and food in Tables 4-20 and 4-57; the values used here (→ ~816 t of O₂ a day for a million).</li>
+        <li id="href-2">Kopp, G. &amp; Lean, J. L. (2011). A new, lower value of total solar irradiance: Evidence and climate significance. <span class="rt">Geophys. Res. Lett.</span> 38, L01706. doi:<a href="https://doi.org/10.1029/2010GL045777">10.1029/2010GL045777</a> — solar constant 1361 W·m⁻²: the 15 GW sun-cord and ~3.7 km collector at 1 AU.</li>
+        <li id="href-3">Lasseur, C. et&nbsp;al. (2010). MELiSSA: the European project of closed life support system. <span class="rt">Gravit. Space Biol.</span> 23(2), 3–12. — algal / managed-vegetation oxygen production.</li>
+        <li id="href-4">Salisbury, F. B., Gitelson, J. I. &amp; Lisovsky, G. M. (1997). Bios-3: Siberian experiments in bioregenerative life support. <span class="rt">BioScience</span> 47, 575–585. doi:<a href="https://doi.org/10.2307/1313164">10.2307/1313164</a> — 2–3 crew sustained for months at partial closure.</li>
+        <li id="href-5">Nelson, M. et&nbsp;al. (1993). Using a closed ecological system to study Earth's biosphere: initial results from Biosphere&nbsp;2. <span class="rt">BioScience</span> 43, 225–236. doi:<a href="https://doi.org/10.2307/1312123">10.2307/1312123</a> — the documented O₂ decline (20.94% → below 14.5% by January 1993, p. 234).</li>
+        <li id="href-6">Zeitlin, C. et&nbsp;al. (2013). Measurements of energetic particle radiation in transit to Mars on the Mars Science Laboratory. <span class="rt">Science</span> 340, 1080–1084. doi:<a href="https://doi.org/10.1126/science.1235989">10.1126/science.1235989</a> — deep-space GCR baseline the regolith over-blanket must stop.</li>
+        <li id="href-7">Durante, M. &amp; Cucinotta, F. A. (2011). Physical basis of radiation protection in space travel. <span class="rt">Rev. Mod. Phys.</span> 83, 1245–1281. doi:<a href="https://doi.org/10.1103/RevModPhys.83.1245">10.1103/RevModPhys.83.1245</a> — areal-density shielding and the secondary-particle floor.</li>
+        <li id="href-8">Gosline, J. M. et&nbsp;al. (1999). The mechanical design of spider silks: from fibroin sequence to mechanical function. <span class="rt">J. Exp. Biol.</span> 202, 3295–3303. doi:<a href="https://doi.org/10.1242/jeb.202.23.3295">10.1242/jeb.202.23.3295</a> — silk-fibre working stress for the tendon cage (~430 MN·m⁻¹).</li>
+        <li id="href-9">Wegst, U. G. K. et&nbsp;al. (2015). Bioinspired structural materials. <span class="rt">Nat. Mater.</span> 14, 23–36. doi:<a href="https://doi.org/10.1038/nmat4089">10.1038/nmat4089</a> — collagen–hydroxyapatite (bone) in the silk-bone fibre.</li>
+        <li id="href-10">DeJong, J. T. et&nbsp;al. (2010). Bio-mediated soil improvement. <span class="rt">Ecol. Eng.</span> 36, 197–210. doi:<a href="https://doi.org/10.1016/j.ecoleng.2008.12.029">10.1016/j.ecoleng.2008.12.029</a> — microbially induced calcite (MICP) mineralising the structure.</li>
       </ol>
     </div>
   </section>

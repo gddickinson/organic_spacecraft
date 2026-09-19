@@ -105,7 +105,7 @@ def navis(design, out, frames=72, fps=14):
         rdot.set_data([g["t_years"][k]], [g["rate_tpd"][k]])
         return ()
     fig.text(0.66, 0.035, f"photosynthesis → air ({eb['photo_biomass_tpd']} t/d); "
-             f"body MINED ({eb['growth_tpd']} t/d, ~{eb['ore_ratio']}:1 ore)", color=COL["ink3"],
+             f"body MINED ({eb['growth_tpd']} t/d, ~{eb['ore_ratio']:.0f}:1 ore)", color=COL["ink3"],
              fontsize=7.0, family="monospace")
     anim = FuncAnimation(fig, update, frames=frames, blit=False); anim._fig = fig
     return _save(anim, out, fps)
@@ -120,12 +120,12 @@ def arca(design, out, frames=90, fps=16):
     fig = _fig(); _title(fig, design.name, f"spin {design.rpm} rpm → 1 g · day/night · O₂ buffer")
     ax = _ax3(fig, [0.0, 0.06, 0.60, 0.86], lim=max(R, L / 2) * 1.05, elev=14, azim=-70)
     gg = _gauge(fig, [0.66, 0.58, 0.31, 0.32], "spin gravity  ·  g vs radius")
-    go = _gauge(fig, [0.66, 0.13, 0.31, 0.32], "O₂ reserve  ·  % over 140 yr")
+    go = _gauge(fig, [0.66, 0.13, 0.31, 0.32], "O₂ by volume  ·  % over 140 yr")
     gg.plot(sp["r"] / 1000, sp["g_of_r"] / 9.81, color=COL["osteo"], lw=1.4)
     gg.set_xlabel("radius, km", color=COL["ink3"], fontsize=7.5, family="monospace")
     gg.axhline(1.0, color=COL["chloro"], lw=0.8, ls="--")
     go.plot(ls["t_days"] / 365, ls["o2_pct"], color=COL["lumen"], lw=1.4)
-    go.set_ylim(design.o2_fraction * 100 - 2, design.o2_fraction * 100 + 2)
+    go.set_ylim(ls["o2_pct"].min() - 0.5, ls["o2_pct"].max() + 0.5)
     go.set_xlabel("years", color=COL["ink3"], fontsize=7.5, family="monospace")
     odot, = go.plot([], [], "o", color=COL["ink"], ms=5)
 
@@ -151,8 +151,9 @@ def arca(design, out, frames=90, fps=16):
                   transform=ax.transAxes, color=COL["ink2"], fontsize=8.5, ha="center", family="monospace")
         odot.set_data([ls["t_days"][f] / 365], [ls["o2_pct"][f]])
         return ()
-    fig.text(0.66, 0.035, f"113 Mt air ≈ {ls['buffer_years']:.0f} yr O₂ reserve — a huge buffer",
-             color=COL["ink3"], fontsize=7.2, family="monospace")
+    fig.text(0.60, 0.035, f"{design.air_mass_t / 1e6:.0f} Mt air ≈ {ls['buffer_years']:.0f} yr of O₂ · "
+             f"RQ gap {ls['o2_drift_pct_per_century']:+.1f} pts/100 yr",
+             color=COL["ink3"], fontsize=7.0, family="monospace")
     anim = FuncAnimation(fig, update, frames=frames, blit=False); anim._fig = fig
     return _save(anim, out, fps)
 
@@ -166,7 +167,8 @@ def lichen(design, out, frames=72, fps=14):
     ax = _ax3(fig, [0.0, 0.06, 0.60, 0.86], lim=R * 1.8, elev=10, azim=-55)
     gt = _gauge(fig, [0.66, 0.58, 0.31, 0.32], "temperature  ·  K over 2 days")
     gt.plot(th["t_days"], th["T_skin"], color=COL["osteo"], lw=1.3, label="surface")
-    gt.plot(th["t_days"], th["T_interior"], color=COL["chloro"], lw=1.3, label="interior")
+    gt.plot(th["t_days"], th["T_interior"], color=COL["chloro"], lw=1.3,
+            label=f"interior (RC, τ {th['tau_years']:.1f} yr)")
     gt.legend(fontsize=6.5, facecolor=COL["ground2"], edgecolor=COL["line"], labelcolor=COL["ink2"])
     gt.set_xlabel("days", color=COL["ink3"], fontsize=7.5, family="monospace")
     tdot, = gt.plot([], [], "o", color=COL["ink"], ms=5)

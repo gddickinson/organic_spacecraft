@@ -87,12 +87,12 @@
 ]]></style><rect x="-12.0" y="-12.0" width="1026.0" height="326.0" fill="#0c1613"/>
 <text x="18" y="26" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="11" fill="#e2f0e8">Four exits, ranked by how much truly leaves the body</text>
 <text x="236" y="82" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="11" fill="#e6ac6d">Waste heat</text>
-<text x="236" y="95" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8.5" fill="#7c9689">~0.5–1 MW radiated</text>
+<text x="236" y="95" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8.5" fill="#7c9689">~<tspan>1</tspan>–<tspan>3</tspan> MW radiated</text>
 <rect x="250" y="70" width="460" height="20" rx="4" fill="#0e1c18" stroke="rgba(150,196,176,.16)"/>
 <rect x="250" y="70" width="460" height="20" rx="4" fill="#e6ac6d" fill-opacity=".5" stroke="#e6ac6d"/>
 <text x="722" y="85" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9" fill="#7c9689">MUST leave (2nd law)</text>
 <text x="236" y="134" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="11" fill="#7c9689">Inert tailings</text>
-<text x="236" y="147" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8.5" fill="#7c9689">~100 t/day gangue</text>
+<text x="236" y="147" text-anchor="end" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="8.5" fill="#7c9689">~<tspan>230</tspan> t/day gangue</text>
 <rect x="250" y="122" width="460" height="20" rx="4" fill="#0e1c18" stroke="rgba(150,196,176,.16)"/>
 <rect x="250" y="122" width="37" height="20" rx="4" fill="#7c9689" fill-opacity=".5" stroke="#7c9689"/>
 <text x="722" y="137" font-family="ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace" font-size="9" fill="#7c9689">big mass — but re-used as shielding</text>

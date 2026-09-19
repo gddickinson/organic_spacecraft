@@ -5,8 +5,9 @@ GESTALT designs and renders them as animated 3D visualisations.
 
 Modules
 -------
-params    : canonical parameters per design (single source of truth)
-systems   : the system dynamics (growth, life support, spin, thermal, gestation)
+params    : canonical parameters per design (document numbers taken from calcs/)
+systems   : the system dynamics (growth, life support, spin, thermal RC, gestation)
+doccheck  : parameters and outputs compared with the documents' numbers
 geometry  : 3D mesh / point generators for each design
 animate   : builders that combine geometry + systems into animated-GIF scenes
 run       : command-line entry point
@@ -17,4 +18,4 @@ See sim/INTERFACE.md for detail.
 
 from . import params, systems, geometry  # noqa: F401
 
-__all__ = ["params", "systems", "geometry", "animate", "run"]
+__all__ = ["params", "systems", "geometry", "animate", "doccheck", "run"]

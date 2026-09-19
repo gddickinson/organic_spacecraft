@@ -17,7 +17,7 @@
       --ground:#e9eee7;--ground-2:#e1e8df;--ground-3:#d8e1d5;
       --ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;
       --line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);
-      --chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;
+      --chloro:#166d36;--lumen:#0a6d67;--osteo:#895519;
       --chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);
       --l-epidermis:#8a967f;--l-rind:#4a4038;--l-mycelium:#cfc9ad;--l-osteoid:#d99b52;--l-pneumostat:#8fc0bd;--l-intima:#3bb864;--l-void:#c9d2c6;--l-cabin:#b6c6d4;
       --sheet:#eef2ea;--sheet-line:rgba(30,70,52,.09);
@@ -28,13 +28,16 @@
     --line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);--chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;
     --chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);
     --l-rind:#2a2420;--l-void:#060d0b;--l-mycelium:#c8c2a3;--l-cabin:#0c1a2a;--sheet:#0b1714;--sheet-line:rgba(120,196,170,.10);
-  }
+  --l-epidermis:#6f7d6a;--l-osteoid:#e6ac6d;--l-pneumostat:#7fb6b3;--l-intima:#54cf7c;}
   :root[data-theme="light"]{
     --ground:#e9eee7;--ground-2:#e1e8df;--ground-3:#d8e1d5;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;
-    --line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;
+    --line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#166d36;--lumen:#0a6d67;--osteo:#895519;
     --chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);
     --l-rind:#4a4038;--l-void:#c9d2c6;--l-mycelium:#cfc9ad;--l-cabin:#b6c6d4;--sheet:#eef2ea;--sheet-line:rgba(30,70,52,.09);
-  }
+  --l-epidermis:#8a967f;--l-osteoid:#d99b52;--l-pneumostat:#8fc0bd;--l-intima:#3bb864;}
+  body{background:var(--ground);color:var(--ink)}
+  caption{caption-side:top;text-align:left;font-family:var(--font-mono);font-size:.74rem;letter-spacing:.06em;color:var(--ink-3);padding:0 0 8px}
+
 
   *{box-sizing:border-box}
   body{margin:0}
@@ -228,8 +231,11 @@
         <div class="h">Reference Vehicle</div>
         <dl>
           <div class="row"><span class="k">LENGTH O.A.</span><span class="v">≈ 120 m</span></div>
+          <div class="row"><span class="k">MAIN BODY</span><span class="v">100 × 50 m</span></div>
           <div class="row"><span class="k">BEAM (Ø)</span><span class="v">50 m</span></div>
           <div class="row"><span class="k">HULL WALL</span><span class="v">≈ 5.5 m</span></div>
+          <div class="row"><span class="k">HULL AREA</span><span class="v">≈ <span data-calc="navis.area">13,400</span> m²</span></div>
+          <div class="row"><span class="k">WALL COLUMN</span><span class="v">≈ <span data-calc="navis.column">215</span> g/cm²</span></div>
           <div class="row"><span class="k">GROWN MASS</span><span class="v">≈ 24,000 t</span></div>
           <div class="row"><span class="k">CREW</span><span class="v">50</span></div>
           <div class="row"><span class="k">CABIN</span><span class="v">52 kPa · 34% O₂</span></div>
@@ -1055,13 +1061,13 @@
     <div class="refs">
       <p class="refs-note">The drawing set is dimensioned to the design's real numbers; the living materials it renders — each hull layer, the shielding and the photosynthetic skin — rest on published work, cited here. The prolate-spheroid geometry (the section diameters, Ø(x) = 50·√(1&minus;(x/50)²)) is plane mathematics and needs no source.</p>
       <ol>
-        <li id="dref-1">Jones, M. et&nbsp;al. (2020). Engineered mycelium composite construction materials. <span class="rt">Mater. Des.</span> 187, 108397. — the mycelial matrix layer (chitin scaffold).</li>
-        <li id="dref-2">Wegst, U. G. K. et&nbsp;al. (2015). Bioinspired structural materials. <span class="rt">Nat. Mater.</span> 14, 23&ndash;36. — the osteoid (collagen&ndash;hydroxyapatite) bone truss.</li>
-        <li id="dref-3">Gosline, J. M. et&nbsp;al. (1999). The mechanical design of spider silks. <span class="rt">J. Exp. Biol.</span> 202, 3295&ndash;3303. — silk-analogue fibre in the pneumostat pressure seal.</li>
-        <li id="dref-4">Dadachova, E. et&nbsp;al. (2007). Ionizing radiation changes the electronic properties of melanin and enhances the growth of melanized fungi. <span class="rt">PLoS ONE</span> 2, e457. — the melanized rind.</li>
-        <li id="dref-5">Zeitlin, C. et&nbsp;al. (2013). Measurements of energetic particle radiation in transit to Mars on the MSL. <span class="rt">Science</span> 340, 1080&ndash;1084. — the GCR the hull shields against.</li>
-        <li id="dref-6">Durante, M. &amp; Cucinotta, F. A. (2011). Physical basis of radiation protection in space travel. <span class="rt">Rev. Mod. Phys.</span> 83, 1245&ndash;1281. — the water-jacket areal-density shielding (thickened toward the galactic plane).</li>
-        <li id="dref-7">Lasseur, C. et&nbsp;al. (2010). MELiSSA: the European project of a closed life-support system. <span class="rt">Gravit. Space Biol.</span> 23, 3&ndash;12. — the algal intima (photosynthetic inner skin).</li>
+        <li id="dref-1">Jones, M. et&nbsp;al. (2020). Engineered mycelium composite construction materials from fungal biorefineries: a critical review. <span class="rt">Mater. Des.</span> 187, 108397. doi:<a href="https://doi.org/10.1016/j.matdes.2019.108397">10.1016/j.matdes.2019.108397</a> — the mycelial matrix layer (chitin scaffold).</li>
+        <li id="dref-2">Wegst, U. G. K. et&nbsp;al. (2015). Bioinspired structural materials. <span class="rt">Nat. Mater.</span> 14, 23&ndash;36. doi:<a href="https://doi.org/10.1038/nmat4089">10.1038/nmat4089</a> — the osteoid (collagen&ndash;hydroxyapatite) bone truss.</li>
+        <li id="dref-3">Gosline, J. M. et&nbsp;al. (1999). The mechanical design of spider silks: from fibroin sequence to mechanical function. <span class="rt">J. Exp. Biol.</span> 202, 3295&ndash;3303. doi:<a href="https://doi.org/10.1242/jeb.202.23.3295">10.1242/jeb.202.23.3295</a> — silk-analogue fibre in the pneumostat pressure seal.</li>
+        <li id="dref-4">Dadachova, E. et&nbsp;al. (2007). Ionizing radiation changes the electronic properties of melanin and enhances the growth of melanized fungi. <span class="rt">PLoS ONE</span> 2, e457. doi:<a href="https://doi.org/10.1371/journal.pone.0000457">10.1371/journal.pone.0000457</a> — the melanized rind.</li>
+        <li id="dref-5">Zeitlin, C. et&nbsp;al. (2013). Measurements of energetic particle radiation in transit to Mars on the Mars Science Laboratory. <span class="rt">Science</span> 340, 1080&ndash;1084. doi:<a href="https://doi.org/10.1126/science.1235989">10.1126/science.1235989</a> — the GCR the hull shields against.</li>
+        <li id="dref-6">Durante, M. &amp; Cucinotta, F. A. (2011). Physical basis of radiation protection in space travel. <span class="rt">Rev. Mod. Phys.</span> 83, 1245&ndash;1281. doi:<a href="https://doi.org/10.1103/RevModPhys.83.1245">10.1103/RevModPhys.83.1245</a> — areal-density shielding by hydrogen-rich material (the water jacket).</li>
+        <li id="dref-7">Lasseur, C. et&nbsp;al. (2010). MELiSSA: the European project of closed life support system. <span class="rt">Gravit. Space Biol.</span> 23(2), 3&ndash;12. — the algal intima (photosynthetic inner skin).</li>
       </ol>
     </div>
   </section>

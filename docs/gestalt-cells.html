@@ -10,9 +10,12 @@
     --font-mono:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;
     --maxw:1180px;--spine:70ch;
   }
-  @media (prefers-color-scheme:light){:root{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}}
+  @media (prefers-color-scheme:light){:root{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#166d36;--lumen:#0a6d67;--osteo:#895519;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}}
   :root[data-theme="dark"]{--ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;--line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);--chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;--chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);--sheet:#0b1714}
-  :root[data-theme="light"]{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}
+  :root[data-theme="light"]{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#166d36;--lumen:#0a6d67;--osteo:#895519;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}
+  body{background:var(--ground);color:var(--ink)}
+  caption{caption-side:top;text-align:left;font-family:var(--font-mono);font-size:.74rem;letter-spacing:.06em;color:var(--ink-3);padding:0 0 8px}
+
 
   *{box-sizing:border-box}body{margin:0}
   .page{background:radial-gradient(1100px 640px at 82% -6%,var(--chloro-soft),transparent 60%),radial-gradient(900px 520px at 6% 3%,var(--lumen-soft),transparent 55%),var(--ground);color:var(--ink);font-family:var(--font-body);font-size:16.5px;line-height:1.66;letter-spacing:.005em;overflow-x:hidden;min-height:100vh}
@@ -99,6 +102,7 @@
   @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
   ::selection{background:var(--chloro);color:var(--ground)}
   :focus-visible{outline:2px solid var(--lumen);outline-offset:3px;border-radius:3px}
+  section.doc h3.h4{font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:22px 0 8px}
 </style>
 
 <div class="page"><div class="wrap">
@@ -139,7 +143,7 @@
     </nav>
   </header>
 
-  <p class="lead" style="margin-top:30px">The other GESTALT documents describe organs — a hull, a lung, a skeleton, a nursery. This one goes one level down, to the cells those organs are made of. A single NAVIS hull is on the order of <strong>10<sup>19</sup> cells</strong>; the whole crewed vessel is a small planet's worth of them. They come in about <strong>42 distinct types across eight functional classes</strong>, and — like every animal, plant and fungus — <em>all</em> of them descend by division and differentiation from the handful of cells packed into one seed. What follows is their census: role, survival, metabolism, life-cycle, coordination, and distribution, then how each would be engineered, grown and tested. Where a cell type maps to a real, transformable organism or a demonstrated technique it is marked <span class="real">green</span>; where the integration is a genuine bet it is marked <span class="gap">gap</span>. This document assumes the chassis organisms and gene circuits set out in the <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075#chassis">Compendium</a>.</p>
+  <p class="lead" style="margin-top:30px">The other GESTALT documents describe organs — a hull, a lung, a skeleton, a nursery. This one goes one level down, to the cells those organs are made of. A single NAVIS hull is on the order of <strong><span data-calc="navis.cells">10<sup>19</sup></span> cells</strong>; the whole crewed vessel is a small planet's worth of them. They come in about <strong>42 distinct types across eight functional classes</strong>, and — like every animal, plant and fungus — <em>all</em> of them descend by division and differentiation from the handful of cells packed into one seed. What follows is their census: role, survival, metabolism, life-cycle, coordination, and distribution, then how each would be engineered, grown and tested. Where a cell type maps to a real, transformable organism or a demonstrated technique it is marked <span class="real">green</span>; where the integration is a genuine bet it is marked <span class="gap">gap</span>. This document assumes the chassis organisms and gene circuits set out in the <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075#chassis">Compendium</a>.</p>
 
   <!-- ===== 01 PLAN ===== -->
   <section class="doc reveal" id="plan">
@@ -150,7 +154,7 @@
       <p>The division of labour is the same one the <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075#chassis">Compendium</a> sets out at the organism level — a designed consortium of a structural fungus, photosynthetic microbes, mineralising cells and a few specialists — but here each is resolved into the specific differentiated cell types it produces. The consortium is real; the <em>differentiation program</em> that places 10<sup>19</sup> cells into a shaped, self-maintaining body is the single largest bet in the whole enterprise (§11).</p>
 
       <div class="fig" role="img" aria-label="A lineage tree: one totipotent seed founder cell dividing and differentiating into eight functional classes of cell, each with example cell types.">
-<svg viewBox="0 0 960 474" role="img">
+<svg viewBox="0 0 960 474" aria-hidden="true" focusable="false">
 <rect x="18" y="205" width="116" height="64" rx="9" fill="var(--chloro-soft)" stroke="var(--chloro)"/>
 <text x="76" y="231" text-anchor="middle" font-family="var(--font-display)" font-size="13" fill="var(--ink)">seed founder</text>
 <text x="76" y="248" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">totipotent</text>
@@ -191,7 +195,7 @@
       </div>
       <p class="figcap">From one founder to forty-two types. Every cell in the vessel is a clonal descendant of the seed's totipotent founders; differentiation is directed by position, stress and morphogen gradients during gestation (§10). Colour marks the broad job: <span style="color:var(--chloro)">green</span> = living structure &amp; metabolism, <span style="color:var(--lumen)">cyan</span> = transport, sensing &amp; coordination, <span style="color:var(--osteo)">amber</span> = mineral, defence &amp; resource work.</p>
 
-      <div class="callout cool"><span class="lab">The census — a NAVIS hull</span><p>The 120 m × 50 m hull is a ~5.5 m-thick living shell of ~15,800 m² area and ~87,000 m³ volume. At tissue densities of ~10<sup>12</sup>/m³ (sparse mycelial matrix) to ~10<sup>14</sup>/m³ (denser cellular tissue), that is <strong>~5×10<sup>18</sup> cells in the hull alone</strong> — before the decks, vasculature and interior. The design target is not to specify each one, but to specify ~42 <em>types</em> and the rules that place and renew them.</p></div>
+      <div class="callout cool"><span class="lab">The census — a NAVIS hull</span><p>The hull's main body, 100 m × 50 m (~120 m overall with its organs), is a ~5.5 m-thick living shell of ~<span data-calc="navis.area">13,400</span> m² outer area and ~<span data-calc="navis.wall_volume">61,000</span> m³ of wall. At tissue densities of ~10<sup>12</sup>/m³ (sparse mycelial matrix) to ~10<sup>14</sup>/m³ (denser cellular tissue), that is <strong>up to ~<span data-calc="navis.cells_hi">6×10<sup>18</sup></span> cells in the structural wall</strong>; the half-metre photosynthetic intima, at the ~10<sup>15</sup>/m³ of a dense algal culture, adds ~<span data-calc="navis.intima_cells">5×10<sup>18</sup></span> more — <strong>~<span data-calc="navis.cells">10<sup>19</sup></span> in all</strong>, before the decks, vasculature and interior. The design target is not to specify each one, but to specify ~42 <em>types</em> and the rules that place and renew them.</p></div>
     </div>
   </section>
 
@@ -204,6 +208,7 @@
     </div>
     <div class="tbl-wrap">
       <table>
+          <caption>Cell types — Skin, wood, bone and the seal</caption>
         <thead><tr><th>Cell type · where</th><th>Role &amp; how it survives</th><th>Chassis &amp; nutrition</th><th>Life-cycle · coordination · distribution</th></tr></thead>
         <tbody>
           <tr><td>Epidermal scute cell <span class="rw">epidermis, 0.5 m</span></td><td>Builds a tough lignin/suberin-analogue wall, then <em>dies on purpose</em> to become the dead, ablative outer armour that takes micrometeoroid hits.<sup class="cite"><a href="#cref-2">[2]</a></sup> Survives by not needing to — it is meant to be sacrificial.</td><td>Fungal/plant-wall lineage; heterotroph while alive (fed sugar), inert once cornified.</td><td>Differentiate → wall-thicken → programmed death → ablate → replaced from below. Turnover paced to the micrometeoroid flux the baroreceptors report. Outermost skin.</td></tr>
@@ -227,6 +232,7 @@
     </div>
     <div class="tbl-wrap">
       <table>
+          <caption>Cell types — The air plant, and the cells that feed everyone else</caption>
         <thead><tr><th>Cell type · where</th><th>Role &amp; how it survives</th><th>Chassis &amp; nutrition</th><th>Life-cycle · coordination · distribution</th></tr></thead>
         <tbody>
           <tr><td>Cyanobacterial symbiont <span class="r">intima, 0.5 m</span></td><td>Oxygenic photosynthesis: makes the crew's O₂ and exports sucrose to the fungus.<sup class="cite"><a href="#cref-8">[8]</a></sup> Survives high light via tuned photoprotection.</td><td><em>Synechocystis</em> PCC 6803 with <span class="chem">cscB</span> sucrose export; autotroph (light + CO₂).</td><td>Divides fast; population held in check by host density control &amp; the immune census (§06). Lines the lit inner wall and light-guide terminals.</td></tr>
@@ -248,6 +254,7 @@
     </div>
     <div class="tbl-wrap">
       <table>
+          <caption>Cell types — The plumbing that keeps metres of tissue alive</caption>
         <thead><tr><th>Cell type · where</th><th>Role &amp; how it survives</th><th>Chassis &amp; nutrition</th><th>Life-cycle · coordination · distribution</th></tr></thead>
         <tbody>
           <tr><td>Endothelial-analogue <span class="rc">every channel</span></td><td>Lines the vascular tubes; controls what crosses the wall and keeps the sap in. A breach here is a leak, so it is a first responder to damage.</td><td>Engineered epithelial lineage; fed from the flow it carries.</td><td>Renews along the channel; sprouts new capillaries toward hungry (hypoxic) tissue — the body grows its own plumbing. Everywhere, at every scale of the tree.</td></tr>
@@ -273,6 +280,7 @@
     </div>
     <div class="tbl-wrap">
       <table>
+          <caption>Cell types — The nervous system of a grown ship</caption>
         <thead><tr><th>Cell type · where</th><th>Role &amp; how it survives</th><th>Chassis &amp; nutrition</th><th>Life-cycle · coordination · distribution</th></tr></thead>
         <tbody>
           <tr><td>Photoreceptor cell <span class="rc">phototropic cap</span></td><td>Senses light direction (opsin) and drives phototropism — turning the clarified windows toward the star to feed the intima.</td><td>Opsin-bearing sensory cell; fed.</td><td>Long-lived sensor; signals the contractile cells that re-aim the cap. Clustered in the forward cap.</td></tr>
@@ -295,6 +303,7 @@
     </div>
     <div class="tbl-wrap">
       <table>
+          <caption>Cell types — Policing 10¹⁹ cells</caption>
         <thead><tr><th>Cell type · where</th><th>Role &amp; how it survives</th><th>Chassis &amp; nutrition</th><th>Life-cycle · coordination · distribution</th></tr></thead>
         <tbody>
           <tr><td>Immune surveillance cell <span class="rc">patrols</span></td><td>Patrols for off-spec, cancerous or foreign cells and marks them for death — an engineered CAR-style recognition system.<sup class="cite"><a href="#cref-13">[13]</a></sup></td><td>CAR-analogue sentinel; fed.</td><td>Renewed from progenitors; roams the vasculature and tissue. Everywhere.</td></tr>
@@ -316,6 +325,7 @@
     </div>
     <div class="tbl-wrap">
       <table>
+          <caption>Cell types — Pulling a spacecraft out of a rock</caption>
         <thead><tr><th>Cell type · where</th><th>Role &amp; how it survives</th><th>Chassis &amp; nutrition</th><th>Life-cycle · coordination · distribution</th></tr></thead>
         <tbody>
           <tr><td>Chemolithotroph miner <span class="rw">mining root</span></td><td>Oxidises Fe/S, secretes acid and bioleaches metals from rock — industrial biomining, run as a tissue.<sup class="cite"><a href="#cref-14">[14]</a></sup> Survives extreme acidity it makes itself.</td><td><em>Acidithiobacillus ferrooxidans/thiooxidans</em>; chemoautotroph (energy from minerals).</td><td>Divides at the rock face; guided to ore by chemoreceptors. In the root tips against the resource body.</td></tr>
@@ -336,7 +346,7 @@
       <p>The tissue cells above are only half the census. The body also carries a <strong>microbiome</strong> of free-living guilds that close the element loops — exactly the microbes an Earth soil or a closed life-support system runs on. They are not decoration: without them the nitrogen and carbon cycles do not close, and the body starves on its own waste.<sup class="cite"><a href="#cref-17">[17]</a></sup></p>
 
       <div class="fig" role="img" aria-label="A trophic web: light drives the photosynthetic intima, which feeds heterotroph tissue and the crew; waste and dead cells feed decomposers and the nitrogen guild; chemolithotroph miners feed on rock; storage buffers the loop.">
-<svg viewBox="0 0 960 430" role="img">
+<svg viewBox="0 0 960 430" aria-hidden="true" focusable="false">
 <line x1="192" y1="96" x2="245" y2="172" stroke="var(--lumen)" stroke-opacity=".65" stroke-width="1.5"/><path d="M245 172 L238 168 L244 164 Z" fill="var(--lumen)" fill-opacity=".8"/><text x="219" y="130" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">energy</text>
 <line x1="424" y1="178" x2="492" y2="161" stroke="var(--chloro)" stroke-opacity=".65" stroke-width="1.5"/><path d="M492 161 L485 166 L483 160 Z" fill="var(--chloro)" fill-opacity=".8"/><text x="458" y="165" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">sugar+O₂</text>
 <line x1="339" y1="150" x2="762" y2="133" stroke="var(--chloro)" stroke-opacity=".65" stroke-width="1.5"/><path d="M762 133 L754 137 L754 130 Z" fill="var(--chloro)" fill-opacity=".8"/><text x="551" y="138" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">O₂+food</text>
@@ -363,6 +373,7 @@
     </div>
     <div class="tbl-wrap">
       <table>
+          <caption>Cell types — A managed microbiome, not just a machine</caption>
         <thead><tr><th>Guild · where</th><th>Role &amp; how it survives</th><th>Chassis &amp; nutrition</th><th>Life-cycle · coordination · distribution</th></tr></thead>
         <tbody>
           <tr><td>Nitrogen fixer <span class="r">anoxic pockets</span></td><td>Fixes N₂ → ammonia to replace nitrogen lost to leakage; runs its nitrogenase in O₂-protected heterocysts.<sup class="cite"><a href="#cref-18">[18]</a></sup></td><td><em>Anabaena</em> / <em>Azotobacter</em>; diazotroph.</td><td>Population tuned to N-demand. In anoxic micro-niches.</td></tr>
@@ -372,7 +383,7 @@
           <tr><td>Storage &amp; buffer microbes <span class="r">reserves</span></td><td>Bank nutrients and dampen swings, giving the closed ecology inertia against shocks (the flywheel that a real closed system needs).</td><td>Reserve-accumulating microbes; heterotroph.</td><td>Distributed reservoir; the ecosystem's shock absorber.</td></tr>
         </tbody>
       </table>
-      <div class="callout warm"><span class="lab">The honest hard part</span><p>An ecosystem of dozens of engineered types coexisting <em>stably</em> for decades, without one lineage outcompeting, mutating or crashing the others, is unproven. Biosphere-2's oxygen crashed in two years; BIOS-3 and MELiSSA held closure only for months at small scale.<sup class="cite"><a href="#cref-17">[17]</a></sup> Long-term closed-ecology stability is the goal of Earth-Program <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#wp2">WP2</a>, not a solved problem. <span class="gap">gap</span></p></div>
+      <div class="callout warm"><span class="lab">The honest hard part</span><p>An ecosystem of dozens of engineered types coexisting <em>stably</em> for decades, without one lineage outcompeting, mutating or crashing the others, is unproven. Biosphere-2's oxygen fell from 20.9% to about 14% in its first 16 months, until pure O₂ had to be injected; BIOS-3 and MELiSSA held closure only for months at small scale.<sup class="cite"><a href="#cref-17">[17]</a></sup> Long-term closed-ecology stability is the goal of Earth-Program <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#wp2">WP2</a>, not a solved problem. <span class="gap">gap</span></p></div>
     </div>
   </section>
 
@@ -389,7 +400,7 @@
       </div>
 
       <div class="fig" role="img" aria-label="A depth map of the hull showing which cell types populate each of the six layers, with the vascular tree threading through and capillaries spaced about 400 micrometres apart.">
-<svg viewBox="0 0 960 400" role="img">
+<svg viewBox="0 0 960 400" aria-hidden="true" focusable="false">
 <text x="120" y="38" text-anchor="end" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">DEPTH·m</text>
 <text x="300.0" y="38" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">VACUUM ↑</text>
 <rect x="150" y="52.0" width="300" height="29.1" fill="#5f7c68" fill-opacity=".55" stroke="var(--line-2)"/>
@@ -484,28 +495,30 @@
     <div class="flow">
       <p>Each cell type is reached the same way: start from a real, transformable chassis; add characterised gene circuits for its job; wire in the containment and differentiation controls; then prove it at increasing scale. The chassis and parts are the <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075#genome">Compendium's</a> subject; here is the cell-level pipeline.</p>
 
-      <h4>Engineer — the payload every cell carries</h4>
+      <h3 class="h4">Engineer — the payload every cell carries</h3>
       <div class="tbl-wrap">
         <table>
+          <caption>Engineer — the payload every cell carries</caption>
           <thead><tr><th>Module</th><th>What it does</th><th>Real basis</th></tr></thead>
           <tbody>
             <tr><td>Differentiation circuit</td><td>Reads morphogen/contact signals and commits the cell to a type (synNotch, optogenetic gates).</td><td>Synthetic morphogen &amp; synNotch patterning<sup class="cite"><a href="#cref-11">[11]</a></sup></td></tr>
             <tr><td>Job payload</td><td>The genes for the cell's product — <span class="chem">cscB</span>, silk, collagen, MICP, opsin, luciferase, CAR receptor…</td><td>Each demonstrated separately (§§02–07 refs)</td></tr>
             <tr><td>Containment</td><td>Auxotrophy + engineered kill-switches, so no cell survives outside the body or off its feedstock.</td><td>Synthetic auxotrophy / safeguard circuits<sup class="cite"><a href="#cref-19">[19]</a></sup></td></tr>
-            <tr><td>Cancer &amp; drift control</td><td>Telomere cap, armed apoptosis, and CHORUS re-sync tags (§§05–06).</td><td>Tumour-suppressor &amp; suicide circuits<sup class="cite"><a href="#cref-13">[13]</a></sup></td></tr>
+            <tr><td>Cancer &amp; drift control</td><td>Telomere cap, armed apoptosis, and CHORUS re-sync tags (§§05–06).</td><td>Tumour-suppressor &amp; suicide circuits<sup class="cite"><a href="#cref-20">[20]</a></sup></td></tr>
           </tbody>
         </table>
       </div>
 
-      <h4>Grow — the differentiation cascade</h4>
+      <h3 class="h4">Grow — the differentiation cascade</h3>
       <div class="pathway">
         <span class="step">seed founders</span> → <span class="en">morphogen field</span> established by organizer cells → founders read position &amp; stress → commit to <b>class</b> → commit to <b>type</b> → tissue lays down <span class="en">with its vasculature</span> → large structures built as repeating <b>somites</b> in parallel → size-sensing halts the front
       </div>
       <p>Big bodies are grown the way embryos build spines: as many identical segments in parallel, so a 10 km ARCA drum does not wait on one slow growth front but on ~20 running at once.</p>
 
-      <h4>Test — the ladder that de-risks it</h4>
+      <h3 class="h4">Test — the ladder that de-risks it</h3>
       <div class="tbl-wrap">
         <table>
+          <caption>Test — the ladder that de-risks it</caption>
           <thead><tr><th>Rung</th><th>What it proves for cells</th><th>Earth-Program stage</th></tr></thead>
           <tbody>
             <tr><td>Single-type organoid</td><td>Each cell type differentiates, survives and does its job in isolation.</td><td><a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#phases">Phase 0</a> · component brick</td></tr>
@@ -536,25 +549,26 @@
         <h3>References</h3>
         <p class="refs-note">Representative sources for the cell-level claims. Many overlap the <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075">Compendium</a>'s apparatus; each supports a specific mechanism, not the integrated whole.</p>
         <ol>
-          <li id="cref-1">Frost, H.M. <span class="rt">"Bone's mechanostat" / Wolff's law</span> — mechanically directed bone remodelling (self-optimising structure).</li>
-          <li id="cref-2">Programmed cell death in cornification &amp; bark (suberin/lignin) — <span class="rt">sacrificial dead outer layers in biology.</span></li>
-          <li id="cref-3">Dadachova, E. et al. (2007) <span class="rt">"Ionizing radiation changes the electronic properties of melanin and enhances the growth of melanized fungi."</span> PLoS ONE.</li>
-          <li id="cref-4">Cox, M.M. &amp; Battista, J.R. (2005) <span class="rt">"Deinococcus radiodurans — the consummate survivor."</span> Nat. Rev. Microbiol.</li>
-          <li id="cref-5">Haneef, M. et al. (2017) <span class="rt">"Advanced materials from fungal mycelium."</span> Sci. Rep.</li>
-          <li id="cref-6">DeJong, J.T. et al. (2010) <span class="rt">"Microbially induced calcite precipitation (MICP)."</span> Ecol. Eng.</li>
-          <li id="cref-7">Bowen, C.H. et al. (2018) <span class="rt">"Recombinant spider silk production in microbes."</span> Biomacromolecules.</li>
-          <li id="cref-8">Ducat, D.C. et al. (2012) <span class="rt">"Rerouting carbon flux to enhance sucrose secretion by cyanobacteria" (cscB).</span> AEM.</li>
-          <li id="cref-9">Piatigorsky, J. <span class="rt">Crystallins &amp; the transparency of lens fibre cells;</span> Müller-cell light-guiding in the retina.</li>
-          <li id="cref-10">Murray, C.D. (1926) <span class="rt">"The physiological principle of minimum work"</span> (Murray's law); Krogh's diffusion-limit tissue model.</li>
-          <li id="cref-11">Toda, S. et al. (2018) <span class="rt">"Programming self-organizing multicellular structures with synthetic cell–cell signaling" (synNotch).</span> Science.</li>
-          <li id="cref-12">Fromm, J. &amp; Lautner, S. (2007) <span class="rt">"Electrical signals in plants";</span> Adamatzky, A. — fungal electrical signalling.</li>
-          <li id="cref-13">June, C.H. et al. (2018) <span class="rt">"CAR T cell immunotherapy"</span> — engineered cellular recognition &amp; killing.</li>
-          <li id="cref-14">Rawlings, D.E. &amp; Johnson, D.B. (2007) <span class="rt">"The microbiology of biomining"</span> (<em>Acidithiobacillus</em>).</li>
-          <li id="cref-15">Davila, A.F. et al. — <span class="rt">perchlorate reduction &amp; brine biology relevant to Mars regolith.</span></li>
-          <li id="cref-16">Bazylinski, D.A. &amp; Frankel, R.B. (2004) <span class="rt">"Magnetosome formation in prokaryotes."</span> Nat. Rev. Microbiol.</li>
-          <li id="cref-17">Nelson, M. et al. — <span class="rt">Biosphere-2 &amp; BIOS-3/MELiSSA closed-ecology life support (limits of closure).</span></li>
-          <li id="cref-18">Kumar, K. et al. (2010) <span class="rt">"Heterocyst differentiation and nitrogen fixation in cyanobacteria."</span></li>
-          <li id="cref-19">Mandell, D.J. et al. (2015) <span class="rt">"Biocontainment of genetically modified organisms by synthetic auxotrophy."</span> Nature.</li>
+          <li id="cref-1">Frost, H.M. (2003) <span class="rt">"Bone's mechanostat: a 2003 update."</span> Anat. Rec. A 275A, 1081–1101. doi:<a href="https://doi.org/10.1002/ar.a.10119">10.1002/ar.a.10119</a> — mechanically directed bone remodelling (the mechanostat / Wolff's law): self-optimising structure.</li>
+          <li id="cref-2">Eckhart, L. et al. (2013) <span class="rt">"Cell death by cornification."</span> Biochim. Biophys. Acta 1833, 3471–3480. doi:<a href="https://doi.org/10.1016/j.bbamcr.2013.06.010">10.1016/j.bbamcr.2013.06.010</a>; Franke, R. &amp; Schreiber, L. (2007) <span class="rt">"Suberin — a biopolyester forming apoplastic plant interfaces."</span> Curr. Opin. Plant Biol. 10, 252–259. doi:<a href="https://doi.org/10.1016/j.pbi.2007.04.004">10.1016/j.pbi.2007.04.004</a> — programmed cell death in cornification &amp; suberised bark: sacrificial dead outer layers in biology.</li>
+          <li id="cref-3">Dadachova, E. et al. (2007) <span class="rt">"Ionizing radiation changes the electronic properties of melanin and enhances the growth of melanized fungi."</span> PLoS ONE 2, e457. doi:<a href="https://doi.org/10.1371/journal.pone.0000457">10.1371/journal.pone.0000457</a></li>
+          <li id="cref-4">Cox, M.M. &amp; Battista, J.R. (2005) <span class="rt">"<em>Deinococcus radiodurans</em> — the consummate survivor."</span> Nat. Rev. Microbiol. 3, 882–892. doi:<a href="https://doi.org/10.1038/nrmicro1264">10.1038/nrmicro1264</a></li>
+          <li id="cref-5">Haneef, M. et al. (2017) <span class="rt">"Advanced materials from fungal mycelium: fabrication and tuning of physical properties."</span> Sci. Rep. 7, 41292. doi:<a href="https://doi.org/10.1038/srep41292">10.1038/srep41292</a></li>
+          <li id="cref-6">DeJong, J.T. et al. (2010) <span class="rt">"Bio-mediated soil improvement."</span> Ecol. Eng. 36, 197–210. doi:<a href="https://doi.org/10.1016/j.ecoleng.2008.12.029">10.1016/j.ecoleng.2008.12.029</a> — microbially induced calcite precipitation (MICP).</li>
+          <li id="cref-7">Bowen, C.H. et al. (2018) <span class="rt">"Recombinant spidroins fully replicate primary mechanical properties of natural spider silk."</span> Biomacromolecules 19, 3853–3860. doi:<a href="https://doi.org/10.1021/acs.biomac.8b00980">10.1021/acs.biomac.8b00980</a> — recombinant spider-silk production in microbes.</li>
+          <li id="cref-8">Ducat, D.C. et al. (2012) <span class="rt">"Rerouting carbon flux to enhance photosynthetic productivity."</span> Appl. Environ. Microbiol. 78, 2660–2668. doi:<a href="https://doi.org/10.1128/AEM.07901-11">10.1128/AEM.07901-11</a> — cyanobacterial sucrose export via the <em>cscB</em> transporter.</li>
+          <li id="cref-9">Piatigorsky, J. (1998) <span class="rt">"Gene sharing in lens and cornea: facts and implications."</span> Prog. Retin. Eye Res. 17, 145–174. doi:<a href="https://doi.org/10.1016/S1350-9462(97)00004-9">10.1016/S1350-9462(97)00004-9</a>; Franze, K. et al. (2007) <span class="rt">"Müller cells are living optical fibers in the vertebrate retina."</span> Proc. Natl. Acad. Sci. USA 104, 8287–8292. doi:<a href="https://doi.org/10.1073/pnas.0611180104">10.1073/pnas.0611180104</a> — crystallins &amp; the transparency of lens fibre cells; Müller-cell light-guiding in the retina.</li>
+          <li id="cref-10">Murray, C.D. (1926) <span class="rt">"The physiological principle of minimum work: I. The vascular system and the cost of blood volume."</span> Proc. Natl. Acad. Sci. USA 12, 207–214. doi:<a href="https://doi.org/10.1073/pnas.12.3.207">10.1073/pnas.12.3.207</a>; Krogh, A. (1919) <span class="rt">"The number and distribution of capillaries in muscles with calculations of the oxygen pressure head necessary for supplying the tissue."</span> J. Physiol. 52, 409–415. doi:<a href="https://doi.org/10.1113/jphysiol.1919.sp001839">10.1113/jphysiol.1919.sp001839</a> — Murray's law; Krogh's diffusion-limit tissue model.</li>
+          <li id="cref-11">Toda, S. et al. (2018) <span class="rt">"Programming self-organizing multicellular structures with synthetic cell–cell signaling."</span> Science 361, 156–162. doi:<a href="https://doi.org/10.1126/science.aat0271">10.1126/science.aat0271</a> — synNotch.</li>
+          <li id="cref-12">Fromm, J. &amp; Lautner, S. (2007) <span class="rt">"Electrical signals and their physiological significance in plants."</span> Plant Cell Environ. 30, 249–257. doi:<a href="https://doi.org/10.1111/j.1365-3040.2006.01614.x">10.1111/j.1365-3040.2006.01614.x</a>; Adamatzky, A. (2018) <span class="rt">"On spiking behaviour of oyster fungi <em>Pleurotus djamor</em>."</span> Sci. Rep. 8, 7873. doi:<a href="https://doi.org/10.1038/s41598-018-26007-1">10.1038/s41598-018-26007-1</a> — plant electrical signalling; spiking electrical activity in fungal mycelium.</li>
+          <li id="cref-13">June, C.H. et al. (2018) <span class="rt">"CAR T cell immunotherapy for human cancer."</span> Science 359, 1361–1365. doi:<a href="https://doi.org/10.1126/science.aar6711">10.1126/science.aar6711</a> — engineered cellular recognition &amp; killing.</li>
+          <li id="cref-14">Rawlings, D.E. &amp; Johnson, D.B. (2007) <span class="rt">"The microbiology of biomining: development and optimization of mineral-oxidizing microbial consortia."</span> Microbiology 153, 315–324. doi:<a href="https://doi.org/10.1099/mic.0.2006/001206-0">10.1099/mic.0.2006/001206-0</a> — <em>Acidithiobacillus</em> and other mineral-oxidising bioleaching consortia.</li>
+          <li id="cref-15">Davila, A.F., Willson, D., Coates, J.D. &amp; McKay, C.P. (2013) <span class="rt">"Perchlorate on Mars: a chemical hazard and a resource for humans."</span> Int. J. Astrobiol. 12, 321–325. doi:<a href="https://doi.org/10.1017/S1473550413000189">10.1017/S1473550413000189</a> — perchlorate toxicity on Mars and its microbial reduction (a detox that releases O₂).</li>
+          <li id="cref-16">Bazylinski, D.A. &amp; Frankel, R.B. (2004) <span class="rt">"Magnetosome formation in prokaryotes."</span> Nat. Rev. Microbiol. 2, 217–230. doi:<a href="https://doi.org/10.1038/nrmicro842">10.1038/nrmicro842</a></li>
+          <li id="cref-17">Nelson, M., Pechurkin, N.S., Allen, J.P., Somova, L.A. &amp; Gitelson, J.I. (2010) <span class="rt">"Closed ecological systems, space life support and biospherics."</span> In <em>Environmental Biotechnology</em> (Handbook of Environmental Engineering 10), 517–565. Humana Press. doi:<a href="https://doi.org/10.1007/978-1-60327-140-0_11">10.1007/978-1-60327-140-0_11</a>; Severinghaus, J.P. et al. (1994) <span class="rt">"Oxygen loss in Biosphere 2."</span> Eos 75, 33–37. doi:<a href="https://doi.org/10.1029/94EO00285">10.1029/94EO00285</a> — Biosphere 2, BIOS-3 &amp; MELiSSA closed-ecology life support (limits of closure); Biosphere 2 O₂ fell from 21% to 14% in 16 months.</li>
+          <li id="cref-18">Kumar, K., Mella-Herrera, R.A. &amp; Golden, J.W. (2010) <span class="rt">"Cyanobacterial heterocysts."</span> Cold Spring Harb. Perspect. Biol. 2, a000315. doi:<a href="https://doi.org/10.1101/cshperspect.a000315">10.1101/cshperspect.a000315</a> — heterocyst differentiation and O₂-protected nitrogen fixation in cyanobacteria.</li>
+          <li id="cref-19">Mandell, D.J. et al. (2015) <span class="rt">"Biocontainment of genetically modified organisms by synthetic protein design."</span> Nature 518, 55–60. doi:<a href="https://doi.org/10.1038/nature14121">10.1038/nature14121</a> — synthetic auxotrophy (dependence on a non-standard amino acid).</li>
+          <li id="cref-20">Di Stasi, A. et al. (2011) <span class="rt">"Inducible apoptosis as a safety switch for adoptive cell therapy."</span> N. Engl. J. Med. 365, 1673–1683. doi:<a href="https://doi.org/10.1056/NEJMoa1106152">10.1056/NEJMoa1106152</a> — an engineered suicide switch (inducible caspase-9) that removes rogue cells on command.</li>
         </ol>
       </div>
     </div>

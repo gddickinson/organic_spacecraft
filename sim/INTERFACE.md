@@ -2,8 +2,9 @@
 
 Small, dependency-light Python package that models the **major systems** of the
 main GESTALT designs and renders them as **animated 3D visualisations** (GIFs).
-Every number is grounded in the program documents (via `params.py`), so the
-simulations stay consistent with the rest of the project.
+Document numbers come from the root `calcs/` package (which checks them against
+the documents), and `doccheck.py` compares every remaining parameter with the
+documents, so the simulations cannot drift from the rest of the project.
 
 ## Layout
 
@@ -13,6 +14,7 @@ sim/
 ├── systems.py     System dynamics — pure functions returning time-series arrays
 ├── geometry.py    3D mesh / point generators (spheroid, drum, dome, cradles, crew)
 ├── animate.py     Builders: geometry + systems -> a 3D scene + gauges -> animated GIF
+├── doccheck.py    Parameters and outputs vs the documents' numbers (via calcs)
 ├── run.py         CLI entry point
 └── INTERFACE.md   this file
 ```
@@ -21,10 +23,10 @@ sim/
 
 | Design | 3D scene | Systems shown |
 |---|---|---|
-| **NAVIS** | a green spheroid **growing** from a seed, mining root reaching to a rock, day/night intima glow | growth curve (→ ~24,000 t), deposition rate (→ mining ceiling), photosynthesis-vs-mining metabolism |
-| **ARCA** | a **spinning** drum with crew on the inner surface, glowing axial sun-cord, a Coriolis drop path | spin gravity g(r) → 1 g at the rim, day/night, the ~125-yr O₂ reserve staying stable |
-| **LICHEN** | a dome on regolith with a sun crossing the sky | day/night surface temperature swing vs a stable 293 K interior, pressure balance |
-| **GRAVID** | cradles budding off a feedstock spine, embryos **gestating** (amber → green), one hatching | staggered gestation cycles, per-cradle throughput |
+| **NAVIS** | a green spheroid (100 × 50 m body) **growing** from a seed, mining root reaching to a rock, day/night intima glow | the Dossier growth model (→ 24,000 t in ~5 yr), deposition rate (→ 16 t/day ceiling), the metabolism ledger from `calcs` |
+| **ARCA** | a **spinning** drum with crew on the inner surface, glowing axial sun-cord, a Coriolis drop path | spin gravity g(r) → 1 g at the rim; O₂/CO₂ driven by light- and CO₂-limited photosynthesis against crew respiration (RQ 0.92) — the ~142-yr O₂ reserve drifts ~1.8 points/century without carbonate make-up |
+| **LICHEN** | a dome on regolith with a sun crossing the sky | day/night surface swing; interior as a thermal RC circuit (τ ≈ 0.5 yr, steady ≈ 280 K with 1 MW of people inside) |
+| **GRAVID** | 12 cradles budding off a feedstock spine, embryos **gestating** (amber → green), one hatching | staggered ~3.5-yr gestation cycles, per-cradle throughput |
 
 ## How the modules connect
 
@@ -46,7 +48,7 @@ sim/
 python -m sim.run              # render every design -> assets/sim/sim-<key>.gif
 python -m sim.run navis arca   # a subset
 python -m sim.run --fast       # few frames — a quick smoke test
-python -m sim.run --check      # run every model once, render nothing (fast validation)
+python -m sim.run --check      # run every model, check params vs documents and calcs --check
 ```
 
 Requires `numpy` + `matplotlib` + `Pillow` (all standard scientific-Python).

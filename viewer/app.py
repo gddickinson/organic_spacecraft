@@ -17,13 +17,13 @@ relative to this file, so either works.
 import argparse
 import sys
 import webbrowser
-from functools import partial
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import index  # noqa: E402
+import links  # noqa: E402
 import models_page  # noqa: E402
 from catalog import BY_SLUG, artifact_id_to_slug  # noqa: E402
 from wrap import wrap  # noqa: E402
@@ -120,7 +120,13 @@ def check():
             ok = False
     idx = index.render()
     print(f"  ok   /             index ({len(idx):,} bytes)")
-    return ok
+    problems = links.audit(DOCS_DIR)
+    for line in problems:
+        print(f"  FAIL link  {line}")
+    if not problems:
+        print(f"  ok   links: every nav in catalog order, every artifact id "
+              f"known, every #anchor present")
+    return ok and not problems
 
 
 def main(argv=None):

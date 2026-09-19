@@ -21,7 +21,8 @@ class Doc:
     blurb: str         # one-line description for the index card
 
 
-# Order here is the order shown on the landing page.
+# Order here is the order shown on the landing page, and it is the
+# documents' own 13-entry program nav order (`--check` holds them together).
 DOCS = [
     Doc("dossier", "gestalt.html",
         "285ef29f-751e-4767-b5a6-9cd178faddb1",
@@ -41,12 +42,6 @@ DOCS = [
         "The million-person habitat drum: transverse and long sections, "
         "layered anatomy, unrolled biome map, a ~113 Mt atmosphere and a "
         "150 W/m² sun-cord light budget that closes the oxygen loop."),
-    Doc("fleet", "gestalt-fleet.html",
-        "7eeb70c7-e076-4b0d-b6e3-9e942c4d1091",
-        "Fleet Registry", "Fleet · registry", "🛰️",
-        "Grown-vehicle classes from seed-couriers to million-person habitats, "
-        "a technology-readiness scorecard mapped to Earth-Program phases, and "
-        "the governance & containment regime."),
     Doc("lichen", "gestalt-lichen.html",
         "94531439-d04d-480e-9d04-bad6fcdacd9a",
         "LICHEN", "Surface habitat · drawings", "🍄",
@@ -59,6 +54,18 @@ DOCS = [
         "The nursery organism that gestates the fleet from seeds: placental "
         "cradle sections, the seed-to-ship sequence, and a ~26 t/day "
         "throughput model (double the wild growth rate)."),
+    Doc("fleet", "gestalt-fleet.html",
+        "7eeb70c7-e076-4b0d-b6e3-9e942c4d1091",
+        "Fleet Registry", "Fleet · registry", "🛰️",
+        "Grown-vehicle classes from seed-couriers to million-person habitats, "
+        "a technology-readiness scorecard mapped to Earth-Program phases, and "
+        "the governance & containment regime."),
+    Doc("classes", "gestalt-classref.html",
+        "7ca9c965-1932-4c5a-b0f1-a99e9febae58",
+        "Fleet Class Reference", "Class reference", "🚀",
+        "A detailed profile of each of the 18 grown-vehicle classes — role, "
+        "form, full spec, seed-to-vessel growth protocol, and hardest "
+        "challenge — with links to the flagship drawing sets."),
     Doc("compendium", "gestalt-compendium.html",
         "d619e9af-9787-4d1b-8f1c-5a658789e075",
         "Engineering & Biology Compendium", "Technical reference", "🧬",
@@ -89,16 +96,10 @@ DOCS = [
         "that binds them."),
     Doc("earth", "gestalt-earthprogram.html",
         "bc243583-d959-4284-841a-70ab529d40ed",
-        "Earth Program", "R&D roadmap", "🌱",
+        "Earth Program", "R&D roadmap", "🧪",
         "The complete ground R&D/testing/prototyping roadmap: a 5-phase TRL "
         "ladder, six work packages, an integration ladder, a 40-year Gantt "
         "with a phased ~$30–40B budget, and a gated go/no-go framework."),
-    Doc("classes", "gestalt-classref.html",
-        "7ca9c965-1932-4c5a-b0f1-a99e9febae58",
-        "Fleet Class Reference", "Class reference", "🚀",
-        "A detailed profile of each of the 18 grown-vehicle classes — role, "
-        "form, full spec, seed-to-vessel growth protocol, and hardest "
-        "challenge — with links to the flagship drawing sets."),
     Doc("models", "gestalt-3d.html",
         "1c6f18ca-eeda-4d83-bd97-fd9c1622823d",
         "3D Models", "Interactive 3D", "🛸",

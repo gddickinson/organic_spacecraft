@@ -43,9 +43,9 @@
       --ink-3:#5f7166;
       --line:rgba(22,54,40,.14);
       --line-2:rgba(22,54,40,.24);
-      --chloro:#1f9a4c;
-      --lumen:#0c8a85;
-      --osteo:#b06f27;
+      --chloro:#166d36;
+      --lumen:#0a6d67;
+      --osteo:#895519;
       --chloro-soft:rgba(31,154,76,.12);
       --lumen-soft:rgba(12,138,133,.10);
       --osteo-soft:rgba(176,111,39,.12);
@@ -72,10 +72,13 @@
     --ground:#eef2ec;--ground-2:#e6ece5;--ground-3:#dde5db;
     --ink:#16241d;--ink-2:#3d4f45;--ink-3:#5f7166;
     --line:rgba(22,54,40,.14);--line-2:rgba(22,54,40,.24);
-    --chloro:#1f9a4c;--lumen:#0c8a85;--osteo:#b06f27;
+    --chloro:#166d36;--lumen:#0a6d67;--osteo:#895519;
     --chloro-soft:rgba(31,154,76,.12);--lumen-soft:rgba(12,138,133,.10);--osteo-soft:rgba(176,111,39,.12);
     --l-epidermis:#8a967f;--l-rind:#3b332d;--l-mycelium:#cfc9ad;--l-osteoid:#d99b52;--l-pneumostat:#8fc0bd;--l-intima:#3bb864;--l-void:#c3cdc2;--l-cabin:#b6c6d4;
   }
+  body{background:var(--ground);color:var(--ink)}
+  caption{caption-side:top;text-align:left;font-family:var(--font-mono);font-size:.74rem;letter-spacing:.06em;color:var(--ink-3);padding:0 0 8px}
+
 
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
@@ -298,16 +301,16 @@
       <div class="cell">
         <div class="k">Body diameter</div>
         <div class="v tnum">50<span class="u">m</span></div>
-        <div class="s">prolate spheroid, ~5.5 m living hull</div>
+        <div class="s">prolate spheroid, 100 m long, ~5.5 m living wall</div>
       </div>
       <div class="cell">
         <div class="k">Grown mass</div>
-        <div class="v tnum">24k<span class="u">t</span></div>
-        <div class="s">from a ~500 kg launched seed (≈48,000:1)</div>
+        <div class="v tnum"><span data-calc="navis.mass">24k</span><span class="u">t</span></div>
+        <div class="s">from a ~500 kg launched seed (≈<span data-calc="navis.seed_ratio">48,000</span>:1)</div>
       </div>
       <div class="cell">
         <div class="k">Gestation</div>
-        <div class="v tnum">~5<span class="u">yr</span></div>
+        <div class="v tnum">~<span data-calc="growth.navis_years">5</span><span class="u">yr</span></div>
         <div class="s">seed → pressurized, crew-ready organism</div>
       </div>
     </div>
@@ -470,17 +473,18 @@
       <h2>Bark over bone over a breathing skin</h2>
     </div>
     <div class="reveal">
-      <p>The bulk scaffold is <strong>mycelium</strong> — the chitin-and-glucan hyphal networks already being pressed into fire-resistant building panels today, and studied under NASA's myco-architecture program. Mycelium is superb in tension yet weak under point compression — a mycelium composite holds only ~0.1–1 MPa in compression, even though its chitin nanofibrils reach ~1.5–3 GPa in tension — so it never works alone. Threaded through it is an <strong>osteoid lattice</strong>: cells analogous to osteoblasts lay down a <strong>collagen–hydroxyapatite matrix</strong> — literally bone, ~100–150 MPa in tension and ~150–200 MPa in compression — grown as an open trabecular foam rather than a solid, pairing cheap tension with the compressive strength mycelium lacks. Wolff's Law does the structural optimization for free: struts thicken where sensors report chronic load and are resorbed where they sit idle. The hull tunes its own skeleton at a resolution no engineer could draft by hand.</p>
+      <p>The bulk scaffold is <strong>mycelium</strong> — the chitin-and-glucan hyphal networks already being pressed into fire-resistant building panels today, and studied under NASA's myco-architecture program. Mycelium is superb in tension yet weak under point compression — a mycelium composite holds only ~0.1–1 MPa in compression, even though its chitin nanofibrils reach ~1.5–3 GPa in tension — so it never works alone. Threaded through it is an <strong>osteoid lattice</strong>: cells analogous to osteoblasts lay down a <strong>collagen–hydroxyapatite matrix</strong> — literally bone. Dense (cortical) bone reaches ~130 MPa in tension and ~200 MPa in compression along its grain; here it is grown as an open trabecular foam rather than a solid, trading much of that strength for lightness while still supplying the compressive strength mycelium lacks. Wolff's Law does the structural optimization for free: struts thicken where sensors report chronic load and are resorbed where they sit idle. The hull tunes its own skeleton at a resolution no engineer could draft by hand.</p>
 
       <div class="callout cool">
         <span class="lab">How it holds atmosphere against vacuum</span>
-        <p>The <strong>pneumostat membrane</strong> is not one skin but a stack of hundreds of thin, gas-tight lamellae — plywood, not cling-film. A puncture that vents one lamella is caught by the next; there is no single surface whose failure is catastrophic. The cabin runs at a deliberately low <strong>52 kPa</strong> so hoop stress on the wall stays modest, and the organism spends metabolic energy staying sealed — scavenging back any gas that diffuses into the wall — the way your lungs actively manage gas rather than passively containing it. The load is quantitatively trivial: at 52 kPa the wall carries only ~0.65 MN per metre of hoop tension, which a few millimetres of silk-analogue fibre could hold — the full metre-thick pneumostat is a 15–300× margin, and the multi-metre wall exists for shielding, not for holding air.</p>
+        <p>The <strong>pneumostat membrane</strong> is not one skin but a stack of hundreds of thin, gas-tight lamellae — plywood, not cling-film. A puncture that vents one lamella is caught by the next; there is no single surface whose failure is catastrophic. The cabin runs at a deliberately low <strong>52 kPa</strong> so hoop stress on the wall stays modest, and the organism spends metabolic energy staying sealed — scavenging back any gas that diffuses into the wall — the way your lungs actively manage gas rather than passively containing it. The load is modest: at 52 kPa the drawn body's wall carries ~<span data-calc="navis.hoop">1.14</span> MN per metre of hoop tension at its equator (and ~<span data-calc="navis.meridional">0.65</span> MN/m along the meridians), which about a centimetre of silk-analogue fibre could hold — the full metre-thick pneumostat is a ~<span data-calc="navis.pneumostat_margin_lo">9</span>–<span data-calc="navis.pneumostat_margin_hi">175</span>× margin, depending on how hard its lamellae are worked, and the multi-metre wall exists for shielding, not for holding air.</p>
       </div>
 
-      <p>A geometric note from the aerospace side: the pressure hull is a <strong>prolate spheroid</strong>, spin-decoupled from docking and habitat modules, because a rounded vessel minimizes wall stress per unit enclosed volume — the same reason cells, eggs and pressure tanks are round.</p>
+      <p>A geometric note from the aerospace side: the pressure hull is a <strong>prolate spheroid</strong>, spin-decoupled from docking and habitat modules, because a rounded vessel keeps wall stress low for the volume it encloses — the same reason cells, eggs and pressure tanks are round. (A sphere would be lower still: the 2 : 1 body pays ~75% more equatorial hoop tension than a 50 m sphere, in exchange for twice the volume.)</p>
 
       <div class="table-wrap">
         <table>
+          <caption>Bark over bone over a breathing skin</caption>
           <thead><tr><th>Layer</th><th>Thickness</th><th>Living analogue</th><th>Function</th></tr></thead>
           <tbody>
             <tr><td><span class="swatch" style="background:var(--l-epidermis)"></span>Sacrificial epidermis</td><td><span class="mm">~0.5 m</span></td><td>Turtle scute / bark</td><td>Ablative micrometeoroid facing; continuously regrown</td></tr>
@@ -495,7 +499,7 @@
 
       <div class="callout warm">
         <span class="lab">The materials, by the numbers</span>
-        <p>Real biopolymers already rival engineered ones. <strong>Mycelium composite</strong> (chitin + β-glucan, ~100–400 kg/m³) is light and cheap but weak in compression (~0.1–1 MPa)<sup class="cite"><a href="#ref-7">[7]</a></sup>. <strong>Trabecular bone</strong> (collagen + hydroxyapatite, <span style="font-family:var(--font-mono);font-size:.85em">Ca₁₀(PO₄)₆(OH)₂</span>) carries ~150–200 MPa compression and ~100–150 MPa tension<sup class="cite"><a href="#ref-6">[6]</a></sup>. And <strong>spider-silk protein</strong> (~1–1.5 GPa tensile, toughness ~150–350 MJ/m³ — several times Kevlar's)<sup class="cite"><a href="#ref-5">[5]</a></sup> takes the concentrated hoop load. Each material does the one job it is best at; the hull is a composite in the literal biological sense.</p>
+        <p>Real biopolymers already rival engineered ones. <strong>Mycelium composite</strong> (chitin + β-glucan, ~100–400 kg/m³) is light and cheap but weak in compression (~0.1–1 MPa)<sup class="cite"><a href="#ref-7">[7]</a></sup>. <strong>Cortical bone</strong> (collagen + hydroxyapatite, <span style="font-family:var(--font-mono);font-size:.85em">Ca₁₀(PO₄)₆(OH)₂</span>) carries ~190–205 MPa in compression and ~130 MPa in tension along its grain<sup class="cite"><a href="#ref-6">[6]</a></sup>; the hull's trabecular foam of it is far weaker per unit volume, and lighter. And <strong>spider-silk protein</strong> (~1.1 GPa tensile and ~160 MJ/m³ toughness for a garden spider's dragline, up to ~1.7 GPa and ~350 MJ/m³ for Darwin's bark spider — several times Kevlar's toughness)<sup class="cite"><a href="#ref-5">[5]</a></sup> takes the concentrated hoop load. Each material does the one job it is best at; the hull is a composite in the literal biological sense.</p>
       </div>
     </div>
   </section>
@@ -510,9 +514,9 @@
       <p>The inner lining is a dense sheet of engineered <strong>cyanobacteria and algae</strong> — think <em>Synechocystis</em> or <em>Chlorella</em>, the same organisms already run in closed-loop life-support testbeds. Given light, they consume crew CO₂ and release O₂, fixing carbon into sugars that feed the rest of the body. Because the entire inner surface is photosynthetic, the area-to-crew ratio is enormous; the limiting factor is light, not surface. Sunlight enters through clarified biocomposite "windows" on the star-facing hemisphere, supplemented by <strong>bioluminescent organs</strong> on the deep-space side so photosynthesis never fully stops.</p>
 
       <h3 style="font-family:var(--font-display);font-size:1.28rem;margin:30px 0 6px;color:var(--ink)">How light crosses a metre of shield</h3>
-      <p>The obvious objection: the intima sits behind a hull built for <strong>305 g/cm²</strong> of radiation shielding — so how does sunlight reach it? The paradox dissolves because the shield's best material is <strong>water</strong>, and water is optically clear. That 305 g/cm² is just <strong>3.05 m of water</strong>, and over that depth clear water still passes <strong>~87% of blue-green light</strong>. A clarified water column in the star-facing "window" regions therefore does <em>both</em> jobs at once — it is the radiation shield <em>and</em> the light-pipe — while the opaque melanin rind, which nothing can see through, is reserved for the non-window areas.</p>
+      <p>The obvious objection: the intima sits behind a hull whose wall averages <strong><span data-calc="navis.column">215</span> g/cm²</strong> of radiation shielding — so how does sunlight reach it? The paradox dissolves because the shield's best material is <strong>water</strong>, and water is optically clear. That <span data-calc="navis.column">215</span> g/cm² is just <strong><span data-calc="navis.water_equiv">2.15</span> m of water</strong>, and over that depth clear water still passes <strong>~<span data-calc="navis.t530">91</span>% of blue-green light</strong>. A clarified water column in the star-facing "window" regions therefore does <em>both</em> jobs at once — it is the radiation shield <em>and</em> the light-pipe — while the opaque melanin rind, which nothing can see through, is reserved for the non-window areas.</p>
       <div class="diagram-wrap reveal" style="margin-top:16px">
-        <svg class="diagram" viewBox="0 0 960 375" role="img" aria-label="Light transmission versus depth through a 3.05 m clarified-water light-shield: blue-green light reaches the intima at ~87 percent while red is absorbed, and the same column provides 305 g per cm squared of radiation shielding">
+        <svg class="diagram" viewBox="0 0 960 375" role="img" aria-label="Light transmission versus depth through a 2.15 m clarified-water light-shield: blue-green light reaches the intima at about 91 percent while red falls to about 38 percent, and the same column provides 215 g per cm squared of radiation shielding">
         <rect x="130.0" y="70" width="560.0" height="250" rx="4" style="fill:var(--lumen);fill-opacity:.07;stroke:var(--lumen);stroke-opacity:.3"/>
         <rect x="690.0" y="70" width="26" height="250" rx="3" style="fill:var(--chloro);fill-opacity:.5;stroke:var(--chloro)"/>
         <text x="703.0" y="64" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--chloro)">intima</text>
@@ -532,29 +536,26 @@
         <line x1="130.0" y1="320" x2="130.0" y2="324" stroke="var(--line-2)"/>
         <text x="130.0" y="335" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">0.0</text>
         <text x="130.0" y="347" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" fill="var(--osteo)">0</text>
-        <line x1="221.8" y1="320" x2="221.8" y2="324" stroke="var(--line-2)"/>
-        <text x="221.8" y="335" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">0.5</text>
-        <text x="221.8" y="347" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" fill="var(--osteo)">50</text>
-        <line x1="313.6" y1="320" x2="313.6" y2="324" stroke="var(--line-2)"/>
-        <text x="313.6" y="335" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">1.0</text>
-        <text x="313.6" y="347" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" fill="var(--osteo)">100</text>
-        <line x1="405.4" y1="320" x2="405.4" y2="324" stroke="var(--line-2)"/>
-        <text x="405.4" y="335" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">1.5</text>
-        <text x="405.4" y="347" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" fill="var(--osteo)">150</text>
-        <line x1="497.2" y1="320" x2="497.2" y2="324" stroke="var(--line-2)"/>
-        <text x="497.2" y="335" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">2.0</text>
-        <text x="497.2" y="347" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" fill="var(--osteo)">200</text>
-        <line x1="589.0" y1="320" x2="589.0" y2="324" stroke="var(--line-2)"/>
-        <text x="589.0" y="335" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">2.5</text>
-        <text x="589.0" y="347" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" fill="var(--osteo)">250</text>
+        <line x1="260.3" y1="320" x2="260.3" y2="324" stroke="var(--line-2)"/>
+        <text x="260.3" y="335" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">0.5</text>
+        <text x="260.3" y="347" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" fill="var(--osteo)">50</text>
+        <line x1="390.6" y1="320" x2="390.6" y2="324" stroke="var(--line-2)"/>
+        <text x="390.6" y="335" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">1.0</text>
+        <text x="390.6" y="347" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" fill="var(--osteo)">100</text>
+        <line x1="520.9" y1="320" x2="520.9" y2="324" stroke="var(--line-2)"/>
+        <text x="520.9" y="335" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">1.5</text>
+        <text x="520.9" y="347" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" fill="var(--osteo)">150</text>
+        <line x1="651.2" y1="320" x2="651.2" y2="324" stroke="var(--line-2)"/>
+        <text x="651.2" y="335" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">2.0</text>
+        <text x="651.2" y="347" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" fill="var(--osteo)">200</text>
         <line x1="690.0" y1="320" x2="690.0" y2="324" stroke="var(--line-2)"/>
-        <text x="690.0" y="335" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">3.0</text>
-        <text x="690.0" y="347" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" fill="var(--osteo)">305</text>
+        <text x="690.0" y="335" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--ink-3)">2.15</text>
+        <text x="690.0" y="347" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" fill="var(--osteo)">215</text>
         <text x="405.4" y="360" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--ink-3)">depth into water light-shield (m) · <tspan fill="var(--osteo)">cumulative shield g/cm²</tspan></text>
-        <polyline points="130.0,70.0 139.3,70.6 148.7,71.1 158.0,71.7 167.3,72.3 176.7,72.8 186.0,73.4 195.3,74.0 204.7,74.5 214.0,75.1 223.3,75.7 232.7,76.2 242.0,76.8 251.3,77.3 260.7,77.9 270.0,78.4 279.3,79.0 288.7,79.5 298.0,80.1 307.3,80.6 316.7,81.2 326.0,81.7 335.3,82.3 344.7,82.8 354.0,83.4 363.3,83.9 372.7,84.4 382.0,85.0 391.3,85.5 400.7,86.0 410.0,86.6 419.3,87.1 428.7,87.6 438.0,88.2 447.3,88.7 456.7,89.2 466.0,89.8 475.3,90.3 484.7,90.8 494.0,91.3 503.3,91.9 512.7,92.4 522.0,92.9 531.3,93.4 540.7,93.9 550.0,94.5 559.3,95.0 568.7,95.5 578.0,96.0 587.3,96.5 596.7,97.0 606.0,97.5 615.3,98.0 624.7,98.5 634.0,99.1 643.3,99.6 652.7,100.1 662.0,100.6 671.3,101.1 680.7,101.6 690.0,102.1" fill="none" stroke="var(--chloro)" stroke-width="2.2"/>
-        <text x="684.0" y="96.1" text-anchor="end" font-family="var(--font-mono)" font-size="9" fill="var(--chloro)">blue-green (530 nm): 87%</text>
-        <polyline points="130.0,70.0 139.3,75.7 148.7,81.2 158.0,86.6 167.3,91.9 176.7,97.0 186.0,102.1 195.3,107.0 204.7,111.8 214.0,116.5 223.3,121.1 232.7,125.6 242.0,130.0 251.3,134.3 260.7,138.5 270.0,142.6 279.3,146.6 288.7,150.5 298.0,154.4 307.3,158.1 316.7,161.8 326.0,165.4 335.3,168.9 344.7,172.3 354.0,175.6 363.3,178.9 372.7,182.1 382.0,185.2 391.3,188.2 400.7,191.2 410.0,194.1 419.3,197.0 428.7,199.8 438.0,202.5 447.3,205.1 456.7,207.7 466.0,210.3 475.3,212.8 484.7,215.2 494.0,217.6 503.3,219.9 512.7,222.1 522.0,224.3 531.3,226.5 540.7,228.6 550.0,230.7 559.3,232.7 568.7,234.7 578.0,236.6 587.3,238.5 596.7,240.3 606.0,242.1 615.3,243.9 624.7,245.6 634.0,247.3 643.3,249.0 652.7,250.6 662.0,252.1 671.3,253.7 680.7,255.2 690.0,256.6" fill="none" stroke="var(--osteo)" stroke-width="2.2"/>
-        <text x="684.0" y="268.6" text-anchor="end" font-family="var(--font-mono)" font-size="9" fill="var(--osteo)">red (680 nm): 25%</text>
+        <polyline points="130.0,70.0 139.3,70.4 148.7,70.8 158.0,71.2 167.3,71.6 176.7,72.0 186.0,72.4 195.3,72.8 204.7,73.2 214.0,73.7 223.3,74.1 232.7,74.5 242.0,74.9 251.3,75.3 260.7,75.7 270.0,76.1 279.3,76.5 288.7,76.9 298.0,77.3 307.3,77.6 316.7,78.0 326.0,78.4 335.3,78.8 344.7,79.2 354.0,79.6 363.3,80.0 372.7,80.4 382.0,80.8 391.3,81.2 400.7,81.6 410.0,82.0 419.3,82.4 428.7,82.7 438.0,83.1 447.3,83.5 456.7,83.9 466.0,84.3 475.3,84.7 484.7,85.1 494.0,85.4 503.3,85.8 512.7,86.2 522.0,86.6 531.3,87.0 540.7,87.4 550.0,87.7 559.3,88.1 568.7,88.5 578.0,88.9 587.3,89.3 596.7,89.6 606.0,90.0 615.3,90.4 624.7,90.8 634.0,91.1 643.3,91.5 652.7,91.9 662.0,92.3 671.3,92.6 680.7,93.0 690.0,93.4" fill="none" stroke="var(--chloro)" stroke-width="2.2"/>
+        <text x="684.0" y="78.4" text-anchor="end" font-family="var(--font-mono)" font-size="9" fill="var(--chloro)">blue-green (530 nm): <tspan data-calc="navis.t530">91</tspan>%</text>
+        <polyline points="130.0,70.0 139.3,74.0 148.7,78.0 158.0,81.9 167.3,85.8 176.7,89.5 186.0,93.3 195.3,96.9 204.7,100.5 214.0,104.1 223.3,107.6 232.7,111.0 242.0,114.4 251.3,117.7 260.7,121.0 270.0,124.2 279.3,127.3 288.7,130.4 298.0,133.5 307.3,136.5 316.7,139.5 326.0,142.4 335.3,145.3 344.7,148.1 354.0,150.9 363.3,153.6 372.7,156.3 382.0,158.9 391.3,161.5 400.7,164.1 410.0,166.6 419.3,169.1 428.7,171.5 438.0,173.9 447.3,176.3 456.7,178.6 466.0,180.9 475.3,183.1 484.7,185.3 494.0,187.5 503.3,189.6 512.7,191.7 522.0,193.8 531.3,195.9 540.7,197.9 550.0,199.8 559.3,201.8 568.7,203.7 578.0,205.6 587.3,207.4 596.7,209.2 606.0,211.0 615.3,212.8 624.7,214.5 634.0,216.2 643.3,217.9 652.7,219.5 662.0,221.2 671.3,222.8 680.7,224.3 690.0,225.9" fill="none" stroke="var(--osteo)" stroke-width="2.2"/>
+        <text x="684.0" y="237.9" text-anchor="end" font-family="var(--font-mono)" font-size="9" fill="var(--osteo)">red (680 nm): <tspan data-calc="navis.t680">38</tspan>%</text>
         <line x1="40" y1="92" x2="130.0" y2="110" stroke="var(--osteo)" stroke-width="1.3" opacity=".55"/>
         <path d="M121.0 107 l9 3 l-9 3 z" fill="var(--osteo)" opacity=".55"/>
         <line x1="40" y1="142" x2="130.0" y2="160" stroke="var(--osteo)" stroke-width="1.3" opacity=".55"/>
@@ -567,25 +568,26 @@
         <text x="387.0" y="105" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="var(--ink-2)">clarified water — shield AND window</text>
         </svg>
       </div>
-      <p class="tag" style="margin-top:12px"><strong>One column, two jobs.</strong> Depth into the water is read two ways at once: as radiation shielding (amber, climbing to 305 g/cm²) and as an optical path. Blue-green light (530 nm) survives the full 3 m at ~87%; red (680 nm) is nearly gone at ~25%, so the intima is lit by an <em>underwater</em> field and its pigments are tuned like a deep-water cyanobacterium's — phycobilins, not a land plant's chlorophyll balance. The dark-side <strong>bioluminescent</strong> fill is real but only a trickle (biology tops out under ~1 W/m² vs the ~150 W/m² of useful daylight), so the sun-facing windows do essentially all the work. The habitat <a href="https://claude.ai/code/artifact/9b90d7e5-2a71-426a-b2bf-d3a96b32a82e">ARCA</a> sidesteps the problem entirely: it pipes concentrated starlight down an axial sun-cord and lights its biomes from the inside, so its thick regolith shell never has to be transparent.</p>
-      <p><strong>Why not light the whole inner wall?</strong> Because you don't need to — and it would cost you. Covering the crew's oxygen takes only <strong>~1,400 m² of lit intima</strong> (≈18% of the 7,854 m² inner surface), ~2,500 m² with margin — roughly <strong>a third</strong> — so the intima is deliberately over-provisioned and only partly illuminated. Lighting <em>more</em> is not free: every window is a thinned patch in the radiation shield and adds heat the ship must dump, so the design captures the minimum light the O₂/food balance needs rather than maximising capture. When more of the intima <em>should</em> be productive — for food, margin or redundancy — light is <em>distributed</em>, not multiplied: grown transparent <strong>light-guides</strong> pipe window light to shaded tissue (ARCA's sun-cord trick, run internally); a slow <strong>roll</strong> lets the Sun sweep the whole hull over a "day" so every panel is lit in turn; and a scattering, reflective interior spreads what enters like an integrating sphere. The lever is always the same trade — window area <em>vs</em> shield integrity <em>vs</em> heat load — not raw collection.</p>
-      <p><strong>Liquid or ice? Mostly it doesn't matter — clarity does.</strong> A window's phase follows its heat balance. A <em>sun-lit</em> window runs warm and liquid: water and ice are nearly opaque in the near-infrared, so it absorbs much of the ~720 W/m² of solar IR (the invisible half of the incident sunlight) while passing the visible through — enough to hold the column above freezing. A window on the <em>dark</em> side just radiates to space and freezes (~150 K), but it is lighting nothing anyway. So the natural state is a gradient — clear ice on the cold outer face, liquid deeper in — and it shifts as the ship turns. What matters is not the phase but the <strong>clarity</strong>: <em>clear</em> ice transmits visible light almost exactly like water (refractive index 1.31 vs 1.33; the same blue-green shift), because it is the same molecule. The enemy is <strong>scattering</strong> — bubbles, grain boundaries and micrometeoroid microcracks turn ice white the way they whiten snow. A frozen window therefore has to be grown <em>clear</em> (slow, degassed) and its cracks annealed or regrown, and it must run ~9% thicker than water for the same 305 g/cm² (ice is less dense but shields the same per unit mass). This is a quiet argument for a <em>living</em> window: an organism can degas, pump, keep the ice clear and heal its cracks, where a dumb block of ice would slowly frost over.</p>
+      <p class="tag" style="margin-top:12px"><strong>One column, two jobs.</strong> Depth into the water is read two ways at once: as radiation shielding (amber, climbing to <span data-calc="navis.column">215</span> g/cm²) and as an optical path. Blue-green light (530 nm) survives the full <span data-calc="navis.water_equiv">2.15</span> m at ~<span data-calc="navis.t530">91</span>%; red (680 nm) falls to ~<span data-calc="navis.t680">38</span>%, so the intima is lit by an <em>underwater</em> field and its pigments are tuned like a deep-water cyanobacterium's — phycobilins, not a land plant's chlorophyll balance. The dark-side <strong>bioluminescent</strong> fill is real but only a trickle (biology tops out under ~1 W/m² vs the ~150 W/m² of useful daylight), so the sun-facing windows do essentially all the work. The habitat <a href="https://claude.ai/code/artifact/9b90d7e5-2a71-426a-b2bf-d3a96b32a82e">ARCA</a> sidesteps the problem entirely: it pipes concentrated starlight down an axial sun-cord and lights its biomes from the inside, so its thick regolith shell never has to be transparent.</p>
+      <p><strong>Why not light the whole inner wall?</strong> Because you don't need to — and it would cost you. Covering the crew's oxygen takes only <strong>~<span data-calc="navis.o2_area">1,360</span> m² of lit intima</strong> (≈<span data-calc="navis.o2_frac_min">15</span>% of the ~<span data-calc="navis.area_in">9,000</span> m² cabin-side surface), ~<span data-calc="navis.o2_lit">2,450</span> m² with margin — roughly <strong>a quarter</strong> — so the intima is deliberately over-provisioned and only partly illuminated. Lighting <em>more</em> is not free: every window is a thinned patch in the radiation shield and adds heat the ship must dump, so the design captures the minimum light the O₂/food balance needs rather than maximising capture. When more of the intima <em>should</em> be productive — for food, margin or redundancy — light is <em>distributed</em>, not multiplied: grown transparent <strong>light-guides</strong> pipe window light to shaded tissue (ARCA's sun-cord trick, run internally); a slow <strong>roll</strong> lets the Sun sweep the whole hull over a "day" so every panel is lit in turn; and a scattering, reflective interior spreads what enters like an integrating sphere. The lever is always the same trade — window area <em>vs</em> shield integrity <em>vs</em> heat load — not raw collection.</p>
+      <p><strong>Liquid or ice? Mostly it doesn't matter — clarity does.</strong> A window's phase follows its heat balance. A <em>sun-lit</em> window runs warm and liquid: water and ice are nearly opaque in the near-infrared, so it absorbs much of the ~720 W/m² of solar IR (the invisible half of the incident sunlight) while passing the visible through — enough to hold the column above freezing. A window on the <em>dark</em> side just radiates to space and freezes (~150 K), but it is lighting nothing anyway. So the natural state is a gradient — clear ice on the cold outer face, liquid deeper in — and it shifts as the ship turns. What matters is not the phase but the <strong>clarity</strong>: <em>clear</em> ice transmits visible light almost exactly like water (refractive index 1.31 vs 1.33; the same blue-green shift), because it is the same molecule. The enemy is <strong>scattering</strong> — bubbles, grain boundaries and micrometeoroid microcracks turn ice white the way they whiten snow. A frozen window therefore has to be grown <em>clear</em> (slow, degassed) and its cracks annealed or regrown, and it must run ~<span data-calc="navis.ice_extra">9</span>% thicker than water for the same <span data-calc="navis.column">215</span> g/cm² (ice is less dense but shields the same per unit mass). This is a quiet argument for a <em>living</em> window: an organism can degas, pump, keep the ice clear and heal its cracks, where a dumb block of ice would slowly frost over.</p>
 
       <div class="callout">
         <span class="lab">A materially-closed loop</span>
         <p>Crew CO₂ → intima → O₂ + sugar. Solid and liquid waste feeds a <strong>gut-analogue</strong> of nitrifying bacteria that mineralize it back into nitrates and phosphates; urea becomes fertilizer for the intima. The design goal is that <strong>atoms cycle rather than deplete</strong> — resupply is needed only for what's lost to space and radiation breakdown.</p>
       </div>
 
-      <p>The chemistry is exact. Photosynthesis runs <span style="font-family:var(--font-mono);font-size:.9em;color:var(--chloro)">6 CO₂ + 6 H₂O + light → C₆H₁₂O₆ + 6 O₂</span> — by mass, 264 g of CO₂ and 108 g of water become 180 g of sugar and 192 g of oxygen. To remake the 0.84 kg of O₂ a crew member burns each day<sup class="cite"><a href="#ref-1">[1]</a></sup>, the intima fixes ~<strong>1.16 kg of CO₂</strong> and makes ~<strong>0.79 kg of sugar</strong>. The crew exhales only ~1.0 kg of CO₂, so the missing ~0.16 kg is supplied by the gut-analogue's decomposition — which is precisely how the loop closes on itself.</p>
+      <p>The chemistry is exact. Photosynthesis runs <span style="font-family:var(--font-mono);font-size:.9em;color:var(--chloro)">6 CO₂ + 6 H₂O + light → C₆H₁₂O₆ + 6 O₂</span> — by mass, 264 g of CO₂ and 108 g of water become 180 g of sugar and 192 g of oxygen. To remake the <span data-calc="life.o2">0.816</span> kg of O₂ a crew member burns each day<sup class="cite"><a href="#ref-1">[1]</a></sup>, the intima fixes ~<strong><span data-calc="life.co2_fixed">1.12</span> kg of CO₂</strong> and makes ~<strong><span data-calc="life.sugar">0.77</span> kg of sugar</strong>. The crew exhales only ~<span data-calc="life.co2">1.04</span> kg of CO₂, so ~<span data-calc="life.co2_gap">0.08</span> kg a day (~<span data-calc="life.co2_gap_pct">7</span>%) has to come from outside the crew loop. The gut-analogue cannot supply it: decomposition burns O₂ in the same proportion as it frees CO₂, so it moves the gap without closing it. The shortfall is made up from carbonate the root mines, or by the intima making some products richer than sugar (lipid and protein, with a photosynthetic quotient above 1).</p>
 
       <div class="table-wrap">
         <table>
+          <caption>Daily crew streams — NASA BVAD REV1 nominal values<sup class="cite"><a href="#ref-1">[1]</a></sup></caption>
           <thead><tr><th>Daily stream</th><th>Per person</th><th>Crew of 50</th><th>Closed by</th></tr></thead>
           <tbody>
-            <tr><td>O₂ consumed</td><td><span class="mm">0.84 kg</span></td><td><span class="mm">42 kg</span></td><td>Photosynthetic intima</td></tr>
-            <tr><td>CO₂ produced</td><td><span class="mm">1.00 kg</span></td><td><span class="mm">50 kg</span></td><td>Intima (fixes 1.16; surplus from decomposition)</td></tr>
-            <tr><td>Food, dry mass</td><td><span class="mm">0.62 kg</span></td><td><span class="mm">31 kg</span></td><td>Intima sugars + crop tissue</td></tr>
-            <tr><td>Water, potable</td><td><span class="mm">2.0 kg</span></td><td><span class="mm">100 kg</span></td><td>Condensate + waste-water recovery</td></tr>
+            <tr><td>O₂ consumed</td><td><span class="mm"><span data-calc="life.o2">0.816</span> kg</span></td><td><span class="mm"><span data-calc="life.crew_o2">40.8</span> kg</span></td><td>Photosynthetic intima</td></tr>
+            <tr><td>CO₂ produced</td><td><span class="mm"><span data-calc="life.co2">1.04</span> kg</span></td><td><span class="mm"><span data-calc="life.crew_co2">52</span> kg</span></td><td>Intima (fixes <span data-calc="life.co2_fixed">1.12</span>; shortfall from mined carbonate)</td></tr>
+            <tr><td>Food, dry mass</td><td><span class="mm"><span data-calc="life.food">0.617</span> kg</span></td><td><span class="mm"><span data-calc="life.crew_food">31</span> kg</span></td><td>Intima sugars + crop tissue</td></tr>
+            <tr><td>Water, potable</td><td><span class="mm"><span data-calc="life.water">2.5</span> kg</span></td><td><span class="mm"><span data-calc="life.crew_water">125</span> kg</span></td><td>Condensate + waste-water recovery</td></tr>
             <tr><td>Waste, solid/liquid</td><td><span class="mm">out</span></td><td><span class="mm">out</span></td><td>Mineralized to NO₃⁻ / PO₄³⁻ fertilizer</td></tr>
           </tbody>
         </table>
@@ -593,7 +595,7 @@
 
       <div class="callout warm">
         <span class="lab">One honest wrinkle</span>
-        <p>Humans breathe with a respiratory quotient of ~0.87 (moles of CO₂ exhaled per mole of O₂ inhaled), while plants building sugar run a photosynthetic quotient near 1.0. That mismatch means CO₂ and O₂ do not balance one-for-one, so any closed ecology must actively buffer the difference — a real, measured headache in the MELiSSA and BIOS-3 closed-loop programmes<sup class="cite"><a href="#ref-8">[8]</a><a href="#ref-9">[9]</a><a href="#ref-10">[10]</a></sup>, not something the biology solves for free.</p>
+        <p>Humans breathe with a respiratory quotient of ~<span data-calc="life.rq">0.92</span> (moles of CO₂ exhaled per mole of O₂ inhaled; BVAD's 1.04 kg of CO₂ per 0.816 kg of O₂), while plants building sugar run a photosynthetic quotient near 1.0. That mismatch means CO₂ and O₂ do not balance one-for-one, so any closed ecology must actively buffer the difference — a real, measured headache in the MELiSSA and BIOS-3 closed-loop programmes<sup class="cite"><a href="#ref-8">[8]</a><a href="#ref-9">[9]</a><a href="#ref-10">[10]</a></sup>, not something the biology solves for free.</p>
       </div>
 
       <p>Two interpenetrating tree-like networks distribute everything. A <strong>xylem-analogue</strong> carries water, minerals and oxygen-rich fluid outward to the growing tissues and bone-builders; a <strong>phloem-analogue</strong> carries the intima's sugars inward to every cell that can't photosynthesize. Flow is driven by slow, ship-wide peristaltic contractions — a metabolic heartbeat — plus osmotic gradients. The trunks run <em>inside</em> the osteoid struts, like marrow through bone, so the plumbing is armored by the structure it feeds. A central <strong>reservoir-and-liver organ</strong> banks water, lipids and a starch buffer so the ship can ride out sunless coast phases without starving.</p>
@@ -614,8 +616,8 @@
         <p>In shadow, outer tissue drops into <strong>cryptobiosis</strong> like a tardigrade or wood frog, loaded with <strong>antifreeze glycoproteins</strong> (from Antarctic fish) and trehalose so no ice crystal can lance a membrane; metabolic heat from the core is circulated outward to thermoregulate. Micrometeoroids strike the <strong>sacrificial epidermis</strong> — a Whipple shield made of living, self-regrowing tissue, so craters heal instead of accumulating the way they do on a metal hull.</p>
       </div>
 
-      <p><strong>By the numbers.</strong> Thermally the ship is easier than intuition suggests: at 1 AU a dark hull settles near <strong>278 K (5 °C)</strong> at radiative equilibrium<sup class="cite"><a href="#ref-2">[2]</a></sup> — an Earth-albedo hull ~255 K, a bright reflective one ~206 K — because the equilibrium tracks the absorb-to-emit ratio <span style="font-family:var(--font-mono);font-size:.9em">(α/ε)</span> as its fourth root, so surface finish, not refrigeration, is the temperature lever, and the dark melanized rind conveniently pulls it warm. The crew's ~5 kW of metabolic heat needs only ~12 m² of ~290 K radiator to shed; against the ~2.7 MW of sunlight the hull intercepts and re-radiates, it is a rounding error. The real thermal work is at the extremes — deep-space coast, where the ship runs warm-blooded on metabolic heat behind heavy insulation, and close solar approaches, where it must dump megawatts.</p>
-      <p>Both extremes follow from one law: equilibrium temperature falls as the <strong>inverse square-root of distance</strong> (T ∝ 1/√r), so a <em>fixed</em> surface finish is only comfortable over a narrow ~0.2 AU-wide shell — about 0.8–1.0 AU for the dark hull. Living anywhere else means actively working the two levers the law leaves open: surface finish (α/ε) and radiators.</p>
+      <p><strong>By the numbers.</strong> Thermally the ship is easier than intuition suggests: at 1 AU a dark hull, averaged over attitude, settles near <strong><span data-calc="thermal.t_dark">278</span> K (5 °C)</strong> at radiative equilibrium<sup class="cite"><a href="#ref-2">[2]</a></sup> — an Earth-albedo hull ~<span data-calc="thermal.t_earth_albedo">255</span> K, a bright reflective one ~<span data-calc="thermal.t_reflective">206</span> K — because the equilibrium tracks the absorb-to-emit ratio <span style="font-family:var(--font-mono);font-size:.9em">(α/ε)</span> as its fourth root, so surface finish, not refrigeration, is the temperature lever, and the dark melanized rind conveniently pulls it warm. Attitude is the other lever. Averaged over every orientation, any convex body shows the Sun a quarter of its area, just as a sphere does; but the 2 : 1 body flown pole-sunward, as drawn, shows only half its broadside, and settles near <span data-calc="thermal.t_pole">243</span> K, while turned broadside it warms to ~<span data-calc="thermal.t_broad">290</span> K. The crew's ~5 kW of metabolic heat needs only ~<span data-calc="thermal.crew_radiator">12</span> m² of ~290 K radiator to shed; against the ~<span data-calc="thermal.sun_pole_mw">2.7</span> MW of sunlight the hull intercepts pole-on (~<span data-calc="thermal.sun_broad_mw">5.3</span> MW broadside), it is a rounding error. The real thermal work is at the extremes — deep-space coast, where the ship runs warm-blooded on metabolic heat behind heavy insulation, and close solar approaches, where it must dump megawatts.</p>
+      <p>Both extremes follow from one law: equilibrium temperature falls as the <strong>inverse square-root of distance</strong> (T ∝ 1/√r), so a <em>fixed</em> surface finish is only comfortable over a narrow ~0.2 AU-wide shell — about <span data-calc="thermal.shell_inner_au">0.8</span>–<span data-calc="thermal.shell_outer_au">1.0</span> AU for the attitude-averaged dark hull plotted below. Living anywhere else means actively working the levers the law leaves open: surface finish (α/ε), attitude and radiators.</p>
       <div class="diagram-wrap reveal" style="margin-top:16px">
         <svg class="diagram" viewBox="0 0 960 372" role="img" aria-label="Equilibrium temperature versus distance from the Sun for a dark and a reflective hull, with the life-viable 0 to 40 degree band; close approaches overheat, deep space freezes.">
         <rect x="110" y="199.6" width="790" height="22.6" fill="var(--chloro)" fill-opacity=".08"/>
@@ -666,19 +668,20 @@
         <text x="756.6" y="311" font-family="var(--font-mono)" font-size="8.5" fill="var(--lumen)">dormant, or insulate a warm core</text>
         </svg>
       </div>
-      <p class="tag" style="margin-top:12px"><strong>Two extremes, two strategies.</strong> <span style="color:var(--osteo)">Close in:</span> at 0.3 AU a dark hull would reach <strong>508 K (235 °C)</strong> and intercept ~<strong>30 MW</strong> of sunlight — survival means flipping the rind <em>reflective</em> (albedo ~0.9 drops absorbed heat to ~3 MW) and deploying radiators; even at 400 K, dumping 30 MW needs ~20,000 m² of radiator, larger than the hull, so close passes are brief, pale and radiator-heavy. <span style="color:var(--lumen)">Far out:</span> sunlight — and with it photosynthesis — vanishes, so the ecology has no option but <strong>dormancy</strong>. A warm crew-core can still be held near 283 K on internal heat, but only behind heavy insulation: a bare hull radiates ~4.7 MW away, while multilayer insulation (ε≈0.02) cuts that ~50× to ~95 kW — within reach of metabolic and stored heat. The ship coasts cold and asleep, keeping just a warm heart beating.</p>
+      <p class="tag" style="margin-top:12px"><strong>Two extremes, two strategies.</strong> <span style="color:var(--osteo)">Close in:</span> at 0.3 AU a dark hull would reach <strong><span data-calc="thermal.t_close">508</span> K (235 °C)</strong> and, pole-on, intercept ~<strong><span data-calc="thermal.close_mw">30</span> MW</strong> of sunlight — survival means flipping the rind <em>reflective</em> (albedo ~0.9 drops absorbed heat to ~<span data-calc="thermal.close_reflective_mw">3</span> MW) and deploying radiators; even at 400 K, dumping 30 MW needs ~<span data-calc="thermal.close_radiator">20,000</span> m² of radiator, more than the hull's own ~<span data-calc="navis.area">13,400</span> m², so close passes are brief, pale and radiator-heavy. <span style="color:var(--lumen)">Far out:</span> sunlight — and with it photosynthesis — vanishes, so the ecology has no option but <strong>dormancy</strong>. A warm crew-core can still be held near 283 K on internal heat, but only behind heavy insulation: a bare hull radiates ~<span data-calc="thermal.core_bare_mw">4.9</span> MW away, while multilayer insulation (ε≈0.02) cuts that ~50× to ~<span data-calc="thermal.core_mli_kw">100</span> kW — within reach of metabolic and stored heat. The ship coasts cold and asleep, keeping just a warm heart beating.</p>
 
       <div class="table-wrap">
         <table>
+          <caption>Micrometeoroid impacts on the ~13,400 m² hull at 1 AU (Grün et al. 1985)<sup class="cite"><a href="#ref-13">[13]</a></sup></caption>
           <thead><tr><th>Impactor</th><th>Interplanetary flux</th><th>Hits on the hull</th><th>Handled by</th></tr></thead>
           <tbody>
-            <tr><td>~100 µm · 1 µg</td><td><span class="mm">~10⁻⁴ /m²·yr</span></td><td><span class="mm">~8 per decade</span></td><td>Ablated in the 0.5 m epidermis</td></tr>
-            <tr><td>~1 mm · 1 mg</td><td><span class="mm">~10⁻⁶ /m²·yr</span></td><td><span class="mm">~1 per few decades</span></td><td>Cratered, then regrown</td></tr>
-            <tr><td>~1 cm · 1 g</td><td><span class="mm">~10⁻⁹ /m²·yr</span></td><td><span class="mm">negligible</span></td><td>Self-heal + compartment seal</td></tr>
+            <tr><td>~100 µm · 1 µg</td><td><span class="mm">~<span data-calc="meteoroids.flux_ug">1.5</span> /m²·yr</span></td><td><span class="mm">~<span data-calc="meteoroids.hits_ug">20,000</span> a year</span></td><td>A continuous sandblast — ablated, while the 0.5 m epidermis regrows beneath it</td></tr>
+            <tr><td>~1 mm · 1 mg</td><td><span class="mm">~<span data-calc="meteoroids.flux_mg">6×10⁻⁴</span> /m²·yr</span></td><td><span class="mm">~<span data-calc="meteoroids.hits_mg">8</span> a year</span></td><td>Cratered, then regrown</td></tr>
+            <tr><td>~1 cm · 1 g</td><td><span class="mm">~<span data-calc="meteoroids.flux_g">7×10⁻⁸</span> /m²·yr</span></td><td><span class="mm">~1 per <span data-calc="meteoroids.years_per_g">1,000</span> yr</span></td><td>Self-heal + compartment seal</td></tr>
           </tbody>
         </table>
       </div>
-      <p style="font-size:.9em;color:var(--ink-3);max-width:66ch">Impact velocities run ~10–20 km/s (up to ~70 for retrograde dust). The epidermis works as a living <strong>Whipple bumper</strong><sup class="cite"><a href="#ref-14">[14]</a></sup> — vaporising the projectile before it reaches the pressure wall — which cuts the required wall mass roughly ten-fold versus a single skin. Flux figures are order-of-magnitude (Grün interplanetary model<sup class="cite"><a href="#ref-13">[13]</a></sup>).</p>
+      <p style="font-size:.9em;color:var(--ink-3);max-width:66ch">Impact velocities run ~10–20 km/s (up to ~70 for retrograde dust). The epidermis works as a living <strong>Whipple bumper</strong><sup class="cite"><a href="#ref-14">[14]</a></sup> — vaporising the projectile before it reaches the pressure wall — which cuts the required wall mass roughly ten-fold versus a single skin. Flux figures are order-of-magnitude: the Grün interplanetary model<sup class="cite"><a href="#ref-13">[13]</a></sup> times the hull's outer area, ignoring focusing and shape factors of about two. At these rates dust is not a string of wounds to heal one by one but a steady erosion; the epidermis is sacrificial so that continuous ablation can be met by continuous regrowth, and the crater-and-regrow response is kept for the millimetre class.</p>
       <div class="diagram-wrap reveal" style="margin-top:16px">
         <svg class="diagram" viewBox="0 0 960 360" role="img" aria-label="Living Whipple bumper: a micrometeoroid flashes to plasma on the epidermis, the debris cloud spreads across the standoff, and the load reaches the pressure wall distributed over a wide area, so the wall needs about a tenth the mass of a solid shield.">
         <circle cx="70" cy="175" r="5" fill="var(--osteo)"/>
@@ -783,7 +786,7 @@
         <text x="640" y="203" font-family="var(--font-mono)" font-size="8.5" fill="var(--lumen)">→ pressure wall needs ~1/10 the</text>
         <text x="640" y="218" font-family="var(--font-mono)" font-size="8.5" fill="var(--lumen)">mass of a solid shield — and,</text>
         <text x="640" y="233" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-2)">alive, the bumper regrows.</text>
-        <text x="30" y="345" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">flux ≈ 8 sub-mm impacts / decade on a 7,854 m² hull (Grün model) — routine damage, sealed and regrown by the self-healing tiers.</text>
+        <text x="30" y="345" font-family="var(--font-mono)" font-size="8.5" fill="var(--ink-3)">flux ≈ 20,000 dust hits/yr (≥1 µg) and ~8 mm-class (≥1 mg) on the 13,400 m² hull (Grün) — a steady sandblast met by steady regrowth.</text>
         </svg>
       </div>
       <p class="tag" style="margin-top:12px"><strong>Why a thin living skin beats a thick one.</strong> A grain arriving at 10–70 km/s carries 50–2,450 MJ/kg — five to two-hundred times the ~10 MJ/kg it takes to vaporise rock — so it does not punch through the epidermis, it <em>flashes to plasma</em> on it (anything above ~4.5 km/s does). The resulting cloud fans across the standoff and delivers its momentum to the pressure wall spread over ~100× the area, so the wall survives with roughly a tenth the mass a monolithic shield would need. The living twist is that the cratered bumper simply <strong>regrows</strong> — the shield that heals is also the shield that never accumulates damage.</p>
@@ -801,7 +804,7 @@
 
       <div class="callout">
         <span class="lab">Why "years, not hours"</span>
-        <p>The pace is set by mining and deposition, not by photosynthesis. Growing the reference 24,000-tonne starship in ~5 years means laying down roughly <strong>13 tonnes a day</strong> — about <strong>1.7 kg per m² of hull per day</strong>, or ~7 t/day of structure once the water is set aside. That is aggressive for biology (tens of times an alga's areal productivity), but the structure is assembled from <em>mined feedstock</em> delivered through the vasculature, and industrial bioleaching already handles tonnes per day — so the limit is how fast the ship can eat its asteroid, not how fast it can photosynthesise. Growth is exponential while the body is small, but the deposition rate is soon capped by that mining limit — so the rate plateaus rather than spiking, and gestation settles at ~5 years (see the growth curve below); run the deposition ten times slower and it simply stretches to ~50 years. The full mining chemistry and biomineralisation routes are set out in the <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075">Compendium</a>.</p>
+        <p>The pace is set by mining and deposition, not by photosynthesis. Growing the reference 24,000-tonne starship in ~5 years means laying down roughly <strong><span data-calc="growth.navis_avg">13</span> tonnes a day</strong> — about <strong><span data-calc="growth.navis_per_m2">1</span> kg per m² of hull per day</strong>, or ~7 t/day of structure once the water is set aside. That is aggressive for biology (tens of times an alga's areal productivity), but the structure is assembled from <em>mined feedstock</em> delivered through the vasculature, and industrial bioleaching already handles tonnes per day — so the limit is how fast the ship can eat its asteroid, not how fast it can photosynthesise. Growth is exponential while the body is small, but the deposition rate is soon capped by that mining limit — so the rate plateaus rather than spiking, and gestation settles at ~5 years (see the growth curve below); run the deposition ten times slower and it simply stretches to ~<span data-calc="growth.slow10_years">40</span> years. That pace also assumes the energy to build that much is there, and the rock alone cannot supply it: its organics lack an oxidant, and the ferric iron and spare oxygen on hand power only ~<span data-calc="metab.chem_rate_lo">0.5</span>–<span data-calc="metab.chem_rate_hi">3.5</span> t/day of growth (<a href="https://claude.ai/code/artifact/30f6d8bd-2623-4369-8709-9fa6d7c47444#metabolise">Metabolism §05</a>). The 5-year figure therefore rests on a named bet — importing energy from sunlight through an electro-organ — and without it gestation stretches to decades. The full mining chemistry and biomineralisation routes are set out in the <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075">Compendium</a>.</p>
       </div>
       <div class="diagram-wrap reveal" style="margin-top:22px">
         <svg class="diagram" viewBox="0 0 960 375" role="img" aria-label="Two-panel growth curve: grown mass versus time and deposition rate versus time for the reference 24,000-tonne starship, showing exponential early growth capped by a mining-limited deposition ceiling">
@@ -881,7 +884,7 @@
         <text x="640.5" y="97.0" text-anchor="start" font-family="var(--font-mono)" font-size="8.5" fill="var(--osteo)">(off-chart — can't mine that fast)</text>
         </svg>
       </div>
-      <p class="tag" style="margin-top:14px"><strong>How a seed becomes 24,000 t.</strong> Left: cumulative grown mass. Early growth is exponential — a tiny seed doubling roughly monthly — but if biology were the only limit it would reach full mass in ~1.5 years (dashed) at an impossible terminal rate. Right: the real constraint is how fast the organism can <em>mine and deposit</em> feedstock. Once that ceiling (~16 t/day, already tens× an alga's areal output) is hit at ~1 year, deposition runs flat and the mass climbs linearly, stretching gestation to ~5 years at a ~13 t/day average. The osteoid dots are the mission-profile stage masses below. <span style="color:var(--ink-3)">Model: dM/dt = min(M/τ, R<sub>max</sub>), τ ≈ 55 d, R<sub>max</sub> = 16 t/day — an illustrative envelope, not a growth guarantee.</span></p>
+      <p class="tag" style="margin-top:14px"><strong>How a seed becomes 24,000 t.</strong> Left: cumulative grown mass. Early growth is exponential — a tiny seed doubling roughly monthly — but if biology were the only limit it would reach full mass in ~<span data-calc="growth.unconstrained_yr">1.5</span> years (dashed) at an impossible terminal rate. Right: the real constraint is how fast the organism can <em>mine and deposit</em> feedstock. Once that ceiling (~<span data-calc="growth.rmax">16</span> t/day, already tens× an alga's areal output) is hit at ~<span data-calc="growth.cap_year">1</span> year, deposition runs flat and the mass climbs linearly, stretching gestation to ~<span data-calc="growth.navis_years">5</span> years at a ~<span data-calc="growth.navis_avg">13</span> t/day average. The osteoid dots are the mission-profile stage masses below. <span style="color:var(--ink-3)">Model: dM/dt = min(M/τ, R<sub>max</sub>), τ ≈ 55 d, R<sub>max</sub> = 16 t/day, starting from the germinated seed (~1 t once it has taken up water) — an illustrative envelope, not a growth guarantee.</span></p>
 
       <p><strong>Self-healing</strong> runs at three tiers. Micro-punctures clot in minutes with a fibrin-analogue plug — the same principle as self-healing bioconcrete — then regrow over days. A meteoroid gouge triggers a local growth surge that rebuilds the layers in order, seal first. And a catastrophic breach is survived by <strong>compartmentalization</strong>: sphincter-analogue bulkheads seal off a ruptured segment, sacrifice it, and regrow it from the boundary — the way a lizard drops and regrows a tail. Ongoing maintenance is mostly ensuring light, water, CO₂ and trace minerals, while a macrophage-analogue <strong>immune system</strong> polices infection and — the real design hazard — cancerous runaway growth.</p>
       <p><strong>Healing is not a separate system — it is the growth program aimed at a hole.</strong> The response is triaged by the size of the wound, escalating tier by tier, and every tier re-uses the same deposition-and-patterning machinery the organism grew with.</p>
@@ -919,7 +922,7 @@
         <text x="30" y="330" font-family="var(--font-mono)" font-size="8.5" fill="var(--chloro)">All three re-run the SAME growth program locally: a wound is just directed growth, aimed at a hole. Sealing is fast (survival); restoring full shielding is the slow tail (~months for the whole wall).</text>
         </svg>
       </div>
-      <p class="tag" style="margin-top:12px"><strong>Seal fast, restore slowly.</strong> A breach triggers a wound signal (pressure drop + exposed matrix) that first drives a <em>seal</em> — a fibrin/calcite plug at millimetre scale, or a contracting sphincter bulkhead at metre scale — in <strong>seconds to minutes</strong>, because survival depends only on stopping the leak through the thin pressure layer. Restoring the full <em>structure and shielding</em> is the slow tail: stem/progenitor cells form a <strong>blastema</strong> at the wound, re-grow the vasculature into it (angiogenesis), and rebuild the six layers <em>in order</em> under morphogen gradients from the wound edge — a directed re-run of embryonic growth. At a local deposition surge of ~10–30× the baseline 1.7 kg/m²·day, the thin seal is rebuilt in <strong>hours</strong>, a half-metre gouge in <strong>~1–3 weeks</strong>, and a full 5.5 m wall section in <strong>~3–9 months</strong> — the deeper the wound, the longer, scaling with depth rather than area.</p>
+      <p class="tag" style="margin-top:12px"><strong>Seal fast, restore slowly.</strong> A breach triggers a wound signal (pressure drop + exposed matrix) that first drives a <em>seal</em> — a fibrin/calcite plug at millimetre scale, or a contracting sphincter bulkhead at metre scale — in <strong>seconds to minutes</strong>, because survival depends only on stopping the leak through the thin pressure layer. Restoring the full <em>structure and shielding</em> is the slow tail: stem/progenitor cells form a <strong>blastema</strong> at the wound, re-grow the vasculature into it (angiogenesis), and rebuild the six layers <em>in order</em> under morphogen gradients from the wound edge — a directed re-run of embryonic growth. At a local deposition surge of ~10–30× the baseline ~<span data-calc="growth.navis_per_m2">1</span> kg/m²·day, the thin seal is rebuilt in <strong>hours</strong>, a half-metre gouge in <strong>~1–3 weeks</strong>, and a full 5.5 m wall section in <strong>~<span data-calc="growth.heal_wall_lo">2.5</span>–<span data-calc="growth.heal_wall_hi">7</span> months</strong> — the deeper the wound, the longer, scaling with depth rather than area.</p>
       <p><strong>The growth engine behind all of it.</strong> Growth and healing share one front: mining roots feed ions up the vasculature to an advancing growth zone (a cambium- or blastema-analogue) where cells divide, differentiate, and secrete matrix — the ~13 t/day deposition of the gestation curve. <em>Where</em> each tissue forms is set by the morphogen-gradient and segmentation-clock circuits; <em>whether</em> it forms is gated by the very controls that prevent cancer — licence signals, Hayflick division caps, enforced apoptosis, and immune surveillance. Normal growth <strong>stops</strong> when the body reaches its target size (a size-sensing check, as organs stop growing at their set point); a wound simply re-opens that program in one place, and it closes again when the hole is filled. Healing is bounded growth; cancer is the same machinery with the brakes off — which is why the <a href="https://claude.ai/code/artifact/d619e9af-9787-4d1b-8f1c-5a658789e075#genome">growth-control</a> layers guard both.</p>
     </div>
   </section>
@@ -929,7 +932,7 @@
     <div class="sec-head reveal">
       <p class="eyebrow"><span class="num">↗</span> Mission Profile <span class="rule"></span></p>
       <h2>From launched seed to crewed organism</h2>
-      <p class="tag">A genuine sequence — each stage unlocks the next. Masses are cumulative for the reference 24,000-tonne vehicle.</p>
+      <p class="tag">A genuine sequence — each stage unlocks the next. Masses are cumulative for the reference 24,000-tonne vehicle; stage times follow the growth model above.</p>
     </div>
     <div class="timeline reveal">
       <div class="tl-item">
@@ -945,16 +948,16 @@
         <div class="tl-body"><h3>Anchor &amp; root</h3><p>The husk anchors and extends mining hyphae that dissolve regolith for Ca / P / metals and crack ice for water and O₂. Photosynthetic carbon fixation begins. The organism starts eating its surroundings.</p><div class="tl-mass">mass ≈ 1 → 50 t</div></div>
       </div>
       <div class="tl-item">
-        <div class="tl-when">Year 0–1<span class="phase">Frame</span></div>
+        <div class="tl-when">Year <span data-calc="growth.stage_50t">0.6</span>–<span data-calc="growth.stage_6kt">1.9</span><span class="phase">Frame</span></div>
         <div class="tl-body"><h3>Primary structure closes</h3><p>Mycelial scaffold, osteoid trusses and the pneumostat membrane grow into a sealed, pressurizable shell. First atmosphere is held against vacuum.</p><div class="tl-mass">mass ≈ 50 → 6,000 t</div></div>
       </div>
       <div class="tl-item">
-        <div class="tl-when">Year 1–3<span class="phase">Vascularize</span></div>
+        <div class="tl-when">Year 1.9–<span data-calc="growth.stage_16kt">3.6</span><span class="phase">Vascularize</span></div>
         <div class="tl-body"><h3>Plumbing &amp; lining online</h3><p>Xylem and phloem networks differentiate; the photosynthetic intima carpets the interior. Oxygen output ramps and the waste-recycling loop begins to close.</p><div class="tl-mass">mass ≈ 6,000 → 16,000 t</div></div>
       </div>
       <div class="tl-item">
-        <div class="tl-when">Year 3–5<span class="phase">Thicken</span></div>
-        <div class="tl-body"><h3>Shielding &amp; habitat maturation</h3><p>The hull thickens its water jacket and rind to full ~305 g/cm² protection; habitat volumes differentiate. Life support reaches steady-state closure.</p><div class="tl-mass">mass ≈ 16,000 → 24,000 t</div></div>
+        <div class="tl-when">Year 3.6–5<span class="phase">Thicken</span></div>
+        <div class="tl-body"><h3>Shielding &amp; habitat maturation</h3><p>The hull thickens its water jacket and rind to its full ~<span data-calc="navis.column">215</span> g/cm² column; habitat volumes differentiate. Life support reaches steady-state closure.</p><div class="tl-mass">mass ≈ 16,000 → 24,000 t</div></div>
       </div>
       <div class="tl-item">
         <div class="tl-when">Year ~5<span class="phase">Occupy</span></div>
@@ -972,58 +975,59 @@
     <div class="sec-head reveal">
       <p class="eyebrow"><span class="num">∑</span> The Numbers · a hard-figures pass <span class="rule"></span></p>
       <h2>Does the biology actually close?</h2>
-      <p class="tag">First-order estimates for the reference vehicle — crew 50, spheroid Ø 50 m (radius 25 m), cabin at 52 kPa. Round numbers, honest assumptions, shown work.</p>
+      <p class="tag">First-order estimates for the reference vehicle as drawn — crew 50, a prolate spheroid 100 m long by 50 m beam (semi-axes 50 × 25 m) with a 5.5 m living wall, cabin at 52 kPa. Round numbers, honest assumptions, shown work.</p>
     </div>
     <div class="num-grid reveal">
       <div class="card">
         <div class="ct">Oxygen · photosynthetic wall</div>
-        <div class="big chloro">~2,500<span class="u">m² lit</span></div>
-        <div class="sub">Illuminated intima needed to keep 50 crew breathing — about a third of the available inner surface. <strong>Light delivery, not wall area, is the constraint.</strong></div>
+        <div class="big chloro">~<span data-calc="navis.o2_lit">2,450</span><span class="u">m² lit</span></div>
+        <div class="sub">Illuminated intima needed to keep 50 crew breathing — about a quarter of the available cabin-side surface. <strong>Light delivery, not wall area, is the constraint.</strong></div>
         <div class="calc">
-          need <b>= 50 × 0.84 kg/day = 42 kg O₂/day</b><br>
-          wall yield ≈ 30 g O₂ / m² / day<br>
-          area = 42,000 ÷ 30 = <b>1,400 m²</b><br>
-          × 1.8 margin = <b>2,520 m²</b><br>
-          inner surface 4πr² = <b>7,854 m²</b> → 32% lit
+          need <b>= 50 × 0.816 kg/day = <span data-calc="navis.o2_crew_kg">40.8</span> kg O₂/day</b><br>
+          wall yield ≈ 30 g O₂ / m² / day (assumed; BVAD crops give 31–56<sup class="cite"><a href="#ref-1">[1]</a></sup>)<br>
+          area = 40,800 ÷ 30 = <b><span data-calc="navis.o2_area">1,360</span> m²</b><br>
+          × 1.8 margin = <b><span data-calc="navis.o2_lit">2,450</span> m²</b><br>
+          cabin-side surface, 5.5 m inside the <b><span data-calc="navis.area">13,400</span> m²</b> hull ≈ <b><span data-calc="navis.area_in">9,000</span> m²</b> → <span data-calc="navis.o2_frac_lit">27</span>% lit
         </div>
       </div>
       <div class="card">
         <div class="ct">Pressure · wall thickness</div>
-        <div class="big lumen">~6.5<span class="u">mm</span></div>
-        <div class="sub">The thickness of fiber composite actually required to hold 52 kPa. The full 1 m pneumostat is a <strong>&gt;150× margin</strong>. Containing the air is the easy part.</div>
+        <div class="big lumen">~<span data-calc="navis.fibre_mm">11</span><span class="u">mm</span></div>
+        <div class="sub">The thickness of fiber composite actually required to hold 52 kPa at the spheroid's equator, where the hoop load peaks. The full 1 m pneumostat is a <strong>~<span data-calc="navis.pneumostat_margin">90</span>× margin</strong>. Containing the air is the easy part.</div>
         <div class="calc">
-          σ = P·r / 2t  →  t = P·r / 2σ<br>
-          P = 52 kPa, r = 25 m<br>
+          equator hoop N = P·b·(1 − b²/2a²)<br>
+          P = 52 kPa, a = 50 m, b = 25 m → <b><span data-calc="navis.hoop">1.14</span> MN/m</b><br>
           silk fibre ~1 GPa, working stress 100 MPa (SF ~10)<br>
-          t = (52,000 × 25) / 2·10⁸ = <b>6.5 mm</b><br>
-          even weak mycelium (1 MPa): <b>65 cm</b>
+          t = N / σ = 1.14×10⁶ / 10⁸ = <b><span data-calc="navis.fibre_mm">11.4</span> mm</b><br>
+          even weak mycelium (1 MPa): <b><span data-calc="navis.mycelium_m">1.1</span> m</b>
         </div>
       </div>
       <div class="card">
         <div class="ct">Radiation · shielding depth</div>
-        <div class="big osteo">~305<span class="u">g/cm²</span></div>
-        <div class="sub">Areal density of the living hull — ~<strong>30% of Earth's whole atmosphere</strong>, ~19× the Mars surface. Solar storms (need only ~20 g/cm²) are fully stopped; the harder galactic cosmic rays fall from ~0.6 to ~<strong>0.21 Sv/yr</strong> — below a Mars-transit dose.<sup class="cite"><a href="#ref-3">[3]</a><a href="#ref-4">[4]</a></sup></div>
+        <div class="big osteo">~<span data-calc="navis.column">215</span><span class="u">g/cm²</span></div>
+        <div class="sub">Mean areal density of the living wall — ~<strong><span data-calc="navis.col_vs_earth">21</span>% of Earth's whole atmosphere</strong>, ~<span data-calc="navis.col_vs_mars">13</span>× the Mars surface. Solar storms (need only ~20 g/cm²) are fully stopped; the harder galactic cosmic rays fall from ~0.6 Sv/yr in a lightly shielded craft to ~<strong><span data-calc="navis.gcr">0.14</span> Sv/yr</strong> behind the wall — below a Mars-transit dose.<sup class="cite"><a href="#ref-3">[3]</a><a href="#ref-4">[4]</a><a href="#ref-19">[19]</a></sup></div>
         <div class="calc">
-          Σ (thickness × density) = 3,050 kg/m² = <b>305 g/cm²</b><br>
+          column = mass × thickness ÷ wall volume<br>
+          = 24,000 t × 5.5 m ÷ <span data-calc="navis.wall_volume">61,400</span> m³ = <b><span data-calc="navis.column_kg">2,150</span> kg/m²</b><br>
           Earth atmos ≈ 1,033 · Mars surf ≈ 16 g/cm²<br>
-          GCR: <b>0.6 → 0.21 Sv/yr</b> behind hull (2° floor)<br>
+          GCR: <b>0.6 → <span data-calc="navis.gcr">0.14</span> Sv/yr</b> (OLTARIS, water, 2.15 t/m²)<br>
           SPE: <b>fully stopped</b> · ISS crew ≈ 0.15 Sv/yr (LEO)
         </div>
       </div>
       <div class="card">
         <div class="ct">Mass · grown vs launched</div>
         <div class="big">48,000<span class="u">: 1</span></div>
-        <div class="sub">Total grown mass against the launched seed. You <strong>manufacture 24,000 tonnes in situ</strong> and fly half a tonne. That ratio is the entire reason to grow a ship instead of building one.</div>
+        <div class="sub">Total grown mass against the launched seed. You <strong>manufacture 24,000 tonnes in situ</strong> and fly half a tonne. That ratio is the entire reason to grow a ship instead of building one. The mass is set by the growth budget (~5 years at the mining ceiling); the shielding column follows from it.</div>
         <div class="calc">
-          hull mass = 7,854 m² × 3,050 kg/m²<br>
-          = <b>2.4 × 10⁷ kg ≈ 24,000 t</b><br>
-          seed ≈ 500 kg<br>
-          ratio = <b>≈ 47,900 : 1</b>
+          wall: 100 × 50 m spheroid, 5.5 m thick<br>
+          volume = A·t − M·t² + 4πt³/3 = <b><span data-calc="navis.wall_volume">61,400</span> m³</b><br>
+          × mean density <span data-calc="navis.mean_density">390</span> kg/m³ = <b>2.4 × 10⁷ kg ≈ 24,000 t</b><br>
+          seed ≈ 500 kg → ratio = <b><span data-calc="navis.seed_ratio">48,000</span> : 1</b>
         </div>
       </div>
     </div>
-    <p class="verdict reveal">The numbers land in a revealing place. Breathing and pressure-holding are <span class="em">comfortably solved</span> — a third of the wall lit, a few millimetres of fibre to hold the air. What dominates the design is <span class="em">shielding mass</span>: 24,000 tonnes of hydrogen-rich tissue, wildly impractical to launch, entirely practical to <em>grow from the rock you parked next to.</em> The concept earns its keep exactly where rockets fail.</p>
-    <p class="verdict reveal" style="font-size:.86em;color:var(--ink-3);margin-top:14px">Assumptions &amp; caveats — O₂ at 0.84 kg/crew·day and ~30 g O₂/m²·day algal yield; pressure at 52 kPa held by silk-analogue fibre at ~100 MPa working stress (a ~10× margin on the fibre, and far more as built — the ~6.5 mm needed sits inside a metre-thick pneumostat); radiation from a ~0.6 Sv/yr deep-space GCR baseline attenuated with a secondary-particle floor (~0.35× residual). Galactic cosmic rays are genuinely hard to stop — the estimate is model-dependent and improves only slowly with more mass. These are first-order figures meant to test feasibility, not to size flight hardware.</p>
+    <p class="verdict reveal">The numbers land in a revealing place. Breathing and pressure-holding are <span class="em">comfortably solved</span> — a quarter of the intima lit, about a centimetre of fibre to hold the air. What dominates the design is <span class="em">shielding mass</span>: 24,000 tonnes of hydrogen-rich tissue, wildly impractical to launch, entirely practical to <em>grow from the rock you parked next to.</em> The concept earns its keep exactly where rockets fail.</p>
+    <p class="verdict reveal" style="font-size:.86em;color:var(--ink-3);margin-top:14px">Assumptions &amp; caveats — O₂ at 0.816 kg/crew·day (BVAD REV1) and an assumed ~30 g O₂/m²·day intima yield; pressure at 52 kPa held by silk-analogue fibre at ~100 MPa working stress (a ~10× margin on the fibre, and far more as built — the ~11 mm needed sits inside a metre-thick pneumostat); geometry is the drawn 100 × 50 m spheroid (an earlier version of these figures used a 50 m sphere, 7,854 m², under 60% of the drawn body's area — and so showed a 305 g/cm² column; holding the grown mass at 24,000 t, the drawn body's wall averages 215 g/cm²); radiation from a ~0.6 Sv/yr baseline measured inside the lightly shielded MSL cruise stage<sup class="cite"><a href="#ref-3">[3]</a></sup>, and from NASA OLTARIS free-space doses behind water (200 mSv/yr at 1 t/m², 147 at 2, 101 at 3), interpolated to the wall's 2.15 t/m² and treating the hydrogen-rich tissue as water<sup class="cite"><a href="#ref-19">[19]</a></sup>. Galactic cosmic rays are genuinely hard to stop — the estimate is model-dependent (solar-minimum flux; secondary particles included by the model) and improves only slowly with more mass. These are first-order figures meant to test feasibility, not to size flight hardware.</p>
   </section>
 
   <!-- ================= BIOENGINEERING ROADMAP ================= -->
@@ -1048,6 +1052,7 @@
 
     <div class="table-wrap reveal">
       <table class="road-table">
+        <caption>From bench to seed — the closest real technology per subsystem; TRL scores follow the Fleet Registry's readiness scorecard</caption>
         <thead><tr><th>Subsystem</th><th>Closest real technology today</th><th>The gap to close</th><th>Near-term experiment</th></tr></thead>
         <tbody>
           <tr>
@@ -1058,31 +1063,31 @@
           </tr>
           <tr>
             <td>Bone skeleton</td>
-            <td><span class="real">3D-bioprinted collagen–hydroxyapatite</span> scaffolds; microbial calcite (MICP)<span class="trl">TRL ~3–4</span></td>
+            <td><span class="real">3D-bioprinted collagen–hydroxyapatite</span> scaffolds; microbial calcite (MICP)<span class="trl">TRL ~4</span></td>
             <td><span class="gap">Stress-directed remodeling in situ; load-bearing scale</span></td>
             <td>MICP struts under sustained load — measure Wolff's-law-like deposition where stressed</td>
           </tr>
           <tr>
             <td>Photosynthetic life support</td>
-            <td><span class="real">MELiSSA loop; algal photobioreactors</span>; ISS PBR experiment (2019)<span class="trl">TRL ~4–5</span></td>
+            <td><span class="real">MELiSSA loop; algal photobioreactors</span>; ISS PBR experiment (2019)<span class="trl">TRL ~5</span></td>
             <td><span class="gap">Embedding a living wall in a structural hull; multi-year stability</span></td>
             <td>Structural panel with an embedded algal layer — log O₂/m²/day over months</td>
           </tr>
           <tr>
             <td>Self-healing</td>
-            <td><span class="real">Bacterial self-healing concrete</span> — Basilisk / Bacilla (<em>Bacillus</em> + CaCO₃)<span class="trl">TRL ~7</span></td>
+            <td><span class="real">Bacterial self-healing concrete</span> — Basilisk / Bacilla (<em>Bacillus</em> + CaCO₃)<span class="trl">TRL ~5</span></td>
             <td><span class="gap">Sealing against a vacuum pressure gradient, fast</span></td>
             <td>Puncture a pressurized bioconcrete panel; time the seal against ΔP</td>
           </tr>
           <tr>
             <td>Radiation tolerance</td>
-            <td><span class="real">Radiotrophic melanin</span> (<em>C. sphaerospermum</em>, ISS 2019); <em>Deinococcus</em> repair genes<span class="trl">TRL ~3</span></td>
+            <td><span class="real">Radiotrophic melanin</span> (<em>C. sphaerospermum</em>, ISS 2019); <em>Deinococcus</em> repair genes<span class="trl">TRL ~4</span></td>
             <td><span class="gap">Engineering melanin density; expressing repair in the chassis</span></td>
             <td>Dosimetry of a thick melanized mat under a proton beam</td>
           </tr>
           <tr>
             <td>Cryo / thermal</td>
-            <td><span class="real">Antifreeze glycoproteins</span> (fish); tardigrade anhydrobiosis — trehalose, Dsup protein<sup class="cite"><a href="#ref-12">[12]</a></sup><span class="trl">TRL ~2–3</span></td>
+            <td><span class="real">Antifreeze glycoproteins</span> (fish); tardigrade anhydrobiosis — trehalose, Dsup protein<sup class="cite"><a href="#ref-12">[12]</a></sup><span class="trl">TRL ~3</span></td>
             <td><span class="gap">Whole-tissue freeze–thaw survival</span></td>
             <td>Express AFP + Dsup in the chassis; score freeze–thaw viability</td>
           </tr>
@@ -1130,24 +1135,25 @@
     <div class="refs reveal">
       <p class="refs-note">Every quantitative claim in this dossier is anchored to a real, published source: standards for the life-support and radiation figures, peer-reviewed papers for each biological mechanism, and established models for the space environment. Superscripts in the text link here. This is a concept study, not flight hardware — the citations justify that each ingredient is real, not that the integrated vehicle has been built.</p>
       <ol>
-        <li id="ref-1">Anderson, M. S. et&nbsp;al. (2018). <span class="rt">Life Support Baseline Values and Assumptions Document.</span> NASA/TP-2015-218570/REV1. — per-crew O₂ 0.84, CO₂ 1.00, dry food 0.62, potable water ~2.0 kg·day⁻¹.</li>
-        <li id="ref-2">Kopp, G. &amp; Lean, J. L. (2011). A new, lower value of total solar irradiance. <span class="rt">Geophys. Res. Lett.</span> 38, L01706. — solar constant 1361 W·m⁻² at 1&nbsp;AU (thermal equilibrium, sun-cord budget).</li>
-        <li id="ref-3">Zeitlin, C. et&nbsp;al. (2013). Measurements of energetic particle radiation in transit to Mars on the MSL. <span class="rt">Science</span> 340, 1080–1084. — deep-space GCR ≈ 1.8 mSv·day⁻¹ ≈ 0.6 Sv·yr⁻¹ baseline.</li>
-        <li id="ref-4">Durante, M. &amp; Cucinotta, F. A. (2011). Physical basis of radiation protection in space travel. <span class="rt">Rev. Mod. Phys.</span> 83, 1245–1281. — GCR attenuation and the secondary-particle floor behind bulk shielding.</li>
-        <li id="ref-5">Gosline, J. M. et&nbsp;al. (1999). The mechanical design of spider silks. <span class="rt">J. Exp. Biol.</span> 202, 3295–3303. — dragline silk ≈ 1–1.5 GPa tensile, toughness 150–350 MJ·m⁻³.</li>
-        <li id="ref-6">Wegst, U. G. K. et&nbsp;al. (2015). Bioinspired structural materials. <span class="rt">Nat. Mater.</span> 14, 23–36. — collagen–hydroxyapatite bone strength; biological composite design.</li>
-        <li id="ref-7">Jones, M. et&nbsp;al. (2020). Engineered mycelium composite construction materials. <span class="rt">Mater. Des.</span> 187, 108397. — mycelium density 100–400 kg·m⁻³, compressive 0.1–1 MPa.</li>
-        <li id="ref-8">Salisbury, F. B. et&nbsp;al. (1997). Bios-3: Siberian experiments in bioregenerative life support. <span class="rt">BioScience</span> 47, 575–585. — closed-loop closure fractions; the RQ/PQ buffering problem.</li>
-        <li id="ref-9">Nelson, M. et&nbsp;al. (1993). Using a closed ecological system to study Earth's biosphere: Biosphere&nbsp;2. <span class="rt">BioScience</span> 43, 225–236. — the documented oxygen decline in a closed ecology.</li>
-        <li id="ref-10">Lasseur, C. et&nbsp;al. (2010). MELiSSA: the European project of a closed life-support system. <span class="rt">Gravit. Space Biol.</span> 23, 3–12. — algal photobioreactor life support; ~30 g O₂·m⁻²·day⁻¹ class yields.</li>
-        <li id="ref-11">Dadachova, E. et&nbsp;al. (2007). Ionizing radiation changes the electronic properties of melanin and enhances the growth of melanized fungi. <span class="rt">PLoS ONE</span> 2, e457. — radiotrophic melanin (<em>Cladosporium&nbsp;sphaerospermum</em>).</li>
-        <li id="ref-12">Hashimoto, T. et&nbsp;al. (2016). Extremotolerant tardigrade genome and improved radiotolerance of human cultured cells by Dsup. <span class="rt">Nat. Commun.</span> 7, 12808. — Dsup protein ≈ 40% X-ray damage reduction.</li>
-        <li id="ref-13">Grün, E. et&nbsp;al. (1985). Collisional balance of the meteoritic complex. <span class="rt">Icarus</span> 62, 244–272. — interplanetary micrometeoroid flux model (impact-rate estimates).</li>
-        <li id="ref-14">Whipple, F. L. (1947). Meteorites and space travel. <span class="rt">Astron. J.</span> 52, 131. — the bumper-shield principle behind the living epidermis.</li>
-        <li id="ref-15">Elowitz, M. B. &amp; Leibler, S. (2000). A synthetic oscillatory network of transcriptional regulators. <span class="rt">Nature</span> 403, 335–338. — the repressilator; genetic-oscillator basis for a segmentation clock.</li>
-        <li id="ref-16">Toda, S. et&nbsp;al. (2018). Programming self-organizing multicellular structures with synthetic cell–cell signaling. <span class="rt">Science</span> 361, 156–162. — synNotch-directed tissue patterning at mm–cm scale.</li>
-        <li id="ref-17">Lajoie, M. J. et&nbsp;al. (2013). Genomically recoded organisms expand biological functions. <span class="rt">Science</span> 342, 357–360. — recoded <em>E.&nbsp;coli</em> (genetic firewall).</li>
-        <li id="ref-18">Mandell, D. J. et&nbsp;al. (2015). Biocontainment of genetically modified organisms by synthetic protein design. <span class="rt">Nature</span> 518, 55–60. — synthetic auxotrophy; escape frequency &lt;10⁻¹².</li>
+        <li id="ref-1">Anderson, M. S. et&nbsp;al. (2018). <span class="rt">Life Support Baseline Values and Assumptions Document.</span> NASA/TP-2015-218570/REV1. NASA Johnson Space Center. <a href="https://ntrs.nasa.gov/citations/20180001338">ntrs.nasa.gov/citations/20180001338</a> — nominal per-crew O₂ 0.816, CO₂ 1.04, potable water 2.5 kg·day⁻¹ (Table 3-33; 82 kg crewmember, RQ 0.92), of which drinking water 2.0 (Table 4-20); IVA dry food 0.617 kg·day⁻¹ (Table 4-57); crop O₂ output ~30–56 g·m⁻²·day⁻¹ (Table 4-98). The 0.84 O₂ / 1.00 CO₂ figures used in this document are the earlier BVAD values (Hanford 2006, NASA/CR-2006-213693, Table 3.3.8: 0.835 / 0.998).</li>
+        <li id="ref-2">Kopp, G. &amp; Lean, J. L. (2011). A new, lower value of total solar irradiance: Evidence and climate significance. <span class="rt">Geophys. Res. Lett.</span> 38, L01706. doi:<a href="https://doi.org/10.1029/2010GL045777">10.1029/2010GL045777</a> — solar constant 1361 W·m⁻² at 1&nbsp;AU (thermal equilibrium, sun-cord budget).</li>
+        <li id="ref-3">Zeitlin, C. et&nbsp;al. (2013). Measurements of energetic particle radiation in transit to Mars on the Mars Science Laboratory. <span class="rt">Science</span> 340, 1080–1084. doi:<a href="https://doi.org/10.1126/science.1235989">10.1126/science.1235989</a> — cruise GCR dose equivalent 1.84 ± 0.30 mSv·day⁻¹ inside the lightly shielded MSL spacecraft (0.66 Sv for a 360-day round trip) — the ≈ 0.6–0.7 Sv·yr⁻¹ baseline.</li>
+        <li id="ref-4">Durante, M. &amp; Cucinotta, F. A. (2011). Physical basis of radiation protection in space travel. <span class="rt">Rev. Mod. Phys.</span> 83, 1245–1281. doi:<a href="https://doi.org/10.1103/RevModPhys.83.1245">10.1103/RevModPhys.83.1245</a> — GCR attenuation and the secondary-particle floor behind bulk shielding.</li>
+        <li id="ref-5">Gosline, J. M. et&nbsp;al. (1999). The mechanical design of spider silks: from fibroin sequence to mechanical function. <span class="rt">J. Exp. Biol.</span> 202, 3295–3303. doi:<a href="https://doi.org/10.1242/jeb.202.23.3295">10.1242/jeb.202.23.3295</a> — <em>Araneus</em> dragline (major-ampullate) silk ≈ 1.1 GPa strength, toughness ≈ 160 MJ·m⁻³ (Table 1); the ~350 MJ·m⁻³ upper figure is Darwin's bark spider silk (Agnarsson, I. et&nbsp;al. 2010, <span class="rt">PLoS ONE</span> 5, e11234, doi:<a href="https://doi.org/10.1371/journal.pone.0011234">10.1371/journal.pone.0011234</a>).</li>
+        <li id="ref-6">Wegst, U. G. K. et&nbsp;al. (2015). Bioinspired structural materials. <span class="rt">Nat. Mater.</span> 14, 23–36. doi:<a href="https://doi.org/10.1038/nmat4089">10.1038/nmat4089</a>; Reilly, D. T. &amp; Burstein, A. H. (1975). The elastic and ultimate properties of compact bone tissue. <span class="rt">J. Biomech.</span> 8, 393–405. doi:<a href="https://doi.org/10.1016/0021-9290(75)90075-5">10.1016/0021-9290(75)90075-5</a> — collagen–hydroxyapatite bone as a hierarchical biological composite (Wegst); bone strength numbers (Reilly &amp; Burstein): human femoral <em>cortical</em> bone ≈ 190–205 MPa in longitudinal compression and ≈ 135 MPa in longitudinal tension.</li>
+        <li id="ref-7">Jones, M. et&nbsp;al. (2020). Engineered mycelium composite construction materials from fungal biorefineries: a critical review. <span class="rt">Mater. Des.</span> 187, 108397. doi:<a href="https://doi.org/10.1016/j.matdes.2019.108397">10.1016/j.matdes.2019.108397</a> — mycelium density 100–400 kg·m⁻³, compressive 0.1–1 MPa.</li>
+        <li id="ref-8">Salisbury, F. B., Gitelson, J. I. &amp; Lisovsky, G. M. (1997). Bios-3: Siberian experiments in bioregenerative life support. <span class="rt">BioScience</span> 47, 575–585. doi:<a href="https://doi.org/10.2307/1313164">10.2307/1313164</a> — closed-loop closure fractions; the RQ/PQ buffering problem.</li>
+        <li id="ref-9">Nelson, M. et&nbsp;al. (1993). Using a closed ecological system to study Earth's biosphere: initial results from Biosphere&nbsp;2. <span class="rt">BioScience</span> 43, 225–236. doi:<a href="https://doi.org/10.2307/1312123">10.2307/1312123</a> — the documented oxygen decline in a closed ecology (20.94% → below 14.5% by January 1993, p. 234).</li>
+        <li id="ref-10">Lasseur, C. et&nbsp;al. (2010). MELiSSA: the European project of closed life support system. <span class="rt">Gravit. Space Biol.</span> 23(2), 3–12. — the MELiSSA closed loop, including its <em>Arthrospira</em> photobioreactor compartment for O₂ production (the paper gives no areal O₂ yield; ~30 g O₂·m⁻²·day⁻¹ is the crop-level figure in ref.&nbsp;1, Table 4-98).</li>
+        <li id="ref-11">Dadachova, E. et&nbsp;al. (2007). Ionizing radiation changes the electronic properties of melanin and enhances the growth of melanized fungi. <span class="rt">PLoS ONE</span> 2, e457. doi:<a href="https://doi.org/10.1371/journal.pone.0000457">10.1371/journal.pone.0000457</a> — radiotrophic melanin (<em>Cladosporium&nbsp;sphaerospermum</em>).</li>
+        <li id="ref-12">Hashimoto, T. et&nbsp;al. (2016). Extremotolerant tardigrade genome and improved radiotolerance of human cultured cells by tardigrade-unique protein. <span class="rt">Nat. Commun.</span> 7, 12808. doi:<a href="https://doi.org/10.1038/ncomms12808">10.1038/ncomms12808</a> — Dsup protein ≈ 40% X-ray damage reduction.</li>
+        <li id="ref-13">Grün, E. et&nbsp;al. (1985). Collisional balance of the meteoritic complex. <span class="rt">Icarus</span> 62, 244–272. doi:<a href="https://doi.org/10.1016/0019-1035(85)90121-6">10.1016/0019-1035(85)90121-6</a> — interplanetary micrometeoroid flux model (impact-rate estimates).</li>
+        <li id="ref-14">Whipple, F. L. (1947). Meteorites and space travel. <span class="rt">Astron. J.</span> 52, 131. doi:<a href="https://doi.org/10.1086/106009">10.1086/106009</a> — the bumper-shield principle behind the living epidermis.</li>
+        <li id="ref-15">Elowitz, M. B. &amp; Leibler, S. (2000). A synthetic oscillatory network of transcriptional regulators. <span class="rt">Nature</span> 403, 335–338. doi:<a href="https://doi.org/10.1038/35002125">10.1038/35002125</a> — the repressilator; genetic-oscillator basis for a segmentation clock.</li>
+        <li id="ref-16">Toda, S. et&nbsp;al. (2018). Programming self-organizing multicellular structures with synthetic cell–cell signaling. <span class="rt">Science</span> 361, 156–162. doi:<a href="https://doi.org/10.1126/science.aat0271">10.1126/science.aat0271</a> — synNotch-driven self-organisation of multilayer spheroids from ~60–240 starting cells (sub-millimetre scale).</li>
+        <li id="ref-17">Lajoie, M. J. et&nbsp;al. (2013). Genomically recoded organisms expand biological functions. <span class="rt">Science</span> 342, 357–360. doi:<a href="https://doi.org/10.1126/science.1241459">10.1126/science.1241459</a> — recoded <em>E.&nbsp;coli</em> (genetic firewall).</li>
+        <li id="ref-18">Mandell, D. J. et&nbsp;al. (2015). Biocontainment of genetically modified organisms by synthetic protein design. <span class="rt">Nature</span> 518, 55–60. doi:<a href="https://doi.org/10.1038/nature14121">10.1038/nature14121</a> — synthetic auxotrophy; escape frequency &lt;10⁻¹².</li>
+        <li id="ref-19">Globus, A. &amp; Strout, J. (2017). Orbital space settlement radiation shielding. <span class="rt">NSS Space Settlement Journal</span>, April 2017 (<a href="https://nss.org/wp-content/uploads/2018/01/NSS-JOURNAL-Orbital-Space-Settlement-Radiation-Shielding.pdf">nss.org</a>). — NASA OLTARIS free-space GCR dose behind water, polyethylene and regolith (Table 2): the source of the behind-the-wall estimate.</li>
       </ol>
     </div>
   </section>

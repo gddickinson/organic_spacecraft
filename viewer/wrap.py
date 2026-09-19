@@ -9,6 +9,7 @@ links to local `/d/<slug>` routes so navigation stays offline.
 """
 
 import re
+from urllib.parse import quote
 
 # The minimal reset the artifact host applies, reproduced so pages render the
 # same offline as they do when published.
@@ -56,6 +57,6 @@ def rewrite_links(fragment, id_to_slug):
 def wrap(fragment, title, favicon, id_to_slug):
     """Return a complete HTML document for a fragment."""
     body = rewrite_links(fragment, id_to_slug)
-    # Escape a lone favicon char safely into the SVG data URI.
-    fav = favicon if favicon else "◈"
+    # Percent-encoded: a raw emoji inside a data URI is at the browser's mercy.
+    fav = quote(favicon if favicon else "◈")
     return SKELETON.format(title=title, favicon=fav, reset=RESET, body=body)

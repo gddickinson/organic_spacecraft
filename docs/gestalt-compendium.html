@@ -10,9 +10,12 @@
     --font-mono:ui-monospace,'SF Mono','Menlo','Cascadia Code','Roboto Mono',monospace;
     --maxw:1180px;--spine:70ch;
   }
-  @media (prefers-color-scheme:light){:root{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}}
+  @media (prefers-color-scheme:light){:root{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#166d36;--lumen:#0a6d67;--osteo:#895519;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}}
   :root[data-theme="dark"]{--ground:#0a1512;--ground-2:#0e1c18;--ink:#e2f0e8;--ink-2:#a9c2b6;--ink-3:#7c9689;--line:rgba(150,196,176,.16);--line-2:rgba(150,196,176,.30);--chloro:#54cf7c;--lumen:#4fd6d0;--osteo:#e6ac6d;--chloro-soft:rgba(84,207,124,.13);--lumen-soft:rgba(79,214,208,.11);--osteo-soft:rgba(230,172,109,.13);--sheet:#0b1714}
-  :root[data-theme="light"]{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#1f9a4c;--lumen:#0c8079;--osteo:#a9691f;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}
+  :root[data-theme="light"]{--ground:#e9eee7;--ground-2:#e1e8df;--ink:#152219;--ink-2:#3c4d43;--ink-3:#5d6f64;--line:rgba(22,54,40,.16);--line-2:rgba(22,54,40,.30);--chloro:#166d36;--lumen:#0a6d67;--osteo:#895519;--chloro-soft:rgba(31,154,76,.10);--lumen-soft:rgba(12,128,121,.09);--osteo-soft:rgba(169,105,31,.10);--sheet:#eef2ea}
+  body{background:var(--ground);color:var(--ink)}
+  caption{caption-side:top;text-align:left;font-family:var(--font-mono);font-size:.74rem;letter-spacing:.06em;color:var(--ink-3);padding:0 0 8px}
+
 
   *{box-sizing:border-box}body{margin:0}
   .page{background:radial-gradient(1100px 640px at 82% -6%,var(--chloro-soft),transparent 60%),radial-gradient(900px 520px at 6% 3%,var(--lumen-soft),transparent 55%),var(--ground);color:var(--ink);font-family:var(--font-body);font-size:16.5px;line-height:1.66;letter-spacing:.005em;overflow-x:hidden;min-height:100vh}
@@ -98,6 +101,7 @@
   @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
   ::selection{background:var(--chloro);color:var(--ground)}
   :focus-visible{outline:2px solid var(--lumen);outline-offset:3px;border-radius:3px}
+  section.doc h3.h4{font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:22px 0 8px}
 </style>
 
 <div class="page"><div class="wrap">
@@ -146,6 +150,7 @@
 
       <div class="tbl-wrap">
         <table>
+          <caption>A designed symbiosis, not a single organism</caption>
           <thead><tr><th>Role in the body</th><th>Real chassis organism</th><th>Native function it provides</th><th>What must be engineered in</th></tr></thead>
           <tbody>
             <tr><td>Structural matrix<br><span class="r">"the flesh &amp; wood"</span></td><td>Filamentous fungus — <em>Ganoderma / Pleurotus</em> (basidiomycete), the strains already pressed into mycelium materials</td><td>Chitin–glucan hyphal network; tip-growth by the Spitzenkörper; secretes and remodels its own matrix</td><td>Stress-directed growth; secretion of collagen/silk proteins it does not natively make; gas-tight wall variants</td></tr>
@@ -158,10 +163,11 @@
         </table>
       </div>
 
-      <h4>The genetic toolkit — specific parts</h4>
+      <h3 class="h4">The genetic toolkit — specific parts</h3>
       <p>These are not hypothetical hand-waves; each engineered function maps to characterised genes and demonstrated techniques.</p>
       <div class="tbl-wrap">
         <table>
+          <caption>The genetic toolkit — specific parts</caption>
           <thead><tr><th>Engineered function</th><th>Genes / parts</th><th>Host</th><th>Real basis</th></tr></thead>
           <tbody>
             <tr><td>Export sugar to the fungus</td><td><span class="chem">cscB</span> sucrose permease</td><td><em>Synechococcus / Synechocystis</em></td><td>"Leaky" cyanobacteria secreting sucrose (Ducat lab, 2012)<sup class="cite"><a href="#cref-10">[10]</a></sup></td></tr>
@@ -174,7 +180,7 @@
         </table>
       </div>
 
-      <h4>Holding it together — orthogonal signalling</h4>
+      <h3 class="h4">Holding it together — orthogonal signalling</h3>
       <p>A consortium only behaves as one organism if the partners talk without cross-talk. The scaffold is <strong>quorum sensing</strong>: acyl-homoserine-lactone systems (<span class="chem">LuxI/LuxR</span>, <span class="chem">LasI/LasR</span>, <span class="chem">RhlI/RhlR</span>, plus low-crosstalk pairs such as <span class="chem">RpaI/RpaR</span> from <em>Rhodopseudomonas</em>) and orthogonal peptide systems give each partner a private channel to sense density and coordinate secretion. Metabolic interdependence enforces cooperation — the alga cannot fix N, the fungus cannot photosynthesise, the miner cannot build — so no partner benefits from defecting. This is a synthetic version of the <strong>syntrophy</strong> that binds real microbial communities, and it is also a containment feature: a partner that escapes the consortium loses the metabolites it depends on. <span class="gap">gap: stable division of labour at organism scale is unproven</span></p>
     </div>
   </section>
@@ -186,21 +192,21 @@
     <div class="flow">
       <p>The single hardest problem in the whole program is not any one material — it is <strong>morphogenesis</strong>: getting an undifferentiated seed to grow into a kilometre-scale body with the right organ in the right place. Biology does this routinely at millimetre-to-metre scale (every embryo); doing it on command, at engineered scale, is the frontier. GESTALT would build on four real synthetic-biology tools. On the ground this is the program's one true bet — the <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#wp4">WP4 morphogenesis moonshot</a>, whose success or failure is the <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#gates">Phase-2 go/no-go gate</a> of the Earth Program.</p>
 
-      <h4>1 · Genome design &amp; safety recoding</h4>
+      <h3 class="h4">1 · Genome design &amp; safety recoding</h3>
       <p>Each chassis carries a <strong>recoded genome</strong>. Real work (the <span class="chem">E. coli C321.ΔA</span> line, 321 codons reassigned)<sup class="cite"><a href="#cref-1">[1]</a><a href="#cref-2">[2]</a></sup> shows a genome can be rewritten to free codons and firewall it against natural gene transfer and viruses. GESTALT uses this two ways: to install <strong>synthetic auxotrophy</strong> — dependence on a non-natural amino acid (e.g. bipyridyl-alanine) not found anywhere in nature, so the cells die outside supply <span class="real">demonstrated, Church &amp; Isaacs labs 2015<sup class="cite"><a href="#cref-3">[3]</a><a href="#cref-4">[4]</a></sup></span> — and to make the organisms <strong>genetically incompatible</strong> with any wild biosphere they might reach.</p>
 
-      <h4>2 · Patterning — morphogen gradients &amp; synthetic Notch</h4>
+      <h3 class="h4">2 · Patterning — morphogen gradients &amp; synthetic Notch</h3>
       <p>Position is told to cells by chemical gradients, exactly as in embryos (the "French-flag" model: a diffusing morphogen at high/medium/low concentration switches three different fates). GESTALT would use engineered diffusible signals plus <strong>synNotch</strong> receptors — synthetic Notch, a real modular receptor (Lim lab) whose custom ligand drives a custom transcriptional program — to build layered structures cell-contact by cell-contact. Synthetic synNotch circuits have already self-organised multi-layered structures in the lab. <span class="gap">gap: demonstrated at ~mm; needed at km</span></p>
 
-      <h4>3 · Self-organising texture — Turing patterns</h4>
+      <h3 class="h4">3 · Self-organising texture — Turing patterns</h3>
       <p>The fine repeating textures (the Whipple lamellae of the pneumostat, the villi of a placenta, the trabeculae of bone) come from <strong>reaction–diffusion</strong>: a short-range activator and a long-range inhibitor spontaneously produce stripes and spots. <span class="chem">activator↑ → self + inhibitor↑ → inhibitor diffuses → spacing</span>. Turing circuits have been built synthetically in bacteria; GESTALT uses them so the genome need not specify every strut, only the rule that generates them.</p>
 
-      <h4>4 · Stress-directed growth — Wolff's law in code</h4>
+      <h3 class="h4">4 · Stress-directed growth — Wolff's law in code</h3>
       <p>The skeleton optimises itself: strain-sensing cells (piezo-channel analogues) deposit mineral where load is chronic and resorb it where it is idle, the mechanism that shapes real bone. A gene circuit couples <span class="chem">mechanical strain → osteoblast deposition</span> and <span class="chem">idleness → osteoclast resorption</span>, so the hull tunes its own truss geometry at a resolution no blueprint could specify.</p>
 
-      <h4>The scale gap — why this is the long pole</h4>
-      <p>Every tool above is real, and every one has been shown at millimetre scale. The problem is the distance to a spacecraft. A starship hull is ~43,000 m³ of tissue — on the order of <strong>10²⁰ cells</strong>, roughly a million human bodies' worth (a gigatonne habitat is a billion). Today's most advanced directed morphogenesis — organoids and synNotch-patterned spheroids (Toda &amp; Lim, 2018)<sup class="cite"><a href="#cref-6">[6]</a></sup> — reaches ~10⁶ cells at millimetre-to-centimetre scale. That is a <strong>~14-order-of-magnitude gap</strong> in cell number.</p>
-      <p>And the patterning cannot simply be scaled up. A morphogen gradient has a characteristic length of only <span class="chem">λ = √(D/k) ≈ 0.3–1 mm</span> — set by how fast the signal diffuses against how fast it decays — so <em>no single gradient can span a kilometre</em>. Real embryos get around this with a <strong>hierarchical relay</strong>: successive gradients, Hox coordinate genes, and a segmentation clock (an oscillator, cf. the repressilator of Elowitz &amp; Leibler, 2000)<sup class="cite"><a href="#cref-5">[5]</a></sup> that lays down repeating units one at a time as the body grows. GESTALT would need the same — a self-referential cascade in which each region patterns the next — engineered and reliable across ~10²⁰ cells and years of growth. Nothing at that scale exists, or is close. <span class="gap">gap: TRL ~2 — the true bottleneck of the whole program</span></p>
+      <h3 class="h4">The scale gap — why this is the long pole</h3>
+      <p>Every tool above is real, and every one has been shown at millimetre scale. The problem is the distance to a spacecraft. A starship hull is ~<span data-calc="navis.wall_volume">61,000</span> m³ of living wall — on the order of <strong><span data-calc="navis.cells">10¹⁹</span> cells</strong> (a gigatonne habitat, some 10⁵ times more). Today's most advanced directed morphogenesis reaches ~10⁶ cells in millimetre-scale organoids, and synNotch circuits (Toda et al., 2018)<sup class="cite"><a href="#cref-6">[6]</a></sup> pattern sub-millimetre spheroids grown from a few hundred cells. That is a <strong>~<span data-calc="budget.orders_gap">13</span>-order-of-magnitude gap</strong> in cell number.</p>
+      <p>And the patterning cannot simply be scaled up. A morphogen gradient has a characteristic length of only <span class="chem">λ = √(D/k) ≈ 0.3–1 mm</span> — set by how fast the signal diffuses against how fast it decays — so <em>no single gradient can span a kilometre</em>. Real embryos get around this with a <strong>hierarchical relay</strong>: successive gradients, Hox coordinate genes, and a segmentation clock (an oscillator, cf. the repressilator of Elowitz &amp; Leibler, 2000)<sup class="cite"><a href="#cref-5">[5]</a></sup> that lays down repeating units one at a time as the body grows. GESTALT would need the same — a self-referential cascade in which each region patterns the next — engineered and reliable across ~10¹⁹ cells and years of growth. Nothing at that scale exists, or is close. <span class="gap">gap: TRL ~2 — the true bottleneck of the whole program</span></p>
 
       <div class="callout">
         <span class="lab">Worked example · fitting a segmentation clock to a grown body</span>
@@ -214,8 +220,8 @@
         <p>All of this sits on <strong>error-correcting genome maintenance</strong>: multiple genome copies (as in <em>Deinococcus</em><sup class="cite"><a href="#cref-16">[16]</a></sup>), enforced apoptosis of drifting somatic cells (Hayflick-style division limits), and a canonical genome checksummed in the CHORUS archive and re-synchronised to the germline. Without it, a growing body is a growing tumour. Reproduction itself is gated by a cryptographic licence — see <a href="https://claude.ai/code/artifact/7eeb70c7-e076-4b0d-b6e3-9e942c4d1091">Governance</a>.</p>
       </div>
 
-      <h4>Growth control — why it won’t become a tumour</h4>
-      <p>A body that grows is a body that can grow a tumour, and the scale makes it acute. Building ~<span class="chem">10²⁰</span> cells takes ~10²⁰ divisions over the organism’s life; at a somatic mutation rate around <span class="chem">10⁻⁹ /bp</span>, roughly <strong>10¹⁴</strong> of those divisions will damage a growth-control gene at least once. Unchecked, some lineage would eventually collect the <strong>~six driver mutations</strong> cancer needs<sup class="cite"><a href="#cref-23">[23]</a></sup>, and the design’s greatest strength — vigorous, directed self-repair — becomes its lethal failure mode. This is <strong>Peto’s paradox</strong><sup class="cite"><a href="#cref-21">[21]</a></sup>: by naive arithmetic a blue whale should be riddled with cancer, yet big long-lived animals get <em>less</em> of it than mice — because they evolved extra suppression. An elephant carries ~<strong>20 copies of the TP53</strong> tumour-suppressor where we carry one<sup class="cite"><a href="#cref-22">[22]</a></sup>.</p>
+      <h3 class="h4">Growth control — why it won’t become a tumour</h3>
+      <p>A body that grows is a body that can grow a tumour, and the scale makes it acute. Building ~<span class="chem">10¹⁹</span> cells takes ~10¹⁹ divisions over the organism’s life; at a somatic mutation rate around <span class="chem">10⁻⁹ /bp</span> across a ~1 kb growth-control gene, roughly <strong><span data-calc="growth.mutant_divisions">10¹³</span></strong> of those divisions will damage one at least once. Unchecked, some lineage would eventually collect the <strong>~six driver mutations</strong> cancer needs<sup class="cite"><a href="#cref-23">[23]</a></sup>, and the design’s greatest strength — vigorous, directed self-repair — becomes its lethal failure mode. This is <strong>Peto’s paradox</strong><sup class="cite"><a href="#cref-21">[21]</a></sup>: by naive arithmetic a blue whale should be riddled with cancer, yet big long-lived animals get <em>less</em> of it than mice — because they evolved extra suppression. An elephant carries ~<strong>20 copies of the TP53</strong> tumour-suppressor where we carry one<sup class="cite"><a href="#cref-22">[22]</a></sup>.</p>
       <p>GESTALT has to out-do the elephant, and does it the same way: <strong>defense in depth</strong>, where no single mechanism suffices but the layers multiply. Each successive control knocks the expected number of uncontrolled tumours down by orders of magnitude, from near-certainty to under one over the whole life.</p>
       <div class="fig">
         <svg viewBox="0 0 960 340" role="img" aria-label="Defense-in-depth waterfall: the expected number of uncontrolled tumour lineages over the organism's life falls from about 10 to the 12 with no control, through seven layered controls, to about 0.1 — below the safe threshold of one per lifetime.">
@@ -288,6 +294,7 @@
 
       <div class="tbl-wrap">
         <table>
+          <caption>What the hull is actually made of</caption>
           <thead><tr><th>Material · role</th><th>Composition</th><th>Biological synthesis</th><th>Key properties</th></tr></thead>
           <tbody>
             <tr><td>Mycelium matrix<br><span class="r">bulk scaffold</span></td><td>Chitin <span class="chem">(C₈H₁₃O₅N)ₙ</span> + β-1,3/1,6-glucans</td><td>Hyphal tip-growth; chitin synthase extrudes fibrils across the membrane</td><td>Low density ~100–400 kg/m³; strong in tension (chitin nanofibrils), weak in point compression ~0.1–1 MPa</td></tr>
@@ -300,15 +307,16 @@
         </table>
       </div>
 
-      <h4>Strength by weight — why biology competes</h4>
+      <h3 class="h4">Strength by weight — why biology competes</h3>
       <p>Bio-materials are rarely the <em>strongest</em>, but they are light, and structures care about strength-per-weight. Specific strength — tensile strength divided by density — tells the story:</p>
       <div class="tbl-wrap">
         <table>
+          <caption>Strength by weight — why biology competes</caption>
           <thead><tr><th>Material</th><th>σ (MPa)</th><th>ρ (kg/m³)</th><th>Specific strength (kN·m/kg)</th></tr></thead>
           <tbody>
             <tr><td>Chitin nanofibril</td><td>~2,000</td><td>~1,400</td><td><span class="r">~1,430</span></td></tr>
             <tr><td>Spider silk (spidroin)</td><td>~1,100</td><td>~1,300</td><td><span class="r">~850</span></td></tr>
-            <tr><td>Trabecular bone</td><td>~130</td><td>~1,400</td><td>~93</td></tr>
+            <tr><td>Cortical bone</td><td>~130</td><td>~1,900</td><td>~70</td></tr>
             <tr><td>Steel (high-strength)</td><td>~1,500</td><td>7,850</td><td>~190</td></tr>
             <tr><td>Aluminium 7075</td><td>~500</td><td>2,700</td><td>~185</td></tr>
             <tr><td>Kevlar 49 / carbon fibre</td><td>~3,500</td><td>~1,600</td><td>~2,000–2,500</td></tr>
@@ -319,10 +327,10 @@
 
       <div class="callout warm">
         <span class="lab">Worked example — silk vs steel for the ARCA hoop load</span>
-        <p>The habitat's rim carries <span class="chem">N = 230 MN per metre</span> of hoop tension. A silk-protein tendon at a 200 MPa working stress needs <span class="chem">A = N/σ = 1.15 m²</span> of cross-section per metre → <strong>1,495 kg/m²</strong>. A high-strength steel cable at 500 MPa needs only 0.46 m²/m — but at 7,850 kg/m³ that is <strong>3,611 kg/m²</strong>. The grown cage is <strong>~2.4× lighter</strong> than steel despite half the strength, purely because it is ~6× less dense — and its toughness (~150–350 MJ/m³, exceeding Kevlar's ~50) lets it absorb impact energy rather than shatter. That, quantified, is why a living ship can be built of protein.</p>
+        <p>The habitat's rim carries <span class="chem">N ≈ <span data-calc="habitat.n_total">430</span> MN per metre</span> of hoop tension — air pressure plus the spinning drum's own weight. A silk-protein tendon at a 200 MPa working stress needs <span class="chem">A = N/σ ≈ 2.2 m²</span> of cross-section per metre → <strong>~<span data-calc="habitat.silk_kg_m2">2,800</span> kg/m²</strong>. A high-strength steel cable at 500 MPa needs only ~0.86 m²/m — but at 7,850 kg/m³ that is <strong>~<span data-calc="habitat.steel_kg_m2">6,800</span> kg/m²</strong>. The grown cage is <strong>~<span data-calc="habitat.silk_vs_steel">2.4</span>× lighter</strong> than steel despite half the strength, purely because it is ~6× less dense — and its toughness (~160–350 MJ/m³, exceeding Kevlar's ~50) lets it absorb impact energy rather than shatter. That, quantified, is why a living ship can be built of protein.</p>
       </div>
 
-      <h4>Biomineralisation — the core chemistry of growing hard structure</h4>
+      <h3 class="h4">Biomineralisation — the core chemistry of growing hard structure</h3>
       <p>Three real biomineralisation routes cover almost every hard part of the fleet:</p>
       <div class="pathway">
 <span class="step">CARBONATE (MICP — bone anchors, reef, shield binder):</span>
@@ -343,7 +351,7 @@
     <p class="eyebrow"><span class="num">04</span> Metabolism &amp; closed-loop biochemistry <span class="rule"></span></p>
     <h2>Keeping the air and water alive</h2>
     <div class="flow">
-      <h4>Photosynthesis — the oxygen source, in detail</h4>
+      <h3 class="h4">Photosynthesis — the oxygen source, in detail</h3>
       <p>The photosynthetic intima runs the same chemistry as every leaf. Light drives the <strong>splitting of water</strong> at Photosystem II's oxygen-evolving complex — a <span class="chem">Mn₄CaO₅</span> cluster — releasing the O₂ the crew breathes; the electrons flow through the chain to fix carbon:</p>
       <div class="pathway">
 <span class="step">LIGHT REACTIONS:</span>  2H₂O <span class="en">──PSII──▶</span> <b>O₂</b> + 4H⁺ + 4e⁻   ;  e⁻ chain <span class="en">──▶</span> ATP + NADPH
@@ -352,9 +360,9 @@
       </div>
       <p>RuBisCO — the carbon-fixing enzyme — is famously slow (a few turnovers per second) and wastefully grabs O₂ as well as CO₂. Cyanobacteria solve this with <strong>carboxysomes</strong>, protein shells that concentrate CO₂ around the enzyme; GESTALT would tune these, and could install faster synthetic fixation cycles (the <strong>CETCH cycle</strong> is a real in-vitro CO₂-fixation pathway more efficient than nature's). Realistic photosynthetic efficiency is ~3–6% of incident light into biomass, which is why the plans size illuminated wall area, not chemistry, as the O₂ limit.</p>
 
-      <p><strong>The flux, quantified.</strong> Water-splitting and carbon fixation cost ~8–10 absorbed photons per O₂; the theoretical ceiling is ~34% of absorbed PAR stored as sugar, which the loss chain (usable PAR is only ~45% of sunlight, plus reflection and respiration) drops to the ~3–6% above. At a good algal areal rate of ~30 g O₂/m²·day, one crew member's 0.84 kg/day<sup class="cite"><a href="#cref-20">[20]</a></sup> is covered by only ~<strong>28 m² of lit intima</strong>. Crucially the tissue is not light-hungry — most phototrophs saturate at ~200–400 µmol photons/m²·s (~40–90 W/m² of PAR), a fraction of full sun — so a piped source delivering ~150 W/m² is more than enough. (This is also why the habitat's light must be <em>piped starlight</em>, not bioluminescence: gigawatts of daylight cannot come from organisms that emit milliwatts.)</p>
+      <p><strong>The flux, quantified.</strong> Water-splitting and carbon fixation cost ~8–10 absorbed photons per O₂; the theoretical ceiling is ~34% of absorbed PAR stored as sugar, which the loss chain (usable PAR is only ~45% of sunlight, plus reflection and respiration) drops to the ~3–6% above. At a good algal areal rate of ~30 g O₂/m²·day, one crew member's <span data-calc="life.o2">0.816</span> kg/day<sup class="cite"><a href="#cref-20">[20]</a></sup> is covered by only ~<strong>27 m² of lit intima</strong>. Crucially the tissue is not light-hungry — most phototrophs saturate at ~200–400 µmol photons/m²·s (~40–90 W/m² of PAR), a fraction of full sun — so a piped source delivering ~150 W/m² is more than enough. (This is also why the habitat's light must be <em>piped starlight</em>, not bioluminescence: gigawatts of daylight cannot come from organisms that emit milliwatts.)</p>
 
-      <h4>Closing the loop — the nitrogen and waste cycle</h4>
+      <h3 class="h4">Closing the loop — the nitrogen and waste cycle</h3>
       <p>A materially-closed habitat must recycle every atom. Crew and organism waste is mineralised back into fertiliser by the same microbial cycles that run Earth's soils:</p>
       <div class="pathway">
 <span class="step">AMMONIFICATION:</span> proteins/urea <span class="en">──▶</span> NH₄⁺
@@ -362,7 +370,7 @@
 <span class="step">FIXATION (top-up losses):</span> N₂ <span class="en">──nitrogenase──▶</span> NH₃
 <span class="step">UPTAKE:</span> NO₃⁻ + PO₄³⁻ <span class="en">──▶</span> intima biomass <span class="en">──▶</span> crew food
       </div>
-      <p>By mass this is a small flux — a person excretes ~13 g of nitrogen a day (mostly urea), so a million-person habitat cycles only ~13 t of N daily through nitrification, topped up by fixation for the ~1–2% lost to space. This is exactly the loop that ESA's <strong>MELiSSA</strong> project has run in pieces for decades, and that BIOS-3 sustained human crews on for months<sup class="cite"><a href="#cref-11">[11]</a><a href="#cref-12">[12]</a><a href="#cref-13">[13]</a></sup>. The gap is not the individual steps but their <strong>long-term stability</strong> as a closed system at population scale.</p>
+      <p>By mass this is a small flux — a person excretes ~<span data-calc="life.urine_n">12</span> g of nitrogen a day in urine alone (mostly urea; from NASA BVAD's urine composition and volume), so a million-person habitat cycles only ~<span data-calc="life.arca_urine_n">12</span> t of N daily through nitrification, topped up by fixation for the ~1–2% lost to space. This is exactly the loop that ESA's <strong>MELiSSA</strong> project has run in pieces for decades, and that BIOS-3 sustained human crews on for months<sup class="cite"><a href="#cref-11">[11]</a><a href="#cref-12">[12]</a><a href="#cref-13">[13]</a></sup>. The gap is not the individual steps but their <strong>long-term stability</strong> as a closed system at population scale.</p>
       <div class="fig">
         <svg viewBox="0 0 960 398" role="img" aria-label="The nitrogen cycle as a closed loop: biomass to ammonium to nitrite to nitrate and back to biomass, with denitrification/leak out to an N2 pool and nif fixation topping it back up.">
         <line x1="328.3" y1="88.3" x2="411.7" y2="171.7" stroke="var(--ink-3)" stroke-width="1.6"/>
@@ -407,7 +415,7 @@
         <p class="figcap"><strong>Nitrogen travels in a circle; only leakage needs new atoms.</strong> Waste N is ammonified to NH₄⁺, oxidised in two microbial steps (<em>Nitrosomonas</em> → NO₂⁻, <em>Nitrobacter</em> → NO₃⁻), and re-assimilated by the intima and crops as protein — the loop MELiSSA and BIOS-3 already run in pieces. Because nitrogenase spends <strong>16 ATP to fix one N₂</strong>, the system recycles wherever it can and reserves <span class="chem">nif</span> fixation for the ~1% that denitrification and leakage open; the atmosphere's ~71 Mt of N₂ is a millennium-scale buffer behind it, and nitrification's oxygen debt (~4.6 g O₂ per g N) is repaid when the biomass is later respired.</p>
       </div>
 
-      <h4>The vascular system — plumbing chemistry</h4>
+      <h3 class="h4">The vascular system — plumbing chemistry</h3>
       <p>Two sap streams move matter through metres of tissue. The <strong>xylem-analogue</strong> carries water and dissolved minerals outward, driven by osmotic gradients and slow peristalsis (in a plant, transpiration-driven cohesion-tension; here, active pumping since there is no atmosphere to transpire into). The <strong>phloem-analogue</strong> carries the intima's sugars inward by pressure-flow: sucrose loaded at the source raises osmotic pressure, water follows, and the bulk flow carries sugar to every non-photosynthetic cell. The trunks run inside the osteoid struts — marrow through bone — so the plumbing is armoured by the structure it feeds.</p>
       <p><strong>Why any of this is mandatory.</strong> Oxygen and nutrients diffuse only <span class="chem">~100–200 µm</span> through living tissue before the cells beyond starve (the Krogh limit). A 5.5&nbsp;m hull is <strong>~27,000×</strong> that range, so diffusion alone would leave it dead beyond its first fraction of a millimetre — <em>every</em> living cell must sit within ~100 µm of a channel. What makes that affordable is that most of the wall is <strong>not living cells</strong> but secreted matrix — bone mineral, chitin, silk — exactly as a tree trunk is mostly dead xylem and bone is mostly mineral around sparse osteocytes. The living cells are few, embedded in a mostly-inert skeleton and reached by a fine network, so the metabolic burden is far smaller than "metres of cells."</p>
       <div class="fig">
@@ -563,7 +571,7 @@
       </div>
       <p><strong>Gas, and getting rid of waste.</strong> The respiring cells in the dark structural layers need oxygen, carried dissolved on a <strong>haemoglobin/haemocyanin-analogue</strong> in the sap; their CO₂ is largely piped straight back to the photosynthetic intima (the closed carbon loop above), and nitrogenous waste is <strong>mineralised to NO₃⁻/PO₄³⁻ fertiliser</strong> rather than dumped. Spent cells are cleared and recycled by the macrophage/autophagy-analogue <a href="#defense">immune system</a> that also polices cancerous growth. <span class="gap">gap: the unsolved part is not the chemistry but the <strong>co-scaling</strong> — growing this fractal network from metre trunks to micron capillaries <em>in step with</em> the body, everywhere, for years. Vascularised organoids today reach only mm–cm; scaling the plumbing is the make-or-break inside the <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#wp4">morphogenesis moonshot</a>.</span></p>
 
-      <h4>Sustainability — how long can it last?</h4>
+      <h3 class="h4">Sustainability — how long can it last?</h3>
       <p>The whole point of growing a vessel is that it is <strong>self-sustaining, not resupplied</strong>. It runs the loops above — oxygen, water, nitrogen and food all regenerate — and repairs and reproduces itself, so the question is not "when do the consumables run out?" but "what slowly leaks, and what ages?" The answer splits cleanly by timescale.</p>
       <div class="fig">
         <svg viewBox="0 0 960 340" role="img" aria-label="Sustainability ladder over log time: self-heal in minutes, buffers over days-weeks, indefinite closed-loop operation over years-decades while light and a resource body are available, deep-time genome drift held by the archive, and the ten-thousand-year dormancy wall; three external dependencies reset the clock.">
@@ -624,7 +632,7 @@
         </svg>
         <p class="figcap"><strong>The loops don't run out — three <em>external</em> inputs set the clock.</strong> Minute-scale breaches self-heal; day-to-week outages are absorbed by the buffers (a habitat's atmosphere alone is a ~140-year O₂ reserve); and given light and a resource body the closed loops run <em>indefinitely</em>, the only steady drain being leakage to space, re-mined from ice. Over centuries the limits become genome drift and slow element attrition — held off by re-syncing the germline from the checksummed <span class="chem">CHORUS</span> archive and by ongoing mining — while a dormant seed hits its radiation wall near ~10⁴ years, past which only DNA re-synthesis revives the line. Notably, <strong>building</strong> a vessel costs far more than sustaining it: construction demands processing ~18× its mass in rock (the phosphorus bottleneck), whereas once grown the elements are largely conserved.</p>
       </div>
-      <p>The honest caveat is closure. The <em>design</em> is for indefinite closed-loop life, but the <em>demonstrated</em> closure is months (BIOS-3<sup class="cite"><a href="#cref-11">[11]</a></sup>), and Biosphere&nbsp;2's oxygen crashed in two years<sup class="cite"><a href="#cref-12">[12]</a></sup>. Stretching closure from months to years to genuinely open-ended, at population scale, is exactly the unsolved <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#wp2">life-support research problem</a> — so these systems are robustly self-sustaining for outages and, on paper, indefinitely so given light, resources and the archive, but the long-duration closure that claim rests on is the thing still to be proven.</p>
+      <p>The honest caveat is closure. The <em>design</em> is for indefinite closed-loop life, but the <em>demonstrated</em> closure is months (BIOS-3<sup class="cite"><a href="#cref-11">[11]</a></sup>), and Biosphere&nbsp;2's oxygen fell from 20.9% to about 14% in its first 16 months, until pure O₂ had to be injected<sup class="cite"><a href="#cref-12">[12]</a></sup>. Stretching closure from months to years to genuinely open-ended, at population scale, is exactly the unsolved <a href="https://claude.ai/code/artifact/bc243583-d959-4284-841a-70ab529d40ed#wp2">life-support research problem</a> — so these systems are robustly self-sustaining for outages and, on paper, indefinitely so given light, resources and the archive, but the long-duration closure that claim rests on is the thing still to be proven.</p>
     </div>
   </section>
 
@@ -637,6 +645,7 @@
 
       <div class="tbl-wrap">
         <table>
+          <caption>The proteins that survive vacuum, cold and radiation</caption>
           <thead><tr><th>Threat</th><th>Molecule / system</th><th>Mechanism</th><th>Source (real)</th></tr></thead>
           <tbody>
             <tr><td>Ionising radiation<br><span class="r">DNA damage</span></td><td>Mn²⁺–metabolite antioxidant complexes; RecA-driven repair (ESDSA); redundant genomes</td><td>Mn antioxidants protect the <em>repair proteins</em> from oxidation, so shattered DNA is reassembled from overlapping copies</td><td><em>Deinococcus radiodurans</em> (survives ~5,000 Gy)</td></tr>
@@ -663,7 +672,7 @@
     <div class="flow">
       <p>"Construction" for GESTALT means feeding an asteroid to a seed. The chemistry is real biomining and in-situ resource use; the biology is germination and directed growth. Here is the sequence in more detail than any single plan gives it.</p>
 
-      <h4>Stage 0 · The seed &amp; dormancy chemistry</h4>
+      <h3 class="h4">Stage 0 · The seed &amp; dormancy chemistry</h3>
       <p>The launched seed is an <strong>anhydrobiotic</strong> package: totipotent cells vitrified in trehalose glass with CAHS/LEA proteins holding their molecular machinery in suspension, an error-corrected (possibly wholly synthetic) genome, freeze-dried starter cultures of every consortium partner, and a small nutrient/water charge. In this glassy state metabolism is effectively zero and radiation damage accumulates slowly against the <em>Deinococcus</em>/Dsup protections — the same trick that lets tardigrades ride out space.</p>
       <p><strong>How long can it wait?</strong> A vitrified seed does no repair, so radiation damage just accumulates until revival, when it must all be undone at once. The dormancy limit is therefore set by how much accumulated dose <em>Deinococcus</em>-class repair (multi-copy genome reassembly, RecA) can reverse — roughly the ~5 kGy that drops viability to 1/e. That splits the mission into two sharply different regimes.</p>
       <div class="fig">
@@ -709,13 +718,13 @@
         <text x="831.2" y="150" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--chloro)">past the wall:</text>
         <text x="831.2" y="161" text-anchor="middle" font-family="var(--font-mono)" font-size="8.5" fill="var(--chloro)">DNA-archive re-synthesis</text>
         </svg>
-        <p class="figcap"><strong>Two regimes.</strong> An interplanetary transit of years to decades deposits only tens of grays — negligible against a kilogray tolerance — so seeds cross the Solar System with viability essentially untouched. The wall is <em>deep time</em>: at ~0.6 Sv/yr a lightly-shielded seed reaches the 1/e repair limit after ~<strong>8,000 years</strong>, ~<strong>25,000</strong> behind shielding — millennia of dormancy, but not forever. Past that, only the checksummed <strong>DNA archive</strong> — re-synthesising the genome from stored, error-corrected sequence<sup class="cite"><a href="#cref-19">[19]</a></sup> — can still revive the line. (Dose-equivalent ≈ absorbed dose to order of magnitude for this estimate.)</p>
+        <p class="figcap"><strong>Two regimes.</strong> An interplanetary transit of years to decades deposits only tens of grays — negligible against a kilogray tolerance — so seeds should cross the Solar System with viability largely intact — an extrapolation from spores and seeds exposed in orbit, not a demonstration. The wall is <em>deep time</em>: at ~0.6 Sv/yr a lightly-shielded seed reaches the 1/e repair limit after ~<strong><span data-calc="growth.seed_wall_light">8,000</span> years</strong>, ~<strong><span data-calc="growth.seed_wall_shielded">25,000</span></strong> behind about a tonne of water per m² (~0.2 Sv/yr) — millennia of dormancy, but not forever. Past that, only the checksummed <strong>DNA archive</strong> — re-synthesising the genome from stored, error-corrected sequence<sup class="cite"><a href="#cref-19">[19]</a></sup> — can still revive the line. (Dose-equivalent ≈ absorbed dose to order of magnitude for this estimate.)</p>
       </div>
 
-      <h4>Stage 1 · Germination &amp; anchoring</h4>
+      <h3 class="h4">Stage 1 · Germination &amp; anchoring</h3>
       <p>On arrival, rehydration melts the glass and restarts metabolism. Root-analogue hyphae anchor to the body and begin secreting acids.</p>
 
-      <h4>Stage 2 · Mining &amp; refining — the ISRU chemistry</h4>
+      <h3 class="h4">Stage 2 · Mining &amp; refining — the ISRU chemistry</h3>
       <p>This is where the mass comes from. Chemolithotrophic bacteria <strong>bioleach</strong> the rock exactly as they do in terrestrial copper mines:</p>
       <div class="pathway">
 <span class="step">IRON/SULFUR OXIDATION:</span> 2Fe²⁺ + ½O₂ + 2H⁺ <span class="en">──A. ferrooxidans──▶</span> 2Fe³⁺ + H₂O
@@ -727,6 +736,7 @@
 
       <div class="tbl-wrap">
         <table>
+          <caption>Stage 2 · Mining &amp; refining — the ISRU chemistry</caption>
           <thead><tr><th>Element</th><th>In a chondrite (mass %)</th><th>Goes into</th></tr></thead>
           <tbody>
             <tr><td>Fe</td><td>~20%</td><td>Tendon-anchor mineral, magnetite antennas</td></tr>
@@ -740,10 +750,10 @@
       </div>
       <p><strong>Phosphorus sets the digging.</strong> Iron, silicon and even calcium are abundant, but bone's hydroxyapatite needs phosphorus, and asteroids hold only ~0.1% of it. The reference starship's ~2,400 t of bone mineral contains ~<strong>440 t of P</strong> — to concentrate that from ~0.1% rock, the ship must process on the order of <strong>18× its own mass</strong> in asteroid (~440,000 t). So how much rock a hull eats is driven not by its bulk but by its scarcest nutrient; a design that leans on carbonate cement (Ca-only MICP) wherever it can, reserving phosphate bone for the load paths that truly need it, digs far less.</p>
 
-      <h4>Stage 3 · Morphogenesis — body-plan formation</h4>
+      <h3 class="h4">Stage 3 · Morphogenesis — body-plan formation</h3>
       <p>With feedstock flowing, the developmental program (Section 02) runs: morphogen gradients establish the axis; synNotch and Turing circuits lay down the layered wall (pneumostat first, so a pressurisable shell closes early); the osteoid skeleton mineralises along stress lines; the vascular trees branch by the same auxin-gradient rules that pattern plant veins; and the intima carpets the interior once there is light. For a spinning habitat the tendon cage is spun and cross-linked before spin-up loads it.</p>
 
-      <h4>Stage 4 · Maturation &amp; occupation</h4>
+      <h3 class="h4">Stage 4 · Maturation &amp; occupation</h3>
       <p>Shielding thickens to spec (water and MICP-bound regolith routed to the highest-flux walls), life-support closes its loops, and — for crewed classes — people move in while the organism keeps thickening its armour around them. Growth never fully stops: the hull remodels, heals and, at end of life, buds a new seed.</p>
 
       <div class="callout">
@@ -771,65 +781,69 @@
   <section class="doc reveal" id="params">
     <p class="eyebrow"><span class="num">08</span> Key parameters &amp; assumptions <span class="rule"></span></p>
     <h2>The canonical numbers</h2>
-    <p class="lead">Every figure used across the seven GESTALT documents, reconciled here to one source of truth. These are first-order estimates for feasibility, not flight-hardware specs; ranges reflect real spread, and each was recomputed during the deepening pass.</p>
+    <p class="lead">The key figures used across the thirteen GESTALT documents, reconciled here to one source of truth. These are first-order estimates for feasibility, not flight-hardware specs; ranges reflect real spread. The load-bearing ones are recomputed by the program's <code>calcs</code> package, which checks every tagged number in the documents against its own arithmetic.</p>
 
-    <h4 style="font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:20px 0 8px">Human metabolism &amp; life support</h4>
+    <h3 class="h4" style="font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:20px 0 8px">Human metabolism &amp; life support</h3>
     <div class="tbl-wrap"><table>
+          <caption>Human metabolism &amp; life support</caption>
       <thead><tr><th>Quantity</th><th>Value</th><th>Note</th></tr></thead>
       <tbody>
-        <tr><td>O₂ consumed / person</td><td>0.84 kg/day</td><td>NASA BVAD standard</td></tr>
-        <tr><td>CO₂ produced / person</td><td>1.00 kg/day</td><td>respiratory quotient ~0.87</td></tr>
-        <tr><td>Food (dry) / person</td><td>0.62 kg/day</td><td>~1.8 kg wet</td></tr>
-        <tr><td>Water (potable) / person</td><td>2.0 kg/day</td><td>recycled &gt;99%</td></tr>
-        <tr><td>Nitrogen excreted / person</td><td>13 g/day</td><td>mostly urea</td></tr>
+        <tr><td>O₂ consumed / person</td><td><span data-calc="life.o2">0.816</span> kg/day</td><td>NASA BVAD REV1 (2018)</td></tr>
+        <tr><td>CO₂ produced / person</td><td><span data-calc="life.co2">1.04</span> kg/day</td><td>respiratory quotient ~<span data-calc="life.rq">0.92</span></td></tr>
+        <tr><td>Food (dry) / person</td><td><span data-calc="life.food">0.617</span> kg/day</td><td>1.51 kg as shipped (BVAD)</td></tr>
+        <tr><td>Water (potable) / person</td><td><span data-calc="life.water">2.5</span> kg/day</td><td>recycled &gt;99%</td></tr>
+        <tr><td>Nitrogen excreted / person</td><td>~<span data-calc="life.urine_n">12</span> g/day</td><td>in urine, mostly urea (BVAD composition)</td></tr>
         <tr><td>Cabin pressure</td><td>52 kPa</td><td>34% O₂ (reduced-pressure mix)</td></tr>
-        <tr><td>Algal O₂ yield</td><td>~30 g/m²·day</td><td>good photobioreactor</td></tr>
-        <tr><td>Photosynthetic efficiency</td><td>3–6%</td><td>of incident light into biomass</td></tr>
-        <tr><td>Lit intima per person</td><td>~28 m²</td><td>to cover O₂</td></tr>
+        <tr><td>Algal O₂ yield</td><td>~30 g/m²·day</td><td>assumed; BVAD crops give 31–56</td></tr>
+        <tr><td>Photosynthetic efficiency</td><td>3–6%</td><td>best cases, into biomass; the intima at ~30 g/m²·day in full sun stores ~0.4%</td></tr>
+        <tr><td>Lit intima per person</td><td>~27 m²</td><td>to cover O₂</td></tr>
       </tbody>
     </table></div>
 
-    <h4 style="font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:22px 0 8px">Reference vehicles</h4>
+    <h3 class="h4" style="font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:22px 0 8px">Reference vehicles</h3>
     <div class="tbl-wrap"><table>
+          <caption>Reference vehicles</caption>
       <thead><tr><th>Parameter</th><th>NAVIS · starship</th><th>ARCA · habitat</th></tr></thead>
       <tbody>
         <tr><td>Crew / population</td><td>50</td><td>1,000,000</td></tr>
-        <tr><td>Size</td><td>120 × 50 m</td><td>5 × 10 km</td></tr>
-        <tr><td>Hull / rim thickness</td><td>5.5 m</td><td>~33 m</td></tr>
+        <tr><td>Size</td><td>100 × 50 m body (120 m o.a.)</td><td>5 × 10 km</td></tr>
+        <tr><td>Hull / rim thickness</td><td>5.5 m</td><td>~25 m</td></tr>
         <tr><td>Grown mass</td><td>24,000 t</td><td>~2.5 Gt</td></tr>
         <tr><td>Launched seed</td><td>500 kg (48,000:1)</td><td>few t</td></tr>
         <tr><td>Gestation</td><td>~5 yr (~13 t/day)</td><td>~30 yr</td></tr>
         <tr><td>Gravity</td><td>0 g (free-flying)</td><td>1.0 g @ 0.6 rpm (rim 157 m/s)</td></tr>
         <tr><td>Atmosphere</td><td>52 kPa</td><td>52 kPa · ~113 Mt (~140 yr O₂ buffer)</td></tr>
-        <tr><td>Hoop / pressure load</td><td>0.65 MN/m</td><td>230 MN/m (2.3 m tendon)</td></tr>
+        <tr><td>Hoop / pressure load</td><td><span data-calc="navis.hoop">1.14</span> MN/m</td><td><span data-calc="habitat.n_total">430</span> MN/m (<span data-calc="habitat.tendon_mk1">4.3</span> m tendon)</td></tr>
       </tbody>
     </table></div>
 
-    <h4 style="font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:22px 0 8px">Radiation, thermal &amp; impact</h4>
+    <h3 class="h4" style="font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:22px 0 8px">Radiation, thermal &amp; impact</h3>
     <div class="tbl-wrap"><table>
+          <caption>Radiation, thermal &amp; impact</caption>
       <thead><tr><th>Quantity</th><th>Value</th></tr></thead>
       <tbody>
         <tr><td>Deep-space GCR baseline</td><td>~0.6 Sv/yr</td></tr>
-        <tr><td>GCR behind 305 g/cm² hull</td><td>~0.21 Sv/yr (secondary floor)</td></tr>
+        <tr><td>GCR behind the <span data-calc="navis.column">215</span> g/cm² NAVIS wall</td><td>~<span data-calc="navis.gcr">0.14</span> Sv/yr (OLTARIS, water-equivalent)</td></tr>
         <tr><td>Solar particle event stopped by</td><td>~20 g/cm²</td></tr>
         <tr><td>ISS crew (LEO) · NASA career limit</td><td>~0.15 Sv/yr · 0.6–1.2 Sv</td></tr>
-        <tr><td>1 AU radiative equilibrium (black hull)</td><td>278 K (5 °C)</td></tr>
-        <tr><td>Micrometeoroid flux (sub-mm)</td><td>~8 impacts/decade on a 7,854 m² hull</td></tr>
+        <tr><td>1 AU radiative equilibrium (black hull, attitude-averaged)</td><td>278 K (5 °C)</td></tr>
+        <tr><td>Micrometeoroid flux (sub-mm)</td><td>~<span data-calc="meteoroids.hits_ug">20,000</span>/yr ≥1 µg and ~<span data-calc="meteoroids.hits_mg">8</span>/yr ≥1 mg on the 13,400 m² hull</td></tr>
       </tbody>
     </table></div>
 
-    <h4 style="font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:22px 0 8px">Materials, ISRU &amp; morphogenesis</h4>
+    <h3 class="h4" style="font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--osteo);margin:22px 0 8px">Materials, ISRU &amp; morphogenesis</h3>
     <div class="tbl-wrap"><table>
+          <caption>Materials, ISRU &amp; morphogenesis</caption>
       <thead><tr><th>Quantity</th><th>Value</th></tr></thead>
       <tbody>
         <tr><td>Mycelium composite</td><td>100–400 kg/m³ · 0.1–1 MPa compressive</td></tr>
-        <tr><td>Trabecular bone</td><td>~1,400 kg/m³ · 100–150 / 150–200 MPa</td></tr>
-        <tr><td>Spider silk (spidroin)</td><td>~1,300 kg/m³ · 1–1.5 GPa · 150–350 MJ/m³ toughness</td></tr>
+        <tr><td>Bone (collagen–hydroxyapatite)</td><td>cortical: ~130 / ~200 MPa tension / compression; the trabecular foam is far weaker</td></tr>
+        <tr><td>Spider silk (spidroin)</td><td>~1,300 kg/m³ · 1.1–1.7 GPa · 160–350 MJ/m³ toughness (garden → Darwin's bark spider)</td></tr>
         <tr><td>Silk working stress (Mk I / Mk II)</td><td>100 / 200 MPa</td></tr>
         <tr><td>Chondrite Fe / Si / Ca</td><td>~20 / 15 / 1.3 %</td></tr>
         <tr><td>Chondrite P (the ISRU bottleneck)</td><td><span class="r">~0.1 %</span> → process ~18× ship mass</td></tr>
         <tr><td>Chondrite C / N / H₂O</td><td>~2 / 0.3 / 10–20 %</td></tr>
-        <tr><td>Starship-hull cell count</td><td>~10²⁰ (organoids today ~10⁶)</td></tr>
+        <tr><td>Starship-hull cell count</td><td>~<span data-calc="navis.cells">10¹⁹</span> (organoids today ~10⁶)</td></tr>
         <tr><td>Morphogen gradient length</td><td>~1 mm → hierarchical relay required</td></tr>
         <tr><td>Morphogenesis maturity</td><td><span class="gap">TRL ~2 — the long pole</span></td></tr>
       </tbody>
@@ -843,35 +857,35 @@
     <div class="refs">
       <p class="refs-note">This compendium's job is to show that every mechanism in GESTALT is a real, published capability — the leaps are in <em>integration and scale</em>, not invention. Each named organism, construct, material property and pathway below is sourced. Superscripts in the text link here; the honest gaps (morphogenesis, vasculature co-scaling, trait stacking) are flagged in-line, not cited away.</p>
       <ol>
-        <li id="cref-1">Lajoie, M. J. et&nbsp;al. (2013). Genomically recoded organisms expand biological functions. <span class="rt">Science</span> 342, 357–360. — all 321 UAG codons reassigned in <em>E.&nbsp;coli</em> (genetic firewall).</li>
-        <li id="cref-2">Ostrov, N. et&nbsp;al. (2016). Design, synthesis, and testing toward a 57-codon genome. <span class="rt">Science</span> 353, 819–822. — rE.coli-57; genome-wide codon compression.</li>
-        <li id="cref-3">Mandell, D. J. et&nbsp;al. (2015). Biocontainment of genetically modified organisms by synthetic protein design. <span class="rt">Nature</span> 518, 55–60. — synthetic auxotrophy, escape &lt;10⁻¹².</li>
-        <li id="cref-4">Rovner, A. J. et&nbsp;al. (2015). Recoded organisms engineered to depend on synthetic amino acids. <span class="rt">Nature</span> 518, 89–93. — the companion biocontainment result.</li>
-        <li id="cref-5">Elowitz, M. B. &amp; Leibler, S. (2000). A synthetic oscillatory network of transcriptional regulators. <span class="rt">Nature</span> 403, 335–338. — the repressilator; genetic-oscillator basis for a segmentation clock.</li>
-        <li id="cref-6">Toda, S. et&nbsp;al. (2018). Programming self-organizing multicellular structures with synthetic cell–cell signaling. <span class="rt">Science</span> 361, 156–162. — synNotch tissue patterning at mm–cm (~10⁶ cells).</li>
-        <li id="cref-7">Gosline, J. M. et&nbsp;al. (1999). The mechanical design of spider silks. <span class="rt">J. Exp. Biol.</span> 202, 3295–3303. — dragline silk 1–1.5 GPa, toughness 150–350 MJ·m⁻³.</li>
-        <li id="cref-8">Wegst, U. G. K. et&nbsp;al. (2015). Bioinspired structural materials. <span class="rt">Nat. Mater.</span> 14, 23–36. — collagen–hydroxyapatite bone; biological composite strength.</li>
-        <li id="cref-9">Jones, M. et&nbsp;al. (2020). Engineered mycelium composite construction materials. <span class="rt">Mater. Des.</span> 187, 108397. — mycelium 100–400 kg·m⁻³, 0.1–1 MPa.</li>
-        <li id="cref-10">Ducat, D. C. et&nbsp;al. (2012). Rerouting carbon flux to enhance photosynthetic productivity. <span class="rt">Appl. Environ. Microbiol.</span> 78, 2660–2668. — cyanobacterial sucrose export (<span class="chem">cscB</span>).</li>
-        <li id="cref-11">Salisbury, F. B. et&nbsp;al. (1997). Bios-3: Siberian experiments in bioregenerative life support. <span class="rt">BioScience</span> 47, 575–585. — closed-loop closure; RQ/PQ buffering.</li>
-        <li id="cref-12">Nelson, M. et&nbsp;al. (1993). Using a closed ecological system to study Earth's biosphere: Biosphere&nbsp;2. <span class="rt">BioScience</span> 43, 225–236. — the documented oxygen decline.</li>
-        <li id="cref-13">Lasseur, C. et&nbsp;al. (2010). MELiSSA: the European project of a closed life-support system. <span class="rt">Gravit. Space Biol.</span> 23, 3–12.</li>
-        <li id="cref-14">Dadachova, E. et&nbsp;al. (2007). Ionizing radiation changes the electronic properties of melanin and enhances the growth of melanized fungi. <span class="rt">PLoS ONE</span> 2, e457.</li>
-        <li id="cref-15">Hashimoto, T. et&nbsp;al. (2016). Extremotolerant tardigrade genome and improved radiotolerance of human cultured cells by Dsup. <span class="rt">Nat. Commun.</span> 7, 12808.</li>
-        <li id="cref-16">Cox, M. M. &amp; Battista, J. R. (2005). <em>Deinococcus radiodurans</em> — the consummate survivor. <span class="rt">Nat. Rev. Microbiol.</span> 3, 882–892. — multi-copy genome; radiation-damage repair.</li>
-        <li id="cref-17">Cockell, C. S. et&nbsp;al. (2020). Space station biomining experiment demonstrates rare-earth-element extraction in microgravity. <span class="rt">Nat. Commun.</span> 11, 5523. — ESA BioRock on the ISS.</li>
-        <li id="cref-18">DeJong, J. T. et&nbsp;al. (2010). Bio-mediated soil improvement. <span class="rt">Ecol. Eng.</span> 36, 197–210. — microbially induced calcite precipitation (MICP, <em>Sporosarcina</em>).</li>
-        <li id="cref-19">Church, G. M. et&nbsp;al. (2012). Next-generation digital information storage in DNA. <span class="rt">Science</span> 337, 1628. — the archival-genome / DNA-data-storage basis.</li>
-        <li id="cref-20">Anderson, M. S. et&nbsp;al. (2018). <span class="rt">Life Support Baseline Values and Assumptions Document.</span> NASA/TP-2015-218570/REV1. — per-crew metabolic and life-support figures.</li>
-        <li id="cref-21">Caulin, A. F. &amp; Maley, C. C. (2011). Peto’s Paradox: evolution’s prescription for cancer prevention. <span class="rt">Trends Ecol. Evol.</span> 26, 175–182. — why large long-lived bodies resist cancer.</li>
-        <li id="cref-22">Abegglen, L. M. et&nbsp;al. (2015). Potential mechanisms for cancer resistance in elephants and comparative cellular response to DNA damage in humans. <span class="rt">JAMA</span> 314, 1850–1860. — ~20 copies of TP53 in elephants.</li>
-        <li id="cref-23">Vogelstein, B. et&nbsp;al. (2013). Cancer genome landscapes. <span class="rt">Science</span> 339, 1546–1558. — the multi-driver-mutation basis of cancer.</li>
+        <li id="cref-1">Lajoie, M. J. et&nbsp;al. (2013). Genomically recoded organisms expand biological functions. <span class="rt">Science</span> 342, 357–360. doi:<a href="https://doi.org/10.1126/science.1241459">10.1126/science.1241459</a> — all 321 UAG codons reassigned in <em>E.&nbsp;coli</em> (genetic firewall).</li>
+        <li id="cref-2">Ostrov, N. et&nbsp;al. (2016). Design, synthesis, and testing toward a 57-codon genome. <span class="rt">Science</span> 353, 819–822. doi:<a href="https://doi.org/10.1126/science.aaf3639">10.1126/science.aaf3639</a> — rE.coli-57; genome-wide codon compression.</li>
+        <li id="cref-3">Mandell, D. J. et&nbsp;al. (2015). Biocontainment of genetically modified organisms by synthetic protein design. <span class="rt">Nature</span> 518, 55–60. doi:<a href="https://doi.org/10.1038/nature14121">10.1038/nature14121</a> — synthetic auxotrophy, escape &lt;10⁻¹².</li>
+        <li id="cref-4">Rovner, A. J. et&nbsp;al. (2015). Recoded organisms engineered to depend on synthetic amino acids. <span class="rt">Nature</span> 518, 89–93. doi:<a href="https://doi.org/10.1038/nature14095">10.1038/nature14095</a> — the companion biocontainment result.</li>
+        <li id="cref-5">Elowitz, M. B. &amp; Leibler, S. (2000). A synthetic oscillatory network of transcriptional regulators. <span class="rt">Nature</span> 403, 335–338. doi:<a href="https://doi.org/10.1038/35002125">10.1038/35002125</a> — the repressilator; genetic-oscillator basis for a segmentation clock.</li>
+        <li id="cref-6">Toda, S. et&nbsp;al. (2018). Programming self-organizing multicellular structures with synthetic cell–cell signaling. <span class="rt">Science</span> 361, 156–162. doi:<a href="https://doi.org/10.1126/science.aat0271">10.1126/science.aat0271</a> — synNotch-driven self-organisation of multilayer spheroids from ~60–240 starting cells (sub-millimetre scale).</li>
+        <li id="cref-7">Gosline, J. M. et&nbsp;al. (1999). The mechanical design of spider silks: from fibroin sequence to mechanical function. <span class="rt">J. Exp. Biol.</span> 202, 3295–3303. doi:<a href="https://doi.org/10.1242/jeb.202.23.3295">10.1242/jeb.202.23.3295</a> — <em>Araneus</em> dragline (major-ampullate) silk ≈ 1.1 GPa strength, toughness ≈ 160 MJ·m⁻³ (Table 1); the ~350 MJ·m⁻³ upper figure is Darwin's bark spider silk (Agnarsson, I. et&nbsp;al. 2010, <span class="rt">PLoS ONE</span> 5, e11234, doi:<a href="https://doi.org/10.1371/journal.pone.0011234">10.1371/journal.pone.0011234</a>).</li>
+        <li id="cref-8">Wegst, U. G. K. et&nbsp;al. (2015). Bioinspired structural materials. <span class="rt">Nat. Mater.</span> 14, 23–36. doi:<a href="https://doi.org/10.1038/nmat4089">10.1038/nmat4089</a> — collagen–hydroxyapatite bone; biological composite strength.</li>
+        <li id="cref-9">Jones, M. et&nbsp;al. (2020). Engineered mycelium composite construction materials from fungal biorefineries: a critical review. <span class="rt">Mater. Des.</span> 187, 108397. doi:<a href="https://doi.org/10.1016/j.matdes.2019.108397">10.1016/j.matdes.2019.108397</a> — mycelium 100–400 kg·m⁻³, 0.1–1 MPa.</li>
+        <li id="cref-10">Ducat, D. C. et&nbsp;al. (2012). Rerouting carbon flux to enhance photosynthetic productivity. <span class="rt">Appl. Environ. Microbiol.</span> 78, 2660–2668. doi:<a href="https://doi.org/10.1128/AEM.07901-11">10.1128/AEM.07901-11</a> — cyanobacterial sucrose export (<span class="chem">cscB</span>).</li>
+        <li id="cref-11">Salisbury, F. B., Gitelson, J. I. &amp; Lisovsky, G. M. (1997). Bios-3: Siberian experiments in bioregenerative life support. <span class="rt">BioScience</span> 47, 575–585. doi:<a href="https://doi.org/10.2307/1313164">10.2307/1313164</a> — closed-loop closure; RQ/PQ buffering.</li>
+        <li id="cref-12">Nelson, M. et&nbsp;al. (1993). Using a closed ecological system to study Earth's biosphere: initial results from Biosphere&nbsp;2. <span class="rt">BioScience</span> 43, 225–236. doi:<a href="https://doi.org/10.2307/1312123">10.2307/1312123</a> — the documented oxygen decline in a closed ecology (20.94% → below 14.5% by January 1993, p. 234).</li>
+        <li id="cref-13">Lasseur, C. et&nbsp;al. (2010). MELiSSA: the European project of closed life support system. <span class="rt">Gravit. Space Biol.</span> 23(2), 3–12.</li>
+        <li id="cref-14">Dadachova, E. et&nbsp;al. (2007). Ionizing radiation changes the electronic properties of melanin and enhances the growth of melanized fungi. <span class="rt">PLoS ONE</span> 2, e457. doi:<a href="https://doi.org/10.1371/journal.pone.0000457">10.1371/journal.pone.0000457</a></li>
+        <li id="cref-15">Hashimoto, T. et&nbsp;al. (2016). Extremotolerant tardigrade genome and improved radiotolerance of human cultured cells by tardigrade-unique protein. <span class="rt">Nat. Commun.</span> 7, 12808. doi:<a href="https://doi.org/10.1038/ncomms12808">10.1038/ncomms12808</a></li>
+        <li id="cref-16">Cox, M. M. &amp; Battista, J. R. (2005). <em>Deinococcus radiodurans</em> — the consummate survivor. <span class="rt">Nat. Rev. Microbiol.</span> 3, 882–892. doi:<a href="https://doi.org/10.1038/nrmicro1264">10.1038/nrmicro1264</a> — multi-copy genome; radiation-damage repair.</li>
+        <li id="cref-17">Cockell, C. S. et&nbsp;al. (2020). Space station biomining experiment demonstrates rare earth element extraction in microgravity and Mars gravity. <span class="rt">Nat. Commun.</span> 11, 5523. doi:<a href="https://doi.org/10.1038/s41467-020-19276-w">10.1038/s41467-020-19276-w</a> — ESA BioRock on the ISS.</li>
+        <li id="cref-18">DeJong, J. T. et&nbsp;al. (2010). Bio-mediated soil improvement. <span class="rt">Ecol. Eng.</span> 36, 197–210. doi:<a href="https://doi.org/10.1016/j.ecoleng.2008.12.029">10.1016/j.ecoleng.2008.12.029</a> — microbially induced calcite precipitation (MICP, <em>Sporosarcina</em>).</li>
+        <li id="cref-19">Church, G. M., Gao, Y. &amp; Kosuri, S. (2012). Next-generation digital information storage in DNA. <span class="rt">Science</span> 337, 1628. doi:<a href="https://doi.org/10.1126/science.1226355">10.1126/science.1226355</a>; Erlich, Y. &amp; Zielinski, D. (2017). DNA Fountain enables a robust and efficient storage architecture. <span class="rt">Science</span> 355, 950–954. doi:<a href="https://doi.org/10.1126/science.aaj2038">10.1126/science.aaj2038</a> — the archival-genome / DNA-data-storage basis: Church et&nbsp;al. wrote a 5.27-megabit book into DNA; Erlich &amp; Zielinski retrieved data perfectly at 215 petabytes per gram (≈ 1 EB in ~5 g).</li>
+        <li id="cref-20">Anderson, M. S. et&nbsp;al. (2018). <span class="rt">Life Support Baseline Values and Assumptions Document.</span> NASA/TP-2015-218570/REV1. NASA Johnson Space Center. <a href="https://ntrs.nasa.gov/citations/20180001338">ntrs.nasa.gov/citations/20180001338</a> — per-crew metabolic and life-support figures.</li>
+        <li id="cref-21">Caulin, A. F. &amp; Maley, C. C. (2011). Peto’s Paradox: evolution’s prescription for cancer prevention. <span class="rt">Trends Ecol. Evol.</span> 26, 175–182. doi:<a href="https://doi.org/10.1016/j.tree.2011.01.002">10.1016/j.tree.2011.01.002</a> — why large long-lived bodies resist cancer.</li>
+        <li id="cref-22">Abegglen, L. M. et&nbsp;al. (2015). Potential mechanisms for cancer resistance in elephants and comparative cellular response to DNA damage in humans. <span class="rt">JAMA</span> 314, 1850–1860. doi:<a href="https://doi.org/10.1001/jama.2015.13134">10.1001/jama.2015.13134</a> — ~20 copies of TP53 in elephants.</li>
+        <li id="cref-23">Vogelstein, B. et&nbsp;al. (2013). Cancer genome landscapes. <span class="rt">Science</span> 339, 1546–1558. doi:<a href="https://doi.org/10.1126/science.1235122">10.1126/science.1235122</a> — the multi-driver-mutation basis of cancer.</li>
       </ol>
     </div>
   </section>
 
   <footer>
-    <div class="fbar"><span>◈ GESTALT Program</span><span class="sep">·</span><span>Engineering &amp; Biology Compendium</span><span class="sep">·</span><span>Companion to all six plans</span><span class="sep">·</span><span>Real science green · speculative leaps flagged</span></div>
+    <div class="fbar"><span>◈ GESTALT Program</span><span class="sep">·</span><span>Engineering &amp; Biology Compendium</span><span class="sep">·</span><span>Companion to the twelve other documents</span><span class="sep">·</span><span>Real science green · speculative leaps flagged</span></div>
   </footer>
 
 </div></div>
