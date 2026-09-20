@@ -30,6 +30,7 @@ from ..sim import freeflight as free_sim
 from ..sim import pilot as pilot_sim
 from ..sim import track as track_sim
 from . import fire_panel
+from . import pilot_acts as acts
 from . import pilot_panels as panels
 from .viewport import Viewport
 from .widgets import View, button, note
@@ -334,6 +335,9 @@ class PilotView(View):
         why = self.ensure_conn()
         self.head("Pilot", "The view from the bridge, and the ship in your hands.")
         if self.conn is None:
+            # Nothing to look through, and `fit` must not size a feed that
+            # belongs to the screen this one replaced.
+            self.feed = None
             self.col.addWidget(note(why or "The ship cannot be flown."))
             if self.stood_down:
                 self.col.addWidget(panels.row_of(
@@ -370,6 +374,19 @@ class PilotView(View):
         self._pad.sync(self.conn, self.use_main)
         self._btn_main = self._pad.drive
         left.addWidget(self._pad)
+        # **"Fly at X" is flying her, so it is on the hands' side.** It sat
+        # under "In view" in the right-hand column, which is the readouts'
+        # side, against this file's own rule — and the right column was the
+        # taller of the two, so the four buttons it did not need were what
+        # put the autopilot bar below the fold: measured on the runner's
+        # fonts at 1,360×880, the bar was cut and the pilot had to scroll to
+        # arm the computer. Here they cost nothing: the camera above them
+        # gives up the room (`fit`).
+        seen = [c for _km, c in rows][:4]
+        if seen:
+            left.addWidget(panels.stack_of([
+                button(f"Fly at {c.name}", lambda _=False, k=c: self.fly_at(k),
+                       kind="flat") for c in seen]))
         # Held, because a beat updates their text rather than replacing them.
         self._btn_throttle = button(panels.throttle_label(self),
                                     self._cycle_throttle, kind="flat")
@@ -417,12 +434,9 @@ class PilotView(View):
         self._boards["view"] = panels.in_view_board(self, rows)
         right.addWidget(self._boards["ship"])
         right.addWidget(self._boards["view"])
-        seen = [c for _km, c in rows][:4]
-        if seen:
-            # What you can see, you can go to: the whole point of the screen.
-            right.addWidget(panels.stack_of([
-                button(f"Fly at {c.name}", lambda _=False, k=c: self.fly_at(k),
-                       kind="flat") for c in seen]))
+        # What you can see, you can go to — the whole point of the screen, and
+        # the buttons for it are in the left column with the rest of the
+        # flying. See there.
         # **The one autopilot bar** — every mode, and Manual, the same as on
         # the helm, the conn and the approach window. The bridge used to
         # offer two of the five modes.
@@ -438,50 +452,21 @@ class PilotView(View):
         right.addStretch(1)
         self._shape = self.shape(rows)
 
-    def _look(self, view_id: str) -> None:
-        self.camera = view_id
-        self.refresh()
+    def fit(self) -> None:
+        """Give the camera whatever the controls have not asked for.
 
-    def _toggle_main(self) -> None:
-        self.use_main = not self.use_main
-        self.refresh()
-
-    def _cycle_throttle(self) -> None:
-        """Step round `pilot.THROTTLE_STEPS`, through the one door that sets it.
-
-        **The first draft kept its own `self.throttle`** and passed it to
-        `apply` as a keyword. Rendered and looked at, the button read
-        "THROTTLE: 50%" and the ship panel one row below it read "Throttle
-        100%" — the same fact, two answers, because `instruments.readout`
-        reads `conn.throttle` and nothing had written it. The throttle lives
-        on the conn; `pilot.set_throttle` is its only writer.
+        `view_base.Pane` calls this before it measures the screen. The sizing
+        itself is `pilot_panels.fit_feed`, with this screen's other furniture
+        and the two numbers it turns on.
         """
-        steps = list(pilot_sim.THROTTLE_STEPS)
-        here = min(range(len(steps)),
-                   key=lambda i: abs(steps[i] - self.conn.throttle))
-        pilot_sim.set_throttle(self.conn, steps[(here + 1) % len(steps)])
-        self.refresh()
+        panels.fit_feed(self)
 
-    def _toggle(self) -> None:
-        self.set_running(not self.running)
-        self.refresh()
+    # ── what the controls do — `ui/pilot_acts.py`, bound as methods ───────
 
-    def _cycle_scale(self) -> None:
-        from . import flight_clock
-        flight_clock.cycle_scale(self.win)
-        self.refresh()
-
-    def _open_channel(self) -> None:
-        """Talk to the nearest thing on the array; switch inside the window."""
-        from .comms_window import open_comms
-        rows = self.ranged()
-        if not rows:
-            self.win.toast("Nothing within reach of the array.", "warn")
-            return
-        open_comms(self.win, rows[0][1])
-
-    def _to_conn(self) -> None:
-        """Hand this flight to an approach, carrying the way already on."""
-        from .conn_window import open_conn
-        self.set_running(False)
-        open_conn(self.win)
+    _look = acts._look
+    _toggle_main = acts._toggle_main
+    _cycle_throttle = acts._cycle_throttle
+    _toggle = acts._toggle
+    _cycle_scale = acts._cycle_scale
+    _open_channel = acts._open_channel
+    _to_conn = acts._to_conn

@@ -35,6 +35,21 @@ HOST = "127.0.0.1"
 #: 0 asks the OS for a free port, which is what you want by default.
 PORT = 0
 
+#: How often the listening socket looks up from `accept` to ask whether the
+#: bridge is still meant to be running, and how long `stop` waits for it to.
+#:
+#: **Closing a socket another thread is blocked in `accept` on does not
+#: reliably stop it listening.** On Linux the blocked call holds the kernel's
+#: listening socket open, so the port goes on completing handshakes after
+#: `close` has returned — measured on CI, where `stop()` was followed by a
+#: connection that was accepted rather than refused, on every nightly run
+#: this workflow has ever made. macOS wakes the accept and the same code
+#: passed there for a month. A timeout makes the loop its own doorman on
+#: either kernel: it comes up for air, sees `running` is false, and lets the
+#: socket go.
+ACCEPT_TIMEOUT = 0.2
+STOP_WAIT = 5.0
+
 
 class Bridge:
     """A running game with a socket in front of it."""
@@ -57,16 +72,37 @@ class Bridge:
 
     def start(self) -> "Bridge":
         self.running = True
+        # The listener comes up for air; see `ACCEPT_TIMEOUT`. An accepted
+        # connection is *not* given the timeout — CPython puts a socket
+        # returned by `accept` back into blocking mode when the listener has
+        # one — so a conversation reads exactly as it did before.
+        self.sock.settimeout(ACCEPT_TIMEOUT)
         self._thread = threading.Thread(target=self._serve, daemon=True)
         self._thread.start()
         return self
 
     def stop(self) -> None:
+        """Stop listening, and do not return until the port is gone.
+
+        **Waiting is the point.** `stop` used to set a flag and close the
+        socket, which on Linux leaves the port listening for as long as the
+        serving thread is still inside `accept` — so a caller that stopped a
+        bridge and then checked the port found it open. It is the caller's
+        own thread that has to wait, because the caller is the one about to
+        act on the bridge being gone.
+        """
         self.running = False
+        thread, self._thread = self._thread, None
+        if thread is not None and thread is not threading.current_thread():
+            thread.join(STOP_WAIT)
         try:
             self.sock.close()
         except OSError:
             pass
+
+    def listening(self) -> bool:
+        """Is the port still answering? False once `stop` has returned."""
+        return self.sock.fileno() != -1 and bool(self.running)
 
     def address(self) -> dict:
         return {"host": self.host, "port": self.port, "token": self.token}
@@ -77,6 +113,11 @@ class Bridge:
         while self.running:
             try:
                 conn, _who = self.sock.accept()
+            except TimeoutError:
+                # Nobody knocked this time round. `socket.timeout` *is* an
+                # OSError, so it has to be caught above the clause below or
+                # the first quiet fifth of a second ends the bridge.
+                continue
             except OSError:
                 return
             threading.Thread(target=self._talk, args=(conn,),

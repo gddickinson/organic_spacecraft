@@ -289,6 +289,15 @@ def run(suite: Suite) -> None:
         other = Client(where["host"], where["port"], where["token"])
         assert other.send("state")["ok"]
         bridge.stop()
+        # **What `stop` has to have done by the time it returns**, asked
+        # before the port is, because the port's answer is the kernel's and
+        # the kernels disagree. Closing a socket another thread is blocked
+        # in `accept` on does not stop it listening on Linux: the blocked
+        # call holds the listening socket open, so the port went on
+        # accepting after `stop` and this check failed on every nightly run
+        # CI has ever made, while passing on the machine it was written on.
+        assert not bridge.listening(), (
+            "stop() returned with the bridge still listening")
         assert not _after_close(other)["ok"], "a stopped bridge kept serving"
         other.close()
         try:

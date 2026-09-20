@@ -37,6 +37,53 @@ from .widgets import Panel, note
 LEFT_SHARE, RIGHT_SHARE = 3, 2
 
 
+#: How short the bridge's camera may get, and how tall it is worth making it.
+#:
+#: **The camera is what gives, because nothing else on this screen can.** The
+#: bridge is a column of controls with a picture at the top of it, and the
+#: controls' heights are their words: a font with taller metrics makes every
+#: one of them taller and there is nothing to be done about that. The picture
+#: has no minimum worth defending — it reads at any size — so it takes what is
+#: left and the controls stay reachable.
+#:
+#: Measured, on the runner's fonts at the default 1,360×880: with the camera
+#: pinned at 260 the screen came to 863 px in a 781 px view, and the two
+#: controls entirely below the fold were "Mark … hostile" while the trigger
+#: itself was cut four pixels short. On this machine's fonts the same screen
+#: was 843 px — it has never fitted; the last row merely straddled the fold
+#: instead of clearing it, which is why nobody noticed for a month.
+FEED_FLOOR = 150
+FEED_TALL = 420
+
+
+
+def fit_feed(view) -> None:
+    """Give the bridge's camera whatever its controls have not asked for.
+
+    `view_base.Pane.fit` calls this before it measures the screen, so what
+    happens here decides the height the scroll area is told about. Two
+    measurements rather than a guess: put the camera at its floor, ask the
+    column what the rest of the screen needs, and hand the camera the
+    difference. A taller font, a longer contact list or a smaller window all
+    come out of the picture, in that order, and the trigger stays where the
+    pilot's hand is.
+    """
+    feed = view.feed
+    room = view.viewport().height()
+    if feed is None or room <= 0:
+        return
+    try:
+        feed.setFixedHeight(FEED_FLOOR)
+        view.col.activate()
+        rest = max(0, view._measure() - FEED_FLOOR)
+        feed.setFixedHeight(max(FEED_FLOOR, min(FEED_TALL, room - rest)))
+        view.col.activate()
+    except RuntimeError:
+        # The screen went down between the build and the measure; the feed's
+        # C++ side is gone and there is nothing left to size.
+        view.feed = None
+
+
 def two_columns() -> tuple:
     """`(holder, left, right)` — a row of two vertical columns.
 

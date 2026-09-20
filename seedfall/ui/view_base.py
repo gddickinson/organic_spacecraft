@@ -125,10 +125,29 @@ class Pane(QScrollArea):
         self.updateGeometry()
         QTimer.singleShot(0, self._settle)
 
+    def fit(self) -> None:
+        """A screen's chance to give room back before it is measured.
+
+        Nothing, for almost every screen: their height is their content's
+        and the scroll bar is the answer when there is too much of it. The
+        bridge overrides it, because it has one thing on it with no minimum
+        worth defending — the camera — and a font with taller metrics should
+        come out of the picture rather than push the trigger below the fold.
+        """
+
     def _need(self) -> int:
-        """The column's height at the width it will actually get. The plain
-        minimum sizes a wrapped line at a guessed width, so a two-line
-        despatch was laid out one line tall for the first frame."""
+        """The column's height at the width it will actually get, after the
+        screen has had its chance to give room back.
+
+        The plain minimum sizes a wrapped line at a guessed width, so a
+        two-line despatch was laid out one line tall for the first frame.
+        """
+        self.fit()
+        return self._measure()
+
+    def _measure(self) -> int:
+        """How tall the column is now. Split from `_need` so a `fit` can ask
+        the same question without asking itself."""
         need = self.col.minimumSize().height()
         width = self.viewport().width()
         if width > 0 and self.col.hasHeightForWidth():

@@ -14,11 +14,49 @@ that and was worthless.
 
 from __future__ import annotations
 
+import pathlib
+
 from ..data.screens import SCREENS
 from ..sim import conn as conn_sim
 from ..sim import instruments as panel_sim
 from .harness import Suite
 from .test_pilot_screen import _bridge
+
+
+#: The fonts a bare Linux runner has and this machine may not.
+#:
+#: **A layout check that only ever ran on one set of fonts is a layout check
+#: that only holds on one machine.** CI installs `fonts-dejavu-core` and
+#: nothing else, so `theme.serif_family` finds none of its candidates and
+#: falls through to Qt's generic serif — which is a *different typeface with
+#: taller metrics*, and the bridge came to 863 px against this machine's 843.
+#: Twenty pixels, and two controls that were reachable here were not there.
+#: It failed on every nightly run CI has ever made and passed here for a
+#: month, which is exactly the shape of fault this pair is meant to end.
+RUNNER_FONTS = ("DejaVu Serif", "DejaVu Sans Mono")
+
+
+def _runner_fonts() -> bool:
+    """Make `RUNNER_FONTS` available to Qt, if this machine can.
+
+    Already installed on a runner; on a workstation they come out of
+    matplotlib, which ships them and which this project already depends on
+    for `sim/`. Where neither has them the check runs on one set of fonts and
+    says so, rather than skipping — a check that skips is a check that passes.
+    """
+    from PyQt6.QtGui import QFontDatabase
+    if set(RUNNER_FONTS) <= set(QFontDatabase.families()):
+        return True
+    try:
+        import matplotlib
+    except ImportError:
+        return False
+    ttf = (pathlib.Path(matplotlib.__file__).parent / "mpl-data" / "fonts"
+           / "ttf")
+    for name in ("DejaVuSerif.ttf", "DejaVuSerif-Bold.ttf",
+                 "DejaVuSansMono.ttf", "DejaVuSansMono-Bold.ttf"):
+        QFontDatabase.addApplicationFont(str(ttf / name))
+    return set(RUNNER_FONTS) <= set(QFontDatabase.families())
 
 
 def run(suite: Suite) -> bool:
@@ -271,7 +309,7 @@ def run(suite: Suite) -> bool:
         return (f"readings move, controls hold, and a course laid grew "
                 f"{len(fresh)} new controls")
 
-    @check("the bridge fits the window it is shown in")
+    @check("the bridge fits the window it is shown in, on anybody's fonts")
     def _():
         # **Measured on a *shown* window: one never shown reports a scroll
         # range of zero and answers every layout question "fine".** At
@@ -282,39 +320,79 @@ def run(suite: Suite) -> bool:
         # buttons wanted 660 px and a fire-control row carrying `engage.note`
         # wanted 802, so content came to 1,348 px in an 891 px viewport and
         # every right-hand reading was clipped mid-number.
+        #
+        # **And then it fitted on one machine only.** The bar here used to be
+        # "no control *entirely* hidden", which the screen cleared by 19 px
+        # of a straddled row — so on a runner's taller serif the same screen
+        # put two controls under the fold and the trigger four pixels short.
+        # The bar is now the whole of every control, on both sets of fonts,
+        # and the screen earns it: the camera gives up whatever the controls
+        # need (`pilot_view.fit`), and "Fly at" went to the hands' column,
+        # which is where this file's own rule always put the flying.
         from PyQt6.QtWidgets import QApplication, QPushButton
+        from ..ui import theme
         game, win, view = _bridge("look")
         app = QApplication.instance()
         win.show()
         for _ in range(10):
             app.processEvents()
+        held = (theme.serif_family, theme.mono_family)
+        trials = [("this machine", None)]
+        if _runner_fonts():
+            trials.append(("a bare runner", RUNNER_FONTS))
+        said = []
         try:
-            wide = view.widget().width()
-            room = view.viewport().width()
-            assert wide <= room, (
-                f"the bridge is {wide} px wide in a {room} px view — "
-                f"{wide - room} px of every right-hand reading is cut off")
+            for label, fonts in trials:
+                if fonts is None:
+                    theme.serif_family, theme.mono_family = held
+                else:
+                    theme.serif_family = lambda f=fonts: f[0]
+                    theme.mono_family = lambda f=fonts: f[1]
+                app.setStyleSheet(theme.stylesheet())
+                view.refresh()
+                for _ in range(10):
+                    app.processEvents()
 
-            # **Every control, not most.** At a 199 px fold the two still
-            # under it were "Open fire on Patient Ledger" and "Mark Patient
-            # Ledger hostile" — a pilot scrolling to reach the trigger,
-            # because the left column carried 173 px and the right 777.
-            fold = view.verticalScrollBar().maximum()
-            btns = view.findChildren(QPushButton)
-            off = [b.text() for b in btns
-                   if b.visibleRegion().boundingRect().height() == 0]
-            assert not off, f"{fold} px below the fold, and under it: {off}"
+                wide = view.widget().width()
+                room = view.viewport().width()
+                assert wide <= room, (
+                    f"on {label} the bridge is {wide} px wide in a {room} px "
+                    f"view — {wide - room} px of every right-hand reading is "
+                    "cut off")
 
-            at = lambda w: w.mapTo(view.widget(), w.rect().topLeft()).x()
-            gun = next((b for b in btns if b.text().startswith("Open fire")),
-                       None)
-            if gun is not None:
-                assert at(gun) < at(view._boards["ship"]), (
-                    "the fire control is over with the boards again")
+                # **Every control, whole.** At a 199 px fold the two still
+                # under it were "Open fire on Patient Ledger" and "Mark
+                # Patient Ledger hostile" — a pilot scrolling to reach the
+                # trigger, because the left column carried 173 px and the
+                # right 777.
+                tall = view.viewport().height()
+                btns = view.findChildren(QPushButton)
+                low = lambda b: b.mapTo(view.widget(),
+                                        b.rect().bottomLeft()).y()
+                cut = sorted(((low(b) - tall, b.text()) for b in btns
+                              if low(b) > tall), reverse=True)
+                fold = view.verticalScrollBar().maximum()
+                assert not cut, (
+                    f"on {label}, {fold} px below the fold and under it: "
+                    + ", ".join(f"{t!r} by {over} px" for over, t in cut[:4]))
+
+                at = lambda w: w.mapTo(view.widget(), w.rect().topLeft()).x()
+                gun = next((b for b in btns
+                            if b.text().startswith("Open fire")), None)
+                if gun is not None:
+                    assert at(gun) < at(view._boards["ship"]), (
+                        f"on {label} the fire control is over with the boards")
+                said.append(f"{label} {view.widget().height()} px in {tall}, "
+                            f"fold {fold}, all {len(btns)} controls whole")
         finally:
+            theme.serif_family, theme.mono_family = held
+            app.setStyleSheet(theme.stylesheet())
             win.hide()
-        return (f"{wide} px in {room}, {fold} px below the fold (was 662, "
-                f"then 199), all {len(btns)} controls on screen")
+        # Outside the loop, because everything above it is inside one: a
+        # trial list that came back empty would otherwise be a check that
+        # passed without looking at a screen (`tests/test_harness_guard`).
+        assert len(said) == len(trials) >= 1, said
+        return "; ".join(said)
 
 
     return True

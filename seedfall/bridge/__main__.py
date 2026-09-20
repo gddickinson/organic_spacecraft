@@ -40,7 +40,11 @@ def main(argv=None) -> int:
     print(json.dumps({"ok": True, **bridge.address(),
                       "day": game.day, "seed": game.seed}), flush=True)
     try:
-        while True:
+        # **`listening`, not `True`.** A bridge whose serving thread has gone
+        # — a socket error, a port pulled out from under it — served nothing
+        # and this process sat in the loop for ever, printing nothing and
+        # answering nothing. Now it ends when the bridge does.
+        while bridge.listening():
             time.sleep(0.5)
     except KeyboardInterrupt:
         pass

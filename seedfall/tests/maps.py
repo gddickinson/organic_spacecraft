@@ -74,7 +74,8 @@ GROUPS = {
         ("The chart and the system", "map_view star_chart reaches_chart sky_chart system_view "
          "survey_panel crossing_panel anchorage_panel traffic_panel life_panel "
          "mesh_panel orbit_chart reaches_panel sky_strip weave_panel spheres surface"),
-        ("Flying", "helm_view pilot_view pilot_panels conn_window conn_controls conn_panel "
+        ("Flying", "helm_view pilot_view pilot_panels pilot_acts conn_window "
+         "conn_controls conn_panel "
          "conn_moves conn_targets flight_window flight_clock flying_keys autopilot_bar "
          "approach_window approach_plot viewport viewport_hud viewport_mark "
          "viewport_math viewport_target sights mount_sight thrust_pad gauges plot_canvas "

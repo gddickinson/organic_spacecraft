@@ -3,6 +3,27 @@
 Running progress log. Newest first.
 
 
+## 2026-09-20 — The nightly, made green
+
+The push workflow runs the fast suites and was green; the nightly runs every
+suite and had **never** passed, failing the same two checks on all three
+Pythons since the day it was written. Neither was the game.
+
+The bridge did not fit its own window and never had — it cleared the check
+here by 19 px of a straddled row, and on a runner, whose only font package is
+`fonts-dejavu-core`, the taller serif put two controls under the fold and cut
+the trigger short. The camera now gives up whatever the controls need
+(`ui/pilot_panels.fit_feed`, through a new `Pane.fit` hook), "Fly at …" moved
+to the column this file's own rule puts flying in, and the check is both
+stricter and run twice — on this machine's fonts and on the runner's.
+
+And `Bridge.stop` closed its socket while the serving thread was inside
+`accept`, which on Linux leaves the port listening; it now waits for the
+thread, so when `stop` returns the port is gone on either kernel.
+
+237 suites, 1,782 checks, 0 failed.
+
+
 ## 2026-09-19 — What a contact looks like
 
 SEEDFALL modelled collisions in detail and showed almost none of it.

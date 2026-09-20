@@ -136,7 +136,9 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
 - **`ship.stats()` is the single source of derived ship numbers:** chassis,
   parts, research, officers, traits, arc signatures and adaptations.
 - **Views subclass `ui/view_base.View`.** A screen that updates in place
-  (Tech, Port, the log) says so through `View.keep()`.
+  (Tech, Port, the log) says so through `View.keep()`, and one that can give
+  room back before it is measured says so through `View.fit()` — the bridge
+  is the only one, and what it gives is the camera.
 
 ## The rules that bite
 

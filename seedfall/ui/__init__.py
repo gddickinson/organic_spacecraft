@@ -1,7 +1,7 @@
 """PyQt6 presentation layer. Views never mutate state directly — they call into
 sim/ and then ask the window to refresh.
 
-Contents (143 modules; one line each in `INTERFACE.md`):
+Contents (144 modules; one line each in `INTERFACE.md`):
 
 The window: app, window, window_dialogs, menubar, hud, log_panel, crash,
     popout, monitors, title, chronicle_picker, seed_dialog, beginning_view,
@@ -11,12 +11,13 @@ The chart and the system: map_view, star_chart, reaches_chart, sky_chart,
     system_view, survey_panel, crossing_panel, anchorage_panel,
     traffic_panel, life_panel, mesh_panel, orbit_chart, reaches_panel,
     sky_strip, weave_panel, spheres, surface.
-Flying: helm_view, pilot_view, pilot_panels, conn_window, conn_controls,
-    conn_panel, conn_moves, conn_targets, flight_window, flight_clock,
-    flying_keys, autopilot_bar, approach_window, approach_plot, viewport,
-    viewport_hud, viewport_mark, viewport_math, viewport_target, sights,
-    mount_sight, thrust_pad, gauges, plot_canvas, plot3d_window, render3d,
-    stars3d, thumb3d, effects, effect_paint, effect_marks, effect_clock.
+Flying: helm_view, pilot_view, pilot_panels, pilot_acts, conn_window,
+    conn_controls, conn_panel, conn_moves, conn_targets, flight_window,
+    flight_clock, flying_keys, autopilot_bar, approach_window,
+    approach_plot, viewport, viewport_hud, viewport_mark, viewport_math,
+    viewport_target, sights, mount_sight, thrust_pad, gauges, plot_canvas,
+    plot3d_window, render3d, stars3d, thumb3d, effects, effect_paint,
+    effect_marks, effect_clock.
 Fighting: battle_view, battle_orders, battle_text, battle3d, tactical_plot,
     tactical_board, tactical_window, gunner_window, fire_panel,
     firing_panel, doctrine_panel, assessment_panel, hunts_panel, hunt_marks.

@@ -523,6 +523,58 @@ Measured afterwards: **237 suites, 1,782 checks, 0 failed, 195 s at `-j 8`**.
 One animation frame costs 10.7 ms against a 40 ms budget with three pop-outs
 open. Nothing was committed.
 
+## 2026-09-20 — the nightly, made green
+
+The push workflow runs the fast suites and had been green for days. The
+**nightly runs the lot, and had never once passed** — the same two checks on
+3.10, 3.11 and 3.12, on every scheduled run since the workflow was written,
+and neither of them was the game being wrong about anything a player does.
+Both were "this only ever held on one machine", the class commit `4e8d032`
+named.
+
+**The bridge did not fit, and never had.** `test_bridge` asked that no
+control be *entirely* below the fold at 1,360×880. On this machine the screen
+came to 843 px in a 781 px view and cleared the bar by 19 px of a straddled
+row; on a runner, where `fonts-dejavu-core` is the whole font set and
+`theme.serif_family` falls through to Qt's generic serif, the same screen is
+863 px — so two controls went under and the trigger was cut four pixels
+short. Reproduced here by loading matplotlib's DejaVu copies into Qt, which
+gives the runner's metrics exactly: 863 px and the same two buttons, named.
+
+Two changes, both of which the screen wanted anyway:
+
+- **The camera gives.** `pilot_panels.fit_feed`, through a new
+  `view_base.Pane.fit` hook called before the screen is measured, puts the
+  feed at its floor, asks the column what the rest of it needs, and hands the
+  camera the difference. The bridge is a column of controls with a picture at
+  the top; the controls' heights are their words and the picture's is
+  nothing, so a taller font comes out of the picture. On a taller window the
+  camera is now *bigger* than the 260 px it used to be pinned at.
+- **"Fly at …" moved to the hands' column**, which is where this file's own
+  rule always put the flying. It was under "In view" on the readouts' side,
+  and the right column was the taller of the two, so those four buttons were
+  what pushed the autopilot bar off the bottom.
+
+The check is stricter than the one it replaces — *no control below the fold
+at all*, not merely "not entirely hidden" — and it runs twice, once on this
+machine's fonts and once on the runner's. 799 px in 781 here, 819 px there,
+all 34 controls whole on both.
+
+**A stopped bridge went on listening.** `Bridge.stop` set a flag and closed
+the socket while the serving thread sat in `accept`. On Linux the blocked
+call holds the kernel's listening socket open, so the port kept completing
+handshakes after `stop` had returned; macOS wakes the accept, and the same
+code passed here for a month. The listener now comes up for air every 200 ms
+to ask whether it is still wanted, and `stop` waits for the thread before it
+returns — so when it returns, the port is gone on either kernel. The check
+asks that first, in words, before it asks the kernel.
+
+`ui/pilot_view.py` passed five hundred lines on the way and was split at the
+seam `ui/conn_moves.py` already cut for the conn window: `ui/pilot_acts.py`
+holds what the bridge's own controls do when pressed.
+
+Measured afterwards: **237 suites, 1,782 checks, 0 failed, 199 s at `-j 8`**.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one
@@ -536,6 +588,11 @@ open. Nothing was committed.
 - New `Conn` fields must be carried into `sim/preview._copy` or explicitly
   excused in `tests/test_conn.py`; the guard there will say so.
 - `sim/` never imports Qt. `data → world → sim → ui`, one direction.
+- **A layout check needs somebody else's fonts.** A runner has
+  `fonts-dejavu-core` and nothing else, and the metrics are not this
+  machine's; `tests/test_bridge._runner_fonts` loads matplotlib's copies so
+  the check runs on both. The nightly ran red for its whole life over twenty
+  pixels of line height.
 - **Anything called from a QTimer slot needs the `painting.py` treatment**,
   not only `paintEvent`. A pop-out is `WA_DeleteOnClose`, so a widget held
   from one frame to the next can be a corpse by the next one, and the
