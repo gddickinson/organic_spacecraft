@@ -175,6 +175,41 @@ def burn(win) -> None:
     ear["burn"] = want
 
 
+#: What each kind of contact sounds like. A berthing already had a cue and
+#: nothing else on the flight deck did — a hull struck at fifty metres a
+#: second made no sound at all, which is the same hole the pictures had.
+#: **Alongside and orbit ring through `hud` instead**, not here. They are
+#: the two `_berthed` already watches for, and ringing them twice is what
+#: the check that berth is heard *once* caught the moment this was wired in.
+STRUCK_CUE = {
+    "collision": "impact", "aground": "impact", "ditched": "impact",
+    "scrape": "graze", "cut": "graze", "ward": "hit",
+    "down": "berth", "captured": "berth",
+    "alongside": "", "orbit": "",
+    # An engagement rings its own bells through `battle` — the volleys by
+    # family, the hit, the breach. A second cue here would double every one.
+    "gunfire": "",
+}
+
+
+def struck(win, fresh) -> None:
+    """A contact, heard. Takes the effects `ui/effects.watch` has just made.
+
+    One sound for one moment, however many things happened in the tick: a
+    cut that pulses and a ward that bites in the same minute is one event to
+    an ear, and playing both makes a mess of the one that mattered.
+    """
+    configure(win)
+    loudest = max(fresh, key=lambda e: e.power, default=None)
+    if loudest is None:
+        return
+    cue = STRUCK_CUE.get(loudest.shock.kind, "")
+    if not cue:
+        return
+    _ear(win)["quiet"] = clock() + QUIET_AFTER
+    audio.play(cue)
+
+
 def beat(win) -> None:
     """One beat of the flight: the collision guard's ping, repeating faster
     as contact nears, and a double pip once she cannot be stopped."""

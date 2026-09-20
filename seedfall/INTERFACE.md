@@ -117,6 +117,17 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
   rules. A step with no whole day in it runs nothing and draws no luck. A
   nested advance raises `ClockReentered`.
 - **New daily behaviour is one line** in the right phase function.
+- **One clock, and one animation timer that is not a clock.** A collision
+  *stops* the flight clock, so the picture of it would be painted once and
+  then hold still. `ui/effect_clock.py` is a second 40 ms timer that repaints
+  the flying surfaces while something is on the glass. It advances no
+  calendar, bills nothing and draws no luck; `tests/test_shock` holds it to
+  that.
+- **What a contact looked like is `sim/shock.py`'s.** The one door between
+  "the approach resolved" and "the window draws it": it reads the flight and
+  hands back a `Shock` — kind, bearing, both sides' damage, the words — and
+  `ui/effects.py` decides only how long it stays and how hard. A screen never
+  works out what an impact cost; it asks.
 - **`sim/` never imports Qt,** and `ui/` never decides anything.
   - A screen calls a sim act that returns `{ok, why, text}` and writes its own
     log line.

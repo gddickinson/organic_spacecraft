@@ -65,6 +65,11 @@ class BattleView(View):
     def build(self) -> None:
         b = self.win.battle
         soundmap.battle(self.win, b)       # once a turn, however often drawn
+        # And what the turn did to *you*, as a thing the picture does rather
+        # than a number in a panel. Same rule as the sound: once a turn.
+        from . import effect_clock, effects
+        effects.gunfire(self.win)
+        effect_clock.pump(self.win)
         if b is None:
             self.head("No engagement", "Nothing is shooting at you.")
             self.buttons(button("Back", lambda: self.win.go("system")))

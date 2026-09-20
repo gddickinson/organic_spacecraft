@@ -38,6 +38,26 @@ each item to its fix) closed these from the lists below:
 - **Let the captain hide too** — `sim/running_dark.py`: fewer meetings, a
   first volley, suspicion where the law is; a shroud deepens it.
 
+## Closed on 2026-09-19 — a contact you can see
+
+The flight model knew everything about a collision and drew none of it:
+measured, a 55 m/s arrival at a Fleet Hub cost 1,134 of a 336-point hull and
+moved nothing on the screen but a line of nine-point italic type — in a
+window whose main camera was not even pointing at the structure.
+
+- **`sim/shock.py`** — the one door between the fact and the picture. It
+  reads a resolved approach (or a turn of an engagement) and hands back what
+  passed between the two: kind, bearing, both sides' damage, the shove, the
+  fitting that was missed, the words. Qt-free; every figure is the flight's.
+- **`ui/effects.py` / `effect_marks.py` / `effect_paint.py` /
+  `effect_clock.py`** — the timeline, the marks, the composition, and a
+  second 40 ms timer, because a collision *stops* the flight clock and the
+  first frame of an explosion is not an explosion.
+- Ten kinds of contact are drawn, plus the volley you take in combat; the
+  conn turns to the camera that saw it (`viewport.best_view`); the outside
+  view draws what the *other* side took. Two new sound cues: `impact`,
+  `graze`. New suite: `shock`, twelve checks.
+
 ## Open — the 2026-08-04 review: the systems layers
 
 A four-agent review (combat, economy, strategic layer, player experience)
@@ -133,6 +153,12 @@ Tessellate site", and raw floats in the Port. Still open:
 (The first five ideas — dock-for-me, keyboard flying, the conn tutorial
 lesson, time compression, brake-to-zero — shipped in the third pass.)
 
+- **More for the effects layer, now it exists** (`ui/effects`): a dust plume
+  when she is put down on a world rather than the same bloom a quay gets;
+  the fractures carried onto the Ship screen's layer stack while the damage
+  lasts; a scrape drawn as a streak along the skin rather than as a small
+  bloom; and the engagement's own picture could use the rim arc for a shot
+  that came from outside the frame, which it does not yet.
 - **More HUD, now the layer exists** (`viewport_hud`): a ladder of tick
   marks on the predicted path (time-to labels), the corridor hold point
   drawn as a gate rather than a chevron, closing-rate colour on the mark,

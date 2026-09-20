@@ -35,8 +35,8 @@ from PyQt6.QtWidgets import QWidget
 from ..core.rng import RNG
 from ..data import models3d, surfaces, worlds3d
 from ..sim import conn as conn_sim
-from . import (painting, render3d, spheres, stars3d, theme, viewport_hud,
-               viewport_mark, viewport_target)
+from . import (effect_paint, effects, painting, render3d, spheres, stars3d,
+               theme, viewport_hud, viewport_mark, viewport_target)
 from .viewport_target import _detail
 from .viewport_math import HALF_FOV, _unit, project
 
@@ -135,6 +135,26 @@ def basis(view_vec, conn) -> tuple:
     return fwd, cam_right, up
 
 
+def best_view(conn, bearing) -> str:
+    """Which of the six cameras a given bearing is most nearly down.
+
+    The answer to "which window did that happen in", which the conn needs and
+    nothing could answer: a hull struck a Fleet Hub at 55 m/s with the nose
+    180° off, so the *aft* camera held the whole event and the main screen —
+    which is what the player was looking at — showed a starfield.
+
+    The most-forward camera, by the dot product with each one's axis. Never
+    empty: the six axes cover the sphere, so something is always best.
+    """
+    best, score = conn_sim.VIEWS[0][0], -2.0
+    for view_id, _label, vec in conn_sim.VIEWS:
+        fwd, _right, _up = basis(vec, conn)
+        ahead = sum(a * b for a, b in zip(bearing, fwd))
+        if ahead > score:
+            best, score = view_id, ahead
+    return best
+
+
 def _rotate(vec, heading: float) -> tuple:
     c, s = math.cos(heading), math.sin(heading)
     x, y, z = vec
@@ -179,6 +199,15 @@ class Viewport(painting.Painted, QWidget):
         _vid, label_text, vec = self.view
         cam = basis(vec, conn)
 
+        # **The blow moves the camera, not the furniture.** A shake applied
+        # to the whole widget would throw the label and the border about with
+        # it, which reads as the *window* being broken rather than the ship
+        # being struck. Everything out of the window rides on the offset;
+        # the frame, the effects and the words are painted true.
+        shift_x, shift_y = effects.shake()
+        p.save()
+        if shift_x or shift_y:
+            p.translate(shift_x, shift_y)
         self._stars(p, cam, w, h)
         taken = []
         if conn is not None:
@@ -189,6 +218,8 @@ class Viewport(painting.Painted, QWidget):
                 taken.append(spot)
         viewport_mark.draw_sights(p, self.sights, project, cam, w, h, taken)
         viewport_mark.draw(p, self.mark, project, cam, w, h)
+        p.restore()
+        effect_paint.over(p, conn, cam, w, h)
         self._frame(p, label_text, w, h)
 
     # ── the picture ────────────────────────────────────────────────────────

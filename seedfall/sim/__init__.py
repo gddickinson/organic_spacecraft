@@ -1,7 +1,7 @@
 """Game rules: ships, shipyards, combat, colonies, research, crew, encounters,
 the Bloom, and the player actions that span them. Never touches Qt.
 
-Contents (191 modules; one line each in `INTERFACE.md`):
+Contents (192 modules; one line each in `INTERFACE.md`):
 
 The ship and its fittings: ship, plans, loading, thrusters, shipyard,
     stores, services, abilities, damage, adaptation, readiness.
@@ -10,7 +10,7 @@ Flying: the conn and the flight deck: conn, conn_open, conn_step,
     instruments, outcome, collision, detection, track, targets, bays,
     moorings, moorings_steer, knock, impulse, tug, control, clearance,
     telemetry, sheer, forcing, berthing, anchorage, orbits, orbit_heights,
-    elements.
+    elements, shock.
 Getting anywhere: actions, flight, heliocentric, burnplan, burn_incidents,
     path, reach, transit, dormancy, passage, wayhome, gates, weave,
     gatetraffic, regions, relight.

@@ -39,7 +39,7 @@ GROUPS = {
         ("Flying: the conn and the flight deck", "conn conn_open conn_step flightdeck freeflight autopilot "
          "attitude pilot preview instruments outcome collision detection track "
          "targets bays moorings moorings_steer knock impulse tug control clearance telemetry "
-         "sheer forcing berthing anchorage orbits orbit_heights elements"),
+         "sheer forcing berthing anchorage orbits orbit_heights elements shock"),
         ("Getting anywhere", "actions flight heliocentric burnplan burn_incidents path reach "
          "transit dormancy passage wayhome gates weave gatetraffic regions relight"),
         ("Fighting", "combat battle_state tactical stations turnplan enemy_ai doctrine gunnery "
@@ -78,7 +78,8 @@ GROUPS = {
          "conn_moves conn_targets flight_window flight_clock flying_keys autopilot_bar "
          "approach_window approach_plot viewport viewport_hud viewport_mark "
          "viewport_math viewport_target sights mount_sight thrust_pad gauges plot_canvas "
-         "plot3d_window render3d stars3d thumb3d"),
+         "plot3d_window render3d stars3d thumb3d "
+         "effects effect_paint effect_marks effect_clock"),
         ("Fighting", "battle_view battle_orders battle_text battle3d tactical_plot tactical_board "
          "tactical_window gunner_window fire_panel firing_panel doctrine_panel "
          "assessment_panel hunts_panel hunt_marks"),

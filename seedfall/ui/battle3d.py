@@ -26,10 +26,16 @@ from PyQt6.QtWidgets import QSizePolicy, QWidget
 
 from ..data import hulls3d
 from ..sim import gunfire
+from ..sim import shock as shock_sim
 from ..sim import tactical as tac
-from . import render3d, theme
+from . import effect_marks, effect_paint, effects, render3d, theme
 from .viewport import STARS
 from . import painting
+
+#: The picture this widget paints. `ui/effects` keeps one list for the whole
+#: game and hands out only the shocks placed in the frame being asked for —
+#: an approach's bearings mean nothing in tactical coordinates.
+BATTLE = shock_sim.BATTLE
 
 #: Half the field of view. Tighter than the conn's, because an engagement is
 #: something you watch rather than fly.
@@ -146,6 +152,15 @@ class Battle3D(QWidget):
         b = self.battle
         camera = self._camera(w, h)
 
+        # **Being hit is a thing that happens to you.** Everything fired was
+        # already drawn — every round from the muzzle, every one that landed
+        # bloomed — and what the hull *took* moved a number in a panel and
+        # nothing else. The picture rides on the blow; the labels do not, or
+        # the screen reads as broken rather than the ship as struck.
+        shift_x, shift_y = effects.shake(scene=BATTLE)
+        p.save()
+        if shift_x or shift_y:
+            p.translate(shift_x, shift_y)
         self._stars(p, camera, w, h)
         light = render3d.unit((-0.55, -0.7, -0.45))
 
@@ -166,8 +181,28 @@ class Battle3D(QWidget):
                           yaw=math.radians(-side.body.heading) + LIE_YAW)
 
         self._shots(p, camera)
+        self._struck(p, camera, w, h)
+        p.restore()
+        effect_paint.wash(p, w, h, BATTLE)
         self._labels(p, camera, w, h)
         p.end()
+
+    def _struck(self, p: QPainter, camera, w: int, h: int) -> None:
+        """What came off your own hull this turn, thrown from it.
+
+        `_flash` already blooms where a round landed; this is the part after
+        it — pieces of you, going away and going dark — and it is drawn at
+        your hull rather than at the point of impact because at this scale
+        they are the same place and the hull is the thing the eye is on.
+        """
+        for effect in effects.live(scene=BATTLE):
+            at = camera.project(tuple(effect.shock.at))
+            if at is None:
+                continue
+            effect_marks.debris(p, at[0], effect.shock.seed, effect.power,
+                                effect.age(effects.clock()),
+                                QColor(effect_paint.HULL_GREY),
+                                float(min(w, h)))
 
     def _stars(self, p: QPainter, camera, w: int, h: int) -> None:
         for x, y, z, bright in STARS:

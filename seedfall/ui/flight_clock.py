@@ -91,6 +91,13 @@ def fly_beat(win) -> None:
     if conn is None or conn.landed:
         win.set_conn_clock(False)
         return
+    # **Look before flying, as well as after.** The eye's first sight of a
+    # flight can only record what it finds, and a body approach the computer
+    # settles on its very first beat would have had its arrival recorded as
+    # the baseline and never drawn. One look here and the baseline is always
+    # "nothing has happened yet"; `watch` spawns on a change, so a look that
+    # finds nothing costs nothing.
+    _showing(win)
     # No time passes while you are being shot at — the rule the whole battle
     # layer stands on, and one the per-window clocks used to leak around:
     # the Conn window's own timer beat on under fire.
@@ -99,6 +106,11 @@ def fly_beat(win) -> None:
         return
     if conn.over:
         out = berth_sim.commit(win.game, conn)
+        # **Before the toast and before the redraw.** `berthing.commit` has
+        # just taken the damage, so the shock can be read off the hull — and
+        # the picture of a crash has to be on the glass by the time the
+        # window that shows it is redrawn, not a beat later.
+        _showing(win)
         if out.get("lost"):
             win.toast("The hull is gone.", "bad")
         elif out.get("moved"):
@@ -130,6 +142,23 @@ def fly_beat(win) -> None:
         return
     soundmap.beat(win)          # the collision guard's ping, once a beat
     win.beat_refresh()
+
+
+def _showing(win) -> list:
+    """Notice what has happened to the flight, and run the picture of it.
+
+    The one place both halves are called, because they are one act: an
+    effect nobody starts the frame clock for is painted once and then holds
+    still, and a frame clock started over nothing spins for no reason.
+    `ui/effects.watch` spawns on a *change*, so calling this from every path
+    that flies the ship gives one collision and not four.
+    """
+    from . import effect_clock, effects
+    fresh = effects.watch(win)
+    if fresh:
+        soundmap.struck(win, fresh)
+    effect_clock.pump(win)
+    return fresh
 
 
 def guarded(win, axis) -> bool:
@@ -304,7 +333,13 @@ def beat_refresh(win) -> None:
     used to write the entire sector to disk on every call. A beat updates the
     flying surfaces and the stardate; the heavy redraw still happens on every
     real act.
+
+    **And it looks at the flight first.** Every path that flies the ship —
+    the beat, a released thruster, a computer press, a burn from the conn
+    console — ends here, so this is the one place a contact cannot be flown
+    into without the picture saying so.
     """
+    _showing(win)
     win._refresh_hud()
     view = win.views.get(win.current) if win.current else None
     if win.current == "pilot" and view is not None:

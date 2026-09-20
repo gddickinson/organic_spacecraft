@@ -140,6 +140,9 @@ class ConnWindow(QDialog):
                 self.win.conn = fresh
             self.refused = why
         self.main_view = "fore"
+        #: The effect this window has already turned to look at, so a
+        #: collision swings the main screen round once and not every frame.
+        self.looked_at = None
         #: Where the ship was when this approach opened, so the window can
         #: notice it being flown somewhere else.
         self.opened_at = (self.game.location_id,
@@ -228,6 +231,31 @@ class ConnWindow(QDialog):
         column.addWidget(self.controls)
 
     # ── acts ───────────────────────────────────────────────────────────────
+
+    def _look_at_it(self) -> None:
+        """Put the main screen on the camera that saw the contact.
+
+        A contact that *ends* the approach leaves no manoeuvre to spoil by
+        moving the pilot's chosen camera — and the alternative is what was
+        photographed: a 1,134-point collision with the structure in the aft
+        feed and the main screen showing empty sky. A berthing is worth
+        turning round for too; a boom closing or a cut going through is not,
+        because the pilot is still flying. Once per contact.
+        """
+        from . import effects, viewport
+        conn = self.conn
+        if conn is None:
+            return
+        effect = effects.loudest()
+        if effect is None or effect is self.looked_at:
+            return
+        self.looked_at = effect
+        if not effect.shock.ends:
+            return
+        want = viewport.best_view(conn, effect.shock.bearing)
+        if want != self.main_view:
+            self.main_view = want
+            self.screen.view_id = want
 
     def _show_view(self, view_id: str) -> None:
         self.main_view = view_id
@@ -398,6 +426,7 @@ class ConnWindow(QDialog):
             self.title.setText(
                 f"Conn — {conn.target.name}" if conn.outcome != "watching"
                 else f"Conn — station keeping at {self.game.system.name}")
+        self._look_at_it()
         self.controls.sync(conn)
         # **Name what is out there.** Measured at 130.3 km off the Fleet Hub:
         # `sights` was `()`, a starfield and an unnamed crosshair — the

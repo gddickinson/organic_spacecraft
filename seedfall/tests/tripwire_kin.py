@@ -39,6 +39,7 @@ KIN = {
     "encounters": ("magazine", "readiness"),
     "impulse": ("impulse", "conn"),
     "knock": ("knock",),
+    "shock": ("shock", "conn"),
     "moorings": ("moorings", "conn"),
     "clearance": ("clearance", "berthing"),
     "freeflight": ("freeflight", "freeframe", "conn", "pilotscreen"),

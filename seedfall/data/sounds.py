@@ -135,6 +135,22 @@ CUES: tuple = (
         Tone(1174.7, at=0.14, attack=0.01, decay=0.45,
              partials=((1.0, 1.0), (2.76, 0.1)))),
         "two small bells a fifth apart: made fast"),
+    # **A crash had no sound at all.** Every gun in the game rings the hull
+    # and flying one into a Fleet Hub at 55 m/s did not — which is the same
+    # hole the pictures had: the loudest thing that can happen on the flight
+    # deck was the quietest thing in the interface.
+    Cue("impact", "effects", 1.6, 0.72, (
+        Noise(2600, lp_to=240, hp=40, amp=0.9, attack=0.001, decay=0.5),
+        Tone(34, to=22, amp=1.0, attack=0.002, decay=0.9,
+             partials=((1.0, 1.0), (2.0, 0.4), (3.3, 0.18))),
+        Tone(146.8, to=104, amp=0.45, at=0.04, attack=0.004, decay=0.7,
+             partials=((1.0, 1.0), (2.41, 0.35), (4.7, 0.12)))),
+        "a crunch and a long structural groan under it: the frames took it"),
+    Cue("graze", "effects", 0.7, 0.34, (
+        Noise(4200, lp_to=1400, hp=700, amp=0.8, attack=0.004, decay=0.28,
+              grains=900),
+        Tone(220, to=186, amp=0.3, attack=0.01, decay=0.24)),
+        "a grating scrape along the skin, and nothing worse"),
     Cue("jump", "effects", 1.5, 0.45, (
         Noise(250, lp_to=3200, hp=80, attack=0.55, decay=0.35),
         Tone(110, to=36, amp=0.5, attack=0.3, decay=0.5)),

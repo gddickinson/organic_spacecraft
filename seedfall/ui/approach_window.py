@@ -29,7 +29,7 @@ from PyQt6.QtWidgets import (QDialog, QHBoxLayout, QSizePolicy, QSlider,
 from ..data import models3d
 from ..sim import moorings
 from ..sim import preview as preview_sim
-from . import render3d, theme
+from . import effect_paint, render3d, theme
 from .widgets import button, label, mono_label, note
 from . import painting
 
@@ -90,6 +90,11 @@ class ApproachView(QWidget):
             self._track(painter, camera, conn)
             self._ship(painter, camera, conn)
             self._scale(painter, w, h, span)
+            # **The one view that can show both sides of a contact.** The
+            # cameras look out of the hull and cannot show what the ship did
+            # to the other thing; this draws the pair, so the flash lands on
+            # the structure and the shove it took is an arrow out of it.
+            effect_paint.plot(painter, camera, w, h)
         finally:
             # **Always.** A `paintEvent` that leaves without ending its
             # painter leaves the QPainter attached to the widget, and Qt then

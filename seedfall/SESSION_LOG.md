@@ -464,6 +464,65 @@ identically, and still does 60 days on. The careful captain reaches Genesis
 on 7 of 10 seeds inside five years with no deaths; a day costs about 1.4 ms
 with everything on. Nothing was committed.
 
+## 2026-09-19 — what a contact looks like
+
+Opened by photographing one. A hull was flown into a Fleet Hub at 55 m/s —
+**1,134 points off a hull that has 336**, the end of a starting chronicle —
+and the only thing that changed on the screen was one line of nine-point
+italic type along the bottom of the window. The structure was not even in
+the camera the player was looking at: the nose was 180° off, so the whole
+event happened in the *aft* feed while the main screen showed a starfield.
+
+Everything needed to draw it already existed and none of it was drawn.
+`sim/impulse` has worked out the energy, both sides' damage and both sides'
+change of velocity since it was written; `sim/knock` carries the shove out to
+the sector; `sim/moorings` knows which fitting was missed and by how far;
+`sim/landing` tells a descent from an arrival; `sim/control` knows when a
+station is shooting at you. The gap was a door between the fact and the
+picture.
+
+| Piece | What it is |
+|---|---|
+| `sim/shock.py` | The one door: reads a resolved flight (or a turn of an engagement) and hands back a `Shock` — kind, bearing, both sides' damage, severity, the words. No Qt, no writes, every figure the flight's own. |
+| `ui/effects.py` | The timeline: how long a thing stays on the glass and how hard. Qt-free, so a check can ask what the shake is 300 ms in without waiting. `watch` reads the flight and spawns on a *change*, the way `soundmap` does. |
+| `ui/effect_marks.py` | The hand: flash, blast front, sparks, tumbling debris, fractures on the camera glass, mooring lines coming taut, the rim arc for a blow from outside the frame. Deterministic in a seed — never `game.rng`. |
+| `ui/effect_paint.py` | The composition: the first-person overlay, the outside view's, the wash, the words, the alarm border. |
+| `ui/effect_clock.py` | A second 40 ms timer, because a collision *stops* the flight clock and the first frame of an explosion is not an explosion. It advances no calendar and draws no luck. |
+
+What a captain now sees, all of it off numbers the sim already had:
+
+- **A crash**: white-out, a shock ring and sparks at the point of contact,
+  hull tumbling away, the camera thrown off true, fractures across the glass
+  that stay, a rim arc when it happened behind you, and the figures large —
+  `COLLISION · FLEET HUB · 55 m/s · 34,245 MJ · −1,134 off her · −68 off it
+  · shoved 3.11 m/s · mast 4 missed`.
+- **The conn turns to the camera that saw it.** The approach is over, so
+  there is no manoeuvre left to spoil (`ui/viewport.best_view`).
+- **A berthing**: lines going over and coming taut at the fitting, in green.
+  An arrival is not a small collision and is not drawn as one.
+- **The other side of it**, in the outside view: the shove as an arrow out of
+  the structure, and a dashed line from where the frames went in to the mast
+  that was missed.
+- **Still-running contacts**: a boom closing, a cut going through, point
+  defence biting — drawn without taking the pilot's camera off them.
+- **An engagement**: what you *took* this turn shakes the picture and throws
+  pieces of your own hull off it. Combat drew every round it fired and
+  nothing at all of being hit.
+- **Sound**: `impact` and `graze` cues, because a crash had none.
+
+**One fault the full run found, and the suite now holds shut.** Caching the
+found set of surfaces between frames — worth 6 ms of a 17 ms frame — left the
+timer holding Python wrappers for widgets whose C++ objects had gone, because
+every pop-out is `WA_DeleteOnClose`. `update()` on one of those raises inside
+a timer slot, where PyQt cannot propagate it: **exit 134, five runs of five,
+every check passing and nothing failing** — the exact shape `ui/painting.py`
+exists to stop, in the one place that was not a `paintEvent`. `_repaint` now
+drops a surface that has gone, and the window stops the clock on its way out.
+
+Measured afterwards: **237 suites, 1,782 checks, 0 failed, 195 s at `-j 8`**.
+One animation frame costs 10.7 ms against a 40 ms budget with three pop-outs
+open. Nothing was committed.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one
@@ -477,5 +536,9 @@ with everything on. Nothing was committed.
 - New `Conn` fields must be carried into `sim/preview._copy` or explicitly
   excused in `tests/test_conn.py`; the guard there will say so.
 - `sim/` never imports Qt. `data → world → sim → ui`, one direction.
+- **Anything called from a QTimer slot needs the `painting.py` treatment**,
+  not only `paintEvent`. A pop-out is `WA_DeleteOnClose`, so a widget held
+  from one frame to the next can be a corpse by the next one, and the
+  `RuntimeError` that raises kills the process instead of failing a check.
 - A function written and never called is a defect the suite catches
   (`test_reachable`) — wire it or delete it.

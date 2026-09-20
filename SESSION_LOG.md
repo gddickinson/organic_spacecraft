@@ -3,6 +3,27 @@
 Running progress log. Newest first.
 
 
+## 2026-09-19 — What a contact looks like
+
+SEEDFALL modelled collisions in detail and showed almost none of it.
+Photographed first: a hull flown into a Fleet Hub at 55 m/s — 1,134 points
+off a hull that has 336 — changed nothing on the screen but one line of
+nine-point italic type, and the structure was not even in the camera the
+player was looking at.
+
+There is now an effects layer between the fact and the picture:
+`sim/shock.py` reads a resolved flight and says what passed between the two
+hulls; `ui/effects.py` keeps the timeline; `ui/effect_marks.py` and
+`ui/effect_paint.py` draw it; `ui/effect_clock.py` runs the animation on a
+timer of its own, because a collision stops the flight clock. Crashes,
+scrapes, groundings, berthings, orbits, a boom taking the ship, a cut, point
+defence and a volley you take in combat are all drawn now, off figures the
+sim already had. The conn turns to the camera that saw it. The game's own
+account is in [`seedfall/SESSION_LOG.md`](seedfall/SESSION_LOG.md).
+
+237 suites, 1,782 checks, 0 failed.
+
+
 ## 2026-09-19 — A launcher, `--help`, and a new game that keeps the old one
 
 - **`play.py`** in the project folder starts the game from any directory

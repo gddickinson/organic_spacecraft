@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (QFrame, QHBoxLayout, QMainWindow,
 from ..data.screens import KEY_FOR, NAV as SCREENS_NAV
 from ..data.lore import TITLE
 from ..sim.approach import holds as envoy_holds
-from . import flight_clock, theme, window_dialogs
+from . import effect_clock, flight_clock, theme, window_dialogs
 from . import soundmap
 from .widgets import button, hrule, label
 
@@ -34,6 +34,18 @@ class MainWindow(QMainWindow):
         # One clock for the one flight — see `ui/flight_clock.py`.
         self.flight_timer = QTimer(self)
         self.flight_timer.timeout.connect(self.fly_beat)
+        # And a second, much shorter one for what a contact leaves on the
+        # glass — see `ui/effect_clock.py`. It is separate from the flight's
+        # clock on purpose: a collision *stops* the flight clock, and the
+        # picture of it has to go on moving after that. It advances nothing.
+        self.effect_timer = QTimer(self)
+        self.effect_timer.timeout.connect(self.effect_frame)
+        # A new window starts on clean glass. `ui/effects.LIVE` is one list
+        # for the process — there is one flight — so without this a crash in
+        # the chronicle you just set aside would still be fading on the first
+        # frame of the one you started instead.
+        from . import effects as effects_mod
+        effects_mod.clear()
         self.setWindowTitle(f"{TITLE} — a GESTALT Programme Chronicle")
         self.resize(1360, 880)
         self.setMinimumSize(1040, 680)
@@ -240,7 +252,22 @@ class MainWindow(QMainWindow):
         return property(lambda self: getattr(self.game, name, None),
                         lambda self, value: setattr(self.game, name, value))
 
-    conn = _on_game("conn")
+    def _take_conn(self, flight):
+        """Take a new flight, and prime the eye that watches it.
+
+        **The one door onto `game.conn` from the interface**, which is why
+        the priming is here. `ui/effects.watch` spawns on a *change*, and its
+        first look at a flight can only record what it finds — so a flight
+        that opened and resolved before anything had ever looked at it (a
+        body approach the computer settles on its first beat: measured, 1 of
+        1) had its arrival swallowed as the baseline. Looking once, here,
+        means the baseline is always "nothing has happened yet".
+        """
+        self.game.conn = flight
+        from . import effects
+        effects.watch(self)
+
+    conn = property(lambda self: getattr(self.game, "conn", None), _take_conn)
     transit = _on_game("transit")
     dig = _on_game("dig")
     situation = _on_game("situation")
@@ -362,6 +389,7 @@ class MainWindow(QMainWindow):
             self.game.save()
 
     # The flight clock — `ui/flight_clock.py`, bound as methods.
+    effect_frame = effect_clock.frame
     set_conn_clock = flight_clock.set_conn_clock
     sync_clock = flight_clock.sync_clock
     fly_beat = flight_clock.fly_beat
@@ -415,6 +443,11 @@ class MainWindow(QMainWindow):
     confirm = window_dialogs.confirm
 
     def closeEvent(self, event) -> None:          # noqa: N802
+        # **The animation clock stops with the window.** Its children are
+        # being destroyed; a frame delivered in the middle of that is a
+        # repaint of a corpse — see `ui/effect_clock._repaint`.
+        self.effect_timer.stop()
+        self.effect_surfaces = None
         # Quitting is a save. Trading advances no calendar, so the autosave
         # in `refresh` never fires for it — a shopping run used to be lost
         # on quit while the manual promised it could not be.
