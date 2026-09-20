@@ -236,6 +236,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("flightsame", "test_flightsame",
               "the flying windows agree, and fly once a beat", True),
     SuiteSpec("slots", "test_slots", "named chronicles", True),
+    SuiteSpec("cli", "test_cli", "the command line and the launcher"),
     SuiteSpec("uirules", "test_uirules", "the rules the screens used to hold"),
     SuiteSpec("fit", "test_fit", "the screens fit the window", True),
     SuiteSpec("keyboard", "test_keyboard", "played by the keyboard", True),

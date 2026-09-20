@@ -439,5 +439,5 @@ def _moor_at_home(game, start) -> None:
 
 # Loading, checking and clearing the chronicle on disk live in `core/loading.py`
 # (split out at 500 lines); re-exported so `state.load_game` stays the door.
-from .loading import (clear_save, has_save, load_game,  # noqa: E402,F401
-                      load_problem, validate)
+from .loading import (begin_new, clear_save, has_save,  # noqa: E402,F401
+                      load_game, load_problem, validate)

@@ -46,8 +46,16 @@ python -m seedfall                  # title screen: chronicles, slots, the Hall
 python -m seedfall --new            # straight into a new chronicle
 python -m seedfall --seed verge-7   # a specific sector
 python -m seedfall --new --bridge   # and a loopback control socket
+python -m seedfall --help           # every option (parsed before Qt loads)
+python3 play.py                     # the same, from the repo root's launcher
 pip install -e ".[dev]"             # from the repo root: pyproject.toml
 ```
+
+The flags are `core/cli.py`'s, parsed before Qt is imported, so `--help`
+and a mistyped flag are answered without opening a window. **A new
+chronicle goes through `core/loading.begin_new`**, which keeps the one in play
+as a "Set aside" slot before clearing it; a screen that calls `clear_save`
+itself fails the `cli` suite.
 
 The save is `~/.seedfall/save.json`, with named slots under
 `~/.seedfall/slots/` and the Hall in `~/.seedfall/hall.json`. **Always ask

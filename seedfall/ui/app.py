@@ -23,18 +23,15 @@ def build_app(argv=None) -> QApplication:
 
 
 def main(argv=None) -> int:
-    args = list(argv if argv is not None else sys.argv[1:])
+    """Run the game. `argv` is a list of flags or already-parsed options
+    (`core/cli`); `python -m seedfall` parses before Qt is imported."""
+    from ..core import cli
+    options = (argv if argv is not None and not isinstance(argv, list)
+               else cli.parse(argv if argv is not None else sys.argv[1:]))
     app = build_app([sys.argv[0] if sys.argv else TITLE])
 
-    seed = None
-    if "--seed" in args:
-        i = args.index("--seed")
-        if i + 1 < len(args):
-            seed = args[i + 1]
-
-    if "--new" in args or seed:
-        state_mod.clear_save()
-        game = state_mod.new_game(seed)
+    if options.new:
+        game = state_mod.begin_new(options.seed)
         fresh = True
     else:
         game = ask_for_game()
@@ -49,20 +46,15 @@ def main(argv=None) -> int:
     win.show()
     QGuiApplication.processEvents()
 
-    if "--bridge" in args:
+    if options.bridge:
         # A bridge over the *running* window, so somebody outside can drive
         # what is on screen. Loopback only, token required, and every command
         # is marshalled onto this thread before it touches the game.
         import json
         from ..bridge.attached import attach
-        port = 0
-        if "--port" in args:
-            spot = args.index("--port")
-            if spot + 1 < len(args):
-                port = int(args[spot + 1])
-        bridge = attach(win, port=port)
+        bridge = attach(win, port=options.port)
         print("BRIDGE " + json.dumps(bridge.address()), flush=True)
-    if fresh and "--bridge" not in args:
+    if fresh and not options.bridge:
         opening_briefing(win)
         offer_tutorial(win)
     elif fresh:

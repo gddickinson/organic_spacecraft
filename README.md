@@ -384,9 +384,14 @@ other two. The read panel is blunt — "Nothing bears. Your broadside mounts are
 
 ```bash
 pip install -e .                  # or: pip install PyQt6
-python3 -m seedfall               # title screen: chronicles, slots, the Hall of Captains
-python3 -m seedfall --new         # straight into a new chronicle
+python3 play.py                   # title screen: chronicles, slots, the Hall of Captains
+python3 play.py --new             # straight into a new chronicle
+python3 play.py --help            # every option, and where the save lives
 ```
+
+`play.py` is the same as `python3 -m seedfall`, and works from any folder.
+Starting a new chronicle never deletes the one in play: it is kept as a slot
+called "Set aside <date>", which the title screen lists.
 
 You command a grown starship in the Verge, fifty years after one 120 kg seed was
 thrown at an asteroid. Eleven months ago something germinated without a licence,

@@ -83,5 +83,22 @@ def has_save() -> bool:
     return save_mod.exists()
 
 
-def clear_save() -> None:
+def clear_save() -> str | None:
+    """Take the save in play out of the way of a new chronicle. It is kept
+    first as a named slot (`slots.set_aside`); returns that slot's name."""
+    from . import slots
+    kept = slots.set_aside()
     save_mod.clear()
+    return kept
+
+
+def begin_new(seed=None, choices=None):
+    """A new chronicle, the one in play kept as a slot and the log saying
+    where. The one door for the title's two buttons and `--new`."""
+    from .state import new_game
+    kept = clear_save()
+    game = new_game(seed, choices=choices)
+    if kept:
+        game.add_log(f"The chronicle that was in play is kept as the slot "
+                     f"«{kept}» — the title screen lists it.", "")
+    return game

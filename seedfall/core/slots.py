@@ -225,6 +225,25 @@ def save_as(name: str, game=None) -> dict:
             "text": f"Kept as «{path.stem}». The chronicle in play carries on."}
 
 
+def set_aside() -> str | None:
+    """Keep the chronicle in play as a slot, before a new one replaces it.
+
+    Returns the slot's name, or None when there was nothing to keep. "New
+    chronicle" — on the title screen and `--new` alike — deleted the save in
+    play outright, `.bak` and all, with no question asked; now it is a slot
+    the title screen lists, called "Set aside" and the moment.
+    """
+    source = save_mod.save_path()
+    if not source.is_file():
+        return None
+    stamp = time.strftime("%Y-%m-%d %H.%M.%S")
+    name, n = f"Set aside {stamp}", 2
+    while (slot_path(name) is not None and slot_path(name).is_file()
+           and n < 100):            # two in one second: number the second
+        name, n = f"Set aside {stamp} {n}", n + 1
+    return clean_name(name) if save_as(name)["ok"] else None
+
+
 def delete(name: str) -> dict:
     """Remove one named slot, and nothing else. `{ok, why, text}`.
 

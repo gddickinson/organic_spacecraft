@@ -125,8 +125,7 @@ class TitleDialog(QDialog):
 
     def _new(self) -> None:
         seed = self.seed_box.text().strip() or None
-        state_mod.clear_save()
-        self.game = state_mod.new_game(seed)
+        self.game = state_mod.begin_new(seed)
         self.accept()
 
     def _compose(self) -> None:
@@ -137,8 +136,7 @@ class TitleDialog(QDialog):
         dlg.exec()
         if dlg.choices is None:
             return
-        state_mod.clear_save()
-        self.game = state_mod.new_game(seed or None, choices=dlg.choices)
+        self.game = state_mod.begin_new(seed or None, choices=dlg.choices)
         self.accept()
 
     def _resume(self) -> None:

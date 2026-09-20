@@ -3,6 +3,22 @@
 Running progress log. Newest first.
 
 
+## 2026-09-19 — A launcher, `--help`, and a new game that keeps the old one
+
+- **`play.py`** in the project folder starts the game from any directory
+  (`python3 play.py`, or `./play.py`) and passes every flag through.
+- **`--help`**: the flags now live in `seedfall/core/cli.py` (argparse),
+  parsed before Qt loads. `--help` prints every option and where the save
+  is, and a mistyped flag exits 2 with the flag named. Before this, `--help`
+  started the game and unknown flags were silently ignored.
+- **Found while writing the help:** `--new`, and the title screen's "New
+  chronicle", deleted the chronicle in play (`.bak` too) with no question.
+  Both now go through `core/loading.begin_new`, which first keeps it as a
+  slot called "Set aside <date>" that the title screen lists, and says so in
+  the new chronicle's log.
+- The new `cli` suite: 236 suites, 1,769 checks, 0 failed.
+
+
 ## 2026-09-18 — The review implemented, and ten new systems
 
 Every one of the 60 findings was fixed, and ten innovations were designed

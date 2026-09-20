@@ -19,9 +19,11 @@ regime are all the programme's.
 
 ```bash
 pip install PyQt6
-python -m seedfall                  # title screen
+python3 play.py                     # title screen (from the project folder)
+python -m seedfall                  # the same, from anywhere the package is
 python -m seedfall --new            # straight into a new chronicle
 python -m seedfall --seed verge-7   # a specific sector
+python -m seedfall --help           # every option, and where the save lives
 python -m seedfall.tests -j 8       # ~235 suites, ~1,750 checks, ~3 minutes
 ```
 

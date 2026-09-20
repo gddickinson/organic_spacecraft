@@ -30,6 +30,7 @@ organic_spacecraft/
 ├── INTERFACE.md          ← you are here
 ├── README.md             how to run everything, and what each document is
 ├── SESSION_LOG.md        the running log (recent); history in logs/
+├── play.py               starts the game from here: `python3 play.py [--new] [--help]`
 ├── pyproject.toml        packaging: `pip install -e ".[sim,models,dev]"`, pytest and ruff config
 ├── .github/workflows/    CI: ruff, the doc/model checks, the fast suites; the full suite nightly
 ├── docs/                 the thirteen documents (artifact fragments; see below)
@@ -97,7 +98,8 @@ with [`seedfall/INTERFACE.md`](seedfall/INTERFACE.md), which covers the
 layers, the rules that bite, and a generated map for each package.
 
 ```
-python -m seedfall                   # play
+python3 play.py                      # play (or: python -m seedfall)
+python3 play.py --help               # every option, and where the save lives
 python -m seedfall.tests -j 8        # every suite, about 3 minutes
 ```
 
