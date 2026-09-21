@@ -296,6 +296,23 @@ BY_STATION = {
     "tactical": ("picket", "reach", "drifter"),
 }
 
+#: What the station on the door actually asks of the person behind it, and
+#: the skill beside it that goes with the job.
+#:
+#: **A Chief Engineer with Engineer untrained is a bug you can read.** The
+#: life path deals skills out of a career, and a career is only *weighted*
+#: towards a station — so a yards officer could come out of four terms with
+#: Vacc Suit 2, Admin 1 and nothing at all about a drive, and the crew list
+#: said "Chief Engineer" over it. The ship hired them for this; they know it.
+STATION_SKILLS = {
+    "science": ("sciences", "investigate"),
+    "nav": ("astrogation", "navigation"),
+    "engineer": ("engineer", "mechanic"),
+    "medic": ("medic", "sciences"),
+    "comms": ("electronics", "persuade"),
+    "tactical": ("gunnery", "tactics"),
+}
+
 #: How long a term is, in years, and how old somebody is when they start.
 TERM_YEARS = 4
 ENTRY_AGE = 18

@@ -78,6 +78,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("uwp", "test_uwp", "the world profile"),
     SuiteSpec("lifepath", "test_lifepath", "two dice and a life lived"),
     SuiteSpec("shore", "test_shore", "people, possessions and the concourse"),
+    SuiteSpec("muster", "test_muster", "the crew, whole"),
     SuiteSpec("plotting", "test_plotting", "plotting against moving things"),
     SuiteSpec("position", "test_position", "ship position"),
     SuiteSpec("cameras", "test_cameras", "cameras"),

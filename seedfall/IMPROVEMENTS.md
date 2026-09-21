@@ -91,6 +91,21 @@ SEEDFALL already has:
 6. **Law level bites** — the profile has the digit; wire it to what the port
    will find in the hold (`sim/customs`, `sim/contraband`).
 
+### Left over from the crew screen (2026-09-20)
+
+- **A station cannot be reassigned.** An officer holds the station they were
+  hired into for life. Traveller's answer is that the person is the skills
+  and the post is a chair; SEEDFALL's bonuses are keyed to `officer.role`,
+  so moving somebody is a balance change, not a button.
+- **Hiring is still the quay's.** The berth board stays on the Port screen
+  because who is looking for work is a fact about the port. The Crew screen
+  has a door to it, which is right, but a captain planning a hire has to read
+  the hole on one screen and fill it on another.
+- **`lifespan.age_of` invents and stores an age on the first ask.** Fixed
+  where it bit (`sim/lifepath.of` resolves the age itself now), but the shape
+  is still there: a *read* that writes. Anything else deriving from
+  `officer.age` has the same order-dependence waiting for it.
+
 ## Open — the 2026-08-04 review: the systems layers
 
 A four-agent review (combat, economy, strategic layer, player experience)

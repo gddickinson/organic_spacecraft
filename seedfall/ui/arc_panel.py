@@ -35,6 +35,8 @@ def crew(view) -> None:
         view.col.addWidget(Panel("Nobody aboard").add(
             note("No officers signed on, so nobody's story is being told.")))
         return
+    view.col.addWidget(button("The whole crew, and every watch",
+                              lambda: view.win.go("crew"), kind="primary"))
     view.grid([_officer(g, o) for o in officers], cols=2)
 
 
@@ -45,21 +47,16 @@ def _officer(g, officer) -> Panel:
     p = Panel(f"{officer.name} — {officer.role_name}")
     p.add_row("Loyalty", f"{loyalty_sim.loyalty_of(officer):.0f} · {band}",
               tint)
-    # **Who they were before the berth** (`sim/lifepath.py`). Their story is
-    # what happens to them aboard; this is the twenty years before it, and an
-    # officer without one was a name, a station and a number.
+    # Who they were before the berth is the Crew screen's Sheet tab now
+    # (`ui/crew_sheet.py`). It briefly lived here, and a tab that had been
+    # three stories became six service records, four families and a hundred
+    # lines of possessions — the story it exists to tell was at the bottom.
+    # Two lines of it stay, because a story reads differently over a life.
     from ..sim import lifepath as life_sim
-    from ..sim import person as person_sim
-    whole = person_sim.of(g, officer)
-    record = whole.record
-    p.add(note(life_sim.characteristics_line(record)))
+    record = life_sim.of(g, officer)
+    p.add(note(f"{record.career_name} — {record.rank}, "
+               f"{len(record.terms)} term(s) before this berth."))
     p.add(note(life_sim.skills_line(record)))
-    for line in life_sim.says(record):
-        p.add(note(line))
-    # And the rest of them: where they are from, who is attached to them,
-    # the berths before this one, and what they own (`sim/person.py`).
-    for line in person_sim.says(whole):
-        p.add(note(line))
     p.add(label(f"{arc.title}  {told['marks']}", "h3",
                 "chloro" if told["signature"] else "lumen"))
     p.add(note(arc.blurb))

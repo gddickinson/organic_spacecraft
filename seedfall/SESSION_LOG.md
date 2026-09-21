@@ -763,6 +763,56 @@ port.
 
 Measured afterwards: **241 suites, 1,817 checks, 0 failed, 203 s at `-j 8`**.
 
+## 2026-09-20 — a crew you can read
+
+A crew was spread over four screens and none of them was about the crew. Who
+was aboard was a grid of story cards on a tab of the Ship screen; hiring was
+at a port; the long sleep was under the hold; the wage bill was a line on a
+ledger; and the twenty years somebody lived before the berth had been
+derivable since the morning and were printed nowhere. There was no answer at
+all to the question a captain actually has — *what can these people do
+between them* — short of opening six officers one at a time.
+
+**The Crew screen** (`k` on the rail), four tabs, one question each.
+*Roster*: the complement, the mood, the bill, and the watch bill with its
+holes showing — a station nobody holds is printed as nobody, in red, with
+what it costs beside it. Five orderings, because a crew list is read to
+answer a question and the question picks the order. *Sheet*: one person,
+whole — characteristics with their throws, every skill with what it is for,
+the service record, where they are from, who raised them, what they are
+after, the ships before yours, the people attached to them and what they own,
+with a name bar so the next person is one click away. *Watches*: the bill
+over a day, a month and a quarter, the bonus and shore leave, the mess deck,
+the long sleep, the ship's own abilities, who the crew knows out there, and
+what the watch is carrying that this world forbids. *The book*: who has left
+the bridge, and the stories told to the end.
+
+`sim/roster.py` answers all of it and writes nothing. The screen quotes a
+bonus and the sim charges that number; the price and the charge are the same
+call.
+
+Two defects fell out of building it, both of them older than it:
+
+- **A service record changed depending on which tab you opened first.**
+  `lifespan.age_of` invents an age on the first ask *and stores it* — a
+  migration for saves written before lineages existed — and
+  `lifepath._terms_wanted` read the field. So a record derived before
+  anything showed somebody's years had a different career, a different number
+  of terms and different skills from the one derived after. Three of three
+  officers changed on the second read. `lifepath.of` resolves the age through
+  `age_of` now, so the first derivation pins it and every later one agrees.
+- **A Chief Engineer who had never touched a drive.** A career is only
+  *weighted* towards a station, so the dice could leave the ship's engineer
+  with Vacc Suit 2, Admin 1 and nothing about an engine, under a crew list
+  that said Chief Engineer. `careers.STATION_SKILLS` brings the station's own
+  skill up to what the level claims and the one beside it to trained, and
+  never takes anything away.
+
+The Ship screen's Crew tab is the stories again, which is what it was for;
+the service record it briefly grew is two lines now and a door to the sheet.
+
+Measured afterwards: **242 suites, 1,823 checks, 0 failed, 197 s at `-j 8`.**
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one

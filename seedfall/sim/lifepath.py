@@ -34,6 +34,7 @@ from dataclasses import dataclass, field
 from ..core.rng import RNG
 from ..data import careers as table
 from . import checks
+from . import lifespan
 
 #: The most terms anybody serves before they are simply too old for it. Six
 #: is 24 years and puts a lifer at 42, which is about where the Verge's
@@ -155,15 +156,22 @@ def _careers_for(rng, officer) -> tuple:
     return first, rest
 
 
-def _terms_wanted(rng, officer) -> int:
+def _terms_wanted(rng, officer, age) -> int:
     """How long they served, from their level and their age.
 
     A level-4 officer who is forty has a career behind them; a level-1 who is
     twenty-four has one term and a lot to learn. Both are read off what the
     chronicle already says rather than invented.
+
+    **The age is asked of `lifespan.age_of`, not of the field.** An officer
+    written before lineages existed has no age, and the first thing to ask
+    for one *invents and stores it* — so this read `None` until any screen
+    showed somebody's years and a different number afterwards, and the same
+    officer had two service records in one session depending on which tab had
+    been opened first. Measured on a fresh chronicle: three of three records
+    changed career, terms or skills on the second read.
     """
     level = int(getattr(officer, "level", 1) or 1)
-    age = getattr(officer, "age", None)
     if age:
         by_age = max(1, int((float(age) - table.ENTRY_AGE) / table.TERM_YEARS))
         return max(1, min(MOST_TERMS, by_age))
@@ -192,7 +200,7 @@ def of(game, officer) -> Record:
                     station=getattr(officer, "role", ""))
     record.characteristics = _roll_characteristics(rng, officer)
     first, fallbacks = _careers_for(rng, officer)
-    wanted = _terms_wanted(rng, officer)
+    wanted = _terms_wanted(rng, officer, lifespan.age_of(officer, game))
     career = table.CAREER_BY_ID[first]
     served, rank_at = 0, 0
     while served < wanted:
@@ -221,9 +229,29 @@ def of(game, officer) -> Record:
     record.rank = career.ranks[min(rank_at, len(career.ranks) - 1)]
     _age(record, rng, served)
     _muster(record, rng, career, served)
+    _qualify(record, officer)
     if not record.ended:
         record.ended = f"Left the {career.name} of their own accord."
     return record
+
+
+def _qualify(record: Record, officer) -> None:
+    """Make sure they can do the job the crew list says they do.
+
+    A career is only *weighted* towards a station, so the dice could leave a
+    Chief Engineer who had never touched a drive and a Navigator who could
+    not plot — which reads as a broken crew list rather than as an unlucky
+    life. Their station's own skill is brought up to what their level claims
+    and the one beside it to trained, and **nothing is ever taken away**: an
+    engineer who really did spend four terms learning it keeps all of it.
+    """
+    pair = table.STATION_SKILLS.get(record.station or "", ())
+    if not pair:
+        return
+    want = max(1, min(4, int(getattr(officer, "level", 1) or 1) - 1))
+    first, second = pair[0], pair[1]
+    record.skills[first] = max(record.skills.get(first, -1), want)
+    record.skills[second] = max(record.skills.get(second, -1), 0)
 
 
 def _serve(rng, record: Record, career, number: int, rank_at: int) -> Term:

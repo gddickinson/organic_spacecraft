@@ -29,6 +29,7 @@ SCREENS = (
     ("empire", "◈  Holdings", "9"),
     ("diplomacy", "⚖  Diplomacy", "0"),
     ("gunnery", "⌖  Gunnery", "g"),
+    ("crew", "☷  Crew", "k"),
     ("law", "§§  The law", "l"),
     ("despatches", "✉  Despatches", "c"),
     ("codex", "§  Codex", "x"),

@@ -57,8 +57,8 @@ GROUPS = {
          "ventures war armada fleets grudge officials law governance dockets "
          "tribunal debts warrants enforce clemency piracy assembly "
          "assembly_session assembly_vote assembly_lobby"),
-        ("The crew and their stories", "crew loyalty lifespan upkeep arcs arc_beats arc_places "
-         "lifepath checks person"),
+        ("The crew and their stories", "crew roster loyalty lifespan upkeep arcs "
+         "arc_beats arc_places lifepath checks person"),
         ("The Bloom and the endings", "threat bloom responses legacy"),
         ("The Kith and the sky", "kith kith_acts kith_world phenomena phenomena_tick "
          "phenomena_forecast phenomena_bodies phenomena_shelter phenomena_nova "
@@ -93,6 +93,7 @@ GROUPS = {
          "rumours_panel yard_view shipdiagram machineshop robots_panel "
          "concourse_panel"),
         ("The ship", "ship_view plans_panel body_panel arc_panel dormancy_panel mining_panel"),
+        ("The crew", "crew_view crew_roster crew_sheet crew_ops"),
         ("Holdings, the house and the Voyage", "empire_view works_panel industry_panel "
          "exchequer_panel house_panel house_dialog voyage_panel counsel_card "
          "renown_chip programmes_panel ventures_panel"),

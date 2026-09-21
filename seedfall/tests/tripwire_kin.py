@@ -44,6 +44,7 @@ KIN = {
     "checks": ("lifepath",), "lifepath": ("lifepath", "crew"),
     "careers": ("lifepath",), "person": ("shore",), "shore": ("shore",),
     "kit": ("shore",), "venues": ("shore",), "backgrounds": ("shore",),
+    "roster": ("muster", "crew"),
     "turret": ("turret",), "gunsight": ("turret",), "foes": ("turret",),
     "skirmish": ("turret",), "drills": ("turret",), "manning": ("turret",),
     "moorings": ("moorings", "conn"),

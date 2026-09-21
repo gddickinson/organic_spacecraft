@@ -212,6 +212,7 @@ class MainWindow(QMainWindow):
         from .empire_view import EmpireView
         from .map_view import MapView
         from .port_view import PortView
+        from .crew_view import CrewView
         from .ship_view import ShipView
         from .system_view import SystemView
         from .tech_view import TechView
@@ -229,6 +230,7 @@ class MainWindow(QMainWindow):
             "empire": EmpireView, "codex": CodexView, "battle": BattleView,
             "ground": ExpeditionView, "helm": HelmView,
             "gunnery": GunneryView,
+            "crew": CrewView,
             "pilot": PilotView,
             "diplomacy": DiplomacyView, "law": LawView,
             "despatches": DespatchView,

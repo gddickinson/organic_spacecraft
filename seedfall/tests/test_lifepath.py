@@ -201,7 +201,7 @@ def run(suite: Suite) -> None:
         assert who is None and level == checks.UNTRAINED, (level, who)
         return f"{found} of 5 skills held by somebody on the bridge"
 
-    @check("the Ship screen prints who they were before the berth")
+    @check("the screens print who they were before the berth")
     def _():
         from PyQt6.QtWidgets import QLabel
         from .qtkit import app as _app
@@ -209,20 +209,30 @@ def run(suite: Suite) -> None:
         keep = _app()
         game = new_game("life-ui")
         win = main_window(game, (1360, 880))
-        win.go("ship")
-        view = win.views["ship"]
-        view.tab = "crew"
-        view.refresh()
-        for _ in range(4):
-            keep.processEvents()
-        said = " ".join(lab.text() for lab in view.findChildren(QLabel)
-                        if lab.text())
         officer = next(o for o in game.officers if not o.retired)
         record = life_sim.of(game, officer)
-        assert record.career_name in said, (
-            f"{officer.name}'s service is not on the Crew tab")
-        assert "STR" in said and "SOC" in said, "no characteristics shown"
+
+        def said_on(screen: str, tab: str) -> str:
+            win.go(screen)
+            view = win.views[screen]
+            view.tab = tab
+            view.refresh()
+            for _ in range(4):
+                keep.processEvents()
+            return " ".join(lab.text() for lab in view.findChildren(QLabel)
+                            if lab.text())
+
+        # The service belongs to both: the Ship screen's Crew tab names it
+        # beside the story, and the whole sheet is the Crew screen's.
+        ship = said_on("ship", "crew")
+        assert record.career_name in ship, (
+            f"{officer.name}'s service is not on the Ship screen's Crew tab")
+        win.views["crew"].open_sheet(officer)
+        sheet = said_on("crew", "sheet")
+        assert record.career_name in sheet, "no service on the sheet"
+        assert "STR" in sheet and "SOC" in sheet, "no characteristics shown"
+        assert record.rank in sheet, "no rank on the sheet"
         win.close()
         keep.processEvents()
         return (f"{officer.name} reads as {record.career_name} "
-                f"{record.rank} on the Crew tab")
+                f"{record.rank} on both screens")
