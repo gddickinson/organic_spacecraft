@@ -40,6 +40,7 @@ KIN = {
     "impulse": ("impulse", "conn"),
     "knock": ("knock",),
     "shock": ("shock", "conn"),
+    "profile": ("uwp", "trade"), "uwp": ("uwp",),
     "turret": ("turret",), "gunsight": ("turret",), "foes": ("turret",),
     "skirmish": ("turret",), "drills": ("turret",), "manning": ("turret",),
     "moorings": ("moorings", "conn"),

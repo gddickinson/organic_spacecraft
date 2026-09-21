@@ -1,7 +1,7 @@
 """Static content tables — commodities, hull chassis, fittings, weapons, the
 research tree, colony classes, factions, xenobiology and lore. Pure data.
 
-Contents (101 modules; one line each in `INTERFACE.md`):
+Contents (102 modules; one line each in `INTERFACE.md`):
 
 Modules: adaptations, approaches, arc_types, arcs, arcs_late, armaments,
     assembly, beginnings, berths3d, bloom, chains, charts, chassis,
@@ -16,6 +16,6 @@ Modules: adaptations, approaches, arc_types, arcs, arcs_late, armaments,
     orders, part_types, parts, parts3d, personas, phenomena, programmes,
     regions, relics3d, remnants, responses, robots, robots3d, rumours,
     scenarios, screens, settlements, ships3d, shocks, signals, sounds,
-    starclasses, strata, surfaces, surveys, tech, territory, turrets,
+    starclasses, strata, surfaces, surveys, tech, territory, turrets, uwp,
     ventures, watches, weather, wharfage, works, works3d, works3d_parts,
     worlds3d, xenoparts, xenotech."""

@@ -58,6 +58,38 @@ window whose main camera was not even pointing at the structure.
   view draws what the *other* side took. Two new sound cues: `impact`,
   `graze`. New suite: `shock`, twelve checks.
 
+## Open — the Traveller programme, begun 2026-09-20
+
+The world profile landed (`data/uwp.py`, `sim/profile.py`): eight
+characteristics per world, derived from the sector, with trade
+classifications, bases and a travel advisory. It is the spine the rest of
+*Traveller*'s breadth hangs off, in the order that gets the most out of what
+SEEDFALL already has:
+
+1. **Speculative trade** — the classifications moving prices, with a Broker
+   check on the lot. *Built and backed out once already*: multiplying the
+   counter's quotes re-balances the whole economy, breaking the freight
+   desk's load clamp and the careful captain's five-year ending. It needs a
+   balance pass of its own — re-pin `renown`, `chronicle`, `freight`,
+   `freightlines` and `wharfage` against the new curve, and probably a
+   smaller shift than the table's first draft.
+2. **A 2d6 grammar** — characteristics (six of them), skills with levels, and
+   `2d6 + skill + characteristic DM ≥ 8` with difficulty DMs and an Effect.
+   The game resolves a dozen acts with ad-hoc odds today; one grammar under
+   all of them is what makes a skill worth having.
+3. **Life-path beginnings** — careers, four-year terms, survival and
+   advancement rolls, skills tables, mishaps, events, ageing after the fourth
+   term, and mustering-out benefits. `ui/beginning_view.py` already asks who
+   you are; this is what Traveller does with that question.
+4. **Patrons and tickets** — work that comes from a person, with a chance the
+   job is not what it was said to be. The contract board is the shape; what
+   is missing is the person and the lie.
+5. **The monthly bill** — a hull's mortgage, maintenance and life support.
+   Traveller's whole economy is driven by a payment falling due; SEEDFALL's
+   purse has no such pressure.
+6. **Law level bites** — the profile has the digit; wire it to what the port
+   will find in the hold (`sim/customs`, `sim/contraband`).
+
 ## Open — the 2026-08-04 review: the systems layers
 
 A four-agent review (combat, economy, strategic layer, player experience)

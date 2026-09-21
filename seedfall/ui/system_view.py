@@ -201,6 +201,15 @@ class SystemView(View):
         panel.add_row("Gravity", f"{b.gravity:.2f} g")
         panel.add_row("Temperature", f"{b.temp_k} K")
         panel.add_row("Biome", biome_name(b.biome))
+        # **The world in eight characters** (`sim/profile.py`): the starport,
+        # what it is like to stand on, who runs it, what the law will stop
+        # you carrying, and the trade classifications the market reads. Every
+        # digit is derived from the facts above it, so it is a summary rather
+        # than a second set of numbers to keep in step.
+        from ..sim import profile as profile_sim
+        panel.add(spacer(4), mono_label("World profile"))
+        for line in profile_sim.says(g, sys, b):
+            panel.add(note(line))
 
         if b.surveyed:
             panel.add_row("Depletion", pct(b.depleted))

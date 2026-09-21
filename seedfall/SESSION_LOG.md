@@ -624,6 +624,45 @@ deleted or wired up; the last is a different quantity — a ceiling that
 
 Measured afterwards: **238 suites, 1,794 checks, 0 failed, 191 s at `-j 8`**.
 
+## 2026-09-20 — a world in eight characters
+
+*Traveller*'s Universal World Profile, researched and laid over the Verge's
+own bones. It has been the best idea in science-fiction gaming since 1977 for
+one reason: **one short string that a dozen unrelated systems can all read**.
+
+    A209785-C   ·   Va Na Ni
+
+SEEDFALL already knew almost all of it and kept it in eight places —
+`world/planets.Body` has the radius, the gravity, the biome and the
+temperature, `world/galaxy.Port` has the starport and who holds it,
+`sim/piracy` has the lawlessness, the factions have the rest. So the profile
+is **derived, never stored**: `sim/profile.profile(game, system, body)` reads
+the sector and hands back eight characteristics, the trade classifications
+they earn, the bases, and the travel advisory. Nothing new is saved, an old
+chronicle grows one with no migration, and it cannot drift from the world it
+describes. What the world does not determine, `RNG(f"{seed}:uwp:…")` settles
+once — never `game.rng`, which a screen must not move.
+
+It reads on the System screen under the body's own facts, and the checks hold
+it to being a *description*: an asteroid is size 0 and atmosphere 0, an ocean
+world is hydrographics 7 or better, a world with nobody on it has no
+government and no law and earns `Ba`, and a fresh sector shows thirteen
+classifications rather than one repeated.
+
+**The prices are deliberately not wired to it yet, and that is the story.**
+The obvious next step is Traveller's speculative trade — a world that grows
+food sells it cheap, a vacuum world with a million people pays for it — and
+it was built, measured and backed out in the same pass. Multiplying the
+counter's two quotes by the world's classifications re-balances an economy a
+dozen other checks are tuned against: it broke the freight desk's load clamp
+(a port quoting 167 t of volatiles it did not hold), and it put the careful
+captain's five-year ending out of reach. That is a balance pass with its own
+measurement, not a line in a price function. What landed instead is
+`uwp.trades` — what a world is *like* to trade with, which is true whatever
+it charges. See `IMPROVEMENTS.md`.
+
+Measured afterwards: **239 suites, 1,801 checks, 0 failed, 197 s at `-j 8`**.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one

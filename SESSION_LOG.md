@@ -3,6 +3,24 @@
 Running progress log. Newest first.
 
 
+## 2026-09-20 — A world in eight characters
+
+*Traveller*'s Universal World Profile, laid over the Verge. Every world now
+reads as eight characteristics — starport, size, atmosphere, hydrographics,
+population, government, law level, tech level — with the trade
+classifications they earn, the bases and a travel advisory, on the System
+screen under the body's own facts. It is **derived, never stored**: the
+sector already knew all of it in eight different places.
+
+The obvious next step, Traveller's speculative trade, was built and backed
+out in the same pass: multiplying the counter's quotes by a world's
+classifications re-balances an economy a dozen checks are tuned against. It
+needs a measured balance pass, and `seedfall/IMPROVEMENTS.md` now carries the
+Traveller programme in the order it should land.
+
+239 suites, 1,801 checks, 0 failed.
+
+
 ## 2026-09-20 — A gun with hands on it
 
 SEEDFALL has had guns since the first engagement and never a gunner. There

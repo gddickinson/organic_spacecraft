@@ -46,7 +46,7 @@ GROUPS = {
          "firing gunfire shooting assessment parley prize aftermath engage consorts "
          "turret gunsight foes skirmish drills manning"),
         ("Rivals and the hunt", "nemeses rivals rival_ends hunts running_dark hostiles"),
-        ("Trade, freight and money", "trade market freight freightlines linetrips lineroute "
+        ("Trade, freight and money", "trade market profile freight freightlines linetrips lineroute "
          "lineforecast lineledger haulers masters wharfage customs exchequer "
          "exchequer_ledger exchequer_payback industry commitments contracts chains"),
         ("Surveying, mining and the ground", "survey mining charts intel rumours notes fieldwork "
