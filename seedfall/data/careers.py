@@ -47,6 +47,30 @@ SKILLS = {
     "streetwise": "who to ask, and what not to ask them",
     "deception": "being taken for somebody you are not",
     "vacc_suit": "working outside, for a long time, safely",
+    # ── the rest of a life ─────────────────────────────────────────────────
+    # Not every skill is a station on a bridge. These are the ones people
+    # actually have, and the reason a crew list reads as a dozen different
+    # lives rather than a dozen job titles.
+    "animals": "beasts, and the people who keep them",
+    "athletics": "running, climbing, and carrying it up a ladder",
+    "art": "making something nobody needed, well",
+    "carouse": "a long evening, and what comes out of one",
+    "drive": "anything with wheels or tracks on a surface",
+    "flyer": "anything with wings or lift in an atmosphere",
+    "electronics": "boards, sensors, and the things that talk to them",
+    "computers": "what the ship's core will and will not do for you",
+    "explosives": "cutting charges, and where to put them",
+    "gambler": "the odds, and the people who ignore them",
+    "investigate": "finding out, from what is left lying about",
+    "language": "somebody else's, well enough to be trusted",
+    "law": "what the statute actually says, and who enforces it",
+    "navigation": "a surface, a horizon, and no beacon",
+    "seafarer": "water, in hulls that float on it",
+    "stealth": "not being where they are looking",
+    "trade": "a craft with a name — smith, cook, cutter, grower",
+    "diplomat": "two parties, and getting them to sign",
+    "jack": "a little of everything, badly, which is often enough",
+    "zero_g": "working and fighting where there is no down",
 }
 
 

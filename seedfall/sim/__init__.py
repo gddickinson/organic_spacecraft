@@ -1,7 +1,7 @@
 """Game rules: ships, shipyards, combat, colonies, research, crew, encounters,
 the Bloom, and the player actions that span them. Never touches Qt.
 
-Contents (201 modules; one line each in `INTERFACE.md`):
+Contents (203 modules; one line each in `INTERFACE.md`):
 
 The ship and its fittings: ship, plans, loading, thrusters, shipyard,
     stores, services, abilities, damage, adaptation, readiness.
@@ -20,10 +20,10 @@ Fighting: combat, battle_state, tactical, stations, turnplan, enemy_ai,
     manning.
 Rivals and the hunt: nemeses, rivals, rival_ends, hunts, running_dark,
     hostiles.
-Trade, freight and money: trade, market, profile, freight, freightlines,
-    linetrips, lineroute, lineforecast, lineledger, haulers, masters,
-    wharfage, customs, exchequer, exchequer_ledger, exchequer_payback,
-    industry, commitments, contracts, chains.
+Trade, freight and money: trade, market, profile, shore, freight,
+    freightlines, linetrips, lineroute, lineforecast, lineledger, haulers,
+    masters, wharfage, customs, exchequer, exchequer_ledger,
+    exchequer_payback, industry, commitments, contracts, chains.
 Surveying, mining and the ground: survey, mining, charts, intel, rumours,
     notes, fieldwork, expedition, expedition_gen, landing, weather, biology,
     dig, xeno, programmes.
@@ -35,7 +35,7 @@ The powers, the law and the Assembly: diplomacy, diplomacy_acts, accord,
     law, governance, dockets, tribunal, debts, warrants, enforce, clemency,
     piracy, assembly, assembly_session, assembly_vote, assembly_lobby.
 The crew and their stories: crew, loyalty, lifespan, upkeep, arcs,
-    arc_beats, arc_places, lifepath, checks.
+    arc_beats, arc_places, lifepath, checks, person.
 The Bloom and the endings: threat, bloom, responses, legacy.
 The Kith and the sky: kith, kith_acts, kith_world, phenomena,
     phenomena_tick, phenomena_forecast, phenomena_bodies, phenomena_shelter,

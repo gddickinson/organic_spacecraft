@@ -67,10 +67,15 @@ class PortView(BerthsMixin, View):
 
         tabs = TabBar([("market", "Market"), ("contracts", "Contracts"),
                        ("services", "Services"), ("crew", "Berths"),
-                       ("desk", "The desk")], self.tab)
+                       ("concourse", "Concourse"), ("desk", "The desk")],
+                      self.tab)
         tabs.changed.connect(self._switch)
         self.col.addWidget(tabs)
 
+        if self.tab == "concourse":
+            from . import concourse_panel
+            concourse_panel.build(self)
+            return
         if self.tab == "contracts":
             self._contracts(sys)
         elif self.tab == "services":

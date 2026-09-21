@@ -284,9 +284,18 @@ class ShipView(View):
                 # already knows about them, so an officer signed on two years
                 # ago has one of these the day it ships.
                 from ..sim import lifepath as life_sim
-                record = life_sim.of(g, o)
+                from ..sim import person as person_sim
+                whole = person_sim.of(g, o)
+                record = whole.record
                 p.add(label(f"{record.career_name} — {record.rank}  ·  "
                             + life_sim.skills_line(record), "note"))
+                # What they are still after: the one line that says whether
+                # they would leave, and for what.
+                want = whole.wants
+                if want is not None:
+                    p.add(label(f"Wants {want.name.lower()}  ·  "
+                                f"{len(whole.ties)} people, "
+                                f"{len(whole.kit)} possessions", "note"))
         else:
             p.add(note("No officers signed on."))
         return p

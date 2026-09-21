@@ -3,6 +3,25 @@
 Running progress log. Newest first.
 
 
+## 2026-09-20 — People with lives, and somewhere to spend money
+
+Everybody aboard is now somebody: twelve homeworlds, ten upbringings, twelve
+ambitions, sixteen kinds of relationship, the berths they held before yours
+and why each ended — dealt out of the career that made them, and derived, so
+nothing is saved. A hundred and one things to own in twelve categories, each
+with a tech level and a law level that hook straight into the world profile:
+what is on the shelf is where you are standing, and what the customs desk
+takes off you is the same list read the other way.
+
+And a concourse to spend it on — a new Port tab with chandlers, banking,
+eating houses and entertainments, twenty-two venues gated on the starport
+class and the population, so where you put in decides what there is to do. A
+night ashore buys morale, loyalty, standing and sometimes a rumour. The bank
+mints nothing and the chandler keeps its spread.
+
+241 suites, 1,817 checks, 0 failed.
+
+
 ## 2026-09-20 — Two dice, and a life lived before the berth
 
 Traveller's resolution grammar (`sim/checks.py`): six characteristics, a

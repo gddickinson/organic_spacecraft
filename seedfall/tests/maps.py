@@ -46,7 +46,7 @@ GROUPS = {
          "firing gunfire shooting assessment parley prize aftermath engage consorts "
          "turret gunsight foes skirmish drills manning"),
         ("Rivals and the hunt", "nemeses rivals rival_ends hunts running_dark hostiles"),
-        ("Trade, freight and money", "trade market profile freight freightlines linetrips lineroute "
+        ("Trade, freight and money", "trade market profile shore freight freightlines linetrips lineroute "
          "lineforecast lineledger haulers masters wharfage customs exchequer "
          "exchequer_ledger exchequer_payback industry commitments contracts chains"),
         ("Surveying, mining and the ground", "survey mining charts intel rumours notes fieldwork "
@@ -58,7 +58,7 @@ GROUPS = {
          "tribunal debts warrants enforce clemency piracy assembly "
          "assembly_session assembly_vote assembly_lobby"),
         ("The crew and their stories", "crew loyalty lifespan upkeep arcs arc_beats arc_places "
-         "lifepath checks"),
+         "lifepath checks person"),
         ("The Bloom and the endings", "threat bloom responses legacy"),
         ("The Kith and the sky", "kith kith_acts kith_world phenomena phenomena_tick "
          "phenomena_forecast phenomena_bodies phenomena_shelter phenomena_nova "
@@ -90,7 +90,8 @@ GROUPS = {
          "turret_panels turret_controls"),
         ("Port, trade and the yard", "port_view market_grid board_panel commissions_panel "
          "freight_panel register_panel blackmarket_panel berths_panel official_panel "
-         "rumours_panel yard_view shipdiagram machineshop robots_panel"),
+         "rumours_panel yard_view shipdiagram machineshop robots_panel "
+         "concourse_panel"),
         ("The ship", "ship_view plans_panel body_panel arc_panel dormancy_panel mining_panel"),
         ("Holdings, the house and the Voyage", "empire_view works_panel industry_panel "
          "exchequer_panel house_panel house_dialog voyage_panel counsel_card "

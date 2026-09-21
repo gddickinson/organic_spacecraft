@@ -81,6 +81,12 @@ class Game:
     robots: list = field(default_factory=list)
     building: list = field(default_factory=list)
     flags: dict = field(default_factory=dict)
+    #: What the captain owns personally, by `data/kit.py` id, and what is on
+    #: account at a counting house. Both are the captain's rather than the
+    #: ship's: a hull is sold, a hold is emptied, and the coat and the money
+    #: in the bank are still yours. See `sim/shore.py`.
+    kit: list = field(default_factory=list)
+    deposited: float = 0.0
     log: list = field(default_factory=list)
     discovered: dict = field(default_factory=dict)
     xeno_study: dict[str, float] = field(default_factory=dict)

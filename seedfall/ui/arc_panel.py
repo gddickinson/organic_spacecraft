@@ -49,10 +49,16 @@ def _officer(g, officer) -> Panel:
     # what happens to them aboard; this is the twenty years before it, and an
     # officer without one was a name, a station and a number.
     from ..sim import lifepath as life_sim
-    record = life_sim.of(g, officer)
+    from ..sim import person as person_sim
+    whole = person_sim.of(g, officer)
+    record = whole.record
     p.add(note(life_sim.characteristics_line(record)))
     p.add(note(life_sim.skills_line(record)))
     for line in life_sim.says(record):
+        p.add(note(line))
+    # And the rest of them: where they are from, who is attached to them,
+    # the berths before this one, and what they own (`sim/person.py`).
+    for line in person_sim.says(whole):
         p.add(note(line))
     p.add(label(f"{arc.title}  {told['marks']}", "h3",
                 "chloro" if told["signature"] else "lumen"))

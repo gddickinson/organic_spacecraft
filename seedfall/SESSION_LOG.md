@@ -713,6 +713,56 @@ record); the functions were deleted.
 
 Measured afterwards: **240 suites, 1,809 checks, 0 failed, 195 s at `-j 8`**.
 
+## 2026-09-20 — people with lives, and somewhere to spend money
+
+Third stage of the Traveller programme, and the one that turns a crew list
+into a list of people.
+
+**Everybody aboard is now somebody** (`data/backgrounds.py`,
+`sim/person.py`). Twelve homeworlds — read in the same trade classifications
+`data/uwp.py` earns worlds, so a crew list and a world profile share one
+vocabulary — ten upbringings, twelve ambitions, sixteen kinds of
+relationship, and the berths they held before yours with why each one ended.
+Ties are dealt *out of the career that made them*: a picket leaves rivals and
+old shipmates, a drifter leaves creditors and people who are looking for
+them, and anybody thrown out of a service left somebody behind who remembers
+it. All of it derived, like the service record and the world profile, so
+nothing is saved and an officer signed on two years ago has a family today.
+
+**A hundred and one things to own** (`data/kit.py`), in twelve categories:
+weapons, armour, suits, tools, medical, computing, survey, travel, luxuries,
+keepsakes, papers and the illicit. Every one carries a tech level and a law
+level, and **both hook into the world profile that already existed** — what
+is on the shelf is where you are standing, and what the customs desk will
+take off you is the same list read the other way. A gauss rifle is ordinary
+at law 2 and contraband at law 9, from one table.
+
+**Somewhere to spend it** (`data/venues.py`, `sim/shore.py`, the Port
+screen's new Concourse tab). Twenty-two venues — chandlers from a shed to a
+four-floor emporium, a back-room dealer who carries what the shelf will not,
+banking from a hole in a wall to the Chartered Bank, six eating houses and
+nine entertainments — every one gated on the starport class and the
+population, so **where you put in decides what there is to do**. Measured on
+a fresh sector: Fleet Hub carries 22 venues and 90 lines of chandlery, a
+frontier Station carries 10 and 32.
+
+A night ashore costs credits and buys morale, loyalty, standing and
+sometimes a rumour that points at a world that really is what it says. The
+bank **mints nothing** — it holds money and moves it, which is the only shape
+of bank this game can have; the chandler keeps the market's spread, measured
+over twenty round trips at no gain.
+
+Three of this project's guards bit again, and all three were right:
+`declared` found three table fields nothing read (a background's favoured
+characteristic now costs a point of it, and an ambition says what serves it);
+`uirules` caught the concourse drawing the chronicle's luck from a *screen* —
+a night ashore is an act and the act draws now; and the shore's own check
+found a chandler answering with a full catalogue in a system that has no
+port, because a profile is a fact about a world and a shop is a fact about a
+port.
+
+Measured afterwards: **241 suites, 1,817 checks, 0 failed, 203 s at `-j 8`**.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one
