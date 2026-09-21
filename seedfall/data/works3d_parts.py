@@ -237,6 +237,58 @@ def _bay(accent: str) -> list:
             _box(0.05, 0.14, 0.10, WARN, PLATE_DARK, dx=0.22, dz=-0.46)]
 
 
+def _tower(accent: str) -> list:
+    """A stack: people living up, because the ground ran out.
+
+    The arcology's whole idea, and the one shape the vocabulary had no word
+    for — every other crowded class puts its people in a ring or a drum, and
+    a quarter of a million on solid ground is neither. Stepped, because the
+    floors get smaller as they get higher and that is what makes it read as
+    a tower rather than as a pillar.
+    """
+    steps = ((0.40, -0.30), (0.34, 0.10), (0.26, 0.48), (0.17, 0.80),
+             (0.09, 1.02))
+    out = [_tube(a[0], a[1], b[0], b[1], 10, 0, PLATE, PLATE_DARK)
+           for a, b in zip(steps, steps[1:])]
+    out.append(_cap(0.09, 1.02, 10, 0, accent, True))
+    # Lit faces up one side, so the thing has a front at any bearing.
+    for n, (r, z) in enumerate(steps[:-1]):
+        out.append(_box(0.03, r * 1.02, 0.03, accent, PLATE_DARK,
+                        dz=z + 0.14, dy=r * 0.5))
+    return out
+
+
+def _wards(accent: str) -> list:
+    """Three ward blocks off the rim: a hospital, not a sickbay.
+
+    `bay` is one lit door under a hull and reads as furniture. A station
+    whose whole business is people in beds has to look like it from forty
+    kilometres, or the sky tells a lie about what is out there.
+    """
+    out = []
+    for i in range(3):
+        angle = math.tau * i / 3
+        dx, dy = 0.54 * math.cos(angle), 0.54 * math.sin(angle)
+        out.append(_box(0.16, 0.16, 0.46, PLATE, PLATE_DARK,
+                        dx=dx, dy=dy, dz=0.22))
+        out.append(_box(0.17, 0.17, 0.04, accent, PLATE_DARK,
+                        dx=dx, dy=dy, dz=0.46))
+    return out
+
+
+def _bunker(accent: str) -> list:
+    """A magazine and a hard shell, low and wide. Somewhere to be held."""
+    out = [_tube(0.56, -0.24, 0.50, 0.02, 8, 0, ROCK, ROCK_DARK),
+           _tube(0.50, 0.02, 0.30, 0.16, 8, 0, PLATE, PLATE_DARK),
+           _cap(0.30, 0.16, 8, 0, PLATE_DARK, True)]
+    for i in range(4):
+        angle = math.tau * i / 4 + 0.4
+        out.append(_box(0.10, 0.10, 0.20, accent, PLATE_DARK,
+                        dx=0.44 * math.cos(angle), dy=0.44 * math.sin(angle),
+                        dz=0.06))
+    return out
+
+
 def _dome(accent: str) -> list:
     """A pressure blister grown into the regolith under its own spoil."""
     rows = [(0.62, -0.30), (0.58, -0.06), (0.44, 0.16), (0.24, 0.30)]
@@ -344,7 +396,7 @@ PARTS = {
     "guns": _guns, "mirror": _mirror, "shards": _shards, "dome": _dome,
     "quarters": _quarters, "ring": _ring, "cradle": _cradle, "arm": _arm,
     "gantry": _gantry, "vanes": _vanes, "bay": _bay, "womb": _womb,
-    "drum": _drum,
+    "drum": _drum, "tower": _tower, "wards": _wards, "bunker": _bunker,
 }
 
 

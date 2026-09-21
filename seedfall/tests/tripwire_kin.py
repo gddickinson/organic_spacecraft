@@ -46,6 +46,8 @@ KIN = {
     "kit": ("shore",), "venues": ("shore",), "backgrounds": ("shore",),
     "roster": ("muster", "crew"),
     "places": ("concourse", "shore"), "clinic": ("concourse",),
+    "authority": ("concourse", "rulebook"),
+    "careers_civil": ("lifepath",), "career_types": ("lifepath",),
     "treatments": ("concourse",), "venue_types": ("concourse", "shore"),
     "venues_trade": ("shore",), "venues_body": ("concourse",),
     "venues_night": ("shore",),

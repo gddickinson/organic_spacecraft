@@ -122,11 +122,11 @@ NIGHT: tuple = (
     # ── the other concourse ────────────────────────────────────────────────
     Venue("chop_shop", "A chop shop", "vice", 0, 1, 2, tech=11, most_law=5,
           note="They will fit anything to anybody. Once. In an afternoon.",
-          favours="streetwise", offers=("cyber", "graft", "surgery")),
+          favours="cybernetics", offers=("cyber", "graft", "surgery")),
     Venue("black_clinic", "A black clinic", "vice", 0, 2, 3, tech=12,
           most_law=5,
           note="Years, without the paperwork, and without the warranty.",
-          favours="medic", offers=("years", "cyber", "gene")),
+          favours="pharmacy", offers=("years", "cyber", "gene")),
     Venue("ice_house", "An ice house", "vice", 0, 1, 2, tech=10, most_law=4,
           note="Nobody asks who is in the rack, or who is paying.",
           favours="streetwise", offers=("ice",)),

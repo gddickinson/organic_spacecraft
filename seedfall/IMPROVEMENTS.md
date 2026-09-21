@@ -106,6 +106,29 @@ SEEDFALL already has:
   is still there: a *read* that writes. Anything else deriving from
   `officer.age` has the same order-dependence waiting for it.
 
+### Left over from the concourse (2026-09-21)
+
+- **A hull is not a place.** `sim/places.py` knows four kinds and none of
+  them is a ship. A LAZARET is a hospital with a drive and it cannot offer
+  anybody a surgery, because the clinic asks a *place* and a hull is not
+  one. The join is small and the balance question is not: a ship that is a
+  clinic is a ship that never needs a port.
+- **The derived-silhouette renderer is out of vocabulary.** Three habitat
+  classes were refused by `test_works3d` because everything with a crowd in
+  it comes out a ring, and a ring dominates the outline. Adding a fifth
+  ring-shaped class will hit the same wall. The fix is either more parts or
+  a ring whose radius varies with what it carries.
+- **Anagathics have no standing cost.** A course takes four years off and
+  then nothing; Traveller charges for them every month forever, which is
+  most of what makes them a decision. `clinic.ICE_PER_YEAR` is the shape to
+  copy, and it wants the monthly bill (below) to exist first.
+- **Nobody is hired through a hiring hall.** Four doors carry the `hire`
+  tag and the berth board is still the quay's alone.
+- **The new careers never come up as a *first* career** for a bridge
+  station whose `BY_STATION` list does not name them, which is most of
+  them. That is correct for a navigator and wrong for a purser the game
+  does not have.
+
 ## Open — the 2026-08-04 review: the systems layers
 
 A four-agent review (combat, economy, strategic layer, player experience)

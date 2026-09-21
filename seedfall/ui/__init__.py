@@ -1,7 +1,7 @@
 """PyQt6 presentation layer. Views never mutate state directly — they call into
 sim/ and then ask the window to refresh.
 
-Contents (161 modules; one line each in `INTERFACE.md`):
+Contents (162 modules; one line each in `INTERFACE.md`):
 
 The window: app, window, window_dialogs, view_registry, menubar, hud,
     log_panel, crash, popout, monitors, title, chronicle_picker,
@@ -31,7 +31,7 @@ The ship: ship_view, plans_panel, body_panel, arc_panel, dormancy_panel,
     mining_panel.
 The crew: crew_view, crew_roster, crew_sheet, crew_ops.
 The concourse: concourse_view, concourse_shops, concourse_body,
-    concourse_night.
+    concourse_night, concourse_law.
 Holdings, the house and the Voyage: empire_view, works_panel,
     industry_panel, exchequer_panel, house_panel, house_dialog,
     voyage_panel, counsel_card, renown_chip, programmes_panel,

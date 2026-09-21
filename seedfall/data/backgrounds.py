@@ -200,6 +200,16 @@ CAREER_TIES = {
     "picket": ("oldcrew", "mentor", "rival", "enemy"),
     "reach": ("oldcrew", "estranged", "enemy", "ally"),
     "drifter": ("creditor", "hunter", "contact", "enemy", "oldcrew"),
+    # The civil services (`data/careers_civil.py`). A life spent on a
+    # concourse leaves a different sort of wake from a life spent aboard:
+    # patients and patrons rather than shipmates, and the two careers that
+    # deal with the law leave people on both sides of it.
+    "clinician": ("patron", "debtor", "mentor", "ally", "contact"),
+    "factor": ("patron", "debtor", "rival", "creditor", "contact"),
+    "entertainer": ("patron", "ally", "rival", "estranged", "contact"),
+    "constable": ("ally", "enemy", "mentor", "rival", "contact"),
+    "magistrate": ("patron", "enemy", "ally", "mentor"),
+    "syndicate": ("creditor", "hunter", "enemy", "debtor", "contact"),
 }
 
 #: How many ties somebody has, by terms served. Nobody is alone, and nobody

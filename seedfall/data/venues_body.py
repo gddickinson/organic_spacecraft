@@ -53,7 +53,7 @@ BODY: tuple = (
           standing=0.10,
           note="Years, bought back a course at a time, at a price that "
                "explains a great deal about the Charter.",
-          favours="medic", offers=("care", "years", "graft")),
+          favours="pharmacy", offers=("care", "years", "graft")),
     Venue("cold_berths", "Commercial cold berths", "clinic", 0, 2, 2, tech=9,
           note="A rack of sleepers and a ledger. Paid by the year, in "
                "advance.",
@@ -70,11 +70,11 @@ BODY: tuple = (
     # ── bodywork: what can be fitted ───────────────────────────────────────
     Venue("prosthetics", "A prosthetist", "clinic", 0, 2, 3, tech=9,
           note="Hands, legs, eyes. Honest work, and it shows.",
-          favours="mechanic", offers=("graft", "cyber")),
+          favours="cybernetics", offers=("graft", "cyber")),
     Venue("body_shop", "A body shop", "clinic", 0, 3, 4, tech=11,
           note="Fitted hardware, licensed and logged, with a warranty you "
                "will be glad of.",
-          favours="electronics", offers=("cyber", "graft")),
+          favours="cybernetics", offers=("cyber", "graft")),
     Venue("augment_house", "An augmentation house", "clinic", 0, 4, 5,
           tech=12, standing=0.10,
           note="The good work. Quiet rooms, and a waiting list.",
@@ -96,11 +96,11 @@ BODY: tuple = (
     Venue("dojo", "A training hall", "sport", 45, 2, 3,
           morale=0.04, loyalty=1.0,
           note="Somebody who has done it will show you how.",
-          favours="athletics", offers=("train",)),
+          favours="teaching", offers=("train",)),
     Venue("academy", "A port academy", "sport", 0, 3, 4, tech=9,
           standing=0.05,
           note="Proper instruction, in a proper classroom, over weeks.",
-          favours="admin", offers=("train",)),
+          favours="teaching", offers=("train",)),
     Venue("pilots_sim", "The pilots' simulators", "sport", 55, 3, 3, tech=10,
           morale=0.04,
           note="Every approach you have ever got wrong, on demand.",

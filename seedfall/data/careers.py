@@ -20,7 +20,9 @@ same one, and a captain reads "Gunnery 2" without needing a table.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from .career_types import Career
+from .careers_civil import CIVIL
+
 
 #: Every skill anybody in the Verge can hold a level in, and what it is for.
 #: One flat list rather than a tree: Traveller's specialities are a fine idea
@@ -58,6 +60,14 @@ SKILLS = {
     "drive": "anything with wheels or tracks on a surface",
     "flyer": "anything with wings or lift in an atmosphere",
     "electronics": "boards, sensors, and the things that talk to them",
+    # ── the concourse's own trades ─────────────────────────────────────────
+    # A sector with body shops, hospitals, courts and constabularies in it
+    # needs people who can do those things, and a crew that can tell when
+    # somebody else is doing them badly.
+    "cybernetics": "what is fitted into people, and how to take it out",
+    "pharmacy": "drugs, anagathics, and what they actually do",
+    "security": "locks, watches, and the people who get past both",
+    "teaching": "making somebody else able to do it",
     "computers": "what the ship's core will and will not do for you",
     "explosives": "cutting charges, and where to put them",
     "gambler": "the odds, and the people who ignore them",
@@ -74,37 +84,7 @@ SKILLS = {
 }
 
 
-@dataclass(frozen=True)
-class Career:
-    """One service, and what it does to the people who go into it."""
-
-    id: str
-    name: str
-    #: One line on a service record.
-    blurb: str
-    #: Getting in: the characteristic and the target on 2d6.
-    qualify: tuple           # (characteristic id, target)
-    #: Staying alive in it, and getting on in it.
-    survive: tuple
-    advance: tuple
-    #: What a term teaches, by rank. The first list is what everybody picks
-    #: up; the second is what only the commissioned learn.
-    ranks: tuple
-    skills: tuple
-    officer_skills: tuple = ()
-    #: What goes wrong. A mishap ends the career — that is the whole weight
-    #: of it — and leaves the person with the line as their story.
-    mishaps: tuple = ()
-    #: What happens that does not end it.
-    events: tuple = ()
-    #: What they leave with, by how many terms they served.
-    benefits: tuple = ()
-    #: Which of the ship's stations this career most naturally fills, so a
-    #: navigator's history reads like a navigator's.
-    station: str = ""
-
-
-CAREERS: tuple = (
+CAREERS_CORE: tuple = (
     Career(
         "charter", "Charter Service",
         "The licence regime's own: forms, inspections and a uniform.",
@@ -282,18 +262,24 @@ CAREERS: tuple = (
         station="engineer"),
 )
 
+#: Every life somebody in the Verge can have had: the eight that are ways of
+#: being aboard something, and the six that are not (`data/careers_civil.py`).
+#: A sector with hospitals, courts and brokerages in it has people who worked
+#: in them, and they end up on bridges.
+CAREERS: tuple = CAREERS_CORE + CIVIL
+
 CAREER_BY_ID = {c.id: c for c in CAREERS}
 
 #: Which careers a ship's station draws its people from, best first. A
 #: navigator who came up through the Yards is a real person; one whose whole
 #: history has nothing to do with navigation is a dice roll wearing a name.
 BY_STATION = {
-    "science": ("prospector", "orders", "charter"),
-    "nav": ("charter", "hauler", "yards"),
-    "engineer": ("yards", "drifter", "charter"),
-    "medic": ("orders", "reach", "charter"),
-    "comms": ("hauler", "charter", "orders"),
-    "tactical": ("picket", "reach", "drifter"),
+    "science": ("prospector", "orders", "charter", "clinician"),
+    "nav": ("charter", "hauler", "yards", "factor"),
+    "engineer": ("yards", "drifter", "charter", "syndicate"),
+    "medic": ("clinician", "orders", "reach", "charter"),
+    "comms": ("hauler", "charter", "factor", "magistrate", "entertainer"),
+    "tactical": ("picket", "constable", "reach", "drifter", "syndicate"),
 }
 
 #: What the station on the door actually asks of the person behind it, and

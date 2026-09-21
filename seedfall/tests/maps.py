@@ -59,7 +59,7 @@ GROUPS = {
          "assembly_session assembly_vote assembly_lobby"),
         ("The crew and their stories", "crew roster loyalty lifespan upkeep arcs "
          "arc_beats arc_places lifepath checks person"),
-        ("Places and the concourse", "places shore clinic"),
+        ("Places and the concourse", "places shore clinic authority"),
         ("The Bloom and the endings", "threat bloom responses legacy"),
         ("The Kith and the sky", "kith kith_acts kith_world phenomena phenomena_tick "
          "phenomena_forecast phenomena_bodies phenomena_shelter phenomena_nova "
@@ -96,7 +96,7 @@ GROUPS = {
         ("The ship", "ship_view plans_panel body_panel arc_panel dormancy_panel mining_panel"),
         ("The crew", "crew_view crew_roster crew_sheet crew_ops"),
         ("The concourse", "concourse_view concourse_shops concourse_body "
-         "concourse_night"),
+         "concourse_night concourse_law"),
         ("Holdings, the house and the Voyage", "empire_view works_panel industry_panel "
          "exchequer_panel house_panel house_dialog voyage_panel counsel_card "
          "renown_chip programmes_panel ventures_panel"),

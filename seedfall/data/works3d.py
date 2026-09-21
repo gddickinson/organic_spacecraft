@@ -118,6 +118,16 @@ GROUND = frozenset({"rocky", "moon", "asteroid", "ice"})
 #: Between the two: 200 aboard a nursery is a crew, 2,000 on a reef is a town.
 RING_FROM = 500
 
+#: And the crowd at which a settlement on solid ground stops being a ring of
+#: cans and becomes a city stacked upward. An arcology is the only thing in
+#: the sector that reaches it, which is the point of an arcology.
+TOWER_FROM = 100_000
+
+#: The crowd at which a medical bay becomes a hospital with ward blocks on
+#: the outside of it. Measured, not chosen: at 500 the CORAL Reef got them
+#: and became the same silhouette as the station that is nothing but wards.
+WARDS_FROM = 5_000
+
 
 def traits_of(c) -> tuple:
     """Every feature this class carries, read off what it does.
@@ -154,10 +164,17 @@ def traits_of(c) -> tuple:
         out.append("vault")
     if effects.get("ward"):
         out.append("guns")
+    if effects.get("ward") and c.pop >= RING_FROM:
+        out.append("bunker")         # a garrison, not an automated battery
     if effects.get("drift"):
         out.append("vanes")                        # it holds no station
     if effects.get("medical"):
-        out.append("bay")
+        # A sickbay is one lit door; a hospital is ward blocks you can see
+        # from forty kilometres. The crowd decides which this is, and the
+        # bar is high: a reef of two thousand has an infirmary, not a
+        # hospital, and giving it ward blocks made it the same picture as
+        # the station whose whole business is beds.
+        out.append("wards" if c.pop >= WARDS_FROM else "bay")
     if effects.get("gestation"):
         out.append("womb")            # grown inside, not welded on a slipway
     elif builds:
@@ -171,6 +188,8 @@ def traits_of(c) -> tuple:
         out.append("dome")                         # grown into the ground it sits on
     if effects.get("megastructure"):
         out.append("drum")            # they live inside it, not on a ring
+    elif c.pop >= TOWER_FROM and sites <= GROUND:
+        out.append("tower")           # a city on solid ground stacks upward
     elif c.pop >= RING_FROM:
         out.append("ring")
     elif c.pop:

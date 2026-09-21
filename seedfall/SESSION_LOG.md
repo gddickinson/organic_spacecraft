@@ -813,6 +813,71 @@ the service record it briefly grew is two lines now and a door to the sheet.
 
 Measured afterwards: **242 suites, 1,823 checks, 0 failed, 197 s at `-j 8`.**
 
+## 2026-09-21 — a concourse anywhere people are
+
+Two passes on the one gap: **the game had an economy for hulls and none for
+people.** A captain with forty thousand credits could buy a fuel bunker and a
+hull refit, and the whole of what a *person* could be sold was a chandler, a
+bank, somewhere to eat and somewhere to drink — all of it gated on
+`system.port`, so an ARCA Habitat with a million people living in it offered
+nothing at all, and neither did a holding of your own or any settlement a
+power had put on the ground.
+
+**`sim/places.py` is the missing noun.** A place is anywhere in a system with
+people in it that a hull can be alongside — a quay, a habitat drum, a
+holding, a works on the ground. Every one answers the same four questions,
+because everything built on top only ever asks those four: *how many people,
+how good is it, how advanced is it, how hard is the law.* Derived from what
+the chronicle already holds, so an old save has a concourse in its habitats
+on load.
+
+Ninety-four doors over fifteen kinds, thirty pieces of bodywork over eight,
+fourteen careers, forty-four skills, two new hulls and two new habitat
+classes:
+
+- **The concourse** (`data/venue_types.py` and three themed tables):
+  chandlers, markets, tech and data, banking, offices and hiring halls,
+  notaries and advocates, transport, lodging, eating houses, clinics, sport
+  and training, the arts, entertainments, the houses, and the other
+  concourse. The vice tier is gated **downwards**, on a *low* law level — a
+  chop shop, a fence and a black clinic appear on the frontier rocks and
+  vanish where the Charter actually runs.
+- **The body** (`data/treatments.py`, `sim/clinic.py`): care, surgery,
+  grafts, anagathics, cold berths, fitted hardware, the germ line, and
+  instruction. Priced and gated exactly like `data/kit.py`. The good numbers
+  charge **strain** — loyalty off the person, permanently.
+- **What is bought is kept.** `game.fitted` and `game.taught`, keyed by the
+  officer's id *as a string* because a save is JSON. `lifepath.of` folds both
+  onto the record it derives, so a muscle weave reaches the gunnery check and
+  the abilities table without either knowing the clinic exists.
+- **Six civil careers** (`data/careers_civil.py`) — clinician, factor,
+  entertainer, constable, magistrate, syndicate — because a sector with
+  hospitals, courts and brokerages in it has people who worked in them, and
+  they end up on bridges. Four new skills with doors that want them.
+- **Who runs this** (`sim/authority.py`): the governance layer has been deep
+  for a long time and was reachable only from the Law screen, which is about
+  *your* charges rather than where you are standing. One call, one place,
+  and the answer to the only question that matters at a gangway.
+- **LAZARET and ARGOSY**, and the STACK Arcology and BASTION Post.
+
+Three defects found on the way, and one refusal that was right:
+
+- `WrapRow` is one row that goes across or down, **not a grid**. Eight doors
+  side by side squeezed every one to nothing and the panel rendered blank.
+  Four panels were using it that way, including the old concourse tab.
+- A name bar read "Okonkwo · Adeyemi · Okonkwo": two officers shared a
+  surname and both tabs looked like the same person.
+- The harbourmaster panel printed a dataclass repr —
+  `Temper(id='frightened', …, bend=1.5)` — straight onto the screen.
+- **`tests/test_works3d` refused three habitat classes.** A resort, a
+  hospital and a library all came out of the derived-silhouette renderer as
+  the same ring with different small fittings, at 75–86% overlap against a
+  72% bar. Two survived with parts of their own (`tower`, `wards`,
+  `bunker`); the other three are venues instead, which is where a resort and
+  a hospital belong — doors, open everywhere there are enough people.
+
+Measured afterwards: **243 suites, 1,832 checks, 0 failed, 230 s at `-j 8`.**
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one

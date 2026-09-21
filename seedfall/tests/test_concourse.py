@@ -74,7 +74,14 @@ def _settle(game):
         id=9002, class_id="monitor_station", name="Far Watch",
         system_id=system.id, body_id=system.bodies[2].id, need=0,
         online=True)
-    game.colonies = list(getattr(game, "colonies", []) or []) + [drum, rig]
+    # And a garrison, which is one of the two classes added with the
+    # concourse: a crowd rather than a machine, so it carries doors.
+    post = colony_sim.Colony(
+        id=9004, class_id="bastion_post", name="The Bastion",
+        system_id=system.id, body_id=system.bodies[-1].id, need=0,
+        online=True)
+    game.colonies = list(getattr(game, "colonies", []) or []) + [drum, rig,
+                                                                post]
     works = settlement_sim.Settlement(
         id=9003, power="charter", system_id=system.id,
         body_id=system.bodies[2].id, good="volatiles")
@@ -273,6 +280,77 @@ def run(suite: Suite) -> None:
         return (f"{officer.name} racked at {place.name}, two years at "
                 f"{owed:,.0f} credits, and up again")
 
+    @check("a sector with a concourse in it has people who worked on one")
+    def _():
+        from ..data import backgrounds as bg
+        from ..data.colonies import COLONIES_BY_ID
+        # Fourteen careers, and every one of them complete: the six civil
+        # services were added with the concourse they explain.
+        for career in career_table.CAREERS:
+            assert career.ranks and career.skills, career.id
+            assert career.mishaps and career.events and career.benefits
+            assert career.station in career_table.STATION_SKILLS, career.id
+            assert career.id in bg.CAREER_TIES, (
+                f"{career.id} leaves nobody behind")
+            for name in career.skills + career.officer_skills:
+                assert name in career_table.SKILLS, (career.id, name)
+        for station, pool in career_table.BY_STATION.items():
+            assert station in career_table.STATION_SKILLS, station
+            for cid in pool:
+                assert cid in career_table.CAREER_BY_ID, (station, cid)
+        # The new trades are not decoration: somebody's door wants each.
+        wanted = {v.favours for v in venue_table.VENUES if v.favours}
+        for name in ("cybernetics", "pharmacy", "security", "teaching"):
+            assert name in career_table.SKILLS, name
+            assert name in wanted, f"nobody on a concourse wants {name}"
+        # And the new habitat classes are real places that carry doors.
+        game = new_game("conc-careers")
+        civil = set()
+        for seed in ("civ-a", "civ-b", "civ-c", "civ-d"):
+            other = new_game(seed)
+            for officer in other.officers:
+                civil.add(life_sim.of(other, officer).career)
+        # The two new classes are places to live rather than machines with
+        # people in them, and both carry a real concourse.
+        for klass in ("stack_arcology", "bastion_post"):
+            got = COLONIES_BY_ID[klass]
+            assert got.sites and got.days > 0 and got.pop >= 500, klass
+        assert len(career_table.CAREERS) >= 14, len(career_table.CAREERS)
+        return (f"{len(career_table.CAREERS)} careers and "
+                f"{len(career_table.SKILLS)} skills, all consistent; "
+                f"{len(civil)} distinct careers dealt over four crews")
+
+    @check("a gate says who runs it and what they have on you")
+    def _():
+        from ..sim import authority as auth_sim
+        game = new_game("conc-rule")
+        _settle(game)
+        seen, hard, soft = 0, None, None
+        for system in game.galaxy.systems:
+            for place in places_sim.in_system(game, system):
+                said = auth_sim.says(game, place)
+                assert said and len(said) >= 4, (place.name, said)
+                digit, name, about = auth_sim.government(game, place)
+                assert name and about, place.name
+                watch = auth_sim.garrison(game, place)
+                assert 0.0 <= watch["watch"] <= 1.0, watch
+                risk = auth_sim.against_you(game, place)
+                assert risk["charges"] == [] or risk["charges"]
+                seen += 1
+                if hard is None or place.law > hard.law:
+                    hard = place
+                if soft is None or place.law < soft.law:
+                    soft = place
+        assert seen >= 10, seen
+        assert hard.law > soft.law, (hard.law, soft.law)
+        # The words change with the digit, which is the whole point of it.
+        assert auth_sim.law_words(0) != auth_sim.law_words(9)
+        # A holding of yours is governed by you, and says so.
+        mine = next(p for p in places_sim.in_system(game) if p.mine)
+        assert auth_sim.government(game, mine)[1] == "Yours", mine.name
+        return (f"{seen} gates read: {hard.name} at law {hard.law}, "
+                f"{soft.name} at law {soft.law}")
+
     @check("the Concourse screen opens everywhere, on every tab")
     def _():
         from PyQt6.QtWidgets import QLabel
@@ -289,7 +367,7 @@ def run(suite: Suite) -> None:
             win = main_window(game, size)
             win.go("concourse")
             view = win.views["concourse"]
-            for tab in ("shops", "board", "clinic", "evening"):
+            for tab in ("shops", "board", "clinic", "evening", "rule"):
                 view.tab = tab
                 view.refresh()
                 for _ in range(4):
@@ -309,5 +387,5 @@ def run(suite: Suite) -> None:
             win.close()
             keep.processEvents()
         assert all(counted[t] > 200 for t in counted), dict(counted)
-        return (f"four tabs at two sizes at {place.name}, and every place "
+        return (f"five tabs at two sizes at {place.name}, and every place "
                 f"in the system walked")

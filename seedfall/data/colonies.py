@@ -206,6 +206,49 @@ COLONIES: list[ColonyClass] = [
         "responsum", {"xenoyard": True, "sensor": 3.0}),
 ]
 
+# ── places to live, rather than places to work ─────────────────────────────
+#
+# Everything above this line is a machine with people in it: a mine, a still,
+# a yard, a picket. The sector had exactly one class anybody would *choose*
+# to live in — the ARCA drum — and the whole of what it offered a person was
+# a line in the upkeep model, because a concourse was a fact about a
+# starport.
+#
+# `sim/places.py` changed that: a holding with people in it is a place, and a
+# place with a population digit and an amenity rating carries doors
+# (`data/venues.py`). So a class here is chosen for the *crowd* it holds
+# rather than the commodity it makes, and planting one builds somewhere the
+# crew can be treated, taught, fed and entertained — the doors come with the
+# people, out of `data/venues.py`, without either file knowing the other.
+#
+# Two, not six. A resort, a hospital and a library were all drafted and all
+# three came out of `data/works3d.py` as the same ring with different small
+# fittings — `tests/test_works3d` measures that and was right to refuse
+# them. What they were for is carried by venues instead, which is where a
+# resort and a hospital belong: they are doors, and doors are everywhere
+# there are enough people for them.
+COLONIES += [
+    ColonyClass(
+        "stack_arcology", "STACK Arcology", "hybrid", "multifront",
+        ("rocky", "moon"), 540,
+        {"credits": 180000, "biomass": 420, "ore": 900, "spidroin": 140},
+        {"credits": 900, "biomass": 2.2}, {"volatiles": 0.7}, 250000,
+        "Forty grown floors on a fabricated frame, driven into the crust and "
+        "sealed against whatever the sky is doing. Quarter of a million "
+        "people, a concourse on every fourth floor, and a lift that takes "
+        "eleven minutes end to end.", "Arca turris",
+        {"port": True, "medical": True}),
+    ColonyClass(
+        "bastion_post", "BASTION Post", "fabricated", "whipple",
+        ("asteroid", "moon", "rocky"), 200,
+        {"credits": 95000, "ore": 620, "spidroin": 60},
+        {"credits": 120}, {"volatiles": 0.5}, 2000,
+        "A garrison: two thousand people, a magazine, a court that sits when "
+        "it has to, and guns that cover the approach. Somewhere a captain "
+        "can be arrested, and somewhere a captain can be safe.", "",
+        {"ward": True, "watch": True, "sensor": True}),
+]
+
 COLONIES_BY_ID: dict[str, ColonyClass] = {c.id: c for c in COLONIES}
 
 

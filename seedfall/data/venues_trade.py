@@ -124,7 +124,8 @@ TRADE: tuple = (
           note="They will stand for your hand. At a price, and with terms.",
           favours="streetwise", offers=("paper",)),
     Venue("constabulary", "The constabulary", "law", 0, 1, 1,
-          note="Where a charge is answered, and where one is laid."),
+          note="Where a charge is answered, and where one is laid.",
+          favours="security"),
 
     # ── getting about ──────────────────────────────────────────────────────
     Venue("flatbed", "A man with a flatbed", "transport", 6, 1, 0,

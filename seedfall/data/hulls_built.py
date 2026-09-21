@@ -47,6 +47,27 @@ FABRICATED: list[Chassis] = [
             "Ninety berths, actual windows, and passengers who are awake for the "
             "whole crossing and have opinions about the catering. The un-elegant "
             "answer to a stasis liner."),
+    # ── hulls that carry people rather than cargo ──────────────────────────
+    # The fleet could mine, haul, survey, fight and colonise, and the only
+    # hull built for *people* was the CARAVEL. A sector with arcologies,
+    # hospitals and resorts in it wants two more: somewhere to be treated
+    # that can come to you, and something that can move a town.
+    Chassis("lazaret", "LAZARET", "fabricated", "Hospital", "Hospital ship",
+            1180, 14000, slots(2, 2, 2, 2, 2, 0, 7), 300, 120, 4.6, 0.92,
+            0.08,
+            {"credits": 96000, "alloy": 160, "silicon": 46}, 44, "blastema",
+            "Four wards, two theatres, a vat deck and a morgue nobody "
+            "mentions. Carries no weapon and is shot at less than anything "
+            "else in the Verge, which the Charter insists is the law working "
+            "and everybody else insists is superstition."),
+    Chassis("argosy", "ARGOSY", "hybrid", "Liner", "Migration hull",
+            1600, 34000, slots(3, 2, 1, 2, 3, 1, 8), 900, 260, 4.9, 0.84,
+            0.05,
+            {"credits": 140000, "alloy": 210, "silicon": 40, "biomass": 90},
+            70, "multifront",
+            "Two hundred and sixty crew and berths for nine hundred more, "
+            "grown accommodation on a fabricated spine. Moves a town, and "
+            "the town has opinions the whole way."),
     Chassis("drayhorse", "DRAYHORSE", "fabricated", "Freighter", "Container hauler",
             1050, 22000, slots(2, 1, 1, 1, 2, 1, 5), 1100, 18, 4.4, 0.88, 0.06,
             {"credits": 54000, "alloy": 140, "silicon": 14}, 30, "monocoque",

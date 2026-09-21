@@ -17,6 +17,10 @@ whether anybody here will admit to fitting a reflex lace. Four tabs:
   cold storage, hardware and the germ line, one officer at a time.
 - **The evening** — arts, sport, entertainment, the houses, and the other
   concourse.
+- **Who runs this** — the government, the law level, who holds the ground,
+  how hard it is policed, and what any of them currently has on you. Read
+  off eight modules that were only ever reachable from the Law screen,
+  which is about your charges rather than about where you are standing.
 
 The screen decides nothing. `sim/shore.py` says what is open and what it
 costs, `sim/clinic.py` says what can be done to somebody and quotes the odds,
@@ -28,11 +32,13 @@ from __future__ import annotations
 
 from ..sim import clinic as clinic_sim
 from ..sim import places as places_sim
-from . import concourse_body, concourse_night, concourse_shops
+from . import (concourse_body, concourse_law, concourse_night,
+               concourse_shops)
 from .widgets import Panel, TabBar, View, button, label, note
 
 TABS = (("shops", "Shops"), ("board", "Board and bed"),
-        ("clinic", "Clinic"), ("evening", "The evening"))
+        ("clinic", "Clinic"), ("evening", "The evening"),
+        ("rule", "Who runs this"))
 
 
 class ConcourseView(View):
@@ -83,6 +89,8 @@ class ConcourseView(View):
             concourse_body.build(self, place)
         elif self.tab == "evening":
             concourse_night.evening(self, place)
+        elif self.tab == "rule":
+            concourse_law.build(self, place)
         else:
             concourse_shops.build(self, place)
 
