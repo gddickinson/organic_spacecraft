@@ -27,11 +27,12 @@ from __future__ import annotations
 
 from .venue_types import (KIND_NAME, KIND_NOTE, KINDS, OFFER_NAME, OFFERS,
                           Venue, open_to)
+from .venues_aboard import ABOARD, ABOARD_RATING, rating
 from .venues_body import BODY
 from .venues_night import NIGHT
 from .venues_trade import TRADE
 
-VENUES: tuple = TRADE + BODY + NIGHT
+VENUES: tuple = TRADE + BODY + NIGHT + ABOARD
 
 VENUE_BY_ID = {v.id: v for v in VENUES}
 BY_KIND = {kid: tuple(v for v in VENUES if v.kind == kid)
@@ -51,6 +52,7 @@ ASHORE_OVERHEAD = 8
 #: quote the odds before the captain spends anything.
 RUMOUR_WORTH = "a name, a cargo, or where somebody has gone"
 
-__all__ = ["ASHORE_OVERHEAD", "BY_KIND", "BY_OFFER", "KIND_NAME", "KIND_NOTE",
-           "KINDS", "OFFER_NAME", "OFFERS", "RUMOUR_WORTH", "VENUES",
-           "VENUE_BY_ID", "Venue", "open_to"]
+__all__ = ["ABOARD", "ABOARD_RATING", "ASHORE_OVERHEAD", "BY_KIND",
+           "BY_OFFER", "KIND_NAME", "KIND_NOTE", "KINDS", "OFFER_NAME",
+           "OFFERS", "RUMOUR_WORTH", "VENUES", "VENUE_BY_ID", "Venue",
+           "open_to", "rating"]

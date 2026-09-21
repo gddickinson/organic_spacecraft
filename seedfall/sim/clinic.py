@@ -46,6 +46,18 @@ ICE_PER_YEAR = 0.18
 #: anybody is still paying attention to the ledger.
 ICE_LONGEST_YEARS = 60.0
 
+#: A course of anagathics is a *standing arrangement*, not a purchase. It
+#: takes years off on the day, and then it goes on costing every month for
+#: as long as you want it to keep working — which is Traveller's own model
+#: and the first recurring bill in the Verge that follows the ship.
+COURSE_MONTH = 30.0
+COURSE_SHARE = 0.05
+
+#: What a paid-up course does: the person ages at this share of their
+#: lineage's rate. Read by `sim/lifespan.tick`, which is the one clock that
+#: moves an age — so the money and the years cannot drift apart.
+COURSE_SLOW = 0.45
+
 
 # ── what is on offer ───────────────────────────────────────────────────────
 
@@ -227,6 +239,10 @@ def _apply(game, officer, got, skill: str) -> None:
         officer.age = max(18.0, was - got.years)
     if got.strain:
         loyalty_sim.shift(officer, -got.strain * table.STRAIN_LOYALTY)
+    # Anagathics are an arrangement, not a purchase: the years come off on
+    # the day and the clinic bills every month after it.
+    if got.kind == "years":
+        start_course(game, officer, got)
     # What stays in them. `lifepath.of` folds these onto the record it
     # derives, which is how a fitted weave reaches every check the ship makes.
     if got.gives or got.skill:
@@ -251,6 +267,87 @@ def _mishap(game, officer, got) -> None:
 
 
 # ── cold storage ───────────────────────────────────────────────────────────
+
+# ── standing courses ───────────────────────────────────────────────────────
+
+def courses(game) -> list:
+    """Every standing arrangement with a clinic."""
+    return list(getattr(game, "courses", None) or [])
+
+
+def course_of(game, officer):
+    """The course this person is on, if any."""
+    key = _key(officer)
+    return next((c for c in courses(game) if c.get("who") == key), None)
+
+
+def slows(game, officer) -> float:
+    """How fast this person ages: `1.0` unless somebody is paying.
+
+    Called by `sim/lifespan.tick`, which is the only thing in the game that
+    moves an age. A course that had its own ageing model would be a second
+    clock, and two clocks disagree.
+    """
+    got = course_of(game, officer)
+    if got is None or not got.get("paid", True):
+        return 1.0
+    return COURSE_SLOW
+
+
+def month_cost(game) -> float:
+    """What the standing arrangements cost every month, all in."""
+    out = 0.0
+    for row in courses(game):
+        got = table.TREATMENT_BY_ID.get(row.get("how", ""))
+        if got is not None:
+            out += got.cr * COURSE_SHARE
+    return out
+
+
+def tick(game, days: float) -> list:
+    """Charge the standing bills. Returns `(kind, text)` lines for the log.
+
+    Called once a day from `core/shiptime`, beside the crew's own upkeep,
+    because that is what it is: a running cost of having people aboard who
+    are not dying on schedule.
+    """
+    if days <= 0 or not courses(game):
+        return []
+    said, day = [], float(getattr(game, "day", 0.0))
+    rows, kept = courses(game), []
+    for row in rows:
+        got = table.TREATMENT_BY_ID.get(row.get("how", ""))
+        if got is None:
+            continue
+        due = float(row.get("paid_to", day))
+        while day - due >= COURSE_MONTH:
+            cost = got.cr * COURSE_SHARE
+            if game.credits < cost:
+                row["paid"] = False
+                said.append(("warn", f"The clinic has stopped {row['name']}'s "
+                                     f"course: {cost:,.0f} credits a month "
+                                     "and the treasury could not find it."))
+                due = day
+                break
+            game.credits -= cost
+            due += COURSE_MONTH
+            row["paid"] = True
+        row["paid_to"] = due
+        if row.get("paid", True):
+            kept.append(row)
+    game.courses = kept
+    return said
+
+
+def start_course(game, officer, treatment) -> None:
+    """Put somebody on a standing arrangement, or renew the one they have."""
+    day = float(getattr(game, "day", 0.0))
+    rows = [c for c in courses(game) if c.get("who") != _key(officer)]
+    rows.append({"who": _key(officer), "name": getattr(officer, "name", ""),
+                 "how": treatment.id, "since": day, "paid_to": day,
+                 "paid": True})
+    game.courses = rows
+
 
 def on_ice(game) -> list:
     """Everybody in a rack somewhere, as saved rows."""

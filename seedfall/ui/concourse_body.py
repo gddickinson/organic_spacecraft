@@ -18,6 +18,7 @@ from ..sim import clinic as clinic_sim
 from ..sim import lifepath as life_sim
 from ..sim import lifespan as lifespan_sim
 from ..sim import roster as roster_sim
+from . import body_plan, portrait_paint
 from .widgets import Panel, Pill, TabBar, button, label, note
 
 #: The order the tabs' panels are built in: what a clinic is asked for, in
@@ -36,6 +37,7 @@ def build(view, place) -> None:
     """The whole tab."""
     game = view.game
     rows = clinic_sim.offered(game, place)
+    _standing(view)
     _racks(view, place)
     if not rows:
         view.col.addWidget(Panel("No clinic here").add(
@@ -49,7 +51,9 @@ def build(view, place) -> None:
         view.col.addWidget(note("Nobody aboard to treat."))
         return
     _patient_bar(view, game, officer)
-    view.col.addWidget(_who(game, officer))
+    # The patient beside the plate: what a clinic would ask for, and where
+    # everything already in them actually is.
+    view.row(_who(game, officer), _fitted(view, game, officer))
     by_kind: dict = {}
     for row in rows:
         by_kind.setdefault(row["treatment"].kind, []).append(row)
@@ -85,6 +89,35 @@ _ABOUT = {
     "ice": "Somebody who is not needed for a while. They leave the bridge, "
            "they stop ageing, and the rack sends a bill every year.",
 }
+
+
+def _standing(view) -> None:
+    """The bills that follow the ship: anagathics, by the month.
+
+    A course takes years off on the day and then goes on costing for as long
+    as you want it to keep working. It is the first recurring charge in the
+    Verge that does not stop when you leave, which is the whole reason it is
+    a decision rather than a purchase.
+    """
+    game = view.game
+    rows = clinic_sim.courses(game)
+    if not rows:
+        return
+    p = Panel("Standing arrangements", "lumen")
+    for row in rows:
+        got = table.TREATMENT_BY_ID.get(row.get("how", ""))
+        years = (float(getattr(game, "day", 0.0))
+                 - float(row.get("since", 0))) / 365.0
+        p.add_row(row.get("name", "somebody"),
+                  f"{got.name if got else 'a course'} · {years:.1f} years on")
+    month = clinic_sim.month_cost(game)
+    p.add_row("Every month", f"{month:,.0f} credits",
+              "warn" if month > game.credits else "")
+    p.add(label(f"Everybody on one ages at {clinic_sim.COURSE_SLOW:.0%} of "
+                "their lineage's rate while it is paid. Miss a month and the "
+                "clinic stops, and the years start again.", "note",
+                wrap=True))
+    view.col.addWidget(p)
 
 
 def _racks(view, place) -> None:
@@ -136,9 +169,10 @@ def _pick(view, rows, oid: str) -> None:
 
 
 def _who(game, officer) -> Panel:
-    """The patient: the numbers a clinic would ask for."""
+    """The patient: the numbers a clinic would ask for, and the person."""
     record = life_sim.of(game, officer)
     p = Panel(f"{officer.name} — {officer.role_name}")
+    p.add(portrait_paint.plate(game, officer, 132))
     p.add(note(life_sim.characteristics_line(record)))
     p.add_row("Age", f"{lifespan_sim.age_of(officer, game):.0f} · "
                      f"{lifespan_sim.stage(officer, game)}")
@@ -160,6 +194,15 @@ def _who(game, officer) -> Panel:
         p.add(label("Taught since signing on: " + ", ".join(
             f"{k.replace('_', ' ').title()} +{v}"
             for k, v in sorted(taught.items())), "note", "chloro", wrap=True))
+    return p
+
+
+def _fitted(view, game, officer) -> Panel:
+    """A figure with a mark at every site something has been put into."""
+    p = Panel("What is in them")
+    p.add(body_plan.BodyPlan(game, officer, 250))
+    for line in body_plan.says(game, officer):
+        p.add(note(line))
     return p
 
 

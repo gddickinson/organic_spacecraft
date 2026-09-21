@@ -164,6 +164,11 @@ def tick(game, days: float, rng) -> list:
         # promises and the saving the clock applies cannot drift apart.
         from . import dormancy
         slowed, _fed = dormancy.rates(game, officer)
+        # And whatever a clinic is being paid to do about it. Asked of
+        # `sim/clinic` rather than modelled here, so the money and the years
+        # cannot drift: this is the only thing in the game that moves an age.
+        from . import clinic
+        slowed *= clinic.slows(game, officer)
         officer.age = was + years * lineage.ageing * slowed
         crossed = officer.age
 

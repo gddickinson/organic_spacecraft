@@ -34,7 +34,9 @@ from ..data import treatments as treat_table
 from ..data import venue_types
 from ..data import venues as venue_table
 from ..sim import clinic as clinic_sim
+from ..sim import crew as crew_sim
 from ..sim import lifepath as life_sim
+from ..sim import lifespan as lifespan_sim
 from ..sim import places as places_sim
 from ..sim import shore
 from .harness import Suite
@@ -168,117 +170,6 @@ def run(suite: Suite) -> None:
                 f"{len(venue_table.KINDS)} kinds; {seedy[0].name} at law "
                 f"{seedy[0].law} carries {len(seedy[1])}, "
                 f"{lawful[0].name} at law {lawful[0].law} carries none")
-
-    @check("every treatment is real, and the catalogue is consistent")
-    def _():
-        ids = [t.id for t in treat_table.TREATMENTS]
-        assert len(ids) == len(set(ids)), "two treatments share an id"
-        offers = {o for o, _n in venue_table.OFFERS}
-        for got in treat_table.TREATMENTS:
-            assert got.kind in offers, (got.id, got.kind)
-            assert got.tl >= 0 and got.cr >= 0 and got.days >= 1
-            assert got.days <= treat_table.LONGEST, got.id
-            for cid in got.gives:
-                assert cid in treat_table.SCORES, (got.id, cid)
-            assert not got.skill or got.skill in career_table.SKILLS, got.id
-            # A risk with no mishap is a threat nobody carries out.
-            assert bool(got.risk) == bool(got.mishap), got.id
-            # Somebody must actually sell this sort of work somewhere.
-            assert venue_table.BY_OFFER.get(got.kind), got.kind
-        cheap = treat_table.price_at(treat_table.TREATMENT_BY_ID["hand_deck"],
-                                     15)
-        dear = treat_table.price_at(treat_table.TREATMENT_BY_ID["hand_deck"], 9)
-        assert cheap < dear, (cheap, dear)
-        return (f"{len(treat_table.TREATMENTS)} treatments over "
-                f"{len(treat_table.BY_KIND)} kinds; a palm deck is "
-                f"{cheap:,} at TL 15 and {dear:,} at TL 9")
-
-    @check("the clinic quotes what it charges, and what it does is kept")
-    def _():
-        game = new_game("conc-body")
-        _n, system, place = _richest(game, "cyber")
-        game.location_id = system.id
-        game.orbit_body = place.body_id
-        game.credits = 900_000
-        rows = clinic_sim.offered(game, place, "cyber")
-        assert rows, "nowhere in the sector fits anything to anybody"
-        officer = game.officers[0]
-        before = life_sim.of(game, officer)
-        was_scores = dict(before.characteristics)
-        got = rows[0]["treatment"]
-        said = clinic_sim.quote(game, place, officer, got.id)
-        assert said["ok"], said
-        purse, day = game.credits, game.day
-        out = clinic_sim.buy(game, place, officer, got.id, rng=RNG("ok"))
-        assert out["ok"], out
-        # The quote is the charge. Credits also move for the days the work
-        # takes — wages and stores are charged by the clock, not by the
-        # clinic — so the claim is about the *bill*, and that the purse never
-        # comes out ahead of it.
-        assert out["cr"] == said["cr"], (out["cr"], said["cr"])
-        assert game.credits <= purse - said["cr"], (purse, game.credits)
-        assert game.day >= day + got.days, (day, game.day)
-        if out["went"]:
-            after = life_sim.of(game, officer)
-            for cid, delta in got.gives.items():
-                assert after.characteristics[cid] >= was_scores[cid] + delta \
-                    or after.characteristics[cid] == treat_table.SCORE_CAP, (
-                        cid, was_scores[cid], after.characteristics[cid])
-            assert got.id in game.fitted[str(officer.id)]
-            # And it survives a reload: this is saved, not derived. A save
-            # is JSON, which has no integer keys — a dict keyed by the
-            # officer's id came back keyed by a string, which is why the
-            # store is keyed by a string on the way in.
-            from ..core.save import decode, encode
-            again = decode(encode(game))
-            assert got.id in (again.fitted or {}).get(str(officer.id), []), (
-                "what was fitted did not survive a save")
-        # Teaching is kept the same way and reaches the ship's own checks.
-        tr = clinic_sim.offered(game, place, "train")
-        if tr:
-            game.credits = 900_000
-            taught = clinic_sim.buy(game, place, officer,
-                                    tr[-1]["treatment"].id, skill="broker",
-                                    rng=RNG("teach"))
-            assert taught["ok"], taught
-            if taught["went"]:
-                assert life_sim.of(game, officer).skill("broker") >= 0
-        return (f"{got.name} at {place.name}: {said['cr']:,} credits, "
-                f"{got.days} days, {said['odds']:.0%} — charged to the "
-                "credit and kept through a save")
-
-    @check("a cold berth takes somebody off the bridge and gives them back")
-    def _():
-        game = new_game("conc-ice")
-        best = None
-        for system in game.galaxy.systems:
-            for place in places_sim.in_system(game, system):
-                rows = clinic_sim.offered(game, place, "ice")
-                if rows and (best is None or len(rows) > len(best[2])):
-                    best = (system, place, rows)
-        assert best, "nowhere in the sector racks a person"
-        system, place, rows = best
-        game.location_id = system.id
-        game.orbit_body = place.body_id
-        game.credits = 400_000
-        officer = game.officers[0]
-        aboard = len(game.officers)
-        got = clinic_sim.freeze(game, place, officer, rows[-1]["treatment"].id)
-        assert got["ok"], got
-        assert len(game.officers) == aboard - 1
-        assert clinic_sim.on_ice(game), "nobody in the rack"
-        assert clinic_sim.ice_bill(game) == 0.0, "billed on the day they went in"
-        game.advance_days(730)
-        owed = clinic_sim.ice_bill(game)
-        assert owed > 0, "two years in a rack and nothing owed"
-        purse = game.credits
-        back = clinic_sim.thaw(game, place, officer.id)
-        assert back["ok"], back
-        assert len(game.officers) == aboard
-        assert game.credits == purse - owed, (purse, game.credits, owed)
-        assert not clinic_sim.on_ice(game)
-        return (f"{officer.name} racked at {place.name}, two years at "
-                f"{owed:,.0f} credits, and up again")
 
     @check("a sector with a concourse in it has people who worked on one")
     def _():

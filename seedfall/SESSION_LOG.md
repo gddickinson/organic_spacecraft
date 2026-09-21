@@ -878,6 +878,71 @@ Three defects found on the way, and one refusal that was right:
 
 Measured afterwards: **243 suites, 1,832 checks, 0 failed, 230 s at `-j 8`.**
 
+## 2026-09-21 — the four left over, and a face for everybody
+
+**The leftovers, closed.**
+
+- **A hull is a place.** `sim/places.py` knew four kinds and none of them was
+  a ship, so a LAZARET was a hospital with a drive that could not offer
+  anybody a check-up. Ten doors aboard (`data/venues_aboard.py`), gated on
+  the tier printed on the hull's card: a slop chest and a mess on anything
+  with twelve hands, a surgery and a vat deck on a hospital hull, and the
+  ship's own tech level rising with the research tree — which is what puts
+  the vat deck on the list. A door is `aboard` or ashore and never both.
+- **Anagathics are an arrangement.** A course takes years off on the day and
+  the clinic bills five per cent of its price every month after it, followed
+  by `core/shiptime`. While it is paid, `lifespan.tick` ages them at 45% of
+  their lineage's rate — asked of `sim/clinic` rather than modelled twice,
+  because that tick is the only thing in the game that moves an age. Miss a
+  month and it stops, and the years start again.
+- **Hiring halls hire.** Four kinds of door carried the `hire` tag and every
+  one of them was a name on a list. `crew.pool_here` draws a board for a
+  *place*, seeded on the place and the month like the quay's, so a habitat
+  of a million people can offer you a navigator.
+- **The silhouette vocabulary** is the one left open, and is recorded as such.
+
+**And the thing the game had never drawn: people.**
+
+The crew was rows of text under a name. Everything about somebody has been
+derivable for two passes — what they did for twenty years, where they are
+from, how old they are, what they think of you, what has been fitted into
+them — and none of it had a picture.
+
+- **`ui/portrait.py` and `ui/portrait_paint.py`** — a face for everybody,
+  read from the same officer id the rest of it is read from. The lineage is
+  the colour, the years are in the hair and the jaw, the service is the
+  collar, the homeworld is what is behind them, the mood is the mouth, and
+  **what a clinic has fitted is visible**: a lit optic, temple ports, plate
+  under the cheek, a seam somebody did in an afternoon. Strain is a number on
+  one screen and an argument on another; here it is a person you can see is
+  partly a machine, which is the whole of what the Verge minds about.
+- **`ui/body_plan.py`** — a standing figure with a mark at every site
+  something has been put into, labelled out to the gutters. The sites come
+  off `data/treatments.py`, and a check holds that everything fitted *into*
+  somebody has somewhere to be.
+- **`ui/place_scene.py`** — the concourse, drawn: the structure (a quay with
+  booms, a drum, a stepped arcology, a bunker with guns, your own hull), the
+  windows counted off the population digit, every open door in a frontage
+  tinted by kind, and the crowd walking on the deck.
+
+Four defects found in the drawing, all of them the same class — a widget
+claiming more than it needs:
+
+- The rim light was drawn over the hair, so everybody wore a bright skullcap.
+- The body plate was scaled off the *width*, so a person in a 520×320 panel
+  came out as wide as they were tall.
+- `QSizePolicy.MinimumExpanding` takes `sizeHint` as the **floor**, so a
+  160-tall banner with an 800 px hint made the Concourse 844 px of an 837 px
+  column. `Preferred` lets `minimumSizeHint` govern and still takes every
+  pixel offered.
+- A `note()` does not fold, so the scene's caption made its own sentence the
+  screen's minimum width.
+
+And one behaviour: a ship is always `here`, so it won every tie and the
+Concourse opened on the slop chest while you were docked at a Fleet Hub.
+
+Measured afterwards: **244 suites, 1,836 checks, 0 failed, 233 s at `-j 8`.**
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one

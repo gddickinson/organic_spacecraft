@@ -42,6 +42,7 @@ KINDS = (
     ("habitat", "Habitat", "people living in a drum, a reef or a hollow rock"),
     ("holding", "Your holding", "your own ground, and whoever works it"),
     ("downside", "Settlement", "somebody's people on the ground, at work"),
+    ("ship", "Aboard", "your own hull, and whatever is open on it"),
 )
 KIND_NAME = {kid: name for kid, name, _note in KINDS}
 
@@ -60,6 +61,15 @@ DOWNSIDE_HEADS = 900
 #: Your own ground is as lawful as you make it, which is not very.
 OWN_LAW = 2
 DEFAULT_TECH = 9
+
+#: How advanced your own hull is, as a tech level: the Verge's own baseline,
+#: and a level for every twelve nodes of the tree you have opened. Rough on
+#: purpose — it decides what your surgeon can attempt, not what anything
+#: costs — and it is the one number that makes researching the tree show up
+#: on the sickbay's list.
+SHIP_TECH_BASE = 9
+SHIP_TECH_PER = 12
+SHIP_TECH_MOST = 4
 
 
 @dataclass(frozen=True)
@@ -85,6 +95,16 @@ class Place:
     here: bool = False
     #: Set on a holding of your own.
     mine: bool = False
+    #: **What it looks like**, which is not the same as what kind it is: an
+    #: ARCA drum and a STACK arcology are both habitats and are not the same
+    #: structure. The colony class id where there is one, else the kind —
+    #: the same bargain `sim/anchorage.Anchorage.look` keeps, for the same
+    #: reason, and `ui/place_scene.py` is the reader.
+    look: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.look:
+            object.__setattr__(self, "look", self.kind)
 
     @property
     def kind_name(self) -> str:
@@ -123,7 +143,46 @@ def in_system(game, system=None) -> list:
     out = [p for p in (_port(game, system, here_id),) if p is not None]
     out.extend(_holdings(game, system, here_id))
     out.extend(_downside(game, system, here_id))
+    aboard = ship(game)
+    if aboard is not None:
+        out.append(aboard)
     return sorted(out, key=lambda p: (-p.amenity, -p.heads, p.name))
+
+
+def ship(game):
+    """Your own hull as a place, when there are enough people on it.
+
+    **A LAZARET is a hospital with a drive**, and until this existed it could
+    not offer anybody a check-up: the clinic asks a place, and a ship was not
+    one. What is open aboard is `data/venues_aboard.py`, gated on the tier
+    printed on the hull's card rather than on its tonnage.
+
+    The law aboard is your own, which is why it is zero — a captain's hull is
+    the one place in the Verge where nobody asks what the crew is carrying.
+    """
+    from ..data.chassis import CHASSIS_BY_ID
+    from ..data.venues_aboard import rating
+    from . import lifespan
+    vessel = getattr(game, "ship", None)
+    if vessel is None:
+        return None
+    heads = (max(0, int(getattr(vessel, "crew", 0)))
+             + len(lifespan.active(getattr(game, "officers", []) or [])))
+    chassis = CHASSIS_BY_ID.get(getattr(vessel, "chassis", ""))
+    tier = getattr(chassis, "tier", "") if chassis is not None else ""
+    amenity = rating(tier, heads)
+    if amenity <= 0:
+        return None
+    opened = len(getattr(getattr(game, "research", None), "unlocked", ()) or ())
+    tech = SHIP_TECH_BASE + min(SHIP_TECH_MOST, opened // SHIP_TECH_PER)
+    return Place(
+        id="ship", name=getattr(vessel, "name", "the ship"), kind="ship",
+        what=f"{chassis.name if chassis else 'Your hull'} — "
+             f"{tier.lower() or 'a working ship'}, {heads} aboard.",
+        system_id=getattr(game, "location_id", -1),
+        body_id=str(getattr(game, "orbit_body", "") or ""),
+        heads=heads, people=digit(heads), amenity=amenity, tech=tech,
+        law=0, faction="", here=True, mine=True)
 
 
 def here(game) -> list:
@@ -138,9 +197,19 @@ def by_id(game, place_id: str, system=None):
 
 
 def current(game):
-    """The place a concourse should open on: where you are, else the best."""
+    """The place a concourse should open on.
+
+    Where the hull actually is, and **not your own hull** unless there is
+    nothing else: a ship is always `here`, so it won every tie and the
+    Concourse opened on the slop chest while you were docked at a Fleet Hub.
+    """
     rows = in_system(game)
-    return next((p for p in rows if p.here), rows[0] if rows else None)
+    if not rows:
+        return None
+    ashore = [p for p in rows if p.here and p.kind != "ship"]
+    if ashore:
+        return ashore[0]
+    return next((p for p in rows if p.here), rows[0])
 
 
 def _port(game, system, here_id):
@@ -191,7 +260,8 @@ def _holdings(game, system, here_id) -> list:
             system_id=system.id, body_id=body.id, heads=heads,
             people=digit(heads), amenity=amenity_for(heads),
             tech=max(DEFAULT_TECH, got.tech), law=OWN_LAW,
-            faction="", here=(here_id == body.id), mine=True))
+            faction="", here=(here_id == body.id), mine=True,
+            look=colony.class_id))
     return out
 
 

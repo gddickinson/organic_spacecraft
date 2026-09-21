@@ -13,9 +13,12 @@ the Ship screen's Crew tab had become).
 
 from __future__ import annotations
 
+from PyQt6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
+
 from ..core.util import credits as cr
 from ..sim import arcs as arcs_sim
 from ..sim import roster as roster_sim
+from . import portrait_paint
 from .widgets import Card, Panel, Pill, button, label, note
 
 
@@ -118,8 +121,25 @@ def _card(view, g, officer) -> Card:
     """A person, shallowly: enough to pick them out, not enough to read."""
     got = roster_sim.card(g, officer)
     card = Card()
-    card.add(label(officer.name, "h3"))
-    card.add(label(f"{officer.role_name} · level {officer.level}", "sub"))
+    # The face first. Everything in it is a fact printed in words further
+    # down the same card — the lineage is the colour, the years are in the
+    # hair, the service is the collar, the mood is the mouth — and what a
+    # clinic has fitted is visible, which is the part no number carries.
+    head = QWidget()
+    box = QHBoxLayout(head)
+    box.setContentsMargins(0, 0, 0, 0)
+    box.setSpacing(10)
+    box.addWidget(portrait_paint.chip(g, officer, 62))
+    names = QWidget()
+    stack = QVBoxLayout(names)
+    stack.setContentsMargins(0, 2, 0, 0)
+    stack.setSpacing(2)
+    stack.addWidget(label(officer.name, "h3"))
+    stack.addWidget(label(f"{officer.role_name} · level {officer.level}",
+                          "sub"))
+    stack.addStretch(1)
+    box.addWidget(names, 1)
+    card.add(head)
     row = view.row(Pill(got["band"], got["tint"] or "lumen"),
                    Pill(f"{got['career']} · {got['rank']}", "dim"))
     card.add(row)
@@ -134,6 +154,12 @@ def _card(view, g, officer) -> Card:
             f"{name} {level}" for name, level in got["best"])))
     if officer.trait_name:
         card.add(note(f"{officer.trait_name}: {officer.trait_note}"))
+    face = portrait_paint.portrait.of(g, officer)
+    showing = portrait_paint.portrait.worst_mark(face)
+    if showing:
+        card.add(label(
+            "You can see it: " + portrait_paint.portrait.named(showing)
+            + ".", "note", "lumen", wrap=True))
     told = arcs_sim.status(g, officer)
     if told["arc"] is not None:
         card.add(label(f"{told['arc'].title}  {told['marks']}", "note",

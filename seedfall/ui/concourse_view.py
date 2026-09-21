@@ -33,7 +33,7 @@ from __future__ import annotations
 from ..sim import clinic as clinic_sim
 from ..sim import places as places_sim
 from . import (concourse_body, concourse_law, concourse_night,
-               concourse_shops)
+               concourse_shops, place_scene)
 from .widgets import Panel, TabBar, View, button, label, note
 
 TABS = (("shops", "Shops"), ("board", "Board and bed"),
@@ -72,8 +72,17 @@ class ConcourseView(View):
         self.head(place.name, f"{place.kind_name} · {place.heads:,} people")
         if len(rows) > 1:
             self._picker(rows, place)
+        # The place, drawn: what it is, what is open on it, and who is on it.
+        # A class-A capital of ten million and a shed on a frontier rock used
+        # to be the same screen with different lists.
+        self.col.addWidget(place_scene.PlaceScene(g, place, 160))
+        # Wrapped, not a `note`: a plain note does not fold, so its whole
+        # sentence becomes the screen's minimum width and the Concourse ran
+        # seven pixels past its column at 1040.
+        self.col.addWidget(label(place_scene.legend(g, place), "note",
+                                 wrap=True))
         for line in places_sim.says(place):
-            self.col.addWidget(note(line))
+            self.col.addWidget(label(line, "note", wrap=True))
         if not place.here:
             self.col.addWidget(label(
                 "The hull is not alongside. Prices and shelves are what they "

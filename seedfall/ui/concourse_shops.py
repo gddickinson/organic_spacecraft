@@ -19,6 +19,7 @@ from ..data import kit as kit_table
 from ..data import venues as venue_table
 from ..sim import person as person_sim
 from ..sim import shore
+from . import concourse_hire
 from .widgets import Panel, button, label, note
 
 #: How many things to list in one category before saying there are more. A
@@ -36,6 +37,7 @@ def build(view, place) -> None:
     game = view.game
     view.col.addWidget(_purse(view, game, place))
     _shelves(view, game, place)
+    concourse_hire.build(view, place)
     _doors(view, game, place)
 
 

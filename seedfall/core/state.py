@@ -97,6 +97,11 @@ class Game:
     fitted: dict = field(default_factory=dict)
     taught: dict = field(default_factory=dict)
     iced: list = field(default_factory=list)
+    #: Standing arrangements with a clinic: who is on anagathics, since
+    #: when, and how far they are paid up. Traveller's whole economy turns
+    #: on a payment falling due; this is the first one in the Verge that
+    #: goes on costing after the ship has left.
+    courses: list = field(default_factory=list)
     log: list = field(default_factory=list)
     discovered: dict = field(default_factory=dict)
     xeno_study: dict[str, float] = field(default_factory=dict)

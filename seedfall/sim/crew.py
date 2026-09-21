@@ -363,6 +363,30 @@ def pool_at(game, system) -> list[Officer]:
             if (o.name, o.role) not in aboard]
 
 
+def pool_here(game, place) -> list:
+    """Who is looking for a berth at *this place* this month.
+
+    `pool_at` asks a quay, which was the only place in the Verge anybody
+    stood about hoping for work. A hiring hall, a crewing agency, a factor's
+    rooms and a hiring stone all carry the `hire` tag (`data/venues.py`) and
+    none of them did anything — so a habitat of a million people had four
+    doors offering berths and nobody behind any of them.
+
+    Seeded on the place and the month, like the quay's board and for the
+    same reason: looking must not move the chronicle's luck, and the answer
+    must be the same on the second ask.
+    """
+    from . import shore
+    if not shore.selling(game, place, "hire"):
+        return []
+    rng = RNG(f"{game.seed}:hire:{place.id}:{game.day // 30}")
+    aboard = {(o.name, o.role) for o in game.officers}
+    from . import renown
+    floor = RECRUIT_FLOOR if renown.perk(game, "recruits") else 0
+    return [o for o in recruit_pool(rng, max(1, place.amenity), floor)
+            if (o.name, o.role) not in aboard]
+
+
 #: How long shore leave keeps the ship alongside, in days.
 SHORE_LEAVE_DAYS = 7
 

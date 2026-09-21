@@ -26,6 +26,7 @@ from ..sim import loyalty as loyalty_sim
 from ..sim import person as person_sim
 from ..sim import profile as profile_sim
 from ..sim import roster as roster_sim
+from . import portrait_paint
 from .widgets import Panel, Pill, TabBar, button, label, note
 
 
@@ -72,6 +73,7 @@ def _pick(view, rows, oid: str) -> None:
 
 def _who(g, officer, record) -> Panel:
     p = Panel(officer.name)
+    p.add(portrait_paint.plate(g, officer, 148))
     p.add(label(f"{officer.role_name} · level {officer.level}", "sub"))
     p.add(note(officer.note))
     if officer.trait_name:
@@ -81,6 +83,11 @@ def _who(g, officer, record) -> Panel:
     p.add(note(life_sim.characteristics_line(record)))
     p.add(note("A positive number beside a score is what it adds to a throw; "
                f"anything at or over {checks.TARGET} on two dice succeeds."))
+    showing = portrait_paint.portrait.treatments_showing(g, officer)
+    if showing:
+        p.add(label("What shows", "h3"))
+        p.add(label(", ".join(t.name for t in showing) + ".", "note",
+                    "lumen", wrap=True))
     p.add(label("Years", "h3"))
     p.add_row("Age", f"{lifespan_sim.age_of(officer, g):.0f}")
     p.add_row("Stage", lifespan_sim.stage(officer, g))

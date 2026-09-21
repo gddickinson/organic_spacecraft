@@ -25,6 +25,7 @@ from ..sim import programmes as programmes_sim
 from ..sim import regions as regions_sim
 from ..sim import research as research_sim
 from ..sim import robots as robots_sim
+from ..sim import clinic as clinic_sim
 from ..sim import upkeep as upkeep_sim
 from ..sim.ship import COOK, cool, is_breached, repair_tick
 
@@ -181,6 +182,10 @@ def aboard(game, n: int, ship_n: int, st, r):
     for kind, text in lifespan_sim.tick(game, ship_n, r):
         game.add_log(text, kind)
     for kind, text in upkeep_sim.tick(game, ship_n, r):
+        game.add_log(text, kind)
+    # And whatever a clinic is owed for keeping somebody young. On the
+    # ship's clock, like everything else about the people aboard.
+    for kind, text in clinic_sim.tick(game, ship_n):
         game.add_log(text, kind)
     # The machines eat too, and wear out doing it. On the sector clock rather
     # than the ship's: a Verger left at a holding goes on working while the

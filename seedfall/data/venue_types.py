@@ -97,6 +97,11 @@ class Venue:
     favours: str = ""
     #: Which of `OFFERS` can be bought here.
     offers: tuple = ()
+    #: True for a door on your own hull (`data/venues_aboard.py`). A door is
+    #: aboard or ashore and never both — otherwise a grand hotel would open
+    #: in a cutter's crew quarters the moment the crew got large enough, and
+    #: a sickbay would appear on a Charter concourse.
+    aboard: bool = False
 
     def sells(self, what: str) -> bool:
         return what in self.offers
@@ -109,6 +114,8 @@ def open_to(venue: Venue, place) -> bool:
     people are in it, how advanced it is, and whether the law here tolerates
     it. Everything a concourse does is one of these four.
     """
+    if venue.aboard != (getattr(place, "kind", "") == "ship"):
+        return False
     return (place.amenity >= venue.port
             and place.people >= venue.people
             and place.tech >= venue.tech
