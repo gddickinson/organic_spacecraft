@@ -47,6 +47,7 @@ KIN = {
     "roster": ("muster", "crew"),
     "places": ("concourse", "bodywork", "shore"),
     "clinic": ("bodywork",), "venues_aboard": ("bodywork",),
+    "kindred": ("kindred", "crew"),
     "authority": ("concourse", "rulebook"),
     "careers_civil": ("lifepath",), "career_types": ("lifepath",),
     "treatments": ("bodywork",), "venue_types": ("concourse", "shore"),

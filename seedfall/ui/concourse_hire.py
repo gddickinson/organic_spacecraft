@@ -14,8 +14,12 @@ from __future__ import annotations
 
 from ..core.util import credits as cr
 from ..sim import crew as crew_sim
+from ..data import lineages as lineage_table
+from ..sim import kindred as kindred_sim
+from ..sim import lifespan as lifespan_sim
 from ..sim import loyalty as loyalty_sim
 from ..sim import shore
+from . import portrait_paint
 from .widgets import Card, Panel, button, label, note
 
 
@@ -34,12 +38,15 @@ def build(view, place) -> None:
             note("The board is up and there is nobody under it this month. "
                  "Boards turn over on the thirtieth.")))
         return
+    view.col.addWidget(_admitted(game, place))
     can, why = view.can_trade(place)
     cards = []
     for officer in rows:
         card = Card(selectable=False)
+        card.add(portrait_paint.chip(game, officer, 58))
         card.add(label(officer.name, "h3"))
-        card.add(label(officer.role_name, "sub"))
+        lineage = lifespan_sim.lineage_of(officer, game)
+        card.add(label(f"{officer.role_name} · {lineage.name}", "sub"))
         text = officer.note + (f" · {officer.trait_name}: {officer.trait_note}"
                                if officer.trait_name else "")
         card.add(label(text, "", wrap=True))
@@ -59,6 +66,24 @@ def build(view, place) -> None:
                         enabled=ok and can, tip=why or refusal))
         cards.append(card)
     view.grid(cards, cols=3)
+
+
+def _admitted(game, place) -> Panel:
+    """Which substrates this gate will and will not put on its board.
+
+    A board only ever holds people the port would admit, so a captain who
+    wants a frame has to know which ports have one — and that is a fact
+    about the *power*, not about luck.
+    """
+    p = Panel("Who they will have here")
+    for lineage in lineage_table.LINEAGES:
+        got = kindred_sim.standing(game, place, lineage.id)
+        tint = {"welcome": "chloro", "licensed": "", "watched": "osteo",
+                "refused": "warn"}.get(got["band"], "")
+        p.add_row(lineage.name, got["band"], tint)
+    p.add(note("What a hull draws is another matter: a fabricated hull "
+               "brings frames to its board and a grown one does not."))
+    return p
 
 
 def _hire(view, officer) -> None:

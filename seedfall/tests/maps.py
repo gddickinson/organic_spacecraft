@@ -59,7 +59,7 @@ GROUPS = {
          "assembly_session assembly_vote assembly_lobby"),
         ("The crew and their stories", "crew roster loyalty lifespan upkeep arcs "
          "arc_beats arc_places lifepath checks person"),
-        ("Places and the concourse", "places shore clinic authority"),
+        ("Places and the concourse", "places shore clinic authority kindred"),
         ("The Bloom and the endings", "threat bloom responses legacy"),
         ("The Kith and the sky", "kith kith_acts kith_world phenomena phenomena_tick "
          "phenomena_forecast phenomena_bodies phenomena_shelter phenomena_nova "

@@ -128,6 +128,49 @@ LINEAGES = [
         upkeep={"volatiles": 0.003, "ore": 0.001}, breathes=False, draw=0.2,
         time_sense="A crossing is a long note; it holds it.",
         boredom=0.002, ending="went quiet", common=False),
+
+    # ── the rest of what a crew can be made of ─────────────────────────────
+    #
+    # Five substrates, and all five of them were *people*. The Verge has
+    # walking machines in `sim/robots.py` that nobody could put on a bridge,
+    # a faction whose entire creed is "substrate is an implementation
+    # detail", and clinics that will grow a person to order — and a crew
+    # list could hold none of it. What decides whether any of them may sign
+    # on is `data/kindred.py`; what they *are* is here.
+    Lineage(
+        "frame", "Frame", "A walking machine with a hull number and a "
+        "station. It does not tire, it does not complain, and it is nobody's "
+        "shipmate.",
+        # No ageing worth the name; it wears out instead, which reads on the
+        # same dial as decline and is the honest way to say it.
+        prime=60.0, span=140.0, ageing=0.30, decline=0.055,
+        upkeep={"silicon": 0.0011, "alloy": 0.0008},
+        breathes=False, draw=2.2,
+        time_sense="It logs the crossing and does not mention it.",
+        boredom=0.0, ending="was stripped for parts", common=False),
+
+    Lineage(
+        "mind", "Instanced mind", "A mind running in the hull's own compute, "
+        "wearing whatever body the watch needs. The Sanhedrin's argument, "
+        "walking about.",
+        prime=300.0, span=700.0, ageing=0.10, decline=0.018,
+        upkeep={"silicon": 0.0016, "magnetite": 0.0004},
+        breathes=False, draw=3.4,
+        time_sense="It was doing something else for most of it.",
+        boredom=0.0, ending="was not restored from its last copy",
+        common=False),
+
+    Lineage(
+        "vatborn", "Vatborn", "Grown to order in a tank, to a specification "
+        "somebody paid for, and old enough now to have opinions about it.",
+        # A short prime and a hard stop: the tanks are good and the
+        # shortcuts are real, which is most of why they are cheap to hire.
+        prime=38.0, span=64.0, ageing=1.15, decline=0.07,
+        upkeep={"biomass": _FOOD * 1.1}, breathes=True, draw=0.10,
+        time_sense="A season out of a life that has fewer of them than "
+                   "yours.",
+        boredom=0.016, ending="came to the end of the run they were grown "
+                              "for"),
 ]
 LINEAGES_BY_ID = {lineage.id: lineage for lineage in LINEAGES}
 

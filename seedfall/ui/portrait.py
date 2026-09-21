@@ -41,6 +41,12 @@ SKIN = {
     "dry": (("#c2ced6", "#8b9aa5"), ("#aebbc6", "#798793")),
     "xeno": (("#b98fe0", "#7a5c96"), ("#9d79c4", "#5e4676")),
     "kith": (("#8fc7a6", "#5d8a72"), ("#a7d6ba", "#6f9c84")),
+    # The three substrates that are not flesh, or are flesh to order.
+    "frame": (("#9aa7ae", "#5f6b72"), ("#8e9ba6", "#565f68"),
+              ("#a8b4ba", "#6b767d")),
+    "mind": (("#b6c8d2", "#7d8f9c"), ("#c3d4dd", "#8899a6")),
+    "vatborn": (("#d9b79a", "#a6866c"), ("#c7a68a", "#96795f"),
+                ("#e4c8ae", "#b39a82")),
 }
 DEFAULT_SKIN = SKIN["wet"]
 
@@ -125,6 +131,13 @@ class Face:
     tilt: float = 0.0
     #: Set for somebody who is not standing a watch any more.
     gone: bool = False
+    #: Built rather than born: a frame or an instanced mind. Drawn with a
+    #: visor and panel seams instead of eyes and hair, because a crew list
+    #: that drew a machine as a person with grey skin was telling a lie the
+    #: whole rest of this feature exists to stop telling.
+    built: bool = False
+    #: Which of `data/kindred.CLASSES` anybody at a gate sorts them into.
+    kind: str = "born"
     note: str = ""
     extras: dict = field(default_factory=dict)
 
@@ -145,7 +158,10 @@ def of(game, officer) -> Face:
     years = lifespan_sim.age_of(officer, game)
     prime = max(1.0, float(getattr(lineage, "prime", 45)))
 
+    from ..data import kindred as kin_table
     face = Face()
+    face.kind = kin_table.class_of(getattr(lineage, "id", "wet"))
+    face.built = face.kind in ("machine", "recorded")
     face.skin = rng.pick(list(tones))
     face.hair = rng.pick(list(HAIR))
     face.age = max(0.0, min(1.0, years / span))
@@ -173,14 +189,19 @@ def of(game, officer) -> Face:
             marks.append(shown)
     face.marks = tuple(marks)
     face.strain = clinic_sim.strain_of(game, officer)
+    if face.built:
+        face.bald = 1.0
+        face.grey = 0.0
     face.note = _note(whole, years, face)
     return face
 
 
 def _note(whole, years: float, face: Face) -> str:
     """One line a screen can put under the picture."""
+    from ..data import kindred as kin_table
     record = whole.record
-    said = f"{record.career_name} · {years:.0f} years"
+    said = (f"{kin_table.CLASS_NAME.get(face.kind, face.kind)} · "
+            f"{record.career_name} · {years:.0f} years")
     if face.marks:
         said += f" · {len(face.marks)} fitted and showing"
     return said

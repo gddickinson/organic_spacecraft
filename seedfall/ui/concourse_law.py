@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from ..core.util import credits as cr
 from ..sim import authority as auth_sim
+from ..sim import kindred as kindred_sim
 from ..sim import officials as officials_sim
 from ..sim import person as person_sim
 from ..sim import shore
@@ -28,7 +29,7 @@ def build(view, place) -> None:
         "on you. Everything here is read; nothing on this tab changes "
         "anything."))
     view.row(_rule(game, place), _force(game, place))
-    view.col.addWidget(_against(view, game, place))
+    view.row(_against(view, game, place), _kindred(game, place))
     _desk(view, game, place)
 
 
@@ -103,6 +104,34 @@ def _against(view, game, place) -> Panel:
             p.add_row(who, f"{item.name} — law {item.law}", "warn")
     else:
         p.add(label("Nothing the watch carries is forbidden here.", "note",
+                    "chloro", wrap=True))
+    return p
+
+
+def _kindred(game, place):
+    """What this gate makes of what your crew is *made of*.
+
+    The powers have said what they think since the first commit — *one
+    biology, many bodies*, *built, not bred*, *whatever flies, flies for
+    us*, *substrate is an implementation detail* — and none of it reached a
+    gate until `sim/kindred.py`.
+    """
+    kept = kindred_sim.kept_aboard(game, place)
+    p = Panel("What they make of your crew", "warn" if kept else "")
+    for line in kindred_sim.says(game, place):
+        tint = ("warn" if "refused" in line else
+                "chloro" if "welcome" in line else "")
+        p.add(label(line, "note", tint, wrap=True))
+    if kept:
+        p.add(label("Kept aboard", "h3", "warn"))
+        for row in kept:
+            p.add_row(row["officer"].name,
+                      ", ".join(row["standing"]["why"]) or "not admitted",
+                      "warn")
+        p.add(note("They do not go ashore here, and they know why. It costs "
+                   "their goodwill every day the hull stays."))
+    else:
+        p.add(label("Everybody aboard may walk down the gangway.", "note",
                     "chloro", wrap=True))
     return p
 

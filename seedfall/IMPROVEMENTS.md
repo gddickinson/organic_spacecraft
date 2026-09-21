@@ -129,6 +129,23 @@ bill by the month (`sim/clinic.tick`), and hiring halls hire
   yet balanced. A LAZARET with a vat deck can graft at sea; nothing charges
   it more for doing so than a hospital ashore would.
 
+### Left over from the substrates (2026-09-21)
+
+- **Robots are still two systems.** `sim/robots.py` has machines with hull
+  numbers that work a holding, and `data/lineages.frame` is a machine that
+  stands a watch, and neither knows the other exists. A Verger that earned
+  its way onto a bridge would be the obvious story and is not wired.
+- **A mind has no second body.** The fiction says it wears whatever body
+  the watch needs; mechanically it is an officer like any other. Instancing
+  one into two stations, or losing the body and not the person, is the
+  thing that would make the substrate mean something.
+- **Nobody refuses to serve.** The gates have views about the crew; the
+  *crew* has a view only through the purist conviction. An officer who will
+  not sign to a hull carrying a frame would close the loop.
+- **The vatborn have no story.** They are a lifespan and a price. The
+  specification somebody paid for, and who paid it, is a life-path career
+  waiting to be written.
+
 ## Open — the 2026-08-04 review: the systems layers
 
 A four-agent review (combat, economy, strategic layer, player experience)

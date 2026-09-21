@@ -1,7 +1,7 @@
 """Game rules: ships, shipyards, combat, colonies, research, crew, encounters,
 the Bloom, and the player actions that span them. Never touches Qt.
 
-Contents (207 modules; one line each in `INTERFACE.md`):
+Contents (208 modules; one line each in `INTERFACE.md`):
 
 The ship and its fittings: ship, plans, loading, thrusters, shipyard,
     stores, services, abilities, damage, adaptation, readiness.
@@ -36,7 +36,7 @@ The powers, the law and the Assembly: diplomacy, diplomacy_acts, accord,
     piracy, assembly, assembly_session, assembly_vote, assembly_lobby.
 The crew and their stories: crew, roster, loyalty, lifespan, upkeep, arcs,
     arc_beats, arc_places, lifepath, checks, person.
-Places and the concourse: places, clinic, authority.
+Places and the concourse: places, clinic, authority, kindred.
 The Bloom and the endings: threat, bloom, responses, legacy.
 The Kith and the sky: kith, kith_acts, kith_world, phenomena,
     phenomena_tick, phenomena_forecast, phenomena_bodies, phenomena_shelter,

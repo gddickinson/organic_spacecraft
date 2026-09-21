@@ -17,6 +17,9 @@ from PyQt6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 
 from ..core.util import credits as cr
 from ..sim import arcs as arcs_sim
+from ..data import kindred as kin_table
+from ..sim import kindred as kindred_sim
+from ..sim import lifespan as lifespan_sim
 from ..sim import roster as roster_sim
 from . import portrait_paint
 from .widgets import Card, Panel, Pill, button, label, note
@@ -145,6 +148,8 @@ def _card(view, g, officer) -> Card:
     card.add(row)
     card.add(note(f"{got['terms']} term(s) served · {got['age']:.0f} years "
                   f"old · {got['stage']}"))
+    card.add(note(kin_table.CLASS_NAME[kindred_sim.kind_of(officer, g)]
+                  + " · " + lifespan_sim.lineage_of(officer, g).name))
     if got["home"]:
         card.add(note(f"From {got['home'].lower()}."))
     if got["wants"]:

@@ -24,6 +24,10 @@ from ..sim import crew as crew_sim
 from ..sim import lifespan as lifespan_sim
 from ..sim import person as person_sim
 from ..sim import profile as profile_sim
+from ..data import kindred as kin_table
+from ..data import lineages as lineage_table
+from ..sim import kindred as kindred_sim
+from ..sim import places as places_sim
 from ..sim import roster as roster_sim
 from .dormancy_panel import who_sleeps
 from .widgets import Panel, button, label, note
@@ -42,7 +46,8 @@ def build(view, said: dict) -> None:
     """The whole Watches tab."""
     g = view.game
     view.row(_bill(g, said), _keeping(view, g, said))
-    view.row(_abilities(g), hands_panel(view))
+    view.row(_abilities(g), _made_of(view, g))
+    view.col.addWidget(hands_panel(view))
     view.col.addWidget(who_sleeps(view, g))
     view.row(_ties(g), _ashore(g))
 
@@ -121,6 +126,45 @@ def _abilities(g) -> Panel:
         p.add(label("Nobody aboard is trained in "
                     + ", ".join(roster_sim.pretty(s).lower() for s in gap)
                     + ".", "note", "warn", wrap=True))
+    return p
+
+
+def _made_of(view, g) -> Panel:
+    """What the bridge is made of, and what carrying it costs.
+
+    Eight substrates can stand a watch (`data/lineages.py`), the powers all
+    have a view about which (`data/kindred.py`), and somebody aboard may
+    have one too. A crew list that only counted heads was hiding all three.
+    """
+    read = kindred_sim.complement(g)
+    p = Panel("What the bridge is made of")
+    if not read["heads"]:
+        p.add(note("Nobody aboard but you."))
+        return p
+    for lineage_id, count in sorted(read["lineages"].items(),
+                                    key=lambda r: -r[1]):
+        got = lineage_table.LINEAGES_BY_ID.get(lineage_id)
+        if got is None:
+            continue
+        p.add_row(got.name, f"{count} · "
+                  + kin_table.CLASS_NAME[kin_table.class_of(lineage_id)])
+        p.add(note(got.what))
+    rub = kindred_sim.friction(g)
+    if rub["per_day"] > 0:
+        names = ", ".join(o.name for o in rub["minders"])
+        p.add(label(f"{names} will not call half this bridge shipmates. "
+                    f"It costs about {rub['per_day']:.2f} of their "
+                    "loyalty a day, and it does not stop.", "note", "warn",
+                    wrap=True))
+    elif read["kinds"] > 1:
+        p.add(label(f"{read['kinds']} sorts of being aboard, and nobody "
+                    "minds.", "note", "chloro", wrap=True))
+    place = places_sim.current(g)
+    if place is not None and place.kind != "ship":
+        kept = kindred_sim.kept_aboard(g, place)
+        if kept:
+            p.add(label(f"{len(kept)} of them are not admitted ashore at "
+                        f"{place.name}.", "note", "warn", wrap=True))
     return p
 
 

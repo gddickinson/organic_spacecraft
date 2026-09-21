@@ -149,26 +149,41 @@ def starting_crew(rng) -> list[Officer]:
     return crew
 
 
-def hiring_lineage(rng) -> str:
+def hiring_lineage(rng, game=None, place=None) -> str:
     """What a quay's next candidate is made of.
 
-    Mostly wet, because most of the Verge is. A graft turns up often enough to
-    matter: they cost more to keep and they outlive the rest of the bridge by
-    seventy years, which is a real reason to take one on before a long run.
+    Mostly wet, because most of the Verge is — but **what a hull draws and
+    what a gate admits both decide it now** (`sim/kindred.py`). A fabricated
+    hull draws frames, a synthetic one draws minds, and a Charter capital
+    that refuses aliens ashore does not put one on its board. Called without
+    a game it falls back to the old weighting, which is what the opening
+    crew and a few checks want.
     """
+    if game is not None:
+        from . import kindred
+        return kindred.pick(game, place, rng)
     pool = lineages.recruitable()
     return rng.weighted([(6 if l.id == "wet" else 2, l.id) for l in pool])
 
 
-def recruit_pool(rng, port_level: int, floor: int = 0) -> list[Officer]:
+def recruit_pool(rng, port_level: int, floor: int = 0, game=None,
+                 place=None) -> list[Officer]:
     """Candidates on offer. Bigger ports attract better officers; `floor`
-    lifts every one of them (a Commodore's perk, `sim/renown`)."""
+    lifts every one of them (a Commodore's perk, `sim/renown`).
+
+    `game` and `place` decide what the candidates are *made of*: what the
+    hull draws and what the gate will admit (`sim/kindred.py`).
+    """
     out = []
     for _ in range(2 + port_level):
         officer = make_officer(rng, None, port_level + floor)
         # Left unset an officer is assumed to be of the captain's own stock,
         # which is right for the crew you launched with and wrong for a quay.
-        officer.lineage = hiring_lineage(rng)
+        officer.lineage = hiring_lineage(rng, game, place)
+        # An empty substrate means this gate would admit nobody at all, so
+        # there is no board rather than a board of people who cannot land.
+        if not officer.lineage:
+            continue
         out.append(officer)
     return out
 
@@ -359,7 +374,10 @@ def pool_at(game, system) -> list[Officer]:
     aboard = {(o.name, o.role) for o in game.officers}
     from . import renown
     floor = RECRUIT_FLOOR if renown.perk(game, "recruits") else 0
-    return [o for o in recruit_pool(rng, system.port.level, floor)
+    from . import places as places_sim
+    here = next((p for p in places_sim.in_system(game, system)
+                 if p.kind == "port"), None)
+    return [o for o in recruit_pool(rng, system.port.level, floor, game, here)
             if (o.name, o.role) not in aboard]
 
 
@@ -383,7 +401,8 @@ def pool_here(game, place) -> list:
     aboard = {(o.name, o.role) for o in game.officers}
     from . import renown
     floor = RECRUIT_FLOOR if renown.perk(game, "recruits") else 0
-    return [o for o in recruit_pool(rng, max(1, place.amenity), floor)
+    return [o for o in recruit_pool(rng, max(1, place.amenity), floor,
+                                    game, place)
             if (o.name, o.role) not in aboard]
 
 

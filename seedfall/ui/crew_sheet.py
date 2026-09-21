@@ -24,6 +24,9 @@ from ..sim import lifepath as life_sim
 from ..sim import lifespan as lifespan_sim
 from ..sim import loyalty as loyalty_sim
 from ..sim import person as person_sim
+from ..data import kindred as kin_table
+from ..sim import kindred as kindred_sim
+from ..sim import places as places_sim
 from ..sim import profile as profile_sim
 from ..sim import roster as roster_sim
 from . import portrait_paint
@@ -89,6 +92,18 @@ def _who(g, officer, record) -> Panel:
         p.add(label(", ".join(t.name for t in showing) + ".", "note",
                     "lumen", wrap=True))
     p.add(label("Years", "h3"))
+    lineage = lifespan_sim.lineage_of(officer, g)
+    p.add_row("Made of", f"{lineage.name} · "
+              + kin_table.CLASS_NAME[kin_table.class_of(lineage.id)])
+    p.add(note(lineage.what))
+    place = places_sim.current(g)
+    if place is not None and place.kind != "ship":
+        got = kindred_sim.standing(g, place, lineage.id)
+        p.add_row(f"At {place.name}", got["band"],
+                  "warn" if got["refused"] else
+                  "chloro" if got["band"] == "welcome" else "")
+        p.add(note(kin_table.BAND_NOTE[got["band"]]
+                   + (" — " + ", ".join(got["why"]) if got["why"] else "")))
     p.add_row("Age", f"{lifespan_sim.age_of(officer, g):.0f}")
     p.add_row("Stage", lifespan_sim.stage(officer, g))
     p.add(note(lifespan_sim.note(officer, g)))

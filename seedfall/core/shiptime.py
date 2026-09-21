@@ -26,6 +26,7 @@ from ..sim import regions as regions_sim
 from ..sim import research as research_sim
 from ..sim import robots as robots_sim
 from ..sim import clinic as clinic_sim
+from ..sim import kindred as kindred_sim
 from ..sim import upkeep as upkeep_sim
 from ..sim.ship import COOK, cool, is_breached, repair_tick
 
@@ -186,6 +187,10 @@ def aboard(game, n: int, ship_n: int, st, r):
     # And whatever a clinic is owed for keeping somebody young. On the
     # ship's clock, like everything else about the people aboard.
     for kind, text in clinic_sim.tick(game, ship_n):
+        game.add_log(text, kind)
+    # And what carrying a crew of several substrates costs in goodwill,
+    # which is nothing at all on most bridges and not nothing on some.
+    for kind, text in kindred_sim.tick(game, ship_n):
         game.add_log(text, kind)
     # The machines eat too, and wear out doing it. On the sector clock rather
     # than the ship's: a Verger left at a holding goes on working while the

@@ -85,6 +85,19 @@ CONVICTIONS: list[Conviction] = [
         "anything beyond the airlock.",
         reacts={"consort_lost": -10, "breach": -6, "crew_death": -12,
                 "repair": 4, "parley": 3}),
+
+    # Eight substrates can stand a watch (`data/lineages.py`) and somebody
+    # aboard was always going to have a view about that. The Charter's own
+    # creed — *one biology, many bodies* — with the second half taken
+    # literally and the first half meant.
+    Conviction(
+        "purist", "One biology, and means it",
+        "Will work beside anything that was born. Will not call a recording "
+        "or a frame a shipmate, and says so at the table rather than behind "
+        "it.",
+        reacts={"crew_death": -6, "xeno_study": -6, "parley": -4,
+                "bloom_kill": 5, "licence_served": 4},
+        aligned="charter"),
 ]
 
 CONVICTIONS_BY_ID = {c.id: c for c in CONVICTIONS}

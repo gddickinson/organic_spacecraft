@@ -943,6 +943,74 @@ Concourse opened on the slop chest while you were docked at a Fleet Hub.
 
 Measured afterwards: **244 suites, 1,836 checks, 0 failed, 233 s at `-j 8`.**
 
+## 2026-09-21 — what a crew is made of
+
+The Verge had five substrates and all five of them were **people**. There are
+walking machines in `sim/robots.py` that nobody could put on a bridge, a
+faction whose entire creed is *substrate is an implementation detail*, and
+clinics that will grow a person to order — and a crew list could hold none of
+it, because a crew list held one kind of thing.
+
+**Eight substrates now** (`data/lineages.py`): the wet, the grafted, the Dry
+Choir's recordings, xenoforms and Kith as before, and three new — a **frame**
+(a walking machine with a hull number, which wears out rather than ages), an
+**instanced mind** (running in the hull's compute, wearing whatever body the
+watch needs), and the **vatborn** (grown to a specification somebody paid
+for, cheap to hire and short of run).
+
+**A creed is an attitude, and nobody had ever read one.** The four powers
+have said what they think since the first commit — *One biology, many
+bodies*, *Built, not bred*, *Whatever flies, flies for us*, *Substrate is an
+implementation detail* — and none of it reached a hiring board or a customs
+gate. `data/kindred.py` reads them: six categories anybody at a gate sorts
+people into, four bands from welcome to refused, and three things that
+tighten it in order — whose ground it is, what sort of government, and the
+law level.
+
+Two rules fell out of measuring it, and both are in the code with their
+numbers:
+
+- **A government tightens; only the law shuts a gate.** Without that, an
+  ordinary Charter bureaucracy turned *watched* into *refused* and a Fleet
+  Hub refused six substrates of eight outright.
+- **The law shuts a gate the power already disfavours, and no other.**
+  Without *that*, a law-10 doctrinal world refused everybody — the Dry
+  Choir's own capital would not admit a Dry Choir recording.
+
+**The hull decides who turns up.** A berth is somewhere to live: a fabricated
+hull draws frames and minds to its board, a grown one draws the wet and the
+vat-grown, a xeno hull draws xenoforms. And a board never holds somebody the
+port would refuse at the gate — a port that will admit nobody simply has no
+board, rather than a row of buttons that cannot be pressed.
+
+**Somebody aboard may mind.** A new conviction, *one biology, and means it*,
+and a friction that is nothing at all without both a purist and a mixed
+bridge — and real money in goodwill when both are true. Plus the injury that
+is actually an injury: being the one kept aboard while the rest of the watch
+walks down the gangway.
+
+And **a frame is drawn as a frame**: the portraits carry the category, so the
+three built substrates get a visor, a vent and panel seams instead of eyes,
+hair and a mouth. A crew list that drew a machine as a person with grey skin
+was telling the lie this whole pass exists to stop telling.
+
+Four defects, all of them measured rather than guessed:
+
+- The ashore penalty charged for *papers* as well as refusals, and a
+  well-run year took an officer from 62 to 46. It broke two checks that had
+  been green for months. Only a refusal costs anything now, and only while
+  the hull is actually alongside — a crossing is not somewhere anybody is
+  being refused entry.
+- The friction was scaled a hundredth too small: under a tenth of
+  `loyalty.DRIFT_PER_DAY` the drift simply swallowed it and a month of it
+  read as a *rise*.
+- A board at a gate that admits nobody fell back to offering a wet
+  candidate the same gate refused.
+- `game._kindred_said` is an undeclared attribute, and `core/save.STRICT`
+  took the save down. It lives in `game.flags` now.
+
+Measured afterwards: **245 suites, 1,844 checks, 0 failed, 258 s at `-j 8`.**
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one

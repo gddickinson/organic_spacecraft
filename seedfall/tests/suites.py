@@ -81,6 +81,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("muster", "test_muster", "the crew, whole"),
     SuiteSpec("concourse", "test_concourse", "places, and what they sell"),
     SuiteSpec("bodywork", "test_bodywork", "bodies, berths and faces"),
+    SuiteSpec("kindred", "test_kindred", "what a crew is made of"),
     SuiteSpec("plotting", "test_plotting", "plotting against moving things"),
     SuiteSpec("position", "test_position", "ship position"),
     SuiteSpec("cameras", "test_cameras", "cameras"),

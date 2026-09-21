@@ -95,7 +95,10 @@ def paint(p: QPainter, rect: QRectF, face: portrait.Face) -> None:
     p.restore()
 
     _ears(p, cx, cy, rx, ry, face)
-    _features(p, cx, cy, rx, ry, face)
+    if face.built:
+        _built(p, cx, cy, rx, ry, face)
+    else:
+        _features(p, cx, cy, rx, ry, face)
     _marks(p, cx, cy, rx, ry, face)
     # The rim goes *under* the hair. Drawn over it, the head's top arc cut a
     # bright band across the crown and everybody looked like they were
@@ -236,6 +239,44 @@ def _features(p: QPainter, cx: float, cy: float, rx: float, ry: float,
                    QPointF(cx - rx * 0.36, mouth_y + ry * 0.06))
 
 
+def _built(p: QPainter, cx: float, cy: float, rx: float, ry: float,
+           face: portrait.Face) -> None:
+    """A frame or an instanced mind: a visor, a vent, and panel seams.
+
+    Drawn instead of eyes and a mouth rather than beside them. A machine
+    with a face is a costume, and the whole point of eight substrates is
+    that a crew list stops pretending everybody is the same thing.
+    """
+    dark = QColor(face.skin[1]).darker(160)
+    lit = QColor(theme.tint("lumen" if face.kind == "machine" else "steel"))
+    eye_y = cy + ry * 0.04
+    # The visor: one band across, lit, with a brighter core.
+    band = QRectF(cx - rx * 0.80, eye_y - ry * 0.16, rx * 1.60, ry * 0.30)
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(dark)
+    p.drawRoundedRect(band, ry * 0.10, ry * 0.10)
+    glow = QColor(lit)
+    glow.setAlpha(170)
+    p.setBrush(glow)
+    p.drawRoundedRect(band.adjusted(rx * 0.10, ry * 0.06,
+                                    -rx * 0.10, -ry * 0.07),
+                      ry * 0.05, ry * 0.05)
+    # A vent where a mouth would be, and seams down the skull.
+    p.setPen(QPen(dark, max(1.2, rx * 0.07)))
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    mouth_y = cy + ry * (0.60 + 0.10 * face.jaw)
+    for n in range(3):
+        at = mouth_y + ry * 0.08 * n
+        p.drawLine(QPointF(cx - rx * 0.24, at), QPointF(cx + rx * 0.24, at))
+    seam = QColor(dark)
+    seam.setAlpha(170)
+    p.setPen(QPen(seam, max(1.0, rx * 0.05)))
+    p.drawLine(QPointF(cx, cy - ry * 1.20), QPointF(cx, eye_y - ry * 0.20))
+    for side in (-1, 1):
+        p.drawLine(QPointF(cx + side * rx * 0.58, cy - ry * 1.05),
+                   QPointF(cx + side * rx * 0.86, cy - ry * 0.10))
+
+
 def _marks(p: QPainter, cx: float, cy: float, rx: float, ry: float,
            face: portrait.Face) -> None:
     """What a clinic has fitted, where it shows.
@@ -306,7 +347,7 @@ def _marks(p: QPainter, cx: float, cy: float, rx: float, ry: float,
 def _hair(p: QPainter, cx: float, cy: float, rx: float, ry: float,
           face: portrait.Face) -> None:
     """Over the skull, and greying from the prime."""
-    if face.bald > 0.92:
+    if face.built or face.bald > 0.92:
         return
     colour = QColor(face.hair)
     grey = QColor(portrait.GREY)
