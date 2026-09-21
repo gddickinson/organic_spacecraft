@@ -278,6 +278,15 @@ class ShipView(View):
                 conviction = loyalty_sim.conviction_of(o)
                 if conviction is not None:
                     p.add(label(conviction.name, "note"))
+                # **Who they were before the berth** (`sim/lifepath.py`):
+                # six characteristics, the service they came up through, and
+                # what they can actually do. Derived from what the chronicle
+                # already knows about them, so an officer signed on two years
+                # ago has one of these the day it ships.
+                from ..sim import lifepath as life_sim
+                record = life_sim.of(g, o)
+                p.add(label(f"{record.career_name} — {record.rank}  ·  "
+                            + life_sim.skills_line(record), "note"))
         else:
             p.add(note("No officers signed on."))
         return p

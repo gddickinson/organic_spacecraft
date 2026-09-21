@@ -45,6 +45,15 @@ def _officer(g, officer) -> Panel:
     p = Panel(f"{officer.name} — {officer.role_name}")
     p.add_row("Loyalty", f"{loyalty_sim.loyalty_of(officer):.0f} · {band}",
               tint)
+    # **Who they were before the berth** (`sim/lifepath.py`). Their story is
+    # what happens to them aboard; this is the twenty years before it, and an
+    # officer without one was a name, a station and a number.
+    from ..sim import lifepath as life_sim
+    record = life_sim.of(g, officer)
+    p.add(note(life_sim.characteristics_line(record)))
+    p.add(note(life_sim.skills_line(record)))
+    for line in life_sim.says(record):
+        p.add(note(line))
     p.add(label(f"{arc.title}  {told['marks']}", "h3",
                 "chloro" if told["signature"] else "lumen"))
     p.add(note(arc.blurb))

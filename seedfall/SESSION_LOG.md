@@ -663,6 +663,56 @@ it charges. See `IMPROVEMENTS.md`.
 
 Measured afterwards: **239 suites, 1,801 checks, 0 failed, 197 s at `-j 8`**.
 
+## 2026-09-20 — two dice, and a life lived before the berth
+
+The second stage of the Traveller programme, and the two pieces the rest of
+it hangs off.
+
+**One grammar** (`sim/checks.py`). Traveller has resolved every task the same
+way since 1977 and it fits on one line: `2d6 + skill + characteristic DM +
+difficulty DM ≥ 8`. SEEDFALL resolves a dozen acts a dozen ways — a
+percentage here, a weighted pick there, a bespoke curve for digging — and
+none of them can be compared, taught, or shown to a player as a number they
+could improve. Six characteristics, a seven-rung difficulty ladder, −3 for
+untrained, and **the Effect**: a check answers *by how much*, which is what
+turns a roll into a sentence. `chance` is a count over all thirty-six
+outcomes and is the same arithmetic `roll` uses, so a screen can quote the
+odds before the button and be honest — *preview equals act*, applied to a
+die. It replaces nothing on its own: an act with a tuned curve keeps it.
+
+**A life lived** (`data/careers.py`, `sim/lifepath.py`). Eight careers of the
+Verge — the Charter Service, the Concordat Yards, Freehold haulers, the
+Orders, prospectors, the Picket, Kessel's Reach, and drifting — each with
+what gets you in, what you have to survive, what you learn, what goes wrong,
+and what you leave with. An officer's record is **derived, never stored**,
+the same rule the world profile follows: a pure function of their id,
+station, level, trait and age plus the sector's seed. No field added to a
+saved dataclass, no migration, and an officer signed on two years ago has a
+history the day this ships.
+
+Measured across eighteen officers: five careers, seventeen skills, fifty-one
+events, six mishaps over seventy terms, and skills reaching level 5. Two
+things had to be fixed before it read as a person rather than a table:
+
+- **Everybody came out flat.** Picking freely from a career's six skills over
+  three terms gave a "Chief Engineer" Admin 0, Engineer 0, Vacc Suit 0 —
+  somebody shown each job once. `DEEPEN` makes a term usually deepen
+  something they already do, which is why Traveller characters specialise.
+- **The same thing happened to people four times.** "Caught a fault nobody
+  else had seen", three terms running: the pick had no memory.
+
+It reads on the Ship screen's Crew tab beside each officer's own story —
+characteristics with their DMs, skills with levels, the terms, what happened
+in each, how it ended, and the worst year's odds when there was one.
+
+`declared` and `reachable` caught four more pieces of dead code on the way
+in: two fields the record never read back and two functions of the grammar
+nothing walked through. The fields are read now (a term names its service
+only when the service *changed*, which is the one thing worth seeing in a
+record); the functions were deleted.
+
+Measured afterwards: **240 suites, 1,809 checks, 0 failed, 195 s at `-j 8`**.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one

@@ -3,6 +3,24 @@
 Running progress log. Newest first.
 
 
+## 2026-09-20 — Two dice, and a life lived before the berth
+
+Traveller's resolution grammar (`sim/checks.py`): six characteristics, a
+seven-rung difficulty ladder, −3 for untrained, and `2d6 + skill +
+characteristic DM + difficulty DM ≥ 8`, with the Effect — a check answers *by
+how much*. `chance` is an exact count over thirty-six outcomes and the same
+arithmetic the roll uses, so a screen can quote odds it will honour.
+
+And the life behind every officer (`data/careers.py`, `sim/lifepath.py`):
+eight careers of the Verge, four-year terms, survival and advancement throws,
+skills that deepen, mishaps that end a career, ageing after thirty-four, and
+what they mustered out with. Derived from what the chronicle already knows,
+so nothing is saved and an officer from an old save has a history at once. It
+reads on the Ship screen's Crew tab.
+
+240 suites, 1,809 checks, 0 failed.
+
+
 ## 2026-09-20 — A world in eight characters
 
 *Traveller*'s Universal World Profile, laid over the Verge. Every world now

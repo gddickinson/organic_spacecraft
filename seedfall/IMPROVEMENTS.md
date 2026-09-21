@@ -73,14 +73,15 @@ SEEDFALL already has:
    balance pass of its own — re-pin `renown`, `chronicle`, `freight`,
    `freightlines` and `wharfage` against the new curve, and probably a
    smaller shift than the table's first draft.
-2. **A 2d6 grammar** — characteristics (six of them), skills with levels, and
-   `2d6 + skill + characteristic DM ≥ 8` with difficulty DMs and an Effect.
-   The game resolves a dozen acts with ad-hoc odds today; one grammar under
-   all of them is what makes a skill worth having.
-3. **Life-path beginnings** — careers, four-year terms, survival and
-   advancement rolls, skills tables, mishaps, events, ageing after the fourth
-   term, and mustering-out benefits. `ui/beginning_view.py` already asks who
-   you are; this is what Traveller does with that question.
+2. ~~**A 2d6 grammar**~~ — landed as `sim/checks.py`: six characteristics, a
+   seven-rung difficulty ladder, −3 untrained, and the Effect. **What is left
+   is the bringing-across**: every act that still resolves on an ad-hoc curve
+   (survey, dig, repair, haggling, the docking approach) could be re-stated
+   in the grammar, one at a time, each with its own re-pinning.
+3. ~~**Life-path beginnings**~~ — landed as `data/careers.py` and
+   `sim/lifepath.py`, derived per officer. **What is left is the captain**:
+   `ui/beginning_view.py` still asks who you are with three choices, where
+   Traveller would have you play the terms out and take what they give you.
 4. **Patrons and tickets** — work that comes from a person, with a chance the
    job is not what it was said to be. The contract board is the shape; what
    is missing is the person and the lie.

@@ -57,7 +57,8 @@ GROUPS = {
          "ventures war armada fleets grudge officials law governance dockets "
          "tribunal debts warrants enforce clemency piracy assembly "
          "assembly_session assembly_vote assembly_lobby"),
-        ("The crew and their stories", "crew loyalty lifespan upkeep arcs arc_beats arc_places"),
+        ("The crew and their stories", "crew loyalty lifespan upkeep arcs arc_beats arc_places "
+         "lifepath checks"),
         ("The Bloom and the endings", "threat bloom responses legacy"),
         ("The Kith and the sky", "kith kith_acts kith_world phenomena phenomena_tick "
          "phenomena_forecast phenomena_bodies phenomena_shelter phenomena_nova "
