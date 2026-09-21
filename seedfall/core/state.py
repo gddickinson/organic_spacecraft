@@ -87,6 +87,16 @@ class Game:
     #: in the bank are still yours. See `sim/shore.py`.
     kit: list = field(default_factory=list)
     deposited: float = 0.0
+    #: What a concourse has done to the people aboard (`sim/clinic.py`), all
+    #: three keyed by the officer's id **as a string**, because a save is
+    #: JSON and JSON has no integer keys — a dict keyed by `officer.id` came
+    #: back from a reload keyed by `"3"` and silently belonged to nobody.
+    #: `fitted` is what is in them and stays in them; `taught` is skills paid
+    #: for and learned, added on top of the derived service record; `iced` is
+    #: who is in cold storage, and where, and since when.
+    fitted: dict = field(default_factory=dict)
+    taught: dict = field(default_factory=dict)
+    iced: list = field(default_factory=list)
     log: list = field(default_factory=list)
     discovered: dict = field(default_factory=dict)
     xeno_study: dict[str, float] = field(default_factory=dict)

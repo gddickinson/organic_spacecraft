@@ -157,6 +157,33 @@ def roll(game, order: str = "station") -> list:
     return sorted(officers, key=lambda o: places.get(o.role, 99))
 
 
+def short_names(officers) -> dict:
+    """The shortest label that still tells two people apart, by officer id.
+
+    A name bar that reads "Okonkwo · Adeyemi · Okonkwo" is a bar with a
+    broken button on it — two officers on one bridge shared a surname and
+    both tabs looked like the same person. Surnames where they are unique,
+    first names where they are not, and the whole name when even that
+    collides.
+    """
+    rows = list(officers)
+    last: dict = {}
+    for officer in rows:
+        bits = str(getattr(officer, "name", "")).split()
+        last.setdefault(bits[-1] if bits else "", []).append(officer)
+    out = {}
+    for name, sharing in last.items():
+        for officer in sharing:
+            bits = str(getattr(officer, "name", "")).split()
+            if len(sharing) == 1:
+                out[officer.id] = name
+            elif len(bits) > 1:
+                out[officer.id] = f"{bits[0]} {name[:1]}."
+            else:
+                out[officer.id] = officer.name
+    return out
+
+
 def pretty(skill: str) -> str:
     """A skill id as a person would say it."""
     return skill.replace("_", " ").title()

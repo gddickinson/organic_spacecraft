@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from ..data import kit as kit_table
 from ..data import venues as venue_table
+from . import places as places_sim
 from . import profile as profile_sim
 
 #: What a chandler pays for a thing you are selling back, as a share of what
@@ -36,58 +37,81 @@ BUYBACK = 0.45
 ASHORE_SHARE = 0.6
 
 
-def _profile(game, system):
-    """The profile of the world this port stands on, or None."""
-    world = profile_sim.port_world(system)
-    if world is None:
-        return None
-    return profile_sim.profile(game, system, world)
+def _where(game, at):
+    """A place, whatever was handed in.
 
-
-def open_here(game, system, kind: str = "") -> list:
-    """Every venue this port carries, best first.
-
-    Gated on the starport class and the population, so where you put in
-    decides what there is to do — which is the whole reason a profile is
-    worth reading before a crossing.
+    **Every counter here takes a place now** (`sim/places.py`) — a quay, a
+    habitat drum, a holding of yours, a power's settlement — because people
+    are not only at starports and a drum with a million in it had nothing to
+    sell anybody. A *system* is still accepted and means its port, so every
+    caller written before places existed still reads the quay it meant.
     """
-    got = _profile(game, system)
-    if got is None or not getattr(system, "port", None):
+    if at is None:
+        return None
+    if hasattr(at, "amenity"):
+        return at
+    return next((p for p in places_sim.in_system(game, at)
+                 if p.kind == "port"), None)
+
+
+def open_here(game, at, kind: str = "") -> list:
+    """Every door open at this place, best first.
+
+    Gated on four things and nothing else (`data/venue_types.open_to`): how
+    much of a place it is, how many people are in it, how advanced it is, and
+    whether the law here tolerates it. That last one runs backwards — a chop
+    shop and a fence need a *low* law level — which is why a frontier rock
+    offers a captain things a Charter arcology will not.
+    """
+    place = _where(game, at)
+    if place is None or not places_sim.livable(place):
         return []
     rows = venue_table.VENUES if not kind else venue_table.BY_KIND.get(kind, ())
-    here = [v for v in rows
-            if got.starport >= v.port and got.population >= v.people]
+    here = [v for v in rows if venue_table.open_to(v, place)]
     return sorted(here, key=lambda v: (-v.cr, v.name))
 
 
-def shelves(game, system, category: str = "") -> list:
-    """What the chandler here has, as `(item, price, legal)` rows.
+def selling(game, at, offer: str) -> list:
+    """Every door here that sells one particular thing.
+
+    The join between a concourse and the modules that trade through it: the
+    clinic asks for `surgery`, the hiring hall for `hire`, the chandler for
+    `shelf`, and none of them needs to know the venue tables.
+    """
+    return [v for v in open_here(game, at) if v.sells(offer)]
+
+
+def shelves(game, at, category: str = "") -> list:
+    """What is on a shelf here, as `(item, price, legal)` rows.
 
     Sorted by what it costs, because that is the order a captain shops in.
-    An illegal thing is still *listed* — the back-room dealer has it and the
-    desk will still take it off you at the gate, and knowing both is the
-    decision.
+    An illegal thing is still *listed* where somebody carries it — the back
+    room and the fence both do — and the desk will still take it off you at
+    the gate, so knowing both is the decision.
+
+    **Somebody has to be selling.** A place with nobody on it, or with no
+    door that offers `shelf`, answers with an empty counter rather than a
+    catalogue; a rocky body with no port was answering with the lot, because
+    a profile is a fact about a *world* and a shop is a fact about a *place*.
     """
-    got = _profile(game, system)
-    # **No port, no shelf.** A system with a rocky body and nobody on it was
-    # answering with a full catalogue, because the profile is a fact about a
-    # *world* and a chandler is a fact about a *port*.
-    if got is None or not getattr(system, "port", None):
+    place = _where(game, at)
+    if place is None or not selling(game, place, "shelf"):
         return []
-    back = any(v.id == "backroom" for v in open_here(game, system, "chandler"))
+    # A back room or a fence is what puts contraband on a shelf at all.
+    back = bool(selling(game, place, "fence"))
     rows = []
     for item in kit_table.ITEMS:
         if category and item.category != category:
             continue
         if item.cr <= 0:
             continue                       # keepsakes are not for sale
-        if not kit_table.stocked_at(item, got.tech):
+        if not kit_table.stocked_at(item, place.tech):
             continue
-        legal = kit_table.legal_at(item, got.law)
+        legal = kit_table.legal_at(item, place.law)
         if not legal and not back:
             continue                       # only a back room carries these
         rows.append({"item": item,
-                     "cr": kit_table.price_at(item, got.tech),
+                     "cr": kit_table.price_at(item, place.tech),
                      "legal": legal})
     return sorted(rows, key=lambda r: (r["item"].category, r["cr"]))
 
@@ -98,9 +122,9 @@ def owned(game) -> list:
             if i in kit_table.ITEM_BY_ID]
 
 
-def buy(game, system, item_id: str) -> dict:
-    """Buy one thing off the chandler's shelf."""
-    row = next((r for r in shelves(game, system) if r["item"].id == item_id),
+def buy(game, at, item_id: str) -> dict:
+    """Buy one thing off a shelf here."""
+    row = next((r for r in shelves(game, at) if r["item"].id == item_id),
                None)
     if row is None:
         return {"ok": False, "why": "They do not stock it here."}
@@ -116,18 +140,18 @@ def buy(game, system, item_id: str) -> dict:
     return {"ok": True, "why": "", "cr": row["cr"], "item": row["item"]}
 
 
-def sell(game, system, item_id: str) -> dict:
+def sell(game, at, item_id: str) -> dict:
     """Sell something back. Always below what the same shelf asks."""
     held = list(getattr(game, "kit", []) or [])
     if item_id not in held:
         return {"ok": False, "why": "You do not have one."}
-    got = _profile(game, system)
+    place = _where(game, at)
     item = kit_table.ITEM_BY_ID.get(item_id)
-    if got is None or item is None:
+    if place is None or item is None or not selling(game, place, "shelf"):
         return {"ok": False, "why": "Nobody here is buying."}
     if item.cr <= 0:
         return {"ok": False, "why": "It is worth nothing to anybody else."}
-    paid = max(1, int(kit_table.price_at(item, got.tech) * BUYBACK))
+    paid = max(1, int(kit_table.price_at(item, place.tech) * BUYBACK))
     held.remove(item_id)
     game.kit = held
     game.credits += paid
@@ -137,11 +161,12 @@ def sell(game, system, item_id: str) -> dict:
 
 # ── the bank ───────────────────────────────────────────────────────────────
 
-def bank_here(game, system) -> bool:
-    return bool(open_here(game, system, "bank"))
+def bank_here(game, at) -> bool:
+    """Whether anything here will hold money for you."""
+    return bool(selling(game, at, "bank"))
 
 
-def deposit(game, system, amount: float) -> dict:
+def deposit(game, at, amount: float) -> dict:
     """Put money somewhere that is not the hull.
 
     **No interest, and that is deliberate.** A bank that paid a captain to
@@ -150,7 +175,7 @@ def deposit(game, system, amount: float) -> dict:
     the money is not aboard when the hull is boarded, and that it can be
     drawn at any other port that has a counting house.
     """
-    if not bank_here(game, system):
+    if not bank_here(game, at):
         return {"ok": False, "why": "There is nowhere here to bank it."}
     amount = int(max(0, min(amount, game.credits)))
     if amount <= 0:
@@ -162,9 +187,9 @@ def deposit(game, system, amount: float) -> dict:
     return {"ok": True, "why": "", "cr": amount}
 
 
-def withdraw(game, system, amount: float) -> dict:
+def withdraw(game, at, amount: float) -> dict:
     """Draw on the account, at any port that has a counter."""
-    if not bank_here(game, system):
+    if not bank_here(game, at):
         return {"ok": False, "why": "There is nowhere here to draw on it."}
     held = float(getattr(game, "deposited", 0.0))
     amount = int(max(0, min(amount, held)))
@@ -194,7 +219,7 @@ def ashore_cost(game, venue) -> int:
     return int((venue.cr + venue_table.ASHORE_OVERHEAD) * heads)
 
 
-def ashore_note(game, system, venue) -> str:
+def ashore_note(game, at, venue) -> str:
     """What it would buy, before the captain pays for it."""
     said = [f"{ashore_cost(game, venue):,} credits for the watch"]
     if venue.morale:
@@ -208,7 +233,7 @@ def ashore_note(game, system, venue) -> str:
     return "  ·  ".join(said)
 
 
-def ashore(game, system, venue_id: str, rng=None) -> dict:
+def ashore(game, at, venue_id: str, rng=None) -> dict:
     """Take the watch ashore. Money out; morale, loyalty and talk back.
 
     **The draw is the sim's, not the screen's.** A night ashore is an act and
@@ -217,8 +242,9 @@ def ashore(game, system, venue_id: str, rng=None) -> dict:
     game. A check may put its own stream in.
     """
     rng = rng if rng is not None else game.rng("ashore")
+    place = _where(game, at)
     venue = venue_table.VENUE_BY_ID.get(venue_id)
-    if venue is None or venue not in open_here(game, system):
+    if place is None or venue is None or venue not in open_here(game, place):
         return {"ok": False, "why": "That is not open here."}
     cost = ashore_cost(game, venue)
     if game.credits < cost:
@@ -236,19 +262,22 @@ def ashore(game, system, venue_id: str, rng=None) -> dict:
                 continue
             loyalty_sim.shift(officer, venue.loyalty)
             lifted.append(officer.name)
-    if venue.standing and getattr(system, "port", None):
-        game.adjust_rep(system.port.faction, venue.standing)
+    # Standing is with whoever holds the place. A holding of your own has
+    # no faction to be pleased with you, so being seen there buys nothing.
+    if venue.standing and place.faction:
+        game.adjust_rep(place.faction, venue.standing)
     heard = ""
     if venue.rumour and rng.chance(venue.rumour):
-        heard = _heard(game, system, rng)
+        heard = _heard(game, place, rng)
     game.add_log(
-        f"The watch ashore at {venue.name.lower()}: {cost:,} credits."
+        f"The watch ashore at {venue.name.lower()}, {place.name}: "
+        f"{cost:,} credits."
         + (f" {heard}" if heard else ""), "good")
     return {"ok": True, "why": "", "cr": cost, "heard": heard,
             "lifted": lifted}
 
 
-def _heard(game, system, rng) -> str:
+def _heard(game, place, rng) -> str:
     """Something worth hearing, in the concourse's own voice.
 
     Drawn from what the sector actually is rather than invented: a world
@@ -257,7 +286,7 @@ def _heard(game, system, rng) -> str:
     """
     from ..data import uwp
     rows = [s for s in game.galaxy.systems
-            if s.id != getattr(system, "id", -1) and s.port]
+            if s.id != getattr(place, "system_id", -1) and s.port]
     if not rows:
         return "Nothing worth repeating."
     other = rng.pick(rows[:12])

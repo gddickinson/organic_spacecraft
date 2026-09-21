@@ -199,52 +199,9 @@ class MainWindow(QMainWindow):
         log_panel.fit(self, ev.size().width())
 
     def _make_views(self) -> None:
-        from .battle_view import BattleView
-        from .codex_view import CodexView
-        from .despatch_view import DespatchView
-        from .diplomacy_view import DiplomacyView
-        from .law_view import LawView
-        from .expedition_view import ExpeditionView
-        from .gunnery_view import GunneryView
-        from .helm_view import HelmView
-        from .pilot_view import PilotView
-        from .minigame_view import DecodingView, DockingView
-        from .empire_view import EmpireView
-        from .map_view import MapView
-        from .port_view import PortView
-        from .crew_view import CrewView
-        from .ship_view import ShipView
-        from .system_view import SystemView
-        from .tech_view import TechView
-        from .dig_view import DigView
-        from .help_view import HelpView
-        from .legacy_view import LegacyView
-        from .demand_view import DemandView
-        from .envoy_view import EnvoyView
-        from .transit_view import TransitView
-        from .yard_view import YardView
-
-        classes = {
-            "map": MapView, "system": SystemView, "port": PortView,
-            "ship": ShipView, "yard": YardView, "tech": TechView,
-            "empire": EmpireView, "codex": CodexView, "battle": BattleView,
-            "ground": ExpeditionView, "helm": HelmView,
-            "gunnery": GunneryView,
-            "crew": CrewView,
-            "pilot": PilotView,
-            "diplomacy": DiplomacyView, "law": LawView,
-            "despatches": DespatchView,
-            "docking": DockingView, "decoding": DecodingView,
-            "transit": TransitView, "dig": DigView, "legacy": LegacyView,
-            "help": HelpView,
-            "demand": DemandView,
-            "envoy": EnvoyView,
-        }
-        for vid, cls in classes.items():
-            view = cls(self)
-            view.hide()
-            self.stack_layout.addWidget(view)
-            self.views[vid] = view
+        """Every screen, made once. The table is `ui/view_registry.py`."""
+        from . import view_registry
+        view_registry.build(self)
 
     # ── navigation ─────────────────────────────────────────────────────────
 

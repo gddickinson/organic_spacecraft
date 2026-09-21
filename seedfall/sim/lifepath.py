@@ -230,9 +230,44 @@ def of(game, officer) -> Record:
     _age(record, rng, served)
     _muster(record, rng, career, served)
     _qualify(record, officer)
+    _bought(game, record, officer)
     if not record.ended:
         record.ended = f"Left the {career.name} of their own accord."
     return record
+
+
+def _bought(game, record: Record, officer) -> None:
+    """Fold on what a concourse has done to them since they signed on.
+
+    A service record is *derived* and may be recomputed at will; a fitted
+    cortex link and a course somebody paid for are **facts**, and they live
+    on the save (`sim/clinic.py`, `game.fitted` and `game.taught`). Folding
+    them on here rather than at the twenty places that read a record is what
+    makes a muscle weave show up in the gunnery check, the boarding action,
+    the ship's abilities table and the officer's own sheet at once.
+
+    Nothing is taken away and nothing goes past `SCORE_CAP`: a treatment is
+    a floor under a characteristic, never a replacement for a life.
+    """
+    if game is None:
+        return
+    from ..data import treatments as clinic_table
+    key = str(getattr(officer, "id", 0))
+    for tid in (getattr(game, "fitted", None) or {}).get(key, []):
+        got = clinic_table.TREATMENT_BY_ID.get(tid)
+        if got is None:
+            continue
+        for cid, delta in got.gives.items():
+            if cid in record.characteristics:
+                record.characteristics[cid] = min(
+                    clinic_table.SCORE_CAP,
+                    record.characteristics[cid] + delta)
+        if got.skill:
+            record.skills[got.skill] = max(record.skills.get(got.skill, -1), 0)
+    for name, levels in (getattr(game, "taught", None) or {}).get(
+            key, {}).items():
+        if name in table.SKILLS:
+            record.skills[name] = record.skills.get(name, -1) + int(levels)
 
 
 def _qualify(record: Record, officer) -> None:

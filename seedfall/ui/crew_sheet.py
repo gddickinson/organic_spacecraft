@@ -56,8 +56,8 @@ def build(view, officer) -> None:
 def _name_bar(view, g, officer) -> None:
     """Everybody aboard, so one click reads the next person."""
     rows = roster_sim.roll(g, view.order)
-    bar = TabBar([(str(o.id), o.name.split()[-1]) for o in rows],
-                 str(officer.id))
+    named = roster_sim.short_names(rows)
+    bar = TabBar([(str(o.id), named[o.id]) for o in rows], str(officer.id))
     bar.changed.connect(lambda oid: _pick(view, rows, oid))
     view.col.addWidget(bar)
 
