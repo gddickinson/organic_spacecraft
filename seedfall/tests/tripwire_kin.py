@@ -40,6 +40,8 @@ KIN = {
     "impulse": ("impulse", "conn"),
     "knock": ("knock",),
     "shock": ("shock", "conn"),
+    "turret": ("turret",), "gunsight": ("turret",), "foes": ("turret",),
+    "skirmish": ("turret",), "drills": ("turret",), "manning": ("turret",),
     "moorings": ("moorings", "conn"),
     "clearance": ("clearance", "berthing"),
     "freeflight": ("freeflight", "freeframe", "conn", "pilotscreen"),

@@ -133,6 +133,13 @@ data/  ──►  world/  ──►  sim/  ──►  ui/  ──►  __main__
     log line.
   - `tests/test_uirules` keeps `add_log(` and `.rng(` out of `ui/`, apart from
     an argued allow-list.
+- **Two grains of combat, and one number crosses.** `sim/combat` is the
+  engagement — turns, five range bands, a captain deciding. `sim/skirmish` is
+  one gun in real time, in seconds and kilometres, with the sky moving round
+  a hull that holds its heading. A seat manned off a battle banks what it
+  dealt back into that battle through `manning.land`, once and in one
+  direction; nothing else crosses, because two models of one fight that
+  disagreed would be the worst bug this game could have.
 - **`ship.stats()` is the single source of derived ship numbers:** chassis,
   parts, research, officers, traits, arc signatures and adaptations.
 - **Views subclass `ui/view_base.View`.** A screen that updates in place

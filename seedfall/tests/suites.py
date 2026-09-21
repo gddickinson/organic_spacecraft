@@ -74,6 +74,7 @@ SUITES: list[SuiteSpec] = [
     SuiteSpec("fog", "test_fog", "fog"),
     SuiteSpec("conn", "test_conn", "conn"),
     SuiteSpec("shock", "test_shock", "what a contact looks like"),
+    SuiteSpec("turret", "test_turret", "a gun with hands on it"),
     SuiteSpec("plotting", "test_plotting", "plotting against moving things"),
     SuiteSpec("position", "test_position", "ship position"),
     SuiteSpec("cameras", "test_cameras", "cameras"),

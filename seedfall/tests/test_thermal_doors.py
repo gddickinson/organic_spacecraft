@@ -46,7 +46,15 @@ RAW = re.compile(r"\.heat\s*\+=")
 #: `sim/customs.py` has its own `add_heat` — scrutiny from the revenue, not
 #: thermal load. It shares nothing with `sim/ship.py` and imports nothing from
 #: it; the name is a coincidence and this check must not trip on it.
-NOT_THERMAL = {"customs.py"}
+#:
+#: `sim/turret.py` keeps a *mounting's* temperature, which is not the hull's
+#: either: `add_heat` is the ship's thermal budget against a ceiling its
+#: chassis sets, and a gun barrel has its own ceiling (`turret.COOKED`) with
+#: its own consequence — it jams and has to cool below `turret.CLEARED`
+#: before it will answer the trigger again. One number clamps, the other
+#: stops the gun; running the second through the first would put a railgun's
+#: barrel into the reactor's budget.
+NOT_THERMAL = {"customs.py", "turret.py"}
 
 
 def _sim_sources():
@@ -66,8 +74,9 @@ def run(suite: Suite) -> None:
         # two that worked would have found the four that did not.
         raw = []
         for path in _sim_sources():
-            if path.name == "ship.py":
-                continue          # where `add_heat` itself lives
+            if path.name == "ship.py" or path.name in NOT_THERMAL:
+                continue          # where `add_heat` itself lives, and the
+                                  # two files whose `heat` is something else
             for line in path.read_text(encoding="utf-8").splitlines():
                 if RAW.search(line):
                     raw.append(f"{path.name}: {line.strip()[:56]}")

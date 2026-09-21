@@ -28,6 +28,7 @@ SCREENS = (
     ("tech", "⌘  Research", "8"),
     ("empire", "◈  Holdings", "9"),
     ("diplomacy", "⚖  Diplomacy", "0"),
+    ("gunnery", "⌖  Gunnery", "g"),
     ("law", "§§  The law", "l"),
     ("despatches", "✉  Despatches", "c"),
     ("codex", "§  Codex", "x"),

@@ -43,7 +43,8 @@ GROUPS = {
         ("Getting anywhere", "actions flight heliocentric burnplan burn_incidents path reach "
          "transit dormancy passage wayhome gates weave gatetraffic regions relight"),
         ("Fighting", "combat battle_state tactical stations turnplan enemy_ai doctrine gunnery "
-         "firing gunfire shooting assessment parley prize aftermath engage consorts"),
+         "firing gunfire shooting assessment parley prize aftermath engage consorts "
+         "turret gunsight foes skirmish drills manning"),
         ("Rivals and the hunt", "nemeses rivals rival_ends hunts running_dark hostiles"),
         ("Trade, freight and money", "trade market freight freightlines linetrips lineroute "
          "lineforecast lineledger haulers masters wharfage customs exchequer "
@@ -83,7 +84,9 @@ GROUPS = {
          "effects effect_paint effect_marks effect_clock"),
         ("Fighting", "battle_view battle_orders battle_text battle3d tactical_plot tactical_board "
          "tactical_window gunner_window fire_panel firing_panel doctrine_panel "
-         "assessment_panel hunts_panel hunt_marks"),
+         "assessment_panel hunts_panel hunt_marks "
+         "gunnery_view turret_window turret_view turret_scene turret_hud "
+         "turret_panels turret_controls"),
         ("Port, trade and the yard", "port_view market_grid board_panel commissions_panel "
          "freight_panel register_panel blackmarket_panel berths_panel official_panel "
          "rumours_panel yard_view shipdiagram machineshop robots_panel"),

@@ -575,6 +575,55 @@ holds what the bridge's own controls do when pressed.
 
 Measured afterwards: **237 suites, 1,782 checks, 0 failed, 199 s at `-j 8`**.
 
+## 2026-09-20 — a gun with hands on it
+
+The game has had guns since the first engagement and never a *gunner*.
+`sim/gunnery` picks which mounts speak in a turn and `sim/shooting` resolves
+what they did; between the choice and the result there was nothing, because a
+turn has no room in it for leading a target. This is that room — a real-time
+layer at the other grain, in seconds rather than turns.
+
+**The shape is FreeSpace 2's**, researched rather than remembered, because
+that game settled the vocabulary of a space gunnery screen and nothing since
+has improved on it: a reticle and a *separate lead pip*, a bracket round
+every contact in the colour of whose it is, a target monitor with the
+target's **subsystems** listed, a contact ball for the half of the sky you
+are not facing, a directive list that ticks itself off while you fire, and a
+debrief that says what you did rather than whether you won.
+
+| Piece | What it is |
+|---|---|
+| `data/turrets.py` | Fourteen seats: traverse, elevation, arc, muzzle velocity, rate, spread, heat, magazine. What a gun is like to *aim*; what it does is still `data/armaments.py`'s. |
+| `sim/gunsight.py` | Pure geometry: bearing and elevation in the hull's frame, and the intercept a round has to be led to. A beam is led nothing, and that is one branch rather than a special case at each call. |
+| `sim/turret.py` | The mounting: the stick, the director, the trigger, heat, the magazine. |
+| `sim/foes.py` | What is out there — hulls, blisters, batteries, rigs, domes, seekers, consorts — with **subsystems that can be shot off one at a time**. |
+| `sim/skirmish.py` | The arena: everything in the hull's frame, a clock in tenths, contacts that shoot back, and racks whose missiles become contacts of their own. |
+| `data/drills.py`, `sim/drills.py` | Ten training actions and the machinery that runs and judges them. |
+| `sim/manning.py` | Taking over a gun on your own hull in a real engagement, and banking what it does back into the battle — once. |
+| `ui/turret_*.py`, `ui/gunnery_view.py` | The window: a camera **at the muzzle looking down the bore**, so traversing swings the picture; the glass; the boards; and a Gunnery screen on the rail. |
+
+The ten drills are the situations the Verge can actually put a captain in:
+the range, the pass, the screen (point defence), the pack, the quay, the
+shore batteries, the workings, the ground works, Boarded, and In the line.
+Two of them are about *not* shooting something — the habitat ring on a
+mining rig, a consort in a fleet action — because a gunner who cannot hold
+fire is not a gunner.
+
+**Subsystems are what make a structure worth attacking rather than merely
+shooting.** A hub is four turrets, a mast and a reactor: silence it first,
+blind it second, and the rest is arithmetic. `foes.silenced`, `foes.blinded`
+and `foes.crippled` are read off the state, so the directive list cannot
+drift from what happened.
+
+**Three guards of this project's own caught dead code as it went in**, which
+is the whole reason they exist: `declared` found three fields nothing read,
+`reachable` two functions nothing called, and `thermal_doors` found the
+mounting's temperature going in by the hull's door. The first five were
+deleted or wired up; the last is a different quantity — a ceiling that
+*jams a gun* against one that clamps a reactor — and the guard now says so.
+
+Measured afterwards: **238 suites, 1,794 checks, 0 failed, 191 s at `-j 8`**.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one

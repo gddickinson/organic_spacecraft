@@ -3,6 +3,26 @@
 Running progress log. Newest first.
 
 
+## 2026-09-20 — A gun with hands on it
+
+SEEDFALL has had guns since the first engagement and never a gunner. There
+is now a real-time turret layer at the other grain from `sim/combat`: you sit
+behind one of the ship's mountings, look down the bore, traverse it by hand,
+lead a crossing target and fire. The HUD's vocabulary is FreeSpace 2's —
+reticle and separate lead pip, target monitor with the target's subsystems,
+contact ball, a directive list that ticks itself off — and the ten training
+drills are the situations the game can actually put a captain in: attacking
+ships, a station, shore batteries, mining and planetary works, point defence,
+a defensive action, and a fleet action with friends in your arc.
+
+Contacts have **places that can be shot off them**: silence a hub by taking
+its turrets, blind it by taking its mast, cripple a corvette by taking its
+drive. A gun manned during a real engagement banks what it does back into
+that battle. New `Gunnery` screen on the rail (`g`).
+
+238 suites, 1,794 checks, 0 failed.
+
+
 ## 2026-09-20 — The nightly, made green
 
 The push workflow runs the fast suites and was green; the nightly runs every

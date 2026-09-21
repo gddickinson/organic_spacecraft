@@ -205,6 +205,7 @@ class MainWindow(QMainWindow):
         from .diplomacy_view import DiplomacyView
         from .law_view import LawView
         from .expedition_view import ExpeditionView
+        from .gunnery_view import GunneryView
         from .helm_view import HelmView
         from .pilot_view import PilotView
         from .minigame_view import DecodingView, DockingView
@@ -227,6 +228,7 @@ class MainWindow(QMainWindow):
             "ship": ShipView, "yard": YardView, "tech": TechView,
             "empire": EmpireView, "codex": CodexView, "battle": BattleView,
             "ground": ExpeditionView, "helm": HelmView,
+            "gunnery": GunneryView,
             "pilot": PilotView,
             "diplomacy": DiplomacyView, "law": LawView,
             "despatches": DespatchView,

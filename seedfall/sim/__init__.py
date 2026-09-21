@@ -1,7 +1,7 @@
 """Game rules: ships, shipyards, combat, colonies, research, crew, encounters,
 the Bloom, and the player actions that span them. Never touches Qt.
 
-Contents (192 modules; one line each in `INTERFACE.md`):
+Contents (198 modules; one line each in `INTERFACE.md`):
 
 The ship and its fittings: ship, plans, loading, thrusters, shipyard,
     stores, services, abilities, damage, adaptation, readiness.
@@ -16,7 +16,8 @@ Getting anywhere: actions, flight, heliocentric, burnplan, burn_incidents,
     gatetraffic, regions, relight.
 Fighting: combat, battle_state, tactical, stations, turnplan, enemy_ai,
     doctrine, gunnery, firing, gunfire, shooting, assessment, parley, prize,
-    aftermath, engage, consorts.
+    aftermath, engage, consorts, turret, gunsight, foes, skirmish, drills,
+    manning.
 Rivals and the hunt: nemeses, rivals, rival_ends, hunts, running_dark,
     hostiles.
 Trade, freight and money: trade, market, freight, freightlines, linetrips,
