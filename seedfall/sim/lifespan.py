@@ -30,6 +30,7 @@ to invent a plausible one exactly once.
 
 from __future__ import annotations
 
+from ..data import stages as stage_table
 from ..data.lineages import DEFAULT, LINEAGES_BY_ID, of_stock
 
 #: Days in a year, everywhere. The stardate already runs on 365.
@@ -77,17 +78,68 @@ def age_of(officer, game=None) -> float:
     return born
 
 
+#: The longest anybody in the Verge has been alive, in clock years. A
+#: recording that has aged to its span at a fourteenth of a year a year has
+#: been running for four thousand, which is older than the sector and reads
+#: as a bug rather than as a story.
+MOST_LIVED = 900.0
+
+
+def born_of(officer, game=None) -> float:
+    """The day of the chronicle this person came into the world.
+
+    Derived once for everybody who has not got one — which is everybody in
+    every save written before there were two clocks — from how much the
+    years have already done to them **at their own rate**: a graft who has
+    aged fifty has been alive eighty-six years, and a recording who has aged
+    thirty has been running since before the Verge was settled. That is the
+    whole point of keeping the two apart, and it is free: the number is
+    already there, it was simply being read as the wrong thing.
+    """
+    got = getattr(officer, "born", None)
+    if got is not None:
+        return float(got)
+    day = float(getattr(game, "day", 0.0)) if game is not None else 0.0
+    lineage = lineage_of(officer, game)
+    rate = max(0.02, float(getattr(lineage, "ageing", 1.0)))
+    lived = min(MOST_LIVED, age_of(officer, game) / rate)
+    born = day - lived * YEAR
+    try:
+        officer.born = born
+    except AttributeError:                       # frozen, or slotted
+        return born
+    return born
+
+
+def lived_of(officer, game=None) -> float:
+    """Years since they were born, at one year a year, for everybody.
+
+    Nothing slows this: not a lineage, not a cold berth, not a clinic. A
+    century in a rack is still a century, and the difference between this
+    and `age_of` is what `data/stages.GAPS` is about.
+    """
+    if game is None:
+        return age_of(officer, None)
+    return max(0.0, (float(getattr(game, "day", 0.0))
+                     - born_of(officer, game)) / YEAR)
+
+
+def stage_of(officer, game=None):
+    """Which stretch of a working life this is, as a record."""
+    lineage = lineage_of(officer, game)
+    return stage_table.stage_for(age_of(officer, game),
+                                 lineage.prime, lineage.span)
+
+
+def gap_of(officer, game=None):
+    """What the distance between their two clocks is worth."""
+    return stage_table.gap_for(lived_of(officer, game),
+                               age_of(officer, game))
+
+
 def stage(officer, game=None) -> str:
     """Where in their run this officer is: one word for a screen."""
-    lineage = lineage_of(officer, game)
-    age = age_of(officer, game)
-    if age < lineage.prime * 0.45:
-        return "young"
-    if age < lineage.prime:
-        return "prime"
-    if age < lineage.span:
-        return "declining"
-    return "past their span"
+    return stage_of(officer, game).id
 
 
 def years_left(officer, game=None) -> float:
@@ -176,7 +228,14 @@ def tick(game, days: float, rng) -> list:
         # long crossing costs exactly what a long time in port would.
         if crossed > lineage.prime:
             over = min(years * lineage.ageing, crossed - lineage.prime)
-            officer.wear = getattr(officer, "wear", 0.0) + over * lineage.decline
+            # How fast the years take a level is the *stage's*, not the
+            # lineage's alone: somebody past their span loses it nearly
+            # twice as fast as somebody just over their prime, and saying
+            # so is most of what a stage is for (`data/stages.py`).
+            wears = stage_table.stage_for(
+                crossed, lineage.prime, lineage.span).wears
+            officer.wear = (getattr(officer, "wear", 0.0)
+                            + over * lineage.decline * wears)
             shed = int(officer.wear)
             if shed > 0 and officer.level > FLOOR:
                 drop = min(shed, officer.level - FLOOR)

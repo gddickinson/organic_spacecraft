@@ -25,6 +25,7 @@ from ..sim import lifespan as lifespan_sim
 from ..sim import loyalty as loyalty_sim
 from ..sim import person as person_sim
 from ..data import kindred as kin_table
+from ..data import stages as stage_table
 from ..sim import kindred as kindred_sim
 from ..sim import places as places_sim
 from ..sim import profile as profile_sim
@@ -105,8 +106,16 @@ def _who(g, officer, record) -> Panel:
         p.add(note(kin_table.BAND_NOTE[got["band"]]
                    + (" — " + ", ".join(got["why"]) if got["why"] else "")))
     p.add_row("Age", f"{lifespan_sim.age_of(officer, g):.0f}")
-    p.add_row("Stage", lifespan_sim.stage(officer, g))
+    stage = lifespan_sim.stage_of(officer, g)
+    p.add_row("Stage", stage.name,
+              "warn" if stage.id in stage_table.FAILING else "")
     p.add(note(lifespan_sim.note(officer, g)))
+    # The other clock: years since they were born, which nothing slows.
+    gap = lifespan_sim.gap_of(officer, g)
+    p.add_row("Lived", f"{lifespan_sim.lived_of(officer, g):.0f} years · "
+                       f"{gap.name}")
+    if gap.gives:
+        p.add(note(gap.note))
     return p
 
 

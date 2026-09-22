@@ -80,7 +80,14 @@ class Officer:
     #: What they are made of, and how far through their run they are. See
     #: `data/lineages.py` — everyone used to be the same thing and immortal.
     lineage: str | None = None
+    #: **Two clocks, and they are not the same clock.** `age` is what the
+    #: years did to this body — it runs at the lineage's rate, slows in a
+    #: cold berth and slows again on anagathics — and `born` is the day of
+    #: the chronicle they came into the world on, which nothing slows. See
+    #: `sim/lifespan.py` and `data/stages.py`; `born` may be negative, and
+    #: for every save written before this existed it is derived once.
     age: float | None = None
+    born: float | None = None
     #: Fractional levels shed to decline, carried so it is a slope not a step.
     wear: float = 0.0
     retired: bool = False
@@ -198,11 +205,15 @@ def grant_xp(officers, stat: str, amount: float, game=None) -> list[Officer]:
     So a career built over a decade moved nobody at all, and the crew screen
     never mentioned it.
     """
+    from . import lifespan          # lazily: lifespan reads the crew list
     gained = []
     for o in officers:
         if stat != "*" and o.stat != stat:
             continue
-        o.xp += amount
+        # How quickly somebody picks the job up is their stage's, not a
+        # constant: the green learn half again as fast as anybody aboard and
+        # the declining at half the rate (`data/stages.py`).
+        o.xp += amount * lifespan.stage_of(o, game).learns
         need = o.level * 100
         if o.xp >= need and o.level < 6:
             o.xp -= need

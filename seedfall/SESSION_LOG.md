@@ -1011,6 +1011,36 @@ Four defects, all of them measured rather than guessed:
 
 Measured afterwards: **245 suites, 1,844 checks, 0 failed, 258 s at `-j 8`.**
 
+## 2026-09-21 — two clocks
+
+A person had one number for age and it did two jobs. `officer.age` runs at
+the lineage's rate and is slowed by a cold berth and by anagathics, so it
+was wear on the body, not years since birth. Now there are two clocks
+(`sim/lifespan.py`, `data/stages.py`):
+
+- **Aged** (`age_of`): what the years did to this substrate. It decides what
+  somebody can still do.
+- **Lived** (`lived_of`, from a new `Officer.born`): years since birth, which
+  nothing slows. Old saves derive `born` once, from the age at the lineage's
+  own rate.
+
+Six **stages** measured against the lineage's own prime replace the old four
+words: green, coming up, prime, seasoned, declining, past their span. Each
+stage is worth something:
+
+- characteristic deltas, folded onto the derived record in
+  `lifepath._staged`;
+- a learning rate, applied in `crew.grant_xp`;
+- a wear rate, applied in `lifespan.tick`.
+
+The **gap** between the two clocks is a fact in its own right: long-lived,
+out of step, from another age. The Crew sheet shows the stage and years
+lived.
+
+The work arrived uncommitted with three checks red, all loose wiring:
+`gap_of` was never called, `Stage.learns` was never read, and the data map
+did not list `stages.py`. Finished and measured: **245 suites, 0 failed.**
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one
