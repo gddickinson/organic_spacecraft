@@ -116,5 +116,54 @@ def run(suite) -> bool:
                 f"{'' if craft.struck == 1 else 's'} made, and the cradle "
                 "took her back")
 
+    @check("the yard's cradles tab fits a cradle, lays one down, mends and sells")
+    def _():
+        from PyQt6.QtWidgets import QPushButton
+        from ..sim import craft as craft_sim
+        from ..sim import hangar as hangar_sim
+        game = win.game
+        game.credits = 300_000
+        for key in ("biomass", "silicon", "alloy"):
+            game.stores[key] = 400.0
+        win.go("yard")
+        view = win.views["yard"]
+        view.tab = "cradles"
+        view.refresh()
+        _pump()
+        had = hangar_sim.cradles(game.ship)
+        fit = view.findChild(QPushButton, "yard_cradle_fit")
+        assert fit is not None and fit.isEnabled(), "no way to fit a cradle"
+        fit.click()
+        _pump()
+        assert hangar_sim.cradles(game.ship) == had + 1
+        view = win.views["yard"]
+        buy = view.findChild(QPushButton, "yard_craft_buy_mote")
+        assert buy is not None and buy.isEnabled(), buy
+        aboard = len(craft_sim.aboard(game))
+        buy.click()
+        _pump()
+        assert len(craft_sim.aboard(game)) == aboard + 1, "the slip laid down nothing"
+        # Mend the one that is hurt, and sell the one that is not wanted.
+        bought = craft_sim.aboard(game)[-1]
+        bought.hp = 30
+        view = win.views["yard"]
+        view.refresh()
+        _pump()
+        mends = [b for b in view.findChildren(QPushButton)
+                 if b.objectName() == "yard_craft_mend" and b.isEnabled()]
+        assert mends, "nothing offered to mend a damaged craft"
+        mends[-1].click()
+        _pump()
+        assert bought.hp == craft_sim.kind_of(bought).hull, "the yard mended nothing"
+        money = game.credits
+        sells = [b for b in win.views["yard"].findChildren(QPushButton)
+                 if b.objectName() == "yard_craft_sell" and b.isEnabled()]
+        assert sells, "nothing offered to sell"
+        sells[-1].click()
+        _pump()
+        assert game.credits > money and len(craft_sim.aboard(game)) == aboard
+        return (f"a cradle cut, a MOTE laid down, mended and sold for "
+                f"₡{game.credits - money:,.0f}")
+
     win.close()
     return True

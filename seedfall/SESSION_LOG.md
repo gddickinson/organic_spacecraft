@@ -1319,6 +1319,20 @@ guard caught the shortcut) and `MainWindow.battle` is a property onto it.
 `core/state_begin.py`, the seam `core/loading.py` came off. New suite
 `craftbattle` (6 checks), a second check in `craftui`.
 
+## The hangar deck, 2026-09-22
+
+The second of the small-craft list, and the one that had bitten: nothing put
+a point of hull back into a craft. `sim/hangar.py` and the Shipyard screen's
+new **Cradles** tab (`ui/craft_yard.py`, split out because `yard_view` is at
+the edge of the limit, the way the machine shop was). A cradle is fitted
+rather than assumed — `Ship.cradles`, capped by what a hull that size can
+work — and a craft is laid down where its family's hulls are, through
+`shipyard.can_build_here` rather than a second copy of it. A yard mends by
+the point; a grown craft knits herself whole in her cradle off the hold, for
+nothing, which is the reason to buy grown. Selling reads `data/craft.SALVAGE`
+at last, scaled by condition, and is a loss at every class and every
+condition. New suite `hangar` (5 checks) and a third check in `craftui`.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one

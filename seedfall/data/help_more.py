@@ -365,6 +365,14 @@ MORE_TOPICS = [
            "worse, so “call her in” is the other half of the order — a "
            "cradle is cheaper than a pilot. Shot down, she is gone for good "
            "and the pilot comes home hurt.",
+           "Where one comes from: the Shipyard's Cradles tab. A yard cuts "
+           "a cradle into the hull — as many as her complement can work — "
+           "and lays down a craft of whatever family it builds hulls of, "
+           "for the money, the matter and the days it takes. It mends one "
+           "by the point, and buys one back for rather less than it charged "
+           "to build her. A grown craft asks for no yard at all to heal: "
+           "she knits herself whole in her cradle off the hold's biomass, "
+           "slowly, which is the reason to buy grown.",
            "Classes: the WASP and the heavier SHRIKE are fighters, the MOTE "
            "is all array and tankage, and the DORY is a boat with three "
            "seats behind the pilot. A craft is never in the fleet, never "

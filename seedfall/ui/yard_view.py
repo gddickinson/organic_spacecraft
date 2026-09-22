@@ -41,13 +41,24 @@ class YardView(View):
                   else f"{sysm.name} · no yard here — design only")
 
         tabs = TabBar([("refit", "Refit"), ("build", "Lay down a hull"),
-                       ("machines", "Machine shop"), ("fleet", "Fleet")],
+                       ("cradles", "Cradles"), ("machines", "Machine shop"),
+                       ("fleet", "Fleet")],
                       self.tab)
         tabs.changed.connect(self._switch)
         self.col.addWidget(tabs)
 
         if self.tab == "fleet":
             self._fleet(sysm)
+            return
+        if self.tab == "cradles":
+            # The hangar deck: cradles cut, craft laid down, mended and sold.
+            # Its own module (`ui/craft_yard.py`) for the reason the machine
+            # shop is one — see below.
+            from .craft_yard import CraftYard
+            yard = CraftYard(self)
+            self.col.addWidget(yard.cradles())
+            self.col.addWidget(spacer(8))
+            yard.slips()
             return
         if self.tab == "machines":
             # Hands that are not people. Its own module: `ui/machineshop.py`,

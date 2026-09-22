@@ -249,16 +249,32 @@ property onto it. `core/state.py` reached five hundred lines again in the
 doing, and opening a chronicle came out into `core/state_begin.py` along the
 seam `core/loading.py` came off.
 
+**Closed 2026-09-22 — the hangar deck** (`sim/hangar.py`, `ui/craft_yard.py`,
+suite `hangar`, a check in `craftui`). The Shipyard screen has a **Cradles**
+tab. A cradle is fitted rather than assumed: `Ship.cradles` says how many are
+on her and `hangar.most` how many a hull that size can work — one per thirty
+hands, four at the most, and none at all on anything too small to crew a
+ship's boat. A yard cuts another for ₡9,000 and seven days.
+
+A craft is laid down where its family's hulls are, asked of
+`shipyard.can_build_here` rather than a second copy of that rule going stale,
+and it costs the class's own credits, matter and days (₡3,000 a day, six at
+the least). **Mending was the thing that was missing**: a fighter that came
+home at half stayed at half for good. A yard puts hull back by the point (₡45
+and 0.05 t a point, forty points a day), and a *grown* craft knits herself
+whole in her cradle off the hold's biomass at 1.5 points a day — which is
+what grown is for, and the reason to buy a WASP over a SHRIKE. Selling pays
+`data/craft.SALVAGE` scaled by condition, a constant that until now nothing
+read; measured, every class is worth less back than it cost, whole or
+wrecked, because a yard that pays what it charges is a money pump
+(`shipyard.scrap_value` learned that at 146,470 credits a cycle).
+
 What it does not do yet:
 
-1. **No hangar deck.** A hull carries what it was given; a yard neither
-   builds craft nor fits cradles, and nothing is bought, sold or salvaged
-   (`data/craft.SALVAGE` is written and read by nothing).
-   Repair belongs here too: nothing puts a point of hull back into a craft.
-2. **The ferry is a boat, not a lift.** `crossing` uses her as the ship's
+1. **The ferry is a boat, not a lift.** `crossing` uses her as the ship's
    boat, but a craft cannot carry named people or cargo anywhere on its
    own — the seats and the hold in the table are not spent.
-3. **Nobody flies one but you.** A pilot on a sortie is away from their
+2. **Nobody flies one but you.** A pilot on a sortie is away from their
    station for as long as it takes and the ship notices nothing; a hostile
    carrier launches nothing at you.
 

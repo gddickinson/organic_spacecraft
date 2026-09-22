@@ -310,6 +310,12 @@ a grown interceptor, with a hatch through to the cradle deck so a pilot walks ou
   for good and the pilot comes home hurt. Measured: 48% off a patrol against 6% without her,
   and against a warship, lost six times in eight.
 - Four classes: WASP and SHRIKE fighters, the MOTE scout, the DORY tender.
+- **The hangar deck** (`sim/hangar.py`, the Shipyard's **Cradles** tab). A cradle is fitted,
+  not assumed: a hull carries as many as its complement can work, and a yard cuts another for
+  ₡9,000 and a week. A craft is laid down where its family's hulls are, for its own money,
+  matter and days; a yard mends her by the point; and a **grown** craft knits her own hull
+  back in the cradle off the hold's biomass, without a bill. Selling is a loss at every class
+  and every condition — a yard that paid what it charges is a money pump.
 
 ## Afoot — the Verge at walking pace
 

@@ -437,6 +437,8 @@ same machinery the ship is flown with, from a cockpit window with the stick, the
 computer and her own instruments; and she strafes, scouts, and ferries the crew across. She
 **fights** too: launched into a running engagement she makes a run a turn on her own account,
 takes the enemy's close-in fire, and is called in — or lost, with the pilot coming home hurt.
+A yard cuts cradles, lays down craft of the family it builds hulls of, mends one by the point
+and buys one back at a loss; a grown craft knits her own hull whole in the cradle off the hold.
 
 **Afoot (2026-09-21).** Walk the decks: your own hull, the quay, habitat drums, holdings,
 settlements, derelicts adrift and boarded prizes, as a turn-based *Star Frontiers*-style

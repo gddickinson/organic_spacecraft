@@ -77,6 +77,9 @@ class Ship:
     stress: dict = field(default_factory=dict)
     adaptations: list = field(default_factory=list)
     emerging: dict | None = None
+    #: Cradles on her flank for small craft (`sim/hangar.py`). One as built;
+    #: a yard cuts more, up to what a hull this size can work.
+    cradles: int = 1
 
     @property
     def chassis_def(self) -> Chassis:

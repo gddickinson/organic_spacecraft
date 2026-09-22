@@ -274,4 +274,6 @@ KIN = {
     "craft": ("craft", "craftbattle"),
     # And in an engagement (2026-09-22): the run, the answer, the cradle.
     "craft_battle": ("craftbattle",),
+    # The hangar deck (2026-09-22): cradles, buying, mending, selling.
+    "hangar": ("hangar", "craft"),
 }

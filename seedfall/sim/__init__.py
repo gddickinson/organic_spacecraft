@@ -1,7 +1,7 @@
 """Game rules: ships, shipyards, combat, colonies, research, crew, encounters,
 the Bloom, and the player actions that span them. Never touches Qt.
 
-Contents (245 modules; one line each in `INTERFACE.md`):
+Contents (246 modules; one line each in `INTERFACE.md`):
 
 The ship and its fittings: ship, plans, loading, thrusters, shipyard,
     stores, services, abilities, damage, adaptation, readiness.
@@ -55,4 +55,4 @@ Starting, teaching and settings: beginning, tutorial, tutorial_watch,
     manual, options, orders, minigames.
 Everything else: afoot_fire, afoot_holdings, afoot_kith, afoot_ringplan,
     afoot_trouble, afoot_ways, craft, craft_battle, crossing,
-    establishments."""
+    establishments, hangar."""
