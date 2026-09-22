@@ -11,7 +11,8 @@ worked out from — handed to `checks.roll`.
 
 from __future__ import annotations
 
-from . import afoot_people, afoot_talk, checks, loyalty
+from . import (afoot_holdings, afoot_kith, afoot_people, afoot_talk,
+               afoot_trouble, checks, establishments, loyalty)
 from .afoot_state import party, say
 
 
@@ -87,12 +88,31 @@ def _gossip(game, rng) -> str:
             s.id != game.location_id]
     if not rows:
         return "Nobody here knows anything you do not."
+    houses = [f for s in rows[:16] for f in establishments.here(game, s)]
+    if houses and rng.chance(0.4):
+        return rng.pick(houses_gossip(rng.pick(houses)))
     other = rng.pick(rows[:16])
     return rng.pick((
         f"They say the quay at {other.name} is short of hands.",
         f"Somebody came in from {other.name} last week looking hunted.",
         f"Prices at {other.name} have gone strange, apparently.",
         f"Nobody has had a straight answer out of {other.name} all season."))
+
+
+def houses_gossip(found) -> tuple:
+    """What the concourse says about one of the trade's houses."""
+    name = found.name
+    return {"gaming_wheel": (f"Somebody broke the high table at {name} "
+                             "last week. They were not seen again.",),
+            "grand_hotel": (f"Three powers had rooms at {name} on the same "
+                            "night. Nobody will say why.",),
+            "shipyard": (f"{name} is laying down hulls faster than it can "
+                         "find hands for them.",),
+            "pleasure_palace": (f"Half the officers in the Verge owe {name} "
+                                "money, the way I hear it.",),
+            "smugglers_den": (f"If it went missing, ask at {name}.",),
+            }.get(found.kind.id, (f"They say {name} is doing well for "
+                                  "itself.",))
 
 
 def _a_word(game, walk, other):
@@ -232,17 +252,6 @@ def on_enlist(game, walk, who, other, offered, rng):
             "check": roll}
 
 
-def on_sing(game, walk, who, other, offered, rng):
-    from . import kith
-    if kith.standing(game) >= 0:
-        afoot_talk.shift(other, 1)
-        text = "The answer comes back in the same key. They are pleased."
-    else:
-        text = "The answer is a long silence, which is its own word."
-    say(walk, text, "")
-    return {"line": afoot_talk.line(game, walk, other), "text": text}
-
-
 def on_report(game, walk, who, other, offered, rng):
     officer = afoot_people.officer_of(game, other.officer)
     text = report_line(game, officer) if officer else "All quiet."
@@ -276,12 +285,25 @@ def report_line(game, officer) -> str:
 
 
 def on_story(game, walk, who, other, offered, rng):
-    from . import arcs
+    """An officer tells you a berth they had before yours, in their own
+    words — and if their story has somewhere to go, says so."""
+    from . import arcs, person
     officer = afoot_people.officer_of(game, other.officer)
-    told = arcs.status(game, officer) if officer else {}
-    text = (f"{other.name} {told['hint']}." if told.get("hint")
-            else "Nothing they want to talk about, today.")
-    return {"line": afoot_talk.line(game, walk, other), "text": text}
+    if officer is None:
+        return {"line": afoot_talk.line(game, walk, other)}
+    berths = list(person.of(game, officer).berths)
+    told = arcs.status(game, officer)
+    if berths:
+        berth = berths[other.spoke % len(berths)]
+        other.spoke += 1
+        years = f"{berth.years} year{'s' if berth.years != 1 else ''}"
+        line = (f"{years.capitalize()} on the {berth.ship}, {berth.kind}. "
+                f"I {berth.ended}.")
+    else:
+        line = "Nothing worth the telling, Captain. Not yet."
+    text = (f"There is more to it: {other.name} {told['hint']}."
+            if told.get("hint") else "")
+    return {"line": line, "text": text}
 
 
 def on_join(game, walk, who, other, offered, rng):
@@ -307,7 +329,15 @@ SAID = {
     "patch": on_patch,
     "question": on_question,
     "enlist": on_enlist,
-    "sing": on_sing,
+    "sing": afoot_kith.on_sing,
+    "answer": afoot_kith.on_answer,
+    "passage": afoot_kith.on_passage,
+    "settle": afoot_trouble.on_settle,
+    "pay": afoot_trouble.on_pay,
+    "round": afoot_trouble.on_round,
+    "hear": afoot_holdings.on_hear,
+    "bonus": afoot_holdings.on_bonus,
+    "confront": afoot_holdings.on_confront,
     "report": on_report,
     "story": on_story,
     "join": on_join,

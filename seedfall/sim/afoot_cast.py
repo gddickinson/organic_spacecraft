@@ -39,6 +39,9 @@ from .afoot_state import GROUND, HALL, Actor, uid
 
 #: Days a looted locker stays empty at a place where people live.
 RESTOCK = 90
+#: Squares of a room's floor each of a crowd needs: a small room is not
+#: packed wall to wall.
+FLOOR_EACH = 6
 
 #: What each role aboard your own hull stands its watch in.
 STATIONS = {"science": ("lab", "sensors", "bridge"),
@@ -82,12 +85,20 @@ def free_spot(walk, deck: int, room=None, rng=None, near=None) -> tuple:
     cells = [c for c in cells if g.passable(*c) and c not in taken
              and c not in ways]
     # Nobody is put down in a doorway, where they would stand in the way.
-    by_door = {(t.x + dx, t.y + dy) for t in walk.things if t.deck == deck
-               and t.kind in ("door", "hatch")
+    def at(x):                  # round a ring's seam
+        return x % g.wide if g.wide else x
+    by_door = {(at(t.x + dx), t.y + dy) for t in walk.things
+               if t.deck == deck and t.kind in ("door", "hatch")
                for dx in (-1, 0, 1) for dy in (-1, 0, 1)}
     cells = [c for c in cells if c not in by_door] or cells
+    # Nobody is put where nobody could step up beside them: a person boxed
+    # in by furniture cannot be talked to, served or helped.
+    cells = [c for c in cells if sum(
+        1 for dx, dy in afoot_map.STEPS if g.passable(c[0] + dx, c[1] + dy)
+        and (at(c[0] + dx), c[1] + dy) not in taken) >= 2] or cells
     if near is not None:
-        cells.sort(key=lambda c: afoot_map.distance(*c, *near))
+        wide = afoot_map.span(walk, deck)
+        cells.sort(key=lambda c: afoot_map.distance(*c, *near, wide))
         return cells[0] if cells else None
     return rng.pick(cells) if cells else None
 
@@ -130,7 +141,8 @@ def _place(game, walk, site, rng) -> None:
         crowd = kind.crowd if not own or kind.crowd == "worker" else ""
         if not crowd:
             continue
-        most = min(kind.crowd_most, 1 + site.amenity + (site.heads > 10_000))
+        most = min(kind.crowd_most, 1 + site.amenity + (site.heads > 10_000),
+                   len(room.cells()) // FLOOR_EACH)
         for _n in range(rng.int(0, most)):
             spot = free_spot(walk, room.deck, room, rng)
             if spot is not None:

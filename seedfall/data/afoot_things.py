@@ -134,6 +134,8 @@ THINGS: tuple = (
               note="Bad air. Anybody without a filter chokes on it."),
     ThingKind("breach", "Hull breach", tint="warn",
               note="Vacuum. Anybody not sealed in a suit is hurt by it."),
+    ThingKind("smoke", "Smoke", opaque=True, tint="dim",
+              note="A grenade's cloud. Nobody sees through it for a while."),
     ThingKind("fault", "Fault", verbs=("repair",), tint="warn",
               note="Something aboard that is failing, and should not be."),
 )
@@ -148,6 +150,17 @@ EXITS = ("airlock", "gangway", "pod")
 #: The kinds that hurt whoever stands in them, what keeps it out, and how
 #: much a round it costs somebody who is not protected.
 HAZARDS = {"spores": ("filters", 2), "breach": ("sealed", 3)}
+#: A smoke grenade's cloud: sight stops at it, feet do not.
+SMOKE = "smoke"
+
+#: A relic gives itself up in stages, each harder than the last: by the
+#: state it is in, the state studying it leaves it in, what that stage is
+#: called, and how hard the study is (`sim/checks` ladder).
+RELIC_STAGES = {
+    "": ("read", "a first reading", "difficult"),
+    "read": ("attuned", "the chamber answering", "difficult"),
+    "attuned": ("studied", "what it was for", "very_difficult"),
+}
 
 #: What a lock is worth, as a check difficulty: an ordinary door, a secured
 #: one, a strongbox and a vault. `sim/afoot_acts` reads it for the odds.

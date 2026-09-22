@@ -63,8 +63,7 @@ def can_talk(walk, who, other) -> tuple:
         return False, "There is nobody to talk to."
     if other.status in ("down", "stable"):
         return False, f"{other.name} is in no state to talk."
-    if other.deck != who.deck or afoot_map.distance(
-            who.x, who.y, other.x, other.y) > TALK_REACH:
+    if other.deck != who.deck or afoot_map.apart(walk, who, other) > TALK_REACH:
         return False, "Get closer first."
     if not afoot_map.sees(walk, who.deck, who.x, who.y, other.x, other.y):
         return False, "You cannot see them from here."
@@ -112,9 +111,40 @@ def _word_terms(game, walk, who, other) -> dict:
             "how": "average", "extra": 1 if other.mood == "friendly" else 0}
 
 
+#: Topics that only mean something to somebody in a particular incident.
+INCIDENT_TOPICS = {"settle": "quarrel", "pay": "shakedown", "round": "brawl",
+                   "hear": "strike", "bonus": "strike",
+                   "confront": "sabotage"}
+
+
+def _settle_terms(game, walk, who, other) -> dict:
+    """Knocking two officers' heads together: Leadership and SOC."""
+    rec = afoot_people.record(game, who)
+    return {"skill": rec.skill("leadership"), "score": rec.score("soc"),
+            "how": "average", "extra": 0}
+
+
+def _confront_terms(game, walk, who, other) -> dict:
+    """Facing somebody down at your own works: Streetwise and INT."""
+    rec = afoot_people.record(game, who)
+    return {"skill": rec.skill("streetwise"), "score": rec.score("int"),
+            "how": "average", "extra": 0}
+
+
+def _answer_terms(game, walk, who, other) -> dict:
+    """Singing a Kith phrase back: Art and INT, easier the more of that
+    phrase's domain is already understood (`sim/afoot_kith`)."""
+    from . import afoot_kith
+    rec = afoot_people.record(game, who)
+    return {"skill": rec.skill("art"), "score": rec.score("int"),
+            "how": afoot_kith.difficulty(game, other), "extra": 0}
+
+
 TERMS = {"persuade": _persuade_terms, "bribe": _bribe_terms,
          "papers": _papers_terms, "enlist": _enlist_terms,
-         "word": _word_terms}
+         "word": _word_terms, "answer": _answer_terms,
+         "settle": _settle_terms, "hear": _settle_terms,
+         "confront": _confront_terms}
 
 
 def _odds(t: dict) -> float:
@@ -135,6 +165,10 @@ def topics(game, walk, who, other) -> list:
         return [Topic("greet", TOPICS["greet"], False, why)]
     if other.tie and "tie" not in names:
         names.append("tie")
+    # A topic that belongs to an incident is only raised with the people in
+    # it: nobody asks a quiet patron to call off a shakedown.
+    names = [t for t in names if INCIDENT_TOPICS.get(t, other.incident)
+             == other.incident]
     out = []
     for tid in names:
         got = _topic(game, walk, who, other, tid)
@@ -201,6 +235,22 @@ def _topic(game, walk, who, other, tid: str) -> Topic:
                      "them.", odds)
     if tid == "sing":
         return Topic(tid, label, not done, "They have answered.")
+    if tid == "answer":
+        heard = "sing" in other.talked
+        return Topic(tid, label, heard and not done,
+                     "Asked already." if done else
+                     "They have sung you nothing to answer yet.", odds)
+    if tid in ("hear", "bonus", "confront"):
+        from . import afoot_holdings
+        return afoot_holdings.topic(game, walk, other, tid, label, done, odds)
+    if tid in INCIDENT_TOPICS:
+        from . import afoot_trouble
+        return afoot_trouble.topic(game, walk, other, tid, label, done, odds)
+    if tid == "passage":
+        ready = "answer" in other.talked and other.mood == "friendly"
+        return Topic(tid, label, ready and not done,
+                     "Sung already." if done else
+                     "Answer them well first.")
     if tid == "report":
         return Topic(tid, label)
     if tid == "story":
@@ -263,10 +313,34 @@ def line(game, walk, other, mood: str = "") -> str:
                            if other.folk == "harbourmaster" else "captain",
                            persona=getattr(kind, "persona", "plain"),
                            situation=situation, wait=False)["line"]
+    if other.incident == "tie" and other.tie:
+        return _tie_line(game, other, mood)
     lines = dict(getattr(kind, "lines", {}) or {})
-    pool = lines.get(mood) or lines.get("greet") or ("…",)
-    rng = RNG(f"{game.seed}:line:{walk.site}:{other.id}:{walk.round}:{mood}")
-    return rng.pick(list(pool))
+    return _next(game, walk, other, mood,
+                 lines.get(mood) or lines.get("greet") or ("…",))
+
+
+def _next(game, walk, other, mood: str, pool) -> str:
+    """The next of somebody's lines: from a place of their own in the list,
+    and round it in order, so nothing is said twice before all of it is."""
+    pool = list(pool)
+    start = RNG(f"{game.seed}:line:{walk.site}:{other.id}:{mood}").int(
+        0, len(pool) - 1)
+    said = pool[(start + other.spoke) % len(pool)]
+    other.spoke += 1
+    return said
+
+
+def _tie_line(game, other, mood: str) -> str:
+    """Somebody from an officer's past, to the officer, by name."""
+    from ..data.afoot_incidents import TIE_LINES
+    officer = afoot_people.officer_of(game, int(other.tie.split(":")[0]))
+    name = officer.name.split()[0] if officer else "you"
+    glad = other.mood in ("friendly",) or mood == "warm"
+    pool = TIE_LINES[glad]
+    said = pool[other.spoke % len(pool)]
+    other.spoke += 1
+    return said.format(name=name)
 
 
 def say_to(game, walk, who, other, tid: str, dice) -> dict:

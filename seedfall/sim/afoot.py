@@ -26,7 +26,7 @@ until one of these doors is called.
 
 from __future__ import annotations
 
-from . import (afoot_acts, afoot_ai, afoot_ends, afoot_fight,
+from . import (afoot_acts, afoot_ai, afoot_ends, afoot_fight, afoot_fire,
                afoot_incidents, afoot_map, afoot_people, afoot_sites,
                afoot_talk)
 from .afoot_state import actor, party, say, touch
@@ -35,6 +35,8 @@ from .afoot_state import actor, party, say, touch
 from .afoot_begin import SHIPS_ISSUE_ARMS  # noqa: F401
 from .afoot_begin import SHIPS_ISSUE_SUIT  # noqa: F401
 from .afoot_begin import airless  # noqa: F401
+# What renown reads of a career on foot (`renown_facts.wave_b`, "afoot:…").
+from .afoot_ends import progress  # noqa: F401
 from .afoot_begin import begin  # noqa: F401
 from .afoot_begin import begin_prize  # noqa: F401
 from .afoot_begin import can_begin  # noqa: F401
@@ -154,7 +156,7 @@ def move(game, actor_id: int, x: int, y: int) -> dict:
     events, walked = [], 0
     calm = walk.mode == "calm"
     for n, step in enumerate(route):
-        cost = afoot_map.price(walk, who.deck, [step])
+        cost = afoot_map.price(walk, who.deck, [step], who)
         if cost > who.mp or (walk.mode == "action" and not _can_stop(
                 walk, who, route, n, who.mp - cost)):
             if walk.mode == "action":
@@ -201,7 +203,7 @@ def _can_stop(walk, who, route: list, n: int, left: int) -> bool:
         return True
     spent = 0
     for later in route[n + 1:]:
-        spent += afoot_map.price(walk, who.deck, [later])
+        spent += afoot_map.price(walk, who.deck, [later], who)
         if spent > left:
             return False
         if not _occupied(walk, who, later):
@@ -239,7 +241,7 @@ def _follow(game, walk, leader, steps: int) -> None:
     for mate in party(walk, standing=True):
         if mate.id == leader.id or mate.deck != leader.deck:
             continue
-        if afoot_map.distance(mate.x, mate.y, leader.x, leader.y) <= 2:
+        if afoot_map.apart(walk, mate, leader) <= 2:
             continue
         route = afoot_map.path(walk, mate, leader.x, leader.y, near=True)
         for step in _no_stack(walk, mate, route[:steps + 2]):
@@ -248,27 +250,71 @@ def _follow(game, walk, leader, steps: int) -> None:
 
 # ── fighting, doing, talking ───────────────────────────────────────────────
 
-def attack(game, actor_id: int, target_id: int) -> dict:
+def attack(game, actor_id: int, target_id: int, burst: bool = False) -> dict:
+    """A shot, or with a weapon that has Auto a burst (`afoot_fight`)."""
+    walk, who, target, why = _aim(game, actor_id, target_id)
+    if why:
+        return {"ok": False, "why": why}
+    innocent = target.mood not in ("hostile",)
+    out = afoot_fight.attack(game, walk, who, target,
+                             lambda: game.rng("afoot"), burst=burst)
+    if out.get("ok"):
+        _answered(game, walk, who, target, innocent, "assault")
+    return out
+
+
+def suppress(game, actor_id: int, target_id: int) -> dict:
+    """Suppressing fire: pin them, and anybody beside them (`afoot_fire`)."""
+    walk, who, target, why = _aim(game, actor_id, target_id)
+    if why:
+        return {"ok": False, "why": why}
+    innocent = target.mood not in ("hostile",)
+    out = afoot_fire.suppress(game, walk, who, target)
+    if out.get("ok"):
+        _answered(game, walk, who, target, innocent, "affray")
+    return out
+
+
+def throw(game, actor_id: int, target_id: int, grenade: str) -> dict:
+    """A grenade at somebody's square (`afoot_fire`)."""
+    walk, who, target, why = _aim(game, actor_id, target_id)
+    if why:
+        return {"ok": False, "why": why}
+    innocent = target.mood not in ("hostile",)
+    out = afoot_fire.throw(game, walk, who, target, grenade,
+                           lambda: game.rng("afoot"))
+    if out.get("ok"):
+        _answered(game, walk, who, target, innocent, "assault")
+    return out
+
+
+def _aim(game, actor_id: int, target_id: int) -> tuple:
+    """(walk, who, target, why not): the refusals every hostile act shares,
+    asked before any die is drawn."""
     walk = current(game)
     who, target = actor(walk, actor_id), actor(walk, target_id)
     if who is None or target is None or who.side != "party":
-        return {"ok": False, "why": "Nobody to fight."}
+        return walk, who, target, "Nobody to fight."
     if who.acted:
-        return {"ok": False, "why": f"{who.name} has acted this round."}
+        return walk, who, target, f"{who.name} has acted this round."
     if target.side == "party" or (target.officer >= 0 and walk.kind == "ship"
                                   ) or (target.folk == "hand"
                                         and walk.kind == "ship"):
-        return {"ok": False, "why": f"{target.name} is one of yours."}
-    innocent = target.mood not in ("hostile",)
-    rng = game.rng("afoot")
-    out = afoot_fight.attack(game, walk, who, target, rng)
-    if not out.get("ok"):
-        return out
+        return walk, who, target, f"{target.name} is one of yours."
+    return walk, who, target, ""
+
+
+def _answered(game, walk, who, target, innocent: bool, offence: str) -> None:
+    """What any hostile act brings down: the noise, the round turning to
+    action, a charge if the target was not hostile and anybody saw."""
+    if not innocent:
+        from . import tutorial_watch
+        tutorial_watch.deed(game, "fought_afoot")
     walk.mode = "action"
     arm = afoot_fight.weapon(who)
     afoot_ai.alarm(walk, who.deck, who.x, who.y, arm.loud)
     if innocent:
-        afoot_acts.witnessed(game, walk, who, "assault", 1.0)
+        afoot_acts.witnessed(game, walk, who, offence, 1.0)
         if target.standing and target.mood not in ("fled", "surrendered"):
             fights = bool(target.weapon) or target.folk in ("thug",)
             target.mood = "hostile" if fights else "fled"
@@ -277,7 +323,6 @@ def attack(game, actor_id: int, target_id: int) -> dict:
         if npc.side == "npc" and npc.mood == "hostile" and npc.faction == \
                 target.faction and npc.deck == who.deck:
             npc.aware = True
-    return out
 
 
 def act(game, actor_id: int, act_id: str, target: int = -1) -> dict:
@@ -303,8 +348,12 @@ def talk(game, actor_id: int, npc_id: int, topic: str) -> dict:
     who, other = actor(walk, actor_id), actor(walk, npc_id)
     if who is None or other is None:
         return {"ok": False, "why": "Nobody to talk to."}
-    return afoot_talk.say_to(game, walk, who, other, topic,
-                             lambda: game.rng("afoot"))
+    out = afoot_talk.say_to(game, walk, who, other, topic,
+                            lambda: game.rng("afoot"))
+    if out.get("ok"):
+        from . import tutorial_watch
+        tutorial_watch.deed(game, "talked_afoot")
+    return out
 
 
 # ── the round ──────────────────────────────────────────────────────────────
@@ -322,6 +371,7 @@ def _round(game, walk, rng) -> list:
     events = afoot_ai.turn(game, walk, rng)
     events += afoot_ai.weather(game, walk)
     events += afoot_fight.bleed(game, walk)
+    afoot_fire.settle(walk)
     events += afoot_incidents.tick(game, walk)
     walk.round += 1
     walk.seconds += ROUND

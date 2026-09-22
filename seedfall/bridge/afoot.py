@@ -20,8 +20,8 @@ from .protocol import plain, verb
 
 #: The verbs a walk in progress still answers.
 AFOOT_VERBS = ("afoot_sites", "afoot_begin", "afoot_look", "afoot_move",
-               "afoot_attack", "afoot_act", "afoot_talk", "afoot_end_turn",
-               "afoot_surrender")
+               "afoot_attack", "afoot_suppress", "afoot_throw", "afoot_act",
+               "afoot_talk", "afoot_end_turn", "afoot_surrender")
 
 #: Squares either side of the one in hand the text map shows.
 AROUND = 8
@@ -136,11 +136,30 @@ def move(game, actor: int, x: int, y: int) -> dict:
                           checks.whole(y, "y", 0, deck.h - 1))
 
 
-@verb("afoot_attack", "Take a shot: actor, target.", acts=True)
-def attack(game, actor: int, target: int) -> dict:
+@verb("afoot_attack", "Take a shot, or a burst with a weapon that has "
+      "Auto: actor, target, burst.", acts=True)
+def attack(game, actor: int, target: int, burst: bool = False) -> dict:
     walk = _walk(game)
     got = afoot_sim.attack(game, _actor(walk, actor).id,
-                           _actor(walk, target).id)
+                           _actor(walk, target).id, burst=bool(burst))
+    got.pop("check", None)
+    return got
+
+
+@verb("afoot_suppress", "Suppressing fire at a target: actor, target.",
+      acts=True)
+def suppress(game, actor: int, target: int) -> dict:
+    walk = _walk(game)
+    return afoot_sim.suppress(game, _actor(walk, actor).id,
+                              _actor(walk, target).id)
+
+
+@verb("afoot_throw", "Throw a grenade at a target's square: actor, target, "
+      "grenade (frag_grenade, stun_grenade, smoke_grenade).", acts=True)
+def throw(game, actor: int, target: int, grenade: str) -> dict:
+    walk = _walk(game)
+    got = afoot_sim.throw(game, _actor(walk, actor).id,
+                          _actor(walk, target).id, str(grenade))
     got.pop("check", None)
     return got
 

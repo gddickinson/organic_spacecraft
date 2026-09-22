@@ -160,8 +160,17 @@ def decks(rng, chassis, wants: list, style: str, air: bool = True) -> list:
         else:
             break
     names = DECK_NAMES[len(sheets)]
-    return [Painted(sheet, names[n], style, air=air)
+    return [Painted(sheet, names[n], style, air=air, g=_weight(sheet))
             for n, sheet in enumerate(sheets)]
+
+
+def _weight(sheet) -> float:
+    """A hull is weightless, but for the deck a Habitat Girdle's spun
+    berths are on."""
+    from ..data.afoot_programs import GIRDLE_G
+    girdled = any(getattr(r.want, "part", "") == "crew_girdle"
+                  for r in sheet.regions if r.want is not None)
+    return GIRDLE_G if girdled else 0.0
 
 
 def _lay(rng, hull, shares: list) -> tuple:

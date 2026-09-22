@@ -50,6 +50,9 @@ class Arm:
     #: is here; bare hands are Athletics, which is Traveller's own answer.
     skill: str = "gun_combat"
     name: str = ""
+    #: Traveller's Auto: a burst adds it to the damage, and a weapon with it
+    #: can lay down suppressing fire. Nought for anything that fires once.
+    auto: int = 0
 
 
 #: Bare hands, which everybody has.
@@ -65,15 +68,16 @@ ARMS: tuple = (
     Arm("cutting_torch", 3, 0, melee=True, pierce=2, loud=4,
         skill="mechanic", name="cutting torch"),
     Arm("stunner", 3, 0, 4, 8, stun=True, loud=4, name="stunner"),
-    Arm("autopistol", 3, -3, 6, 12, loud=16, name="autopistol"),
+    Arm("autopistol", 3, -3, 6, 12, loud=16, name="autopistol", auto=2),
     Arm("snub_pistol", 3, -3, 3, 6, loud=10, name="snub pistol"),
     Arm("laser_pistol", 3, 0, 8, 16, laser=True, loud=6,
         name="laser pistol"),
     Arm("shotgun", 4, 0, 3, 7, loud=20, name="shotgun"),
-    Arm("carbine", 3, 0, 10, 20, loud=18, name="carbine"),
+    Arm("carbine", 3, 0, 10, 20, loud=18, name="carbine", auto=2),
     Arm("rifle", 3, 0, 16, 40, loud=24, name="rifle"),
     Arm("laser_rifle", 5, 0, 16, 40, laser=True, loud=8, name="laser rifle"),
-    Arm("gauss_rifle", 4, 0, 16, 40, pierce=3, loud=12, name="gauss rifle"),
+    Arm("gauss_rifle", 4, 0, 16, 40, pierce=3, loud=12, name="gauss rifle",
+        auto=3),
     # ── the other side's ───────────────────────────────────────────────────
     Arm("npc_claws", 2, 0, melee=True, loud=2, skill="athletics",
         name="grown hooks"),
@@ -81,7 +85,7 @@ ARMS: tuple = (
         name="spore lash"),
     Arm("npc_manipulator", 2, 2, melee=True, loud=4, skill="athletics",
         name="manipulator"),
-    Arm("npc_sentry", 3, 0, 10, 20, loud=16, name="sentry gun"),
+    Arm("npc_sentry", 3, 0, 10, 20, loud=16, name="sentry gun", auto=3),
     Arm("npc_singer", 2, 0, 5, 10, stun=True, loud=12, skill="athletics",
         name="a sung chord"),
 )
@@ -119,6 +123,33 @@ GUARDS: tuple = (
 )
 GUARD_BY_ID = {g.id: g for g in GUARDS}
 
+@dataclass(frozen=True)
+class Grenade:
+    """Something thrown: what it does to the squares round where it lands."""
+
+    id: str
+    name: str
+    #: Dice of damage to everybody in the burst (stun: nobody dies).
+    dice: int = 0
+    stun: bool = False
+    #: Smoke: nobody sees through the burst for `SMOKE_ROUNDS`.
+    smoke: bool = False
+    #: Squares from where it lands that it reaches, and how far it is thrown.
+    burst: int = 1
+    reach: int = 6
+
+
+GRENADES: tuple = (
+    Grenade("frag_grenade", "fragmentation grenade", 4),
+    Grenade("stun_grenade", "stun grenade", 3, stun=True),
+    Grenade("smoke_grenade", "smoke grenade", smoke=True),
+)
+GRENADE_BY_ID = {g.id: g for g in GRENADES}
+#: Rounds a smoke grenade's cloud hangs before it clears.
+SMOKE_ROUNDS = 3
+#: What being pinned by suppressing fire costs a shot of one's own.
+PINNED = -2
+
 #: Things a party can spend once in a walk, and what each does. The ids are
 #: kit ids; a person who carries one can use it once per walk, whether it
 #: came off the captain's own shelf or out of their own kit bag.
@@ -130,6 +161,9 @@ CONSUMABLES = {
     "lockpick": "+2 on a lock",
     "handcomp": "+1 on a console",
     "core_slate": "+2 on a console",
+    "frag_grenade": "a burst of fragments, once",
+    "stun_grenade": "a room put on the floor, once",
+    "smoke_grenade": "a cloud nobody sees through, once",
 }
 
 #: How many squares a person moves in a round before anything slows them.

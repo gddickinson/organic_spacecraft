@@ -50,10 +50,12 @@ def build(view) -> None:
 
 
 def _where(view, sites) -> Panel:
-    p = Panel("Where")
+    chosen = next((s for s in sites if s.key == view.site_key), None)
+    p = Panel(f"Where — {chosen.name}" if chosen else "Where")
     for site in sites:
         picked = site.key == view.site_key
-        b = button(site.name, lambda _=False, k=site.key: view.pick_site(k),
+        b = button(("✓ " if picked else "") + site.name,
+                   lambda _=False, k=site.key: view.pick_site(k),
                    kind="primary" if picked else "flat", enabled=site.ok,
                    why=site.why)
         b.setObjectName(f"afoot_site_{site.kind}")

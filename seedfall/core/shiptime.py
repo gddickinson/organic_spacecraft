@@ -212,6 +212,8 @@ def crew(game, n: int, ship_n: int, st, paid: bool) -> None:
     crew_sim.morale_tick(game.ship, ship_n, paid, is_breached(game.ship), st.morale)
     crew_sim.grant_xp(game.officers, "*", ship_n * 1.5, game=game)
     afoot_sim.mend(game, ship_n)           # wounds kept from a walk
+    from ..sim import establishments       # a stake's share of the takings
+    establishments.tick(game, n)
     if is_breached(game.ship):
         loyalty_sim.record(game, "breach", scale=min(2.0, n / 10))
     for kind, text in loyalty_sim.tick(game, n, paid):

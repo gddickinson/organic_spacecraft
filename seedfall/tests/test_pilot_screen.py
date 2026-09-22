@@ -81,7 +81,10 @@ def run(suite: Suite) -> bool:
         view.use_main = True
         for _ in range(60):
             view.burn("forward")
-        hub = next(c for c in view.in_view() if c.kind == "anchorage")
+        # The quay by name: a trade's station is an anchorage too, and one
+        # with its only berth taken by a trader bound for it refuses, rightly.
+        hub = next(c for c in view.in_view() if c.kind == "anchorage"
+                   and c.name == game.system.port.name)
         was = (math.dist(view.conn.pos, (0.0, 0.0, 0.0)), view.conn.rcs,
                list(view.conn.vel), view.conn.elapsed)
         km_before = engage_sim.range_km(game, view.conn, hub)

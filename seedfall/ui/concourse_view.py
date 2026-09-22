@@ -99,6 +99,8 @@ class ConcourseView(View):
         elif place.kind != "ship":
             self.buttons(button("Walk it", lambda: self._walk(place),
                                 tip="Afoot: go ashore on foot, and see it."))
+        if place.kind in ("station", "base"):
+            self.col.addWidget(self._stake(place))
         tabs = TabBar(list(TABS), self.tab)
         tabs.changed.connect(self._switch)
         self.col.addWidget(tabs)
@@ -113,6 +115,35 @@ class ConcourseView(View):
             concourse_law.build(self, place)
         else:
             concourse_shops.build(self, place)
+
+    def _stake(self, place) -> Panel:
+        """A tenth of the house: what it costs, what it pays, and the
+        button either way (`sim/establishments`)."""
+        from ..sim import establishments as est_sim
+        got = est_sim.stake_terms(self.game, place)
+        p = Panel("A stake in the house")
+        if got["held"]:
+            p.add_row("Your stake", f"{got['price']:,} cr, paying "
+                                    f"{got['monthly']:,} cr a month")
+            b = button(f"Sell it back — {got['back']:,} cr",
+                       lambda: self._stake_do(est_sim.sell_stake, place),
+                       enabled=got["ok"], why=got["why"])
+        else:
+            p.add_row("A tenth of it", f"{got['price']:,} cr"
+                      if got["price"] else "not for sale")
+            p.add_row("Out of the takings", f"{got['monthly']:,} cr a month")
+            b = button(f"Buy a stake — {got['price']:,} cr",
+                       lambda: self._stake_do(est_sim.buy_stake, place),
+                       kind="primary", enabled=got["ok"], why=got["why"])
+        b.setObjectName("concourse_stake")
+        p.add(b)
+        return p
+
+    def _stake_do(self, act, place) -> None:
+        got = act(self.game, place)
+        if not got.get("ok"):
+            self.win.toast(got.get("why", "No."), "warn")
+        self.refresh()
 
     def _picker(self, rows, place) -> None:
         """Every place in this system, so a crew can walk somewhere else."""

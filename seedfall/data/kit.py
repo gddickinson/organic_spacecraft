@@ -93,6 +93,13 @@ ITEMS: tuple = (
          "mechanic", 1, "A tool that has opened more doors than locks."),
     Item("breach_charge", "Breaching charge", "weapon", 300, 6, 3, 2.0,
          "explosives", 2, "One door, once."),
+    Item("frag_grenade", "Fragmentation grenade", "weapon", 150, 6, 1, 0.5,
+         "athletics", 0, "Everybody in the room, friend or not."),
+    Item("stun_grenade", "Stun grenade", "weapon", 120, 7, 4, 0.4,
+         "athletics", 0, "A flash, a bang, and a room full of people "
+         "on the floor."),
+    Item("smoke_grenade", "Smoke grenade", "weapon", 40, 4, 7, 0.4,
+         "athletics", 0, "Nobody sees through it, including you."),
     Item("shock_baton", "Shock baton", "weapon", 120, 7, 7, 1.2,
          "gun_combat", 0, "What a port's own people carry."),
 

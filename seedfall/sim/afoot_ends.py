@@ -294,3 +294,33 @@ def _remember(game, walk) -> None:
     history = game.walked.setdefault("history", [])
     history.append([int(game.day), walk.kind, walk.name, walk.outcome])
     del history[:-HISTORY]
+    _tally(game, walk)
+
+
+def _tally(game, walk) -> None:
+    """What a career on foot adds up to, for renown (`progress`)."""
+    tally = game.walked.setdefault("tally", {})
+    tally["walks"] = tally.get("walks", 0) + 1
+    kinds = tally.setdefault("kinds", [])
+    if walk.kind not in kinds:
+        kinds.append(walk.kind)
+    if walk.kind == "prize" and walk.prize_done in ("taken", "stripped"):
+        tally["prizes"] = tally.get("prizes", 0) + 1
+    burned = (walk.found.get("burned") or {}).get("nest", 0)
+    if burned:
+        tally["nests"] = tally.get("nests", 0) + int(burned)
+
+
+def progress(game) -> dict:
+    """A career on foot, as renown reads it (`renown_facts.wave_b`, facts
+    named `afoot:<key>`): walks come home from, prizes boarded and decided
+    on their own decks, dead hulls cleared, kinds of place walked, nests
+    burned out by hand."""
+    walked = getattr(game, "walked", {}) or {}
+    tally = walked.get("tally", {})
+    cleared = sum(1 for key, marks in walked.items()
+                  if key.startswith("wreck:") and isinstance(marks, dict)
+                  and marks.get("cleared"))
+    return {"walks": tally.get("walks", 0), "boarded": tally.get("prizes", 0),
+            "cleared": cleared, "kinds": len(tally.get("kinds", [])),
+            "nests": tally.get("nests", 0)}

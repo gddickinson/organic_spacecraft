@@ -135,6 +135,8 @@ def _start(game, walk, site, laid, keys, arms_mode) -> dict:
     say(walk, arrive.get(site.kind, f"{len(keys)} ashore at {site.name}."),
         "good")
     game.add_log(f"A party goes afoot: {site.name}.", "")
+    from . import tutorial_watch
+    tutorial_watch.deed(game, "walked")
     return {"ok": True, "walk": walk}
 
 
@@ -169,6 +171,7 @@ def enlist(game, walk, key: str, deck: int, x: int, y: int, site,
     _dress(game, walk, who, key, site, arms_mode)
     rec = afoot_people.record(game, who)
     who.hp_max = afoot_people.stamina(rec)
+    who.zero_g = rec.skill("zero_g")
     wound = float((game.wounds or {}).get(
         "captain" if key == "captain" else str(who.officer), 0) or 0)
     if who.robot >= 0:
@@ -213,6 +216,7 @@ def join(game, walk, npc) -> None:
     site = afoot_sites.Site(key=walk.site, kind=walk.kind, name=walk.name,
                             what="", style="", law=walk.law)
     _dress(game, walk, npc, f"officer:{npc.officer}", site, "legal")
+    npc.zero_g = afoot_people.record(game, npc).skill("zero_g")
     npc.mp = afoot_people.move_of(game, npc)
 
 

@@ -74,7 +74,8 @@ def _do(game, watch: str) -> None:
         seen = list(game.discovered.get("systems", ()))
         game.discovered.setdefault("systems", []).append(
             next(s.id for s in game.galaxy.systems if s.id not in seen))
-    elif watch in ("mined", "dug", "landed", "fought", "stood_watch"):
+    elif watch in ("mined", "dug", "landed", "fought", "stood_watch",
+                   "walked", "talked_afoot", "fought_afoot"):
         from ..sim import tutorial_watch
         tutorial_watch.deed(game, watch)
     elif watch == "marked_hostile":

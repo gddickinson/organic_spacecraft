@@ -73,8 +73,8 @@ def dome(rng, wants: list, style: str) -> list:
     if left:
         # What the dome's floor cannot hold is dug out beneath it.
         station._lift(sheet, geo, "galleries1", up=False, down=True)
-        out += station.levels(left, station.MOST_R, "The galleries beneath",
-                              "galleries", style, core=2.5, rim=False)
+        out += station.can_levels(left, station.MOST_R,
+                                  "The galleries beneath", "galleries", style)
     return out
 
 

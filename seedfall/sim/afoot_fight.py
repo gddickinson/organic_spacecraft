@@ -41,6 +41,10 @@ HURTING = -1
 AIM_MOST = 2
 #: A hit this many times somebody's endurance kills them where they stand.
 SHATTERING = 2
+#: Shooting weightless with nothing to brace against: a DM, and a gun with
+#: any kick puts the shooter adrift for the rest of the round. Zero-G skill
+#: or magnetic boots are something to brace against (`afoot_map.at_home`).
+UNBRACED = -2
 
 
 def weapon(actor) -> arms.Arm:
@@ -60,7 +64,7 @@ def terms(game, walk, attacker, target) -> dict:
         out["why"] = "They are on another deck."
         return out
     arm = weapon(attacker)
-    far = afoot_map.distance(attacker.x, attacker.y, target.x, target.y)
+    far = afoot_map.apart(walk, attacker, target)
     band, dm = arms.band(arm, far)
     if dm is None:
         out["why"] = (f"Out of reach — {far} squares, and "
@@ -78,6 +82,10 @@ def terms(game, walk, attacker, target) -> dict:
     cover = 0 if arm.melee else afoot_map.cover_for(
         walk, target.deck, target.x, target.y, attacker.x, attacker.y)
     extra = dm + kit_dm + min(AIM_MOST, attacker.aim) - cover
+    if drifting(walk, attacker):
+        extra += UNBRACED
+    if attacker.pinned > 0:
+        extra += arms.PINNED
     if not target.standing:
         extra += DOWNED
     if attacker.hp * 2 < attacker.hp_max:
@@ -86,6 +94,17 @@ def terms(game, walk, attacker, target) -> dict:
                band=band, cover=cover, arm=arm, far=far,
                odds=checks.chance(skill, score, "average", extra))
     return out
+
+
+def drifting(walk, who) -> bool:
+    """Weightless, and nothing to brace against."""
+    deck = walk.decks[who.deck]
+    return deck.g < afoot_map.WEIGHTLESS and not afoot_map.at_home(who)
+
+
+def kicks(arm) -> bool:
+    """A gun with recoil: anything fired that is not a laser."""
+    return not arm.melee and not arm.laser
 
 
 def damage_range(attacker, target) -> tuple:
@@ -100,24 +119,36 @@ def damage_range(attacker, target) -> tuple:
             max(0, arm.dice * 6 + arm.plus - stop))
 
 
-def attack(game, walk, attacker, target, rng) -> dict:
-    """Take the shot. Returns `{ok, why, hit, damage, check, events}`."""
+def attack(game, walk, attacker, target, rng, burst: bool = False) -> dict:
+    """Take the shot — or, with a weapon that has Auto, a burst, which adds
+    its Auto to the damage. Returns `{ok, why, hit, damage, check, events}`.
+
+    `rng` is the dice, or a function that makes them: called only once the
+    shot is allowed, so a refusal spends no luck."""
     got = terms(game, walk, attacker, target)
     if not got["ok"]:
         return {"ok": False, "why": got["why"]}
     arm = got["arm"]
+    if burst and not arm.auto:
+        return {"ok": False, "why": f"The {arm.name} fires one at a time."}
+    rng = rng() if callable(rng) else rng
     roll = checks.roll(rng, got["skill"], got["score"], got["how"],
                        got["extra"], about="attack", what=arm.skill)
     attacker.acted = True
     attacker.aim = 0
     events = []
+    if kicks(arm) and drifting(walk, attacker):
+        attacker.mp = 0
+        say(walk, f"The kick of the {arm.name} sets {attacker.name} "
+                  "drifting.", "warn")
     if not roll.ok:
         say(walk, f"{attacker.name} {'swings at' if arm.melee else 'fires at'} "
                   f"{target.name} and misses ({roll.rolled}{roll.total - roll.rolled:+d}).",
             "")
         return {"ok": True, "hit": False, "damage": 0, "check": roll,
                 "events": events}
-    dice = sum(rng.int(1, 6) for _n in range(arm.dice)) + arm.plus
+    dice = sum(rng.int(1, 6) for _n in range(arm.dice)) + arm.plus + (
+        arm.auto if burst else 0)
     guard = arms.guard(target.armour)
     stop = 0
     if guard is not None:
@@ -197,7 +228,7 @@ def aid_terms(game, walk, medic, patient) -> dict:
     if not medic.standing:
         out["why"] = f"{medic.name} is down."
         return out
-    if afoot_map.distance(medic.x, medic.y, patient.x, patient.y) > 1 \
+    if afoot_map.apart(walk, medic, patient) > 1 \
             or medic.deck != patient.deck:
         out["why"] = "Get next to them first."
         return out

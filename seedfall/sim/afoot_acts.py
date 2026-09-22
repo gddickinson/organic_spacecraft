@@ -24,7 +24,8 @@ from dataclasses import dataclass, replace
 from ..data import afoot_arms as arms
 from ..data import kit as kit_table
 from ..data.afoot_folk import FOLK_BY_ID
-from ..data.afoot_things import DOORS, LOCKS, THING_BY_ID, VERBS
+from ..data.afoot_things import (DOORS, LOCKS, RELIC_STAGES, THING_BY_ID,
+                                 VERBS)
 from . import afoot_map, afoot_people, checks
 from .afoot_state import actor_at, party, say, touch
 
@@ -112,7 +113,7 @@ APPLIES = {
 
 def _near_things(walk, who) -> list:
     return [t for t in walk.things if t.deck == who.deck
-            and afoot_map.distance(t.x, t.y, who.x, who.y) <= 1]
+            and afoot_map.apart(walk, t, who) <= 1]
 
 
 def lock_terms(game, who, thing) -> dict:
@@ -142,8 +143,9 @@ def study_terms(game, who, thing) -> dict:
     rec = afoot_people.record(game, who)
     skill = "xenology" if thing.kind == "relic" else "sciences"
     extra = 1 if ("xeno_reader" in who.kit and skill == "xenology") else 0
+    stage = RELIC_STAGES.get(thing.state) if thing.kind == "relic" else None
     return {"skill": rec.skill(skill), "score": rec.score("int"),
-            "how": "difficult" if thing.kind == "relic" else "average",
+            "how": stage[2] if stage else "average",
             "extra": extra, "what": skill}
 
 
@@ -238,6 +240,10 @@ def _thing_acts(game, walk, who, thing) -> list:
             ok = thing.state not in ("done", "studied")
             why = "Nothing more to learn from it."
             odds = _odds(study_terms(game, who, thing)) if ok else None
+            stage = RELIC_STAGES.get(thing.state) \
+                if thing.kind == "relic" else None
+            if stage:
+                label += f" ({stage[1]})"
         elif verb == "rest":
             ok = walk.mode == "calm" and "rested" not in walk.incidents
             why = ("Not with somebody hunting you." if walk.mode != "calm"
@@ -279,8 +285,7 @@ LEAVE_REACH = 4
 def ready_to_leave(walk, exit_thing) -> tuple:
     """Everybody still standing gathered near the way out."""
     far = [a.name for a in party(walk, standing=True)
-           if a.deck != exit_thing.deck or afoot_map.distance(
-               a.x, a.y, exit_thing.x, exit_thing.y) > LEAVE_REACH]
+           if a.deck != exit_thing.deck or afoot_map.apart(walk, a, exit_thing) > LEAVE_REACH]
     if far:
         return False, "Not everybody is here: " + ", ".join(far) + "."
     return True, ""
@@ -291,7 +296,7 @@ def server(walk, counter):
     return next((a for a in walk.actors if a.side == "npc" and a.standing
                  and a.room == counter.room and a.deck == counter.deck
                  and a.mood not in ("hostile", "fled")
-                 and afoot_map.distance(a.x, a.y, counter.x, counter.y) <= 1),
+                 and afoot_map.apart(walk, a, counter) <= 1),
                 None)
 
 
@@ -326,7 +331,7 @@ def _people_acts(game, walk, who) -> list:
         if other.id == who.id or other.deck != who.deck or \
                 other.status == "gone":
             continue
-        far = afoot_map.distance(who.x, who.y, other.x, other.y)
+        far = afoot_map.apart(walk, who, other)
         if other.side == "party" and far <= 1:
             if other.status in ("down", "stable") or other.hp < other.hp_max:
                 got = afoot_fight.aid_terms(game, walk, who, other)

@@ -235,19 +235,20 @@ KIN = {
     # counsel's thresholds and the Hall — one suite plays them all.
     "milestones": ("renown",), "renown": ("renown",),
     "renown_facts": ("renown",), "counsel": ("renown",),
-    "counsel_sources": ("renown",), "counsel_doors": ("renown",),
+    "counsel_sources": ("renown",), "counsel_doors": ("renown", "afootcareer"),
     "memoir": ("renown",),
     # Innovation 7: `data/phenomena` and `sim/phenomena` share the stem.
     "phenomena": ("phenomena",),
     # Afoot (2026-09-21): the rules suite pins the numbers, the play suite
     # the endings and the incidents that spend them.
     "afoot": ("afoot", "afootplay"), "afoot_acts": ("afoot", "afootplay"),
-    "afoot_ai": ("afootplay",), "afoot_arms": ("afoot",),
+    "afoot_ai": ("afootplay",), "afoot_arms": ("afoot", "afootfire"),
     "afoot_cast": ("afootplay", "afoot"), "afoot_deeds": ("afootplay",),
     "afoot_derelicts": ("afootplay", "afoot"), "afoot_ends": ("afootplay",),
-    "afoot_fight": ("afoot", "afootplay"), "afoot_gen": ("afoot",),
-    "afoot_incidents": ("afootplay",), "afoot_map": ("afoot",),
-    "afoot_people": ("afoot", "afootplay"),
+    "afoot_fight": ("afoot", "afootplay", "afootweight", "afootfire"),
+    "afoot_gen": ("afoot",),
+    "afoot_incidents": ("afootplay", "afootcareer"), "afoot_map": ("afoot",),
+    "afoot_people": ("afoot", "afootplay", "afootcareer"),
     "afoot_plans": ("afootshapes", "afoot"),
     # The deck plans drawn to shape: hulls, loops, stations, holdings, ground.
     "afoot_programs": ("afootshapes",), "afoot_program": ("afootshapes",),
@@ -258,6 +259,12 @@ KIN = {
     "afoot_groundplan": ("afootshapes",),
     "afoot_blocks": ("afootshapes", "afoot"),
     "afoot_ways": ("afootfair", "afootplay"),
+    "afoot_ringplan": ("afootweight", "afootshapes"),
     "establishments": ("establishments", "concourse"),
     "afoot_talk": ("afoot", "afootplay"), "afoot_begin": ("afootplay",),
+    # The open items closed (2026-09-22): fire, the Kith's exchange, trouble
+    # aboard and ashore, and your own works.
+    "afoot_fire": ("afootfire",), "afoot_kith": ("afootcareer",),
+    "afoot_trouble": ("afootcareer", "afootplay"),
+    "afoot_holdings": ("afootcareer",),
 }

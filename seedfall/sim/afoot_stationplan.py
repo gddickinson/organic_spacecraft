@@ -26,18 +26,15 @@ from __future__ import annotations
 from . import afoot_blocks as blocks
 from . import afoot_groundplan as ground
 from . import afoot_loops as loops
+from . import afoot_ringplan as ringplan
 from .afoot_gen import Painted
 
 #: The largest a round deck is drawn, and the smallest.
 LEAST_R, MOST_R = 9, 24
 #: How far an arm runs out from the skin to its berths.
 ARM = 12
-#: How much of a habitation ring's radius is built: rooms, corridor, rooms.
-RIM = 13
-#: The radius a Fleet Hub's rings are drawn at. A ring does not grow to
-#: hold more; it has more levels. 22 keeps a level narrow enough to be
-#: drawn at a size the screen letters its rooms at.
-HUB_RING_R = 22
+#: The weight on a drum's floor, in gravities: an ARCA is spun for a world's.
+DRUM_G = 1.0
 #: Floor a can's deck is drawn to hold before the can is given another.
 PER_DECK = 280
 #: What keeps a structure running goes on its plant deck.
@@ -46,8 +43,7 @@ PLANT = ("lifesupport", "power", "reclaim", "store", "workshop", "dormitory",
 
 
 def _can(wants: list, radius: float, core: float = 2.5, arm: list = (),
-         spokes: int = 4, square: bool = False, floor: str = "hall",
-         rim=None):
+         spokes: int = 4, square: bool = False, floor: str = "hall"):
     """One round deck — square-cornered for a tower floor, open ground for
     a dome — with an arm to the east if `arm` has berths for it. Returns
     (sheet, geo, what would not fit)."""
@@ -60,8 +56,8 @@ def _can(wants: list, radius: float, core: float = 2.5, arm: list = (),
         sheet.paint(loops.band(c, c, 0, radius + 0.01, square), sheet.base)
     geo, left = loops.loop(sheet, c, c, radius, wants, core=core,
                            spokes=spokes, arms=(0.0,) if arm else (),
-                           square=square, floor=floor, rim=rim,
-                           shell=floor != "ground" and rim is None)
+                           square=square, floor=floor,
+                           shell=floor != "ground")
     if arm:
         left += _arm(sheet, geo, list(arm))
     sheet.enclose(sheet.region("solid"))
@@ -93,9 +89,9 @@ def _lift(sheet, geo, shaft: str, up: bool, down: bool) -> None:
 
 
 def _radius(wants: list, core: float = 2.5, least: float = LEAST_R,
-            rim=None, square: bool = False) -> float:
+            square: bool = False) -> float:
     return loops.fit_radius(sum(w.area for w in wants), core, least,
-                            MOST_R + (10 if rim else 0), square, rim)
+                            MOST_R, square)
 
 
 def _stack(queue: list, radius: float, style: str, namer, arm: list = (),
@@ -165,18 +161,16 @@ def hub(rng, own: list, halls: list, style: str) -> list:
     out = [spine]
     for name, shaft, share in (("The first ring", "ring_a", ring_a),
                                ("The second ring", "ring_b", ring_b)):
-        out += levels(share, HUB_RING_R, name, shaft, style)
+        out += ringplan.levels(share, name, shaft, style)
     return out
 
 
-def levels(wants: list, radius: float, name: str, shaft: str, style: str,
-           core: float = 3.5, rim=None) -> list:
-    """A ring (or, with `rim=False`, a can) as many levels deep as its
-    program needs, all one radius, joined at the hub by one lift shaft that
-    the deck before it reaches with `down:<shaft>1`. Named "…, level n" when
-    there is more than one."""
-    rim = RIM if rim is None else (rim or None)
-    cap = loops.capacity(radius, core, rim=rim)
+def can_levels(wants: list, radius: float, name: str, shaft: str, style: str,
+               core: float = 2.5) -> list:
+    """A can as many levels deep as its program needs, all one radius,
+    joined by one lift shaft that the deck before it reaches with
+    `down:<shaft>1`. Named "…, level n" when there is more than one."""
+    cap = loops.capacity(radius, core)
     rest = sorted(wants, key=lambda w: -w.zone)
     sheets = []
     while (rest or not sheets) and len(sheets) < 12:
@@ -185,7 +179,7 @@ def levels(wants: list, radius: float, name: str, shaft: str, style: str,
             share.append(rest.pop(0))
         if not share and rest:
             share.append(rest.pop(0))
-        sheet, geo, left = _can(share, radius, core=core, spokes=4, rim=rim)
+        sheet, geo, left = _can(share, radius, core=core, spokes=4)
         rest = left + rest
         n = len(sheets) + 1
         _lift(sheet, geo, f"{shaft}{n}", up=True, down=False)
@@ -247,9 +241,8 @@ def ringed(rng, wants: list, style: str) -> list:
     works = [w for w in wants if w not in berths + live]
     sheet, geo, left = _can(works, _radius(works), arm=berths)
     _lift(sheet, geo, "spoke1", up=False, down=True)
-    radius = _radius(live + left, core=3.5, least=RIM + 7, rim=RIM)
-    return [Painted(sheet, "The hub", style)] + levels(
-        live + left, min(radius, HUB_RING_R), "The ring", "spoke", style)
+    return [Painted(sheet, "The hub", style)] + ringplan.levels(
+        live + left, "The ring", "spoke", style)
 
 
 def drum(rng, wants: list, style: str) -> list:
@@ -262,9 +255,12 @@ def drum(rng, wants: list, style: str) -> list:
     _lift(sheet, geo, "spoke", up=False, down=True)
     width = max(48, min(84, 24 + len(town) * 2))
     height = 2 * ground.size_for(town, width) + 10
-    inside = blocks.Sheet(width + 4, height)
-    _bottom, more = ground.floor(inside, 2, 2, width, town + left)
-    inside.mark("lift", 3, 3, "up:spoke")
+    # The floor is the inside of the drum, unrolled: round the drum left to
+    # right, and the two ends one. The endcaps are the top and the bottom.
+    inside = blocks.Sheet(width, height)
+    inside.wrap = True
+    _bottom, more = ground.floor(inside, 0, 2, width, town + left)
+    inside.mark("lift", 1, 3, "up:spoke")
     inside.left_out += more
     return [Painted(sheet, "The axis", style),
-            Painted(inside, "Inside the drum", style)]
+            Painted(inside, "Inside the drum", style, g=DRUM_G)]

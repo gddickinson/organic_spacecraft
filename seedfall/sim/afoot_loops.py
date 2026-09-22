@@ -1,10 +1,9 @@
-"""Rooms round a loop: the plan a can, a ring, a tower floor and a dome share.
+"""Rooms round a loop: the plan a can, a tower floor and a dome share.
 
-Most things people build to live in are round a middle. A quay's can is a
-drum stood on end with a lift up its core; a hub's habitation ring is the
-same thing a hundred times the size, with the core a hub the spokes run in
-from; a tower floor is a can with square corners; a dome is a can whose
-floor is the ground. `loop` draws one deck of any of them:
+Most things people build that do not spin are round a middle. A quay's can
+is a drum stood on end with a lift up its core; a tower floor is a can with
+square corners; a dome is a can whose floor is the ground. `loop` draws one
+deck of any of them (a spun ring is drawn unrolled, `sim/afoot_ringplan`):
 
 - a **core** at the middle — the lift shaft, or the hub the spokes meet at;
 - a **ring corridor** round it, two squares wide;
@@ -77,7 +76,7 @@ class Loop:
         return self.at(a, r)
 
 
-def layout(radius: float, core: float, rim=None) -> tuple:
+def layout(radius: float, core: float) -> tuple:
     """(ring corridors, bands of rooms): each corridor as the radius it
     starts at, each band as (from, to, the radius of its door, outermost?).
 
@@ -85,14 +84,14 @@ def layout(radius: float, core: float, rim=None) -> tuple:
       lobby out to the skin, every door on the lobby;
     - a **can** — from the skin inward, a band of rooms, a ring corridor,
       a band back to back with the next, another corridor, and so on to the
-      core, so no room is deeper than a room should be;
-    - a **rim** — a habitation ring: only the outer `rim` squares are built,
-      rooms either side of one corridor, and the spokes cross open space
-      from the hub to reach it.
+      core, so no room is deeper than a room should be.
+
+    (A spun habitation ring is not drawn this way: its floor is its rim,
+    and `sim/afoot_ringplan` draws it unrolled.)
     """
-    if rim is None and radius - core <= PIE:
+    if radius - core <= PIE:
         return [], [(core + 1, radius, core, True)]
-    floor_r = core + 1 if rim is None else max(core + 1, radius - rim)
+    floor_r = core + 1
     corridors, out = [], []
     r, depth = radius, min(6.5, max(5.0, (radius - core - CORRIDOR) * 0.55))
     while r - depth - CORRIDOR >= floor_r:
@@ -104,51 +103,47 @@ def layout(radius: float, core: float, rim=None) -> tuple:
         if ring - inner >= THINNEST_BAND:
             out.append((inner, ring, door, False))
         r, depth = inner, BAND
-        if rim is not None:
-            break
-    if rim is None and corridors and r - floor_r >= THINNEST_BAND:
+    if corridors and r - floor_r >= THINNEST_BAND:
         out.append((floor_r, r, core, False))   # doors on the core lobby
     return corridors, out
 
 
-def bands(cx, cy, radius, core, square=False, rim=None) -> list:
+def bands(cx, cy, radius, core, square=False) -> list:
     """Every band's cells, with its door radius and whether it is the
     outermost, for a loop of this size."""
-    _rings, rows = layout(radius, core, rim)
+    _rings, rows = layout(radius, core)
     return [(band(cx, cy, r0, r1, square), door, outer)
             for r0, r1, door, outer in rows]
 
 
-def capacity(radius: float, core: float, square: bool = False,
-             rim=None) -> int:
+def capacity(radius: float, core: float, square: bool = False) -> int:
     """Squares of room floor a loop of this size has, roughly: its bands,
     less the walls."""
     return int(0.6 * sum(len(cells) for cells, _d, _o in
-                         bands(0, 0, radius, core, square, rim)))
+                         bands(0, 0, radius, core, square)))
 
 
 def fit_radius(area: int, core: float, least: float, most: float,
-               square: bool = False, rim=None) -> float:
+               square: bool = False) -> float:
     """The smallest radius whose bands hold `area`, within limits."""
     r = least
-    while r < most and capacity(r, core, square, rim) < area:
+    while r < most and capacity(r, core, square) < area:
         r += 1
     return r
 
 
 def loop(sheet, cx, cy, radius: float, wants: list, *, core: float = 2.5,
          spokes: int = 4, arms=(), square: bool = False, start: float = 0.0,
-         floor: str = "hall", shell: bool = True, fill: bool = True,
-         rim=None):
+         floor: str = "hall", shell: bool = True, fill: bool = True):
     """Draw one round deck. Returns (Loop, what would not fit).
 
     `arms` are angles at which a corridor runs out through the skin; the
     caller draws what is on the end of each. `floor` is what the corridors
     are: "hall" aboard, "ground" under a dome. `shell` paints the whole
     disc as structure first, so what no room takes is structure; without
-    it, it is open space (a ring's middle) or open ground (a dome's).
+    it, it is open ground (a dome's).
     """
-    rings, _rows = layout(radius, core, rim)
+    rings, _rows = layout(radius, core)
     geo = Loop(cx, cy, radius, core, rings[0] if rings else core, square)
     if shell:
         sheet.paint(band(cx, cy, 0, radius + 0.01, square),
@@ -163,7 +158,7 @@ def loop(sheet, cx, cy, radius: float, wants: list, *, core: float = 2.5,
         sheet.paint(_ray(geo, a, 0, geo.ring + 1), way)
     for a in arms:
         sheet.paint(_ray(geo, a, geo.ring, radius + 1.5), way)
-    rows = bands(cx, cy, radius, core, square, rim)
+    rows = bands(cx, cy, radius, core, square)
     # Each band takes its share of the program by its size, the outermost
     # — the one with the windows, where the arm comes in — first.
     total_cells = sum(len(cells) for cells, _d, _o in rows) or 1

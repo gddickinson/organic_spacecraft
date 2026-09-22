@@ -241,7 +241,11 @@ def tick(game, days: float) -> tuple[dict, list]:
                 events.append(("good", f"{opened.name} now has a market "
                                        "flying your colours."))
 
-        produced = {key: n * days
+        # What a walk through the works last did to them (`afoot_holdings`):
+        # set right by hand they run sweeter for a month, left worse.
+        from . import afoot_holdings
+        running = afoot_holdings.factor(game, col)
+        produced = {key: n * days * running
                     for key, n in works.crewed_yields(game, col).items()}
         # A power that annexed the ground takes its share off the top, before
         # any of it reaches your stores — **and it is said out loud.** The return

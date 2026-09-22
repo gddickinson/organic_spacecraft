@@ -68,6 +68,9 @@ class Sheet:
         self.base = -1
         #: The squares the last reach worked out could be walked to.
         self.reached: set = set()
+        #: A sheet whose left and right edges are one: a spun ring's level
+        #: or a drum's floor, unrolled. Walls do not form across the seam.
+        self.wrap = False
 
     # ── painting ──────────────────────────────────────────────────────────
 
@@ -115,6 +118,8 @@ class Sheet:
     # ── building ──────────────────────────────────────────────────────────
 
     def _rid(self, x: int, y: int) -> int:
+        if self.wrap and 0 <= y < self.h:
+            x %= self.w
         return self.grid[y][x] if self.inside(x, y) else OUTSIDE
 
     def _walls(self) -> set:
@@ -379,7 +384,7 @@ def line(x0: int, y0: int, x1: int, y1: int, width: int = 1) -> list:
 
 
 def strip(sheet, x0: int, x1: int, y0: int, y1: int, wants: list,
-          door_y: int, gaps=(), fill: bool = True) -> list:
+          door_y: int, gaps=(), fill: bool = True, least: int = 3) -> list:
     """Rooms side by side from x0 to x1, each the full depth y0..y1, their
     doors toward `door_y` — a row of shops on a street, of offices along a
     spine. `gaps` are columns kept clear for cross-streets. Sized to fill
@@ -399,12 +404,12 @@ def strip(sheet, x0: int, x1: int, y0: int, y1: int, wants: list,
     left = []
     for run in runs:
         got = []
-        while queue and sum(_cols(w, depth) for w in got + [
+        while queue and sum(_cols(w, depth, least) for w in got + [
                 queue[0]]) <= len(run):
             got.append(queue.pop(0))
         if not got:
             continue
-        need = [_cols(w, depth) for w in got]
+        need = [_cols(w, depth, least) for w in got]
         spare = len(run) - sum(need) if fill else 0
         i = 0
         for n, (w, cols_) in enumerate(zip(got, need)):
@@ -420,7 +425,8 @@ def strip(sheet, x0: int, x1: int, y0: int, y1: int, wants: list,
     return left
 
 
-def _cols(want, depth: int) -> int:
+def _cols(want, depth: int, least: int = 3) -> int:
     """Columns a room in a row needs: three at least, because a room two
-    wide between two neighbours is all wall."""
-    return max(3, -(-want.area // depth))
+    wide between two neighbours is all wall — `least` more where people
+    will stand about in it."""
+    return max(least, -(-want.area // depth))

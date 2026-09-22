@@ -267,6 +267,15 @@ MORE_TOPICS = [
            "on the plan, under the same name, and a place with more doors "
            "than a deck holds has more decks: a Fleet Hub's rings are as "
            "many levels deep as its concourse needs.",
+           "Every deck has a weight, shown beside its name. A hull and a "
+           "quay are weightless; a ring is spun, and each of its levels is "
+           "drawn unrolled — walk off one end and you come on at the other, "
+           "the outermost level the heaviest; a drum's floor is a full "
+           "gravity; the ground is its world's own. Weightless, anybody "
+           "without Zero-G goes hand over hand at twice the cost of a step, "
+           "shoots unbraced, and is set drifting by the kick of a gun; "
+           "magnetic boots put that right, and the people who live aboard "
+           "are at home in it. A heavy world slows everybody.",
            "Left-click a square to walk there, a person to talk to them, an "
            "enemy to shoot. Right-click goes up to whatever is there. Arrow "
            "keys step; Tab takes the next person in hand; Space ends the "
@@ -280,6 +289,21 @@ MORE_TOPICS = [
            "stamina somebody is down and bleeding: first aid stops it, and "
            "a friend can carry them out. The captain always comes home. An "
            "officer left lying on a dead hull does not.",
+           "A gun with Auto can fire a burst, which adds its Auto to the "
+           "damage, or lay down suppressing fire: nobody is hit, but the "
+           "target and anybody beside them are pinned for a round and shoot "
+           "the worse for it. Grenades are thrown with Athletics and DEX and "
+           "land a square off on a miss: a fragmentation grenade hurts "
+           "everybody in its burst, friend or not, a stun grenade floors "
+           "them, and smoke hangs for three rounds and blinds every line "
+           "through it.",
+           "Places have their troubles. Two officers whose convictions "
+           "collide can be at it when you walk your decks; where the law is "
+           "thin, hard cases want a toll and a drunk wants a fight; your own "
+           "works can be failing, on strike or sabotaged, and setting them "
+           "right by hand runs them sweeter for a month. At a Kith gathering "
+           "they sing a phrase and wait for it back, and an elder may sing a "
+           "whole domain's song of passage: both teach the lexicon.",
            "Staff stand behind their counters: talk to them to do business "
            "across the counter, take a room, sign on a hand or ask a favour "
            "of the harbourmaster. Constables walk the corridors in "
@@ -311,6 +335,10 @@ MORE_TOPICS = [
            "where the port has no slips of its own; a hull nursery grows "
            "grown ones. Every one of them can be walked, laid out as it is "
            "built: a hotel is a ring, a palace a drum, a market a can, a "
-           "base sheds on the ground."),
+           "base sheds on the ground.",
+           "Alongside a house, its Concourse offers a stake: a tenth of it, "
+           "paid monthly out of the takings for as long as it trades, with "
+           "the quarter's statement sent by despatch. Sold back, a stake "
+           "fetches four-fifths of what it cost."),
           see=("afoot", "shipyard", "trade")),
 ]

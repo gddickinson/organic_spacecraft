@@ -435,9 +435,11 @@ settlements, derelicts adrift and boarded prizes, as a turn-based *Star Frontier
 party of up to four — on plans drawn **in the shape of what they are**. A hull is sliced
 through its own silhouette and is a working ship, every space its crew and fittings need in
 place and nothing left out; a quay is its can, arm and mast; a Fleet Hub its spine, berths
-and two rings; a drum is a town inside it and a dome open ground under its shell. The
-officers are the people their service records say, and every shot, lock, bribe and word is
-two dice against eight, with the odds on the button.
+and two rings, each level an unrolled strip spun to 0.8 g; a drum is a town inside it and a
+dome open ground under its shell. Every deck weighs what its structure gives it, and
+weightless the untrained go hand over hand. The officers are the people their service
+records say, and every shot, burst, grenade, lock, bribe and word is two dice against
+eight, with the odds on the button. Counsel, the Academy and renown all know it is there.
 
 **Yards, hotels, wheels and dens.** Around the quays the trade has built fifteen kinds of
 establishment — shipyards and hull nurseries, grand hotels, spacers' rests, pleasure
@@ -448,7 +450,7 @@ cannot.
 
 | | |
 |---|---|
-| ![A boarding party in a raider's hulk](assets/seedfall/22-afoot-wreck.png) | ![The ring of a gaming wheel](assets/seedfall/24-afoot-station.png) |
+| ![A boarding party in a raider's hulk](assets/seedfall/22-afoot-wreck.png) | ![A gaming wheel's ring, unrolled](assets/seedfall/24-afoot-station.png) |
 
 ```bash
 python3 -m seedfall.tests -j 8     # ~250 suites, ~1,900 checks, about 4 minutes

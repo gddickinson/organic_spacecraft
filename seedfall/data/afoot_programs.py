@@ -48,6 +48,10 @@ AREA = {
     "barracks": 16, "cold": 16, "brig": 6, "chapel": 8,
 }
 
+#: The weight in a Habitat Girdle's spun berths, in gravities — the card's
+#: own "four-tenths of a gravity". The rest of a hull is weightless.
+GIRDLE_G = 0.4
+
 #: Squares of berth per person aboard, and the most one berthing room takes
 #: before a second is opened. Bunks two high.
 BERTH_PER_HEAD = 1.1

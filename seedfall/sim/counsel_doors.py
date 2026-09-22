@@ -230,3 +230,53 @@ def save_money(game) -> list:
     return [S("sell_survey", "Sell the survey data",
               "Survey sets in the hold are worth money at this counter.",
               "port", "market", verb="sell_survey", weight=66)]
+
+
+#: Days since anybody stopped at an officer's station, and the loyalty
+#: under which the first officer says so.
+WORD_OVERDUE = 90
+WORD_LOYALTY = 60
+
+
+def afoot(game) -> list:
+    """What there is to walk: a dead hull adrift here that nobody has
+    cleared, and an officer nobody has stopped to talk to in months whose
+    loyalty is slipping (`sim/afoot`)."""
+    from . import afoot as afoot_sim
+    from . import afoot_sites, lifespan
+    if afoot_sim.current(game) is not None:
+        return []
+    out = []
+    marks = getattr(game, "walked", {}) or {}
+    wreck = afoot_sites.derelict(game, game.system)
+    if wreck is not None and not marks.get(wreck.key, {}).get("cleared"):
+        keys = _boarders(game)
+        ok, why = afoot_sim.can_begin(game, wreck, keys)
+        out.append(S("afoot:wreck",
+                     f"Board {wreck.name.split(',')[0]}, adrift here",
+                     wreck.what, "afoot", verb="walk",
+                     args={"key": wreck.key, "keys": keys}, weight=35,
+                     blocked="" if ok else why))
+    words = marks.get("words", {})
+    quiet = [o for o in lifespan.active(getattr(game, "officers", []) or [])
+             if o.loyalty < WORD_LOYALTY and game.day - int(words.get(
+                 str(o.id), -WORD_OVERDUE)) >= WORD_OVERDUE]
+    if quiet:
+        who = min(quiet, key=lambda o: o.loyalty)
+        own = afoot_sites.own_hull(game)
+        ok, why = afoot_sim.can_begin(game, own, ["captain"])
+        out.append(S("afoot:word", f"Walk the decks: a word with {who.name}",
+                     f"Nobody has stopped at {who.name}'s station in months, "
+                     f"and their loyalty is down to {who.loyalty:.0f}.",
+                     "afoot", verb="walk",
+                     args={"key": own.key, "keys": ["captain"]}, weight=25,
+                     blocked="" if ok else why))
+    return out
+
+
+def _boarders(game) -> list:
+    """A boarding party: the captain and whoever else can go, up to four."""
+    from . import afoot as afoot_sim, afoot_people
+    able = [key for key, _n, _w, ok, _why in afoot_sim.pool(game) if ok]
+    return (["captain"] + [k for k in able if k != "captain"])[
+        :afoot_people.PARTY_MOST]

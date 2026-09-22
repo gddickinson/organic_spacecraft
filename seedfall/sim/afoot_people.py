@@ -55,6 +55,18 @@ WALKING_TONNES = 4.0
 #: The most people in a party. Four is a fire team, and more than four is a
 #: crowd that fills a corridor.
 PARTY_MOST = 4
+#: Gravities above which a person moves slower, in proportion.
+HEAVY = 1.3
+
+
+#: The service a captain's origin leans their earlier life toward, the
+#: level of officer they count as, and how far through their lineage's
+#: working prime they are when the chronicle opens.
+ORIGIN_STATION = {"surveyor": "science", "journeyman": "engineer",
+                  "grafter": "comms", "cantor": "science",
+                  "survivor": "tactical", "fugitive": "tactical"}
+CAPTAIN_LEVEL = 3
+CAPTAIN_AGE = 0.62
 
 
 class Sheet(lifepath.Record):
@@ -62,20 +74,33 @@ class Sheet(lifepath.Record):
 
 
 def captain_record(game) -> lifepath.Record:
-    """The captain, as a person: stable for the chronicle, stored nowhere."""
-    rng = RNG(f"{game.seed}:captain")
+    """The captain, as a person: **a life played out term by term**, the
+    same `sim/lifepath` every officer's record comes from — a service chosen
+    by where their origin leans, terms by their age, ranks, mishaps and a
+    muster-out — with what the origin taught them and what owning a
+    starship makes of anybody on top. Stable for the chronicle, stored
+    nowhere."""
+    from types import SimpleNamespace
     begun = getattr(game, "beginning", None)
     origin = getattr(begun, "origin", "surveyor") or "surveyor"
     taught, leans = ORIGIN_SKILLS.get(origin, ORIGIN_SKILLS["surveyor"])
-    scores = {c: rng.int(1, 6) + rng.int(1, 6) for c in checks.CHARACTERISTIC_IDS}
+    stock = of_stock(getattr(begun, "stock", None))
+    lineage = LINEAGES_BY_ID.get(stock) or lifespan.lineage_of(None, game)
+    who = SimpleNamespace(
+        id="captain", name=captain_name(game), level=CAPTAIN_LEVEL,
+        role=ORIGIN_STATION.get(origin, "nav"), trait_id=None,
+        lineage=getattr(lineage, "id", None),
+        age=round(lineage.prime * CAPTAIN_AGE, 1))
+    record = lifepath.of(game, who)
     for cid in leans:
-        scores[cid] = min(15, scores[cid] + 2)
-    scores["soc"] = min(15, scores["soc"] + 1)     # they own a starship
-    skills = dict(COMMAND)
-    for name, level in taught.items():
-        skills[name] = max(skills.get(name, -1), level)
-    return Sheet(name=captain_name(game), station="captain",
-                 characteristics=scores, skills=skills)
+        record.characteristics[cid] = min(
+            15, record.characteristics.get(cid, 7) + 1)
+    record.characteristics["soc"] = min(          # they own a starship
+        15, record.characteristics.get("soc", 7) + 1)
+    for name, level in list(COMMAND.items()) + list(taught.items()):
+        record.skills[name] = max(record.skills.get(name, -3), level)
+    record.name, record.station = captain_name(game), "captain"
+    return record
 
 
 def captain_name(game) -> str:
@@ -167,6 +192,12 @@ def move_of(game, actor) -> int:
         squares -= 2
     if actor.stance == "sneak" or actor.carrying >= 0:
         squares = squares // 2
+    # A heavy world is hard going for anybody who was not born on it.
+    walk = getattr(game, "afoot", None)
+    if walk is not None and 0 <= actor.deck < len(walk.decks):
+        weight = walk.decks[actor.deck].g
+        if weight > HEAVY:
+            squares = int(squares * HEAVY / weight)
     return max(arms.LEAST_MOVE, squares)
 
 
@@ -177,7 +208,10 @@ def pool(game) -> list:
 
     The key is `captain`, `officer:<id>` or `robot:<id>`.
     """
-    rows = [("captain", captain_name(game), "In command.", True, "")]
+    life = captain_record(game)
+    rows = [("captain", captain_name(game),
+             f"In command — {len(life.terms)} terms in the {life.career_name}"
+             f", mustered out {life.rank}.", True, "")]
     wounds = getattr(game, "wounds", {}) or {}
     asleep = _asleep(game)
     for officer in lifespan.active(getattr(game, "officers", []) or []):

@@ -53,6 +53,14 @@ class Deck:
     #: breathe: an airless moon, a rock. The sheds hold air; the street does
     #: not.
     outside_air: bool = True
+    #: The weight on the floor, in gravities. **Nothing in the Verge makes a
+    #: floor pull**: a hull or a quay is weightless, a Habitat Girdle's spun
+    #: berths four-tenths, a ring or a drum what its spin gives, the ground
+    #: its world's own. Below `afoot_map.WEIGHTLESS` people drift.
+    g: float = 1.0
+    #: A floor that closes on itself — a spun ring's level, a drum's inside,
+    #: drawn unrolled: walk off one end and you come on at the other.
+    wrap: bool = False
 
     @property
     def w(self) -> int:
@@ -185,6 +193,16 @@ class Actor:
     carrying: int = -1
     #: Stamina a stun weapon took. It wears off, and is never a wound.
     numb: int = 0
+    #: Lines said to the party so far: somebody works through what they
+    #: have to say before they say any of it twice.
+    spoke: int = 0
+    #: Zero-G skill, for the party (−3 untrained): who moves and shoots
+    #: weightless without drifting. The people who live aboard are at home
+    #: in it whatever this says.
+    zero_g: int = -3
+    #: Rounds left pinned by suppressing fire: they hold their ground and
+    #: shoot worse (`afoot_arms.PINNED`).
+    pinned: int = 0
     #: An incident that put them here, and whose past they come out of.
     incident: str = ""
     tie: str = ""

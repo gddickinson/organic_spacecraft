@@ -9,16 +9,19 @@ screen, which calls the sim.
 
 from __future__ import annotations
 
-from PyQt6.QtWidgets import QHBoxLayout, QWidget
+from PyQt6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 
 from ..data import afoot_arms as arms
 from ..data import kit as kit_table
-from ..sim import afoot_acts, afoot_fight, afoot_map, afoot_talk
+from ..sim import afoot_acts, afoot_fight, afoot_fire, afoot_map, afoot_talk
 from ..sim.afoot_state import party
+from . import afoot_canvas
 from .widgets import Bar, Panel, Pill, button, label, note
 
-#: How many lines of the walk's own log the column keeps in view.
+#: How many lines of the walk's own log the column keeps in view, and how
+#: many of the newest sit at the top of it, above the fold.
 LOG_LINES = 9
+LATEST_LINES = 3
 
 STATUS = {"up": "", "down": "down, bleeding", "stable": "down, stable",
           "dead": "dead", "gone": "gone"}
@@ -40,7 +43,9 @@ def party_strip(view, walk) -> Panel:
         h.setContentsMargins(0, 0, 0, 0)
         h.setSpacing(6)
         picked = who.id == walk.selected
-        b = button(who.name, lambda _=False, i=who.id: view.pick(i),
+        mark = afoot_canvas.tokens(walk).get(who.id, "")
+        b = button(f"{mark} · {who.name}" if mark else who.name,
+                   lambda _=False, i=who.id: view.pick(i),
                    kind="primary" if picked else "flat",
                    enabled=who.status != "dead")
         b.setObjectName(f"afoot_member_{who.id}")
@@ -63,11 +68,11 @@ def party_strip(view, walk) -> Panel:
 
 
 def in_hand(view, walk, who) -> Panel:
-    """What the person in hand can do from where they stand."""
-    p = Panel(f"{who.name} can")
+    """What the person in hand can do from where they stand — or, while
+    they are down, who could get to them."""
     if not who.standing:
-        p.add(note(f"{who.name} is {STATUS.get(who.status, who.status)}."))
-        return p
+        return _down(view, walk, who)
+    p = Panel(f"{who.name} can")
     acts = afoot_acts.offer(game_of(view), walk, who)
     for on, heading in GROUPS:
         rows = [a for a in acts if a.on == on]
@@ -88,6 +93,30 @@ def in_hand(view, walk, who) -> Panel:
     return p
 
 
+def _down(view, walk, who) -> Panel:
+    """Somebody down, in hand: what has happened to them, and each of the
+    party still standing, nearest first, to take in hand instead."""
+    p = Panel(f"{who.name} is {STATUS.get(who.status, who.status)}", "warn")
+    help_ = ("First aid stops the bleeding; anybody can carry them out."
+             if who.status == "down" else
+             "They will keep. Anybody can carry them out."
+             if who.status == "stable" else "There is nothing to be done.")
+    p.add(note(help_))
+    mates = sorted((m for m in party(walk, standing=True)),
+                   key=lambda m: (m.deck != who.deck, afoot_map.apart(walk, m, who)))
+    for mate in mates:
+        far = ("another deck" if mate.deck != who.deck else
+               f"{afoot_map.apart(walk, mate, who)} squares "
+               "away")
+        b = button(f"Take {mate.name} in hand — {far}",
+                   lambda _=False, i=mate.id: view.pick(i))
+        b.setObjectName(f"afoot_hand_to_{mate.id}")
+        p.add(b)
+    if not mates:
+        p.add(note("Nobody is left standing."))
+    return p
+
+
 #: How the acts are grouped, by what each is done to (`afoot_acts.Act.on`).
 GROUPS = (("thing", "Within reach"), ("actor", "People"),
           ("self", "Themselves"))
@@ -105,7 +134,7 @@ def in_sight(view, walk, who) -> Panel:
     people = [a for a in walk.actors if a.side == "npc"
               and a.deck == walk.viewing and (a.x, a.y) in seen
               and a.status not in ("gone",)]
-    people.sort(key=lambda a: afoot_map.distance(who.x, who.y, a.x, a.y))
+    people.sort(key=lambda a: afoot_map.apart(walk, who, a))
     if not people:
         p.add(note("Nobody in sight."))
         return p
@@ -120,7 +149,7 @@ def in_sight(view, walk, who) -> Panel:
                                 "wary": "osteo"}.get(other.mood, "dim")))
         h.addStretch(1)
         p.add(row)
-        buttons = []
+        buttons, fire = [], []
         if other.standing or other.status in ("down", "stable"):
             shot = afoot_fight.terms(game, walk, who, other)
             lo, hi = afoot_fight.damage_range(who, other)
@@ -132,6 +161,7 @@ def in_sight(view, walk, who) -> Panel:
                        why=shot["why"] or "Already acted this round.")
             b.setObjectName(f"afoot_attack_{other.id}")
             buttons.append(b)
+            fire = _fire(view, game, walk, who, other, shot)
         if other.standing:
             ok, why = afoot_talk.can_talk(walk, who, other)
             b = button("Talk", lambda _=False, i=other.id: view.talk_to(i),
@@ -139,7 +169,46 @@ def in_sight(view, walk, who) -> Panel:
             b.setObjectName(f"afoot_talk_{other.id}")
             buttons.append(b)
         p.add_buttons(*buttons)
+        # Rows of their own, so a carbine and a grenade in hand never push
+        # the column wider than the window's narrowest.
+        for row in fire:
+            p.add_buttons(*row)
     return p
+
+
+def _fire(view, game, walk, who, other, shot) -> list:
+    """Rows of buttons: a burst and suppressing fire for a weapon with Auto,
+    and a throw for every sort of grenade the person in hand is carrying."""
+    out, auto = [], []
+    arm = afoot_fight.weapon(who)
+    free = shot["ok"] and not who.acted and who.standing
+    if arm.auto:
+        b = button(f"Burst — {shot['odds']:.0%}, +{arm.auto}" if shot["ok"]
+                   else "Burst", lambda _=False, i=other.id: view.burst(i),
+                   kind="danger" if other.hostile else "", enabled=free,
+                   why=shot["why"] or "Already acted this round.",
+                   tip=f"The {arm.name}'s Auto {arm.auto} added to the "
+                       "damage.")
+        b.setObjectName(f"afoot_burst_{other.id}")
+        auto.append(b)
+        b = button("Suppress", lambda _=False, i=other.id: view.suppress(i),
+                   enabled=free, why=shot["why"] or "Already acted this round.",
+                   tip="Nobody is hit; they and anybody beside them are "
+                       "pinned for a round.")
+        b.setObjectName(f"afoot_suppress_{other.id}")
+        auto.append(b)
+        out.append(auto)
+    for gid in sorted(set(afoot_fire.grenades(who))):
+        got = afoot_fire.terms(game, walk, who, other, gid)
+        name = arms.GRENADE_BY_ID[gid].name
+        b = button(f"Throw a {name} — {got['odds']:.0%}" if got["ok"]
+                   else f"Throw a {name}",
+                   lambda _=False, i=other.id, g=gid: view.throw(i, g),
+                   kind="danger", enabled=got["ok"] and not who.acted,
+                   why=got["why"] or "Already acted this round.")
+        b.setObjectName(f"afoot_throw_{gid}_{other.id}")
+        out.append([b])
+    return out
 
 
 def goals(walk):
@@ -150,6 +219,21 @@ def goals(walk):
         p.add(label(("✓ " if done else "· ") + words, "note",
                     "chloro" if done else ""))
     return p
+
+
+def latest(walk):
+    """The newest lines of the walk's log, at the top of the column, where
+    a shot or a hail is seen without scrolling for it."""
+    rows = walk.log[-LATEST_LINES:]
+    if not rows:
+        return None
+    box = QWidget()
+    col = QVBoxLayout(box)
+    col.setContentsMargins(0, 0, 0, 0)
+    col.setSpacing(2)
+    for _round, text, kind in rows:
+        col.addWidget(label(text, "note", kind, wrap=True))
+    return box
 
 
 def log(walk) -> Panel:

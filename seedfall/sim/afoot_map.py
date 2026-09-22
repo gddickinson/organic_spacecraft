@@ -25,6 +25,9 @@ from .afoot_state import BLIND, OPEN, WINDOW
 
 #: How far anybody sees on a lit deck, in squares.
 SIGHT = 12
+#: Below this many gravities a deck is weightless: people go hand over hand,
+#: at twice the cost, unless they have the Zero-G skill or magnetic boots.
+WEIGHTLESS = 0.1
 
 #: Neighbours: the four orthogonals first, so a straight path is preferred
 #: over a zig-zag of the same length.
@@ -33,9 +36,34 @@ STEPS = ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1))
 _CACHE: dict = {}
 
 
-def distance(ax: int, ay: int, bx: int, by: int) -> int:
-    """Squares between two points, a diagonal counting one."""
-    return max(abs(ax - bx), abs(ay - by))
+def distance(ax: int, ay: int, bx: int, by: int, wide: int = 0) -> int:
+    """Squares between two points, a diagonal counting one — the short way
+    round, on a floor that closes on itself `wide` squares round."""
+    dx = abs(ax - bx)
+    if wide:
+        dx = min(dx % wide, wide - dx % wide)
+    return max(dx, abs(ay - by))
+
+
+def span(walk, deck: int) -> int:
+    """How far round a floor that closes on itself is (`Deck.wrap`); 0 for
+    one with ends."""
+    got = walk.decks[deck]
+    return got.w if got.wrap else 0
+
+
+def apart(walk, a, b) -> int:
+    """Squares between two people or things on one deck, the short way
+    round a ring. The caller asks whether they are on the same deck."""
+    return distance(a.x, a.y, b.x, b.y, span(walk, a.deck))
+
+
+def unroll(wide: int, ax: int, bx: int) -> int:
+    """`bx`, moved a whole way round if that is the short way from `ax`: the
+    column to draw a line to across a ring's seam."""
+    if wide:
+        bx = ax + (bx - ax + wide // 2) % wide - wide // 2
+    return bx
 
 
 class Ground:
@@ -48,6 +76,8 @@ class Ground:
     def __init__(self, walk, deck: int):
         self.deck = walk.decks[deck]
         self.index = deck
+        #: A ring's circumference: every question is asked round it.
+        self.wide = self.deck.w if self.deck.wrap else 0
         self.blocked: set = set()
         self.opaque: set = set()
         self.shut: set = set()        # a door that must be opened, 1 MP
@@ -80,12 +110,14 @@ class Ground:
                 self.hazard[here] = t.kind
 
     def floor(self, x: int, y: int) -> bool:
-        return self.deck.at(x, y) in OPEN
+        return self.deck.at(x % self.wide if self.wide else x, y) in OPEN
 
     def passable(self, x: int, y: int) -> bool:
+        x = x % self.wide if self.wide else x
         return self.floor(x, y) and (x, y) not in self.blocked
 
     def see_through(self, x: int, y: int) -> bool:
+        x = x % self.wide if self.wide else x
         cell = self.deck.at(x, y)
         if cell in BLIND:
             return False
@@ -133,10 +165,12 @@ def _clear(g: Ground, ax: int, ay: int, bx: int, by: int) -> bool:
 
 def sees(walk, deck: int, ax: int, ay: int, bx: int, by: int,
          reach: int = SIGHT) -> bool:
-    """Whether a person at a can see b on the same deck."""
+    """Whether a person at a can see b on the same deck — across a ring's
+    seam as readily as anywhere else on it."""
+    g = ground(walk, deck)
+    bx = unroll(g.wide, ax, bx)
     if distance(ax, ay, bx, by) > reach:
         return False
-    g = ground(walk, deck)
     return _clear(g, ax, ay, bx, by) or _clear(g, bx, by, ax, ay)
 
 
@@ -144,12 +178,16 @@ def view(walk, deck: int, x: int, y: int, reach: int = SIGHT) -> set:
     """Every square a person standing here can see."""
     g = ground(walk, deck)
     out = {(x, y)}
+    # Round a ring the columns run on past its seam: the squares are
+    # counted as far as they are, and named where they are.
+    xs = range(x - reach, x + reach + 1) if g.wide else range(
+        max(0, x - reach), min(g.deck.w, x + reach + 1))
     for yy in range(max(0, y - reach), min(g.deck.h, y + reach + 1)):
-        for xx in range(max(0, x - reach), min(g.deck.w, x + reach + 1)):
+        for xx in xs:
             if (xx - x) ** 2 + (yy - y) ** 2 > reach * reach + reach:
                 continue
             if _clear(g, x, y, xx, yy) or _clear(g, xx, yy, x, y):
-                out.add((xx, yy))
+                out.add((xx % g.wide if g.wide else xx, yy))
     return out
 
 
@@ -161,13 +199,15 @@ def cover_for(walk, deck: int, tx: int, ty: int, ax: int, ay: int) -> int:
     behind a counter corner is behind the counter.
     """
     g = ground(walk, deck)
+    ax = unroll(g.wide, tx, ax)
     sx = (ax > tx) - (ax < tx)
     sy = (ay > ty) - (ay < ty)
     if sx == 0 and sy == 0:
         return 0
-    near = {(tx + sx, ty + sy)}
+    side = (tx + sx) % g.wide if g.wide else tx + sx
+    near = {(side, ty + sy)}
     if sx and sy:
-        near |= {(tx + sx, ty), (tx, ty + sy)}
+        near |= {(side, ty), (tx, ty + sy)}
     if distance(tx, ty, ax, ay) <= 1:
         return 0            # hand to hand, nothing is between you
     best = 0
@@ -200,8 +240,16 @@ def _occupied(walk, deck: int, mover) -> dict:
 
 def _moves(g: Ground, x: int, y: int, keys: bool = False):
     """Squares one step on. `keys` walks through locked doors, which is
-    what the people who live aboard can do and the party cannot."""
+    what the people who live aboard can do and the party cannot. On a floor
+    that closes on itself (`Deck.wrap`) a step off one end is a step onto
+    the other."""
+    wide = g.deck.w if g.deck.wrap else 0
+
+    def at(px):
+        return px % wide if wide else px
+
     def ok(px, py):
+        px = at(px)
         return g.passable(px, py) or (keys and (px, py) in g.locked)
     for dx, dy in STEPS:
         nx, ny = x + dx, y + dy
@@ -209,7 +257,29 @@ def _moves(g: Ground, x: int, y: int, keys: bool = False):
             continue
         if dx and dy and not (ok(x + dx, y) and ok(x, y + dy)):
             continue            # no cutting a corner
-        yield nx, ny
+        yield at(nx), ny
+
+
+def gap(g: Ground, ax: int, ay: int, bx: int, by: int) -> int:
+    """Squares between two points on this deck, the short way round a
+    floor that closes on itself."""
+    return distance(ax, ay, bx, by, g.wide)
+
+
+def weight(walk, mover) -> int:
+    """What one step costs the mover here before doors: two hand over hand
+    on a weightless deck, for anybody not at home in it."""
+    deck = walk.decks[mover.deck]
+    if deck.g >= WEIGHTLESS or at_home(mover):
+        return 1
+    return 2
+
+
+def at_home(who) -> bool:
+    """Moves and shoots weightless as if it were nothing: the people who
+    live aboard, anybody trained in Zero-G, anybody in magnetic boots."""
+    return (getattr(who, "side", "") == "npc" or who.zero_g >= 0
+            or "mag_boots" in (who.kit or ()))
 
 
 def _keys(mover) -> bool:
@@ -221,6 +291,7 @@ def reach(walk, mover, budget: int | None = None) -> dict:
     budget = mover.mp if budget is None else budget
     g = ground(walk, mover.deck)
     busy = _occupied(walk, mover.deck, mover)
+    each = weight(walk, mover)
     start = (mover.x, mover.y)
     cost = {start: 0}
     queue = [(0, start)]
@@ -231,7 +302,7 @@ def reach(walk, mover, budget: int | None = None) -> dict:
         for nx, ny in _moves(g, x, y, _keys(mover)):
             if (nx, ny) in busy and not busy[(nx, ny)]:
                 continue
-            step = spent + 1 + (1 if (nx, ny) in g.shut else 0)
+            step = spent + each + (1 if (nx, ny) in g.shut else 0)
             if step > budget or step >= cost.get((nx, ny), 1 << 30):
                 continue
             cost[(nx, ny)] = step
@@ -247,12 +318,15 @@ def path(walk, mover, tx: int, ty: int, near: bool = False) -> list:
     """
     g = ground(walk, mover.deck)
     busy = _occupied(walk, mover.deck, mover)
+    each = weight(walk, mover)
     start = (mover.x, mover.y)
+    if g.wide:
+        tx %= g.wide            # a step off one end of a ring is onto the other
     goal = (tx, ty)
 
     def done(sq) -> bool:
         if near:
-            return distance(sq[0], sq[1], tx, ty) <= 1 and sq not in busy
+            return gap(g, sq[0], sq[1], tx, ty) <= 1 and sq not in busy
         return sq == goal
 
     if done(start):
@@ -271,20 +345,22 @@ def path(walk, mover, tx: int, ty: int, near: bool = False) -> list:
         for nxt in _moves(g, *here, _keys(mover)):
             if nxt in busy and not busy[nxt]:
                 continue
-            step = cost[here] + 1 + (1 if nxt in g.shut else 0) \
+            step = cost[here] + each + (1 if nxt in g.shut else 0) \
                 + (2 if nxt in g.hazard else 0)
             if step < cost.get(nxt, 1e9):
                 cost[nxt] = step
                 came[nxt] = here
-                heapq.heappush(queue, (step + distance(*nxt, tx, ty), nxt))
+                heapq.heappush(queue, (step + gap(g, *nxt, tx, ty), nxt))
     return []
 
 
-def price(walk, deck: int, squares: list) -> int:
-    """What walking these squares costs in movement: one a step, one more
-    for a shut door opened on the way."""
+def price(walk, deck: int, squares: list, mover=None) -> int:
+    """What walking these squares costs in movement: one a step — two, hand
+    over hand, weightless for somebody not at home in it — and one more for
+    a shut door opened on the way."""
     g = ground(walk, deck)
-    return sum(1 + (1 if sq in g.shut else 0) for sq in squares)
+    each = weight(walk, mover) if mover is not None else 1
+    return sum(each + (1 if sq in g.shut else 0) for sq in squares)
 
 
 def open_squares(walk, deck: int) -> list:

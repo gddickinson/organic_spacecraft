@@ -51,7 +51,10 @@ def _holds(game, walk, site, iid: str) -> bool:
     if iid == "fault":
         from .ship import hull_pct
         return hull_pct(game.ship) < 0.95
-    return False
+    from . import afoot_holdings, afoot_trouble
+    if iid in afoot_holdings.GOALS:
+        return afoot_holdings.holds(game, walk, site, iid)
+    return afoot_trouble.holds(game, walk, site, iid)
 
 
 def _forbidden(walk) -> list:
@@ -151,12 +154,17 @@ def _spawn(game, walk, site, iid: str, rng) -> bool:
                                  name="the failing junction"))
         walk.goals.append(["fault", "Find the fault and fix it", False])
         return True
-    return False
+    from . import afoot_holdings, afoot_trouble
+    if iid in afoot_holdings.GOALS:
+        return afoot_holdings.spawn(game, walk, site, iid, rng)
+    return afoot_trouble.spawn(game, walk, site, iid, rng)
 
 
 def tick(game, walk) -> list:
-    """Incidents that come to you: the stop, when the constable arrives."""
-    events = []
+    """Incidents that come to you: the stop, when the constable arrives —
+    and a shakedown's toll, and a brawler's swing (`afoot_trouble`)."""
+    from . import afoot_trouble
+    events = afoot_trouble.tick(game, walk)
     for npc in walk.actors:
         if npc.incident != "stop" or not npc.standing or \
                 npc.mood in ("hostile", "fled", "friendly"):
@@ -165,7 +173,7 @@ def tick(game, walk) -> list:
             events += _waiting(walk, npc)
             continue
         near = [a for a in party(walk, standing=True) if a.deck == npc.deck
-                and afoot_map.distance(a.x, a.y, npc.x, npc.y) <= 2]
+                and afoot_map.apart(walk, a, npc) <= 2]
         if near:
             npc.talked.append("hailed")
             say(walk, f"{npc.name}: “Papers. All of you. What's that you're "
@@ -173,8 +181,7 @@ def tick(game, walk) -> list:
             events.append({"kind": "hail", "who": npc.id, "to": near[0].id})
         else:
             target = min(party(walk, standing=True) or [npc],
-                         key=lambda a: afoot_map.distance(a.x, a.y,
-                                                          npc.x, npc.y))
+                         key=lambda a: afoot_map.apart(walk, a, npc))
             if target is not npc and target.deck == npc.deck:
                 npc.post = [target.deck, target.x, target.y]
     return events
@@ -241,7 +248,11 @@ def settle(game, walk, who, other) -> dict:
 
 
 def snubbed(game, walk) -> None:
-    """Leaving without seeing somebody who came to find one of yours."""
+    """Leaving without seeing somebody who came to find one of yours — or
+    settling the quarrel two of yours were having."""
+    from . import afoot_holdings, afoot_trouble
+    afoot_trouble.left(game, walk)
+    afoot_holdings.left(game, walk)
     for npc in walk.actors:
         if npc.incident != "tie" or "tie" in npc.talked:
             continue

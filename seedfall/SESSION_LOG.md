@@ -1159,6 +1159,46 @@ green. `ruff check seedfall` clean. After the Concourse fix: 251 suites,
 1,893 checks, all green.
 
 
+## 2026-09-22 — afoot's open list closed, and everything weighs something
+
+Asked to fix the open Afoot items in `IMPROVEMENTS.md`, and mid-way how
+anybody moves on a deck in free fall. The user chose the unrolled strip:
+every deck has a weight from what it is (`Deck.g`), and a ring's levels are
+strips whose ends are the same corridor (`sim/afoot_ringplan.py`), spun to
+0.8 g and stacked outermost-heaviest. Weightless, the untrained go hand over
+hand, shoot unbraced and drift on a gun's kick; boots and Zero-G fix it.
+
+- **Fire** (`sim/afoot_fire.py`): bursts, suppression, frag/stun/smoke.
+- **Trouble** (`sim/afoot_trouble.py`, `sim/afoot_holdings.py`): a quarrel
+  between clashing convictions, a shakedown, a brawl; your own works failing,
+  striking or sabotaged, and the holding's yield moved by what was done.
+- **The Kith and the vault** (`sim/afoot_kith.py`): a phrase answered, a
+  song of passage; a relic in three stages.
+- **The career**: counsel's two suggestions, the Academy's chapter, five
+  renown rungs, the captain's lifepath; stakes in the houses, traffic bound
+  for them, gossip naming them.
+- **Found on the way**: a refused shot or throw spent luck (dice now drawn
+  after validation); five fire buttons in a row pushed the side column off
+  the window; the "reaches" gap was by design.
+- New suites `afootweight`, `afootcareer`, `afootfire`; checks added to
+  `establishments` and `afootui`. The four Afoot screenshots retaken on the
+  strips.
+- **From play: a ring had ends.** Walking round a Fleet Hub ring stopped at
+  the strip's edges both ways — a step off an end was refused, and the
+  camera stopped there. Every question on a ring is now asked the short way
+  round (`afoot_map.apart`/`span`/`unroll`), and the canvas turns the strip
+  under the party (`AfootCanvas.roll`); helpers split to `ui/afoot_marks.py`.
+  A whole circuit each way is in `afootweight`, the arrow and the click
+  across the seam in `afootui`; shots 21–24 retaken.
+
+After the ring fix: 254 suites, 1,911 checks, all green; `ruff` clean.
+
+254 suites, 1,910 checks: one failure on the full run — `pilotscreen` took
+the first anchorage in view for the Hub, and it is now a spacers' rest
+whose one berth a trader bound for it holds, so the hand-over was rightly
+refused. The check names the quay now, and re-runs green. `ruff check
+seedfall` clean.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one

@@ -77,6 +77,10 @@ class Painted:
     style: str
     air: bool = True
     outside_air: bool = True
+    #: The weight on its floor, in gravities (`afoot_state.Deck.g`): nought
+    #: unless a blueprint or `afoot_plans` says what spins it or stands it
+    #: on a world.
+    g: float = 0.0
 
 
 def assemble(rng, painted: list, entry_kinds=("airlock", "gangway")) -> Laid:
@@ -88,7 +92,8 @@ def assemble(rng, painted: list, entry_kinds=("airlock", "gangway")) -> Laid:
         deck = Deck(name=deck_art.name, rows=rows,
                     seen=["0" * len(rows[0]) for _ in rows],
                     style=deck_art.style, air=deck_art.air,
-                    outside_air=deck_art.outside_air)
+                    outside_air=deck_art.outside_air, g=deck_art.g,
+                    wrap=deck_art.sheet.wrap)
         decks.append(deck)
         wants = {room.id: want for room, want in laid}
         for t in placed:

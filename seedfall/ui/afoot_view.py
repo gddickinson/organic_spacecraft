@@ -22,12 +22,20 @@ from __future__ import annotations
 
 from PyQt6.QtWidgets import QHBoxLayout, QWidget
 
-from ..sim import afoot, afoot_people
+from ..sim import afoot, afoot_map, afoot_people
 from ..sim.afoot_state import actor, actor_at, party
 from . import afoot_panels, afoot_start, afoot_talk_panel
 from .afoot_canvas import AfootCanvas
 from .view_base import Pane, View
 from .widgets import Pill, TabBar, defer, label
+
+
+def weight_name(deck) -> str:
+    """The weight on a deck's floor, in words: weightless, or so many
+    gravities, and whether it comes from spin."""
+    if deck.g < afoot_map.WEIGHTLESS:
+        return "weightless"
+    return f"{deck.g:.2g} g" + (" · spun" if deck.wrap else "")
 
 
 class AfootView(View):
@@ -66,6 +74,8 @@ class AfootView(View):
         h.addWidget(label(f"{walk.name} — {deck.name}", "h2"))
         h.addWidget(Pill(walk.mode, "warn" if walk.mode == "action"
                          else "chloro"))
+        h.addWidget(Pill(weight_name(deck), "lumen" if deck.g
+                         < afoot_map.WEIGHTLESS else "dim"))
         h.addWidget(label(f"round {walk.round} · "
                           f"{walk.seconds // 60} min", "note"))
         h.addStretch(1)
@@ -93,6 +103,7 @@ class AfootView(View):
 
     def _side(self, walk, who) -> list:
         parts = [afoot_panels.controls(self, walk),
+                 afoot_panels.latest(walk),
                  afoot_panels.party_strip(self, walk)]
         other = actor(walk, self.talking) if self.talking is not None else None
         if other is not None and who is not None:
@@ -202,6 +213,21 @@ class AfootView(View):
         if who is None:
             return
         self._act(afoot.attack(self.game, who.id, target_id))
+
+    def burst(self, target_id: int) -> None:
+        who = self._who()
+        if who is not None:
+            self._act(afoot.attack(self.game, who.id, target_id, burst=True))
+
+    def suppress(self, target_id: int) -> None:
+        who = self._who()
+        if who is not None:
+            self._act(afoot.suppress(self.game, who.id, target_id))
+
+    def throw(self, target_id: int, grenade: str) -> None:
+        who = self._who()
+        if who is not None:
+            self._act(afoot.throw(self.game, who.id, target_id, grenade))
 
     def do_act(self, act) -> None:
         who = self._who()

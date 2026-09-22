@@ -331,3 +331,84 @@ sealed settlement; every trait with a space), `tests/test_establishments.py`
 (seeded, every kind found, doors at home and only there, a yard builds and
 refits, stations on the chart and bases not, every kind walked, the three
 wrecks boarded), `tests/test_afoot_fair.py` (the play-test's rules).
+
+## The open items closed (2026-09-22)
+
+Every item on `seedfall/IMPROVEMENTS.md`'s Afoot list is closed but the
+remainder of item 12 (a base's own berth; yards that build grown or xeno
+hulls).
+
+### Weight
+
+Asked how anybody moves on a deck with no floor to stand on, the answer was
+that nothing weighed anything. Now every deck carries a gravity (`Deck.g`)
+from what it is: a hull or a quay is weightless, a Habitat Girdle's berths
+0.4 g, a ring's levels spun at 0.8 g (a little more for each level further
+out), a drum's floor 1 g, the ground its world's. A ring is not drawn as a
+disc any more: each level is **an unrolled strip whose ends are the same
+corridor** (`sim/afoot_ringplan.py`; `Deck.wrap`, and `afoot_map` steps
+across the seam), stacked with the outermost the heaviest, reached by spokes
+from the hub. Weightless, the untrained go hand over hand at twice the cost
+of a step, shoot unbraced (`afoot_fight.UNBRACED`) and are set drifting by a
+gun's kick; Zero-G or magnetic boots put it right, and anybody who lives
+aboard is at home in it. A heavy world costs movement (`afoot_people.HEAVY`).
+
+### Fire, trouble, and the career
+
+- **Fire** (`sim/afoot_fire.py`): a burst adds the gun's Auto; suppressing
+  fire pins the target and whoever is beside them for a round unless they
+  have the nerve (`UNSHAKEN`); frag, stun and smoke grenades, sold under the
+  law's gate, thrown with Athletics, a square off on a miss; smoke is an
+  opaque thing that thins each round.
+- **Trouble** (`sim/afoot_trouble.py`, `sim/afoot_holdings.py`): a quarrel
+  between officers whose convictions collide, a shakedown and a brawl where
+  the law is thin, and your own works failing, striking or sabotaged — set
+  right by hand the holding yields a quarter more for a month, walked away
+  from a quarter less (`afoot_holdings.factor`, read by the colony tick).
+- **The Kith and the vault** (`sim/afoot_kith.py`, `afoot_deeds._relic`): a
+  phrase sung to be answered, a domain's song of passage from an elder, both
+  teaching the lexicon; a relic in three stages, the second standing its
+  sentries down.
+- **The career**: counsel suggests the wreck adrift here and the neglected
+  officer (`counsel_doors.afoot`); the Academy's *On your own two feet*;
+  five renown rungs off `afoot_ends.progress`; the captain's record played
+  out term by term by `sim/lifepath`.
+- **Establishments that do something**: a stake — a tenth of a house, paid
+  monthly from its takings on the one clock, a quarter's statement by
+  despatch, four-fifths back on selling; traffic bound for the houses; the
+  quay's gossip naming them.
+
+### Found and fixed on the way
+
+- **A refused shot spent luck.** `afoot.attack` and `afoot.throw` drew
+  `game.rng` before `afoot_fight`/`afoot_fire` had checked range, sight and
+  whether the gun could burst at all, so an out-of-reach shot moved the
+  chronicle's dice. Both now take a dice maker called only once the act is
+  allowed, the way `afoot_acts.perform` already did.
+- **The fire buttons pushed the column off the window.** A carbine and a
+  grenade in hand put five buttons on one row; at the smallest window every
+  button in the side column overflowed. Burst and Suppress now share a row
+  of their own and each throw has one.
+- **A ring had ends after all** (from play). The pathfinder crossed the
+  seam, but `move` refused a step off either end, sight and every range
+  measured the long way round, and the canvas's camera stopped at the
+  strip's edges — so a walk round a Fleet Hub ring hit a wall of nothing.
+  `afoot_map` now answers every question on a ring the short way round
+  (`apart`, `span`, `unroll`; the ground wraps its own lookups), and the
+  canvas turns the strip so whoever is in hand stays in the middle
+  (`AfootCanvas.roll`). The canvas's helpers moved to `ui/afoot_marks.py`
+  at the line ceiling.
+- **The "reaches" gate was not a defect**: a fresh sector is all Verge, and
+  a relit deep region's systems take its id (a relit Cradle's fourteen
+  systems carry two xeno hulks).
+
+### Checks added
+
+`tests/test_afoot_weight.py` (every deck's weight from its structure,
+drifting and bracing, heavy worlds, the ring's seam),
+`tests/test_afoot_career.py` (counsel, the Academy, renown and the captain,
+the Kith exchange, the relic's stages, the three troubles, your own works),
+`tests/test_afoot_fire.py` (burst, suppression, grenades, smoke), two checks
+in `test_establishments` (stakes, traffic to the houses) and one in
+`test_afoot_ui` (the fire buttons, the weight pill, the latest lines, the
+down panel, tokens).

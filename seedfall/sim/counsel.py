@@ -13,7 +13,8 @@ does it, ranked by the order a first officer would say them in:
 5. the next step on the road the captain follows, or the one furthest
    along (`sim/renown.focus`);
 6. a body here nobody has surveyed; a bounty you can win;
-7. a Reaches anchor under way; the living hull; an officer's arc;
+7. a Reaches anchor under way; the living hull; an officer's arc; a dead
+   hull to board, or an officer nobody has had a word with in months;
 8. the Assembly sitting soon; a road to choose, if none is.
 
 **Actionable, or refused for the reason shown.** Every suggestion names its
@@ -45,6 +46,7 @@ def moves(game) -> list:
            + doors.house(game) + doors.milestone(game, track)
            + sources.surveys(game) + doors.bounty(game)
            + doors.reaches(game) + doors.body(game) + doors.arcs(game)
+           + doors.afoot(game)
            + doors.assembly(game) + doors.choose(game))
     seen: set = set()
     unique = []
@@ -157,8 +159,15 @@ def _go(game):
     return {"ok": True, "why": ""}
 
 
+def _walk(game, key, keys):
+    """Put a party on a deck: the dead hull adrift, your own decks."""
+    from . import afoot
+    return afoot.begin(game, key, list(keys))
+
+
 _ACTS = {"buy": _buy, "jump": _jump, "repair": _repair, "sign_on": _sign_on,
          "research": _research, "survey": _survey,
          "take_contract": _take_contract, "take_bounty": _take_bounty,
          "charter": _charter, "relight": _relight, "dive": _dive,
-         "sell_survey": _sell_survey, "answer": _answer, "go": _go}
+         "sell_survey": _sell_survey, "answer": _answer, "go": _go,
+         "walk": _walk}

@@ -87,7 +87,8 @@ FOLK: tuple = (
              "cold": ("Crews. Always in the way.",),
              "warm": ("If you want it moved quiet, ask for Sal.",)}),
     Folk("worker", "Worker", (8, 7, 8, 6, 6, 5),
-         {"mechanic": 1, "trade": 1}, ways="wander", topics=_CIVIL,
+         {"mechanic": 1, "trade": 1}, ways="wander",
+         topics=_CIVIL + ("hear", "bonus"),
          lines={"greet": ("Shift change in an hour.", "Mind the line."),
                 "cold": ("Management's upstairs.",),
                 "warm": ("Good to see somebody from outside.",)}),
@@ -140,7 +141,8 @@ FOLK: tuple = (
     Folk("thug", "Hard case", (9, 7, 9, 6, 5, 4),
          {"gun_combat": 1, "athletics": 1, "streetwise": 1},
          weapon="cutlass", armour="jack", mood="wary", ways="wander",
-         brave=1, topics=("greet", "persuade", "bribe"), lines={
+         brave=1, topics=("greet", "persuade", "bribe", "pay", "round"),
+         lines={
              "greet": ("You lost?", "This is a private room."),
              "cold": ("Walk away while you can.",),
              "hostile": ("Wrong door, spacer.",),
@@ -174,10 +176,18 @@ FOLK: tuple = (
              "greet": ("Numbers are on the board.", "Shift's running."),
              "cold": ("We're behind, and I know it.",),
              "warm": ("Good of you to come down yourself.",)}),
+    Folk("saboteur", "Stranger", (7, 9, 7, 8, 7, 5),
+         {"stealth": 2, "mechanic": 1, "deception": 1, "gun_combat": 0},
+         weapon="snub_pistol", mood="wary", ways="keep", brave=1,
+         topics=("greet", "confront"), lines={
+             "greet": ("Just checking the line.", "Nothing to see here."),
+             "cold": ("You don't want to do this.",),
+             "hostile": ("Should have looked the other way.",)}),
     # ── your own hull ─────────────────────────────────────────────────────
     Folk("officer", "Officer", (7, 7, 7, 7, 7, 7), ways="keep",
          mood="friendly", brave=2, persona="officer",
-         topics=("greet", "word", "report", "story", "join"), lines={
+         topics=("greet", "word", "report", "story", "join", "settle"),
+         lines={
              "greet": ("Captain.", "Captain — all quiet at my station.",
                        "Didn't hear you come in, Captain.",
                        "Captain. Something I can do?"),
@@ -250,12 +260,13 @@ FOLK: tuple = (
     # ── the Kith ──────────────────────────────────────────────────────────
     Folk("kith", "Kith", (6, 9, 8, 9, 6, 8),
          {"athletics": 1, "art": 2}, weapon="npc_singer", mood="neutral",
-         ways="wander", kind="kith", topics=("greet", "sing"),
+         ways="wander", kind="kith", topics=("greet", "sing", "answer"),
          lines={"greet": ("A chord, rising, and a colour you have no "
                           "word for.",)}),
     Folk("kith_elder", "Kith elder", (6, 7, 9, 11, 8, 11),
          {"art": 3, "diplomat": 2}, weapon="npc_singer", mood="neutral",
-         ways="keep", kind="kith", topics=("greet", "sing", "gift"),
+         ways="keep", kind="kith", topics=("greet", "sing", "answer",
+                                           "passage", "gift"),
          lines={"greet": ("A long, falling phrase. It is waiting for you.",)}),
 )
 FOLK_BY_ID = {f.id: f for f in FOLK}
@@ -276,9 +287,17 @@ TOPICS = {
     "question": "Ask about the hull",
     "enlist": "Offer a berth",
     "sing": "Answer in the lexicon",
+    "answer": "Sing the phrase back",
+    "passage": "Ask for the song of passage",
     "gift": "Offer a gift",
     "report": "Ask how the ship is",
     "story": "Ask what is on their mind",
     "join": "Take them along",
     "tie": "Settle it with them",
+    "settle": "Knock heads together",
+    "pay": "Pay the toll",
+    "round": "Stand them a drink",
+    "hear": "Hear them out",
+    "bonus": "Pay a bonus",
+    "confront": "Ask what they are doing here",
 }

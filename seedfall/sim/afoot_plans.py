@@ -47,6 +47,9 @@ BREATHABLE = (5, 6, 8)
 #: roots, a still's condenser bell. They are laid out on the ground — all
 #: but a skimmer, whose bell hangs in a gas giant it cannot stand on.
 DUG_IN = ("roots", "bell")
+#: Shapes that stand on a world, and take its gravity. Everything else is
+#: weightless, or spun (`afoot_ringplan`, a drum's floor).
+ON_THE_GROUND = ("ground", "tower", "dome")
 
 
 def plan(game, site):
@@ -82,9 +85,8 @@ def _paint(game, site, rng) -> list:
     if site.kind == "downside":
         good = site.what.rsplit("working ", 1)[-1].rstrip(".")
         wants = placeprog.settlement(rng, site, venues, good)
-        return groundplan.settlement(rng, wants, "settlement",
-                                     _breathable(game, place),
-                                     name=site.name)
+        return _by_shape(rng, game, site, place, wants, "ground",
+                         "settlement")
     return _works(rng, game, site, place, venues)
 
 
@@ -119,7 +121,16 @@ def _establishment(rng, game, site, place, venues) -> list:
 
 
 def _by_shape(rng, game, site, place, wants, shape: str, style: str) -> list:
-    """Lay a place's program out in the shape named."""
+    """Lay a place's program out in the shape named — and anything that
+    stands on a world weighs what that world makes it weigh."""
+    painted = _shaped(rng, game, site, place, wants, shape, style)
+    if shape in ON_THE_GROUND:
+        for deck in painted:
+            deck.g = _world_g(game, place)
+    return painted
+
+
+def _shaped(rng, game, site, place, wants, shape: str, style: str) -> list:
     if shape == "ground":
         return groundplan.settlement(rng, wants, style,
                                      _breathable(game, place), name=site.name)
@@ -142,15 +153,27 @@ def _place(game, site) -> tuple:
     return place, (shore.open_here(game, place) if place is not None else [])
 
 
+def _world_g(game, place) -> float:
+    """The surface gravity of the world a place stands on."""
+    body = _body(game, place)
+    return round(float(getattr(body, "gravity", 1.0) or 0.0), 2) \
+        if body is not None else 1.0
+
+
+def _body(game, place):
+    system = game.system
+    return next((b for b in getattr(system, "bodies", ()) or ()
+                 if b.id == getattr(place, "body_id", None)), None)
+
+
 def _breathable(game, place) -> bool:
     """Can the world this place stands on be breathed?"""
     from . import profile as profile_sim
-    system = game.system
-    body = next((b for b in getattr(system, "bodies", ()) or ()
-                 if b.id == getattr(place, "body_id", None)), None)
+    body = _body(game, place)
     if body is None:
         return False
-    return profile_sim.profile(game, system, body).atmosphere in BREATHABLE
+    return profile_sim.profile(game, game.system, body).atmosphere \
+        in BREATHABLE
 
 
 # ── hulls ──────────────────────────────────────────────────────────────────

@@ -247,6 +247,10 @@ class Game:
     afoot: object | None = None
     wounds: dict = field(default_factory=dict)
     walked: dict = field(default_factory=dict)
+    #: Stakes held in the trade's establishments (`sim/establishments.py`),
+    #: by place id: what was paid, and the day the takings were last shared
+    #: and last reported.
+    stakes: dict = field(default_factory=dict)
 
     # Derived, never saved — recomputed by recompute() on load.
     bonuses: dict = field(default_factory=dict, compare=False,

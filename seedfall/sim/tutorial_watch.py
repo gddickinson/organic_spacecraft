@@ -275,6 +275,21 @@ def _fought(game, mark) -> bool:
     return _fresh_deed(game, mark, "fought")
 
 
+@watcher("walked")
+def _walked(game, mark) -> bool:
+    return _fresh_deed(game, mark, "walked")
+
+
+@watcher("talked_afoot")
+def _talked_afoot(game, mark) -> bool:
+    return _fresh_deed(game, mark, "talked_afoot")
+
+
+@watcher("fought_afoot")
+def _fought_afoot(game, mark) -> bool:
+    return _fresh_deed(game, mark, "fought_afoot")
+
+
 @watcher("planted")
 def _planted(game, mark) -> bool:
     return len(getattr(game, "colonies", ())) > mark["colonies"]

@@ -227,6 +227,25 @@ WORDS = ("Amber", "Halcyon", "Meridian", "Lantern", "Saffron", "Vesper",
          "Juniper", "Coral", "Harrow", "Lumen", "Obsidian", "Serein",
          "Velvet", "Winter", "Quill", "Thistle", "Cobalt", "Ember")
 
+#: What each is worth, in credits, for a stake in it: a tenth of it is for
+#: sale (`STAKE_SHARE`) to a captain alongside, and pays out of the house's
+#: own takings (`STAKE_MONTHLY` of the stake's price every `STAKE_DAYS`).
+#: A garrison and a retreat are not for sale.
+WORTH = {"shipyard": 900_000, "hull_nursery": 300_000,
+         "grand_hotel": 600_000, "spacers_rest": 150_000,
+         "pleasure_palace": 700_000, "surgical_station": 500_000,
+         "spa_station": 400_000, "gaming_wheel": 800_000,
+         "free_market": 500_000, "mining_base": 250_000,
+         "research_base": 120_000, "smugglers_den": 200_000,
+         "farm_base": 200_000}
+STAKE_SHARE = 0.1
+STAKE_MONTHLY = 0.01
+STAKE_DAYS = 30
+#: What a stake fetches sold back to the house, as a share of its price.
+SELL_BACK = 0.8
+#: Every how many days a stakeholder's statement is sent.
+STATEMENT_DAYS = 90
+
 #: How many a system has: the odds of one, of a second, and of a third,
 #: by whether it has a starport and whether that port is a capital.
 ODDS = {"none": (0.30, 0.08, 0.0), "port": (0.65, 0.30, 0.08),

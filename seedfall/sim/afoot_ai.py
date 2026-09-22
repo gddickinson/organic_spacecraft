@@ -117,7 +117,8 @@ def alarm(walk, deck: int, x: int, y: int, loud: int) -> None:
     """A noise: every hostile within earshot knows somebody is here."""
     for npc in others(walk):
         if npc.deck == deck and npc.mood == "hostile" and \
-                afoot_map.distance(npc.x, npc.y, x, y) <= loud:
+                afoot_map.distance(npc.x, npc.y, x, y,
+                                   afoot_map.span(walk, deck)) <= loud:
             npc.aware = True
 
 
@@ -126,8 +127,7 @@ def _targets(walk, npc) -> list:
     killer = kind is not None and kind.kind == "bloom"
     rows = [a for a in party(walk) if a.deck == npc.deck
             and (a.standing or (killer and a.status in ("down", "stable")))]
-    return sorted(rows, key=lambda a: (not a.standing, afoot_map.distance(
-        npc.x, npc.y, a.x, a.y), a.id))
+    return sorted(rows, key=lambda a: (not a.standing, afoot_map.apart(walk, npc, a), a.id))
 
 
 def _fight(game, walk, npc, rng) -> list:
@@ -141,6 +141,8 @@ def _fight(game, walk, npc, rng) -> list:
         if got["ok"] and (not arm.melee or got["far"] <= 1):
             return events + _shoot(game, walk, npc, target, rng)
     target = targets[0]
+    if npc.pinned > 0:
+        return events          # pinned: they keep their head down
     events += _approach(game, walk, npc, target, arm, rng)
     if not npc.standing:
         return events
@@ -153,7 +155,9 @@ def _fight(game, walk, npc, rng) -> list:
 
 
 def _shoot(game, walk, npc, target, rng) -> list:
-    out = afoot_fight.attack(game, walk, npc, target, rng)
+    # Anything with Auto is fired in bursts by the people who carry it.
+    out = afoot_fight.attack(game, walk, npc, target, rng,
+                             burst=bool(arms.arm(npc.weapon).auto))
     alarm(walk, npc.deck, npc.x, npc.y, arms.arm(npc.weapon).loud)
     return [{"kind": "attack", "who": npc.id, "at": target.id,
              "hit": out.get("hit", False)}] + out.get("events", [])
@@ -168,7 +172,7 @@ def _approach(game, walk, npc, target, arm, rng) -> list:
     for step in route:
         if budget <= 0:
             break
-        if afoot_map.distance(npc.x, npc.y, target.x, target.y) <= want \
+        if afoot_map.apart(walk, npc, target) <= want \
                 and afoot_map.sees(walk, npc.deck, npc.x, npc.y,
                                    target.x, target.y):
             break
@@ -219,7 +223,7 @@ def _pursue(game, walk, npc, decks: set) -> None:
              and t.link >= 0]
     if not lifts:
         return
-    lift = min(lifts, key=lambda t: afoot_map.distance(npc.x, npc.y, t.x, t.y))
+    lift = min(lifts, key=lambda t: afoot_map.apart(walk, npc, t))
     if (npc.x, npc.y) != (lift.x, lift.y):
         _walk_to(game, walk, npc, lift.x, lift.y)
         return
@@ -239,7 +243,7 @@ def _flee(game, walk, npc) -> list:
     if not exits:
         npc.mood = "surrendered"
         return []
-    goal = min(exits, key=lambda t: afoot_map.distance(npc.x, npc.y, t.x, t.y))
+    goal = min(exits, key=lambda t: afoot_map.apart(walk, npc, t))
     if (npc.x, npc.y) == (goal.x, goal.y):
         npc.status = "gone"
         say(walk, f"{npc.name} is gone.", "")

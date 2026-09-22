@@ -205,4 +205,116 @@ def run(suite: Suite) -> bool:
         assert game.rng_seed == before, "looking moved the chronicle's luck"
         return "every square hovered and painted; not one die spent"
 
+    @check("fire, weight and the latest word are on the screen, and a friend down can be left")
+    def _():
+        from types import SimpleNamespace as NS
+        from PyQt6.QtWidgets import QLabel, QPushButton, QWidget
+        from ..sim import afoot, afoot_fight, afoot_map
+        from ..sim.afoot_state import Actor, party
+        from ..ui.afoot_marks import tokens
+        from ..ui.afoot_view import weight_name
+        app, game, win, view = _window("afoot-ui-fire")
+        walk = _begin(app, game, view, keys=afoot_kit.everybody(game)[:2])
+        me, mate = party(walk)[:2]
+        marks = tokens(walk)
+        assert len(marks[me.id]) == 2 and marks[me.id] != marks[mate.id]
+        me.weapon, me.kit = "carbine", me.kit + ["frag_grenade"]
+        g = afoot_map.ground(walk, me.deck)
+        taken = {(a.x, a.y) for a in walk.actors if a.deck == me.deck}
+        spot = next(sq for sq in sorted(afoot.visible(walk, me.deck))
+                    if 2 <= afoot_map.distance(me.x, me.y, *sq) <= 4
+                    and g.passable(*sq) and sq not in taken
+                    and afoot_map.sees(walk, me.deck, me.x, me.y, *sq))
+        foe = Actor(id=9900, name="Raider", side="npc", folk="raider",
+                    deck=me.deck, x=spot[0], y=spot[1], hp=60, hp_max=60,
+                    mood="hostile", weapon="carbine",
+                    stats={k: 7 for k in ("str", "dex", "end", "int", "edu",
+                                          "soc")})
+        walk.actors.append(foe)
+        walk.version += 1
+        luck = game.rng_seed
+        view.refresh()
+        _pump(app)
+        named = {b.objectName(): b for b in view.findChildren(QPushButton)}
+        for name in (f"afoot_burst_{foe.id}", f"afoot_suppress_{foe.id}",
+                     f"afoot_throw_frag_grenade_{foe.id}"):
+            assert name in named and named[name].isEnabled(), name
+        assert game.rng_seed == luck, "drawing the buttons rolled"
+        texts = [l.text().lower() for l in view.findChildren(QLabel)]
+        assert weight_name(walk.decks[walk.viewing]) in texts, texts[:12]
+        assert (weight_name(NS(g=0.8, wrap=True)),
+                weight_name(NS(g=0.0, wrap=False))) == (
+            "0.8 g · spun", "weightless")
+        named[f"afoot_suppress_{foe.id}"].click()
+        _pump(app, 6)
+        assert foe.pinned == 1, foe.pinned
+        side = view.findChild(QWidget, "afoot_side")
+        said = [l.text() for l in side.findChildren(QLabel)]
+        assert any("pinned" in t for t in said[:12]), said[:12]
+        afoot_fight.hurt(game, walk, mate, mate.hp + 2)
+        view.pick(mate.id)
+        _pump(app, 6)
+        hand = view.findChild(QPushButton, f"afoot_hand_to_{me.id}")
+        assert hand is not None, "no way to take anybody else in hand"
+        hand.click()
+        _pump(app, 6)
+        assert walk.selected == me.id, walk.selected
+        assert not _clipped(view), _clipped(view)
+        return (f"burst, suppress and a throw offered; “{marks[me.id]}” on "
+                f"the deck; {weight_name(walk.decks[walk.viewing])} in the "
+                "head; the pin in the latest lines; the one down left for "
+                "the one standing")
+
+    @check("a ring's level has no ends: the party stays in the middle and an arrow walks on round")
+    def _():
+        from PyQt6.QtCore import QPoint, Qt
+        from PyQt6.QtTest import QTest
+        from ..core.state import new_game
+        from ..sim import afoot, afoot_sites
+        from ..sim.afoot_state import party
+        app = qtkit.app()
+        game = new_game("afoot-ui-ring")
+        object.__setattr__(game.system.port, "capital", True)   # a Fleet Hub
+        win = qtkit.main_window(game, SIZE)
+        win.show()
+        win.go("afoot")
+        _pump(app)
+        view = win.views["afoot"]
+        port = next(s for s in afoot_sites.here(game) if s.kind == "port")
+        view.site_key, view.keys = port.key, ["captain"]
+        view.go_afoot()
+        _pump(app)
+        walk = game.afoot
+        ring = next(i for i, d in enumerate(walk.decks) if d.wrap)
+        wide = walk.decks[ring].w
+        me = party(walk)[0]
+        me.deck, me.x, me.y, walk.viewing = ring, wide - 1, 6, ring
+        afoot.look(walk)
+        view.refresh()
+        _pump(app)
+        canvas = view.canvas
+        tile, x0, y0 = canvas.frame()
+        middle = QPoint(int(x0 + (wide // 2 + 0.5) * tile),
+                        int(y0 + (me.y + 0.5) * tile))
+        assert canvas.square_at(middle.x(), middle.y()) == (me.x, me.y), (
+            canvas.square_at(middle.x(), middle.y()), (me.x, me.y))
+        canvas.setFocus()
+        QTest.keyClick(canvas, Qt.Key.Key_Right)
+        _pump(app)
+        assert me.x == 0, f"stopped at the end of the strip: {me.x}"
+        canvas = view.canvas
+        tile, x0, y0 = canvas.frame()
+        # Still in the middle, and the square a click there names is theirs.
+        assert canvas.square_at(int(x0 + (wide // 2 + 0.5) * tile),
+                                int(y0 + (me.y + 0.5) * tile)) == (0, me.y)
+        QTest.mouseClick(canvas, Qt.MouseButton.LeftButton,
+                         Qt.KeyboardModifier.NoModifier,
+                         QPoint(int(x0 + (wide // 2 - 2.5) * tile),
+                                int(y0 + (me.y + 0.5) * tile)))
+        _pump(app)
+        assert me.x == wide - 3, f"a click back across the seam: {me.x}"
+        return (f"off the end at column {wide - 1} onto column 0 with an "
+                f"arrow, and clicked back across to {wide - 3}; the one in "
+                "hand stayed in the middle")
+
     return True

@@ -68,6 +68,44 @@ LATE = [
            "hull over its cap cooks.",
            chapter="iron"),
 
+    # ── On foot ──────────────────────────────────────────────────────────
+    Lesson("walk", "Walk your own decks",
+           "From the Afoot screen, take a party onto your own hull — or the "
+           "quay, or anything else alongside.",
+           "afoot", "walked",
+           "Every plan is the shape of what it is: your hull sliced through "
+           "its own silhouette, a quay's can and arm, a ring unrolled with "
+           "its ends joined. Nothing in the Verge makes a floor pull, so a "
+           "hull is weightless — hand over hand at twice the cost, unless "
+           "somebody has the Zero-G skill or magnetic boots — and a ring's "
+           "weight is its spin. In calm the party walks and follows; once "
+           "somebody hostile has seen you, it is turns.",
+           chapter="afoot"),
+
+    Lesson("word", "Have a word",
+           "Afoot, talk to somebody: an officer at their station, a keeper "
+           "behind a counter, anybody who will stop.",
+           "afoot", "talked_afoot",
+           "Talk goes through the doors the game already has: a keeper "
+           "sells what their counter sells, an officer at their station "
+           "gives a report, a story, a word that moves their loyalty. Every "
+           "throw shows its odds before you press it, and anything you roll "
+           "for is asked once — asking again until the dice agree is not "
+           "persuasion.",
+           chapter="afoot"),
+
+    Lesson("brawl", "Shoot back",
+           "Afoot, take a shot at somebody hostile — a raider in a dead "
+           "hull, a hard case on a lawless concourse.",
+           "afoot", "fought_afoot",
+           "A shot is Gun Combat and DEX, the weapon's own bonus, the range "
+           "and any cover, with the odds on the button. Weightless, a gun "
+           "kicks: without something to brace against, the shooter drifts "
+           "for the rest of the round. Somebody down can be carried out; "
+           "left lying where people live they are found and brought home, "
+           "and on a dead hull they are not.",
+           chapter="afoot"),
+
     # ── VIII. Roots ───────────────────────────────────────────────────────
     Lesson("plant", "Plant something that lasts",
            "Found a colony on a surveyed body from the System screen. You "

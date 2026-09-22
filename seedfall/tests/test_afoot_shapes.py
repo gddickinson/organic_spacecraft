@@ -8,7 +8,8 @@ The claims `sim/afoot_hullplan`, `afoot_stationplan`, `afoot_worksplan` and
   the bridge forward and the drives aft, every deck joined by a lift and a
   way aboard;
 - every class of holding is laid out **as its traits say it is built** — a
-  drum's town, a tower's floors, a dome's open ground, a ring round a hub,
+  drum's town, a tower's floors, a dome's open ground, a spun ring's
+  unrolled levels off a hub,
   works dug into the ground, modules on a keel — and nothing it needs is
   dropped;
 - a quay is a can, an arm and a mast, and a Fleet Hub a spine with four
@@ -228,8 +229,8 @@ def _shaped(shape: str, names: list, painted: list, ground: bool) -> bool:
             n.startswith("The galleries") for n in names[1:])
     if shape == "ring":
         return names[0] == "The hub" and len(names) >= 2 and all(
-            n.startswith("The ring") for n in names[1:]) and _open_middle(
-            painted[1].sheet)
+            n.startswith("The ring") and p.sheet.wrap and p.g > 0
+            for n, p in zip(names[1:], painted[1:]))
     if shape == "ground":
         return len(painted) == 1 and _has_street(painted[0].sheet)
     return 1 <= len(painted) <= 3
@@ -248,15 +249,6 @@ def _decks_reached(laid) -> set:
                     seen.add(there)
                     todo.append(there)
     return seen
-
-
-def _open_middle(sheet) -> bool:
-    """A ring, not a disc: somewhere between its hub and its rim is open
-    space."""
-    cx, cy = sheet.w // 2, sheet.h // 2
-    return any(sheet.grid[cy + dy][cx + dx] < 0
-               for dx in range(-8, 9) for dy in range(-8, 9)
-               if 0 <= cy + dy < sheet.h and 0 <= cx + dx < sheet.w)
 
 
 def _has_street(sheet) -> bool:

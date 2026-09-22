@@ -350,6 +350,22 @@ CAREER = [
     M("arc_done_3", "A crew with histories", 35, "arcs:finished", 3,
       "crew", "Three officers' stories finished.", screen="ship",
       feeds="arcs finished with a signature"),
+    # ── on foot (`sim/afoot`) ─────────────────────────────────────────────
+    M("afoot_first", "Boots on the deck", 10, "afoot:walks", 1, "afoot",
+      "A party walked a deck and came home.", screen="afoot",
+      feeds="walks come home from"),
+    M("afoot_boarded", "Boarded and decided", 20, "afoot:boarded", 1,
+      "afoot", "A struck hull boarded, and taken or stripped from her own "
+      "deck.", screen="afoot", feeds="prizes decided aboard"),
+    M("afoot_cleared", "A dead hull cleared", 20, "afoot:cleared", 1,
+      "afoot", "Whoever a wreck's end left aboard, put down or run off.",
+      screen="afoot", feeds="wrecks cleared"),
+    M("afoot_nest", "Burned out by hand", 20, "afoot:nests", 1, "afoot",
+      "A Bloom nest burned out with a party standing in it.",
+      screen="afoot", feeds="nests burned"),
+    M("afoot_kinds", "Everywhere on foot", 30, "afoot:kinds", 6, "afoot",
+      "Six kinds of place walked: hulls and quays, drums and dens, the "
+      "dead and the struck.", screen="afoot", feeds="kinds of place walked"),
 ]
 
 TOPICS = {
@@ -358,6 +374,6 @@ TOPICS = {
     "law": "The law", "diplomacy": "The powers", "reaches": "The Weave",
     "lines": "Freight lines", "assembly": "The Assembly",
     "body": "The living hull", "crew": "The people", "career": "A life",
-    "kith": "The Kith",
+    "kith": "The Kith", "afoot": "On foot",
     "track": "Endings",
 }

@@ -30,7 +30,7 @@ from .lore import VICTORIES
 from .lessons_early import EARLY
 from .lessons_late import LATE
 
-#: The ten courses, in the order a career meets them.
+#: The courses, in the order a career meets them.
 CHAPTERS = [
     Chapter("first-light", "First light",
             "The screens, the ship, and where to look things up.",
@@ -53,6 +53,10 @@ CHAPTERS = [
     Chapter("iron", "Iron",
             "What a fight is, and how not to have one.",
             "Open a fight at a band you chose, and know when to talk."),
+    Chapter("afoot", "On your own two feet",
+            "Walking the decks: a party, a word, and a fight at arm's length.",
+            "Take a party onto a deck, talk to somebody on it, and shoot "
+            "back when you have to."),
     Chapter("roots", "Roots",
             "Holdings: the only thing that pays you while you are away.",
             "Plant a colony and read what it yields against what it costs."),

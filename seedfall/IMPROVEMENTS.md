@@ -65,36 +65,44 @@ The walking layer landed (`sim/afoot*.py`, `ui/afoot_*.py`; design in
 place and hull, a party of up to four, Traveller's personal combat on
 squares, talk through the counters that already exist, incidents from state
 the game already keeps, and endings that bank through the existing doors.
-What it does not do yet, in rough value order:
+Everything the first list named is closed except what item 12 leaves:
 
-1. **Counsel and the tutorial do not know it exists.** The first officer
-   should suggest the dead hull adrift here, the officer who has not had a
-   word in months, and the prize that could be boarded; the Academy wants a
-   chapter of three lessons (walk, talk, fight).
+1. ~~**Counsel and the tutorial do not know it exists.**~~ Landed
+   2026-09-22: counsel offers the dead hull adrift here and a word with the
+   officer nobody has stopped at in months (`counsel_doors.afoot`, acted by
+   `counsel._walk`); the Academy has *On your own two feet* — walk, talk,
+   shoot back (`data/lessons`, `tutorial_watch`).
 2. ~~**No sound.**~~ Landed on the day: a shot sounds its weapon's volley, a
    hit on one of yours the hit, one of yours going down the breach
    (`ui/soundmap.afoot`), all existing cues.
 3. ~~**No bridge verbs.**~~ Landed on the day: `bridge/afoot.py` — sites,
-   begin, look (with a text map), move, attack, act, talk, end turn,
-   surrender — and every other acting verb is refused while a party is out.
+   begin, look (with a text map), move, attack (and burst), suppress,
+   throw, act, talk, end turn, surrender — and every other acting verb is
+   refused while a party is out.
 4. ~~**A clinic does not know about kept wounds.**~~ Landed on the day: a
    `care` treatment closes the kept wound, and its quote says so.
-5. **Renown has no milestones afoot**: boarding a prize, clearing a wreck,
-   walking every kind of site, burning a nest.
-6. **Holdings are quiet.** Walking your own holding meets your own people
-   and nothing happens; the works could fail, strike, or be sabotaged, and
-   fixing it by hand should move the holding's yield.
-7. **The captain's record is thin.** `afoot_people.captain_record` derives
-   six scores and a few skills from the origin; Traveller would play the
-   captain's terms out, as `sim/lifepath` does for officers (the Traveller
-   programme's item 3).
-8. **Combat is single shots.** No autofire, no grenades, no suppression; a
-   shotgun's spread is its dice and nothing else.
-9. **The xeno hulk and the Kith hall are the least played.** Both generate
-   and are walked by the checks, but the vault's relic and the singing
-   hall's topics are one step each.
-10. **Incidents to add:** a quarrel aboard between officers whose
-    convictions collide, a shakedown and a brawl at low law.
+5. ~~**Renown has no milestones afoot.**~~ Landed 2026-09-22: five rungs
+   (`data/milestones`, topic "afoot") read off `afoot_ends.progress` —
+   walks, prizes boarded, wrecks cleared, kinds of place, nests burned.
+6. ~~**Holdings are quiet.**~~ Landed 2026-09-22: your own works can be
+   failing, on strike or sabotaged (`sim/afoot_holdings.py`); set right by
+   hand they run a quarter better for a month, walked away from a quarter
+   worse, and the colony tick reads it (`afoot_holdings.factor`).
+7. ~~**The captain's record is thin.**~~ Landed 2026-09-22: the captain's
+   terms are played out by `sim/lifepath` like any officer's, from the
+   origin's service and the lineage's prime, stable for the chronicle.
+8. ~~**Combat is single shots.**~~ Landed 2026-09-22 (`sim/afoot_fire.py`):
+   a burst adds a gun's Auto; suppressing fire pins the target and whoever
+   is beside them; frag, stun and smoke grenades, bought at the counters
+   under the law's gate, thrown with Athletics, off by a square on a miss.
+9. ~~**The xeno hulk and the Kith hall are the least played.**~~ Landed
+   2026-09-22: a relic gives itself up in three stages (the second stands
+   its sentries down); the Kith sing a phrase to be answered, and an elder
+   sings a domain's song of passage (`sim/afoot_kith.py`), both teaching the
+   lexicon.
+10. ~~**Incidents to add.**~~ Landed 2026-09-22 (`sim/afoot_trouble.py`): a
+    quarrel between officers whose convictions collide, a shakedown and a
+    brawl where the law is thin — each met head on or let be, and it tells.
 11. ~~**Every plan was the same corridor of boxes.**~~ Landed the same day:
     plans in the shape of the thing (`sim/afoot_plans.py` and its
     blueprints) — a hull sliced through its own silhouette and holding its
@@ -102,25 +110,38 @@ What it does not do yet, in rough value order:
     spine and rings, a drum's town, a tower's floors, a dome's ground, a
     ring round a hub, a mine dug into its rock, modules on a keel, sheds on
     breathable or airless ground. `tests/test_afoot_shapes.py` holds it.
-12. ~~**Nowhere to go but the quay.**~~ Landed the same day: fifteen kinds
-    of establishment (`data/establishments.py`, `sim/establishments.py`),
-    each a place with its own doors, law and plan, and a yard that builds.
-    **What is left**: they are static — nobody owns a stake, no traffic
-    runs to them, the news never mentions them; a base has no berth of its
+12. **Establishments** landed the same day: fifteen kinds
+    (`data/establishments.py`, `sim/establishments.py`), each a place with
+    its own doors, law and plan, and a yard that builds. Closed 2026-09-22:
+    **a stake** — a tenth of a house, paid monthly from its takings, a
+    statement each quarter by despatch; **traffic** runs to the houses; the
+    quay's **gossip** names them. **Still open**: a base has no berth of its
     own; a yard builds welded hulls only (a nursery grown ones) and never
     anything xeno.
-13. **The play-test's leftovers.** Voice lines still recite an officer's
-    biography in the third person and can repeat round to round; on the
-    screen the hint bar clips at narrow widths, the log falls below the fold,
-    two people with one initial wear the same token, room names can print
-    across each other in a crowded hull, the start page does not show what
-    is selected, and the panel is empty while the selected member is down.
-14. **No system is ever in the "reaches" or the Bloom's `where`.** Every
-    system's `region` is "verge", so a derelict gated on "reaches" (the xeno
-    hulk) never appears and the Bloom freighter only rarely. Found while
-    adding the new wrecks, which were moved to the verge pool; the gate
-    wants a real reading of the sector (distance from the core, the Bloom's
-    own spread) rather than a field nothing sets.
+13. ~~**The play-test's leftovers.**~~ Landed 2026-09-22: voice lines in
+    the first person and rotated; the hint bar and head elide; the latest
+    three lines at the top of the column; two-letter party tokens; room
+    names that never print across each other; the start page ticks what is
+    chosen; somebody down in hand gets a panel of their own.
+14. ~~**No system is ever in the "reaches".**~~ Not a defect: a fresh
+    sector is all Verge by design, and a deep region's systems take its id
+    when it is relit (`world/regions.py`) — measured, a relit Cradle's
+    fourteen systems carry two xeno hulks. The Bloom's pool follows its
+    spread (`system.bloom` over 0.05), three systems at the start.
+15. ~~**Nothing weighs anything.**~~ Landed 2026-09-22: every deck has a
+    gravity (`Deck.g`) — hulls and quays weightless, a Habitat Girdle's
+    berths 0.4 g, ring levels spun at 0.8 g and drawn as unrolled strips
+    whose ends join (`sim/afoot_ringplan.py`), a drum's floor 1 g, the
+    ground its world's own. Weightless, the untrained go hand over hand,
+    shoot unbraced and are set drifting by a gun's kick; Zero-G skill or
+    magnetic boots put it right; heavy worlds slow everybody
+    (`tests/test_afoot_weight.py`). From play, the same day: a walk round a
+    Fleet Hub ring stopped at the strip's ends — a step off either end was
+    refused and the screen's camera stopped at them. Now everything on a
+    ring's level is asked the short way round (`afoot_map.apart`, `span`,
+    `unroll`: steps, paths, sight, reach, cover, a grenade's burst), and the
+    canvas turns the strip under whoever is in hand so it has no ends
+    (`AfootCanvas.roll`).
 
 ## Open — the Traveller programme, begun 2026-09-20
 

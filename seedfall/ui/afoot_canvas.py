@@ -14,18 +14,25 @@ moves anything. A click hands the square to the screen, which decides.
 The canvas fits the whole deck when it can. A deck too big to fit at a
 readable size is drawn at a fixed size with the camera on whoever is in
 hand.
+
+**A ring's level has no ends to draw.** It is a strip whose two ends are one
+corridor (`Deck.wrap`), so the canvas turns it under whoever is in hand —
+they stand in the middle, the ring runs on past both edges, and walking
+round it is walking, not falling off the map at the seam (`roll`). The two
+edges are marked as the one place they are.
 """
 
 from __future__ import annotations
 
 from PyQt6.QtCore import QPointF, QRectF, QSize, Qt
-from PyQt6.QtGui import QColor, QFont, QPainter, QPen
+from PyQt6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPen
 from PyQt6.QtWidgets import QSizePolicy, QWidget
 
 from ..data.afoot_things import THING_BY_ID
 from ..sim import afoot, afoot_fight, afoot_map
 from ..sim.afoot_state import GROUND, HALL, WALL, WINDOW, actor_at, party
 from . import painting, theme
+from .afoot_marks import draw_thing, hover_text, label_spot, tokens
 
 #: Wall colours by style: what the deck is made of.
 WALLS = {"grown": "#2f5a3b", "fabricated": "#3b4b5e", "hybrid": "#46523f",
@@ -58,6 +65,8 @@ class AfootCanvas(QWidget):
                            QSizePolicy.Policy.Expanding)
         self._seen_key = None
         self._seen = set()
+        #: How far a ring is turned, and how far round it is, for this paint.
+        self._roll, self._wide = 0, 0
 
     def sizeHint(self):  # noqa: N802
         return QSize(560, 420)
@@ -84,10 +93,17 @@ class AfootCanvas(QWidget):
         who = next((a for a in walk.actors if a.id == walk.selected), None)
         cx, cy = (who.x, who.y) if who and who.deck == walk.viewing else (
             deck.w // 2, deck.h // 2)
+        if deck.wrap:
+            cx = (cx - self.roll()) % deck.w
+        # A side that fits is centred; one that does not follows the one in
+        # hand as far as its edge — and a ring's level has no edge to reach,
+        # being turned so they stand in the middle of it.
         x0 = w / 2 - (cx + 0.5) * tile
         y0 = h / 2 - (cy + 0.5) * tile
-        x0 = min(0.0, max(w - deck.w * tile, x0))
-        y0 = min(0.0, max(h - deck.h * tile, y0))
+        x0 = (w - deck.w * tile) / 2 if deck.w * tile <= w else min(
+            0.0, max(w - deck.w * tile, x0))
+        y0 = (h - deck.h * tile) / 2 if deck.h * tile <= h else min(
+            0.0, max(h - deck.h * tile, y0))
         return tile, x0, y0
 
     def square_at(self, px: float, py: float):
@@ -98,8 +114,25 @@ class AfootCanvas(QWidget):
         x, y = int((px - x0) // tile), int((py - y0) // tile)
         deck = walk.decks[walk.viewing]
         if 0 <= x < deck.w and 0 <= y < deck.h:
-            return (x, y)
+            return ((x + self.roll()) % deck.w if deck.wrap else x, y)
         return None
+
+    def roll(self) -> int:
+        """The deck column drawn at the left edge: 0, or on a ring's level
+        whatever puts the one in hand (or the first of the party on it) in
+        the middle column."""
+        walk = self.walk
+        deck = walk.decks[walk.viewing]
+        if not deck.wrap:
+            return 0
+        here = [a for a in party(walk) if a.deck == walk.viewing]
+        who = next((a for a in here if a.id == walk.selected),
+                   here[0] if here else None)
+        return (who.x - deck.w // 2) % deck.w if who is not None else 0
+
+    def col(self, x: int) -> int:
+        """The column a deck square is drawn in, this paint."""
+        return (x - self._roll) % self._wide if self._wide else x
 
     def seen_now(self) -> set:
         """What the party can see on this deck, worked out once a move."""
@@ -171,8 +204,10 @@ class AfootCanvas(QWidget):
         p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         tile, x0, y0 = self.frame()
         deck = walk.decks[walk.viewing]
+        self._roll, self._wide = self.roll(), deck.w if deck.wrap else 0
         now = self.seen_now()
         self._terrain(p, walk, deck, tile, x0, y0, now)
+        self._seam(p, deck, tile, x0, y0)
         self._rooms(p, walk, tile, x0, y0)
         self._things(p, walk, tile, x0, y0, now)
         self._reach(p, walk, tile, x0, y0)
@@ -181,8 +216,24 @@ class AfootCanvas(QWidget):
         p.end()
 
     def _rect(self, x, y, tile, x0, y0, inset: float = 0.0) -> QRectF:
-        return QRectF(x0 + x * tile + inset, y0 + y * tile + inset,
+        return QRectF(x0 + self.col(x) * tile + inset, y0 + y * tile + inset,
                       tile - 2 * inset, tile - 2 * inset)
+
+    def _seam(self, p, deck, tile, x0, y0) -> None:
+        """A ring's two edges, marked as joined: a dashed line down each,
+        and an arrow saying the corridor goes on round."""
+        if not self._wide:
+            return
+        pen = QPen(QColor(theme.tint("lumen")), 1, Qt.PenStyle.DashLine)
+        p.setPen(pen)
+        top, bottom = y0, y0 + deck.h * tile
+        for x in (x0, x0 + deck.w * tile):
+            p.drawLine(QPointF(x, top), QPointF(x, bottom))
+        p.setFont(QFont(theme.mono_family(), max(7, int(tile * 0.5))))
+        box = QRectF(x0, bottom, tile * 1.5, tile * 1.2)
+        p.drawText(box, Qt.AlignmentFlag.AlignCenter, "↻")
+        p.drawText(box.translated(deck.w * tile - tile * 1.5, 0),
+                   Qt.AlignmentFlag.AlignCenter, "↻")
 
     def _terrain(self, p, walk, deck, tile, x0, y0, now) -> None:
         wall = QColor(WALLS.get(deck.style, WALLS["fabricated"]))
@@ -224,17 +275,29 @@ class AfootCanvas(QWidget):
         if tile < 12:
             return
         p.setFont(QFont(theme.mono_family(), max(6, int(tile * 0.36))))
+        fm = QFontMetricsF(p.font())
         ink = QColor(theme.INK3)
+        drawn: list = []
         for room in walk.rooms:
             if room.deck != walk.viewing or not room.known:
                 continue
             p.setPen(QPen(ink))
             # On the room's own first row of floor: a room is the shape of
-            # the hull it is in, not the box round it.
-            lx, ly, span = _label_spot(room)
-            p.drawText(QRectF(x0 + lx * tile + 2, y0 + ly * tile + 1,
-                              max(span, 3) * tile - 4, tile),
-                       Qt.AlignmentFlag.AlignLeft, room.name.upper()[:24])
+            # the hull it is in, not the box round it. Cut to the room's own
+            # width, and left out rather than printed across a neighbour's.
+            lx, ly, span = label_spot(room)
+            cols = max(span, 3)
+            if self._wide:          # a room turned across the edge is cut
+                cols = min(cols, self._wide - self.col(lx))
+            room_w = cols * tile - 4
+            text = fm.elidedText(room.name.upper(), Qt.TextElideMode.ElideRight,
+                                 room_w)
+            box = QRectF(x0 + self.col(lx) * tile + 2, y0 + ly * tile + 1,
+                         fm.horizontalAdvance(text), fm.height())
+            if not text or any(box.intersects(other) for other in drawn):
+                continue
+            drawn.append(box)
+            p.drawText(box, Qt.AlignmentFlag.AlignLeft, text)
 
     def _things(self, p, walk, tile, x0, y0, now) -> None:
         deck = walk.decks[walk.viewing]
@@ -260,8 +323,7 @@ class AfootCanvas(QWidget):
             p.fillRect(self._rect(*sq, tile, x0, y0, 1), tint)
 
     def _people(self, p, walk, tile, x0, y0, now) -> None:
-        p.setFont(QFont(theme.mono_family(), max(6, int(tile * 0.42)),
-                        QFont.Weight.Bold))
+        marks = tokens(walk)
         for a in walk.actors:
             if a.deck != walk.viewing or a.status == "gone":
                 continue
@@ -292,8 +354,10 @@ class AfootCanvas(QWidget):
                 p.drawArc(self._rect(a.x, a.y, tile, x0, y0, 1.5),
                           30 * 16, 120 * 16)
             p.setPen(QPen(QColor(theme.INK)))
-            p.drawText(rect, Qt.AlignmentFlag.AlignCenter,
-                       (a.name[:1] or "?").upper())
+            mark = marks.get(a.id, "?")
+            p.setFont(QFont(theme.mono_family(), max(6, int(
+                tile * (0.42 if len(mark) == 1 else 0.32))), QFont.Weight.Bold))
+            p.drawText(rect, Qt.AlignmentFlag.AlignCenter, mark)
 
     def _hover(self, p, walk, tile, x0, y0, now) -> None:
         text = hover_text(self.view.game, walk, self.hover, now)
@@ -308,136 +372,24 @@ class AfootCanvas(QWidget):
                     pen = QPen(QColor(theme.tint("lumen")), 1.2,
                                Qt.PenStyle.DashLine)
                     p.setPen(pen)
-                    last = QPointF(x0 + (who.x + 0.5) * tile,
+                    last = QPointF(x0 + (self.col(who.x) + 0.5) * tile,
                                    y0 + (who.y + 0.5) * tile)
                     for sq in route:
-                        nxt = QPointF(x0 + (sq[0] + 0.5) * tile,
+                        nxt = QPointF(x0 + (self.col(sq[0]) + 0.5) * tile,
                                       y0 + (sq[1] + 0.5) * tile)
-                        p.drawLine(last, nxt)
+                        # A step across a ring's seam is one square, not a
+                        # line across the whole of the ring.
+                        if abs(nxt.x() - last.x()) <= tile * 1.5:
+                            p.drawLine(last, nxt)
                         last = nxt
         band = QRectF(0, self.height() - HUD, self.width(), HUD)
         p.fillRect(band, QColor(theme.PANEL))
         p.setPen(QPen(QColor(theme.INK2)))
         p.setFont(QFont(theme.mono_family(), 9))
-        p.drawText(band.adjusted(8, 0, -8, 0),
+        inner = band.adjusted(8, 0, -8, 0)
+        # Shortened to fit, never clipped mid-letter at a narrow window.
+        text = QFontMetricsF(p.font()).elidedText(
+            text, Qt.TextElideMode.ElideRight, inner.width())
+        p.drawText(inner,
                    Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
                    text)
-
-
-def draw_thing(p, t, rect: QRectF, colour: QColor, tile: float) -> None:
-    """One thing, as a small shape of its own."""
-    p.setPen(QPen(colour, max(1.0, tile * 0.08)))
-    p.setBrush(Qt.BrushStyle.NoBrush)
-    k = t.kind
-    inner = rect.adjusted(tile * 0.18, tile * 0.18, -tile * 0.18, -tile * 0.18)
-    if k in ("door", "hatch"):
-        if t.state in ("open", "broken"):
-            p.drawLine(rect.topLeft(), rect.bottomLeft())
-            p.drawLine(rect.topRight(), rect.bottomRight())
-        else:
-            fill = QColor(colour)
-            fill.setAlpha(150 if t.state != "locked" else 230)
-            p.fillRect(inner, fill)
-            if t.state == "locked":
-                p.setPen(QPen(QColor(theme.tint("warn")), 1.5))
-                p.drawRect(inner)
-    elif k in ("lift", "airlock", "gangway"):
-        p.drawEllipse(inner)
-        p.drawEllipse(inner.adjusted(tile * 0.14, tile * 0.14,
-                                     -tile * 0.14, -tile * 0.14))
-    elif k in ("counter", "desk", "table", "bench", "rack"):
-        fill = QColor(colour)
-        fill.setAlpha(90)
-        p.fillRect(rect.adjusted(1, tile * 0.25, -1, -tile * 0.25), fill)
-    elif k in ("locker", "crate", "strongbox"):
-        fill = QColor(colour)
-        fill.setAlpha(60 if t.state == "searched" else 140)
-        p.fillRect(inner, fill)
-        p.drawRect(inner)
-    elif k in ("cargo", "machinery", "pillar"):
-        fill = QColor(colour)
-        fill.setAlpha(120)
-        p.fillRect(rect.adjusted(1, 1, -1, -1), fill)
-    elif k in ("console",):
-        p.fillRect(inner, QColor(colour.red(), colour.green(), colour.blue(),
-                                 110))
-        p.drawLine(inner.topLeft(), inner.topRight())
-    elif k in ("bed", "medbed"):
-        p.drawRoundedRect(rect.adjusted(2, tile * 0.2, -2, -tile * 0.2), 3, 3)
-    elif k in ("relic",):
-        c = rect.center()
-        r = tile * 0.36
-        p.drawPolygon([QPointF(c.x(), c.y() - r), QPointF(c.x() + r, c.y()),
-                       QPointF(c.x(), c.y() + r), QPointF(c.x() - r, c.y())])
-    elif k in ("spore_node", "fault"):
-        fill = QColor(colour)
-        fill.setAlpha(80 if t.state == "done" else 200)
-        p.setBrush(fill)
-        p.drawEllipse(inner)
-    elif k in ("spores", "breach"):
-        dots = QColor(colour)
-        dots.setAlpha(120)
-        for fx, fy in ((0.3, 0.3), (0.7, 0.4), (0.45, 0.7)):
-            p.fillRect(QRectF(rect.x() + rect.width() * fx,
-                              rect.y() + rect.height() * fy, 2, 2), dots)
-    elif k == "plant":
-        p.drawEllipse(inner)
-    else:
-        p.drawRect(inner)
-
-
-def hover_text(game, walk, square, now) -> str:
-    """What is under the pointer, in one line — asked, never done."""
-    if square is None:
-        return (f"Round {walk.round} · {walk.mode} · "
-                "left-click to walk or act · right-click to go up to it")
-    x, y = square
-    deck = walk.decks[walk.viewing]
-    if not deck.was_seen(x, y) and square not in now:
-        return "Nobody has looked there yet."
-    bits = []
-    room = next((r for r in walk.rooms if r.holds(walk.viewing, x, y)
-                 and r.known), None)
-    if room is not None:
-        bits.append(room.name)
-    who = actor_at(walk, walk.viewing, x, y)
-    me = next((a for a in walk.actors if a.id == walk.selected), None)
-    if who is not None and (who.side == "party" or square in now):
-        bits.append(f"{who.name} ({who.mood if who.side == 'npc' else 'yours'}"
-                    f", {who.status})")
-        if who.side == "npc" and me is not None and who.standing:
-            got = afoot_fight.terms(game, walk, me, who)
-            if got["ok"]:
-                lo, hi = afoot_fight.damage_range(me, who)
-                bits.append(f"{got['odds']:.0%} to hit, {lo}–{hi}")
-            else:
-                bits.append(got["why"])
-    for t in walk.things:
-        if t.deck == walk.viewing and (t.x, t.y) == square:
-            kind = THING_BY_ID.get(t.kind)
-            bits.append(f"{kind.name.lower()}{' (' + t.state + ')' if t.state else ''}")
-    if me is not None and me.deck == walk.viewing and who is None:
-        route = afoot_map.path(walk, me, x, y)
-        if route:
-            cost = afoot_map.price(walk, me.deck, route)
-            bits.append(f"{cost} to walk" + (
-                f" ({me.mp} this round)" if walk.mode == "action" else ""))
-    return " · ".join(bits) or "Deck."
-
-
-def _label_spot(room) -> tuple:
-    """(x, y, run): where a room's name is lettered — the longest run of its
-    floor on the first row that has any."""
-    rows = room.mask or ["1" * room.w] * room.h
-    for j, row in enumerate(rows):
-        best, start, run = (0, 0), None, 0
-        for i, c in enumerate(row + "0"):
-            if c == "1":
-                start = i if start is None else start
-                run += 1
-            elif start is not None:
-                best = max(best, (run, start))
-                start, run = None, 0
-        if best[0]:
-            return room.x + best[1], room.y + j, best[0]
-    return room.x, room.y, room.w

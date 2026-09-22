@@ -119,7 +119,7 @@ def do_breach(game, walk, who, target, rng):
     afoot_ai.alarm(walk, who.deck, t.x, t.y, 20)
     for other in list(walk.actors):
         if other.deck == t.deck and other.id != who.id and \
-                afoot_map.distance(other.x, other.y, t.x, t.y) <= 1:
+                afoot_map.apart(walk, other, t) <= 1:
             afoot_fight.hurt(game, walk, other, rng.int(2, 12), rng=rng)
     say(walk, f"{who.name} blows the {t.kind}.", "warn")
     if walk.kind in afoot_acts.LIVING:
@@ -260,6 +260,9 @@ def _mend_fault(game, walk) -> None:
     for goal in walk.goals:
         if goal[0] == "fault":
             goal[2] = True
+    if any(goal[0] == "breakdown" for goal in walk.goals):
+        from . import afoot_holdings
+        afoot_holdings.resolved(game, walk, "breakdown")
     if walk.kind != "ship":
         return
     hurt = [layer for layer in game.ship.layers if layer.hp < layer.max]
@@ -300,6 +303,8 @@ def do_study(game, walk, who, target, rng):
         say(walk, f"{who.name} looks at it for a long time and learns "
                   "nothing that will stay learned.", "")
         return {"ok": True, "done": False, "check": roll}
+    if t.kind == "relic":
+        return _relic(game, walk, who, t, roll)
     t.state = "studied"
     _bank(walk, "spent", (t.id, t.state))
     if t.kind == "spore_node":
@@ -313,6 +318,40 @@ def do_study(game, walk, who, target, rng):
         t.holds = []
         say(walk, f"{who.name} works out part of what it was for.", "good")
     return {"ok": True, "done": True, "check": roll}
+
+
+def _relic(game, walk, who, t, roll):
+    """One stage of a relic (`afoot_things.RELIC_STAGES`): a first reading,
+    the chamber answering — whatever keeps it stands down — and what it
+    was for, the richest of the three."""
+    from ..data.afoot_things import RELIC_STAGES
+    after, called, _how = RELIC_STAGES[t.state]
+    first = sum(float(h.split(":")[1]) for h in t.holds
+                if h.startswith("study:")) or 20.0
+    worth = first * (1.0 + max(0, roll.effect) / 6.0)
+    if after == "read":
+        _bank(walk, "study", ("relic", round(worth, 1)))
+        text = f"{who.name} takes a first reading off it."
+    elif after == "attuned":
+        stood = 0
+        for npc in walk.actors:
+            if npc.deck == t.deck and npc.folk == "sentry" and npc.standing:
+                npc.mood, npc.aware = "surrendered", False
+                stood += 1
+        _bank(walk, "study", ("relic", round(worth / 2, 1)))
+        text = (f"{who.name} finds the note it answers to. The chamber "
+                "answers back" + (f", and {stood} sentr"
+                                  f"{'ies' if stood != 1 else 'y'} stand "
+                                  "down." if stood else "."))
+    else:
+        _bank(walk, "study", ("relic", round(worth * 2, 1)))
+        _bank(walk, "evidence", ("specimen", 12 + max(0, roll.effect)))
+        t.holds = []
+        text = f"{who.name} works out what it was for. It was not for us."
+    t.state = after
+    _bank(walk, "spent", (t.id, t.state))
+    say(walk, text, "good")
+    return {"ok": True, "done": True, "check": roll, "stage": called}
 
 
 def do_serve(game, walk, who, target, rng):
@@ -341,7 +380,8 @@ def do_drop(game, walk, who, target, rng):
     if other is None:
         return {"ok": True}
     near = sorted(afoot_map.reach(walk, who, 2),
-                  key=lambda s: afoot_map.distance(*s, who.x, who.y))
+                  key=lambda s: afoot_map.distance(
+                      *s, who.x, who.y, afoot_map.span(walk, who.deck)))
     spot = next((s for s in near if s != (who.x, who.y)), (who.x, who.y))
     other.x, other.y = spot
     say(walk, f"{who.name} puts {other.name} down.", "")

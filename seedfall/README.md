@@ -297,7 +297,7 @@ deck plans of the places the game already has.
 |---|---|
 | ![Talking to the keeper of a chandlery on level 1 of a Fleet Hub's first ring](../assets/seedfall/21-afoot-quay.png) | ![A boarding party in a raider's hulk, a raider in sight](../assets/seedfall/22-afoot-wreck.png) |
 | **Your own hull, in its own shape** | **A gaming wheel, in orbit** |
-| ![The upper deck of a NAVIS: an ellipse fatter aft, rooms along the keel](../assets/seedfall/23-afoot-hull.png) | ![The ring of a gaming wheel: hub, spokes, and the rim of rooms](../assets/seedfall/24-afoot-station.png) |
+| ![The upper deck of a NAVIS: an ellipse fatter aft, rooms along the keel](../assets/seedfall/23-afoot-hull.png) | ![Level 1 of a gaming wheel's ring, unrolled and spun to 0.78 g](../assets/seedfall/24-afoot-station.png) |
 
 - **Every plan is the shape of the thing it is a plan of** (`sim/afoot_plans.py`):
   - **a hull** is sliced through its own silhouette — the length, beam and taper law its 3D
@@ -312,7 +312,10 @@ deck plans of the places the game already has.
     plan changes;
   - **a quay** is its can, its arm out to the berths, and its mast; **a Fleet Hub** its spine,
     four arms with a berth on each, and two habitation rings on spokes, each as many levels
-    deep as it needs. **Every door the Concourse lists is a room on the plan**, by the same
+    deep as it needs — every level drawn **unrolled**, a strip whose two ends are the same
+    corridor, turned under the party so it has no ends: walk on round and you come back to
+    where you started. **Every door the Concourse lists is
+    a room on the plan**, by the same
     name, and a quay counts its own people — a Fleet Hub has 36,000 aboard and serves the
     million on the world below;
   - **a holding or habitat** is what its class's traits say it is built as — the town inside
@@ -329,19 +332,36 @@ deck plans of the places the game already has.
   you put in.
 - **Who**: up to four of the captain, the officers and the walking machines aboard. Each is
   the person the game already knows: the six characteristics and skills of their service
-  record, the kit they own, and the wounds they came back with last time. The captain gets a
-  record of their own, from the seed and the opening choices.
+  record, the kit they own, and the wounds they came back with last time. The captain's
+  record is a life played out term by term by the same `sim/lifepath` as every officer's,
+  from their origin and their lineage.
+- **What it weighs** (`Deck.g`, shown beside the deck's name): hulls and quays are
+  weightless, a Habitat Girdle's berths 0.4 g, ring levels spun at 0.8 g (the outermost the
+  heaviest), a drum's floor 1 g, the ground its world's own. Weightless, anybody without
+  Zero-G goes hand over hand at twice the cost of a step, shoots unbraced, and is set
+  drifting by the kick of a gun — magnetic boots put it right, and the people who live aboard
+  are at home in it. A heavy world slows everybody.
 - **How**: every roll is two dice against eight and every button says its odds first. Guns
   and armour are the kit the concourse sells, with Traveller's numbers. In calm the party
   walks and follows its leader; once somebody hostile has seen you it is turns — move, act,
   end turn. Doors, lockers, consoles, lifts, cover, sneaking, standing watch, first aid,
-  carrying the fallen.
+  carrying the fallen. A gun with Auto fires a **burst** or lays down **suppressing fire**
+  that pins whoever is round the target; **frag, stun and smoke grenades** are thrown,
+  off by a square on a miss, and smoke blinds every line through it for three rounds.
 - **Who else**: the keeper behind each counter (do business there: the shelf, a room, a
   night, the hiring board, the harbourmaster's favours), constables as many as the law level
   puts on the corridors, fences and hard cases where it puts none, your own officers at
   their stations (a word with them, their report, their story), and on the dead hulls
   whoever their end left aboard. Somebody from an officer's past may be waiting on the
-  concourse, by name.
+  concourse, by name. **Trouble** comes out of what the game keeps: two officers whose
+  convictions collide at it on your own decks, a toll or a brawl where the law is thin, your
+  own works failing, striking or sabotaged — and setting them right by hand runs the holding
+  sweeter for a month. At a Kith gathering they sing a phrase for you to answer, and an elder
+  may sing a domain's song of passage; a xeno vault's relic gives itself up in three stages.
+- **Where it fits**: counsel suggests the dead hull adrift here and the officer nobody has
+  had a word with; the Academy has a chapter on foot (walk, talk, shoot back); five renown
+  rungs read a career afoot — walks, prizes boarded, wrecks cleared, kinds of place, nests
+  burned.
 - **What it costs**: what anybody sees you do is a charge when you leave — and a bribe buys
   only the witness you paid. What you find comes home only if you walk out with it — kit to
   the captain, cargo to the hold, data to the bench. Wounds are kept and mend by the day, or
@@ -365,6 +385,9 @@ no records — and of everybody else's only the kinds of business it is: a hotel
 shop, a den has nothing but. A garrison keeps a hard law and a den none. **A yard lays down
 welded hulls and refits one alongside it** where the port has no slips; a nursery grows grown
 ones. Every one can be walked, laid out in its own shape with the rooms its trade needs.
+Alongside, the Concourse sells **a stake**: a tenth of the house, paid monthly out of its
+takings, with the quarter's statement by despatch, and four-fifths back if you sell. Some of
+the system's traffic runs to the houses rather than the quay, and the quay's talk names them.
 
 ## How it is built
 

@@ -11,7 +11,11 @@ markets and bases — real places, found, open, flown to and walked.
   hails with a way aboard; a base stands on the ground and is not a berth;
 - **every kind is laid out whole**, in the shape its table gives it, and so
   is every new kind of wreck — a quarantined hospital ship, a gutted yard,
-  a ring that went quiet.
+  a ring that went quiet;
+- **a stake is a tenth of a house**, bought alongside, paid out of its
+  takings each month on the one clock, reported each quarter by despatch,
+  and sold back at a loss;
+- **some of the trade runs to the houses**, not the quay.
 """
 
 from __future__ import annotations
@@ -21,10 +25,12 @@ from collections import Counter
 from ..core.rng import RNG
 from ..core.state import new_game
 from ..data.chassis import CHASSIS_BY_ID
+from ..data import establishments as est_table
 from ..data.establishments import ESTABLISHMENT_BY_ID, ESTABLISHMENTS, MESH
 from ..data.venues import VENUES
-from ..sim import (afoot, afoot_plans, afoot_sites, anchorage, establishments,
-                   hail, places, shipyard, shore, track)
+from ..sim import (afoot, afoot_plans, afoot_sites, anchorage, comms,
+                   establishments, hail, places, shipyard, shore, track,
+                   traffic)
 from . import afoot_kit
 from .harness import Suite
 
@@ -184,3 +190,60 @@ def run(suite: Suite) -> None:
                 assert [d.name for d in walk.decks] == ["The hub", "The ring"]
             out.append(f"{kind}: {len(walk.rooms)} rooms")
         return "; ".join(out)
+
+    @check("a stake is bought alongside, pays monthly on the clock, reports quarterly, sells at a loss")
+    def _():
+        game, site = afoot_kit.at_establishment(("grand_hotel",))
+        place = places.by_id(game, site.place_id)
+        game.credits = 5_000_000
+        terms = establishments.stake_terms(game, place)
+        assert terms["ok"] and terms["price"] == int(
+            est_table.WORTH[place.look] * est_table.STAKE_SHARE), terms
+        got = establishments.buy_stake(game, place)
+        assert got["ok"] and game.credits == 5_000_000 - terms["price"]
+        assert not establishments.buy_stake(game, place)["ok"], "bought twice"
+        cash = game.credits
+        game.day += est_table.STAKE_DAYS - 1
+        establishments.tick(game, 1)
+        assert game.credits == cash, "paid for a month not yet traded"
+        game.day += 1
+        establishments.tick(game, 1)
+        assert game.credits == cash + terms["monthly"], (game.credits, cash)
+        held = game.stakes[place.id]
+        paid = held["paid"]
+        game.advance_days(est_table.STATEMENT_DAYS)
+        assert held["paid"] > paid, "the clock never paid the stake"
+        told = [m for m in comms.inbox(game, "news")
+                if m.subject == f"{place.name}: the quarter"]
+        assert told, "no quarter's statement"
+        game.orbit_body = None                  # standing off
+        place = places.by_id(game, site.place_id)
+        refused = establishments.sell_stake(game, place)
+        assert not refused["ok"] and "alongside" in refused["why"], refused
+        game.orbit_body = place.body_id
+        place = places.by_id(game, site.place_id)
+        cash = game.credits
+        sold = establishments.sell_stake(game, place)
+        assert sold["ok"] and game.credits == cash + int(
+            terms["price"] * est_table.SELL_BACK), sold
+        assert place.id not in game.stakes
+        return (f"{terms['price']:,} cr for a tenth of {place.name}, "
+                f"{terms['monthly']:,} cr a month, {sold['back']:,} cr back")
+
+    @check("some of the trade runs to the houses, not the quay")
+    def _():
+        bound = []
+        for seed in SECTORS[:3]:
+            game = new_game(seed)
+            for system in game.galaxy.systems:
+                houses = {f.name: f.body_id for f in
+                          establishments.here(game, system)}
+                for hull in traffic.in_system(game, system):
+                    if hull.bound:
+                        assert hull.bound in houses, hull.bound
+                        assert (system.bodies[hull.to_body].id
+                                == houses[hull.bound]), hull
+                        bound.append(hull.bound)
+        assert bound, "no hull ever bound for a house"
+        return (f"{len(bound)} hulls bound for {len(set(bound))} houses, "
+                "each flying to the house's own body")

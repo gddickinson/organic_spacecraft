@@ -52,6 +52,10 @@ ERRANDS = {
 GLYPHS = {"trader": "▸", "patrol": "◂", "prospector": "◆", "courier": "▹",
           "raider": "✖"}
 
+#: Of the traders and couriers in a system with the trade's own houses in
+#: it, the share bound for one of them rather than the quay.
+HOUSE_SHARE = 0.4
+
 #: Days a hull takes to run its leg end to end. Long enough that traffic is
 #: recognisably in the same place across a few days of play.
 LEG_DAYS = 46.0
@@ -74,6 +78,8 @@ class Hull:
     #: 0..1 along the leg, right now.
     along: float = 0.0
     hostile: bool = False
+    #: The trade's own house it is bound for, if not the quay.
+    bound: str = ""
 
     @property
     def glyph(self) -> str:
@@ -155,6 +161,8 @@ def in_system(game, system=None) -> list:
         return []
 
     quay_body, quay_index = anchorage_sim.anchor_body(system)
+    from . import establishments as est_sim
+    houses = est_sim.here(game, system)
     # **Whether raiders can work here is a question about the law**, and it
     # used to be a question about `port`. See `sim/piracy.lawlessness`: a
     # squadron on station, a dock, a claim, the distance from the nearest
@@ -198,6 +206,18 @@ def in_system(game, system=None) -> list:
             there = quay_index if quay_index >= 0 else rng.int(0, len(bodies) - 1)
             if there == here:
                 there = (here + 1) % len(bodies)
+        # Some of the trade runs to the trade's own houses — supplies to a
+        # yard, guests to the Grand (`sim/establishments`). Its own seed, so
+        # no hull that runs to the quay is anybody different for it.
+        bound = ""
+        if errand in ("trader", "courier") and houses and RNG(
+                f"traffic:{system.id}:{slot}:house").chance(HOUSE_SHARE):
+            house = houses[slot % len(houses)]
+            there = next((i for i, b in enumerate(bodies)
+                          if b.id == house.body_id), there)
+            bound = house.name
+            if there == here:
+                here = (there + 1) % len(bodies)
 
         # A triangle wave along the leg, offset per hull so they are not all
         # in step. Position is a function of the day and nothing else.
@@ -215,7 +235,7 @@ def in_system(game, system=None) -> list:
             id=hull_id, system_id=system.id,
             name=name, faction=faction,
             errand=errand, from_body=here, to_body=there,
-            along=along,
+            along=along, bound=bound,
             hostile=ERRANDS[errand][2] or hostiles_sim.is_marked(game, hull_id)))
     return out
 
@@ -352,7 +372,7 @@ def note(game, hull, system=None) -> str:
         where = f"holding at {system.bodies[hull.from_body].name}"
     else:
         where = (f"{system.bodies[hull.from_body].name} → "
-                 f"{system.bodies[hull.to_body].name}")
+                 f"{hull.bound or system.bodies[hull.to_body].name}")
     return f"{flag} · {hull.doing}, {where} · {span:.2f} AU off"
 
 

@@ -52,9 +52,9 @@ def do_lift(game, walk, who, target, rng):
     spot = (other.x, other.y)
     if actor_at(walk, other.deck, *spot) is not None:
         free = afoot_map.reach(walk, _ghost(who, other), 2)
-        spot = min(free, key=lambda s: afoot_map.distance(*s, other.x,
-                                                           other.y),
-                   default=None)
+        wide = afoot_map.span(walk, other.deck)
+        spot = min(free, key=lambda s: afoot_map.distance(
+            *s, other.x, other.y, wide), default=None)
         if spot is None:
             return {"ok": False, "why": "There is no room at the other end."}
     riders = [who]
@@ -62,10 +62,11 @@ def do_lift(game, walk, who, target, rng):
         # Out of a fight the party travels together: whoever is standing
         # near the lift rides it too, rather than being left a deck behind.
         riders += [m for m in party(walk, standing=True) if m is not who
-                   and m.deck == t.deck and afoot_map.distance(
-                       m.x, m.y, t.x, t.y) <= LIFT_REACH]
+                   and m.deck == t.deck
+                   and afoot_map.apart(walk, m, t) <= LIFT_REACH]
     free = sorted(afoot_map.reach(walk, _ghost(who, other), 3),
-                  key=lambda s: afoot_map.distance(*s, other.x, other.y))
+                  key=lambda s: afoot_map.distance(
+                      *s, other.x, other.y, afoot_map.span(walk, other.deck)))
     for n, rider in enumerate(riders):
         at = spot if n == 0 else next(
             (s for s in free if actor_at(walk, other.deck, *s) is None), None)

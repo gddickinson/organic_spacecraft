@@ -70,6 +70,11 @@ def ship(chassis, fitted, venues=()) -> list:
                  zone if zone is not None else table.ZONE.get(kind, 0.0)
                  - 0.12 * n)
     _venues(out, venues)
+    if "crew_girdle" in (fitted or ()):
+        # The berths are the girdle: spun, with weight in them.
+        for w in out:
+            if w.kind == "quarters":
+                w.part = "crew_girdle"
     return out
 
 
