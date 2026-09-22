@@ -54,6 +54,15 @@ def _where(game, at):
                  if p.kind == "port"), None)
 
 
+def barred(game, at) -> str:
+    """Why a counter here will not serve the crew, or "": they have to be
+    across (`sim/crossing`) — made fast alongside, or over by the boat, a
+    shuttle or a line. Asked by every door that takes money."""
+    from . import crossing
+    place = _where(game, at)
+    return crossing.barred(game, place) if place is not None else ""
+
+
 def open_here(game, at, kind: str = "") -> list:
     """Every door open at this place, best first.
 
@@ -124,6 +133,9 @@ def owned(game) -> list:
 
 def buy(game, at, item_id: str) -> dict:
     """Buy one thing off a shelf here."""
+    shut = barred(game, at)
+    if shut:
+        return {"ok": False, "why": shut}
     row = next((r for r in shelves(game, at) if r["item"].id == item_id),
                None)
     if row is None:
@@ -149,6 +161,8 @@ def sell(game, at, item_id: str) -> dict:
     item = kit_table.ITEM_BY_ID.get(item_id)
     if place is None or item is None or not selling(game, place, "shelf"):
         return {"ok": False, "why": "Nobody here is buying."}
+    if barred(game, place):
+        return {"ok": False, "why": barred(game, place)}
     if item.cr <= 0:
         return {"ok": False, "why": "It is worth nothing to anybody else."}
     paid = max(1, int(kit_table.price_at(item, place.tech) * BUYBACK))
@@ -177,6 +191,8 @@ def deposit(game, at, amount: float) -> dict:
     """
     if not bank_here(game, at):
         return {"ok": False, "why": "There is nowhere here to bank it."}
+    if barred(game, at):
+        return {"ok": False, "why": barred(game, at)}
     amount = int(max(0, min(amount, game.credits)))
     if amount <= 0:
         return {"ok": False, "why": "Nothing to deposit."}
@@ -191,6 +207,8 @@ def withdraw(game, at, amount: float) -> dict:
     """Draw on the account, at any port that has a counter."""
     if not bank_here(game, at):
         return {"ok": False, "why": "There is nowhere here to draw on it."}
+    if barred(game, at):
+        return {"ok": False, "why": barred(game, at)}
     held = float(getattr(game, "deposited", 0.0))
     amount = int(max(0, min(amount, held)))
     if amount <= 0:
@@ -246,6 +264,8 @@ def ashore(game, at, venue_id: str, rng=None) -> dict:
     venue = venue_table.VENUE_BY_ID.get(venue_id)
     if place is None or venue is None or venue not in open_here(game, place):
         return {"ok": False, "why": "That is not open here."}
+    if barred(game, place):
+        return {"ok": False, "why": barred(game, place)}
     cost = ashore_cost(game, venue)
     if game.credits < cost:
         return {"ok": False,

@@ -8,8 +8,9 @@ Fleet Hub has three or four, a quiet rock with no port one at most, and
 the kinds that need a port to trade with only turn up where there is one.
 
 `here(game, system)` is every establishment in a system as `Found` rows;
-`sim/places.py` turns each into a `Place`, and `builds_here` answers the
-yard's question for `sim/shipyard.can_build_here`.
+`sim/places.py` turns each into a `Place`, and `builds_here` and
+`reactivates_here` answer the yard's question for
+`sim/shipyard.can_build_here`.
 
 **A stake** is a tenth of a house bought while alongside it
 (`data/establishments.WORTH`): it pays out of the house's own takings every
@@ -50,7 +51,8 @@ def here(game, system) -> list:
         if not rng.chance(odds):
             break
         pool = [(e.weight, e) for e in ESTABLISHMENTS
-                if e.id not in used and (port is not None or not e.needs_port)
+                if e.id not in used and not e.by_wrecks
+                and (port is not None or not e.needs_port)
                 and any(b.kind in e.at for b in system.bodies)]
         if not pool:
             break
@@ -60,12 +62,39 @@ def here(game, system) -> list:
         name = rng.pick(kind.names).format(body=body.name,
                                            word=rng.pick(WORDS))
         out.append(Found(kind, name, body.id, body.name))
+    return out + _breakers(game, system)
+
+
+def _breakers(game, system) -> list:
+    """Breakers set up where the dead hulls are: a yard of them in a system
+    with a derelict adrift (`afoot_sites.derelict`), on a stream of its own
+    so that no other house in the sector is drawn any differently."""
+    from . import afoot_sites
+    if afoot_sites.derelict(game, system) is None:
+        return []
+    rng = RNG(f"{getattr(game, 'seed', 'verge')}:establish:{system.id}"
+              ":breakers")
+    out = []
+    for kind in (e for e in ESTABLISHMENTS if e.by_wrecks):
+        bodies = [b for b in system.bodies if b.kind in kind.at]
+        if not bodies or not rng.chance(table.BREAKERS_ODDS):
+            continue
+        body = rng.pick(bodies)
+        name = rng.pick(kind.names).format(body=body.name,
+                                           word=rng.pick(WORDS))
+        out.append(Found(kind, name, body.id, body.name))
     return out
 
 
 def builds_here(game, system, need: str) -> bool:
     """Does a yard in this system lay down hulls that need `need`?"""
     return any(f.kind.builds == need for f in here(game, system))
+
+
+def reactivates_here(game, system, chassis_id: str) -> bool:
+    """Will breakers in this system put a derelict of this class back
+    together?"""
+    return any(chassis_id in f.kind.reactivates for f in here(game, system))
 
 
 # ── stakes ─────────────────────────────────────────────────────────────────
@@ -83,6 +112,8 @@ def stake_terms(game, place) -> dict:
         out["why"] = "It is not for sale."
     elif not place.here:
         out["why"] = "Stakes are signed for in person. Come alongside."
+    elif _barred(game, place):
+        out["why"] = "Stakes are signed for in person. " + _barred(game, place)
     elif not held and game.credits < price:
         out["why"] = f"A stake is {price:,} cr."
     else:
@@ -134,6 +165,11 @@ def tick(game, days: float) -> None:
                   f"The house's statement: {held.get('banked', 0):,} cr "
                   "paid out to you from the takings this quarter.")
             held["banked"] = 0
+
+
+def _barred(game, place) -> str:
+    from . import crossing
+    return crossing.barred(game, place)
 
 
 def _tell(game, name: str, system_id: int, subject: str, body: str) -> None:

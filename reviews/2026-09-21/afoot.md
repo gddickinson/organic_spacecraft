@@ -402,6 +402,30 @@ aboard is at home in it. A heavy world costs movement (`afoot_people.HEAVY`).
   a relit deep region's systems take its id (a relit Cradle's fourteen
   systems carry two xeno hulks).
 
+### Made fast, or across — and item 12's remainder
+
+From play: the chronicle opened with the hull 7,698 km off the Fleet Hub on
+the flight deck while the Hub's doors were open to the crew. "In orbit of
+the world the quay is over" had been read as *near* by the flight model and
+as *inside* by every door. `sim/crossing.py` makes them two facts —
+**made fast** (`Game.berth`, the hull 0.6 km off the berth's centre; a new
+chronicle starts so at its home quay; the harbour's pilot or a conn that
+ends alongside makes it; moving casts off) and **across** (`Game.ashore`:
+the ship's boat for a hull of crew six or more, their shuttle for a fare,
+suits on a line within 2 km of something in orbit). The money-taking doors
+of the Concourse (`shore`, `clinic`, stakes) and every walk ask it.
+
+Item 12 closed with it: a base's berth is a pad in orbit (`anchorage` kind
+`field`, `berths3d.field`), a breakers' yard (drawn only where a dead hull
+is adrift, on its own stream so no other house moves) wakes a derelict
+REVENANT, a nursery refits what it grows, and traffic bound for a house
+holds that house's berths and not the quay's (`control.holders`).
+
+Found on the way, and left open (IMPROVEMENTS 17): the flight computer
+touches a free port's skin at 2 m/s, 607 m from its one arm — a Grand is
+built like one. It surfaced only because the first draft put the breakers
+in the ordinary draw and reshuffled every sector's houses.
+
 ### Checks added
 
 `tests/test_afoot_weight.py` (every deck's weight from its structure,

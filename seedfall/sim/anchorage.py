@@ -70,7 +70,8 @@ def berth_orbit(place, body, day: float) -> tuple:
     orbit, so two screens asking about one quay get one answer and a saved
     chronicle grows the place without a migration.
     """
-    seed = zlib.crc32(str(getattr(place, "id", "")).encode())
+    pid = place if isinstance(place, str) else getattr(place, "id", "")
+    seed = zlib.crc32(str(pid).encode())
     radius_km = max(1.0, float(getattr(body, "radius_km", 0) or 0.0))
     span_km = max(BERTH_MIN_KM, radius_km * BERTH_ALTITUDE)
     span_km *= 1.0 + ((seed >> 17) % 100) / 250.0     # no two quays level
@@ -97,14 +98,14 @@ SERVICE_NAMES = {
 #: Glyphs the chart draws. Here rather than in the widget so every view that
 #: plots a system agrees about what a quay looks like.
 GLYPHS = {"quay": "▣", "hub": "◈", "holding": "⬡", "gate": "◉",
-          "station": "▤"}
+          "station": "▤", "field": "▥"}
 
 
 @dataclass
 class Anchorage:
     id: str
     name: str
-    #: quay | hub | holding | gate | station
+    #: quay | hub | holding | gate | station | field (a base's pad)
     kind: str
     #: The body it orbits. Its position used to *be* that body's position —
     #: see `berth_orbit` for what that cost and why it is a real place now.
@@ -250,10 +251,11 @@ def in_system(game, system=None) -> list:
 
 
 def _stations(game, system, here_id) -> list:
-    """The trade's own stations (`sim/establishments.py`) — a yard, a hotel,
-    a wheel — so a captain can find one on the chart and fly to it. A base
-    stands on the ground and is reached from the body's orbit, like a
-    settlement, so it is not a berth."""
+    """The trade's own places (`sim/establishments.py`), so a captain can
+    find one on the chart and fly to it: a station — a yard, a hotel, a
+    wheel — is its own berth; **a base keeps a pad in orbit over it**, its
+    landing field's berth, where the shuttle meets you and takes you down
+    (`field`)."""
     from ..data.establishments import MESH
     from . import establishments as est_sim
     port = getattr(system, "port", None)
@@ -262,16 +264,26 @@ def _stations(game, system, here_id) -> list:
         kind = got.kind
         index = next((i for i, b in enumerate(system.bodies)
                       if b.id == got.body_id), -1)
-        if kind.kind != "station" or index < 0:
+        if index < 0:
             continue
-        services = {"shipyard": ("repair", "shipyard"),
-                    "gestation": ("gestation",)}.get(kind.builds, ())
+        common = dict(id=f"est-{system.id}-{kind.id}", name=got.name,
+                      body_id=got.body_id, body_index=index,
+                      faction=getattr(port, "faction", None),
+                      here=(here_id == got.body_id))
+        if kind.kind == "base":
+            out.append(Anchorage(
+                kind="field", look="field",
+                what=(f"{kind.name} on {got.body_name}: the pad its landing "
+                      f"field keeps in orbit, where the shuttle meets you. "
+                      f"{kind.what}"), **common))
+            continue
+        services = ("repair", "shipyard") if kind.builds == "shipyard" else \
+            ("gestation",) if kind.builds == "gestation" else \
+            ("repair", "shipyard", "xenoyard") if kind.reactivates else ()
         out.append(Anchorage(
-            id=f"est-{system.id}-{kind.id}", name=got.name, kind="station",
-            body_id=got.body_id, body_index=index,
+            kind="station", look=MESH.get(kind.id, "quay"),
             what=f"{kind.name} in orbit of {got.body_name}. {kind.what}",
-            services=services, faction=getattr(port, "faction", None),
-            here=(here_id == got.body_id), look=MESH.get(kind.id, "quay")))
+            services=services, **common))
     return out
 
 
@@ -310,10 +322,20 @@ def where_am_i(game) -> str:
                  if b.id == game.orbit_body), None)
     where = body.name if body else "an unnamed body"
     here = [a for a in in_system(game) if a.here]
+    fast = next((a for a in here if a.id == getattr(game, "berth", "")),
+                None)
+    if fast is not None:
+        # **Made fast is not in orbit near** (`sim/crossing`): the crew can
+        # walk into one place, and has to cross to the rest.
+        rest = [a.name for a in here if a is not fast]
+        return (f"Made fast alongside {fast.name}, over {where}."
+                + (f" {', '.join(rest)} {'is' if len(rest) == 1 else 'are'}"
+                   " across the way." if rest else ""))
     if not here:
         return f"In orbit of {where}."
-    return (f"In orbit of {where}, alongside "
-            + ", ".join(a.name for a in here) + ".")
+    return (f"In orbit of {where}, near "
+            + ", ".join(a.name for a in here)
+            + " — alongside none of them.")
 
 
 def docked_at(game):

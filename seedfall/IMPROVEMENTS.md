@@ -65,7 +65,7 @@ The walking layer landed (`sim/afoot*.py`, `ui/afoot_*.py`; design in
 place and hull, a party of up to four, Traveller's personal combat on
 squares, talk through the counters that already exist, incidents from state
 the game already keeps, and endings that bank through the existing doors.
-Everything the first list named is closed except what item 12 leaves:
+Everything the first list named is closed; item 17 is what is left:
 
 1. ~~**Counsel and the tutorial do not know it exists.**~~ Landed
    2026-09-22: counsel offers the dead hull adrift here and a word with the
@@ -110,14 +110,17 @@ Everything the first list named is closed except what item 12 leaves:
     spine and rings, a drum's town, a tower's floors, a dome's ground, a
     ring round a hub, a mine dug into its rock, modules on a keel, sheds on
     breathable or airless ground. `tests/test_afoot_shapes.py` holds it.
-12. **Establishments** landed the same day: fifteen kinds
-    (`data/establishments.py`, `sim/establishments.py`), each a place with
-    its own doors, law and plan, and a yard that builds. Closed 2026-09-22:
-    **a stake** — a tenth of a house, paid monthly from its takings, a
-    statement each quarter by despatch; **traffic** runs to the houses; the
-    quay's **gossip** names them. **Still open**: a base has no berth of its
-    own; a yard builds welded hulls only (a nursery grown ones) and never
-    anything xeno.
+12. ~~**Establishments are static, a base has no berth, yards build only
+    their own.**~~ Fifteen kinds landed on 2026-09-21; closed 2026-09-22:
+    **a stake** (a tenth of a house, paid monthly from its takings, a
+    statement each quarter by despatch); **traffic** bound for the houses,
+    which ties up at *their* berths and never fills a quay's; the quay's
+    **gossip** naming them; **a base's pad** — its landing field's berth in
+    orbit (`anchorage` kind `field`, a silhouette of its own), flown to,
+    hailed, "Go down"; a sixteenth kind, **the breakers' yard**, drawn only
+    where a dead hull is adrift, which wakes a derelict REVENANT (never lays
+    down an ANTIPHON) and refits anything; and **a nursery refits the grown
+    and hybrid hulls it grows**.
 13. ~~**The play-test's leftovers.**~~ Landed 2026-09-22: voice lines in
     the first person and rotated; the hint bar and head elide; the latest
     three lines at the top of the column; two-letter party tokens; room
@@ -142,6 +145,27 @@ Everything the first list named is closed except what item 12 leaves:
     `unroll`: steps, paths, sight, reach, cover, a grenade's burst), and the
     canvas turns the strip under whoever is in hand so it has no ends
     (`AfootCanvas.roll`).
+
+16. ~~**Near the Fleet Hub, not docked, and walking in anyway.**~~ From
+    play, 2026-09-22: a chronicle opened with the hull 7,698 km off the Hub
+    on the flight deck — "in orbit of the world" was read both as *near*
+    and as *inside* — while its doors stood open. Now two facts
+    (`sim/crossing.py`): **made fast** (`Game.berth`: the hull at a berth,
+    0.6 km off its centre; a chronicle starts that way at its home quay;
+    the harbour's pilot or a conn that ends alongside makes it so; moving
+    casts off) and **across** (`Game.ashore`): by **the ship's boat** (a
+    hull of crew six or more; a boat bay aboard), **their shuttle** (a fare
+    a head by amenity; your own holdings' free), or **suits on a line**
+    (within 2 km of something in orbit; a vacc suit for whoever breathes).
+    Every Concourse door that takes money, and every walk, asks it; the
+    Concourse and the Afoot start page offer the ways. Cargo and yard
+    business still go by lighter from orbit. `tests/test_crossing.py`.
+17. **The flight computer cannot bring a hull alongside a free port's arm.**
+    Found while adding the breakers' yard: given the conn on a Grand (built
+    like a FREE PORT), it touches the skin at 2 m/s, 607 m from the arm,
+    with or without a berth assigned; lengthening the arm past the contact
+    sphere did not help. By hand, and by the harbour's pilot, it can be
+    done. Wants the approach law read against a single off-axis fitting.
 
 ## Open — the Traveller programme, begun 2026-09-20
 

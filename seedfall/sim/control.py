@@ -84,8 +84,15 @@ def holders(game, contact) -> dict:
     if not names or index is None:
         return {}
     out: dict = {}
+    # A hull bound for one of the trade's houses (`traffic.Hull.bound`) ties
+    # up there and nowhere else, and one bound for the quay does not fill a
+    # house's berths for being over the same world.
+    house = str(getattr(contact, "id", "")).split(":", 1)[-1].startswith(
+        "est-")
     for hull in traffic_sim.in_system(game):
         if hull.errand not in DOCKING or hull.to_body != index:
+            continue
+        if (hull.bound != contact.name) if house else bool(hull.bound):
             continue
         if hull.along < DOCKED_FROM:
             continue

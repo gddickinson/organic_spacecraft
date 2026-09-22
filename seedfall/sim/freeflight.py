@@ -388,6 +388,7 @@ def hand_over(game, conn, contact):
     here = where(game, conn)
     was_body, was_xy = (getattr(game, "orbit_body", None),
                         getattr(game, "ship_xy", None))
+    was_fast = (getattr(game, "berth", ""), getattr(game, "ashore", ""))
     # `stand_off` spends the flight into the place it writes, so the *flown*
     # displacement has to be kept back too — restoring the recorded place
     # without it would snap the hull back to where the flight began.
@@ -398,6 +399,7 @@ def hand_over(game, conn, contact):
         # Put the ship back where it was standing: a refused hand-over must
         # not also move the hull.
         game.orbit_body, game.ship_xy = was_body, was_xy
+        game.berth, game.ashore = was_fast        # and still made fast
         conn.start_pos = was_start
         return None, why
     # The way she has on, carried across. The frames are both km on the same

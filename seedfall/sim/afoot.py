@@ -40,6 +40,7 @@ from .afoot_ends import progress  # noqa: F401
 from .afoot_begin import begin  # noqa: F401
 from .afoot_begin import begin_prize  # noqa: F401
 from .afoot_begin import can_begin  # noqa: F401
+from .afoot_begin import crossing_for  # noqa: F401
 from .afoot_begin import enlist  # noqa: F401
 from .afoot_begin import join  # noqa: F401
 from .afoot_begin import preview_kit  # noqa: F401

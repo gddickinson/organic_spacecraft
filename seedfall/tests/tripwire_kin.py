@@ -267,4 +267,6 @@ KIN = {
     "afoot_fire": ("afootfire",), "afoot_kith": ("afootcareer",),
     "afoot_trouble": ("afootcareer", "afootplay"),
     "afoot_holdings": ("afootcareer",),
+    # Made fast, or across (2026-09-22): the berth and the ways over.
+    "crossing": ("crossing", "concourse", "afoot"),
 }

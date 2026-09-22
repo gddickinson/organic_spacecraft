@@ -317,4 +317,48 @@ def run(suite: Suite) -> bool:
                 f"arrow, and clicked back across to {wide - 3}; the one in "
                 "hand stayed in the middle")
 
+    @check("getting across is on the screen: the start page's way is taken, the Concourse crosses")
+    def _():
+        from PyQt6.QtWidgets import QPushButton
+        from ..sim import crossing, flight, places
+        from .test_crossing import _at_hub_with_station, _neighbour
+        app = qtkit.app()
+        game = _at_hub_with_station()
+        station = _neighbour(game)
+        win = qtkit.main_window(game, SIZE)
+        win.show()
+        win.go("afoot")
+        _pump(app)
+        view = win.views["afoot"]
+        view.pick_site(f"place:{station.id}")
+        _pump(app)
+        named = {b.objectName(): b for b in view.findChildren(QPushButton)}
+        assert named["afoot_across_boat"].isEnabled()
+        assert not named["afoot_across_suits"].isEnabled()
+        named["afoot_across_shuttle"].click()
+        _pump(app)
+        assert view.across == "shuttle"
+        cash = game.credits
+        view.findChild(QPushButton, "afoot_go").click()
+        _pump(app, 6)
+        assert game.afoot is not None and game.credits < cash
+        assert game.ashore == station.id
+        game.afoot = None
+        # The Concourse at a place the crew is not across to crosses.
+        flight.hold_at(game, flight.current_body(game))
+        hub = next(p for p in places.here(game) if p.kind == "port")
+        win.go("concourse")
+        con = win.views["concourse"]
+        con.go_place(hub.id)
+        _pump(app)
+        dock = con.findChild(QPushButton, "concourse_across_dock")
+        assert dock is not None and dock.isEnabled(), "no way to come alongside"
+        dock.click()
+        _pump(app, 6)
+        assert game.berth == hub.id and crossing.across(game, hub)
+        assert con.findChild(QPushButton, "concourse_across_dock") is None
+        assert not _clipped(view)
+        return (f"shuttled to {station.name} from the start page; came "
+                f"alongside {hub.name} from its Concourse")
+
     return True

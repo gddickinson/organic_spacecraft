@@ -30,6 +30,10 @@ from ..data.chassis import accepts_family
 from ..data.hullforms import form_for
 from ..data.parts import PARTS_BY_ID
 from .afoot_gen import Want
+from .crossing import BOAT_CREW
+
+#: The floor a ship's boat and its cradle take, in squares.
+BOAT_BAY = 14
 
 #: Which program space an open door aboard takes over, by the venue's kind.
 VENUE_SPACE = {"eatery": "galley", "clinic": "clinic", "sport": "gym",
@@ -156,6 +160,10 @@ def _habitation(out, chassis, crew) -> None:
         for n in range(max(1, min(3, crew // 40 + 1))):
             _add(out, "pods", "Lifeboat bay", table.AREA["pods"],
                  table.ZONE["pods"] - 0.25 * n)
+    if crew >= BOAT_CREW:
+        # The ship's boat (`sim/crossing`): how a crew gets across to
+        # somewhere the hull is not made fast to.
+        _add(out, "hangar", "Boat bay", BOAT_BAY, table.ZONE["hangar"])
     for n in range(max(1, min(3, crew // 60 + 1))):
         _add(out, "airlock", "Suit locker", table.AREA["airlock"],
              table.ZONE["airlock"] - 0.08 * n)

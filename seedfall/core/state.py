@@ -73,6 +73,18 @@ class Game:
     #: Zero means an orbit whose height nobody chose — which is every orbit
     #: made before the conn could be asked for one, and is read as standard.
     orbit_alt_km: float = 0.0
+    #: **The berth the hull is made fast to** (`sim/anchorage` id), or ""
+    #: when it is only in orbit — near things, alongside nothing a crew can
+    #: walk across to. Set by coming alongside (`sim/crossing.dock`, or a
+    #: conn that ends alongside), cleared whenever the hull moves
+    #: (`sim/flight.hold_at`, `stand_off`). A new chronicle starts made fast
+    #: at its home quay.
+    berth: str = ""
+    #: The place the crew has crossed to (`sim/places` id): by the gangway,
+    #: the ship's boat, their shuttle or suits on a line (`sim/crossing`).
+    #: A place's doors are open to a crew that is across. Cleared with the
+    #: berth.
+    ashore: str = ""
     colonies: list = field(default_factory=list)
     #: Machines you own — see `sim/robots.py`. Hands that are not people, and
     #: kept apart from `officers` because almost nothing about them is the
@@ -455,7 +467,10 @@ def _pick_start(galaxy: Galaxy):
 
 
 def _moor_at_home(game, start) -> None:
-    """Put a new captain alongside the body their home port orbits.
+    """Put a new captain **made fast at their home quay**: the hull at its
+    berth, the crew free to walk across. A player found the chronicle opening
+    with the hull hundreds of kilometres off the Fleet Hub on the flight deck
+    while its doors stood open to them.
 
     Nothing to do in a system with no port: `flight.stand_off` leaves them
     holding at the arrival radius, which is what a jump into an empty system
@@ -466,6 +481,8 @@ def _moor_at_home(game, start) -> None:
     body, _index = anchorage_sim.anchor_body(start)
     if body is not None:
         flight_sim.hold_at(game, body)
+        if getattr(start, "port", None) is not None:
+            game.berth = game.ashore = f"port-{start.id}"
     else:
         flight_sim.stand_off(game)
 

@@ -14,10 +14,14 @@ to lose money, somewhere to lose a week. Each is a real place in its system
   pleasure palace a drum, a free market a quay's can, a base sheds on the
   ground — and the **rooms** that shape has to hold;
 - what it **builds**, for a yard: the need it answers in
-  `sim/shipyard.can_build_here`.
+  `sim/shipyard.can_build_here` — and what it **reactivates**: a breakers'
+  yard puts a derelict of a kind nobody in the Verge designed back together
+  (never lays down one to a plan nobody has read).
 
-A station stands in orbit of a body; a base stands on one. Neither conjures
-money: every door charges for what it sells.
+A station stands in orbit of a body; a base stands on one, and keeps a pad
+in orbit over it — its landing field's berth, where the shuttle meets you
+(`sim/anchorage`). Neither conjures money: every door charges for what it
+sells.
 """
 
 from __future__ import annotations
@@ -54,6 +58,12 @@ class Establishment:
     weight: float
     #: A yard's `BUILD_NEED` it answers, if it lays down hulls.
     builds: str = ""
+    #: Hull classes it can put back together from a derelict — a breakers'
+    #: yard's REVENANT — though it lays nothing else down.
+    reactivates: tuple = ()
+    #: True if it only sets up where a dead hull is adrift (`BREAKERS_ODDS`),
+    #: drawn on a stream of its own so no other house in the sector moves.
+    by_wrecks: bool = False
     #: True if it only turns up where there is a starport to trade with.
     needs_port: bool = False
     #: The least tech level it runs at, whatever the world under it: a
@@ -86,6 +96,17 @@ ESTABLISHMENTS: tuple = (
         (("works", "Gestation womb", 1, 30), ("lab", "Seed bank", 1, 14),
          ("farm", "Feed tanks", 1, 18), ("dormitory", "Midwives", 1, 14)),
         ORBIT, 0.5, builds="gestation"),
+    Establishment(
+        "breakers_yard", "Breakers' yard", "station",
+        ("The {word} Breakers", "{body} Salvage", "The {word} Boneyard"),
+        "Dead hulls cut up for what is in them — and, for a price, one of the "
+        "strange ones put back together.",
+        500, 2, 4, "keel", "fabricated",
+        ("chandler", "tech", "eatery", "vice"),
+        (("slipway", "Breaking slip", 2, 30), ("hold", "Salvage hold", 1, 24),
+         ("lab", "Reading room", 1, 12), ("workshop", "Cutting shop", 1, 14),
+         ("dormitory", "Breakers", 1, 16)),
+        ORBIT, 0.5, reactivates=("revenant",), tech=12, by_wrecks=True),
     Establishment(
         "grand_hotel", "Grand hotel", "station",
         ("The {word} Grand", "The {body} Grand", "Hotel {word}"),
@@ -216,6 +237,7 @@ ESTABLISHMENT_BY_ID = {e.id: e for e in ESTABLISHMENTS}
 #: the class it is built like (`data/works3d`), so a wheel is a ring and a
 #: palace a drum there as well as afoot.
 MESH = {"shipyard": "fab_yard", "hull_nursery": "gravid_nursery",
+        "breakers_yard": "orbital_dock",
         "grand_hotel": "free_port", "spacers_rest": "quay",
         "pleasure_palace": "arca_drum", "surgical_station": "coral_reef",
         "spa_station": "pomona_grove", "gaming_wheel": "orbital_dock",
@@ -232,6 +254,7 @@ WORDS = ("Amber", "Halcyon", "Meridian", "Lantern", "Saffron", "Vesper",
 #: own takings (`STAKE_MONTHLY` of the stake's price every `STAKE_DAYS`).
 #: A garrison and a retreat are not for sale.
 WORTH = {"shipyard": 900_000, "hull_nursery": 300_000,
+         "breakers_yard": 350_000,
          "grand_hotel": 600_000, "spacers_rest": 150_000,
          "pleasure_palace": 700_000, "surgical_station": 500_000,
          "spa_station": 400_000, "gaming_wheel": 800_000,
@@ -245,6 +268,10 @@ STAKE_DAYS = 30
 SELL_BACK = 0.8
 #: Every how many days a stakeholder's statement is sent.
 STATEMENT_DAYS = 90
+
+#: The odds a system with a dead hull adrift in it has breakers working
+#: there — the wreck is why they came.
+BREAKERS_ODDS = 0.6
 
 #: How many a system has: the odds of one, of a second, and of a third,
 #: by whether it has a starport and whether that port is a capital.

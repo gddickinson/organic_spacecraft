@@ -62,10 +62,13 @@ def run(suite: Suite) -> bool:
         hub = next(c for c in view.in_view() if c.kind == "anchorage")
         assert any(n == hub.name for _v, n, _near in view.feed.sights), (
             "the window was not told about the quay at all")
+        # Made fast (`sim/crossing`), she lies `MOORED_KM` off its centre:
+        # alongside, with a bearing — never at its middle, nor the world's.
+        from ..sim.orbits import MOORED_KM
         moored_km = engage_sim.range_km(game, view.conn, hub)
-        assert moored_km > 1.0, (
-            f"{hub.name} is {moored_km:,.3f} km off — a quay standing at the "
-            "centre of its own world again")
+        assert MOORED_KM * 0.5 < moored_km < 2.0, (
+            f"{hub.name} is {moored_km:,.3f} km off — made fast should be "
+            "alongside it, and never at the centre of anything")
 
         # Fly out, and it must become something you can find.
         view.use_main = True

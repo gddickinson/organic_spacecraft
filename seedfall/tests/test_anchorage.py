@@ -77,6 +77,11 @@ def run(suite: Suite) -> None:
         from ..sim import freeflight as free_sim
         from ..sim import track as track_sim
         game = new_game("playtest")
+        # Cast off into her own orbit first: a chronicle starts made fast
+        # alongside its quay (`sim/crossing`), and this is about the quay
+        # being somewhere of its own once she is not.
+        from ..sim import flight as flight_sim
+        flight_sim.hold_at(game, flight_sim.current_body(game))
         conn, why = free_sim.begin(game)
         assert conn is not None, why
         game.conn = conn

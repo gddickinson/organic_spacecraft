@@ -58,17 +58,42 @@ def sites(game) -> dict:
 
 
 @verb("afoot_begin", "Go afoot: a site key, the party's keys joined by "
-      "commas, and legal | all | none.", acts=True)
+      "commas, legal | all | none, and a way across (dock | boat | shuttle "
+      "| suits) or none for the crew's own choice.", acts=True)
 def begin(game, site: str, keys: str = "captain",
-          arms: str = "legal") -> dict:
+          arms: str = "legal", across: str = "") -> dict:
     who = [k.strip() for k in checks.words(keys, "keys", 200).split(",")
            if k.strip()]
     mode = checks.words(arms, "arms", 10)
     if mode not in ("legal", "all", "none"):
         raise checks.Refused("arms is legal, all or none.")
-    got = afoot_sim.begin(game, checks.words(site, "site", 80), who, mode)
+    got = afoot_sim.begin(game, checks.words(site, "site", 80), who, mode,
+                          checks.words(across, "across", 10) or None)
     got.pop("walk", None)
     return got
+
+
+@verb("crossing", "The ways across to a place (`places` id): come "
+      "alongside, the ship's boat, their shuttle, suits on a line.")
+def crossing_ways(game, place: str) -> dict:
+    from ..sim import crossing, places
+    spot = places.by_id(game, checks.words(place, "place", 80))
+    if spot is None:
+        raise checks.Refused("No such place in this system.")
+    return {"across": crossing.across(game, spot), "berth": game.berth,
+            "ways": [{"id": w.id, "label": w.label, "ok": w.ok,
+                      "why": w.why, "cr": w.cr, "minutes": w.minutes}
+                     for w in crossing.ways(game, spot)]}
+
+
+@verb("cross", "Get across to a place (`places` id) by one way: dock | "
+      "boat | shuttle | suits.", acts=True)
+def cross(game, place: str, way: str) -> dict:
+    from ..sim import crossing, places
+    spot = places.by_id(game, checks.words(place, "place", 80))
+    if spot is None:
+        raise checks.Refused("No such place in this system.")
+    return crossing.cross(game, spot, checks.words(way, "way", 10))
 
 
 @verb("afoot_look", "The walk as the screen shows it: the party, what the "

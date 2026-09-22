@@ -180,6 +180,17 @@ class HelmView(View):
         self.target = body_index
         self.refresh()
 
+    def come_alongside(self, place) -> None:
+        """The harbour's pilot brings her in (`sim/crossing.dock_at`)."""
+        from ..sim import crossing as crossing_sim
+        got = crossing_sim.dock_at(self.game, place)
+        if not got.get("ok"):
+            self.win.toast(got.get("why", "Nobody will bring you in."),
+                           "warn")
+        else:
+            self.win.toast(got.get("text", "Made fast."), "good")
+        self.refresh()
+
     def fly_to_place(self, place) -> None:
         """Take the ship to a quay. What its `Set course` button does.
 
@@ -252,7 +263,7 @@ class HelmView(View):
 
         if at:
             p.add(spacer(4))
-            p.add(Pill("alongside", "chloro"))
+            p.add(Pill("in orbit", "chloro"))
             p.add(note("You are already there. Survey, extract, dig or land from "
                        "the system screen."))
             return p

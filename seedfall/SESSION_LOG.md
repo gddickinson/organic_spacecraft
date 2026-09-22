@@ -1193,6 +1193,30 @@ hand, shoot unbraced and drift on a gun's kick; boots and Zero-G fix it.
 
 After the ring fix: 254 suites, 1,911 checks, all green; `ruff` clean.
 
+## 2026-09-22 — made fast, or across; item 12 closed
+
+Asked to close item 12 (a base's berth; yards that build only their own),
+and mid-way, from play: the chronicle opens with the hull hundreds of
+kilometres off the Fleet Hub on the flight deck while its doors are open.
+
+- **Made fast, or across** (`sim/crossing.py`): `Game.berth` (the hull at
+  a berth, 0.6 km off; a new chronicle starts made fast at its home quay;
+  the harbour's pilot or a conn that ends alongside; moving casts off) and
+  `Game.ashore` — by the ship's boat (crew six or more; a boat bay aboard),
+  their shuttle (a fare), or suits on a line (2 km, something in orbit).
+  The Concourse's money-taking doors and every walk ask it; the Concourse,
+  the Afoot start page, the helm's anchorage panel and the hail offer it;
+  bridge verbs `crossing` and `cross`.
+- **Item 12**: a base's pad (`field` berths, a mesh of their own); the
+  breakers' yard, a sixteenth kind, only where a wreck is adrift, waking a
+  derelict REVENANT; a nursery refits what it grows; traffic bound for a
+  house holds that house's berths only.
+- Found and left open: the flight computer cannot come alongside a free
+  port's arm (IMPROVEMENTS 17).
+- New suite `crossing`; checks in `establishments` and `afootui`.
+
+255 suites, 1,920 checks, all green; `ruff` clean.
+
 254 suites, 1,910 checks: one failure on the full run — `pilotscreen` took
 the first anchorage in view for the Hub, and it is now a spacers' rest
 whose one berth a trader bound for it holds, so the hand-over was rightly

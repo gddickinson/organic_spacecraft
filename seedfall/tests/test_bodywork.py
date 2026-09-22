@@ -80,6 +80,7 @@ def run(suite: Suite) -> None:
         _n, system, place = _richest(game, "cyber")
         game.location_id = system.id
         game.orbit_body = place.body_id
+        game.ashore = place.id          # across (`sim/crossing`)
         game.credits = 900_000
         rows = clinic_sim.offered(game, place, "cyber")
         assert rows, "nowhere in the sector fits anything to anybody"
@@ -141,6 +142,7 @@ def run(suite: Suite) -> None:
         system, place, rows = best
         game.location_id = system.id
         game.orbit_body = place.body_id
+        game.ashore = place.id          # across (`sim/crossing`)
         game.credits = 400_000
         officer = game.officers[0]
         aboard = len(game.officers)
@@ -205,6 +207,7 @@ def run(suite: Suite) -> None:
         system, place, rows = best
         game.location_id = system.id
         game.orbit_body = place.body_id
+        game.ashore = place.id          # across (`sim/crossing`)
         game.credits = 3_000_000
         officer = game.officers[0]
         was = lifespan_sim.age_of(officer, game)

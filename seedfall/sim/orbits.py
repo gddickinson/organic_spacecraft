@@ -190,6 +190,9 @@ def orbit_note(conn) -> str:
 #: Kilometres in an AU, and how long a held orbit takes to come round — the
 #: same devices `anchorage.KM_PER_AU` and `BERTH_DAYS` use on a quay.
 KM_PER_AU = 149_597_870.7
+#: How far off a structure's centre a hull made fast to it lies, in km:
+#: alongside, not inside its skin (the largest berth is 0.4 km round).
+MOORED_KM = 0.6
 ORBIT_DAYS = 0.5
 
 
@@ -206,6 +209,16 @@ def ship_orbit_offset(game, body) -> tuple[float, float, float]:
     standard rung, so this and the conn's altitude are the same number.
     Derived from the body's identity and the calendar, never stored.
     """
+    berth = getattr(game, "berth", "")
+    if berth:
+        # **Made fast is at the berth**, not on an orbit of one's own: the
+        # structure's place (`anchorage.berth_orbit`), and the hull lying
+        # `MOORED_KM` off its centre, on the side away from the world.
+        from .anchorage import berth_orbit
+        at = berth_orbit(berth, body, game.day)
+        span = math.sqrt(sum(c * c for c in at)) or 1.0
+        grow = 1.0 + MOORED_KM / KM_PER_AU / span
+        return tuple(c * grow for c in at)
     radius_km = max(0.0, float(getattr(body, "radius_km", 0.0) or 0.0))
     held = float(getattr(game, "orbit_alt_km", 0.0) or 0.0)
     if held <= 0:

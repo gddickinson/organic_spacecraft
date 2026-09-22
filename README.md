@@ -441,12 +441,14 @@ weightless the untrained go hand over hand. The officers are the people their se
 records say, and every shot, burst, grenade, lock, bribe and word is two dice against
 eight, with the odds on the button. Counsel, the Academy and renown all know it is there.
 
-**Yards, hotels, wheels and dens.** Around the quays the trade has built fifteen kinds of
-establishment — shipyards and hull nurseries, grand hotels, spacers' rests, pleasure
-palaces, surgical and spa stations, gaming wheels, free markets, mining and research bases,
-garrisons, farms, retreats and smugglers' dens — each a real place on the chart with its own
-doors, its own law and its own deck plan, and a yard that lays down hulls where the port
-cannot.
+**Yards, hotels, wheels and dens.** Around the quays the trade has built sixteen kinds of
+establishment — shipyards, hull nurseries and breakers' yards, grand hotels, spacers'
+rests, pleasure palaces, surgical and spa stations, gaming wheels, free markets, mining and
+research bases, garrisons, farms, retreats and smugglers' dens — each a real place on the
+chart with its own doors, its own law and its own deck plan (a base's berth is a pad in orbit
+over it), and a yard that lays down hulls where the port cannot. **A chronicle starts made
+fast alongside its home quay**; anywhere else the hull comes alongside, or the crew crosses by
+the ship's boat, the place's shuttle, or in suits on a line.
 
 | | |
 |---|---|

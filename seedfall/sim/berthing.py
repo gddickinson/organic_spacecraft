@@ -362,6 +362,12 @@ def commit(game, conn) -> dict:
         # quay rather than in orbit carries no height, and neither does one
         # where the captain never chose.
         game.orbit_alt_km = (conn.range_km if conn.outcome == "orbit" else 0.0)
+    if conn.outcome == "alongside" and getattr(conn.target, "kind", "") == \
+            "anchorage":
+        # **Made fast**, and the crew free to walk across (`sim/crossing`).
+        from .crossing import place_for
+        game.berth = str(conn.target.id).split(":", 1)[-1]
+        game.ashore = place_for(game.berth)
     if conn.outcome == "alongside":
         # Counted, because standing at a quay is a place and not an act:
         # the tutorial's berth lesson could not tell a second berth at the

@@ -37,7 +37,13 @@ def build(view) -> None:
     site = next(s for s in sites if s.key == view.site_key)
     view.row(_where(view, sites), _who(view, site))
     view.col.addWidget(_arms(view, site))
+    across = _across(view, site)
+    if across is not None:
+        view.col.addWidget(across)
     ok, why = afoot.can_begin(game, site, view.keys)
+    if ok and view.across:
+        _way, why = afoot.crossing_for(game, site, view.keys, view.across)
+        ok = not why
     go = button(f"Go afoot — {site.name}", view.go_afoot, kind="primary",
                 enabled=ok, why=why)
     go.setObjectName("afoot_go")
@@ -114,6 +120,40 @@ def _arms(view, site) -> Panel:
                if site.kind not in ("wreck", "prize", "ship") else
                "Nobody is minding the law out here. A boarding party takes "
                "the ship's issue if it has nothing better."))
+    return p
+
+
+def _across(view, site):
+    """How the party gets from the hull to the site (`sim/crossing`): a
+    button for each way, what it costs, and why the others are shut."""
+    from ..sim import crossing, places
+    game = view.game
+    if site.kind in ("ship", "prize"):
+        return None
+    if site.kind == "wreck":
+        options = crossing.wreck_ways(game)
+    else:
+        place = places.by_id(game, site.place_id)
+        if place is None:
+            return None
+        if crossing.across(game, place):
+            p = Panel("Getting across")
+            p.add(note("Made fast alongside, or across already: the party "
+                       "walks straight on."))
+            return p
+        options = crossing.ways(game, place, len(view.keys) or 1)
+    chosen, _why = afoot.crossing_for(game, site, view.keys, view.across)
+    p = Panel("Getting across", "osteo")
+    for way in options:
+        picked = chosen is not None and way.id == chosen.id
+        cost = ", ".join(bit for bit in (
+            f"{way.cr:,} cr" if way.cr else "", f"{way.minutes} min") if bit)
+        b = button(("✓ " if picked else "") + f"{way.label} — {cost}",
+                   lambda _=False, w=way.id: view.set_across(w),
+                   kind="primary" if picked else "flat", enabled=way.ok,
+                   why=way.why, tip=way.note)
+        b.setObjectName(f"afoot_across_{way.id}")
+        p.add(b)
     return p
 
 

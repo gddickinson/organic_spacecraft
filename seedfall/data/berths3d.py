@@ -114,7 +114,24 @@ def gate() -> tuple:
 
 #: One mesh per sort of berth. `sky.build` puts the sort on the Sight and
 #: `ui/viewport` reads it here, so what the plot calls a gate is drawn as one.
-BERTHS = {"quay": quay(), "hub": hub(), "holding": holding(), "gate": gate()}
+def field() -> tuple:
+    """A base's pad: a landing field's berth in orbit over it. A flat deck,
+    a beacon, and a cradle at the edge where the shuttle down ties up.
+
+    Smaller than a quay and plainly not a place to live — the base is on the
+    ground below; this is only where you meet the ride to it.
+    """
+    parts = [
+        _box(0.40, 0.40, 0.035, PLATE, PLATE_DARK),
+        _box(0.03, 0.03, 0.28, LUMEN, PLATE_DARK, dz=0.30),
+        _box(0.07, 0.07, 0.05, WARN, PLATE_DARK, dz=0.60),
+        _box(0.12, 0.06, 0.05, GOLD, PLATE_DARK, dx=0.50, dz=0.05),
+    ]
+    return _build([(v, f) for v, f in parts])
+
+
+BERTHS = {"quay": quay(), "hub": hub(), "holding": holding(), "gate": gate(),
+          "field": field()}
 
 #: **Where a ship actually ties up**, in the same model space the meshes are
 #: authored in — so a berth is a place on the structure you can see, not a
@@ -152,6 +169,7 @@ BERTH_POINTS = {
         (f"block {i + 1}", (math.cos(math.tau * i / 3),
                             math.sin(math.tau * i / 3), 0.0))
         for i in range(3)),
+    "field": (("the pad", (0.62, 0.0, 0.06)),),
 }
 
 
@@ -173,6 +191,7 @@ BERTH_SORTS = {
     "hub": "fitting",
     "holding": "standoff",
     "gate": "fitting",
+    "field": "fitting",
 }
 
 #: How far off a standoff berth a hull waits, as a multiple of the fitting's
@@ -235,7 +254,8 @@ def berth_mesh(sort: str) -> tuple:
 #: approach 0.4 km for the same object, so what you picked out at forty
 #: kilometres was half again the size of the thing you came alongside. A gate
 #: was the only one either of them got right, and only in one of the two.
-BERTH_KM = {"quay": 0.4, "hub": 0.4, "holding": 0.4, "gate": 1.1}
+BERTH_KM = {"quay": 0.4, "hub": 0.4, "holding": 0.4, "gate": 1.1,
+            "field": 0.25}
 
 
 def radius_km(sort: str) -> float:

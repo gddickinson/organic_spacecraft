@@ -26,6 +26,16 @@ ESTABLISHED: tuple = (
           morale=0.07, loyalty=1.0, favours="sciences",
           note="Behind the glass, a hull turning over in its sleep.",
           at=("hull_nursery",)),
+    Venue("salvage_floor", "The salvage floor", "market", 0, 2, 2, tech=11,
+          rumour=0.30, favours="broker",
+          note="What came out of the dead ones, by the tonne and by the "
+               "piece, and nobody asking whose.",
+          offers=("shelf", "fence"), at=("breakers_yard",)),
+    Venue("reading_room", "The reading room", "arts", 80, 2, 2,
+          morale=0.05, rumour=0.35, favours="xenology",
+          note="The breakers' own notes on what they found in the strange "
+               "ones — which parts woke, and which should not have.",
+          offers=("data",), at=("breakers_yard",)),
     # ── the Grand ────────────────────────────────────────────────────────
     Venue("grand_suites", "The Grand's suites", "lodging", 900, 4, 3,
           morale=0.14, loyalty=3.0, standing=0.6, favours="steward",

@@ -31,6 +31,7 @@ charged, which is this project's oldest rule.
 from __future__ import annotations
 
 from ..sim import clinic as clinic_sim
+from ..sim import crossing as crossing_sim
 from ..sim import places as places_sim
 from . import (concourse_body, concourse_law, concourse_night,
                concourse_shops, place_scene)
@@ -96,7 +97,9 @@ class ConcourseView(View):
                 "The hull is not alongside. Prices and shelves are what they "
                 "would be; nothing can be bought until you are there.",
                 "note", "warn", wrap=True))
-        elif place.kind != "ship":
+        elif not crossing_sim.across(g, place):
+            self.col.addWidget(self._across(place))
+        if place.here and place.kind != "ship":
             self.buttons(button("Walk it", lambda: self._walk(place),
                                 tip="Afoot: go ashore on foot, and see it."))
         if place.kind in ("station", "base"):
@@ -115,6 +118,32 @@ class ConcourseView(View):
             concourse_law.build(self, place)
         else:
             concourse_shops.build(self, place)
+
+    def _across(self, place) -> Panel:
+        """In orbit off it, and not across: every way over, what it costs,
+        and why the others are shut (`sim/crossing`)."""
+        p = Panel("Getting across", "osteo")
+        p.add(label(f"The hull is in orbit off {place.name}, not made fast "
+                    "to it: its doors are over the way. Cargo and a yard's "
+                    "business go by lighter; people have to cross.", "note",
+                    wrap=True))
+        for way in crossing_sim.ways(self.game, place):
+            cost = ", ".join(bit for bit in (
+                f"{way.cr:,} cr" if way.cr else "", f"{way.minutes} min")
+                if bit)
+            b = button(f"{way.label} — {cost}",
+                       lambda _=False, w=way.id: self._cross(place, w),
+                       kind="primary" if way.ok and way.id != "dock"
+                       else "", enabled=way.ok, why=way.why, tip=way.note)
+            b.setObjectName(f"concourse_across_{way.id}")
+            p.add(b)
+        return p
+
+    def _cross(self, place, way: str) -> None:
+        got = crossing_sim.cross(self.game, place, way)
+        if not got.get("ok"):
+            self.win.toast(got.get("why", "No way across."), "warn")
+        self.refresh()
 
     def _stake(self, place) -> Panel:
         """A tenth of the house: what it costs, what it pays, and the
@@ -194,7 +223,8 @@ class ConcourseView(View):
         """Whether anything can actually be bought here, and why not."""
         if not place.here:
             return False, "The hull is not alongside."
-        return True, ""
+        shut = crossing_sim.barred(self.game, place)
+        return (False, shut) if shut else (True, "")
 
     def treat(self, place, officer, treatment_id: str, skill: str = "") -> None:
         got = clinic_sim.buy(self.game, place, officer, treatment_id, skill)

@@ -167,6 +167,16 @@ class CommsWindow(QDialog):
             self.close()
             open_conn(self.win, contact)
             return
+        if oid == "berth":
+            from ..sim import crossing as crossing_sim
+            from ..sim import hail as hail_sim
+            place = hail_sim._place_of(game, contact)
+            got = crossing_sim.dock_at(game, place) if place else {
+                "ok": False, "why": "Nothing there to berth at."}
+            self.exchange.add(contact.name, got.get("text") or got["why"])
+            self.win.refresh()
+            self._build()
+            return
         if oid == "talk":
             self.exchange.add("You", "This is the Patient Increment. Who are "
                                      "you and what are you carrying?")

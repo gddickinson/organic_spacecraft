@@ -331,6 +331,10 @@ class OrbitChart(QWidget):
             p.setBrush(Qt.BrushStyle.NoBrush)
             if place.kind == "holding":
                 p.drawEllipse(mark, 4.5, 4.5)
+            elif place.kind == "field":             # a base's pad: the way down
+                p.drawPolygon([QPointF(mark.x() - 4.5, mark.y() - 3.5),
+                               QPointF(mark.x() + 4.5, mark.y() - 3.5),
+                               QPointF(mark.x(), mark.y() + 4.5)])
             else:
                 p.drawRect(QRectF(mark.x() - 4, mark.y() - 4, 8, 8))
             if place.kind == "hub":                    # a capital gets a pip

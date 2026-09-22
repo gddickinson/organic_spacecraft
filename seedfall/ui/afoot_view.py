@@ -51,6 +51,9 @@ class AfootView(View):
         self.site_key: str | None = None
         self.keys: list = ["captain"]
         self.arms_mode = "legal"
+        #: How the party is to get across (`sim/crossing`), or None for the
+        #: way the crew would take unasked.
+        self.across: str | None = None
         #: Who is being talked to, what they have said, and which of their
         #: counters is open.
         self.talking: int | None = None
@@ -121,7 +124,7 @@ class AfootView(View):
     # ── the start page ────────────────────────────────────────────────────
 
     def pick_site(self, key: str) -> None:
-        self.site_key = key
+        self.site_key, self.across = key, None
         self.refresh_later()
 
     def toggle(self, key: str) -> None:
@@ -131,13 +134,17 @@ class AfootView(View):
             self.keys = self.keys + [key]
         self.refresh_later()
 
+    def set_across(self, way: str) -> None:
+        self.across = way
+        self.refresh_later()
+
     def set_arms(self, mode: str) -> None:
         self.arms_mode = mode
         self.refresh_later()
 
     def go_afoot(self) -> None:
         got = afoot.begin(self.game, self.site_key, list(self.keys),
-                          self.arms_mode)
+                          self.arms_mode, self.across)
         if not got.get("ok"):
             self.win.toast(got.get("why", "Nobody can go."), "warn")
             return

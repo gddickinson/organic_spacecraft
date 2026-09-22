@@ -85,12 +85,24 @@ def where_to_put_in(view, g):
                                 "panel lists where this anchor can take you, "
                                 "and what the toll is."))
         elif place.here:
-            card.add(button("Dock here", lambda: view.win.go("port"),
-                            kind="primary")
+            if place.kind != "gate" and g.berth != place.id:
+                # Near it, not made fast: the harbour's pilot brings her in
+                # (`sim/crossing`), or the conn does it by hand.
+                card.add(button("Come alongside — about an hour",
+                                lambda pl=place: view.come_alongside(pl),
+                                kind="primary",
+                                tip="The harbour's pilot brings her in to a "
+                                    "clear berth, and the crew can walk "
+                                    "across. Or take the conn yourself."))
+            elif place.kind != "gate":
+                card.add(label("Made fast here.", "", "chloro"))
+            card.add(button("Port business", lambda: view.win.go("port"))
                      if place.kind in ("quay", "hub")
-                     else button("Go aboard", lambda: view.win.go("concourse"),
+                     else button("Go down" if place.kind == "field"
+                                 else "Go aboard",
+                                 lambda: view.win.go("concourse"),
                                  kind="primary")
-                     if place.kind == "station"
+                     if place.kind in ("station", "field")
                      else button("Open holdings",
                                  lambda: view.win.go("empire")))
         else:

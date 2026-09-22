@@ -330,6 +330,14 @@ deck plans of the places the game already has.
   that went bankrupt mid-hull, a habitat ring that went quiet), and a struck prize — *Board
   her first* on the battle's prize dialog. The same station has the same layout every time
   you put in.
+- **Getting there** (`sim/crossing.py`): a chronicle starts **made fast** alongside its home
+  quay — on the flight deck the hull lies at the berth — and the crew walks across. Anywhere
+  else the hull is only *in orbit near* things until it comes alongside (the harbour's pilot,
+  or the conn), and until then the crew **crosses**: in the ship's boat (a hull with a crew of
+  six or more carries one, in a boat bay you can walk to), on the place's own shuttle for a
+  fare, or in suits on a line across a couple of kilometres of open space. Every door that
+  takes money, and every walk, asks whether the crew is across; the Concourse and the start
+  page offer the ways. Cargo and a yard's business still go by lighter from orbit.
 - **Who**: up to four of the captain, the officers and the walking machines aboard. Each is
   the person the game already knows: the six characteristics and skills of their service
   record, the kit they own, and the wounds they came back with last time. The captain's
@@ -378,13 +386,17 @@ wheels** and **free markets** in orbit; **mining** and **research bases**, **gar
 or four, a quiet rock one at most, all of them read off the seed and spending no luck.
 
 A station is a berth on the System chart, drawn in the sky as the structure it is built like;
-fly to it, hail it, go aboard. A base stands on its world. Each opens **its own signature
+fly to it, hail it, go aboard. A base stands on its world and keeps **a pad in orbit** over it,
+its landing field's berth: fly to it, and go down. Each opens **its own signature
 doors, there and nowhere else** — the Grand's suites and ballroom, the wheel's high table and
 the cage that pays out in the morning, the springs' thermal baths, a quiet surgeon who keeps
 no records — and of everybody else's only the kinds of business it is: a hotel has no chop
 shop, a den has nothing but. A garrison keeps a hard law and a den none. **A yard lays down
 welded hulls and refits one alongside it** where the port has no slips; a nursery grows grown
-ones. Every one can be walked, laid out in its own shape with the rooms its trade needs.
+ones, and refits them. Where a dead hull is adrift, **breakers** may have set up: a breakers'
+yard wakes a derelict REVENANT for a captain with the research and the xenolith, though nobody
+lays down an ANTIPHON but an array of your own. Every one can be walked, laid out in its own
+shape with the rooms its trade needs.
 Alongside, the Concourse sells **a stake**: a tenth of the house, paid monthly out of its
 takings, with the quarter's statement by despatch, and four-fifths back if you sell. Some of
 the system's traffic runs to the houses rather than the quay, and the quay's talk names them.

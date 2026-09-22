@@ -291,6 +291,9 @@ SUITES: list[SuiteSpec] = [
               "afoot in a career: counsel, lessons, renown, and trouble"),
     SuiteSpec("afootfire", "test_afoot_fire",
               "afoot's fire: bursts, suppression, grenades and smoke"),
+    SuiteSpec("crossing", "test_crossing",
+              "made fast, or across: the berth, the boat, the shuttle, the "
+              "line"),
     SuiteSpec("establishments", "test_establishments",
               "establishments: yards, hotels, wheels and dens, found and "
               "walked"),

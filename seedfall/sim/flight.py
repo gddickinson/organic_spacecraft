@@ -154,6 +154,7 @@ def hold_at(game, body) -> None:
     """
     game.orbit_body = getattr(body, "id", body)
     game.ship_xy = None
+    game.berth = game.ashore = ""        # moved: cast off, and all aboard
     _flight_spent(game)
 
 
@@ -165,6 +166,7 @@ def stand_off(game, at=None) -> None:
     what a jump into a system means.
     """
     game.orbit_body = None
+    game.berth = game.ashore = ""
     game.ship_xy = (
         (float(at[0]), float(at[1]),
          float(at[2]) if len(at) > 2 else 0.0) if at is not None else None)

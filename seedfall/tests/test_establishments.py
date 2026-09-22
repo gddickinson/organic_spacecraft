@@ -120,29 +120,68 @@ def run(suite: Suite) -> None:
                     "hull alongside refitted, with no yard at the port")
         raise AssertionError("no yard found away from a port's own slips")
 
-    @check("a station is a berth on the chart, a base is not, and a station hails with a way aboard")
+    @check("a station is a berth on the chart, a base keeps a pad over it, and each hails with a way in")
     def _():
-        stations = bases = 0
+        seen, said = {"station": 0, "field": 0}, {}
         for game, system, place in _everywhere():
             berths = {a.id: a for a in anchorage.in_system(game, system)}
-            if place.kind == "base":
-                assert place.id not in berths, place.name
-                bases += 1
-                continue
             berth = berths[place.id]
-            assert berth.kind == "station" and berth.look == MESH[place.look]
-            stations += 1
-            if stations == 1:
-                game.location_id = system.id
-                game.orbit_body = place.body_id
-                game.recompute()
-                contact = next(c for c in track.contacts(game)
-                               if c.kind == "anchorage"
-                               and c.name == berth.name)
-                options = {o.id for o in hail.options(game, contact)}
-                assert "board" in options, options
-        assert stations and bases
-        return f"{stations} stations on the chart, {bases} bases on the ground"
+            if place.kind == "base":
+                assert berth.kind == "field" and berth.look == "field", berth
+            else:
+                assert berth.kind == "station" and \
+                    berth.look == MESH[place.look], berth
+            seen[berth.kind] += 1
+            if berth.kind in said:
+                continue
+            game.location_id = system.id
+            game.orbit_body = place.body_id
+            game.recompute()
+            contact = next(c for c in track.contacts(game)
+                           if c.kind == "anchorage" and c.name == berth.name)
+            board = next((o for o in hail.options(game, contact)
+                          if o.id == "board"), None)
+            assert board is not None and board.ok, board
+            said[berth.kind] = board.label
+        assert all(seen.values()), seen
+        assert said == {"station": "Go aboard", "field": "Go down"}, said
+        return (f"{seen['station']} stations on the chart, and "
+                f"{seen['field']} bases' pads over their worlds")
+
+    @check("breakers wake a derelict REVENANT, never an ANTIPHON; a nursery refits what it grows")
+    def _():
+        revenant, antiphon = CHASSIS_BY_ID["revenant"], CHASSIS_BY_ID["antiphon"]
+        found = None
+        for game, system, place in _everywhere():
+            if place.look == "breakers_yard":
+                found = (game, system, place)
+                break
+        assert found, "no breakers' yard in the test sectors"
+        game, system, place = found
+        game.colonies.clear()
+        ok, why = shipyard.can_build_here(game, system, revenant)
+        assert ok, why
+        ok, why = shipyard.can_build_here(game, system, antiphon)
+        assert not ok and "array" in why, why
+        game.location_id = system.id
+        game.orbit_body = place.body_id
+        game.recompute()
+        berth = next(a for a in anchorage.in_system(game)
+                     if a.id == place.id)
+        assert berth.offers("xenoyard") and shipyard.can_refit_here(game)[0]
+        nursery = next(((g, s, p) for g, s, p in _everywhere()
+                        if p.look == "hull_nursery"
+                        and not (s.port and "shipyard" in s.port.services)),
+                       None)
+        assert nursery, "no nursery away from a port's slips"
+        g, s, p = nursery
+        g.colonies.clear()
+        g.location_id, g.orbit_body = s.id, p.body_id
+        g.recompute()
+        grown = g.ship.chassis
+        assert shipyard.can_refit_here(g)[0], (grown, "a nursery refused")
+        return (f"{place.name} wakes a REVENANT; an ANTIPHON wants an array; "
+                f"{p.name} refits a {grown.upper()}")
 
     @check("every kind of establishment is laid out whole, in its own shape, and can be walked")
     def _():
@@ -195,6 +234,10 @@ def run(suite: Suite) -> None:
     def _():
         game, site = afoot_kit.at_establishment(("grand_hotel",))
         place = places.by_id(game, site.place_id)
+        from ..sim import crossing
+        refused = establishments.stake_terms(game, place)
+        assert not refused["ok"] and "aboard" in refused["why"], refused
+        assert crossing.cross(game, place, "shuttle")["ok"]
         game.credits = 5_000_000
         terms = establishments.stake_terms(game, place)
         assert terms["ok"] and terms["price"] == int(
@@ -220,7 +263,7 @@ def run(suite: Suite) -> None:
         place = places.by_id(game, site.place_id)
         refused = establishments.sell_stake(game, place)
         assert not refused["ok"] and "alongside" in refused["why"], refused
-        game.orbit_body = place.body_id
+        game.orbit_body, game.ashore = place.body_id, place.id
         place = places.by_id(game, site.place_id)
         cash = game.credits
         sold = establishments.sell_stake(game, place)

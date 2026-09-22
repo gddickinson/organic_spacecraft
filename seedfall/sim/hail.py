@@ -202,7 +202,7 @@ def options(game, contact) -> list[Option]:
         place = _place_of(game, contact)
         if place is not None and place.kind == "gate":
             return _gate_options(game, contact)
-        if place is not None and place.kind == "station":
+        if place is not None and place.kind in ("station", "field"):
             return _station_options(game, contact, place) + _law_options(
                 game, contact)
         return _quay_options(game, contact, place) + _law_options(game, contact)
@@ -223,11 +223,33 @@ def _fly_option(game, contact) -> Option:
                   "computer.", ok=ok, why=why, order=10)
 
 
+def _berth_option(game, place) -> list[Option]:
+    """Ask the harbour to bring her in (`sim/crossing`), unless she is made
+    fast here already."""
+    if place is None or getattr(game, "berth", "") == place.id:
+        return []
+    from . import crossing, places
+    spot = places.by_id(game, crossing.place_for(place.id))
+    way = next((w for w in crossing.ways(game, spot) if w.id == "dock"),
+               None) if spot is not None else None
+    if way is None:
+        return []
+    return [Option("berth", "Request a berth",
+                   "The harbour's pilot brings her in, about an hour, and "
+                   "the crew can walk across.", ok=way.ok, why=way.why,
+                   order=15)]
+
+
 def _station_options(game, contact, place) -> list[Option]:
-    """A station of the trade's: go aboard its concourse, and use its yard."""
+    """A station of the trade's: go aboard its concourse, and use its yard.
+    A base's pad: ride the shuttle down to its doors."""
     here = bool(place.here)
-    out = [_fly_option(game, contact),
-           Option("board", "Go aboard", "Its doors, on the concourse.",
+    down = place.kind == "field"
+    out = [_fly_option(game, contact)] + (
+        _berth_option(game, place) if here else []) + [
+           Option("board", "Go down" if down else "Go aboard",
+                  "The shuttle down, and its doors on the concourse." if down
+                  else "Its doors, on the concourse.",
                   ok=here, why="" if here else "Come alongside first.",
                   goes_to="concourse", order=20)]
     if place.offers("shipyard"):
@@ -258,8 +280,10 @@ def _quay_options(game, contact, place) -> list[Option]:
     }
     out = [_fly_option(game, contact)]
     if here:
-        out.append(Option("dock", "Come alongside and open the port",
-                          "Everything this berth offers, on one screen.",
+        out += _berth_option(game, place)
+        out.append(Option("dock", "Open the port",
+                          "Everything this berth offers, on one screen — "
+                          "cargo and the yard by lighter from orbit.",
                           goes_to="port", order=20))
     for service in services:
         label, blurb = said.get(service, (service.title(), ""))

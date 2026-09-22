@@ -43,13 +43,16 @@ WORLD_BLURB = {
 }
 
 BERTH_NAME = {"quay": "Outpost quay", "hub": "Fleet Hub",
-              "holding": "Bonded holding", "gate": "Weave gate"}
+              "holding": "Bonded holding", "gate": "Weave gate",
+              "field": "Landing pad"}
 
 BERTH_BLURB = {
     "quay": "A can, a mast and one arm. The humblest thing anybody calls a port.",
     "hub": "Two habitation rings on a spine. Somewhere a fleet lives.",
     "holding": "Tanks in a frame. Cargo waits here; nobody does.",
     "gate": "Older than the Charter, and nobody has built another.",
+    "field": "A base's berth in orbit over it: a deck, a beacon, and the "
+             "shuttle down.",
 }
 
 

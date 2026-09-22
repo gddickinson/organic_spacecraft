@@ -141,8 +141,10 @@ def quote(game, at, officer, treatment_id: str, skill: str = "") -> dict:
         return {"ok": False, "why": "Nobody here does that."}
     cost = row["cr"]
     said = _does(game, got, officer, skill)
-    why = ""
-    if got.kind == "train" and not skill:
+    why = shore.barred(game, place)
+    if why:
+        pass                   # aboard, not across: said first (`crossing`)
+    elif got.kind == "train" and not skill:
         why = "Choose what they are to be taught."
     elif treatment_id in (getattr(game, "fitted", None) or {}).get(
             _key(officer), []):
@@ -410,6 +412,8 @@ def thaw(game, at, officer_id: int) -> dict:
     place = shore._where(game, at)
     if place is None or not shore.selling(game, place, "ice"):
         return {"ok": False, "why": "There is no rack here to open."}
+    if shore.barred(game, place):
+        return {"ok": False, "why": shore.barred(game, place)}
     owed = ice_bill(game)
     if game.credits < owed:
         return {"ok": False,

@@ -37,9 +37,11 @@ CROWD = ("shore-a", "shore-b", "shore-c", "shore-d")
 
 
 def _port(game):
-    """A system with a port, made current."""
+    """A system with a port, made current, and the hull made fast at its
+    quay so the crew can walk in (`sim/crossing`)."""
     system = next(s for s in game.galaxy.systems if s.port and s.market)
     game.location_id = system.id
+    game.berth = game.ashore = f"port-{system.id}"
     return system
 
 

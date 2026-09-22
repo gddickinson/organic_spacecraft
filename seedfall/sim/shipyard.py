@@ -118,6 +118,11 @@ _BUILD_REFUSAL = {
     "xenoyard": "Nobody in the Verge knows how to lay this down. You need a "
                 "reactivated xeno array of your own.",
 }
+#: A derelict class breakers know how to wake (`data/establishments`), and
+#: what they say where there are none.
+_REACTIVATE_REFUSAL = ("Nobody here can wake one. A breakers' yard puts a "
+                       "derelict like this back together, or a reactivated "
+                       "xeno array of your own will.")
 
 
 def can_build_here(game, system, chassis: Chassis) -> tuple[bool, str]:
@@ -133,10 +138,16 @@ def can_build_here(game, system, chassis: Chassis) -> tuple[bool, str]:
                    for c in game.colonies)
 
     if need == "xenoyard":
-        from . import kith          # a Kith hull, grown at a gathering
-        if colony_offers("xenoyard") or kith.grows(game, system, chassis):
+        from . import establishments, kith
+        # A Kith hull is grown at a gathering; a derelict class is woken by
+        # breakers; anything else wants an array of your own.
+        if colony_offers("xenoyard") or kith.grows(game, system, chassis) \
+                or establishments.reactivates_here(game, system, chassis.id):
             return True, ""
-        return False, _BUILD_REFUSAL["xenoyard"]
+        from ..data.establishments import ESTABLISHMENTS
+        woken = any(chassis.id in e.reactivates for e in ESTABLISHMENTS)
+        return False, (_REACTIVATE_REFUSAL if woken
+                       else _BUILD_REFUSAL["xenoyard"])
     if need in services or colony_offers("build_here"):
         return True, ""
     from . import establishments          # a yard or a nursery in orbit here
@@ -247,8 +258,12 @@ def can_refit_here(game) -> tuple[bool, str]:
     """
     from . import anchorage
     # Alongside a yard of the trade's own (`sim/establishments`) is alongside
-    # a yard.
-    if any(a.here and a.kind == "station" and a.offers("shipyard")
+    # a yard (breakers' slips refit anything) — and a nursery opens up the
+    # hulls it grows, though it will not touch a welded one.
+    chassis = CHASSIS_BY_ID.get(getattr(game.ship, "chassis", ""))
+    need = BUILD_NEED.get(getattr(chassis, "family", ""), "shipyard")
+    if any(a.here and a.kind == "station" and (
+            a.offers("shipyard") or (need != "shipyard" and a.offers(need)))
            for a in anchorage.in_system(game)):
         return True, ""
     here = anchorage.docked_at(game)

@@ -41,18 +41,75 @@ def can_begin(game, site, keys) -> tuple:
     missing = [k for k in keys if k not in ready]
     if missing:
         return False, "Not everybody named can go."
+    _way, why = crossing_for(game, site, keys)
+    if why:
+        return False, why
     return True, ""
 
 
-def begin(game, site_key: str, keys: list, arms_mode: str = "legal") -> dict:
-    """Walk a site from where the hull is, with these people."""
+def crossing_for(game, site, keys, across: str | None = None) -> tuple:
+    """(way, why not): how the party gets from the hull to this site
+    (`sim/crossing`) — None when they walk straight on: their own hull, a
+    prize alongside, a place they are made fast to or already across to.
+    `across` names a way; left out, the crew takes the boat, a shuttle or a
+    line before it asks the harbour to move the hull."""
+    from . import crossing, places
+    if site is None or site.kind in ("ship", "prize"):
+        return None, ""
+    if site.kind == "wreck":
+        options = crossing.wreck_ways(game)
+    else:
+        place = places.by_id(game, site.place_id)
+        if place is None or crossing.across(game, place):
+            return None, ""
+        options = crossing.ways(game, place, len(keys) or 1)
+    usable = [w for w in options if w.ok]
+    if across:
+        way = next((w for w in options if w.id == across), None)
+        if way is None or not way.ok:
+            return None, (way.why if way else "No such way across.")
+        return way, ""
+    way = next((w for w in usable if w.id != "dock"), None) or next(
+        iter(usable), None)
+    if way is None:
+        return None, "No way across: " + "; ".join(
+            w.why for w in options if w.why)
+    return way, ""
+
+
+def begin(game, site_key: str, keys: list, arms_mode: str = "legal",
+          across: str | None = None) -> dict:
+    """Walk a site from where the hull is, with these people — getting
+    across to it first if they are not (`crossing_for`)."""
     site = afoot_sites.by_key(game, site_key)
     ok, why = can_begin(game, site, keys)
     if not ok:
         return {"ok": False, "why": why}
+    way, why = crossing_for(game, site, keys, across)
+    if why:
+        return {"ok": False, "why": why}
+    crossed = _cross(game, site, keys, way) if way is not None else ""
     laid = afoot_plans.plan(game, site)
     walk = _walk(game, site, laid)
-    return _start(game, walk, site, laid, keys, arms_mode)
+    out = _start(game, walk, site, laid, keys, arms_mode)
+    if crossed and out.get("ok"):
+        walk.log.insert(0, (walk.round, crossed, ""))
+    return out
+
+
+def _cross(game, site, keys, way) -> str:
+    """Take the way across, and say it."""
+    from . import crossing, places
+    if site.kind == "wreck":
+        game.advance_days(way.minutes / 1440.0)
+        text = ("The boat puts the party aboard her." if way.id == "boat"
+                else "The hull stands off her, and the party goes across on "
+                     "a line, in suits.")
+        game.add_log(text, "")
+        return text
+    got = crossing.cross(game, places.by_id(game, site.place_id), way.id,
+                         len(keys) or 1)
+    return got.get("text", "")
 
 
 def begin_prize(game, hull, faction: str, keys: list) -> dict:

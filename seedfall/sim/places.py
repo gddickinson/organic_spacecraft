@@ -224,6 +224,12 @@ def current(game):
     rows = in_system(game)
     if not rows:
         return None
+    # Where the crew is across to first (`sim/crossing`): made fast at the
+    # Hub, the concourse opens on the Hub and not the nursery beside it.
+    across = getattr(game, "ashore", "")
+    crossed = next((p for p in rows if p.id == across), None)
+    if crossed is not None:
+        return crossed
     ashore = [p for p in rows if p.here and p.kind != "ship"]
     if ashore:
         return ashore[0]
