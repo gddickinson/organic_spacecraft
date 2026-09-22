@@ -291,6 +291,12 @@ SUITES: list[SuiteSpec] = [
               "afoot in a career: counsel, lessons, renown, and trouble"),
     SuiteSpec("afootfire", "test_afoot_fire",
               "afoot's fire: bursts, suppression, grenades and smoke"),
+    SuiteSpec("craft", "test_craft",
+              "single-seat craft: the cradle, the ticket, the sortie"),
+    SuiteSpec("craftui", "test_craft_ui",
+              "the cradle and the cockpit, on the screen", True),
+    SuiteSpec("berths", "test_berths",
+              "berths: every shape flown alongside, towed, or refused"),
     SuiteSpec("crossing", "test_crossing",
               "made fast, or across: the berth, the boat, the shuttle, the "
               "line"),

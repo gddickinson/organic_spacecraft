@@ -185,8 +185,15 @@ def _hull(rng, hull, own=None) -> list:
     chassis = CHASSIS_BY_ID.get(getattr(hull, "chassis", ""), None) or \
         CHASSIS_BY_ID["tender"]
     wants = program.ship(chassis, getattr(hull, "fitted", []) or [],
-                         _aboard(own) if own is not None else ())
+                         _aboard(own) if own is not None else (),
+                         _cradles(own) if own is not None else ())
     return hullplan.decks(rng, chassis, wants, chassis.family)
+
+
+def _cradles(game) -> list:
+    """What she carries in her cradles, by name (`sim/craft.py`)."""
+    from . import craft as craft_sim
+    return [c.name.split("'s ")[-1] for c in craft_sim.aboard(game)]
 
 
 def _aboard(game) -> list:

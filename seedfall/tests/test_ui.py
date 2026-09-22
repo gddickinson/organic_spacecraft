@@ -48,6 +48,11 @@ def run(suite) -> bool:
     win.dialog = lambda *a, **k: None
     win.confirm = lambda *a, **k: False
 
+    def _pump(times: int = 4):
+        app = QApplication.instance()
+        for _ in range(times):
+            app.processEvents()
+
     def render(view_id: str):
         win.go(view_id)
         w = win.views[view_id]

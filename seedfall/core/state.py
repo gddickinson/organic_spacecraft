@@ -143,6 +143,10 @@ class Game:
     #: of registering the chain, and is worth doing on its own.
     conn: object | None = field(default=None, compare=False,
                                 metadata={"transient": True})
+    #: Her craft, and the sortie one is out on — transient (`sim/craft.py`).
+    craft: list = field(default_factory=list)
+    sortie: object | None = field(default=None, compare=False,
+                                  metadata={"transient": True})
     docking: object | None = None
     decoding: object | None = None
     decoding_tech: str | None = None
@@ -446,6 +450,8 @@ def new_game(seed: str | None = None, systems: int = 42, choices=None) -> Game:
     # `berthing.can_conn` refused all of them, and the conn opened on nothing
     # with controls that correctly did nothing. From turn one.
     _moor_at_home(game, start)
+    from ..sim import craft as craft_sim
+    craft_sim.give(game)                          # a launch in her cradle
     # The hull did not launch yesterday: there is a shakedown cruise's worth of
     # its own data already on the bench.
     inquiry_sim.add(game.research, "survey", 55)

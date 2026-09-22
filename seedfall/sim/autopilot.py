@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import math
 
-from .conn import (AXES, AXES_BY_ID, ALONGSIDE_KM, TICK,
+from .conn import (AXES, AXES_BY_ID, ALONGSIDE_KM, ALONGSIDE_RATE, TICK,
                    Conn, apply, can_burn)
 from .orbits import HEIGHT_TOLERANCE as orbits_HEIGHT_TOLERANCE
 from .orbits import (ORBIT_ECCENTRICITY, ORBIT_FLOOR_KM, eccentricity,
@@ -249,7 +249,19 @@ def safe_rate(conn: Conn, dv: float | None = None) -> float:
     """
     if dv is None:
         dv = conn.rcs_dv
-    stop_at = conn.target.radius_km + ALONGSIDE_KM * 0.5
+    # **A bay is flown into, so its room is to the solid middle** — the same
+    # `sim/bays.hull_km` that `sim/outcome` tests contact against. Measured
+    # against the bounding sphere, a gestation shell left a hull 9 m of room
+    # at its own hold point, the rate came out at 0.12 m/s, under the
+    # thrusters' deadband, and the computer stopped asking: 4 of 14 bearings
+    # hung there for ever with the way in dead ahead. Everything else brakes
+    # to its hull as it always did: a berth outside the skin is reached
+    # before the skin is, and a tighter stop only puts the structure's own
+    # furniture in the way.
+    from . import bays
+    look = getattr(conn.target, "berth", "") or ""
+    stop_at = (bays.hull_km(conn.target) if bays.is_bay(look)
+               else conn.target.radius_km) + ALONGSIDE_KM * 0.5
     room = max(0.0, (conn.range_km - stop_at) * 1000.0)
     # **And the room to where it is actually going.** Since the approach flies
     # a corridor, the next thing to arrive *at* is the hold point, not the
@@ -264,9 +276,18 @@ def safe_rate(conn: Conn, dv: float | None = None) -> float:
     # hold point it went.
     from . import moorings
     aim = moorings.aim(conn)
-    if any(aim):
-        to_aim = math.dist(conn.pos, aim) * 1000.0
-        room = min(room, to_aim) if room > 0.0 else to_aim
+    to_aim = math.dist(conn.pos, aim) * 1000.0 if any(aim) else 0.0
+    if room <= 0.0:
+        # **Inside the stop distance she noses in, whatever is ahead.** This
+        # fell back to the room to the aim, and an aim across the structure
+        # is a long way off: measured at a slip, a hull 35 m inside the stop
+        # distance was given 1.5 m/s toward a hold point on the far side and
+        # met the skin 284 m from its cradle. A berthing rate is the most
+        # anything this close may ask for.
+        return min(ALONGSIDE_RATE, rate_for(to_aim / 1000.0, dv)) \
+            if to_aim else 0.0
+    if to_aim:
+        room = min(room, to_aim)
     return rate_for(room / 1000.0, dv)
 
 

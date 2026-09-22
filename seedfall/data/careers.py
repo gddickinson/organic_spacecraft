@@ -292,7 +292,10 @@ BY_STATION = {
 #: said "Chief Engineer" over it. The ship hired them for this; they know it.
 STATION_SKILLS = {
     "science": ("sciences", "investigate"),
-    "nav": ("astrogation", "navigation"),
+    # A navigator holds a pilot's ticket: they are the officer who flies,
+    # and a ship that carries a launch (`sim/craft.py`) needs somebody
+    # besides the captain who may take it out.
+    "nav": ("astrogation", "navigation", "pilot"),
     "engineer": ("engineer", "mechanic"),
     "medic": ("medic", "sciences"),
     "comms": ("electronics", "persuade"),

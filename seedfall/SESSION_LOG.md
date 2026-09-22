@@ -1228,7 +1228,37 @@ Grand 8 → 12, a breakers' yard 9 → 12, a slip 10 → 11; thirteen sectors'
 berths, five collisions → none. The duplicate chord arithmetic went to
 `bays.chord_km`. Left open as item 18: a slip's cradle led a quarter turn
 at a crawl, and a hull nursery the computer has never been able to reach.
-New check in `moorings`. Full run: 255 suites, 1,921 checks, one failure —
+New check in `moorings`.
+
+## 2026-09-22 — every berth, every bearing: docking made to work
+
+Asked to try and fix *all* the docking variations and to lean on tugs and
+boats where they help. So the whole matrix was measured: 25 shapes of berth
+(quay, hub, holding, a base's pad, and the 21 classes a holding is built
+as) × twelve bearings plus above and below × six hulls from a 26 m SPORE to
+a 990 m LEVIATHAN × boats and no boats × arriving stopped, drifting and
+hot. **12,600 approaches: 957 failures → 19**, mean mass 1.57 t → 1.16 t,
+and of the realistic arrivals (stopped or drifting) 7,000 of 7,019 berth.
+
+- `autopilot.safe_rate` brakes to what can be *struck* in a bay, and noses
+  in at the berthing rate once inside the stop distance rather than reading
+  the room to an aim across the structure.
+- `moorings_steer.around` takes the smallest turn that clears the core,
+  floored near the skin and fading with range — no more quarter-turn step
+  for the computer to chatter on and a hand pilot to chase.
+- `moorings_steer.lead` is an intercept, fed back twice, so a hull that
+  cannot keep up waits for the berth instead of chasing it.
+- The boats: `tug.has_tug` belongs to the structure (a drum with a town in
+  it keeps a tender in a portless system; a gate never does), they cast off
+  at a bay's mouth, they let go of a hull under power, and a hull that
+  simply stops is walked alongside in seven minutes for no mass at all.
+- `moorings.takes`: a berth refuses a hull too long for it — a 990 m
+  LEVIATHAN at a 720 m quay — and her people cross by boat (`sim/crossing`).
+- New suite `berths` (250 approaches, every shape, both hulls, every
+  bearing). What is left is IMPROVEMENTS 19: nineteen approaches at awkward
+  angles onto small structures.
+
+Full run: 255 suites, 1,921 checks, one failure —
 `shock`'s volley check read 1.03 px of shake under `-j 8`, green on three
 runs alone (8.0–11.8 px); a timing flake unrelated to this, logged in
 IMPROVEMENTS' defects list.
@@ -1238,6 +1268,34 @@ the first anchorage in view for the Hub, and it is now a spacers' rest
 whose one berth a trader bound for it holds, so the hand-over was rightly
 refused. The check names the quay now, and re-runs green. `ruff check
 seedfall` clean.
+
+## 2026-09-22 — single-seat craft: the cradle and the cockpit
+
+Asked for fighters that launch off a carrier, fly from their own screen, and
+scout and ferry as well. Landed whole:
+
+- `data/craft.py` — four classes (WASP, SHRIKE, MOTE, DORY), each a few
+  authored numbers: hull, armour, guns, thrust, thruster authority, slew,
+  array, tank, seats, and the Pilot certificate it is flown on.
+- `sim/craft.py` — the craft aboard (`Game.craft`), the cradle, the ticket
+  (`pilots`, the party convention), launch and recovery, the beat, a firing
+  run, an hour's scouting, and losing one. **A sortie is a `sim/conn`
+  flight** with the craft's numbers in it, so every instrument, computer
+  mode and berthing rule already written flies it.
+- `ui/craft_window.py` — the cockpit: fore camera, instruments (hull, tank,
+  speed, range home), the stick, the drive, the computer's free-flight
+  modes, target list, a firing run, an hour's looking, and the cradle.
+  `ui/craft_panel.py` — the Ship screen's Cradle tab, which launches.
+- The hull's deck plan grows a **cradle deck** with the craft's name on it
+  (`afoot_program`), so a pilot walks out to her; and the craft on the
+  cradle **is** the ship's boat for a crossing (`sim/crossing.has_boat`).
+- A navigator now holds a pilot's ticket (`careers.STATION_SKILLS`, which
+  may name more than two skills), so every chronicle has somebody besides
+  the captain who may take a craft out.
+
+New suite `craft` (6 checks) and a cockpit check in `ui`. What is left —
+craft in a battle, a yard that builds them, the seats and the hold spent on
+a real lift — is IMPROVEMENTS' new "small craft" section.
 
 ## Standing facts about working here
 

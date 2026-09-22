@@ -20,9 +20,17 @@ from __future__ import annotations
 import math
 
 from .control import welcome
-#: The port level at which a structure keeps tugs. A wayside quay has one arm
+#: The port level at which a quay keeps tugs. A wayside quay has one arm
 #: and a docking light; somewhere a fleet lives has boats.
 TUG_FROM = 2
+
+#: How big a structure has to be, in km of radius, to keep boats of its own
+#: whatever the system's port is. A drum with a town in it, an arcology, a
+#: gestation shell and a free port all have hands to crew them; a picket on
+#: a frame does not. Measured: without this a LEVIATHAN at an arcology in a
+#: portless system had nobody to walk her in and burned 170 t failing to do
+#: it herself.
+TUG_SIZE_KM = 0.45
 
 #: How long a tug takes to come out and get a line on you, in seconds.
 TUG_SECONDS = 240.0
@@ -58,12 +66,33 @@ TUG_REACH = 0.9
 
 
 def has_tug(game, contact) -> bool:
-    """Does this structure keep boats?"""
+    """Does this structure keep boats?
+
+    **The boats belong to the structure, not to the system.** This asked the
+    system's port and nothing else, so a habitat drum with a town in it had
+    no tender unless somebody else's quay nearby was big enough — and the
+    hulls that most need walking in are exactly the ones at the big
+    structures.
+    """
     if getattr(contact, "kind", "") != "anchorage":
         return False
-    system = getattr(game, "system", None)
-    port = getattr(system, "port", None) if system is not None else None
-    return bool(port is not None and port.level >= TUG_FROM)
+    look = getattr(contact, "berth", "") or ""
+    if look == "gate":
+        return False              # older than the Charter, and nobody's
+    from ..data.berths3d import radius_km
+    if radius_km(look) >= TUG_SIZE_KM:
+        return True              # big enough to crew boats of its own
+    cid = str(getattr(contact, "id", "")).split(":")[-1]
+    if look in ("quay", "hub") or cid.startswith("port-"):
+        system = getattr(game, "system", None)
+        port = getattr(system, "port", None) if system is not None else None
+        return bool(port is not None and port.level >= TUG_FROM)
+    # The trade's own stations and a base's pad keep a tender; your own
+    # holdings do when they are a harbour rather than a bonded store.
+    if cid.startswith("est-"):
+        return True
+    return look not in ("holding", "field") and bool(
+        getattr(contact, "services", ()) and "repair" in contact.services)
 
 
 def under_tow(conn) -> bool:
@@ -87,6 +116,16 @@ def tug_step(conn, seconds: float) -> float:
     if said is None or not getattr(said, "tug", False) or not welcome(conn):
         conn.tug = 0.0
         return 0.0
+    if inside_bay(conn):
+        # **The boats see a hull to the mouth of a bay, and cast off.** A
+        # bay's berth is inside, off the mouth's axis — a gestation shell's
+        # cradles turn in its belly — so a tow drawn from the mouth toward
+        # one left the corridor, the aim fell back to the mouth, and the
+        # boats walked her out again: measured at a hull nursery, 400 t and
+        # 314 hours of it, the velocity zeroed every step, never berthing.
+        # Inside the way in, she flies herself.
+        conn.tug = 0.0
+        return 0.0
     from . import moorings
     found = moorings.nearest(conn)
     steady = moorings.rates(conn)
@@ -95,9 +134,16 @@ def tug_step(conn, seconds: float) -> float:
     # nearly all of the mass goes into *reaching* the corridor rather than
     # into the last five hundred metres. Meeting it where the approach opens
     # is what makes waiting a decision instead of a rounding error.
-    reach = max(moorings.corridor_km(conn.target),
-                float(getattr(conn, "start_km", 0.0)) * TUG_REACH)
-    if found is None or found["km"] > reach:
+    if found is None or found["km"] > reach_km(conn):
+        conn.tug = max(0.0, float(getattr(conn, "tug", 0.0))
+                       - float(seconds) / TUG_SECONDS)
+        return conn.tug
+    if conn.fired_axis is not None or conn.fired_main:
+        # **A hull under power is a hull the boats let go of.** The line was
+        # kept on while the captain flew, so the tow cancelled her way every
+        # step and she paid to make it again: measured, an approach with
+        # boats cost 1.55 t against 1.03 t flying herself. The tow is for a
+        # hull that has stopped asking.
         conn.tug = max(0.0, float(getattr(conn, "tug", 0.0))
                        - float(seconds) / TUG_SECONDS)
         return conn.tug
@@ -130,11 +176,40 @@ def tug_step(conn, seconds: float) -> float:
     # no captain would be permitted.
     from . import moorings as _m
     at = _m.aim(conn)
+    if conn.range_km <= _m.corridor_km(conn.target):
+        # **Inside the corridor the boats are committed to the berth.** The
+        # two-phase aim hands over on *reaching* the hold point, a ball a
+        # few hundred metres across, and a tow crossed in and out of it tick
+        # about: walked in, the aim fell back to the hold point, walked out
+        # again, for ever. A harbour that has your lines does not change its
+        # mind — and the flight computer keeps the aim it always had.
+        at = _m.lead(conn)
     step = TUG_RATE * float(seconds) / 1000.0
     conn.pos = list(_walk(conn.pos, at, step, _keep_out(conn.target)))
     conn.vel = [0.0, 0.0, 0.0]
     conn.towed = round(float(getattr(conn, "towed", 0.0)) + step, 6)
     return conn.tug
+
+
+def inside_bay(conn) -> bool:
+    """**The boats see a hull to the mouth of a bay, and cast off.** A bay's
+    berth is inside, off the mouth's axis — a gestation shell's cradles turn
+    in its belly — so a tow drawn from the mouth toward one left the
+    corridor, the aim fell back to the mouth, and the boats walked her out
+    again: measured at a hull nursery, 400 t and 314 hours of it, the
+    velocity zeroed every step, never berthing. Inside the way in, she flies
+    herself."""
+    from . import bays, moorings
+    return bays.is_bay(getattr(conn.target, "berth", "") or "") and (
+        conn.range_km < moorings.corridor_km(conn.target)
+        or bays.in_corridor(conn, moorings.spin_of(conn)))
+
+
+def reach_km(conn) -> float:
+    """How far out the boats will come for this hull, in km."""
+    from . import moorings
+    return max(moorings.corridor_km(conn.target),
+               float(getattr(conn, "start_km", 0.0)) * TUG_REACH)
 
 
 def _keep_out(target) -> float:

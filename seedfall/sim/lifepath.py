@@ -304,9 +304,11 @@ def _qualify(record: Record, officer) -> None:
     if not pair:
         return
     want = max(1, min(4, int(getattr(officer, "level", 1) or 1) - 1))
-    first, second = pair[0], pair[1]
-    record.skills[first] = max(record.skills.get(first, -1), want)
-    record.skills[second] = max(record.skills.get(second, -1), 0)
+    record.skills[pair[0]] = max(record.skills.get(pair[0], -1), want)
+    # A station may name more than two: the first is brought to what their
+    # level claims, and everything beside it to trained.
+    for beside in pair[1:]:
+        record.skills[beside] = max(record.skills.get(beside, -1), 0)
 
 
 def _serve(rng, record: Record, career, number: int, rank_at: int) -> Term:

@@ -430,6 +430,12 @@ markets; the four powers sit in an **Assembly** and vote on the rules; each offi
 a **story** of their own; and **renown** climbs ranks with real perks while the first
 officer's counsel says what to do next. It all sounds — every cue synthesised at first run.
 
+**Single-seat craft (2026-09-22).** A hull carries fighters, scouts and tenders in cradles on
+its flank — one aboard from the first day — with a hatch through to the cradle deck so a pilot
+walks out to her. A Pilot ticket is the qualification; the sortie is a flight of her own in the
+same machinery the ship is flown with, from a cockpit window with the stick, the drive, the
+computer and her own instruments; and she strafes, scouts, and ferries the crew across.
+
 **Afoot (2026-09-21).** Walk the decks: your own hull, the quay, habitat drums, holdings,
 settlements, derelicts adrift and boarded prizes, as a turn-based *Star Frontiers*-style
 party of up to four — on plans drawn **in the shape of what they are**. A hull is sliced

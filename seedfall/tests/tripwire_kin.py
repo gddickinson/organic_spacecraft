@@ -56,6 +56,7 @@ KIN = {
     "turret": ("turret",), "gunsight": ("turret",), "foes": ("turret",),
     "skirmish": ("turret",), "drills": ("turret",), "manning": ("turret",),
     "moorings": ("moorings", "conn"),
+    "moorings_steer": ("moorings", "byhand", "conn"),
     "clearance": ("clearance", "berthing"),
     "freeflight": ("freeflight", "freeframe", "conn", "pilotscreen"),
     "berths3d": ("standoff", "silhouettes"),
@@ -269,4 +270,6 @@ KIN = {
     "afoot_holdings": ("afootcareer",),
     # Made fast, or across (2026-09-22): the berth and the ways over.
     "crossing": ("crossing", "concourse", "afoot"),
+    # Single-seat craft (2026-09-22): the cradle, the ticket, the sortie.
+    "craft": ("craft",),
 }

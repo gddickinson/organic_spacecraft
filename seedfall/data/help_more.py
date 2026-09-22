@@ -255,6 +255,14 @@ MORE_TOPICS = [
            "dead hull adrift in the system. Choose where, who goes (up to "
            "four: the captain, the officers, walking machines), and whether "
            "to carry what the law here forbids.",
+           "A berth has a size. A hull longer than the mouth of a bay or "
+           "the span of the structure itself is refused and held off — a "
+           "990 m LEVIATHAN is not tying up to a 400 m quay — and her "
+           "people come across by boat instead. Where a structure keeps "
+           "boats (anything big enough to crew them, a quay from level two, "
+           "never a Weave gate), a hull that stops and waits is walked "
+           "alongside for no reaction mass at all: free and slow against "
+           "fast and expensive, and the captain chooses.",
            "Getting there is part of it. A chronicle starts made fast "
            "alongside its home quay, and the crew walks across. Anywhere "
            "else the hull is only in orbit near things until it comes "
@@ -327,6 +335,33 @@ MORE_TOPICS = [
            "faster with a medic and a sickbay. Somebody left lying where "
            "people live is found and brought home; a stun wears off."),
           see=("crew", "law", "ground", "combat")),
+    Topic("craft", "Small craft: the cradle and the cockpit", "ship",
+          ("A hull of any size carries small craft in cradles on its flank, "
+           "and a captain starts with one: a WASP, a grown single-seat "
+           "interceptor, with a hatch through to the cradle deck so a pilot "
+           "walks out to her in shirtsleeves. The Ship screen's Cradle tab "
+           "is the flight line.",
+           "Somebody has to be certified to fly one — a Pilot ticket, which "
+           "the captain holds and so does the navigator, and nobody else "
+           "takes her out. Whoever goes is off their station until she is "
+           "back on the cradle.",
+           "A sortie is a flight of her own, flown from the cockpit window: "
+           "the stick, the main drive, the computer's three modes, and "
+           "instruments for her hull, her tank, her speed and how far off "
+           "the cradle she is. She burns her own reaction mass, not the "
+           "ship's, and the cradle tops her up on recovery from the hold.",
+           "What she is for: a firing run at a hull inside ten thousand "
+           "kilometres — her guns against theirs, and what comes back comes "
+           "back at a craft the size of a launch; an hour's looking at a "
+           "body or a contact, which is survey data on the bench and a world "
+           "properly on the chart; and a lift, since the craft on the cradle "
+           "is the ship's boat when the crew has to get across to somewhere "
+           "the hull is not made fast to.",
+           "Classes: the WASP and the heavier SHRIKE are fighters, the MOTE "
+           "is all array and tankage, and the DORY is a boat with three "
+           "seats behind the pilot. A craft is never in the fleet, never "
+           "jumps, and does its work inside one system."),
+          see=("crew", "flying-well", "combat")),
     Topic("establishments", "Yards, hotels, wheels and dens", "concourse",
           ("Besides its quay, a system has whatever the trade has built "
            "round it: shipyards and hull nurseries, grand hotels and "

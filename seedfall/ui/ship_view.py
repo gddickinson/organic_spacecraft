@@ -45,7 +45,8 @@ class ShipView(View):
         self.head(f"{ch.name} «{ship.name}»", sub)
 
         tabs = TabBar([("readout", "Readout"), ("plans", "Plans"),
-                       ("body", "Body"), ("crew", "Crew")], self.tab)
+                       ("body", "Body"), ("crew", "Crew"),
+                       ("cradle", "Cradle")], self.tab)
         tabs.changed.connect(self._switch)
         self.col.addWidget(tabs)
 
@@ -54,6 +55,10 @@ class ShipView(View):
             return
         if self.tab == "body":
             body_panel.build(self)
+            return
+        if self.tab == "cradle":                # the small craft she carries
+            from . import craft_panel
+            craft_panel.build(self)
             return
         if self.tab == "crew":                  # the officers' own stories
             arc_panel.crew(self)

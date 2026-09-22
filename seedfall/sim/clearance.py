@@ -128,6 +128,18 @@ def request(game, contact, conn=None) -> Clearance:
                                 f"standing {standing:+.0f}.")
 
     target = _target_of(game, contact, conn)
+    long_km = _hull_km(game)
+    if kind == "anchorage" and target is not None and long_km > 0.0 \
+            and not moorings.takes(target, long_km):
+        # **A berth that cannot take her says so.** Nothing asked how long
+        # the hull was: a 990 m LEVIATHAN was cleared for a slip 672 m end
+        # to end and for a gestation shell whose mouth is 192 m across.
+        return Clearance(
+            False,
+            f"{contact.name} cannot take {long_km * 1000:,.0f} m of hull — "
+            f"her berths run to {moorings.span_km(target) * 1000:,.0f} m. "
+            "Hold off, and their boats will bring your people in.",
+            station=contact.name)
     berths = _berths(game, contact, conn)
     if not berths:
         # (`control` is imported at module scope. A second `from . import`
@@ -174,6 +186,15 @@ def request(game, contact, conn=None) -> Clearance:
         station=contact.name,
         services=tuple(getattr(contact, "services", ()) or ()),
     )
+
+
+def _hull_km(game) -> float:
+    """How long the ship is, in km — `sim/thrusters` owns the measure."""
+    ship = getattr(game, "ship", None) if game is not None else None
+    if ship is None:
+        return 0.0
+    from . import thrusters
+    return thrusters.half_length_m(ship) * 2.0 / 1000.0
 
 
 def _standing(game, contact):

@@ -286,6 +286,23 @@ Ten systems, each with its own suite, and each stating its cost before you commi
 | **The hunt** | **The living hull** | **Officer arcs** |
 | ![The bounty board and the search](../assets/seedfall/18-hunts.png) | ![What the hull has been through](../assets/seedfall/19-body.png) | ![Each officer's own story](../assets/seedfall/20-crew.png) |
 
+## Single-seat craft: the cradle and the cockpit
+
+A hull carries small craft in cradles on its flank, and a captain starts with one — a **WASP**,
+a grown interceptor, with a hatch through to the cradle deck so a pilot walks out to her
+(`data/craft.py`, `sim/craft.py`).
+
+- **Somebody has to be certified**: a Pilot ticket, which the captain holds and so does the
+  navigator. Whoever goes is off their station until she is back.
+- **A sortie is a flight of her own** — the craft's thrust, tank, array and agility in the same
+  `sim/conn` the ship is flown with, so every instrument, computer mode and berthing rule
+  already written works for it. It is flown from **the cockpit** (`ui/craft_window.py`): the
+  stick, the main drive, the computer, her hull, her tank, and the range back to the cradle.
+- **What she is for**: a firing run at a hull inside ten thousand kilometres, an hour's looking
+  at a body (survey data, and a world properly on the chart), and a lift — the craft on the
+  cradle **is** the ship's boat when a crew has to get across.
+- Four classes: WASP and SHRIKE fighters, the MOTE scout, the DORY tender.
+
 ## Afoot — the Verge at walking pace
 
 Everything else in SEEDFALL happens at the scale of a hull. **Afoot** (`o` on the rail, or
@@ -330,6 +347,13 @@ deck plans of the places the game already has.
   that went bankrupt mid-hull, a habitat ring that went quiet), and a struck prize — *Board
   her first* on the battle's prize dialog. The same station has the same layout every time
   you put in.
+- **Coming alongside**: the flight computer flies a corridor — out to a hold point on the
+  berth's own line, round the structure when the straight run would cross it, then in — and
+  measured over every shape of berth in the game, from every bearing, by hulls from 26 m to
+  990 m, it berths. **A berth has a size**: a hull too long for the mouth of a bay or the span
+  of the structure is held off, and her people come by boat. **The boats belong to the
+  structure**: a hull that stops asking is walked alongside for nothing, and one under power
+  is left alone.
 - **Getting there** (`sim/crossing.py`): a chronicle starts **made fast** alongside its home
   quay — on the flight deck the hull lies at the berth — and the crew walks across. Anywhere
   else the hull is only *in orbit near* things until it comes alongside (the harbour's pilot,

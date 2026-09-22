@@ -53,8 +53,13 @@ def _add(out: list, kind: str, name: str, area: float, zone: float,
                     zone=max(-1.0, min(1.0, zone)), **kw))
 
 
-def ship(chassis, fitted, venues=()) -> list:
-    """Every space this hull needs, bow to stern."""
+def ship(chassis, fitted, venues=(), craft=()) -> list:
+    """Every space this hull needs, bow to stern.
+
+    `craft` names the small craft she carries (`sim/craft.py`): each gets a
+    cradle deck of its own, which is the compartment the hatch out to it
+    opens off — a pilot walks to their fighter in shirtsleeves.
+    """
     form = form_for(chassis.family)
     crew = int(chassis.crew or 0)
     crewed = crew > 0 and chassis.family != "synthetic"
@@ -62,7 +67,7 @@ def ship(chassis, fitted, venues=()) -> list:
     _command(out, chassis, crew, crewed)
     _fittings(out, chassis, fitted, form)
     if crewed:
-        _habitation(out, chassis, crew)
+        _habitation(out, chassis, crew, craft)
     else:
         _add(out, "lifesupport", "Coolant plant", 8, -0.1)
         _add(out, "airlock", "Service hatch", 4, -0.8)
@@ -119,7 +124,7 @@ def _fittings(out, chassis, fitted, form) -> None:
         _add(out, kind, name, area, zone, part=pid)
 
 
-def _habitation(out, chassis, crew) -> None:
+def _habitation(out, chassis, crew, craft=()) -> None:
     if crew >= 4:
         _add(out, "cabin", "Master's cabin", table.AREA["cabin"],
              table.ZONE["cabin"])
@@ -160,7 +165,12 @@ def _habitation(out, chassis, crew) -> None:
         for n in range(max(1, min(3, crew // 40 + 1))):
             _add(out, "pods", "Lifeboat bay", table.AREA["pods"],
                  table.ZONE["pods"] - 0.25 * n)
-    if crew >= BOAT_CREW:
+    for n, name in enumerate(craft or ()):
+        # A cradle deck for each craft carried: the hatch through to her,
+        # and room to work on her (`sim/craft.py`).
+        _add(out, "hangar", f"Cradle deck — {name}", BOAT_BAY,
+             table.ZONE["hangar"] - 0.06 * n)
+    if crew >= BOAT_CREW and not craft:
         # The ship's boat (`sim/crossing`): how a crew gets across to
         # somewhere the hull is not made fast to.
         _add(out, "hangar", "Boat bay", BOAT_BAY, table.ZONE["hangar"])

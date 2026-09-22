@@ -259,6 +259,29 @@ def sort_of(target) -> str:
     return berth_sort(getattr(target, "berth", "") or "")
 
 
+#: How long a hull a berth will take, against its own span: a bay by the
+#: width of its mouth, anything else by the structure's own diameter. A
+#: LEVIATHAN is 990 m of hull; a gestation shell's mouth is 192 m across and
+#: a slip 672 m end to end, and nothing in the game asked until now.
+BERTH_SPAN = 0.9
+
+
+def span_km(target) -> float:
+    """The longest hull this berth can take, in km."""
+    from . import bays
+    look = getattr(target, "berth", "") or ""
+    if bays.is_bay(look):
+        return bays.bore_km(target) * BERTH_SPAN
+    return float(getattr(target, "radius_km", 0.0) or 0.0) * 2.0 * BERTH_SPAN
+
+
+def takes(target, length_km: float) -> bool:
+    """Will this berth take a hull that long? A hull it cannot take is held
+    off and served by boats (`sim/crossing`) instead."""
+    span = span_km(target)
+    return span <= 0.0 or length_km <= span
+
+
 def hold_rate(target) -> float:
     """How steady a hull must be for this structure's boom, in m/s."""
     from .conn import ALONGSIDE_RATE

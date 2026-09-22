@@ -19,7 +19,6 @@
 from __future__ import annotations
 
 from ..core.state import new_game
-from ..data.chassis import CHASSIS
 from ..sim import (afoot, afoot_plans, afoot_sites, anchorage, crossing,
                    flight, places, shore, track)
 from . import afoot_kit
@@ -122,17 +121,17 @@ def run(suite: Suite) -> None:
         crossing.range_km = lambda g, p: 1.2
         try:
             near = {w.id: w for w in crossing.ways(game, station)}
-            small = next(c for c in CHASSIS if 0 < int(c.crew or 0)
-                         < crossing.BOAT_CREW)
-            kept, game.ship.chassis = game.ship.chassis, small.id
+            # The boat is the craft on the cradle (`sim/craft.py`): take it
+            # away and there is nothing to send.
+            kept, game.craft = list(game.craft), []
             boatless = {w.id: w for w in crossing.ways(game, station)}
-            game.ship.chassis = kept
+            game.craft = kept
         finally:
             crossing.range_km = real
         assert near["suits"].ok, near["suits"].why
-        assert not boatless["boat"].ok and "boat" in boatless["boat"].why
+        assert not boatless["boat"].ok and "cradle" in boatless["boat"].why
         return (f"boat free, shuttle {fare:,} cr, suits only inside "
-                f"{crossing.EVA_KM:g} km; a {small.name} carries no boat")
+                f"{crossing.EVA_KM:g} km; an empty cradle has no boat")
 
     @check("a walk crosses first, by the way chosen, and the doors open after")
     def _():
@@ -165,17 +164,18 @@ def run(suite: Suite) -> None:
         assert pad is not None and pad.kind == "field", pad
         return f"made fast at {pad.name}'s pad, and down its field"
 
-    @check("the boat is aboard: a hull that carries one has a boat bay to walk to")
+    @check("the boat is aboard: the craft on the cradle, and a deck to walk to her on")
     def _():
+        from ..sim import craft as craft_sim
         game = new_game("crossing-bay")
         laid = afoot_plans.plan(game, afoot_sites.own_hull(game))
-        bays = [r.name for r in laid.rooms if r.name == "Boat bay"]
-        assert bays and crossing.has_boat(game), [r.name for r in laid.rooms]
-        small = next(c for c in CHASSIS if 0 < int(c.crew or 0)
-                     < crossing.BOAT_CREW)
-        kept, game.ship.chassis = game.ship.chassis, small.id
+        cradle = [r.name for r in laid.rooms if "Cradle deck" in r.name]
+        assert cradle and crossing.has_boat(game), [r.name for r in laid.rooms]
+        # The boat is the craft: take her off and there is none.
+        kept, game.craft = list(game.craft), []
         carried = crossing.has_boat(game)
-        game.ship.chassis = kept
-        assert not carried, small.id
-        return (f"a boat bay aboard the {game.ship.name}; none on a "
-                f"{small.name}")
+        game.craft = kept
+        assert not carried, "an empty cradle is still a boat"
+        got = craft_sim.aboard(game)[0]
+        return (f"{cradle[0]} aboard the {game.ship.name}, with "
+                f"{got.name} on it; an empty cradle is no boat")

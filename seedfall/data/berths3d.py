@@ -125,7 +125,11 @@ def field() -> tuple:
         _box(0.40, 0.40, 0.035, PLATE, PLATE_DARK),
         _box(0.03, 0.03, 0.28, LUMEN, PLATE_DARK, dz=0.30),
         _box(0.07, 0.07, 0.05, WARN, PLATE_DARK, dz=0.60),
-        _box(0.12, 0.06, 0.05, GOLD, PLATE_DARK, dx=0.50, dz=0.05),
+        # The cradle stands off the deck on a short arm, **outside the pad's
+        # own skin** the way a hub's masts do: a berth inside it is one a
+        # hull reaches by touching the structure first.
+        _box(0.35, 0.05, 0.03, PLATE, PLATE_DARK, dx=0.75, dz=0.05),
+        _box(0.10, 0.06, 0.05, GOLD, PLATE_DARK, dx=1.10, dz=0.05),
     ]
     return _build([(v, f) for v, f in parts])
 
@@ -169,7 +173,7 @@ BERTH_POINTS = {
         (f"block {i + 1}", (math.cos(math.tau * i / 3),
                             math.sin(math.tau * i / 3), 0.0))
         for i in range(3)),
-    "field": (("the pad", (0.62, 0.0, 0.06)),),
+    "field": (("the pad", (1.10, 0.0, 0.05)),),
 }
 
 

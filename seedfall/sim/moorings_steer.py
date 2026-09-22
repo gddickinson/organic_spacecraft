@@ -59,10 +59,23 @@ def aim(conn) -> tuple:
     return at
 
 
-#: The least a waypoint round a structure turns the aim, in radians — so a
-#: hull already at the hold point's distance on the wrong side still walks
-#: round rather than holding where it is.
-ROUND_STEP = math.radians(25.0)
+#: How far round its own turn a berth may be led to, as a share of the
+#: structure's period: a whole turn and a quarter, so a hull that cannot
+#: keep up with a berth waits for it to come round rather than chasing it.
+LEAD_TURNS = 1.25
+
+#: How finely the way round a structure is searched, in radians: the turn
+#: taken is the *smallest* one that clears the core.
+ROUND_STEP = math.radians(5.0)
+
+#: A decisive turn close in, and none of it further out. Hard against the
+#: skin the smallest clearing turn is a graze, and a hull with way on cuts
+#: inside it — so the turn is floored at `ROUND_MOST` and the floor fades
+#: to nothing by `ROUND_FADE` times the core. A flat floor at every range
+#: was the other fault: the aim jumped a quarter turn as the way cleared
+#: and a hand pilot was dragged in and out for two thousand presses.
+ROUND_MOST = math.radians(25.0)
+ROUND_FADE = 2.2
 
 
 def around(conn, point, hold: float) -> tuple:
@@ -92,8 +105,30 @@ def around(conn, point, hold: float) -> tuple:
     u = tuple(c / dist for c in pos)
     w = tuple(c / hold for c in point)
     gap = math.acos(max(-1.0, min(1.0, sum(a * b for a, b in zip(u, w)))))
-    turn = min(gap, max(ROUND_STEP, math.acos(min(1.0, hold / dist))))
-    return tuple(c * hold for c in _slerp(u, w, turn, gap))
+    # Turned past the tangent to the **core**, so the run to the waypoint
+    # misses it: turning only past the tangent to the corridor sphere left
+    # a hull inside that sphere swinging 25° and still cutting the middle.
+    # And never swung inward: the waypoint is at her own radius when she is
+    # already outside the corridor.
+    reach = max(hold, min(dist, hold * 2.0))
+    near = max(0.0, min(1.0, (ROUND_FADE * core - dist)
+                        / max(1e-9, (ROUND_FADE - 1.0) * core)))
+    turn = min(gap, max(ROUND_MOST * near,
+                        _clear_turn(dist, reach, gap, core)))
+    return tuple(c * reach for c in _slerp(u, w, turn, gap))
+
+
+def _clear_turn(dist: float, reach: float, gap: float, core: float) -> float:
+    """The smallest turn off the hull's own bearing whose run to a waypoint
+    at `reach` passes outside `core`, searched `ROUND_STEP` at a time."""
+    steps = max(1, int(gap / ROUND_STEP) + 1)
+    for n in range(1, steps + 1):
+        turn = min(gap, n * ROUND_STEP)
+        at = (reach * math.cos(turn), reach * math.sin(turn), 0.0)
+        from . import bays
+        if bays.chord_km((dist, 0.0, 0.0), at) >= core or turn >= gap:
+            return turn
+    return gap
 
 
 def _slerp(u, w, turn: float, gap: float) -> tuple:
@@ -133,10 +168,31 @@ def lead(conn, found=None) -> tuple:
     gap = found["km"]
     if period <= 0.0 or gap <= 0.0:
         return found["at"]
-    # The speed actually being made good at the berth, floored so a ship that
-    # has stopped does not ask for an infinite lead.
-    pace = max(abs(getattr(conn, "closing", 0.0)), 0.05)
-    ahead = min(gap / pace, period * 0.25)
+    # **The lead is an intercept, not a nudge.** A berth on a big structure
+    # runs round it faster than a hull flies: a STACK arcology's arm covers
+    # 4 m/s while a synthetic closes at a half, so a quarter-turn cap had
+    # the computer chasing a berth that was running away — measured, 174 t
+    # of reaction mass and a day and a half of circling, never berthing.
+    # Solved the way any intercept is: how long the run takes at the pace
+    # she can make, where the berth will be by then, and the answer fed back
+    # twice. She then waits on the corridor for it to come round to her.
+    #
+    # (`rate_for` and not `safe_rate`: the room to the berth without asking
+    # for the aim, which is what is being worked out here.)
+    from . import tug as tug_sim
+    from .autopilot import rate_for
+    pace = max(abs(getattr(conn, "closing", 0.0)),
+               rate_for(gap, getattr(conn, "rcs_dv", 0.3)) * 0.5, 0.05)
+    if tug_sim.under_tow(conn):
+        # Under tow she is moved at the boats' pace, whatever her own
+        # thrusters could do — and a lead worked from the braking law swung
+        # the aim a whole turn ahead, so the tow walked her in and straight
+        # back out again, tick about.
+        pace = max(pace, tug_sim.TUG_RATE)
+    ahead = min(gap / pace, period * LEAD_TURNS)
+    for _ in range(2):
+        at = where_at(conn, ahead, found["name"])
+        ahead = min(math.dist(conn.pos, at) / pace, period * LEAD_TURNS)
     return where_at(conn, ahead, found["name"])
 
 

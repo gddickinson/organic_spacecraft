@@ -65,7 +65,7 @@ The walking layer landed (`sim/afoot*.py`, `ui/afoot_*.py`; design in
 place and hull, a party of up to four, Traveller's personal combat on
 squares, talk through the counters that already exist, incidents from state
 the game already keeps, and endings that bank through the existing doors.
-Everything the first list named is closed; item 18 is what is left:
+Everything the first list named is closed; item 19 is what is left:
 
 1. ~~**Counsel and the tutorial do not know it exists.**~~ Landed
    2026-09-22: counsel offers the dead hull adrift here and a word with the
@@ -172,17 +172,72 @@ Everything the first list named is closed; item 18 is what is left:
     bearings each: a Grand 8 → 12 alongside, a breakers' yard 9 → 12, a slip
     10 → 11; over every berth in thirteen sectors, five collisions → none
     and the mean mass per approach 1.55 → 1.54 t.
-18. **Two approaches the computer still cannot fly.** A **slip's cradles**
-    from one bearing in twelve: nearly stopped, `moorings_steer.lead` leads
-    the turning cradle by up to a quarter turn (pace floored at 0.05 m/s,
-    capped at a quarter period), the hold point swings round, and the hull
-    — already making 1.5 m/s — cuts inside the core. A **hull nursery**
-    from every bearing, and older than any of this: the hull hovers 0.6 km
-    off the gestation shell's mouth with its velocity reading zero every
-    sample while its position moves, and burns 400 t over 314 hours never
-    berthing — something in the step integration or the turning frame, not
-    the aim. Coming alongside by the harbour's pilot (`sim/crossing`) and by
-    hand both still work.
+18. ~~**Two approaches the computer still cannot fly.**~~ Closed
+    2026-09-22, and the question widened to *every* docking variation: each
+    of the 25 shapes a berth is drawn as, from twelve bearings and from
+    above and below, by six hulls from a 26 m SPORE to a 990 m LEVIATHAN,
+    with the harbour's boats and without, arriving stopped, drifting 6 m/s
+    across, and hot at 18 m/s. 12,600 approaches measured (the harness is
+    `tests/test_berths.py`'s shape, run wide). **957 failures → 19**, and
+    the mean reaction mass per approach 1.57 t → 1.16 t. What was wrong:
+    - **the braking law measured room to the bounding sphere**, not the
+      solid core `sim/outcome` tests contact against, so a bay left a hull
+      9 m of room at its own mouth, the rate came out under the thrusters'
+      deadband, and the computer stopped asking (`autopilot.safe_rate`);
+    - **inside the stop distance it read the room to the aim** — an aim
+      across the structure is a long way off, so it accelerated beside the
+      skin (a slip, 1.5 m/s, 284 m from the cradle);
+    - **the way round was a quarter-turn step**, which chattered against
+      "straight in" and dragged a hand pilot in and out for two thousand
+      presses; it is now the smallest turn that clears the core, floored
+      near the skin and fading by `ROUND_FADE` times it;
+    - **the lead was capped at a quarter turn**, so a hull that could not
+      keep up chased a berth running away round an arcology (174 t, a day
+      and a half); it is an intercept now, fed back twice;
+    - **the boats towed into a bay** and walked a hull in and out for ever
+      (400 t, 314 hours at a gestation shell), and **kept a line on a hull
+      under power**, cancelling her way every step so she paid to make it
+      again (1.55 t against 1.03 t flying herself);
+    - **nothing asked whether a hull fitted its berth**: a 990 m LEVIATHAN
+      was cleared for a 672 m slip and a 192 m gestation mouth.
+19. **Nineteen approaches in seven thousand still end badly**, all at awkward
+    angles onto small structures and none of them tug-dependent: a base's
+    pad approached from straight overhead (3 hulls), a slip's and a
+    drydock's cradles from one bearing of twelve (4), and a STACK arcology
+    from above or behind for a hull with no boats to call on (5, the rest
+    drift). Worth another pass at the corridor geometry for a berth that
+    sits under the structure's own shoulder.
+
+## Open — small craft, begun 2026-09-22
+
+Asked for: single-seat fighters, launched off a carrier or a station, flown
+from their own screen, armed, and good for scouting and transport as well;
+one aboard the ship from the first day, cradled outside with a way through
+from inside. Landed (`data/craft.py`, `sim/craft.py`, `ui/craft_window.py`,
+`ui/craft_panel.py`, suite `craft`): four classes; a cradle deck on the hull
+plan with the craft's name on it; a Pilot ticket as the qualification (the
+captain and — new — the navigator hold one); a sortie flown as a `sim/conn`
+flight of the craft's own numbers, with the cockpit window's stick, drive,
+computer modes and instruments; firing runs, an hour's scouting for real
+survey data, and the craft as the ship's boat for a crossing.
+
+What it does not do yet:
+
+1. **A craft does not join a battle.** `sim/combat` fights ship against
+   ship with `sim/consorts` for escorts; a launched fighter is not on the
+   plane, so a sortie during an engagement is refused rather than fought.
+   The shape is there — a `Consort` wraps a hull and its stats — and what
+   is wanted is a flight of craft as a side of its own, with the pilot's
+   Pilot rating where a consort reads its captain.
+2. **No hangar deck.** A hull carries what it was given; a yard neither
+   builds craft nor fits cradles, and nothing is bought, sold or salvaged
+   (`data/craft.SALVAGE` is written and read by nothing).
+3. **The ferry is a boat, not a lift.** `crossing` uses her as the ship's
+   boat, but a craft cannot carry named people or cargo anywhere on its
+   own — the seats and the hold in the table are not spent.
+4. **Nobody flies one but you.** A pilot on a sortie is away from their
+   station for as long as it takes and the ship notices nothing; a hostile
+   carrier launches nothing at you.
 
 ## Open — the Traveller programme, begun 2026-09-20
 

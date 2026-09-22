@@ -33,7 +33,8 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-#: The least crew a hull carries a ship's boat for.
+#: The least crew a hull keeps a cradle deck for (`sim/afoot_program`): a
+#: boat bay is a compartment, whether or not there is a craft in it.
 BOAT_CREW = 6
 #: The furthest a crew goes across open space on a line, in km.
 EVA_KM = 2.0
@@ -113,11 +114,21 @@ def barred(game, place) -> str:
 # ── the ways ────────────────────────────────────────────────────────────────
 
 def has_boat(game) -> bool:
-    """Does this hull carry a boat of its own?"""
-    from ..data.chassis import CHASSIS_BY_ID
-    chassis = CHASSIS_BY_ID.get(getattr(game.ship, "chassis", ""))
-    return (chassis is not None and int(chassis.crew or 0) >= BOAT_CREW
-            and chassis.family != "synthetic")
+    """Does this hull have a boat to send across?
+
+    **The boat is a craft in a cradle** (`sim/craft.py`) — a tender with
+    seats behind the pilot, or a fighter with room for one more at a pinch —
+    fuelled, on the cradle rather than out on a sortie, and with somebody
+    aboard certified to fly it. A hull that carries none has no boat, and
+    its crew crosses by somebody else's shuttle or on a line.
+    """
+    from . import craft as craft_sim
+    for got in craft_sim.aboard(game):
+        kind = craft_sim.kind_of(got)
+        if got.state == "cradled" and kind.seats >= 1 and got.fuel > 0 \
+                and craft_sim.best_pilot(game, got):
+            return True
+    return False
 
 
 def range_km(game, place) -> float:
@@ -169,9 +180,9 @@ def ways(game, place, heads: int = 1) -> list:
                        MINUTES["dock"],
                        "The harbour's pilot brings her in, and the crew "
                        "walks across."))
-    # The ship's boat.
+    # The ship's boat: whatever is on the cradle (`sim/craft.py`).
     why = away or ("" if has_boat(game) else
-                   f"A hull of a crew under {BOAT_CREW} carries no boat.")
+                   "Nothing on the cradle to take you across.")
     out.append(Way("boat", "The ship's boat", not why, why, 0,
                    MINUTES["boat"], "Your own boat, there and back."))
     # Their shuttle.
