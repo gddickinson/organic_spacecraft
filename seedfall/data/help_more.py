@@ -373,6 +373,17 @@ MORE_TOPICS = [
            "to build her. A grown craft asks for no yard at all to heal: "
            "she knits herself whole in her cradle off the hold's biomass, "
            "slowly, which is the reason to buy grown.",
+           "As a boat she takes her seats less the pilot's — a DORY's "
+           "three, a WASP's one at a pinch — and what a landing party finds "
+           "comes home by the way it went: everything if the hull is made "
+           "fast alongside, three trips of the boat's hold if she is not, "
+           "two tonnes in a shuttle, and 0.2 t a head on a line. The rest "
+           "is left where it lay.",
+           "Whoever flies is off their station while they are gone: the "
+           "hull's own numbers drop, and a captain in a cockpit cannot take "
+           "a station in a battle at all. Their side flies too — a hull with "
+           "the hands for a cradle deck launches up to three at you and runs "
+           "them in every turn, and close-in fire is what answers them.",
            "Classes: the WASP and the heavier SHRIKE are fighters, the MOTE "
            "is all array and tankage, and the DORY is a boat with three "
            "seats behind the pilot. A craft is never in the fleet, never "

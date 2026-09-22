@@ -96,7 +96,7 @@ def launch(b, pilot: str = "") -> dict:
     if not ok:
         return {"ok": False, "why": why}
     game = b.game
-    pilot = pilot or craft_sim.best_pilot(game, craft)
+    pilot = pilot or _who_flies(game, craft)
     craft.state, craft.pilot = "out", pilot
     craft.sorties += 1
     craft.fuel = max(0.0, craft.fuel - craft_sim.STRIKE_T)
@@ -104,6 +104,22 @@ def launch(b, pilot: str = "") -> dict:
     _say(b, f"{craft.name} drops off the cradle with {who} flying, "
             f"and comes round onto {b.enemy_name}.", "good")
     return {"ok": True, "craft": craft, "who": who}
+
+
+def _who_flies(game, craft) -> str:
+    """Whom a captain sends when they have not said.
+
+    **Not themselves.** A captain in a cockpit cannot con the ship
+    (`on_the_bridge`), so the best ticket that is not the captain's goes,
+    and the captain only if nobody else aboard holds one. `craft.best_pilot`
+    is the other answer — the right one outside an engagement, where the
+    bridge is not being shot at.
+    """
+    able = [key for key, _n, _w, ok, _why in craft_sim.pilots(game, craft)
+            if ok]
+    others = [key for key in able if key != "captain"]
+    return max(others or able, key=lambda key: craft_sim.rating(game, key),
+               default="")
 
 
 def may_recall(b) -> tuple:
@@ -124,6 +140,23 @@ def recall(b) -> dict:
     home(b.game)
     _say(b, f"{craft.name} breaks off and comes in. The cradle has her.", "")
     return {"ok": True, "craft": craft}
+
+
+def on_the_bridge(b) -> tuple:
+    """Is the captain where a station order can be given from?
+
+    A captain who is flying is in a cockpit, not on the bridge: the seats
+    are held by the officers until she is called in. Only the *station*
+    orders are refused — the gunner keeps working and the ship keeps
+    fighting, which is what makes sending an officer instead the obvious
+    thing to have done.
+    """
+    game = getattr(b, "game", None) if b is not None else None
+    if game is None or "captain" not in craft_sim.away(game):
+        return True, ""
+    craft = flying(game)
+    return False, (f"You are flying {craft.name}, not conning "
+                   f"{b.player.ship.name}. Call her in to take a station.")
 
 
 def run(b, rng) -> None:
@@ -213,6 +246,76 @@ def home(game) -> dict:
         game.ship.cargo["volatiles"] = spare - took
         craft.fuel += took
     return {"ok": True, "fuelled": round(took, 2)}
+
+
+# ── and theirs ─────────────────────────────────────────────────────────────
+
+#: Hands a hull needs before it keeps a cradle of its own, and the most any
+#: of them launches at you. A patrol boat carries none; a cruiser carries a
+#: flight, and you will know about it.
+CARRIER_CREW, THEIR_MOST = 40, 3
+#: What one of theirs has in it, what it makes a run with, and what your
+#: close-in fire needs to roll to knock one down.
+THEIR_HULL, THEIR_DICE, KNOCK_DOWN = 14, 3, 9
+
+
+def fit_flight(b, rng) -> int:
+    """Whether the hull you are fighting carries craft, and how many.
+
+    Off the chassis, so it is the same answer every time you meet that class
+    and a silhouette means something: a hull with the hands to work a cradle
+    deck has one. `sim/combat.start` asks once.
+    """
+    if rng is None or b.enemy.ship is None:
+        return 0
+    from ..data.chassis import CHASSIS_BY_ID
+    chassis = CHASSIS_BY_ID.get(getattr(b.enemy.ship, "chassis", ""))
+    rated = getattr(chassis, "crew", 0) or 0
+    if rated < CARRIER_CREW:
+        return 0
+    many = min(THEIR_MOST, 1 + rated // CARRIER_CREW)
+    b.enemy_flight = [THEIR_HULL] * many
+    _say(b, f"{many} launch{'es' if many != 1 else ''} drop off "
+            f"{b.enemy_name}'s flank and come round at you.", "bad")
+    return many
+
+
+def their_run(b, rng) -> None:
+    """Their flight's turn: a run at you, and your close-in fire answers.
+
+    The mirror of `run`, and deliberately thinner: you do not fly theirs, so
+    what matters is that a carrier is a different kind of fight — damage
+    that arrives however the range track stands, and a reason for a hull to
+    carry mounts it can spare for the sky.
+    """
+    flight = list(getattr(b, "enemy_flight", []) or [])
+    if not flight or b.over or is_destroyed(b.enemy.ship):
+        return
+    weight = sum(sum(rng.int(1, 6) for _n in range(THEIR_DICE))
+                 for _one in flight)
+    weight = max(weight * ARMOUR_FLOOR, weight - abilities.armour_of(b.player))
+    dealt = _apply_to_layers(b, b.player, weight, (), rng)
+    b.player.taken += dealt
+    b.enemy.dealt += dealt
+    _say(b, f"{b.enemy_name}'s flight runs in: {dealt:.0f} across your "
+            "plating.", "bad")
+    if is_destroyed(b.player.ship):
+        return
+    # Your own close-in fire, off the mounts you have: one of theirs at a
+    # time, which is what makes a second mount worth fitting.
+    mounts = len([w for w in b.player.st.weapons if w.wpn])
+    if not mounts or b.player.blind:
+        return
+    for index in range(len(flight)):
+        if rng.int(1, 6) + rng.int(1, 6) + mounts < KNOCK_DOWN:
+            continue
+        flight[index] = 0
+        _say(b, "One of theirs comes apart under the close-in fire.", "good")
+        break
+    b.enemy_flight = [hp for hp in flight if hp > 0]
+    if not b.enemy_flight:
+        _say(b, f"{b.enemy_name}'s flight is gone.", "good")
+        b.enemy.resolve -= RUN_NERVE * 2
 
 
 def settle(game, result: str = "") -> dict:

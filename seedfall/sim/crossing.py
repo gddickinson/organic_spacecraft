@@ -48,6 +48,16 @@ ORBITAL = ("port", "station", "habitat", "kith")
 SHUTTLED = ("port", "station", "base", "habitat", "holding", "downside",
             "kith")
 
+#: **What each way can carry home**, in tonnes. The way out is the way back,
+#: and a party that went across on a line does not return with a hold's
+#: worth of anything: they return with what is on their backs. Made fast
+#: alongside there is no limit at all — the hold is right there.
+#:
+#: A boat carries her own hold (`data/craft.hold_t`) and can make this many
+#: trips while the party is ashore; a shuttle takes a crate or two as
+#: freight; suits carry this much a head.
+BOAT_TRIPS, SHUTTLE_T, SUIT_T = 3, 2.0, 0.2
+
 
 @dataclass(frozen=True)
 class Way:
@@ -113,22 +123,59 @@ def barred(game, place) -> str:
 
 # ── the ways ────────────────────────────────────────────────────────────────
 
-def has_boat(game) -> bool:
-    """Does this hull have a boat to send across?
+def the_boat(game):
+    """The craft the hull would send across, or None.
 
     **The boat is a craft in a cradle** (`sim/craft.py`) — a tender with
     seats behind the pilot, or a fighter with room for one more at a pinch —
     fuelled, on the cradle rather than out on a sortie, and with somebody
     aboard certified to fly it. A hull that carries none has no boat, and
-    its crew crosses by somebody else's shuttle or on a line.
+    its crew crosses by somebody else's shuttle or on a line. Of several,
+    the one that takes the most people.
     """
     from . import craft as craft_sim
-    for got in craft_sim.aboard(game):
-        kind = craft_sim.kind_of(got)
-        if got.state == "cradled" and kind.seats >= 1 and got.fuel > 0 \
-                and craft_sim.best_pilot(game, got):
-            return True
-    return False
+    able = [got for got in craft_sim.aboard(game)
+            if got.state == "cradled" and got.fuel > 0
+            and craft_sim.best_pilot(game, got)]
+    return max(able, key=seats_of, default=None)
+
+
+def seats_of(craft) -> int:
+    """How many people a craft takes across besides the one flying her.
+
+    The pilot has a seat and it is not a passenger's: a DORY's four is the
+    pilot and three behind them. A single-seater still squeezes one in at a
+    pinch, which is what a cradle is for on a hull with no tender.
+    """
+    from . import craft as craft_sim
+    return max(1, craft_sim.kind_of(craft).seats - 1)
+
+
+def has_boat(game, heads: int = 1) -> bool:
+    """Is there a boat, and will this many fit in it?"""
+    boat = the_boat(game)
+    return boat is not None and seats_of(boat) >= max(1, heads)
+
+
+def lift_t(game, way_id: str, heads: int = 1) -> float:
+    """Tonnes that can come home by this way.
+
+    The rule the game implied and never enforced: a walk's haul went into
+    the hold whole, however the party had got there — twelve tonnes carried
+    back across two kilometres of vacuum on a line, by three people in
+    suits. What comes home is what the way home holds.
+    """
+    if way_id in ("dock", "aboard", ""):
+        return math.inf
+    if way_id == "boat":
+        boat = the_boat(game)
+        if boat is None:
+            return 0.0
+        from . import craft as craft_sim
+        return craft_sim.kind_of(boat).hold_t * BOAT_TRIPS
+    if way_id == "shuttle":
+        return SHUTTLE_T
+    return SUIT_T * max(1, heads)
 
 
 def range_km(game, place) -> float:
@@ -180,11 +227,22 @@ def ways(game, place, heads: int = 1) -> list:
                        MINUTES["dock"],
                        "The harbour's pilot brings her in, and the crew "
                        "walks across."))
-    # The ship's boat: whatever is on the cradle (`sim/craft.py`).
-    why = away or ("" if has_boat(game) else
-                   "Nothing on the cradle to take you across.")
+    # The ship's boat: whatever is on the cradle (`sim/craft.py`), and only
+    # as many as she seats.
+    boat = the_boat(game)
+    if boat is None:
+        why = away or "Nothing on the cradle to take you across."
+    else:
+        seats = seats_of(boat)
+        why = away or ("" if seats >= max(1, heads) else
+                       f"{craft_name(game, boat)} takes {seats} across "
+                       f"besides the pilot; {heads} are going.")
     out.append(Way("boat", "The ship's boat", not why, why, 0,
-                   MINUTES["boat"], "Your own boat, there and back."))
+                   MINUTES["boat"],
+                   f"Your own boat, there and back — {seats_of(boat)} across "
+                   f"and {lift_t(game, 'boat', heads):g} t home."
+                   if boat is not None else
+                   "A craft on the cradle, if you had one."))
     # Their shuttle.
     if kind in SHUTTLED:
         mine = bool(getattr(place, "mine", False))
@@ -195,7 +253,8 @@ def ways(game, place, heads: int = 1) -> list:
         out.append(Way("shuttle", "Your own shuttle" if mine else
                        "Their shuttle", not why, why, fare,
                        MINUTES["shuttle"],
-                       "It meets the hull in orbit and takes you in."))
+                       "It meets the hull in orbit and takes you in — and "
+                       f"takes {SHUTTLE_T:g} t home as freight."))
     # Suits on a line.
     if kind in ORBITAL:
         far = range_km(game, place)
@@ -270,6 +329,11 @@ def dock_at(game, berth) -> dict:
     if place is None:
         return {"ok": False, "why": "Nobody there to bring you in."}
     return cross(game, place, "dock")
+
+
+def craft_name(game, craft) -> str:
+    from . import craft as craft_sim
+    return craft_sim.kind_of(craft).name
 
 
 def wreck_ways(game) -> list:

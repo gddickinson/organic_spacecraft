@@ -309,6 +309,10 @@ a grown interceptor, with a hatch through to the cradle deck so a pilot walks ou
   *Call her in* is the other half — a cradle is cheaper than a pilot. Shot down, she is gone
   for good and the pilot comes home hurt. Measured: 48% off a patrol against 6% without her,
   and against a warship, lost six times in eight.
+- **The seats and the hold are real.** A boat takes her seats less the pilot's across, and a
+  landing party's haul comes home by the way it went: everything alongside, three trips of the
+  boat's hold from orbit, two tonnes in a shuttle, 0.2 t a head on a line. The rest stays where
+  it lay — which is why a captain who means to carry anything buys a DORY.
 - Four classes: WASP and SHRIKE fighters, the MOTE scout, the DORY tender.
 - **The hangar deck** (`sim/hangar.py`, the Shipyard's **Cradles** tab). A cradle is fitted,
   not assumed: a hull carries as many as its complement can work, and a yard cuts another for

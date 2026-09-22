@@ -55,6 +55,8 @@ def start(player_ship, player_stats, enemy, *, bonuses=None, officers=(),
         b.player.body = tac.Body2D(0, 0, 0, 0)
         b.enemy.body = tac.Body2D(0, -(band + 0.5) * tac.BAND_UNITS, 180, 0)
 
+    # What they carry on their own flank (`sim/craft_battle`).
+    craft_battle.fit_flight(b, rng)
     if fleet:
         consort_sim.deploy(b, list(fleet), rng, bonuses)
         names = ", ".join(c.name for c in b.consorts)
@@ -104,13 +106,18 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
         b.pending_order = order.id
 
     if kind == "station":
+        # A captain in a cockpit is not on the bridge (`sim/craft_battle`).
+        conning, why = craft_battle.on_the_bridge(b)
+        if not conning:
+            _say(b, why, "warn")
+            return b
         _run_stations(b, rng)
         _run_company(b, rng)
         if not b.over and is_destroyed(b.enemy.ship):
             return _finish(b, "destroyed")
         broke = None
         if not b.over:
-            broke = _enemy_turn(b, rng, _say, _fire, _salvo, use_ability)
+            broke = _enemy_move(b, rng)
         if broke:
             return _finish(b, broke)
         if not b.over and is_destroyed(b.player.ship):
@@ -173,7 +180,7 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
     if not b.over and is_destroyed(b.enemy.ship):
         return _finish(b, "destroyed")
     if not b.over:
-        broke = _enemy_turn(b, rng, _say, _fire, _salvo, use_ability)
+        broke = _enemy_move(b, rng)
         if broke:
             return _finish(b, broke)
     if not b.over and is_destroyed(b.player.ship):
@@ -181,6 +188,14 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
     if not b.over:
         _end_of_turn(b, rng)
     return b
+
+
+def _enemy_move(b: Battle, rng):
+    """Their turn: the hull, and then whatever it launched at you."""
+    broke = _enemy_turn(b, rng, _say, _fire, _salvo, use_ability)
+    if not broke:
+        craft_battle.their_run(b, rng)
+    return broke
 
 
 def _run_company(b: Battle, rng) -> None:

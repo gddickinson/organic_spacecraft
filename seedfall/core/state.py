@@ -324,9 +324,14 @@ class Game:
         # bridge does not care what a hand is made of — `sim/robots.standing`
         # hands back objects shaped the way `ship.stats` already reads, with
         # the level each machine is actually working at where it stands.
+        from ..sim import craft as craft_sim
         from ..sim import robots as robots_sim
-        self.ship_stats = stats(self.ship, self.bonuses,
-                                list(self.officers) + robots_sim.standing(self))
+        # An officer out in a craft is not at their station (`sim/craft`):
+        # the cockpit is not the bridge, and the numbers say so while they
+        # are away.
+        self.ship_stats = stats(
+            self.ship, self.bonuses,
+            craft_sim.at_stations(self) + robots_sim.standing(self))
         # And what the machines *do*, as opposed to what they stand. A watch is
         # a level on a stat the bridge reads; a duty is a pair of hands on the
         # hull — a Hullwright's welding, a Stevedore's stowing, a Scarab's rig.

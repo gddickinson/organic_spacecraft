@@ -81,6 +81,11 @@ def _burn(seed: str, cap_turns: int = 40):
     """Fire everything every turn and watch the thermals."""
     game, ship = _warship(seed)
     battle, rng = _engage(game, ship, seed)
+    # The claim here is about heat and nothing else, so nothing else is
+    # allowed to be shooting: a hull big enough carries small craft now
+    # (`sim/craft_battle.fit_flight`), and a flight running in every turn is
+    # a second reason for the resolve to fall.
+    battle.enemy_flight = []
     rated = battle.player.st.heat_cap
     heats, drops = [], []
     was = battle.player.resolve

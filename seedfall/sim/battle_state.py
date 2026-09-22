@@ -56,6 +56,10 @@ class Battle:
     game: object | None = None      # for Bloom adaptation; never saved
     pending_order: str | None = None
     consorts: list = field(default_factory=list)
+    #: Their small craft, if the hull you are fighting carries any: one
+    #: entry a launch, its hull points (`sim/craft_battle`). Transient with
+    #: the rest of a Battle.
+    enemy_flight: list = field(default_factory=list)
     #: Every shot attempted this turn, for the picture. Cleared each turn by
     #: `sim/gunfire.py` and never saved — a battle is transient and so is a
     #: muzzle flash.

@@ -91,6 +91,9 @@ def begin(game, site_key: str, keys: list, arms_mode: str = "legal",
     crossed = _cross(game, site, keys, way) if way is not None else ""
     laid = afoot_plans.plan(game, site)
     walk = _walk(game, site, laid)
+    # The way out is the way home, and the way home is what the haul fits
+    # into (`sim/afoot_ends._cargo`).
+    walk.way = way.id if way is not None else "aboard"
     out = _start(game, walk, site, laid, keys, arms_mode)
     if crossed and out.get("ok"):
         walk.log.insert(0, (walk.round, crossed, ""))

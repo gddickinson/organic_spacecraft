@@ -146,8 +146,12 @@ def _across(view, site):
     p = Panel("Getting across", "osteo")
     for way in options:
         picked = chosen is not None and way.id == chosen.id
+        # What it carries home, which is what decides whether the haul comes
+        # back with you (`sim/crossing.lift_t`).
+        lift = crossing.lift_t(game, way.id, len(view.keys) or 1)
         cost = ", ".join(bit for bit in (
-            f"{way.cr:,} cr" if way.cr else "", f"{way.minutes} min") if bit)
+            f"{way.cr:,} cr" if way.cr else "", f"{way.minutes} min",
+            "" if lift == float("inf") else f"{lift:g} t home") if bit)
         b = button(("✓ " if picked else "") + f"{way.label} — {cost}",
                    lambda _=False, w=way.id: view.set_across(w),
                    kind="primary" if picked else "flat", enabled=way.ok,

@@ -179,3 +179,56 @@ def run(suite: Suite) -> None:
         got = craft_sim.aboard(game)[0]
         return (f"{cradle[0]} aboard the {game.ship.name}, with "
                 f"{got.name} on it; an empty cradle is no boat")
+
+    @check("the boat seats what she seats, and a bigger party takes another way")
+    def _():
+        from ..sim import craft as craft_sim
+        game = _at_hub_with_station()
+        station = _neighbour(game)
+        craft = craft_sim.aboard(game)[0]
+        kind = craft_sim.kind_of(craft)
+        seats = crossing.seats_of(craft)
+        assert seats == max(1, kind.seats - 1), (seats, kind.seats)
+        assert crossing.has_boat(game, seats)
+        assert not crossing.has_boat(game, seats + 1)
+        crowded = {w.id: w for w in crossing.ways(game, station, seats + 1)}
+        assert not crowded["boat"].ok, "a WASP took a party of three"
+        assert kind.name in crowded["boat"].why, crowded["boat"].why
+        assert str(seats + 1) in crowded["boat"].why, crowded["boat"].why
+        # A tender is what a party rides in: three behind the pilot.
+        craft.class_id = "dory"
+        assert crossing.seats_of(craft) == 3
+        roomy = {w.id: w for w in crossing.ways(game, station, 3)}
+        assert roomy["boat"].ok, roomy["boat"].why
+        assert not crossing.has_boat(game, 5)
+        return (f"a {kind.name} takes {seats} across besides the pilot and "
+                f"refuses {seats + 1}: “{crowded['boat'].why[:48]}…”; a DORY "
+                "takes three")
+
+    @check("what a walk finds comes home by the way it went, and the rest stays")
+    def _():
+        from ..sim import afoot_ends, craft as craft_sim
+        def haul(way: str, tonnes: float = 12.0):
+            game = new_game("crossing-haul")
+            site = next(s for s in afoot.sites(game) if s.kind == "ship")
+            assert afoot.begin(game, site.key, ["captain"])["ok"]
+            walk = game.afoot
+            walk.way = way
+            walk.found["cargo"] = {"ore": tonnes}
+            had = float(game.ship.cargo.get("ore", 0))
+            out = afoot_ends.close(game, walk, "left")
+            return (float(game.ship.cargo.get("ore", 0)) - had, out["said"],
+                    game)
+        by_hand, said, game = haul("suits")
+        assert by_hand <= crossing.SUIT_T + 1e-6, by_hand
+        assert any("left where it lay" in line for line in said), said
+        by_boat, _said, game = haul("boat")
+        craft = craft_sim.aboard(game)[0]
+        room = craft_sim.kind_of(craft).hold_t * crossing.BOAT_TRIPS
+        assert abs(by_boat - room) < 0.01, (by_boat, room)
+        alongside, said_all, _g = haul("dock")
+        assert alongside == 12.0, alongside
+        assert not any("left where it lay" in line for line in said_all)
+        return (f"12 t found: {alongside:g} t home made fast, {by_boat:g} t "
+                f"by the boat ({crossing.BOAT_TRIPS} trips of her hold), "
+                f"{by_hand:g} t on a line")

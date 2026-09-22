@@ -190,6 +190,86 @@ def run(suite: Suite) -> None:
         return (f"{craft.name} back on the cradle at {craft.fuel:.1f} t; a "
                 "hull that goes down takes hers with it")
 
+    @check("whoever flies her is off their station, captain or officer")
+    def _():
+        game, battle, rng = _fight("off-station")
+        craft = craft_sim.aboard(game)[0]
+        # An officer away is an officer not at their post: the hull's own
+        # numbers say so while she is out.
+        officer = next(k for k, _n, _w, ok, _why
+                       in craft_sim.pilots(game, craft) if ok
+                       and k != "captain")
+        before = game.ship_stats
+        assert craft_battle.launch(battle, officer)["ok"]
+        game.recompute()
+        after = game.ship_stats
+        moved = [f for f in ("speed", "jump", "sensor", "accuracy", "scan")
+                 if getattr(before, f) != getattr(after, f)]
+        assert moved, "an officer flew a sortie and the bridge never noticed"
+        assert craft_sim.away(game) == {officer}
+        assert len(craft_sim.at_stations(game)) == len(game.officers) - 1
+        craft_battle.recall(battle)
+        game.recompute()
+        # Back within a whisker: the tank she came home with is mass in the
+        # hold, so the hull's own numbers move a little either way.
+        assert all(abs(getattr(game.ship_stats, f) - getattr(before, f))
+                   < abs(getattr(before, f)) * 0.01 for f in moved), (
+            "they came back and the seat stayed empty")
+        # And a captain in a cockpit cannot con the ship: the station orders
+        # are refused, by name, while everything else goes on.
+        # And left to itself a launch sends an officer, never the captain.
+        assert craft_battle.launch(battle)["ok"]
+        assert "captain" not in craft_sim.away(game), craft_sim.away(game)
+        craft_battle.recall(battle)
+        assert craft_battle.launch(battle, "captain")["ok"]
+        turn = battle.turn
+        combat_sim.take_turn(battle, {"type": "station", "order": "salvo"},
+                             rng)
+        assert battle.turn == turn, "conned the ship from a cockpit"
+        assert "Call her in" in _said(battle)
+        combat_sim.take_turn(battle, HOME, rng)
+        combat_sim.take_turn(battle, {"type": "station", "order": "salvo"},
+                             rng)
+        assert battle.turn > turn, "called her in and still could not order"
+        return (f"the navigator away cost the hull {', '.join(moved)}; "
+                "a captain in the cockpit cannot take a station")
+
+    @check("a hull with the hands for a cradle launches at you, and your mounts answer")
+    def _():
+        from ..data.chassis import CHASSIS_BY_ID
+        big = small = None
+        for n in range(12):
+            game, battle, rng = _fight(f"theirs-{n}", difficulty=2.6,
+                                       faction="concordat")
+            rated = CHASSIS_BY_ID[battle.enemy.ship.chassis].crew
+            if battle.enemy_flight and big is None:
+                big = (game, battle, rng, rated)
+            if not battle.enemy_flight and small is None:
+                small = (game, battle, rated)
+            if big and small:
+                break
+        assert big is not None, "no hull in twelve carried a craft"
+        assert small is not None, "every hull in twelve carried a craft"
+        game, battle, rng = big[:3]
+        assert big[3] >= craft_battle.CARRIER_CREW, big[3]
+        assert small[2] < craft_battle.CARRIER_CREW, small[2]
+        assert len(battle.enemy_flight) <= craft_battle.THEIR_MOST
+        assert "come round at you" in _said(battle)
+        # They run in at you, and your close-in fire takes them apart.
+        hull = sum(layer.hp for layer in battle.player.ship.layers)
+        guard = 0
+        while not battle.over and battle.enemy_flight and guard < 20:
+            guard += 1
+            combat_sim.take_turn(battle, captain_ai.orders(battle), rng)
+        assert sum(layer.hp for layer in battle.player.ship.layers) < hull
+        said = _said(battle)
+        assert "flight runs in" in said, said[-400:]
+        if not battle.enemy_flight and not battle.over:
+            assert "flight is gone" in said, said[-400:]
+        return (f"a {CHASSIS_BY_ID[battle.enemy.ship.chassis].name} of "
+                f"{big[3]} hands launched {craft_battle.THEIR_MOST} at you; "
+                f"{len(battle.enemy_flight)} still up after {guard} turns")
+
     @check("a run is worth making, and what she is sent at is the gamble")
     def _():
         """Measured over sixteen engagements, eight of each weight."""

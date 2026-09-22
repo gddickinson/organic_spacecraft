@@ -1333,6 +1333,28 @@ nothing, which is the reason to buy grown. Selling reads `data/craft.SALVAGE`
 at last, scaled by condition, and is a loss at every class and every
 condition. New suite `hangar` (5 checks) and a third check in `craftui`.
 
+## The seats and the hold, 2026-09-22
+
+The third of the small-craft list. A boat now takes only as many as she
+seats (`seats - 1` besides the pilot), and — the one that had been quietly
+false since the afoot layer landed — **a walk's haul comes home by the way
+the party went**: `Walk.way` remembers the crossing and `crossing.lift_t`
+says what it carries, so twelve tonnes no longer ride home on three
+people's backs. Made fast: everything. A boat: three trips of her hold. A
+shuttle: two tonnes. Suits: 0.2 t a head, and the rest is left where it lay.
+Two checks in `crossing`.
+
+## The seat somebody left, and theirs, 2026-09-22
+
+The last of the small-craft list. An officer out in a craft is off their
+station — `craft.at_stations` is the door, `recompute` reads it, and the
+navigator away costs the hull its speed and its jump. A captain in a cockpit
+cannot con the ship, so a launch left to itself sends an officer. And a hull
+with the hands for a cradle deck launches up to three of its own at you,
+every turn, wherever the range track stands; close-in fire is what answers.
+Two checks in `craftbattle`, a readout panel on the battle screen. The
+small-craft list is closed.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one

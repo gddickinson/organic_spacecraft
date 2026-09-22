@@ -122,6 +122,16 @@ class BattleView(View):
         aloft = self._craft(b)
         if aloft is not None:
             parts.append(aloft)
+        if b.enemy_flight:
+            # What they launched at you, which is a threat your mounts have
+            # to be spared for (`sim/craft_battle`).
+            theirs = Panel("Their flight")
+            theirs.add_row(f"{b.enemy_name}'s launches",
+                           f"{len(b.enemy_flight)} still up", "warn")
+            theirs.add(note("They run in every turn, wherever the range "
+                            "track stands. Close-in fire is what answers "
+                            "them: a mount that bears takes one apart."))
+            parts.append(theirs)
         hulls = WrapRow()
         hulls.add(self._ship_panel(b, b.player, self.game.ship.name))
         hulls.add(self._ship_panel(b, b.enemy, b.enemy_name))

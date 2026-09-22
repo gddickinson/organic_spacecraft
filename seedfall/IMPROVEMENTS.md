@@ -269,14 +269,52 @@ read; measured, every class is worth less back than it cost, whole or
 wrecked, because a yard that pays what it charges is a money pump
 (`shipyard.scrap_value` learned that at 146,470 credits a cycle).
 
-What it does not do yet:
+**Closed 2026-09-22 — the seats and the hold are spent** (`sim/crossing.py`,
+`sim/afoot_ends.py`, two checks in `crossing`). Both numbers in the class
+table were decoration. Now:
 
-1. **The ferry is a boat, not a lift.** `crossing` uses her as the ship's
-   boat, but a craft cannot carry named people or cargo anywhere on its
-   own — the seats and the hold in the table are not spent.
-2. **Nobody flies one but you.** A pilot on a sortie is away from their
-   station for as long as it takes and the ship notices nothing; a hostile
-   carrier launches nothing at you.
+- **Seats.** A boat takes `seats - 1` people across besides whoever is
+  flying her — a DORY's three behind the pilot, a WASP's one at a pinch —
+  and a bigger party is refused in the craft's own words ("WASP takes 1
+  across besides the pilot; 2 are going"), which leaves the shuttle and the
+  line as the ways a landing party of four actually gets anywhere.
+- **The hold, on the way back.** A walk's haul went into the ship's hold
+  *whole*, however the party had reached the place: twelve tonnes carried
+  home across two kilometres of vacuum by three people on a line. The way
+  out is the way back (`crossing.lift_t`, and `Walk.way` remembers it):
+  made fast alongside there is no limit, a boat makes three trips of her own
+  hold, a shuttle takes two tonnes as freight, and suits carry 0.2 t a head.
+  What will not fit is left where it lay, and the report says so.
+
+Measured on a twelve-tonne haul: 12 t home made fast, 1.2 t by a WASP,
+0.2 t on a line — which is what makes a DORY (9 t over three trips) worth
+buying from the hangar deck above. What is still not done: a craft running
+freight between two places on its own account, with nobody aboard the hull
+involved at all.
+
+**Closed 2026-09-22 — somebody pays for the seat, and theirs fly too**
+(`sim/craft.at_stations`, `sim/craft_battle`, two checks in `craftbattle`).
+`craft.pilots` had always said "whoever goes is off their station until she
+is back" and nothing made it so: `recompute` fed `ship.stats` the whole
+officer list, so a navigator could fly a sortie and go on navigating.
+`craft.at_stations` is the one door now, and the hull's own numbers move
+while they are away — measured, the navigator out costs the starting NAVIS
+its speed and its jump. A captain in a cockpit cannot take a station in a
+battle either (`craft_battle.on_the_bridge`), which is why a launch left to
+itself sends the best ticket that is *not* the captain's.
+
+And the other side of it: a hull with the hands to work a cradle deck
+(40 crew) carries up to three launches of its own, says so when the
+engagement opens, and runs them in at you every turn wherever the range
+track stands. Your close-in fire is what answers — a mount that bears takes
+one apart, and the loss costs them their nerve. Measured over eight
+engagements against Concordat warships: their flight costs a starting hull
+about four points of its integrity and is usually gone in three or four
+turns, which is a threat to answer rather than a fight-decider.
+
+**The small-craft list is closed.** What a later cycle might still want: a
+craft running freight between two places on its own account, and a flight of
+more than one of yours at a time.
 
 ## Open — the Traveller programme, begun 2026-09-20
 

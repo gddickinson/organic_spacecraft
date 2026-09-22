@@ -146,6 +146,29 @@ def name_of(game, key: str) -> str:
     return getattr(officer, "name", "nobody")
 
 
+def away(game) -> set:
+    """Whose station is empty because they are out in a craft.
+
+    Keys as `pilots` gives them (`captain`, `officer:<id>`). One door, so
+    everything that reads the bridge reads the same absence.
+    """
+    return {got.pilot for got in aboard(game)
+            if got.state == "out" and got.pilot}
+
+
+def at_stations(game) -> list:
+    """The officers actually standing their watch.
+
+    `pilots` has always said "whoever goes is off their station until she is
+    back", and nothing made it so: an officer could fly a sortie and go on
+    conning, shooting and mending from the cockpit, because `recompute` fed
+    `ship.stats` the whole list. The ship notices now.
+    """
+    out = away(game)
+    return [o for o in getattr(game, "officers", []) or []
+            if f"officer:{o.id}" not in out]
+
+
 def best_pilot(game, craft) -> str:
     """Whom a captain would send: the best ticket aboard that may go."""
     able = [key for key, _n, _w, ok, _why in pilots(game, craft) if ok]

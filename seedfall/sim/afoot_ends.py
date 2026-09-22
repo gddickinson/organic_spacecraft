@@ -200,7 +200,7 @@ def _bank(game, walk) -> list:
         said.append(f"{len(found['kit'])} thing(s) into the captain's "
                     "keeping.")
     if found.get("cargo"):
-        said += _cargo(game, found["cargo"])
+        said += _cargo(game, found["cargo"], walk)
     if found.get("evidence"):
         from . import inquiry
         for kind, amount in found["evidence"].items():
@@ -230,20 +230,53 @@ def _bank(game, walk) -> list:
     return said
 
 
-def _cargo(game, cargo: dict) -> list:
+def _cargo(game, cargo: dict, walk=None) -> list:
+    """What was found goes home — as far as the hold has room for it **and
+    the way home will carry it**.
+
+    The second half was missing. A haul went into the hold whole however the
+    party had reached the place: twelve tonnes came back across two
+    kilometres of vacuum carried by three people on a line. The way out is
+    the way back (`sim/crossing.lift_t`), and a boat with a three-tonne hold
+    makes three trips, not thirty.
+    """
+    from . import crossing
     from .ship import add_cargo, cargo_free
     room = cargo_free(game.ship, game.ship_stats)
-    moved = {}
+    way = getattr(walk, "way", "aboard") if walk is not None else "aboard"
+    heads = len([a for a in party(walk)]) if walk is not None else 1
+    lift = crossing.lift_t(game, way, heads)
+    moved, left = {}, 0.0
     for cid, tonnes in cargo.items():
-        got = min(float(tonnes), room)
+        want = float(tonnes)
+        got = min(want, room, lift)
         if got > 0.05:
             add_cargo(game.ship, cid, got)
             room -= got
+            lift -= got
             moved[cid] = got
-    if not moved:
-        return ["No room in the hold for what was found."]
-    return ["Into the hold: " + ", ".join(f"{t:g} t {c}"
-                                         for c, t in moved.items()) + "."]
+        left += max(0.0, want - max(0.0, got))
+    said = []
+    if moved:
+        said.append("Into the hold: " + ", ".join(f"{t:g} t {c}"
+                                                 for c, t in moved.items())
+                    + ".")
+    if left > 0.05:
+        said.append(f"{left:g} t was left where it lay — "
+                    + ("no room in the hold." if room <= 0.05 else
+                       f"{_way_words(way)} takes no more."))
+    elif not moved:
+        said.append("No room in the hold for what was found.")
+    return said
+
+
+#: What each way home is called when it runs out of room.
+_WAY_WORDS = {"boat": "the boat", "shuttle": "their shuttle",
+              "suits": "what a party carries on a line"}
+
+
+def _way_words(way: str) -> str:
+    return _WAY_WORDS.get(way, "the way home")
 
 
 def _seized(game, walk) -> list:

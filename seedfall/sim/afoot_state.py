@@ -255,6 +255,11 @@ class Walk:
     incidents: list = field(default_factory=list)
     over: bool = False
     outcome: str = ""
+    #: How the party got here (`sim/crossing`): dock | boat | shuttle |
+    #: suits, or "aboard" for a walk that needed no crossing. It is what
+    #: decides how much of what they find can come home — the way back is
+    #: the way they came (`sim/crossing.lift_t`).
+    way: str = "aboard"
     #: A struck hull being boarded (a `Ship`), whose she was, and what the
     #: captain decided about her once aboard.
     prize: object = None
