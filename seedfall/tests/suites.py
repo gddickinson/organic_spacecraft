@@ -293,6 +293,8 @@ SUITES: list[SuiteSpec] = [
               "afoot's fire: bursts, suppression, grenades and smoke"),
     SuiteSpec("craft", "test_craft",
               "single-seat craft: the cradle, the ticket, the sortie"),
+    SuiteSpec("craftbattle", "test_craft_battle",
+              "a craft in an engagement: the run, the answer, the cradle"),
     SuiteSpec("craftui", "test_craft_ui",
               "the cradle and the cockpit, on the screen", True),
     SuiteSpec("berths", "test_berths",

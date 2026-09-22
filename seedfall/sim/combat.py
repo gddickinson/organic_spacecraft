@@ -19,6 +19,7 @@ from . import tactical as tac
 from .abilities import use_ability as _fire_ability
 from .enemy_ai import enemy_turn as _enemy_turn
 from . import consorts as consort_sim
+from . import craft_battle
 from . import parley
 from ..data.part_types import BANDS
 from .ship import hull_pct, is_breached, is_destroyed
@@ -104,7 +105,7 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
 
     if kind == "station":
         _run_stations(b, rng)
-        _run_consorts(b, rng)
+        _run_company(b, rng)
         if not b.over and is_destroyed(b.enemy.ship):
             return _finish(b, "destroyed")
         broke = None
@@ -120,7 +121,7 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
 
     # The seats the captain is *not* in are held by officers whichever way
     # the turn was ordered. Only the `station` path used to do this.
-    if kind in ("fire", "salvo", "volley", "ability", "brace"):
+    if kind in ("fire", "salvo", "volley", "ability", "brace", "craft"):
         said = _run_seats(b, b.player.station)
         if said:
             _say(b, f"{b.player.ship.name}: {', '.join(said)}.", "dim")
@@ -148,17 +149,27 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
         b.player.resolve += 6
         b.player.ship.heat = max(0.0, b.player.ship.heat - b.player.st.vent)
         _say(b, "You turn the thickest tissue into the fire and hold.", "good")
+    elif kind == "craft":
+        # The cradle deck, which is a seat like any other this turn: the
+        # rules are `sim/craft_battle`, and a refusal costs nothing but the
+        # line that says why.
+        order = action.get("order", "launch")
+        got = (craft_battle.recall(b) if order == "home"
+               else craft_battle.launch(b, action.get("pilot", "")))
+        if not got.get("ok"):
+            _say(b, got["why"], "dim")
+            return b
     elif kind == "hail":
         return parley.hail(b, rng, _ops())
     elif kind == "flee":
         return parley.flee(b, rng, _ops())
 
-    if kind in ("ability", "brace"):
+    if kind in ("ability", "brace", "craft"):
         # Nobody is laying a mount by hand on these turns, and the panel's
         # preview already promises the gunner keeps working.
         _idle_gunner(b, rng)
 
-    _run_consorts(b, rng)
+    _run_company(b, rng)
     if not b.over and is_destroyed(b.enemy.ship):
         return _finish(b, "destroyed")
     if not b.over:
@@ -172,16 +183,19 @@ def take_turn(b: Battle, action: dict, rng) -> Battle:
     return b
 
 
-def _run_consorts(b: Battle, rng) -> None:
-    """Your consorts manoeuvre to their standing orders and shoot."""
-    if not b.consorts or b.over:
+def _run_company(b: Battle, rng) -> None:
+    """Everything of yours that fights on its own account: the consorts to
+    their standing orders, and a launched craft's run (`sim/craft_battle`)."""
+    if b.over:
         return
-    before = {c.uid for c in b.consorts if not c.out}
-    consort_sim.run(b, rng, _say, _fire)
-    for c in b.consorts:
-        if c.uid in before and is_destroyed(c.ship):
-            _say(b, f"{c.name} breaks apart.", "bad")
-            b.player.resolve -= 12
+    if b.consorts:
+        before = {c.uid for c in b.consorts if not c.out}
+        consort_sim.run(b, rng, _say, _fire)
+        for c in b.consorts:
+            if c.uid in before and is_destroyed(c.ship):
+                _say(b, f"{c.name} breaks apart.", "bad")
+                b.player.resolve -= 12
+    craft_battle.run(b, rng)
 
 
 def _ops() -> parley.Ops:

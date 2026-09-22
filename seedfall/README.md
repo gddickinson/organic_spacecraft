@@ -301,6 +301,14 @@ a grown interceptor, with a hatch through to the cradle deck so a pilot walks ou
 - **What she is for**: a firing run at a hull inside ten thousand kilometres, an hour's looking
   at a body (survey data, and a world properly on the chart), and a lift — the craft on the
   cradle **is** the ship's boat when a crew has to get across.
+- **And a battle** (`sim/craft_battle.py`). *Launch the craft* is an order on the battle
+  screen: she comes off the cradle in the middle of an engagement and makes a run a turn on
+  her own account, beside the consorts. Her guns' dice plus the pilot's Pilot rating, soaked
+  by their armour and landed where a shell lands; they answer with close-in fire, two dice
+  and two more for every mount still on them, and a dazzled hull shoots at where she was.
+  *Call her in* is the other half — a cradle is cheaper than a pilot. Shot down, she is gone
+  for good and the pilot comes home hurt. Measured: 48% off a patrol against 6% without her,
+  and against a warship, lost six times in eight.
 - Four classes: WASP and SHRIKE fighters, the MOTE scout, the DORY tender.
 
 ## Afoot — the Verge at walking pace

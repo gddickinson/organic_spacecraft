@@ -221,21 +221,44 @@ flight of the craft's own numbers, with the cockpit window's stick, drive,
 computer modes and instruments; firing runs, an hour's scouting for real
 survey data, and the craft as the ship's boat for a crossing.
 
+**Closed 2026-09-22 — a craft joins the battle** (`sim/craft_battle.py`,
+suite `craftbattle`, and a check in `craftui`). *Launch the craft* is an
+order on the battle screen: she drops off the cradle in the middle of an
+engagement and makes a run a turn on her own account, beside the consorts
+(`combat._run_company`). A run is her guns' dice plus the pilot's Pilot
+rating, soaked by the enemy's armour with the same 15% floor a shell gets
+and landed through `sim/damage`, so it strips layers and breaches hulls like
+anything else that hits. They answer with close-in fire — two dice and two
+more for every mount still on them — and her armour is all that is between
+that and the pilot; a dazzled hull shoots at where she was, which is what
+the flash organ is suddenly worth. *Call her in* is the other half, and the
+decision the whole thing is for. Shot down, the craft is gone for good and
+the pilot comes home with a wound rather than in a box.
+
+Measured over sixteen engagements: against a one-gun patrol she takes 48% off
+the enemy (6% without her), makes ten runs a fight and was never lost in
+eight; against a Concordat warship, 35% against 3%, and she was lost six
+times in eight. What she is sent at is the gamble.
+
+It cost a real fix underneath: **the engagement lived on the window**, so
+`sim/craft.can_launch`'s refusal to launch a free-flight sortie mid-battle
+had never once fired, and `ui/gunnery_view` read a `game.battle` that did not
+exist — an AttributeError waiting for somebody to man a gun in a real fight.
+`Game.battle` is a declared transient field now and `MainWindow.battle` is a
+property onto it. `core/state.py` reached five hundred lines again in the
+doing, and opening a chronicle came out into `core/state_begin.py` along the
+seam `core/loading.py` came off.
+
 What it does not do yet:
 
-1. **A craft does not join a battle.** `sim/combat` fights ship against
-   ship with `sim/consorts` for escorts; a launched fighter is not on the
-   plane, so a sortie during an engagement is refused rather than fought.
-   The shape is there — a `Consort` wraps a hull and its stats — and what
-   is wanted is a flight of craft as a side of its own, with the pilot's
-   Pilot rating where a consort reads its captain.
-2. **No hangar deck.** A hull carries what it was given; a yard neither
+1. **No hangar deck.** A hull carries what it was given; a yard neither
    builds craft nor fits cradles, and nothing is bought, sold or salvaged
    (`data/craft.SALVAGE` is written and read by nothing).
-3. **The ferry is a boat, not a lift.** `crossing` uses her as the ship's
+   Repair belongs here too: nothing puts a point of hull back into a craft.
+2. **The ferry is a boat, not a lift.** `crossing` uses her as the ship's
    boat, but a craft cannot carry named people or cargo anywhere on its
    own — the seats and the hold in the table are not spent.
-4. **Nobody flies one but you.** A pilot on a sortie is away from their
+3. **Nobody flies one but you.** A pilot on a sortie is away from their
    station for as long as it takes and the ship notices nothing; a hostile
    carrier launches nothing at you.
 

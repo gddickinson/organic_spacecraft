@@ -71,6 +71,50 @@ def run(suite) -> bool:
                 f"{craft_sim.out_km(game):,.0f} km from the cockpit"
                 + ("" if got["ok"] else f" (home: {got['why'][:30]})"))
 
+    @check("the battle screen launches her into the fight, and calls her in")
+    def _():
+        from PyQt6.QtWidgets import QPushButton
+        from ..core.rng import RNG
+        from ..sim import combat as combat_sim
+        from ..sim import craft as craft_sim
+        from ..sim import encounters as enc_sim
+        game = win.game
+        craft = craft_sim.aboard(game)[0]
+        if craft.state != "cradled":
+            # The check above left her three thousand km out, which is a long
+            # way to come for a fight that has not started yet.
+            craft.state, craft.pilot, game.sortie = "cradled", "", None
+        rng = RNG("battle-ui")
+        enemy = enc_sim.make_enemy(rng, "charter", difficulty=1.3)
+        win.battle = combat_sim.start(game.ship, game.ship_stats, enemy,
+                                      bonuses=game.bonuses,
+                                      officers=game.officers, game=game,
+                                      rng=rng)
+        # The window keeps it on the chronicle, which is what `sim` reads.
+        assert game.battle is win.battle
+        win.go("battle")
+        _pump()
+        view = win.views["battle"]
+        named = {b.objectName(): b for b in view.findChildren(QPushButton)}
+        away = named.get("battle_craft_launch")
+        assert away is not None and away.isEnabled(), sorted(named)
+        away.click()
+        _pump()
+        assert craft.state == "out", "the button did not launch her"
+        assert craft.struck >= 1, "away and never ran in"
+        named = {b.objectName(): b for b in view.findChildren(QPushButton)}
+        home = named.get("battle_craft_home")
+        assert home is not None, sorted(named)
+        if not win.battle.over:
+            home.click()
+            _pump()
+            assert craft.state == "cradled", "called in and stayed out"
+        win.battle = None
+        win.go("system")
+        _pump()
+        return (f"launched off the battle screen, {craft.struck} run"
+                f"{'' if craft.struck == 1 else 's'} made, and the cradle "
+                "took her back")
 
     win.close()
     return True

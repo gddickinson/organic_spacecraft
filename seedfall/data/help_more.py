@@ -357,6 +357,14 @@ MORE_TOPICS = [
            "properly on the chart; and a lift, since the craft on the cradle "
            "is the ship's boat when the crew has to get across to somewhere "
            "the hull is not made fast to.",
+           "And a battle. “Launch the craft” is an order on the battle "
+           "screen: she drops off the cradle in the middle of an engagement "
+           "and makes a run a turn on her own account, and a run in through "
+           "their close-in fire tells on their nerve as well as their "
+           "plating. They shoot back at her every turn, the more mounts the "
+           "worse, so “call her in” is the other half of the order — a "
+           "cradle is cheaper than a pilot. Shot down, she is gone for good "
+           "and the pilot comes home hurt.",
            "Classes: the WASP and the heavier SHRIKE are fighters, the MOTE "
            "is all array and tankage, and the DORY is a boat with three "
            "seats behind the pilot. A craft is never in the fleet, never "

@@ -21,6 +21,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QHBoxLayout, QWidget
 
 from ..sim import abilities as abilities_sim
+from ..sim import craft_battle
 from ..sim import firing
 from ..sim import parley as parley_sim
 from ..sim import stations as st_mod
@@ -111,6 +112,7 @@ def other_buttons(view, b):
     """
     mute = parley_sim.odds(b).get("mute", False)
     return Flow([
+        *craft_buttons(view, b),
         button("Gunnery…", view._open_gunnery, kind="flat",
                tip="The gunner's station: every mount's arc, and which of "
                    "them fire this turn."),
@@ -126,6 +128,39 @@ def other_buttons(view, b):
         button("Disengage", lambda: view._act({"type": "flee"}), kind="flat",
                tip=parley_tip(b, "flee")) if b.fleeable else None,
     ])
+
+
+def craft_buttons(view, b) -> list:
+    """The cradle deck, when this hull has one.
+
+    Not shown at all to a hull carrying nothing — the orders column is the
+    one thing on this screen that must stay readable, and a permanently dead
+    button on every engagement in the game is how it stops being.
+    """
+    from ..sim import craft as craft_sim
+    if b.game is None or not craft_sim.aboard(b.game):
+        return []
+    out = craft_battle.flying(b.game)
+    if out is None:
+        ok, why, craft = craft_battle.may_launch(b)
+        away = button("Launch craft",
+                      lambda: view._act({"type": "craft"}),
+                      enabled=ok, why=why,
+                      tip=(f"{craft.name} off the cradle and in at them this "
+                           "turn. The ship keeps fighting; she makes a run a "
+                           "turn until she is called in."
+                           if craft is not None else why))
+        away.setObjectName("battle_craft_launch")
+        return [away]
+    ok, why = craft_battle.may_recall(b)
+    home = button("Call her in", kind="flat",
+                  on_click=lambda: view._act({"type": "craft",
+                                              "order": "home"}),
+                  enabled=ok, why=why,
+                  tip="She breaks off and the cradle takes her. She makes no "
+                      "run this turn.")
+    home.setObjectName("battle_craft_home")
+    return [home]
 
 
 def consequences(view, b) -> Panel:

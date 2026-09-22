@@ -271,5 +271,7 @@ KIN = {
     # Made fast, or across (2026-09-22): the berth and the ways over.
     "crossing": ("crossing", "concourse", "afoot"),
     # Single-seat craft (2026-09-22): the cradle, the ticket, the sortie.
-    "craft": ("craft",),
+    "craft": ("craft", "craftbattle"),
+    # And in an engagement (2026-09-22): the run, the answer, the cradle.
+    "craft_battle": ("craftbattle",),
 }

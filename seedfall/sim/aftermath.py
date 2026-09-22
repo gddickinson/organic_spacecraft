@@ -25,6 +25,7 @@ from . import assembly
 from . import bloom as bloom_sim
 from . import consorts as consort_sim
 from . import contracts as contract_sim
+from . import craft_battle
 from . import inquiry
 from . import loyalty as loyalty_sim
 from . import renown as renown_sim
@@ -242,6 +243,12 @@ def resolve(game, battle, rng) -> dict:
             game.add_log(f"{consort.name} was lost with all hands.", "bad")
         loyalty_sim.record(game, "consort_lost", scale=len(dead))
     out["dead"] = [c.name for c in dead]
+
+    # A craft still on a run when the shooting stopped comes back on the
+    # cradle, whichever way the fight ended (`sim/craft_battle`). Before the
+    # loss returns: a hull that is gone takes her with it, and `die` is what
+    # says so.
+    out["craft"] = craft_battle.settle(game, battle.result).get("ok", False)
 
     if battle.result == "lost":
         # **The hull is gone, and that is decided here.** Only the battle

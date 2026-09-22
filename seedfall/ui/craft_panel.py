@@ -47,6 +47,13 @@ def _craft(view, game, craft) -> Panel:
                            f"{'' if craft.sorties == 1 else 's'}, "
                            f"{craft.hours:.1f} h, {craft.struck} run"
                            f"{'' if craft.struck == 1 else 's'} made")
+    if out and craft_sim.sortie(game) is None:
+        # Out in an engagement (`sim/craft_battle`), which is not a flight of
+        # her own: she is in among them, and the battle screen has her.
+        p.add(label(f"Out on a run, with {craft_sim.name_of(game, craft.pilot)}"
+                    " flying. The engagement has her — call her in from the "
+                    "battle screen.", "", "warn", wrap=True))
+        return p
     if out:
         p.add(label(f"Out, with {craft_sim.name_of(game, craft.pilot)} "
                     f"flying — {craft_sim.out_km(game):,.1f} km off.", "",

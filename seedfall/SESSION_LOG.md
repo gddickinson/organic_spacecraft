@@ -1297,6 +1297,28 @@ New suite `craft` (6 checks) and a cockpit check in `ui`. What is left —
 craft in a battle, a yard that builds them, the seats and the hold spent on
 a real lift — is IMPROVEMENTS' new "small craft" section.
 
+## A craft in the battle, 2026-09-22
+
+The first of that list. `sim/craft_battle.py`: *Launch the craft* is an order
+on the battle screen, she comes off the cradle in the middle of an engagement
+and makes a run a turn beside the consorts (`combat._run_company`), and *call
+her in* is the other half. A run is her guns' dice plus the pilot's Pilot
+rating, armour-soaked with the same 15% floor a shell gets and landed through
+`sim/damage`; the answer is close-in fire, two dice and two more a mount, and
+a dazzled hull shoots at where she was. Shot down, she is gone and the pilot
+comes home with a wound. Measured over sixteen fights: 48% off a patrol
+against 6% without her and never lost in eight; 35% against 3% off a warship
+and lost six in eight.
+
+Underneath it, a real one: **the engagement lived on the window**, so
+`craft.can_launch`'s mid-battle refusal had never fired and `ui/gunnery_view`
+read a `game.battle` that did not exist. `Game.battle` is a declared
+transient field now (the save layer's "undeclared attributes would be lost"
+guard caught the shortcut) and `MainWindow.battle` is a property onto it.
+`core/state.py` hit 500 lines doing it, so opening a chronicle came out into
+`core/state_begin.py`, the seam `core/loading.py` came off. New suite
+`craftbattle` (6 checks), a second check in `craftui`.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one

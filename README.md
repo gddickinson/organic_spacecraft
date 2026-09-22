@@ -434,7 +434,9 @@ officer's counsel says what to do next. It all sounds — every cue synthesised 
 its flank — one aboard from the first day — with a hatch through to the cradle deck so a pilot
 walks out to her. A Pilot ticket is the qualification; the sortie is a flight of her own in the
 same machinery the ship is flown with, from a cockpit window with the stick, the drive, the
-computer and her own instruments; and she strafes, scouts, and ferries the crew across.
+computer and her own instruments; and she strafes, scouts, and ferries the crew across. She
+**fights** too: launched into a running engagement she makes a run a turn on her own account,
+takes the enemy's close-in fire, and is called in — or lost, with the pilot coming home hurt.
 
 **Afoot (2026-09-21).** Walk the decks: your own hull, the quay, habitat drums, holdings,
 settlements, derelicts adrift and boarded prizes, as a turn-based *Star Frontiers*-style

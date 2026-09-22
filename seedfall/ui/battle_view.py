@@ -119,6 +119,9 @@ class BattleView(View):
                  self._band_track(b)]
         if b.consorts:
             parts.append(self._company(b))
+        aloft = self._craft(b)
+        if aloft is not None:
+            parts.append(aloft)
         hulls = WrapRow()
         hulls.add(self._ship_panel(b, b.player, self.game.ship.name))
         hulls.add(self._ship_panel(b, b.enemy, b.enemy_name))
@@ -293,6 +296,30 @@ class BattleView(View):
                 lambda oid, c=consort: self._set_consort_order(c, oid))
             p.add(row)
             p.add(note(CONSORT_ORDERS_BY_ID[consort.order].blurb))
+        return p
+
+    def _craft(self, b):
+        """The craft on a run, while there is one: what is left of her.
+
+        A fighter is the one thing in the fight the captain cannot see on
+        either hull panel, and she is the thing most likely to be gone by
+        next turn."""
+        from ..sim import craft as craft_sim
+        from ..sim import craft_battle
+        craft = craft_battle.flying(self.game)
+        if craft is None:
+            return None
+        kind = craft_sim.kind_of(craft)
+        p = Panel("On a run")
+        p.add(label(craft.name, "h3", "lumen"))
+        p.add_row("Pilot", craft_sim.name_of(self.game, craft.pilot))
+        share = craft.hp / max(1, kind.hull)
+        p.add_row("Hull", f"{craft.hp} / {kind.hull}",
+                  "chloro" if share > 0.5 else "warn")
+        p.add_row("Runs made", f"{craft.struck}, {craft.fuel:.1f} t left")
+        p.add(note("She makes a run a turn on her own account. Call her in "
+                   "before they get on her — a cradle is cheaper than a "
+                   "pilot."))
         return p
 
     def _set_consort_order(self, consort, order_id: str) -> None:

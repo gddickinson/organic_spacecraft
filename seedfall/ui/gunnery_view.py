@@ -71,7 +71,8 @@ class GunneryView(View):
         if drill is None:
             # A gun manned in a real engagement: what it took off the enemy
             # comes off the enemy in the battle, once (`manning.land`).
-            got = manning.land(self.game, action, self.game.battle)
+            got = manning.land(self.game, action,
+                               getattr(self.game, "battle", None))
             if got.get("dealt"):
                 self.win.toast(
                     f"{got['dealt']:,.0f} put into them by hand.", "good")

@@ -377,6 +377,28 @@ class MainWindow(QMainWindow):
         if not (deck and flying_keys.release(self, event)):
             super().keyReleaseEvent(event)
 
+    #: The engagement, if one is running — **kept on the chronicle**, not on
+    #: the window. `sim` has to be able to ask whether the shooting has
+    #: started: `sim/craft.can_launch` refuses a free-flight sortie during a
+    #: battle and that refusal had never once fired, because it reads
+    #: `game.battle` and only the window knew. (`ui/gunnery_view` read
+    #: `self.game.battle` too, which was an AttributeError waiting for
+    #: somebody to man a gun in a real fight.) A Battle is transient and is
+    #: not a field of `Game`, so it is never saved.
+    _battle = None
+
+    @property
+    def battle(self):
+        game = getattr(self, "game", None)
+        return getattr(game, "battle", None) if game is not None else self._battle
+
+    @battle.setter
+    def battle(self, running) -> None:
+        self._battle = running
+        game = getattr(self, "game", None)
+        if game is not None:
+            game.battle = running
+
     def battle_act(self, action: dict) -> None:
         """Run one turn of the engagement.
 
