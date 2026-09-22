@@ -69,7 +69,16 @@ class ShipView(View):
         self.col.addWidget(self._sleep())
         self.col.addWidget(self._hold(ship, st))
         self.buttons(button("Refit or build", lambda: self.win.go("yard"),
-                            kind="primary"))
+                            kind="primary"),
+                     button("Walk the decks", self._walk,
+                            tip="Afoot: go aboard your own hull on foot."))
+
+    def _walk(self) -> None:
+        """Open the Afoot screen on this hull (`ui/afoot_view.py`)."""
+        view = self.win.views.get("afoot")
+        if view is not None:
+            view.site_key = f"ship:{self.game.ship.uid}"
+        self.win.go("afoot")
 
     def _sleep(self):
         from .dormancy_panel import who_sleeps

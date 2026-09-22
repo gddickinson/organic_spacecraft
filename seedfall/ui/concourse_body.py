@@ -145,9 +145,9 @@ def _racks(view, place) -> None:
     here = bool(clinic_sim.doors(game, place, "ice"))
     for row in rows:
         officer = row.get("officer")
+        oid = getattr(officer, "id", 0)
         p.add(button(f"Bring {getattr(officer, 'name', '?').split()[0]} up",
-                     lambda _=False, i=getattr(officer, "id", 0):
-                     view.thaw(place, i),
+                     lambda _=False, i=oid: view.thaw(place, i),
                      enabled=can and here,
                      tip=why or "No rack here to open."))
     view.col.addWidget(p)

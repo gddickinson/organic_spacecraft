@@ -239,6 +239,14 @@ class Game:
     kith: object | None = None  #: Innovation 2, the Kith: sim/kith.KithState
     renown: object | None = None  #: Innovation 9, renown: sim/renown
     sky: object | None = None  #: Innovation 7, the living sky: sim/phenomena
+    #: Afoot (`sim/afoot.py`): a walk in progress, if a party is out on a
+    #: deck; the stamina each of them is still missing from the last one, by
+    #: officer id as a string (and "captain"); and what the walks have left
+    #: behind them — emptied lockers by site and season, the words had with
+    #: officers, the fallen, and a short history.
+    afoot: object | None = None
+    wounds: dict = field(default_factory=dict)
+    walked: dict = field(default_factory=dict)
 
     # Derived, never saved — recomputed by recompute() on load.
     bonuses: dict = field(default_factory=dict, compare=False,

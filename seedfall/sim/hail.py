@@ -202,6 +202,9 @@ def options(game, contact) -> list[Option]:
         place = _place_of(game, contact)
         if place is not None and place.kind == "gate":
             return _gate_options(game, contact)
+        if place is not None and place.kind == "station":
+            return _station_options(game, contact, place) + _law_options(
+                game, contact)
         return _quay_options(game, contact, place) + _law_options(game, contact)
     if kind == "body":
         return _body_options(game, contact)
@@ -218,6 +221,21 @@ def _fly_option(game, contact) -> Option:
     return Option("conn", f"Take the conn on {contact.name}",
                   "Fly the last few kilometres yourself, or hand it to the "
                   "computer.", ok=ok, why=why, order=10)
+
+
+def _station_options(game, contact, place) -> list[Option]:
+    """A station of the trade's: go aboard its concourse, and use its yard."""
+    here = bool(place.here)
+    out = [_fly_option(game, contact),
+           Option("board", "Go aboard", "Its doors, on the concourse.",
+                  ok=here, why="" if here else "Come alongside first.",
+                  goes_to="concourse", order=20)]
+    if place.offers("shipyard"):
+        out.append(Option("service:shipyard", "Open the shipyard",
+                          "Refit, or lay down a hull, at their slips.",
+                          ok=here, why="" if here else "Come alongside first.",
+                          goes_to="yard", order=30))
+    return out
 
 
 def _quay_options(game, contact, place) -> list[Option]:

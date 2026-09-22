@@ -12,8 +12,9 @@ Three things this is for, all asked for:
 - a second captain joining, with an autonomous seat taking over when they are
   not there.
 
-Contents (7 modules; one line each in `INTERFACE.md`):
+Contents (8 modules; one line each in `INTERFACE.md`):
 
-Modules: __main__, attached, battle, checks, client, protocol, server."""
+Modules: __main__, afoot, attached, battle, checks, client, protocol,
+    server."""
 
 from .protocol import VERBS, describe, dispatch, snapshot   # noqa: F401

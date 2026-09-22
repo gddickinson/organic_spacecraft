@@ -138,6 +138,29 @@ def run(suite: Suite) -> None:
         return (f"{seen} places over {len(CROWD)} sectors: "
                 + ", ".join(f"{n} {k}" for k, n in kinds.most_common()))
 
+    @check("a quay counts the people aboard it, and serves the world below")
+    def _():
+        game = new_game("conc-quay-heads")
+        quays, hub = [], None
+        for system in game.galaxy.systems:
+            port = next((p for p in places_sim.in_system(game, system)
+                         if p.kind == "port"), None)
+            if port is None:
+                continue
+            assert port.heads <= places_sim.QUAY_HEADS[5] * \
+                places_sim.CAPITAL_HEADS, (port.name, port.heads)
+            assert port.served >= port.heads, port
+            line = places_sim.population(port)
+            assert f"{port.heads:,}" in line
+            if port.served > port.heads:
+                assert f"{port.served:,}" in line and "aboard" in line
+            quays.append(port)
+            if system.port.capital:
+                hub = port
+        assert hub is not None and all(hub.heads >= q.heads for q in quays)
+        return (f"{len(quays)} quays; the Fleet Hub "
+                f"{places_sim.population(hub)}")
+
     @check("what is open is where you are standing, and the law runs both ways")
     def _():
         game = new_game("conc-open")

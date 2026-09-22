@@ -242,12 +242,15 @@ def departed(game) -> list:
     the chronicle's memory of a crew, and nothing has ever shown them.
     """
     rows = []
+    # Who died on a deck rather than of their years (`sim/afoot_ends.py`).
+    fallen = (getattr(game, "walked", None) or {}).get("fallen", {})
     for officer in getattr(game, "officers", []) or []:
         if not getattr(officer, "retired", False):
             continue
         rows.append({"officer": officer,
                      "age": lifespan.age_of(officer, game),
-                     "note": lifespan.note(officer, game)})
+                     "note": fallen.get(str(officer.id))
+                     or lifespan.note(officer, game)})
     return sorted(rows, key=lambda r: r["officer"].name)
 
 

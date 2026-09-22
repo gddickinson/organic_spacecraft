@@ -276,6 +276,18 @@ SUITES: list[SuiteSpec] = [
               "comets, rogues and the nova come and go cleanly"),
     SuiteSpec("phenomenaui", "test_phenomena_ui", "the sky, on the screens",
               True),
+    # Afoot: the Verge at walking pace (reviews/2026-09-21/afoot.md).
+    SuiteSpec("afoot", "test_afoot", "afoot: the ground and the rules"),
+    SuiteSpec("afootplay", "test_afoot_play",
+              "afoot, played: finished, kept, and answered for"),
+    SuiteSpec("afootui", "test_afoot_ui", "afoot, on the screen", True),
+    SuiteSpec("afootshapes", "test_afoot_shapes",
+              "afoot, drawn to shape: every hull and holding, all of it"),
+    SuiteSpec("afootfair", "test_afoot_fair",
+              "afoot keeps faith: nothing rolled twice, nobody left to die"),
+    SuiteSpec("establishments", "test_establishments",
+              "establishments: yards, hotels, wheels and dens, found and "
+              "walked"),
     SuiteSpec("exports", "test_exports", "every module.name read exists"),
     SuiteSpec("maps", "test_maps", "the package maps name every module"),
 ]

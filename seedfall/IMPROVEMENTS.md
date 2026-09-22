@@ -58,6 +58,70 @@ window whose main camera was not even pointing at the structure.
   view draws what the *other* side took. Two new sound cues: `impact`,
   `graze`. New suite: `shock`, twelve checks.
 
+## Open — Afoot, begun 2026-09-21
+
+The walking layer landed (`sim/afoot*.py`, `ui/afoot_*.py`; design in
+`../reviews/2026-09-21/afoot.md`): deck plans derived from every kind of
+place and hull, a party of up to four, Traveller's personal combat on
+squares, talk through the counters that already exist, incidents from state
+the game already keeps, and endings that bank through the existing doors.
+What it does not do yet, in rough value order:
+
+1. **Counsel and the tutorial do not know it exists.** The first officer
+   should suggest the dead hull adrift here, the officer who has not had a
+   word in months, and the prize that could be boarded; the Academy wants a
+   chapter of three lessons (walk, talk, fight).
+2. ~~**No sound.**~~ Landed on the day: a shot sounds its weapon's volley, a
+   hit on one of yours the hit, one of yours going down the breach
+   (`ui/soundmap.afoot`), all existing cues.
+3. ~~**No bridge verbs.**~~ Landed on the day: `bridge/afoot.py` — sites,
+   begin, look (with a text map), move, attack, act, talk, end turn,
+   surrender — and every other acting verb is refused while a party is out.
+4. ~~**A clinic does not know about kept wounds.**~~ Landed on the day: a
+   `care` treatment closes the kept wound, and its quote says so.
+5. **Renown has no milestones afoot**: boarding a prize, clearing a wreck,
+   walking every kind of site, burning a nest.
+6. **Holdings are quiet.** Walking your own holding meets your own people
+   and nothing happens; the works could fail, strike, or be sabotaged, and
+   fixing it by hand should move the holding's yield.
+7. **The captain's record is thin.** `afoot_people.captain_record` derives
+   six scores and a few skills from the origin; Traveller would play the
+   captain's terms out, as `sim/lifepath` does for officers (the Traveller
+   programme's item 3).
+8. **Combat is single shots.** No autofire, no grenades, no suppression; a
+   shotgun's spread is its dice and nothing else.
+9. **The xeno hulk and the Kith hall are the least played.** Both generate
+   and are walked by the checks, but the vault's relic and the singing
+   hall's topics are one step each.
+10. **Incidents to add:** a quarrel aboard between officers whose
+    convictions collide, a shakedown and a brawl at low law.
+11. ~~**Every plan was the same corridor of boxes.**~~ Landed the same day:
+    plans in the shape of the thing (`sim/afoot_plans.py` and its
+    blueprints) — a hull sliced through its own silhouette and holding its
+    whole working program, a quay's can and arm and mast, a Fleet Hub's
+    spine and rings, a drum's town, a tower's floors, a dome's ground, a
+    ring round a hub, a mine dug into its rock, modules on a keel, sheds on
+    breathable or airless ground. `tests/test_afoot_shapes.py` holds it.
+12. ~~**Nowhere to go but the quay.**~~ Landed the same day: fifteen kinds
+    of establishment (`data/establishments.py`, `sim/establishments.py`),
+    each a place with its own doors, law and plan, and a yard that builds.
+    **What is left**: they are static — nobody owns a stake, no traffic
+    runs to them, the news never mentions them; a base has no berth of its
+    own; a yard builds welded hulls only (a nursery grown ones) and never
+    anything xeno.
+13. **The play-test's leftovers.** Voice lines still recite an officer's
+    biography in the third person and can repeat round to round; on the
+    screen the hint bar clips at narrow widths, the log falls below the fold,
+    two people with one initial wear the same token, room names can print
+    across each other in a crowded hull, the start page does not show what
+    is selected, and the panel is empty while the selected member is down.
+14. **No system is ever in the "reaches" or the Bloom's `where`.** Every
+    system's `region` is "verge", so a derelict gated on "reaches" (the xeno
+    hulk) never appears and the Bloom freighter only rarely. Found while
+    adding the new wrecks, which were moved to the verge pool; the gate
+    wants a real reading of the sector (distance from the core, the Bloom's
+    own spread) rather than a field nothing sets.
+
 ## Open — the Traveller programme, begun 2026-09-20
 
 The world profile landed (`data/uwp.py`, `sim/profile.py`): eight

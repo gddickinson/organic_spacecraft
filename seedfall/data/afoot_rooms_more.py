@@ -1,0 +1,130 @@
+"""The rooms a working ship and a working station are made of, and the ones people pay for.
+
+`data/afoot_rooms.py` had the concourse's doors and a handful of hull spaces:
+a bridge, berths, a hold. A hull that is going to be *lived in* needs the
+rest — a galley, heads, air, water, tanks, a magazine, somewhere to mend
+what breaks and a way off in a hurry — and the establishments of the Verge
+need theirs: suites, salons, pools, a gaming floor, a slipway. Same shape as
+the first table, merged into it by `afoot_rooms.ROOMS`.
+"""
+
+from __future__ import annotations
+
+from .afoot_rooms import RoomKind
+
+
+def _k(rid, name, w, h, kit=(), staff=(), crowd="", most=0, loot="",
+       tint="dim"):
+    return RoomKind(rid, name, (w[0], w[1], h[0], h[1]), tuple(kit),
+                    tuple(staff), crowd, most, loot, tint)
+
+
+MORE: tuple = (
+    # ── what keeps a crew alive ───────────────────────────────────────────
+    _k("command", "Control room", (6, 9), (4, 6),
+       [("console", 3, 5, "back"), ("desk", 1, 2, "scatter")], (), "", 0,
+       "office", "lumen"),
+    _k("galley", "Galley", (5, 8), (4, 5),
+       [("counter", 1, 1, "back"), ("table", 1, 4, "scatter"),
+        ("locker", 1, 1, "corners")], (), "", 0, "home", "osteo"),
+    _k("heads", "Heads", (3, 5), (3, 4),
+       [("rack", 1, 2, "walls")], (), "", 0, "", "dim"),
+    _k("officers", "Officers' cabins", (5, 8), (4, 5),
+       [("bed", 2, 3, "walls"), ("desk", 1, 1, "scatter"),
+        ("locker", 1, 2, "corners")], (), "", 0, "home", "dim"),
+    _k("gym", "Gym", (5, 8), (4, 6),
+       [("bench", 1, 2, "walls"), ("pillar", 0, 1, "corners")], (), "", 0,
+       "", "chloro"),
+    _k("library", "Library", (5, 8), (4, 5),
+       [("rack", 2, 4, "walls"), ("table", 1, 1, "centre"),
+        ("console", 1, 1, "back")], (), "", 0, "office", "xeno"),
+    _k("lifesupport", "Life support", (5, 8), (4, 5),
+       [("machinery", 1, 2, "centre"), ("plant", 0, 3, "walls"),
+        ("console", 1, 1, "back")], (), "", 0, "tools", "chloro"),
+    _k("reclaim", "Water reclamation", (4, 6), (4, 5),
+       [("tank", 1, 3, "walls"), ("machinery", 0, 1, "centre")], (), "", 0,
+       "tools", "lumen"),
+    _k("tanks", "Tankage", (5, 8), (4, 6),
+       [("tank", 2, 5, "scatter"), ("console", 0, 1, "back")], (), "", 0,
+       "", "osteo"),
+    _k("workshop", "Workshop", (5, 8), (4, 5),
+       [("bench", 1, 3, "walls"), ("machinery", 0, 1, "centre"),
+        ("locker", 1, 1, "corners")], (), "", 0, "tools", "osteo"),
+    _k("magazine", "Magazine", (4, 6), (3, 5),
+       [("rack", 1, 3, "walls"), ("strongbox", 0, 1, "corners"),
+        ("locker", 1, 1, "back")], (), "", 0, "armoury", "warn"),
+    _k("pods", "Lifeboat bay", (4, 6), (3, 4),
+       [("pod", 1, 3, "walls"), ("locker", 0, 1, "corners")], (), "", 0,
+       "suits", "lumen"),
+    _k("cold", "Cold berths", (6, 10), (4, 6),
+       [("medbed", 3, 8, "walls"), ("console", 1, 1, "back")], (), "", 0,
+       "", "lumen"),
+    _k("brig", "Brig", (3, 5), (3, 4),
+       [("bed", 1, 2, "walls")], (), "", 0, "", "warn"),
+    _k("barracks", "Barracks", (6, 9), (4, 6),
+       [("bed", 3, 6, "walls"), ("locker", 1, 3, "corners"),
+        ("rack", 0, 1, "back")], (), "", 0, "armoury", "steel"),
+    _k("chapel", "Chapel", (4, 7), (4, 5),
+       [("bench", 1, 3, "scatter")], (), "", 0, "", "ink"),
+    # ── what a role adds ──────────────────────────────────────────────────
+    _k("lounge", "Lounge", (6, 10), (4, 6),
+       [("couch", 2, 5, "scatter"), ("counter", 0, 1, "back")], (),
+       "patron", 3, "", "xeno"),
+    _k("dining", "Dining saloon", (6, 10), (4, 6),
+       [("table", 3, 6, "scatter"), ("counter", 1, 1, "back")], (),
+       "patron", 3, "", "osteo"),
+    _k("suites", "Cabins", (6, 10), (4, 6),
+       [("bed", 2, 5, "walls"), ("table", 0, 1, "scatter"),
+        ("locker", 1, 2, "corners")], (), "resident", 1, "home", "chloro"),
+    _k("wards", "Ward", (6, 10), (4, 6),
+       [("medbed", 3, 7, "walls"), ("console", 1, 1, "back")], (),
+       "", 0, "medical", "lumen"),
+    # A ward that was sealed with the sick still in it: filters, or cough.
+    _k("isolation", "Isolation ward", (6, 9), (4, 6),
+       [("medbed", 2, 5, "walls"), ("spores", 2, 4, "scatter"),
+        ("locker", 1, 1, "corners")], (), "", 0, "medical", "warn"),
+    _k("surgery", "Operating theatre", (5, 7), (4, 5),
+       [("medbed", 1, 1, "centre"), ("bench", 1, 2, "walls"),
+        ("locker", 1, 1, "corners")], ("clinician",), "", 0, "medical",
+       "lumen"),
+    _k("dormitory", "Dormitory", (7, 11), (5, 6),
+       [("bed", 5, 10, "walls"), ("locker", 1, 3, "corners"),
+        ("table", 0, 2, "scatter")], (), "resident", 3, "home", "dim"),
+    _k("hangar", "Hangar", (8, 12), (5, 7),
+       [("cargo", 1, 3, "scatter"), ("machinery", 1, 2, "walls"),
+        ("crate", 1, 2, "corners")], (), "", 0, "tools", "steel"),
+    _k("farm", "Growing deck", (8, 12), (5, 7),
+       [("plant", 5, 10, "scatter"), ("tank", 0, 2, "corners")], (),
+       "worker", 2, "", "chloro"),
+    _k("observation", "Observation gallery", (5, 9), (3, 5),
+       [("couch", 1, 3, "scatter")], (), "patron", 2, "", "lumen"),
+    # ── what people pay for ───────────────────────────────────────────────
+    _k("salon", "Salon", (5, 8), (4, 6),
+       [("couch", 2, 4, "scatter"), ("counter", 0, 1, "back")],
+       ("keeper",), "patron", 3, "vice", "xeno"),
+    _k("pools", "The pools", (7, 11), (5, 7),
+       [("pool", 2, 5, "centre"), ("bench", 1, 2, "walls")], ("keeper",),
+       "patron", 4, "", "lumen"),
+    _k("sauna", "Steam room", (4, 6), (3, 5),
+       [("bench", 2, 3, "walls")], (), "patron", 2, "", "osteo"),
+    _k("gaming", "Gaming floor", (8, 12), (6, 8),
+       [("table", 4, 7, "scatter"), ("counter", 1, 1, "back"),
+        ("strongbox", 0, 1, "corners")], ("keeper",), "patron", 6, "vice",
+       "xeno"),
+    _k("slipway", "Slipway", (10, 14), (6, 8),
+       [("cradle", 1, 1, "centre"), ("machinery", 1, 3, "walls"),
+        ("crate", 1, 3, "corners")], ("overseer",), "worker", 3, "tools",
+       "osteo"),
+    _k("drydock", "Drydock", (12, 16), (7, 9),
+       [("cradle", 1, 1, "centre"), ("machinery", 2, 4, "walls"),
+        ("console", 1, 1, "back")], ("overseer",), "worker", 3, "tools",
+       "steel"),
+    _k("fabhall", "Fabrication hall", (8, 12), (5, 7),
+       [("machinery", 2, 4, "centre"), ("bench", 1, 2, "walls"),
+        ("crate", 1, 2, "corners")], (), "worker", 3, "tools", "osteo"),
+    _k("traffic", "Traffic control", (5, 7), (4, 5),
+       [("console", 2, 4, "back")], ("clerk",), "", 0, "office", "lumen"),
+    _k("shaft", "Mine head", (6, 9), (5, 6),
+       [("machinery", 1, 2, "centre"), ("crate", 1, 2, "walls")],
+       ("overseer",), "worker", 3, "tools", "osteo"),
+)

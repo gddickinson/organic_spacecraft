@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (QFrame, QHBoxLayout, QMainWindow,
 
 from ..data.screens import KEY_FOR, NAV as SCREENS_NAV
 from ..data.lore import TITLE
+from ..sim.afoot import holds as afoot_holds
 from ..sim.approach import holds as envoy_holds
 from . import effect_clock, flight_clock, theme, window_dialogs
 from . import soundmap
@@ -284,6 +285,10 @@ class MainWindow(QMainWindow):
               and view_id not in ("ground", "battle")):
             self.toast("A party is on the ground. Bring them up first.", "warn")
             view_id = "ground"
+        elif afoot_holds(self.game, view_id):
+            self.toast("A party is out on a deck. Bring them back first.",
+                       "warn")
+            view_id = "afoot"
         # A held key's release will never arrive on the screen being left.
         flight_clock.end_burn(self, quiet=True)
         if view_id == "battle":

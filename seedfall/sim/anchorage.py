@@ -96,14 +96,15 @@ SERVICE_NAMES = {
 
 #: Glyphs the chart draws. Here rather than in the widget so every view that
 #: plots a system agrees about what a quay looks like.
-GLYPHS = {"quay": "▣", "hub": "◈", "holding": "⬡", "gate": "◉"}
+GLYPHS = {"quay": "▣", "hub": "◈", "holding": "⬡", "gate": "◉",
+          "station": "▤"}
 
 
 @dataclass
 class Anchorage:
     id: str
     name: str
-    #: quay | hub | holding
+    #: quay | hub | holding | gate | station
     kind: str
     #: The body it orbits. Its position used to *be* that body's position —
     #: see `berth_orbit` for what that cost and why it is a real place now.
@@ -244,6 +245,33 @@ def in_system(game, system=None) -> list:
                     if services else ""),
             services=services, here=(here_id == body.id),
             look=colony.class_id))
+    out.extend(_stations(game, system, here_id))
+    return out
+
+
+def _stations(game, system, here_id) -> list:
+    """The trade's own stations (`sim/establishments.py`) — a yard, a hotel,
+    a wheel — so a captain can find one on the chart and fly to it. A base
+    stands on the ground and is reached from the body's orbit, like a
+    settlement, so it is not a berth."""
+    from ..data.establishments import MESH
+    from . import establishments as est_sim
+    port = getattr(system, "port", None)
+    out = []
+    for got in est_sim.here(game, system):
+        kind = got.kind
+        index = next((i for i, b in enumerate(system.bodies)
+                      if b.id == got.body_id), -1)
+        if kind.kind != "station" or index < 0:
+            continue
+        services = {"shipyard": ("repair", "shipyard"),
+                    "gestation": ("gestation",)}.get(kind.builds, ())
+        out.append(Anchorage(
+            id=f"est-{system.id}-{kind.id}", name=got.name, kind="station",
+            body_id=got.body_id, body_index=index,
+            what=f"{kind.name} in orbit of {got.body_name}. {kind.what}",
+            services=services, faction=getattr(port, "faction", None),
+            here=(here_id == got.body_id), look=MESH.get(kind.id, "quay")))
     return out
 
 

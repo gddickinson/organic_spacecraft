@@ -39,6 +39,11 @@ Since 2026-09 the Verge is also a larger place, with ten new systems:
 The designs are in `../reviews/2026-09-17/innovations/`, and what each
 landed as is in `../reviews/2026-09-17/changes/`.
 
+And since 2026-09-21, **Afoot**: turn-based play on 2D deck plans of your
+hull, the quay, habitats, holdings, settlements, derelicts and boarded
+prizes, with a party of up to four (`sim/afoot*.py`, `ui/afoot_*.py`,
+design in `../reviews/2026-09-21/afoot.md`).
+
 ## Running
 
 ```
@@ -76,7 +81,7 @@ pytest -k "combat or window"            # the same suites through pytest
 python -m seedfall.tests.maps --write   # regenerate the package maps
 ```
 
-- **Suites:** about 235, holding about 1,750 checks. `tests/runner.py` runs one
+- **Suites:** about 250, holding about 1,900 checks. `tests/runner.py` runs one
   process per suite.
 - **The run's own honesty:** an unknown suite name exits 2, a suite that runs
   no checks is an error, and a suite that raises during setup is one failure,
@@ -194,6 +199,23 @@ Each rule has cost a real bug. The suite enforces most of them.
   must stay byte-identical when a region opens.
 - **A despatch from somebody aboard** crosses no distance and no weather:
   `comms.send(..., aboard=True)`.
+
+**Afoot**
+- **A plan is derived; a walk is saved.** A deck plan is a pure function of
+  the seed and the site's key (`afoot_plans.plan`), so a quay is the same
+  quay every visit. A walk in progress copies it into `game.afoot` whole,
+  so it survives a restart and never changes shape under the party.
+- **Every roll is `checks`, and every offer is its own forecast.** Acts are
+  offered by `afoot_acts.offer` and topics by `afoot_talk.topics`, each with
+  the odds of the same terms the act rolls (`lock_terms`, `terms`, …). A
+  new act is a function in `afoot_deeds.DEEDS` (a topic, in
+  `afoot_said.SAID`) and a line in the offer — never a second formula.
+- **Nothing found on a deck is money.** Kit, cargo, evidence and study are
+  banked through their own doors when the party leaves (`afoot_ends`);
+  credits only leave the purse (a bribe, a debt, a counter).
+- **The dice are `game.rng("afoot")`, drawn only in `sim/afoot`'s doors.**
+  The cast and the lockers are seeded on the site, the day and the season,
+  so looking at a deck never moves the chronicle's luck.
 
 **Qt**
 - **Every raw `paintEvent`** carries `painting.alive` and

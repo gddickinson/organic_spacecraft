@@ -1,7 +1,7 @@
 """Game rules: ships, shipyards, combat, colonies, research, crew, encounters,
 the Bloom, and the player actions that span them. Never touches Qt.
 
-Contents (208 modules; one line each in `INTERFACE.md`):
+Contents (237 modules; one line each in `INTERFACE.md`):
 
 The ship and its fittings: ship, plans, loading, thrusters, shipyard,
     stores, services, abilities, damage, adaptation, readiness.
@@ -37,6 +37,13 @@ The powers, the law and the Assembly: diplomacy, diplomacy_acts, accord,
 The crew and their stories: crew, roster, loyalty, lifespan, upkeep, arcs,
     arc_beats, arc_places, lifepath, checks, person.
 Places and the concourse: places, clinic, authority, kindred.
+Afoot: walking a deck: afoot, afoot_begin, afoot_state, afoot_sites,
+    afoot_map, afoot_people, afoot_cast, afoot_incidents, afoot_fight,
+    afoot_ai, afoot_acts, afoot_deeds, afoot_talk, afoot_said, afoot_ends.
+Afoot: deck plans drawn to shape: afoot_plans, afoot_program,
+    afoot_placeprog, afoot_hullplan, afoot_latticeplan, afoot_loops,
+    afoot_stationplan, afoot_worksplan, afoot_groundplan, afoot_blocks,
+    afoot_gen, afoot_furnish.
 The Bloom and the endings: threat, bloom, responses, legacy.
 The Kith and the sky: kith, kith_acts, kith_world, phenomena,
     phenomena_tick, phenomena_forecast, phenomena_bodies, phenomena_shelter,
@@ -45,4 +52,5 @@ Voices, news and memory: comms, hail, voice, memory, traffic, encounters.
 Renown, counsel and the memoir: renown, renown_facts, renown_perks, counsel,
     counsel_sources, counsel_doors, counsel_kit, memoir.
 Starting, teaching and settings: beginning, tutorial, tutorial_watch,
-    manual, options, orders, minigames."""
+    manual, options, orders, minigames.
+Everything else: afoot_ways, establishments."""

@@ -29,10 +29,11 @@ from .venue_types import (KIND_NAME, KIND_NOTE, KINDS, OFFER_NAME, OFFERS,
                           Venue, open_to)
 from .venues_aboard import ABOARD, ABOARD_RATING, rating
 from .venues_body import BODY
+from .venues_establishments import ESTABLISHED
 from .venues_night import NIGHT
 from .venues_trade import TRADE
 
-VENUES: tuple = TRADE + BODY + NIGHT + ABOARD
+VENUES: tuple = TRADE + BODY + NIGHT + ABOARD + ESTABLISHED
 
 VENUE_BY_ID = {v.id: v for v in VENUES}
 BY_KIND = {kid: tuple(v for v in VENUES if v.kind == kid)

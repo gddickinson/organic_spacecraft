@@ -24,7 +24,7 @@ python -m seedfall                  # the same, from anywhere the package is
 python -m seedfall --new            # straight into a new chronicle
 python -m seedfall --seed verge-7   # a specific sector
 python -m seedfall --help           # every option, and where the save lives
-python -m seedfall.tests -j 8       # ~235 suites, ~1,750 checks, ~3 minutes
+python -m seedfall.tests -j 8       # ~250 suites, ~1,900 checks, ~4 minutes
 ```
 
 No network, no server, no browser. Saves live in `~/.seedfall/save.json`.
@@ -47,6 +47,7 @@ No network, no server, no browser. Saves live in `~/.seedfall/save.json`.
 [Mini-games](#two-mini-games) ·
 [The codex](#what-the-ground-told-you) ·
 [Beyond the Verge](#beyond-the-verge--what-2026-09-added) ·
+[Afoot](#afoot--the-verge-at-walking-pace) ·
 [Design rules](#how-it-is-built)
 
 ---
@@ -284,6 +285,86 @@ Ten systems, each with its own suite, and each stating its cost before you commi
 | ![Renown and the Voyage](../assets/seedfall/15-voyage.png) | ![The trading house](../assets/seedfall/16-house.png) | ![The Assembly](../assets/seedfall/17-assembly.png) |
 | **The hunt** | **The living hull** | **Officer arcs** |
 | ![The bounty board and the search](../assets/seedfall/18-hunts.png) | ![What the hull has been through](../assets/seedfall/19-body.png) | ![Each officer's own story](../assets/seedfall/20-crew.png) |
+
+## Afoot — the Verge at walking pace
+
+Everything else in SEEDFALL happens at the scale of a hull. **Afoot** (`o` on the rail, or
+*Walk the decks* on the Ship screen and *Walk it* on the Concourse) is the scale of a person:
+a turn-based tactical layer in the manner of *Star Frontiers* and *Traveller*, played on
+deck plans of the places the game already has.
+
+| A Fleet Hub's ring, walked | A dead hull, boarded |
+|---|---|
+| ![Talking to the keeper of a chandlery on the first ring of a Fleet Hub](../assets/seedfall/21-afoot-quay.png) | ![A boarding party in a raider's hulk, a raider in sight](../assets/seedfall/22-afoot-wreck.png) |
+| **Your own hull, in its own shape** | **A gaming wheel, in orbit** |
+| ![The upper deck of a NAVIS: an ellipse fatter aft, rooms along the keel](../assets/seedfall/23-afoot-hull.png) | ![The ring of a gaming wheel: hub, spokes, and the rim of rooms](../assets/seedfall/24-afoot-station.png) |
+
+- **Every plan is the shape of the thing it is a plan of** (`sim/afoot_plans.py`):
+  - **a hull** is sliced through its own silhouette — the length, beam and taper law its 3D
+    model is built from, an ellipse fatter aft for a grown hull, a box flaring to a slab bow
+    for a Yards one, bent off its axis for a xeno one, a lattice of nodes and crawlways for a
+    Dry Choir frame. Inside it is a **working ship**: a bridge forward and the drives aft,
+    every fitting at its own slot's mount, berths for the whole complement, a galley, heads,
+    a sickbay, air, water, tanks, stores, a workshop, lifeboats and suit lockers, holds as big
+    as the cargo rating, and whatever the role adds (a liner's cabins and saloon, a hospital's
+    wards, a warship's magazine and marines). Nothing it needs is left out: a hull that cannot
+    hold its program is given another deck, and past that is drawn longer. Refit her and the
+    plan changes;
+  - **a quay** is its can, its arm out to the berths, and its mast; **a Fleet Hub** its spine,
+    four arms with a berth on each, and two habitation rings on spokes, each as many levels
+    deep as it needs. **Every door the Concourse lists is a room on the plan**, by the same
+    name, and a quay counts its own people — a Fleet Hub has 36,000 aboard and serves the
+    million on the world below;
+  - **a holding or habitat** is what its class's traits say it is built as — the town inside
+    an ARCA drum, the floors of a STACK arcology, the open ground under a LICHEN dome, a ring
+    round a hub, a mine's works dug into its rock, or modules on a keel;
+  - **a settlement or a base** is streets and sheds on the ground: open to a sky you can
+    breathe, or tubes and a landing hangar sealed against one you cannot.
+- **Where**: your own hull, the starport, habitat drums, your holdings, the powers'
+  settlements, **the trade's own stations and bases** (below), a derelict adrift in the system
+  (a holed survey hull, a lost liner, a raider's hulk that is not as dead as it looks, a
+  silent Dry Choir probe, a freighter the Bloom took, a hospital ship under quarantine, a yard
+  that went bankrupt mid-hull, a habitat ring that went quiet), and a struck prize — *Board
+  her first* on the battle's prize dialog. The same station has the same layout every time
+  you put in.
+- **Who**: up to four of the captain, the officers and the walking machines aboard. Each is
+  the person the game already knows: the six characteristics and skills of their service
+  record, the kit they own, and the wounds they came back with last time. The captain gets a
+  record of their own, from the seed and the opening choices.
+- **How**: every roll is two dice against eight and every button says its odds first. Guns
+  and armour are the kit the concourse sells, with Traveller's numbers. In calm the party
+  walks and follows its leader; once somebody hostile has seen you it is turns — move, act,
+  end turn. Doors, lockers, consoles, lifts, cover, sneaking, standing watch, first aid,
+  carrying the fallen.
+- **Who else**: the keeper behind each counter (do business there: the shelf, a room, a
+  night, the hiring board, the harbourmaster's favours), constables as many as the law level
+  puts on the corridors, fences and hard cases where it puts none, your own officers at
+  their stations (a word with them, their report, their story), and on the dead hulls
+  whoever their end left aboard. Somebody from an officer's past may be waiting on the
+  concourse, by name.
+- **What it costs**: what anybody sees you do is a charge when you leave — and a bribe buys
+  only the witness you paid. What you find comes home only if you walk out with it — kit to
+  the captain, cargo to the hold, data to the bench. Wounds are kept and mend by the day, or
+  at a clinic; a stun wears off. The captain always comes home; an officer left lying where
+  people live is found and brought back, and one left on a dead hull is not.
+
+### Yards, hotels, wheels and dens
+
+Besides its quay, a system has whatever the trade has built round it
+(`data/establishments.py`): **shipyards** and **hull nurseries**, **grand hotels** and
+**spacers' rests**, **pleasure palaces**, **surgical stations**, **spa stations**, **gaming
+wheels** and **free markets** in orbit; **mining** and **research bases**, **garrisons**,
+**farms**, **retreats** and **smugglers' dens** on the ground. A Fleet Hub's system has three
+or four, a quiet rock one at most, all of them read off the seed and spending no luck.
+
+A station is a berth on the System chart, drawn in the sky as the structure it is built like;
+fly to it, hail it, go aboard. A base stands on its world. Each opens **its own signature
+doors, there and nowhere else** — the Grand's suites and ballroom, the wheel's high table and
+the cage that pays out in the morning, the springs' thermal baths, a quiet surgeon who keeps
+no records — and of everybody else's only the kinds of business it is: a hotel has no chop
+shop, a den has nothing but. A garrison keeps a hard law and a den none. **A yard lays down
+welded hulls and refits one alongside it** where the port has no slips; a nursery grows grown
+ones. Every one can be walked, laid out in its own shape with the rooms its trade needs.
 
 ## How it is built
 

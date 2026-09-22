@@ -50,6 +50,8 @@ KINDS: dict[str, tuple[str, str]] = {
     # Innovation 5, freight lines: a trading house's lines and its masters.
     "line": ("FreightLine", "id"),
     "master": ("Master", "id"),
+    # Afoot: a walk on a deck (`sim/afoot_state.Walk`).
+    "walk": ("Walk", "id"),
 }
 _BY_CLASS = {cls: (kind, attr) for kind, (cls, attr) in KINDS.items()}
 

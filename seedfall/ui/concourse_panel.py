@@ -58,7 +58,7 @@ def _summary(view, game, place) -> Panel:
     others = [q for q in places_sim.in_system(game) if q.id != place.id]
     if others:
         p.add(label("Also in this system: " + ", ".join(
-            f"{q.name} ({q.kind_name.lower()}, {q.heads:,})"
+            f"{q.name} ({q.kind_name.lower()}, {places_sim.population(q)})"
             for q in others[:4]), "note", "chloro", wrap=True))
     return p
 

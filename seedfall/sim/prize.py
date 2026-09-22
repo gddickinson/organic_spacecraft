@@ -65,7 +65,12 @@ def can_take(game, battle) -> tuple[bool, str]:
         return False, "Nobody has struck."
     if battle.prized:
         return False, "That decision is made."
-    need = crew_needed(battle.enemy.ship)
+    return can_take_hull(game, battle.enemy.ship)
+
+
+def can_take_hull(game, hull) -> tuple[bool, str]:
+    """Whether a prize crew can be spared for this hull."""
+    need = crew_needed(hull)
     if game.ship.crew <= need + 1:
         return False, (f"A prize crew is {need} hands, and you cannot "
                        "spare them.")
@@ -77,7 +82,38 @@ def take(game, battle) -> dict:
     ok, why = can_take(game, battle)
     if not ok:
         return {"ok": False, "why": why}
-    hull = battle.enemy.ship
+    out = take_hull(game, battle.enemy.ship, battle.enemy_faction)
+    if out.get("ok"):
+        battle.prized = "taken"
+    return out
+
+
+def strip(game, battle) -> dict:
+    """Empty her holds into yours and let the hull limp home."""
+    if battle.result != "struck" or battle.prized:
+        return {"ok": False, "why": "Nothing here has struck to you."}
+    out = strip_hull(game, battle.enemy.ship)
+    battle.prized = "stripped"
+    return out
+
+
+def release(game, battle) -> dict:
+    """Let them limp home whole. Worth standing, not money."""
+    if battle.result != "struck" or battle.prized:
+        return {"ok": False, "why": "Nothing here has struck to you."}
+    battle.prized = "released"
+    return release_hull(game, battle.enemy.ship, battle.enemy_faction)
+
+
+# ── the three doors, on a hull ─────────────────────────────────────────────
+# A struck hull can be decided from the battle's own dialog or from her own
+# deck, once a party has boarded her (`sim/afoot_deeds.py`). Both come here,
+# so taking her afoot costs exactly what taking her from the bridge does.
+
+def take_hull(game, hull, fid: str) -> dict:
+    ok, why = can_take_hull(game, hull)
+    if not ok:
+        return {"ok": False, "why": why}
     need = crew_needed(hull)
     game.ship.crew -= need
     hull.crew = need
@@ -86,8 +122,6 @@ def take(game, battle) -> dict:
     hull.docked_at = None
     hull.morale = 0.5
     game.fleet.append(hull)
-    battle.prized = "taken"
-    fid = battle.enemy_faction
     if fid and fid != "bloom":
         game.adjust_rep(fid, -PRIZE_COST)
     game.add_log(f"{hull.name} taken as a prize — {need} hands aboard her, "
@@ -95,42 +129,33 @@ def take(game, battle) -> dict:
     return {"ok": True, "ship": hull, "crew": need}
 
 
-def strip(game, battle) -> dict:
-    """Empty her holds into yours and let the hull limp home."""
-    if battle.result != "struck" or battle.prized:
-        return {"ok": False, "why": "Nothing here has struck to you."}
+def strip_hull(game, hull) -> dict:
     room = cargo_free(game.ship, game.ship_stats)
     moved: dict[str, float] = {}
-    for cid, tonnes in list(battle.enemy.ship.cargo.items()):
+    for cid, tonnes in list(hull.cargo.items()):
         got = min(tonnes, room)
         if got > 0.5:
             add_cargo(game.ship, cid, got)
-            add_cargo(battle.enemy.ship, cid, -got)
+            add_cargo(hull, cid, -got)
             room -= got
             moved[cid] = moved.get(cid, 0) + got
-    battle.prized = "stripped"
     from . import aftermath
     worth = aftermath.worth_of(moved)
-    game.add_log(f"{battle.enemy.ship.name} stripped to the frames — "
+    game.add_log(f"{hull.name} stripped to the frames — "
                  f"{round(sum(moved.values()))} t taken, worth about "
                  f"{worth:,.0f}.", "good")
     return {"ok": True, "moved": moved, "worth": worth}
 
 
-def release(game, battle) -> dict:
-    """Let them limp home whole. Worth standing, not money."""
-    if battle.result != "struck" or battle.prized:
-        return {"ok": False, "why": "Nothing here has struck to you."}
-    battle.prized = "released"
-    fid = battle.enemy_faction
+def release_hull(game, hull, fid: str) -> dict:
     if fid and fid != "bloom":
         from . import diplomacy as dip
         gain = RELEASE_GAIN * dip.courtship(game.rep.get(fid, 0.0))
         game.adjust_rep(fid, gain)
         from . import grudge
         grudge.note(game, fid, "kindness",
-                    f"you let {battle.enemy.ship.name} limp home after "
-                    "she struck", salience=1.1)
-    game.add_log(f"{battle.enemy.ship.name} limps for home under a flag "
+                    f"you let {hull.name} limp home after she struck",
+                    salience=1.1)
+    game.add_log(f"{hull.name} limps for home under a flag "
                  "nobody will salute for a while.", "")
     return {"ok": True}

@@ -360,13 +360,17 @@ class BattleView(View):
                   "stalemate": "Neither of you could finish it"}
         body = [b.log[-1][1]] + [note(l) for l in aftermath_lines(out)]
         if b.result == "struck":
-            self._prize_choice(b, g, body)
+            if self._prize_choice(b, g, body):
+                self.win.battle = None       # boarded: her deck decides
+                self.win.game.save()
+                self.win.go("afoot")
+                return
         else:
             self.win.dialog(titles.get(b.result, "Engagement over"), body,
                             [("Back to the bridge", None)])
         self.win.end_combat()
 
-    def _prize_choice(self, b, g, body) -> None:
+    def _prize_choice(self, b, g, body) -> bool:
         """One decision per struck hull, through `sim/prize`'s doors.
 
         Dismissing the dialog lets them go — the release button and Escape
@@ -385,9 +389,26 @@ class BattleView(View):
             buttons.append((f"Put a prize crew aboard — {told['need']} hands",
                             "take"))
         buttons += [("Strip her holds", "strip"),
+                    ("Board her first", "board"),
                     ("Let them limp home", "release")]
         chose = self.win.dialog("They have struck their colours", body, buttons)
+        if chose == "board" and self._board(b, g):
+            return True
         act = {"take": prize_sim.take,
                "strip": prize_sim.strip}.get(chose, prize_sim.release)
         act(g, b)
+        return False
+
+    def _board(self, b, g) -> bool:
+        """Put a party aboard her before deciding (`sim/afoot`): the captain
+        and the three best with a gun. Her decision is then taken on her own
+        deck, through the same three doors."""
+        from ..sim import afoot
+        got = afoot.begin_prize(g, b.enemy.ship, b.enemy_faction,
+                                afoot.boarders(g))
+        if not got.get("ok"):
+            self.win.toast(got.get("why", "Nobody can go across."), "warn")
+            return False
+        b.prized = "boarded"
+        return True
 

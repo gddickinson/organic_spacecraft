@@ -115,6 +115,17 @@ OFFENCES: list[Offence] = [
         "discharge of weapons within a controlled volume",
         0.45, ("charter", "concordat", "sanhedrin"),
         did="you opened fire inside their approaches"),
+    # ── afoot: what a crew does on somebody else's deck ───────────────────
+    Offence(
+        "assault", "Assault",
+        "violence against a person within a registered place",
+        0.60, LAWFUL,
+        did="you laid hands on somebody on their deck"),
+    Offence(
+        "theft", "Theft",
+        "taking of property from a registered premises",
+        0.35, LAWFUL,
+        did="you helped yourself to what was not yours"),
 
     # ── the quay and the ring ──────────────────────────────────────────────
     Offence(

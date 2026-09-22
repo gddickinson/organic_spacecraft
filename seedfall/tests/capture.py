@@ -216,9 +216,93 @@ def main(argv=None) -> int:
             setattr(w.views[view], attr, tab)
         _shot(app, win, view, out, name, pick)
 
+    afoot_shots(app, win, out)
     win.close()
     print(f"\n{len(list(out.glob('*.png')))} screens in {out}")
     return 0
+
+
+def afoot_shots(app, win, out: pathlib.Path) -> None:
+    """Afoot (2026-09-21): a quay walked, a firefight aboard a wreck, your
+    own hull in its own shape, and a gaming wheel's ring."""
+    from ..sim import afoot, afoot_map
+    from ..sim.afoot_state import party
+    from . import afoot_kit
+    game = win.game
+
+    def quay(w):
+        site = next(s for s in afoot.sites(game) if s.kind == "port")
+        afoot.begin(game, site.key, afoot_kit.everybody(game)[:3])
+        walk = game.afoot
+        lead = party(walk)[0]
+        lift = next(t for t in walk.things if t.kind == "lift"
+                    and t.deck == lead.deck)
+        afoot.move(game, lead.id, lift.x, lift.y)
+        afoot.act(game, lead.id, "lift", lift.id)
+        keeper = next(a for a in walk.actors if a.folk == "keeper"
+                      and a.deck == lead.deck)
+        route = afoot_map.path(walk, lead, keeper.x, keeper.y, near=True)
+        if route:
+            afoot.move(game, lead.id, *route[-1])
+        from ..sim import afoot_deeds
+        afoot_deeds.reveal(walk, lead.deck)   # asked the keeper the way round
+        view = w.views["afoot"]
+        view.talking, view.said = keeper.id, ["What can I do for you?"]
+    _shot(app, win, "afoot", out, "21-afoot-quay", quay)
+    game.afoot = None
+    win.views["afoot"].talking = None
+
+    wreck_game, site = afoot_kit.at_wreck(("raider_hulk",))
+    win.game = wreck_game
+
+    def wreck(w):
+        afoot.begin(wreck_game, site.key, afoot_kit.everybody(wreck_game))
+        walk = wreck_game.afoot
+        foe = next(a for a in walk.actors if a.hostile)
+        lead = party(walk)[0]
+        for _round in range(6):
+            route = afoot_map.path(walk, lead, foe.x, foe.y, near=True)
+            if route and walk.mode == "calm":
+                afoot.move(wreck_game, lead.id, *route[-1])
+            else:
+                break
+    _shot(app, win, "afoot", out, "22-afoot-wreck", wreck)
+    win.game = game
+
+    def hull(w):
+        site = next(s for s in afoot.sites(game) if s.kind == "ship")
+        afoot.begin(game, site.key, afoot_kit.everybody(game)[:2])
+    _shot(app, win, "afoot", out, "23-afoot-hull", hull)
+    game.afoot = None
+
+    ring_game, ring_site = afoot_kit.at_establishment(("gaming_wheel",))
+    win.game = ring_game
+
+    def ring(w):
+        afoot.begin(ring_game, ring_site.key,
+                    afoot_kit.everybody(ring_game)[:3])
+        walk = ring_game.afoot
+        lead = party(walk)[0]
+        lift = next((t for t in walk.things if t.kind == "lift"
+                     and t.deck == lead.deck and t.link >= 0), None)
+        if lift is not None:
+            afoot.move(ring_game, lead.id, lift.x, lift.y)
+            afoot.act(ring_game, lead.id, "lift", lift.id)
+        # Out along a spoke to the rim, with the way round it asked of
+        # somebody, so the shot is of the ring rather than of the hub.
+        from ..sim import afoot_deeds
+        from ..sim.afoot_state import HALL
+        afoot_deeds.reveal(walk, lead.deck)
+        deck = walk.decks[lead.deck]
+        far = max(((x, y) for y, row in enumerate(deck.rows)
+                   for x, c in enumerate(row) if c == HALL),
+                  key=lambda c: -abs(c[0] - lead.x) - abs(c[1] - lead.y)
+                  if abs(c[1] - lead.y) > 3 else 0)
+        route = afoot_map.path(walk, lead, *far)
+        if route:
+            afoot.move(ring_game, lead.id, *route[min(len(route) - 1, 9)])
+    _shot(app, win, "afoot", out, "24-afoot-station", ring)
+    win.game = game
 
 
 if __name__ == "__main__":

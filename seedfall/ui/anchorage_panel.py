@@ -88,6 +88,9 @@ def where_to_put_in(view, g):
             card.add(button("Dock here", lambda: view.win.go("port"),
                             kind="primary")
                      if place.kind in ("quay", "hub")
+                     else button("Go aboard", lambda: view.win.go("concourse"),
+                                 kind="primary")
+                     if place.kind == "station"
                      else button("Open holdings",
                                  lambda: view.win.go("empire")))
         else:

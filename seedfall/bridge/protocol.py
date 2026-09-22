@@ -434,11 +434,15 @@ def dispatch(game, command: dict) -> dict:
         over = checks.ended(game)
         if over:
             return {"ok": False, "why": over, "ended": True}
-        from . import battle
+        from . import afoot, battle
         if name not in battle.ORDERS_VERBS and battle.current(game) is not None:
             return {"ok": False, "blocked": True,
                     "why": "You are in an engagement: `fight` it through "
                            "first (`waiting` shows it)."}
+        if name not in afoot.AFOOT_VERBS and afoot.blocking(game):
+            return {"ok": False, "blocked": True,
+                    "why": "A party is out on a deck: bring them back "
+                           "first (`afoot_look`)."}
     try:
         return plain(fn(game, **args))
     except Refused as err:
@@ -457,6 +461,8 @@ def snapshot(game) -> dict:
                   "situation": situation(game)})
 
 
-# The engagement's verbs, `fight` and `prize`, register themselves on import.
+# The engagement's verbs, `fight` and `prize`, and a walk's (`bridge/afoot`)
+# register themselves on import.
 # Imported last because they register through `verb` above.
 from . import battle as _battle  # noqa: E402,F401
+from . import afoot as _afoot  # noqa: E402,F401

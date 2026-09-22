@@ -56,6 +56,13 @@ class ConcourseView(View):
 
     # ── the screen ─────────────────────────────────────────────────────────
 
+    def _walk(self, place) -> None:
+        """Open the Afoot screen on this place (`ui/afoot_view.py`)."""
+        view = self.win.views.get("afoot")
+        if view is not None:
+            view.site_key = f"place:{place.id}"
+        self.win.go("afoot")
+
     def build(self) -> None:
         g = self.game
         rows = places_sim.in_system(g)
@@ -69,7 +76,8 @@ class ConcourseView(View):
                 button("Back to the chart", lambda: self.win.go("map"),
                        kind="primary")))
             return
-        self.head(place.name, f"{place.kind_name} · {place.heads:,} people")
+        self.head(place.name,
+                  f"{place.kind_name} · {places_sim.population(place)}")
         if len(rows) > 1:
             self._picker(rows, place)
         # The place, drawn: what it is, what is open on it, and who is on it.
@@ -88,6 +96,9 @@ class ConcourseView(View):
                 "The hull is not alongside. Prices and shelves are what they "
                 "would be; nothing can be bought until you are there.",
                 "note", "warn", wrap=True))
+        elif place.kind != "ship":
+            self.buttons(button("Walk it", lambda: self._walk(place),
+                                tip="Afoot: go ashore on foot, and see it."))
         tabs = TabBar(list(TABS), self.tab)
         tabs.changed.connect(self._switch)
         self.col.addWidget(tabs)

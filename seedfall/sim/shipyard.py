@@ -139,6 +139,9 @@ def can_build_here(game, system, chassis: Chassis) -> tuple[bool, str]:
         return False, _BUILD_REFUSAL["xenoyard"]
     if need in services or colony_offers("build_here"):
         return True, ""
+    from . import establishments          # a yard or a nursery in orbit here
+    if establishments.builds_here(game, system, need):
+        return True, ""
     return False, _BUILD_REFUSAL[need]
 
 
@@ -243,6 +246,11 @@ def can_refit_here(game) -> tuple[bool, str]:
     that sells groceries, from four AU away.
     """
     from . import anchorage
+    # Alongside a yard of the trade's own (`sim/establishments`) is alongside
+    # a yard.
+    if any(a.here and a.kind == "station" and a.offers("shipyard")
+           for a in anchorage.in_system(game)):
+        return True, ""
     here = anchorage.docked_at(game)
     if here is None:
         yards = anchorage.offering(game, "shipyard")

@@ -239,4 +239,25 @@ KIN = {
     "memoir": ("renown",),
     # Innovation 7: `data/phenomena` and `sim/phenomena` share the stem.
     "phenomena": ("phenomena",),
+    # Afoot (2026-09-21): the rules suite pins the numbers, the play suite
+    # the endings and the incidents that spend them.
+    "afoot": ("afoot", "afootplay"), "afoot_acts": ("afoot", "afootplay"),
+    "afoot_ai": ("afootplay",), "afoot_arms": ("afoot",),
+    "afoot_cast": ("afootplay", "afoot"), "afoot_deeds": ("afootplay",),
+    "afoot_derelicts": ("afootplay", "afoot"), "afoot_ends": ("afootplay",),
+    "afoot_fight": ("afoot", "afootplay"), "afoot_gen": ("afoot",),
+    "afoot_incidents": ("afootplay",), "afoot_map": ("afoot",),
+    "afoot_people": ("afoot", "afootplay"),
+    "afoot_plans": ("afootshapes", "afoot"),
+    # The deck plans drawn to shape: hulls, loops, stations, holdings, ground.
+    "afoot_programs": ("afootshapes",), "afoot_program": ("afootshapes",),
+    "afoot_placeprog": ("afootshapes",), "afoot_hullplan": ("afootshapes",),
+    "afoot_latticeplan": ("afootshapes",), "afoot_loops": ("afootshapes",),
+    "afoot_stationplan": ("afootshapes",),
+    "afoot_worksplan": ("afootshapes",),
+    "afoot_groundplan": ("afootshapes",),
+    "afoot_blocks": ("afootshapes", "afoot"),
+    "afoot_ways": ("afootfair", "afootplay"),
+    "establishments": ("establishments", "concourse"),
+    "afoot_talk": ("afoot", "afootplay"), "afoot_begin": ("afootplay",),
 }

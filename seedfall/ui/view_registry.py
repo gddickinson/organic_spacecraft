@@ -23,6 +23,7 @@ def classes() -> dict:
     this names every screen the window can *show*, including the ones another
     screen pushes you into — a battle, a docking, a crossing, an envoy.
     """
+    from .afoot_view import AfootView
     from .battle_view import BattleView
     from .codex_view import CodexView
     from .concourse_view import ConcourseView
@@ -57,6 +58,7 @@ def classes() -> dict:
         "gunnery": GunneryView,
         "crew": CrewView,
         "concourse": ConcourseView,
+        "afoot": AfootView,
         "pilot": PilotView,
         "diplomacy": DiplomacyView, "law": LawView,
         "despatches": DespatchView,

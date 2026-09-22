@@ -168,6 +168,9 @@ def _does(game, got, officer, skill: str) -> list:
         said.append(f"{skill.replace('_', ' ').title()} +1")
     if got.heals:
         said.append(f"{got.heals:.2g} of the wear cleared")
+    kept = (getattr(game, "wounds", None) or {}).get(_key(officer))
+    if got.kind == "care" and kept:
+        said.append(f"the wound from the last walk closed ({kept:g})")
     if got.restores:
         said.append(f"{got.restores} level(s) back")
     if got.years:
@@ -231,6 +234,10 @@ def _apply(game, officer, got, skill: str) -> None:
     """The whole of what a successful treatment changes."""
     if got.heals:
         officer.wear = max(0.0, getattr(officer, "wear", 0.0) - got.heals)
+    if got.kind == "care":
+        # Care closes a wound kept from a walk (`sim/afoot`), whatever else
+        # it does: that is most of what a check-up is for.
+        (getattr(game, "wounds", None) or {}).pop(_key(officer), None)
     if got.restores:
         officer.level = int(getattr(officer, "level", 1)) + got.restores
     if got.years:

@@ -248,4 +248,69 @@ MORE_TOPICS = [
            "star. Watch it brightening, and watch the burst from a "
            "neighbouring star: the Choir pays a fortune for that."),
           see=("survey", "despatches", "research")),
+    Topic("afoot", "Afoot: walking a deck", "afoot",
+          ("The Afoot screen puts people on the deck of somewhere the hull "
+           "already is: your own hull, the quay, a habitat drum, a holding, "
+           "a settlement, one of the trade's stations or bases, and any "
+           "dead hull adrift in the system. Choose where, who goes (up to "
+           "four: the captain, the officers, walking machines), and whether "
+           "to carry what the law here forbids.",
+           "Every plan is drawn in the shape of what it is. A hull's decks "
+           "are slices through its own silhouette — bridge forward, drives "
+           "aft, each fitting at its own mount, berths for the whole crew, "
+           "air, water, stores and a way off in a hurry — and refitting her "
+           "changes them. A quay is its can, arm and mast; a Fleet Hub its "
+           "spine, four berths and two rings; a drum is a town inside it; "
+           "a dome is open ground under its shell; a settlement is sheds "
+           "and streets, open to a sky you can breathe or sealed in tubes "
+           "against one you cannot. Every door the Concourse lists is a room "
+           "on the plan, under the same name, and a place with more doors "
+           "than a deck holds has more decks: a Fleet Hub's rings are as "
+           "many levels deep as its concourse needs.",
+           "Left-click a square to walk there, a person to talk to them, an "
+           "enemy to shoot. Right-click goes up to whatever is there. Arrow "
+           "keys step; Tab takes the next person in hand; Space ends the "
+           "turn. In calm, a click walks the whole way and the others "
+           "follow; once somebody hostile has seen you, it is turns: each "
+           "person moves and does one thing, then everybody else does.",
+           "Every roll is two dice against eight, and every button says its "
+           "odds before you press it. A shot is Gun Combat plus DEX, the "
+           "weapon's own bonus, the range and any cover; damage is the "
+           "weapon's dice plus by how much it hit, less armour. At no "
+           "stamina somebody is down and bleeding: first aid stops it, and "
+           "a friend can carry them out. The captain always comes home. An "
+           "officer left lying on a dead hull does not.",
+           "Staff stand behind their counters: talk to them to do business "
+           "across the counter, take a room, sign on a hand or ask a favour "
+           "of the harbourmaster. Constables walk the corridors in "
+           "proportion to the law level. What anybody sees you do — take "
+           "from a locker, break a lock, hit somebody who was not hitting "
+           "you — is a charge when you leave.",
+           "What is found comes home only if you walk out with it: kit to the "
+           "captain's keeping, cargo to the hold, data to the bench, study "
+           "to the xenology desk. Wounds are kept, and mend by the day, "
+           "faster with a medic and a sickbay. Somebody left lying where "
+           "people live is found and brought home; a stun wears off."),
+          see=("crew", "law", "ground", "combat")),
+    Topic("establishments", "Yards, hotels, wheels and dens", "concourse",
+          ("Besides its quay, a system has whatever the trade has built "
+           "round it: shipyards and hull nurseries, grand hotels and "
+           "spacers' rests, pleasure palaces, surgical stations, spa "
+           "stations, gaming wheels and free markets in orbit; mining and "
+           "research bases, garrisons, farms, retreats and smugglers' dens "
+           "on the ground. A system with a Fleet Hub has three or four; a "
+           "quiet rock one at most.",
+           "A station is a berth on the System chart: fly to it and go "
+           "aboard, or hail it. A base stands on its world; orbit the world "
+           "and it is on the Concourse. Each has its own doors, open there "
+           "and nowhere else — the Grand's suites, the wheel's high table, "
+           "a quiet surgeon who keeps no records — and of everybody else's "
+           "only what its business is. A garrison keeps a hard law; a den "
+           "keeps none.",
+           "A shipyard lays down welded hulls and refits one alongside it, "
+           "where the port has no slips of its own; a hull nursery grows "
+           "grown ones. Every one of them can be walked, laid out as it is "
+           "built: a hotel is a ring, a palace a drum, a market a can, a "
+           "base sheds on the ground."),
+          see=("afoot", "shipyard", "trade")),
 ]

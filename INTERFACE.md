@@ -21,7 +21,7 @@ Alongside the documents:
 - **`models3d/`:** exportable 3D models of the designs.
 - **SEEDFALL (`seedfall/`):** a playable PyQt6 space exploration, trading and
   combat RPG built on the documents. It is much the largest part of the
-  repository, with about 730 modules.
+  repository, with about 840 modules.
 
 ## Layout
 

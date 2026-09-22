@@ -42,6 +42,9 @@ KINDS = (
     ("habitat", "Habitat", "people living in a drum, a reef or a hollow rock"),
     ("holding", "Your holding", "your own ground, and whoever works it"),
     ("downside", "Settlement", "somebody's people on the ground, at work"),
+    ("station", "Station", "somebody's business in orbit: a yard, a hotel, "
+                           "a wheel"),
+    ("base", "Base", "somebody's ground: a mine, a garrison, a den"),
     ("ship", "Aboard", "your own hull, and whatever is open on it"),
 )
 KIND_NAME = {kid: name for kid, name, _note in KINDS}
@@ -51,6 +54,14 @@ KIND_NAME = {kid: name for kid, name, _note in KINDS}
 #: port and a million-person habitat are both a 5; a picket is a 1.
 AMENITY_BY_POP = ((1_000_000, 5), (100_000, 4), (10_000, 3),
                   (1_000, 2), (100, 1))
+
+#: How many people live and work aboard a quay, by starport class — the
+#: harbour, the concourse, the yards and whoever lives over the shop — and
+#: how many times that a capital's Fleet Hub carries. **Not the world's
+#: population**, which is who the quay serves: a quay over ten million
+#: people is not a station of ten million people.
+QUAY_HEADS = {5: 9_000, 4: 3_000, 3: 900, 2: 250, 1: 60, 0: 20}
+CAPITAL_HEADS = 4
 
 #: What a settlement on the ground is worth as a place. A power founds these
 #: to work one commodity; there is a bar and a bunkhouse and that is the lot.
@@ -83,8 +94,10 @@ class Place:
     what: str
     system_id: int
     body_id: str
-    #: The headcount, and the same number as a UWP population digit.
+    #: The people who live and work in it — aboard a quay, the quay's own.
     heads: int
+    #: The population digit of whoever it serves, which is what every venue
+    #: gate reads: for a quay, the world under it; anywhere else, its own.
     people: int
     #: How much of a place it is, on the starport scale (0-5).
     amenity: int
@@ -101,6 +114,10 @@ class Place:
     #: the same bargain `sim/anchorage.Anchorage.look` keeps, for the same
     #: reason, and `ui/place_scene.py` is the reader.
     look: str = ""
+    #: The people it trades with, when that is more than live in it: the
+    #: world a quay stands over. Zero for a place that serves only itself.
+    #: A Fleet Hub has tens of thousands aboard and serves ten million.
+    served: int = 0
 
     def __post_init__(self) -> None:
         if not self.look:
@@ -143,6 +160,7 @@ def in_system(game, system=None) -> list:
     out = [p for p in (_port(game, system, here_id),) if p is not None]
     out.extend(_holdings(game, system, here_id))
     out.extend(_downside(game, system, here_id))
+    out.extend(_establishments(game, system, here_id))
     aboard = ship(game)
     if aboard is not None:
         out.append(aboard)
@@ -222,15 +240,20 @@ def _port(game, system, here_id):
         return None
     got = profile_sim.profile(game, system, world)
     faction = FACTIONS_BY_ID.get(port.faction)
-    heads = 10 ** max(0, got.population)
+    served = 10 ** max(0, got.population)
+    aboard = QUAY_HEADS.get(got.starport, 20) * (
+        CAPITAL_HEADS if getattr(port, "capital", False) else 1)
+    # A quay cannot be staffed by more people than the world has to spare.
+    aboard = min(aboard, max(20, served // 3))
     return Place(
         id=f"port-{system.id}", name=port.name, kind="port",
-        what=(f"{faction.short if faction else 'Independent'} quay over "
-              f"{world.name}."),
-        system_id=system.id, body_id=world.id, heads=heads,
+        what=(f"{faction.short if faction else 'Independent'} "
+              f"{'Fleet Hub' if getattr(port, 'capital', False) else 'quay'}"
+              f" over {world.name}."),
+        system_id=system.id, body_id=world.id, heads=aboard,
         people=got.population, amenity=got.starport, tech=got.tech,
         law=got.law, faction=port.faction or "",
-        here=(here_id == world.id))
+        here=(here_id == world.id), served=served)
 
 
 def _holdings(game, system, here_id) -> list:
@@ -287,6 +310,32 @@ def _downside(game, system, here_id) -> list:
     return out
 
 
+def _establishments(game, system, here_id) -> list:
+    """The yards, hotels, wheels and dens the trade has built here
+    (`sim/establishments.py`). Each keeps its own law if it has one — a
+    garrison is strict, a den is not — and otherwise the world's."""
+    from . import establishments as est_sim
+    port = getattr(system, "port", None)
+    out = []
+    for got in est_sim.here(game, system):
+        body = next((b for b in system.bodies if b.id == got.body_id), None)
+        if body is None:
+            continue
+        read = profile_sim.profile(game, system, body)
+        kind = got.kind
+        where = "over" if kind.kind == "station" else "on"
+        out.append(Place(
+            id=f"est-{system.id}-{kind.id}", name=got.name, kind=kind.kind,
+            what=f"{kind.name} {where} {got.body_name}. {kind.what}",
+            system_id=system.id, body_id=body.id, heads=kind.heads,
+            people=digit(kind.heads), amenity=kind.amenity,
+            tech=max(DEFAULT_TECH, read.tech, kind.tech),
+            law=read.law if kind.law is None else kind.law,
+            faction=getattr(port, "faction", "") or "",
+            here=(here_id == body.id), look=kind.id))
+    return out
+
+
 # ── what the screens ask ───────────────────────────────────────────────────
 
 def says(place: Place) -> list:
@@ -295,11 +344,21 @@ def says(place: Place) -> list:
     star = uwp.STARPORTS.get(place.amenity, uwp.STARPORTS[0])
     said = [place.what,
             f"{place.kind_name} · {star[1].lower()} ({star[0]}) · "
-            f"{place.heads:,} people · tech level {place.tech} · law level "
+            f"{population(place)} · tech level {place.tech} · law level "
             f"{place.law}."]
     if place.heads <= 0:
         said.append("Nobody lives here. There is nothing to walk into.")
     return said
+
+
+def population(place) -> str:
+    """How many people, in words: who is aboard, and — for a quay — the
+    world it serves. **One door**, so the Concourse's heading, its board and
+    the Afoot screen cannot print two different numbers for one place. Takes
+    a `Place` or anything carrying its `heads` and `served` (an Afoot site)."""
+    if getattr(place, "served", 0) > place.heads:
+        return f"{place.heads:,} aboard, serving {place.served:,} below"
+    return f"{place.heads:,} people"
 
 
 def livable(place: Place) -> bool:

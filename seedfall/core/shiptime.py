@@ -28,6 +28,7 @@ from ..sim import robots as robots_sim
 from ..sim import clinic as clinic_sim
 from ..sim import kindred as kindred_sim
 from ..sim import upkeep as upkeep_sim
+from ..sim import afoot as afoot_sim
 from ..sim.ship import COOK, cool, is_breached, repair_tick
 
 
@@ -210,6 +211,7 @@ def crew(game, n: int, ship_n: int, st, paid: bool) -> None:
     the scale of it is how long the Verge watched you leak."""
     crew_sim.morale_tick(game.ship, ship_n, paid, is_breached(game.ship), st.morale)
     crew_sim.grant_xp(game.officers, "*", ship_n * 1.5, game=game)
+    afoot_sim.mend(game, ship_n)           # wounds kept from a walk
     if is_breached(game.ship):
         loyalty_sim.record(game, "breach", scale=min(2.0, n / 10))
     for kind, text in loyalty_sim.tick(game, n, paid):

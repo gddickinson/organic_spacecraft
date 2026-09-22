@@ -11,6 +11,8 @@ into the rest of the interface is one line, at a point that already exists:
   beat the collision guard's ping (`beat`);
 - `battle_view.build` — a turn's volleys, a hit, a breach, struck colours
   (`battle`);
+- `afoot_view._act` — a shot on a deck, a hit on one of yours, one of yours
+  down (`afoot`);
 - the survey, dig and jump doors — `act`, after the act succeeded;
 - `hud.refresh`, which runs on every act and every beat — the settings, a
   despatch arriving, a berth made fast, and the ambience (`hud`); `hud.build`
@@ -268,6 +270,25 @@ def battle(win, b) -> None:
         audio.play("breach")
     if struck and (fresh or not seen[2]):
         act(win, "struck")
+
+
+def afoot(win, got: dict, walk) -> None:
+    """A press on a deck, heard once: the party's own shot by what it was
+    fired with, a hit on one of yours, one of yours going down."""
+    if walk is None:
+        return
+    from ..data import afoot_arms
+    mine = {a.id for a in walk.actors if a.side == "party"}
+    if got.get("check") is not None and "hit" in got:
+        who = next((a for a in walk.actors if a.id == walk.selected), None)
+        laser = who is not None and afoot_arms.arm(who.weapon).laser
+        audio.play("volley_energy" if laser else "volley_kinetic")
+    events = list(got.get("events", []) or [])
+    if any(e.get("kind") == "attack" and e.get("hit") and e.get("at") in mine
+           for e in events):
+        audio.play("hit")
+    if any(e.get("kind") == "down" and e.get("who") in mine for e in events):
+        audio.play("breach")
 
 
 # ── the bar every screen shows ──────────────────────────────────────────────

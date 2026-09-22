@@ -47,7 +47,8 @@ DOOR_TINT = {
 #: The sky behind each kind of place.
 SKY = {
     "port": "#0b1420", "habitat": "#05070c", "holding": "#0c1410",
-    "downside": "#141009", "ship": "#080d12",
+    "downside": "#141009", "ship": "#080d12", "station": "#07101a",
+    "base": "#12100b",
 }
 
 #: Where the deck sits, and how much of the frame the structure gets.
@@ -65,6 +66,13 @@ LOOKS = {
     "gravid_nursery": "dome", "tardigrade_vault": "dome",
     "habitat": "drum", "holding": "dome", "port": "quay",
     "downside": "sheds", "ship": "hull",
+    # The establishments, by the shape they are walked as.
+    "shipyard": "quay", "hull_nursery": "dome", "grand_hotel": "drum",
+    "spacers_rest": "quay", "pleasure_palace": "drum",
+    "surgical_station": "drum", "spa_station": "drum", "gaming_wheel": "drum",
+    "free_market": "quay", "mining_base": "sheds", "research_base": "sheds",
+    "garrison": "bunker", "smugglers_den": "sheds", "farm_base": "dome",
+    "retreat": "sheds", "station": "quay", "base": "sheds",
 }
 
 #: The most people to draw, however many live here. A crowd is a texture;
@@ -90,7 +98,7 @@ def paint(p: QPainter, rect: QRectF, game, place) -> None:
     w, h = rect.width(), rect.height()
     rng = RNG(f"{getattr(game, 'seed', 'verge')}:scene:{place.id}")
     p.fillRect(QRectF(0, 0, w, h), QColor(SKY.get(place.kind, "#0a1512")))
-    if place.kind in ("habitat", "ship", "port"):
+    if place.kind in ("habitat", "ship", "port", "station"):
         _stars(p, w, h, rng)
     _structure(p, w, h, place, rng)
     doors = shore.open_here(game, place)
@@ -333,6 +341,6 @@ def legend(game, place) -> str:
     doors = shore.open_here(game, place)
     kinds = sorted({v.kind for v in doors})
     return (f"{len(doors)} door(s) open over {len(kinds)} kinds; "
-            f"{place.heads:,} people; "
+            f"{places_sim.population(place)}; "
             + ", ".join(venue_table.KIND_NAME[k] for k in kinds[:6])
             + ("…" if len(kinds) > 6 else "."))

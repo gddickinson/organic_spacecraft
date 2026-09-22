@@ -102,6 +102,9 @@ class Venue:
     #: in a cutter's crew quarters the moment the crew got large enough, and
     #: a sickbay would appear on a Charter concourse.
     aboard: bool = False
+    #: The establishments (`data/establishments.py`) this door belongs to.
+    #: A signature door is open at those and nowhere else.
+    at: tuple = ()
 
     def sells(self, what: str) -> bool:
         return what in self.offers
@@ -110,11 +113,20 @@ class Venue:
 def open_to(venue: Venue, place) -> bool:
     """Whether this door is open at this place.
 
-    Four gates and no special cases: how much of a place it is, how many
-    people are in it, how advanced it is, and whether the law here tolerates
-    it. Everything a concourse does is one of these four.
+    Four gates: how much of a place it is, how many people are in it, how
+    advanced it is, and whether the law here tolerates it — and, at an
+    establishment, whether the door is the kind of business it is.
     """
     if venue.aboard != (getattr(place, "kind", "") == "ship"):
+        return False
+    # An establishment opens its own signature doors, and of everybody
+    # else's only the kinds it carries: a hotel has no chop shop.
+    from .establishments import ESTABLISHMENT_BY_ID
+    look = getattr(place, "look", "")
+    if venue.at and look not in venue.at:
+        return False
+    est = ESTABLISHMENT_BY_ID.get(look)
+    if est is not None and not venue.at and venue.kind not in est.kinds:
         return False
     return (place.amenity >= venue.port
             and place.people >= venue.people

@@ -430,8 +430,28 @@ markets; the four powers sit in an **Assembly** and vote on the rules; each offi
 a **story** of their own; and **renown** climbs ranks with real perks while the first
 officer's counsel says what to do next. It all sounds — every cue synthesised at first run.
 
+**Afoot (2026-09-21).** Walk the decks: your own hull, the quay, habitat drums, holdings,
+settlements, derelicts adrift and boarded prizes, as a turn-based *Star Frontiers*-style
+party of up to four — on plans drawn **in the shape of what they are**. A hull is sliced
+through its own silhouette and is a working ship, every space its crew and fittings need in
+place and nothing left out; a quay is its can, arm and mast; a Fleet Hub its spine, berths
+and two rings; a drum is a town inside it and a dome open ground under its shell. The
+officers are the people their service records say, and every shot, lock, bribe and word is
+two dice against eight, with the odds on the button.
+
+**Yards, hotels, wheels and dens.** Around the quays the trade has built fifteen kinds of
+establishment — shipyards and hull nurseries, grand hotels, spacers' rests, pleasure
+palaces, surgical and spa stations, gaming wheels, free markets, mining and research bases,
+garrisons, farms, retreats and smugglers' dens — each a real place on the chart with its own
+doors, its own law and its own deck plan, and a yard that lays down hulls where the port
+cannot.
+
+| | |
+|---|---|
+| ![A boarding party in a raider's hulk](assets/seedfall/22-afoot-wreck.png) | ![The ring of a gaming wheel](assets/seedfall/24-afoot-station.png) |
+
 ```bash
-python3 -m seedfall.tests -j 8     # ~235 suites, ~1,750 checks, about 3 minutes
+python3 -m seedfall.tests -j 8     # ~250 suites, ~1,900 checks, about 4 minutes
 python3 -m seedfall.tests --fast   # the cheap ones, as CI runs on every push
 python3 -m seedfall.tests.capture  # re-render the README screenshots
 ```
@@ -439,7 +459,7 @@ python3 -m seedfall.tests.capture  # re-render the README screenshots
 The suite plays the game rather than inspecting it: it flies careers, fights engagements to
 a result, crosses a process boundary to resume saves, and paints every screen on Qt's
 offscreen platform. A careful scripted captain that follows the counsel reaches an ending in
-five years on seven seeds of ten. **About 730 modules, every one under 500 lines**, each
+five years on seven seeds of ten. **About 840 modules, every one under 500 lines**, each
 listed in a generated map. See [`seedfall/README.md`](seedfall/README.md) for the tour and
 [`seedfall/INTERFACE.md`](seedfall/INTERFACE.md) for the map.
 

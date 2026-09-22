@@ -352,14 +352,21 @@ class OrbitChart(QWidget):
             # `Fleet Hub` and `Third Silence` printed exactly on top of one
             # another. The last candidate is used regardless: a crowded label
             # beats a quay with no name at all.
+            # A body with a quay and two of the trade's stations round it has
+            # three names to print: right of the mark first, then left of it,
+            # each fanned up and down.
             lx, ly = mark.x() + 7, mark.y() - 7
-            ink = self._ink(p, lx, ly, 120, place.name, False)
-            for dy in (0, 15, -15, 30, -30):
-                moved = ink.translated(0, dy)
-                if self._room_for(moved):
+            first = self._ink(p, lx, ly, 120, place.name, False)
+            left = first.translated(-first.width() - 14, 0)
+            ink = first
+            for dy in (0, 15, -15, 30, -30, 45, -45):
+                moved = next((c for c in (first.translated(0, dy),
+                                          left.translated(0, dy))
+                              if self._room_for(c)), None)
+                if moved is not None:
                     ink = moved
                     break
-            p.drawText(QRectF(lx, ink.y(), 120, 13),
+            p.drawText(QRectF(ink.x(), ink.y(), 120, 13),
                        Qt.AlignmentFlag.AlignLeft, place.name)
             self._labels.append(ink)
 

@@ -1041,6 +1041,121 @@ The work arrived uncommitted with three checks red, all loose wiring:
 `gap_of` was never called, `Stage.learns` was never read, and the data map
 did not list `stages.py`. Finished and measured: **245 suites, 0 failed.**
 
+## 2026-09-21 — afoot: the Verge at walking pace
+
+Everything in SEEDFALL happened at the scale of a hull. The game knew a great
+deal about people and places — six characteristics and a service record for
+every officer, a concourse of ninety-four kinds of door, a hundred and thirty
+pieces of kit with law levels — and never let anybody stand anywhere. Afoot
+is a *Star Frontiers* / *Traveller* style turn-based layer on deck plans of
+the places the game already has (design: `reviews/2026-09-21/afoot.md`).
+
+- **Sites** (`sim/afoot_sites.py`): your own hull, every place alongside
+  (quay, habitat, holding, settlement, a Kith gathering), a derelict seeded
+  per system (six kinds of end, `data/afoot_derelicts.py`), and a struck
+  prize from the battle's dialog ("Board her first").
+- **Plans are derived** (`afoot_plans`, `afoot_gen`, `afoot_furnish`): a
+  hull's rooms are its fittings and complement, a quay's are its open doors.
+  A spine with rooms both sides, lifts between decks, furniture that never
+  blocks a doorway; the same quay is the same quay every visit. A walk in
+  progress is saved whole (`game.afoot`).
+- **People are the people** (`afoot_people`): officers are `lifepath.of`
+  with `person.of`'s kit; the captain gets a derived record for the first
+  time; machines walk by class. Stamina is STR+DEX+END.
+- **One grammar** (`afoot_fight`, `afoot_acts`, `afoot_talk`): every roll is
+  `sim/checks`, every button shows the odds of the terms it rolls. Kit ids
+  carry Traveller's weapon and armour numbers (`data/afoot_arms.py`).
+- **Everybody else** (`afoot_cast`, `afoot_ai`, `data/afoot_folk.py`):
+  keepers behind counters, constables by the law level, fences where it is
+  low, your officers at their stations, whoever a wreck's end left aboard.
+  Noticing, hunting by lift, losing track, nerve, surrender, watch fire.
+- **Talk hands over to the existing doors**: `shore` for the shelf and a
+  night, `crew.hire`, the harbourmaster's desk, the Kith, the Concourse's
+  clinic; bribes and debts only ever take money out.
+- **Incidents** (`afoot_incidents`): the stop-and-search, somebody from an
+  officer's past by name, a bounty hunter, a stowaway, a fault aboard.
+- **Endings bank through the doors that account for each** (`afoot_ends`):
+  kit, cargo, evidence, study; crimes become charges (`dockets.allege`, two
+  new offences, assault and theft); a nest burned out is fighting the Bloom;
+  wounds are kept (`game.wounds`, mended daily in `core/shiptime`); a death
+  is in the crew's book. `sim/prize`'s three doors now work on a hull as
+  well as a battle, so a prize decided on her own deck costs what it costs
+  from the bridge.
+- **The screen** (`ui/afoot_*`, `o` on the rail; *Walk the decks* on the
+  Ship screen, *Walk it* on the Concourse): the deck painted in the
+  programme's palette with fog, reach and path previews; the column of the
+  party, their acts with odds, who is in sight, conversations and counters.
+  Sound through existing cues; bridge verbs in `bridge/afoot.py`.
+
+Defects found while building it, all measured:
+
+- a party leaving a Dry Choir probe could never gather at the hatch — four
+  people in a one-square crawlway are a line of four (`LEAVE_REACH` 4);
+- a raider behind a locked cabin door stayed aware for ever: people who live
+  aboard carry keys, lose track after `LOST_AFTER` rounds, and only enemies
+  on the party's own decks keep a walk in action;
+- two of the party could end a move on one square;
+- the stop's constable never arrived, pathing onto the square somebody stood
+  on (`near=True`);
+- the armour check was averaging misses in, and measured the wrong thing;
+- boarding was a massacre in both directions until only a hit of twice a
+  person's endurance kills outright, NPC armour was tuned, and a boarding
+  party draws the ship's shotgun and jacket.
+
+
+
+## 2026-09-21 — afoot, drawn to shape; yards, hotels, wheels and dens
+
+Asked whether the deck plans correspond to what they are plans of: they did
+not — every plan was the same spine of boxes. Now every one is drawn in its
+own shape from a program of what it has to hold (design, and what was found:
+`../reviews/2026-09-21/afoot.md`, "The rewrite").
+
+- **Regions, not walls** (`sim/afoot_blocks.py`): a blueprint paints what
+  each square is for; walls, doors, links and reachability follow the same
+  way for every shape, reach measured from a deck's own locks and lifts.
+- **Hulls** (`afoot_program`, `afoot_hullplan`, `afoot_latticeplan`): a
+  working program read off the card and the fit — bridge forward, drives
+  aft, fittings at their own mounts, berths for the complement, galley,
+  heads, sickbay, air, water, tanks, stores, lifeboats, suit lockers, holds,
+  the role's rooms — laid inside the hull's own silhouette; nothing dropped,
+  decks added and then the hull drawn longer until it fits; all 39 classes.
+- **Places** (`afoot_placeprog`, `afoot_loops`, `afoot_stationplan`,
+  `afoot_worksplan`, `afoot_groundplan`): a quay's can, arm and mast; a Fleet
+  Hub's spine, four berths and two rings; drum, tower, dome, ring, dug-in
+  works and keel stations read off `works3d`'s traits; settlements and bases
+  open to a breathable sky or sealed in tubes against an airless one.
+- **Establishments** (`data/establishments.py`, `data/venues_establishments.py`,
+  `sim/establishments.py`): fifteen kinds, seeded per system without luck,
+  with signature doors, their own law and tech, a berth on the chart for a
+  station, a yard that builds and refits, and a plan each. Three new wrecks:
+  a quarantined hospital ship, a gutted yard, a ring gone quiet.
+- **Lifts had never linked** — a −1 read as "linked" by the pairing and by
+  every check that looked. Fixed, and the decks are now ridden in the check.
+- **The play-test's rules held** (`tests/test_afoot_fair.py`): the fallen
+  brought home, stun not a wound, nothing rolled twice, a bribe buys one
+  witness, no looting your own, a stop with teeth, what happened this season
+  stays happened, a party that rides a lift together.
+- Four screenshots: a Fleet Hub's ring, a raider's hulk, a NAVIS's upper
+  deck, a gaming wheel's rim (`assets/seedfall/21`–`24`).
+
+Then, from play: the Concourse said the Fleet Hub held a million people and
+listed eighty doors, and the hub walked afoot had twenty-eight of them and
+four homes. The million was the *world's* population printed as the
+station's; a quay now counts its own (`places.QUAY_HEADS`, a Fleet Hub
+36,000) and shows what it serves beside it (`places.population`, one door
+for every screen). And Afoot draws a room for **every** listed door
+(`afoot_placeprog.concourse`), so a Fleet Hub's rings take levels
+(`afoot_stationplan.levels`), a crowded dome digs galleries, a full keel
+station takes a second deck, and residential blocks follow the place's own
+headcount. `afootshapes` now walks every door of every place in a sector.
+
+251 suites, 1,891 checks: one failure on the full run (no tripwire entry for
+the new `afoot_ways`), fixed, and it and the twelve nearest suites re-run
+green. `ruff check seedfall` clean. After the Concourse fix: 251 suites,
+1,893 checks, all green.
+
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one
