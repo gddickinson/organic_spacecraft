@@ -1149,6 +1149,9 @@ for every screen). And Afoot draws a room for **every** listed door
 (`afoot_stationplan.levels`), a crowded dome digs galleries, a full keel
 station takes a second deck, and residential blocks follow the place's own
 headcount. `afootshapes` now walks every door of every place in a sector.
+The hub's rings are drawn at radius 22 (`HUB_RING_R`), narrow enough for
+the screen to letter their rooms, and the README's four Afoot shots were
+retaken on them.
 
 251 suites, 1,891 checks: one failure on the full run (no tripwire entry for
 the new `afoot_ways`), fixed, and it and the twelve nearest suites re-run

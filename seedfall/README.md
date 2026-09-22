@@ -295,7 +295,7 @@ deck plans of the places the game already has.
 
 | A Fleet Hub's ring, walked | A dead hull, boarded |
 |---|---|
-| ![Talking to the keeper of a chandlery on the first ring of a Fleet Hub](../assets/seedfall/21-afoot-quay.png) | ![A boarding party in a raider's hulk, a raider in sight](../assets/seedfall/22-afoot-wreck.png) |
+| ![Talking to the keeper of a chandlery on level 1 of a Fleet Hub's first ring](../assets/seedfall/21-afoot-quay.png) | ![A boarding party in a raider's hulk, a raider in sight](../assets/seedfall/22-afoot-wreck.png) |
 | **Your own hull, in its own shape** | **A gaming wheel, in orbit** |
 | ![The upper deck of a NAVIS: an ellipse fatter aft, rooms along the keel](../assets/seedfall/23-afoot-hull.png) | ![The ring of a gaming wheel: hub, spokes, and the rim of rooms](../assets/seedfall/24-afoot-station.png) |
 

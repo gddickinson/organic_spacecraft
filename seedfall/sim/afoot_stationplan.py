@@ -35,8 +35,9 @@ ARM = 12
 #: How much of a habitation ring's radius is built: rooms, corridor, rooms.
 RIM = 13
 #: The radius a Fleet Hub's rings are drawn at. A ring does not grow to
-#: hold more; it has more levels.
-HUB_RING_R = 24
+#: hold more; it has more levels. 22 keeps a level narrow enough to be
+#: drawn at a size the screen letters its rooms at.
+HUB_RING_R = 22
 #: Floor a can's deck is drawn to hold before the can is given another.
 PER_DECK = 280
 #: What keeps a structure running goes on its plant deck.
