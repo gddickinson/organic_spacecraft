@@ -65,7 +65,7 @@ The walking layer landed (`sim/afoot*.py`, `ui/afoot_*.py`; design in
 place and hull, a party of up to four, Traveller's personal combat on
 squares, talk through the counters that already exist, incidents from state
 the game already keeps, and endings that bank through the existing doors.
-Everything the first list named is closed; item 17 is what is left:
+Everything the first list named is closed; item 18 is what is left:
 
 1. ~~**Counsel and the tutorial do not know it exists.**~~ Landed
    2026-09-22: counsel offers the dead hull adrift here and a word with the
@@ -160,12 +160,29 @@ Everything the first list named is closed; item 17 is what is left:
     Every Concourse door that takes money, and every walk, asks it; the
     Concourse and the Afoot start page offer the ways. Cargo and yard
     business still go by lighter from orbit. `tests/test_crossing.py`.
-17. **The flight computer cannot bring a hull alongside a free port's arm.**
-    Found while adding the breakers' yard: given the conn on a Grand (built
-    like a FREE PORT), it touches the skin at 2 m/s, 607 m from the arm,
-    with or without a berth assigned; lengthening the arm past the contact
-    sphere did not help. By hand, and by the harbour's pilot, it can be
-    done. Wants the approach law read against a single off-axis fitting.
+17. ~~**The flight computer cannot bring a hull alongside a free port's
+    arm.**~~ Closed 2026-09-22. The corridor leg was a straight line to a
+    hold point out on the berth's line, whatever lay between; a Fleet Hub's
+    masts sit on its pole, so that line seldom crossed anything, but a free
+    port's one arm points sideways and an approach from the other side flew
+    through the station. `moorings_steer.around` goes round: at the hold
+    point's distance, turned from the hull's bearing toward it by the
+    tangent angle, re-asked every tick, clear of the core by
+    `bays.CLEARANCE` (now one constant for bays and berths alike). Twelve
+    bearings each: a Grand 8 → 12 alongside, a breakers' yard 9 → 12, a slip
+    10 → 11; over every berth in thirteen sectors, five collisions → none
+    and the mean mass per approach 1.55 → 1.54 t.
+18. **Two approaches the computer still cannot fly.** A **slip's cradles**
+    from one bearing in twelve: nearly stopped, `moorings_steer.lead` leads
+    the turning cradle by up to a quarter turn (pace floored at 0.05 m/s,
+    capped at a quarter period), the hold point swings round, and the hull
+    — already making 1.5 m/s — cuts inside the core. A **hull nursery**
+    from every bearing, and older than any of this: the hull hovers 0.6 km
+    off the gestation shell's mouth with its velocity reading zero every
+    sample while its position moves, and burns 400 t over 314 hours never
+    berthing — something in the step integration or the turning frame, not
+    the aim. Coming alongside by the harbour's pilot (`sim/crossing`) and by
+    hand both still work.
 
 ## Open — the Traveller programme, begun 2026-09-20
 
@@ -344,6 +361,11 @@ Tessellate site", and raw floats in the Port. Still open:
 6. **Run bill on the button as well as the board.** The ship board quotes
    it every beat; the `Run for X` button label could carry it too (stale
    between rebuilds — needs the label refreshed in `sync`).
+7. **`shock`'s volley check flakes under load.** "A volley you take is felt" measured
+   8.0, 9.7 and 11.8 px of shake on three runs alone and 1.03 px once in a
+   full `-j 8` run (2026-09-22), against a 2.0 px floor: the shake it samples
+   depends on timing the check does not pin. Pin its clock, or measure the peak
+   rather than one instant.
 
 ## Ideas — not defects; would make it more fun or easier to pick up
 

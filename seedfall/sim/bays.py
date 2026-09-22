@@ -59,6 +59,13 @@ CORE_SHARE = 0.55
 #: for both hulls, and a constant chosen for one problem broke it.
 SKIN_MARGIN = 0.95
 
+#: How far outside the solid core a straight run has to pass to count as
+#: clear of it — a bay's run to its mouth and any berth's corridor leg
+#: (`moorings_steer.around`) alike. Coarse ticks and a turning aim cut a
+#: skimming line inside the core: measured, a slip's corridor leg that
+#: cleared it by 7 m ended in a collision 332 m from its cradle.
+CLEARANCE = 1.15
+
 #: Which parts of a `works3d` body mean "you go inside this one".
 #:
 #: Read off the shape rather than listed here, so a structure drawn with a
@@ -171,7 +178,7 @@ def in_corridor(conn, spin: float = 0.0) -> bool:
     return off <= bore
 
 
-def _chord_km(a, b) -> float:
+def chord_km(a, b) -> float:
     """The nearest the straight run from `a` to `b` comes to the centre.
 
     The same arithmetic as `conn_step._sweep_min`, asked before the flying
@@ -217,7 +224,7 @@ def approach_aim(conn, hold_km: float, spin: float):
         return None                   # inside the way in: fly to the berth
     way = axis(conn.target, spin)
     point = tuple(c * hold_km for c in way)
-    if _chord_km(conn.pos, point) < hull_km(conn.target) * 1.15:
+    if chord_km(conn.pos, point) < hull_km(conn.target) * CLEARANCE:
         posdir = tuple(c / (math.dist(conn.pos, (0, 0, 0)) or 1.0)
                        for c in conn.pos)
         mid = [a + b for a, b in zip(posdir, way)]

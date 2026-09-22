@@ -55,8 +55,59 @@ def aim(conn) -> tuple:
         return at if way_in is None else way_in
     point = tuple(c * hold / out for c in at)
     if math.dist(conn.pos, point) > _m().reach_km(conn.target):
-        return point
+        return around(conn, point, hold)
     return at
+
+
+#: The least a waypoint round a structure turns the aim, in radians — so a
+#: hull already at the hold point's distance on the wrong side still walks
+#: round rather than holding where it is.
+ROUND_STEP = math.radians(25.0)
+
+
+def around(conn, point, hold: float) -> tuple:
+    """The hold point — or, when the straight run to it would cross the
+    structure, a waypoint round the side.
+
+    **The corridor leg was a straight line to a point on the far side.** A
+    Fleet Hub's masts sit on its pole, so that line seldom crossed anything;
+    a free port puts one arm out sideways, and an approach from the other
+    side flew straight through the station to reach it — measured, the
+    computer met a Grand's skin at 2.5 m/s, 597 m from the arm, with the
+    berth cleared and assigned. So the aim goes round: at the hold point's
+    distance, turned from the hull's own bearing toward the hold point by as
+    far as the line from the hull can reach without coming within
+    `bays.CLEARANCE` of the solid core (`bays.hull_km`), and never less
+    than `ROUND_STEP`. Asked afresh every
+    tick, it walks round ahead of the hull until the way in is clear.
+    """
+    from . import bays
+    pos = tuple(conn.pos)
+    core = bays.hull_km(conn.target) * bays.CLEARANCE
+    if bays.chord_km(pos, point) > core:
+        return point
+    dist = math.dist(pos, (0.0, 0.0, 0.0))
+    if dist < 1e-9:
+        return point
+    u = tuple(c / dist for c in pos)
+    w = tuple(c / hold for c in point)
+    gap = math.acos(max(-1.0, min(1.0, sum(a * b for a, b in zip(u, w)))))
+    turn = min(gap, max(ROUND_STEP, math.acos(min(1.0, hold / dist))))
+    return tuple(c * hold for c in _slerp(u, w, turn, gap))
+
+
+def _slerp(u, w, turn: float, gap: float) -> tuple:
+    """`u` turned `turn` radians toward `w` (`gap` apart), as a unit vector.
+    Dead opposite, any way round will do: it goes over the top."""
+    side = tuple(b - a * math.cos(gap) for a, b in zip(u, w))
+    size = math.dist(side, (0.0, 0.0, 0.0))
+    if size < 1e-9:
+        pole = (0.0, 0.0, 1.0) if abs(u[2]) < 0.9 else (1.0, 0.0, 0.0)
+        dot = sum(a * b for a, b in zip(u, pole))
+        side = tuple(p - a * dot for a, p in zip(u, pole))
+        size = math.dist(side, (0.0, 0.0, 0.0))
+    v = tuple(c / size for c in side)
+    return tuple(a * math.cos(turn) + b * math.sin(turn) for a, b in zip(u, v))
 
 
 def lead(conn, found=None) -> tuple:

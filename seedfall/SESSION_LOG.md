@@ -1217,6 +1217,22 @@ kilometres off the Fleet Hub on the flight deck while its doors are open.
 
 255 suites, 1,920 checks, all green; `ruff` clean.
 
+## 2026-09-22 — round the station to the Grand's arm (item 17)
+
+The flight computer's corridor leg ran straight at a hold point beside the
+berth; a free port's one sideways arm put that line through the station, so
+a Grand could not be flown to from its far side. `moorings_steer.around`
+goes round at the hold point's distance, clear of the core by
+`bays.CLEARANCE` (one constant now for bays and berths). Twelve bearings: a
+Grand 8 → 12, a breakers' yard 9 → 12, a slip 10 → 11; thirteen sectors'
+berths, five collisions → none. The duplicate chord arithmetic went to
+`bays.chord_km`. Left open as item 18: a slip's cradle led a quarter turn
+at a crawl, and a hull nursery the computer has never been able to reach.
+New check in `moorings`. Full run: 255 suites, 1,921 checks, one failure —
+`shock`'s volley check read 1.03 px of shake under `-j 8`, green on three
+runs alone (8.0–11.8 px); a timing flake unrelated to this, logged in
+IMPROVEMENTS' defects list.
+
 254 suites, 1,910 checks: one failure on the full run — `pilotscreen` took
 the first anchorage in view for the Hub, and it is now a spacers' rest
 whose one berth a trader bound for it holds, so the hand-over was rightly

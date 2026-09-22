@@ -194,3 +194,42 @@ def run(suite: Suite) -> None:
                                      conn_sim.ALONGSIDE_RATE)
         return ("near and slow on the far side: refused; near and slow at the "
                 "fitting: moored")
+
+    @check("the computer goes round a structure to a berth on its far side")
+    def _():
+        # A free port puts out one arm, sideways, and a Grand is built like
+        # one; a breakers' yard is an orbital drydock with its cradles out on
+        # one side. From the far side the straight run to the corridor went
+        # through the station — measured, a Grand's skin at 2.5 m/s, 597 m
+        # from the arm, and 4 and 3 bearings of 12 lost. Every bearing now,
+        # the far one first.
+        from ..sim import berthing, bays
+        from . import afoot_kit
+        done, worst = [], 0.0
+        for kind in ("grand_hotel", "breakers_yard"):
+            game, site = afoot_kit.at_establishment((kind,))
+            game.ship.cargo["volatiles"] = 400
+            flight.hold_at(game, flight.current_body(game))
+            contact = next(c for c in track_sim.contacts(game)
+                           if c.kind == "anchorage" and c.name == site.name)
+            for n in range(6):
+                conn, why = berthing.begin(game, contact)
+                assert conn is not None, why
+                _name, at = moorings.points(conn.target)[0]
+                out = math.dist(at, (0.0, 0.0, 0.0)) or 1.0
+                turn = math.pi + n * math.tau / 6       # far side first
+                x, y = at[0] / out, at[1] / out
+                conn.pos = [12.0 * (x * math.cos(turn) - y * math.sin(turn)),
+                            12.0 * (x * math.sin(turn) + y * math.cos(turn)),
+                            0.0]
+                conn.vel = [0.0, 0.0, 0.0]
+                pilot_sim.fly(conn, "close", 8000)
+                assert conn.outcome == "alongside", (
+                    kind, n, conn.outcome, round(conn.range_km, 3),
+                    conn.log[-1])
+                assert conn.range_km > bays.hull_km(conn.target) * 0.99
+                worst = max(worst, conn.opening_rcs - conn.rcs)
+                game.docking = game.conn = None
+            done.append(contact.berth)
+        return (f"{', '.join(done)}: alongside from six bearings each, the "
+                f"far side first; the dearest {worst:.1f} t of reaction mass")
