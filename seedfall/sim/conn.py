@@ -191,6 +191,10 @@ class Conn:
     #: Set once the chronicle has been charged for this approach.
     landed: bool = False
     log: list = field(default_factory=list)
+    #: Your own other hull, placed live in this frame each beat — the launch
+    #: seen from the ship, or the ship seen from the launch
+    #: (`sim/sky.company`). Not part of the approach's own static sky.
+    company: list = field(default_factory=list)
     #: Set once, when the approach is resolved one way or the other.
     outcome: str = ""
     #: Damage taken coming in, for the caller to charge.

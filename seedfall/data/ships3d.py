@@ -126,9 +126,29 @@ def unmarked() -> tuple:
 #: wedge that explains nothing is exactly the right picture. What you cannot do
 #: is tell a raider from a stranger at four kilometres — which is the tension
 #: the encounter is built on.
+def launch() -> tuple:
+    """Your own small craft: stubby, flat-bellied, legs folded under.
+
+    One silhouette for everything off the cradle. At the range a launch is
+    ever seen from the hull she left — alongside, or a few kilometres out —
+    what reads is the proportion: wide and short where a courier is long and
+    thin, which is the difference between something built to cross a system
+    and something built to set down on a world and get off it again.
+    """
+    parts = [
+        _tube(0.14, -0.16, 0.13, 0.30, 8, 0, PLATE, PLATE_DARK),
+        _cap(0.13, 0.30, 8, 0, LUMEN, True),
+        _box(0.30, 0.05, 0.05, PLATE_DARK, PLATE_DARK, dz=-0.11),
+        _box(0.07, 0.07, 0.10, PLATE_DARK, PLATE_DARK, dz=-0.15),
+    ]
+    parts += _bell(0.12, -0.16)
+    return _build([(v, f) for v, f in parts])
+
+
 SHIPS = {"courier": courier(), "trader": trader(),
          "prospector": prospector(), "patrol": patrol(),
-         "raider": unmarked(), "unmarked": unmarked()}
+         "raider": unmarked(), "unmarked": unmarked(),
+         "launch": launch()}
 
 DEFAULT_SHIP = "unmarked"
 

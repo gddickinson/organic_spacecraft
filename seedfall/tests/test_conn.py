@@ -246,6 +246,9 @@ def run(suite: Suite) -> None:
                              "not happened",
             "struck_dv": "the shove the other body took, likewise the real "
                          "approach's and not the trial's",
+            "company": "your own other hull, placed live each beat by "
+                       "`sky.company` — a forecast is not a beat and a twin "
+                       "has nobody keeping station on it",
             "fired_axis": "what the *ship* fired, which a trial run has not",
             "fired_main": "likewise — a twin's burn is not the ship's",
             "fired_share": "likewise",

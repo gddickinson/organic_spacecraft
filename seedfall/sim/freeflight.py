@@ -315,6 +315,12 @@ def hold_course(game, conn) -> None:
     contact = marked(game, conn)
     if contact is not None:
         steer(game, conn, contact)
+    # And where your own other hull has got to (`sim/sky.company`): the
+    # launch seen from the bridge, the ship seen from the launch. Every
+    # beat, because it is the one thing in the sky that moves while you are
+    # watching it.
+    from . import sky as sky_sim
+    sky_sim.refresh_company(game, conn)
 
 
 def secure(game, conn) -> str:

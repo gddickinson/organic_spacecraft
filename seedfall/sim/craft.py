@@ -331,6 +331,11 @@ def beat(game, axis: str | None = None, main: bool = False,
         if conn.over:
             break
     bill(game)
+    # The bridge's own window is not beating while the cockpit is, so its
+    # view of her is refreshed from here too (`sim/sky.company`).
+    from . import sky as sky_sim
+    if getattr(game, "conn", None) is not None:
+        sky_sim.refresh_company(game, game.conn)
     craft.hp = min(craft.hp, kind_of(craft).hull)
     out = {"ok": True, "km": round(out_km(game), 2),
            "fuel": round(craft.fuel, 2), "outcome": conn.outcome or ""}

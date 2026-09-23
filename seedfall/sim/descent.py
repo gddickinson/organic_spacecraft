@@ -94,6 +94,33 @@ def can_land(game, craft, body) -> tuple:
     return True, ""
 
 
+def in_orbit(game, body=None):
+    """The world the hull is in orbit of, or None.
+
+    `flight.hold_at` writes `game.orbit_body` and the Helm's transfer is how
+    a captain gets there, so this is a read of a state that has existed
+    since the flight layer did — it had simply never been asked by anything
+    that puts people on a world. With a body, True when it is *that* world.
+    """
+    here = getattr(game, "orbit_body", None)
+    if body is not None:
+        return here == getattr(body, "id", None)
+    return next((b for b in game.system.bodies if b.id == here), None)
+
+
+def says(game, body=None) -> str:
+    """One line for a screen: where she is, and what that allows."""
+    world = in_orbit(game)
+    if world is None:
+        return ("Not in orbit of anything. The Helm's transfer takes her to "
+                "a world; a party goes down from there.")
+    craft = best(game, world)
+    if craft is None:
+        return f"In orbit of {world.name}. " + why_none(game, world)
+    return (f"In orbit of {world.name} — {craft.name} can take "
+            f"{party_room(craft)} down.")
+
+
 def best(game, body):
     """The craft a captain would send down: the one that can, with the most
     room in her. `None` if nothing aboard will do it."""

@@ -18,6 +18,11 @@ def build(view) -> None:
     """The tab: one panel a craft, and the flight line under them."""
     game = view.game
     carried = craft_sim.aboard(game)
+    # Where the hull is, because it is what a lander's errand depends on:
+    # the Helm's transfer puts her in orbit of a world and a party goes down
+    # from there (`sim/descent.says`).
+    from ..sim import descent as descent_sim
+    view.col.addWidget(note(descent_sim.says(game)))
     if not carried:
         view.col.addWidget(Panel("No cradles").add(
             note("This hull carries no small craft. A yard fits a cradle "

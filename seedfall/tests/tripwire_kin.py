@@ -174,7 +174,7 @@ KIN = {
     "weave": ("weave",), "gates": ("weave",),
     "instruments": ("conn",), "models3d": ("cameras",),
     "render3d": ("cameras",), "gunfire": ("gunfire",),
-    "sky": ("cameras", "worlds"), "worlds3d": ("worlds",),
+    "sky": ("cameras", "worlds", "skycompany"), "worlds3d": ("worlds",),
     "starclasses": ("worlds", "orbits"),
     "programmes": ("programmes",),
     "consorts": ("combat", "screening", "company"),

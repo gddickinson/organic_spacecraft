@@ -251,6 +251,13 @@ class Viewport(painting.Painted, QWidget):
         seen = getattr(conn, "sky", None)
         if not seen:
             return
+        # Your own other hull, placed live this beat (`sim/sky.company`):
+        # the launch seen from the ship, the ship seen from the launch. It
+        # is not in the static sky because it is the one thing out there
+        # that moves while you watch.
+        company = list(getattr(conn, "company", ()) or ())
+        if company:
+            seen = list(seen) + company
         fwd, right, up = cam
         camera = render3d.Camera(at=conn.pos, forward=fwd, up=up,
                                  width=w, height=h, half_fov=HALF_FOV)

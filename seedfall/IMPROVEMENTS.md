@@ -420,8 +420,9 @@ The order, each piece playable on its own:
    it — `ui/expedition_view.ZoneMap` for picking a cell, `ui/afoot_canvas`
    for fog and reach — with the lander's pad where she set down, the
    vehicle's range as a ring, and the sites anybody has seen.
-7. **Orbit, and seeing it happen.** Asked for while stage three was
-   landing: *a way to navigate the ship into orbit around a world, launch
+7. **Orbit, and seeing it happen** — *the viewports half is closed
+   2026-09-22* (`sim/sky.company`, suite `skycompany`). Asked for while
+   stage three was landing: *a way to navigate the ship into orbit around a world, launch
    the lander to the surface from there, and see it out of the viewports —
    from the lander (which should see the mother ship and whatever else is
    about) and from the ship (which should see the lander leave and come
@@ -436,6 +437,28 @@ The order, each piece playable on its own:
    manoeuvre), and **each hull in the other's sky**: a contact for the
    lander seen from the ship and for the ship seen from the lander, so both
    viewports draw the thing that is actually happening.
+
+   **Closed so far:** each hull is in the other's sky. `sim/sky.build`
+   places the system round the target *once* and says why — bodies move on
+   a scale of months and an approach is over in hours — and a launch is the
+   one thing out there that moves while you watch, so `sky.company` places
+   your own other hull live, every beat, in whichever frame is asking
+   (`freeflight.hold_course` and `craft.beat` are the two clocks that
+   refresh it). Both windows agree on the range to the kilometre. A `Sight`
+   now knows where it is being *looked at from*, because the static sky is
+   judged from the frame's origin and a launch alongside would otherwise
+   fill the window at every range: measured, the ship reads 45° across at
+   200 m, 4.4° at 2 km and a point of light at 60. And both are drawn as
+   themselves — your hull's own family silhouette out of `data/hulls3d`,
+   and a new stubby launch shape — rather than as the unmarked hull every
+   stranger gets. The Helm's transfer was already the way into orbit
+   (`game.orbit_body`); the Cradle tab now says which world she is in orbit
+   of and what that allows (`descent.says`).
+
+   **Still open here:** a descent flown rather than charged. Putting a party
+   down still spends `fieldwork`'s three days rather than flying the lander
+   to the surface, so the world grows in her window and then the screen
+   changes.
 
 Two of the captain's own projects were read for ideas rather than code:
 a world simulator (seeded value noise, a Whittaker biome table, a

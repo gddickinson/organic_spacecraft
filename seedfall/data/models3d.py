@@ -357,9 +357,25 @@ def for_sight(kind: str, look: str) -> tuple:
     much as a gate.
     """
     from .berths3d import berth_mesh
-    from .ships3d import ship_mesh
+    from .ships3d import SHIPS, ship_mesh
     if kind == "anchorage":
         return berth_mesh(look)
     if kind == "hull":
+        # **Your own hulls read as themselves.** Everybody else's traffic is
+        # keyed by errand, which is all the sky knows about a stranger; the
+        # ship you are standing in and the launch you flew off it are known
+        # exactly, so they are drawn from what they are — the chassis's own
+        # family silhouette (`data/hulls3d`) and the launch shape — rather
+        # than as one more unmarked hull (`sim/sky.company`).
+        from .chassis import CHASSIS_BY_ID
+        from .craft import CRAFT_BY_ID
+        if look in SHIPS:
+            return ship_mesh(look)
+        chassis = CHASSIS_BY_ID.get(look)
+        if chassis is not None:
+            from .hulls3d import mesh_for_chassis
+            return mesh_for_chassis(chassis)
+        if look in CRAFT_BY_ID:
+            return ship_mesh("launch")
         return ship_mesh(look)
     return berth_mesh("quay")

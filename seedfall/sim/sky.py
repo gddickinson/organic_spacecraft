@@ -71,10 +71,18 @@ class Sight:
     #: blue-white A-type and a red dwarf had coronae of the same hue as their
     #: own discs and the pair of colours did one colour's work.
     halo: str = ""
+    #: Where it is being *looked at from*, in the same frame — the viewer's
+    #: own place. The static sky leaves this None because everything in it
+    #: is placed around the target and judged from the target: the approach
+    #: is over before a body moves. A live sight (`company`) is a hull a few
+    #: kilometres off the camera and an AU from the frame's origin, so it
+    #: has to be measured from the eye or a launch alongside reads as a
+    #: world filling the window.
+    seen_from: tuple | None = None
 
     @property
     def range_km(self) -> float:
-        return math.dist(self.at, (0.0, 0.0, 0.0))
+        return math.dist(self.at, self.seen_from or (0.0, 0.0, 0.0))
 
     @property
     def apparent_deg(self) -> float:
@@ -286,3 +294,77 @@ def note(sky) -> str:
     biggest = max(seen, key=lambda s: s.apparent_deg)
     return (f"{len(seen)} body/bodies in view; {biggest.name} is "
             f"{biggest.apparent_deg:.1f}° across.")
+
+
+# ── your own hulls, live ───────────────────────────────────────────────────
+
+#: A craft's own size, in metres, for the sky to draw her at. A launch is
+#: about the length of a bus; `data/craft.CraftClass` carries a mass and not
+#: a length, and one metre a tonne is close enough for something that is a
+#: point of light past a few kilometres anyway.
+CRAFT_M_PER_T = 1.0
+
+
+def company(game, conn) -> list:
+    """**Your own hulls, placed live in this conn's frame.**
+
+    The sky is built once when an approach opens, because bodies move on a
+    scale of months and an approach is over in hours. Your own launch does
+    not: she leaves the cradle, crosses ten thousand kilometres and comes
+    back inside one flight, and both windows are supposed to show it — the
+    ship watching her go, and her watching the ship shrink.
+
+    So this is computed fresh whenever the clock beats (`sim/craft.beat`,
+    `ui/flight_clock`), which costs one or two entries rather than the whole
+    system. Which hull is drawn is decided by whose conn this is: the
+    sortie's conn sees the ship, the ship's conn sees the sortie.
+    """
+    from . import craft as craft_sim
+    from . import flight
+    from . import freeflight
+    out: list = []
+    if conn is None or game is None:
+        return out
+    craft = craft_sim.flying(game)
+    sortie = craft_sim.sortie(game)
+    mine = sortie is not None and conn is sortie
+    try:
+        here = freeflight.where(game, conn)
+    except Exception as err:                           # noqa: BLE001
+        from ..core.guard import swallowed
+        swallowed("sky.company placing the viewer", err)
+        return out
+    # The frame's origin: where the conn is, less how far it has flown from
+    # the point its sky was built around.
+    origin = tuple(a - (b / AU_KM) for a, b in zip(here, conn.pos))
+
+    eye = tuple(float(p) for p in conn.pos)
+
+    def seat(at_au, radius_km: float) -> tuple:
+        return tuple((a - b) * AU_KM for a, b in zip(at_au, origin))
+
+    if mine and craft is not None:
+        ship = game.ship
+        from .thrusters import half_length_m
+        radius = max(0.02, half_length_m(ship) / 1000.0)
+        out.append(Sight(name=ship.name, kind="hull",
+                         at=seat(flight.ship_position(game), radius),
+                         radius_km=radius, tint="chloro",
+                         look=getattr(ship, "chassis", ""), seen_from=eye))
+    elif not mine and craft is not None and sortie is not None:
+        kind = craft_sim.kind_of(craft)
+        radius = max(0.005, kind.mass_t * CRAFT_M_PER_T / 2000.0)
+        out.append(Sight(name=craft.name, kind="hull",
+                         at=seat(freeflight.where(game, sortie), radius),
+                         radius_km=radius, tint="lumen", look=kind.id,
+                         seen_from=eye))
+    return out
+
+
+def refresh_company(game, conn) -> list:
+    """Put `company` on the conn, where a window can draw it without a
+    chronicle in hand. The one writer."""
+    if conn is None:
+        return []
+    conn.company = company(game, conn)
+    return conn.company

@@ -1430,6 +1430,19 @@ now closes its pop-outs too (`ui/popout.close_all`), which is the same
 lesson from the other end: a cockpit holds a viewport and must not outlive
 the window that opened it.
 
+## Each hull in the other's sky, 2026-09-22
+
+A player asked to fly into orbit, send a lander down, and see it from both
+windows. The flying was there (the Helm's transfer, `game.orbit_body`) and
+so was the drawing (`ui/viewport` off any `Conn`, and a sortie is a conn).
+What was missing was the one thing in the sky that moves while you watch:
+`sim/sky.company` places your own other hull live every beat, in whichever
+frame asks. A `Sight` learned where it is being looked at from — the static
+sky is measured from the frame's origin, which would have made a launch
+alongside fill the window at any range. Both are drawn as themselves now:
+the chassis's own silhouette and a new launch shape. New suite `skycompany`
+(5 checks).
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one
