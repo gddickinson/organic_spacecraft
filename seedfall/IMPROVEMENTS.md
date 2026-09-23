@@ -481,10 +481,52 @@ The order, each piece playable on its own:
    (`game.orbit_body`); the Cradle tab now says which world she is in orbit
    of and what that allows (`descent.says`).
 
-   **Still open here:** a descent flown rather than charged. Putting a party
-   down still spends `fieldwork`'s three days rather than flying the lander
-   to the surface, so the world grows in her window and then the screen
-   changes.
+   **And now the descent itself is flown** (`sim/descent_flight.py`). The
+   surface map's two buttons are the whole of it: *Send the party down* is
+   the order to an officer that has always cost three days, and *Fly her
+   down yourself* opens the cockpit with the world in the window. It is the
+   flight model already written — a `Conn` on the body fitted with the
+   craft's own numbers, beaten by `sim/craft.beat`, with a `down` mode in
+   the one flight computer (`flightdeck.computer`) beside `run`, `close`
+   and `orbit`.
+
+   Three things had to be measured rather than assumed, and each was a real
+   fault the first draft shipped:
+
+   - **The de-orbit cannot be flown against a sixty-second tick.** Cast off
+     from a 320 km orbit of a heavy world a lander carries five kilometres
+     a second across the line of sight; the drive takes 1,294 m/s off a
+     tick and the world puts 780 back, so she spent the whole of the sky
+     turning the orbit round and met the ground at three thousand metres a
+     second. Eleven of thirty-eight worlds were unlandable for that reason
+     alone. It is spent before the cockpit opens now, and charged to her
+     tank at the rate every other burn is charged at.
+   - **A descent law must know what the world adds inside the tick.** The
+     drive fires once at the top of the minute and gravity owns the other
+     fifty-nine seconds, so a law that asks for a rate is always `g · TICK`
+     behind: measured, 476 m/s where 144 was asked for, and nine worlds in
+     twelve sectors were wrecks that should have been landings.
+   - **And it must be a ceiling she trims against, not a rate she chases.**
+     Chasing one means burning to speed her *up* whenever she is under it,
+     which points the other way, and every swing of the nose costs a whole
+     tick with no thrust in it. The tick lost at ten kilometres was the one
+     that put her into the ground at 454 m/s.
+
+   Where it ends is a **gate** three ticks of the world's own gravity above
+   the surface — 2 km on an asteroid, 45 on a heavy world — because below
+   that this clock cannot represent a powered descent at all: to end a tick
+   at `landing.SET_DOWN` on a world pulling 10.4 m/s² the tick must *begin*
+   within 0.77 m of the ground. Through the gate with no more on her than
+   the drive cancels in one burn and she is on her legs; faster and she is
+   a wreck, with everybody who rode her down hurt. The margin is not a new
+   number: `data/craft.LIFT_RESERVE` already refuses her any world her
+   thrust is under 1.35 times the pull of, so the drive is always at least a
+   third stronger than a tick of free fall.
+
+   Measured across twenty sectors: **74 of 74 descents flown by the descent
+   law put her on her legs**, in six to thirty minutes of flight. Hands
+   off, 10 of 33 — twelve of them lost with nothing left of her. The stake
+   is real and the tool works.
 
 Two of the captain's own projects were read for ideas rather than code:
 a world simulator (seeded value noise, a Whittaker biome table, a

@@ -148,10 +148,15 @@ class WorldMapView(View):
                    "What this map shows is the ground they will be "
                    "walking: pick a cell and set down on it."))
         ok, why = self._may_land(game, body)
-        down = button("Set down here", self._land, kind="primary",
-                      enabled=ok, why=why)
+        fly = button("Fly her down yourself", self._fly, kind="primary",
+                     enabled=ok, why=why)
+        fly.setObjectName("surface_fly")
+        down = button("Send the party down", self._land, enabled=ok, why=why)
         down.setObjectName("surface_land")
-        p.add(down)
+        p.add_buttons(fly, down)
+        p.add(note("Flying her down puts you in the cockpit for the "
+                   "descent, and the minutes are the flight's. Sending "
+                   "them is an order to an officer, and costs three days."))
         return p
 
     def _may_land(self, game, body) -> tuple:
@@ -170,9 +175,50 @@ class WorldMapView(View):
             return False, descent_sim.why_none(game, body)
         return True, ""
 
+    def _ask_load(self):
+        """How much goes down with them, or None if they stay aboard."""
+        from ..data.expedition import SUPPLY_LOADS
+        return self.win.dialog(
+            "How long down there?",
+            [label("The lander's hold carries the supplies, the vehicle and "
+                   "the camp. What will not fit stays aboard.", "",
+                   wrap=True)],
+            [(row[0], n) for n, row in enumerate(SUPPLY_LOADS)]
+            + [("Stay aboard", None)])
+
+    def _party(self, game, craft) -> list:
+        """Who rides down: as many as her seats leave room for."""
+        from ..sim import descent as descent_sim
+        room = descent_sim.party_room(craft)
+        return [o.id for o in game.officers][:room]
+
+    def _fly(self) -> None:
+        """Take her down yourself (`sim/descent_flight`)."""
+        from ..sim import descent as descent_sim
+        from ..sim import descent_flight
+        game = self.game
+        body = self.body()
+        ok, why = self._may_land(game, body)
+        if not ok:
+            self.win.toast(why, "warn")
+            return
+        craft = descent_sim.best(game, body)
+        picked = self._ask_load()
+        if picked is None:
+            return
+        got = descent_flight.begin(
+            game, craft, game.system.bodies.index(body), cell=self.cell,
+            load=int(picked), officer_ids=self._party(game, craft))
+        if not got.get("ok"):
+            self.win.toast(got.get("why", "She stays on the cradle."), "warn")
+            return
+        self.win.refresh()
+        from .craft_window import open_cockpit
+        open_cockpit(self.win)
+
     def _land(self) -> None:
         """Put a party down on the cell in hand (`sim/fieldwork`)."""
-        from ..data.expedition import SUPPLY_LOADS
+        from ..sim import descent as descent_sim
         from ..sim import fieldwork as fieldwork_sim
         game = self.game
         body = self.body()
@@ -180,19 +226,13 @@ class WorldMapView(View):
         if not ok:
             self.win.toast(why, "warn")
             return
-        picked = self.win.dialog(
-            "How long down there?",
-            [label("The lander's hold carries the supplies, the vehicle and "
-                   "the camp. What will not fit stays aboard.", "",
-                   wrap=True)],
-            [(row[0], n) for n, row in enumerate(SUPPLY_LOADS)]
-            + [("Stay aboard", None)])
+        picked = self._ask_load()
         if picked is None:
             return
         index = game.system.bodies.index(body)
         got = fieldwork_sim.launch_expedition(
-            game, index, [o.id for o in game.officers], load=int(picked),
-            at=self.cell)
+            game, index, self._party(game, descent_sim.best(game, body)),
+            load=int(picked), at=self.cell)
         if not got.get("ok"):
             self.win.toast(got.get("why", "She stays on the cradle."), "warn")
             return

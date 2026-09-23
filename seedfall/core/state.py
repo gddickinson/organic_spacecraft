@@ -147,6 +147,11 @@ class Game:
     camps: list = field(default_factory=list)
     sortie: object | None = field(default=None, compare=False,
                                   metadata={"transient": True})
+    #: A lander on her way down to a world, while one is being flown
+    #: (`sim/descent_flight.py`). Transient beside the sortie it rides with:
+    #: a chronicle saved halfway down comes back with her on the cradle.
+    descent: object | None = field(default=None, compare=False,
+                                   metadata={"transient": True})
     #: The engagement, while one is running. Like the envoy and the situation
     #: above, it is something you can be in the middle of, so it lives here —
     #: and it has to, because rules ask whether the shooting has started

@@ -21,6 +21,7 @@ from ..core.util import reaction_mass
 from ..data.craft import ROLES
 from ..data.mounts import AXES
 from ..sim import craft as craft_sim
+from ..sim import descent_flight
 from ..sim import engage as engage_sim
 from . import theme
 from .viewport import Viewport
@@ -33,6 +34,10 @@ BEAT_MS = 250
 #: flown in open space, not on an approach to a berth.
 MODES = (("run", "Run for it"), ("brake", "All stop"),
          ("null", "Hold station"))
+#: And the one a descent adds, which replaces them: a lander on her way
+#: down has nothing to run at and nowhere to hold station
+#: (`sim/descent_flight.py`).
+DESCENT_MODES = (("down", "Take her down"), ("brake", "Hold her off"))
 
 
 class CraftWindow(QDialog):
@@ -131,6 +136,13 @@ class CraftWindow(QDialog):
         p.add_row("Speed", f"{conn.speed:,.1f} m/s")
         p.add_row("Off the cradle", f"{craft_sim.out_km(self.game):,.2f} km")
         p.add_row("Flown", f"{conn.elapsed / 3600:,.2f} h")
+        if descent_flight.under_way(self.game) is not None:
+            p.add_row("Height", f"{descent_flight.height_km(conn):,.0f} km")
+            catch = descent_flight.catch_rate(conn)
+            p.add_row("The drive takes off", f"{catch:,.0f} m/s",
+                      "" if conn.speed <= catch else "warn")
+            p.add_row("Hold her under", f"{descent_flight.ceiling(conn):,.0f} m/s")
+            p.add_row("She lands at", f"{descent_flight.gate_km(conn):,.1f} km")
         got = self.target()
         if got is not None:
             p.add_row(got.name,
@@ -154,11 +166,14 @@ class CraftWindow(QDialog):
                        self._toggle_drive,
                        kind="primary" if conn.arm_main else "flat")
         drive.setObjectName("craft_drive")
+        offered = (DESCENT_MODES
+                   if descent_flight.under_way(self.game) is not None
+                   else MODES)
         modes = [button(("▶ " if conn.auto == mode else "") + text,
                         lambda _=False, m=mode: self._auto(m),
                         kind="primary" if conn.auto == mode else "flat")
-                 for mode, text in MODES]
-        for mode, b in zip(MODES, modes):
+                 for mode, text in offered]
+        for mode, b in zip(offered, modes):
             b.setObjectName(f"craft_auto_{mode[0]}")
         p.add_buttons(drive, *modes)
         clock = button("Stop clock" if self.running else "Run clock",
@@ -235,7 +250,25 @@ class CraftWindow(QDialog):
         if not got.get("ok") or got.get("outcome"):
             self.running = False
             self.timer.stop()
+        if got.get("arrival") is not None:
+            self._arrived(got["arrival"])
+            return
         self.refresh()
+
+    def _arrived(self, got: dict) -> None:
+        """The descent is over, one way or the other (`descent_flight`)."""
+        self.win.refresh()
+        if got.get("down"):
+            self.win.toast("She is down. The party is walking out of her."
+                           if got.get("party") else
+                           f"She is down. {got.get('why', '')}", "good")
+            self.close()
+            self.win.go("ground" if got.get("party") else "system")
+            return
+        self.win.toast("That was not a landing." if not got.get("lost")
+                       else "She went in. Nobody is walking out of her.",
+                       "bad")
+        self.close()
 
     def _pick(self, contact_id: str) -> None:
         self.aim = contact_id

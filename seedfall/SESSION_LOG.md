@@ -1460,6 +1460,41 @@ history that leaves ruins behind. **Set down here** closes the loop — the
 landing zone is laid out of the picked cell and its neighbours, so what the
 map showed is what the party walks.
 
+## Flying her down, 2026-09-22
+
+The question that closed stage seven: *how does the player pilot a ship down
+to the surface of a planet?* They could not — `fieldwork` spent three days
+and the party was on the ground, and the cockpit had no control that pointed
+at a world. `sim/descent_flight.py` is the descent as a flight: a `Conn` on
+the body fitted with the craft's own numbers, beaten by `sim/craft.beat`,
+with a `down` mode in the one flight computer. The surface map now offers
+both doors — *Fly her down yourself* and *Send the party down*.
+
+Three faults the first draft shipped, each measured rather than reasoned:
+
+- **The de-orbit cannot be flown against a sixty-second tick.** Five km/s
+  across the line of sight, 1,294 m/s of drive a tick and 780 back from the
+  world: she spent the sky turning the orbit round and met the ground at
+  3,000 m/s. Eleven of thirty-eight worlds were unlandable for that alone.
+  It is spent before the cockpit opens now, and charged to her tank.
+- **A descent law must know what the world adds inside the tick** — the
+  drive fires once at the top of the minute and gravity owns the other
+  fifty-nine seconds. Ignored, every arrival was `g · TICK` too fast: 476
+  m/s where 144 was asked for.
+- **It must be a ceiling she trims against, not a rate she chases.** Chasing
+  one burns to speed her up, which points the other way, and each swing of
+  the nose costs a whole tick with no thrust in it.
+
+It ends at a **gate** three ticks of the world's own gravity up, because
+below that this clock cannot represent a powered descent at all: to end a
+tick at `SET_DOWN` on a world pulling 10.4 m/s² the tick must *begin* within
+0.77 m of the ground. Through it under the drive's one-burn authority and
+she is on her legs; faster and she is a wreck with everybody aboard hurt.
+That margin is `data/craft.LIFT_RESERVE` doing a second job it turned out to
+already be sized for. Measured over twenty sectors: **74 of 74 flown
+descents land**; hands off, 10 of 33, twelve of them lost. New suite
+`descentflight` (8 checks).
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one

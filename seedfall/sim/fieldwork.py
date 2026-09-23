@@ -162,8 +162,16 @@ def seize_notes(game, faction_id: str, rng) -> dict | None:
 
 
 def launch_expedition(game, body_index: int, officer_ids: list[int],
-                      load: int = 1, at=None) -> dict:
-    """Put a landing party down. Costs biomass for supplies and time to descend."""
+                      load: int = 1, at=None, flown: bool = False) -> dict:
+    """Put a landing party down. Costs biomass for supplies and time to descend.
+
+    `flown` is a descent the captain took themselves
+    (`sim/descent_flight.py`): the craft is already on her legs and the
+    minutes she took are already on the clock, so this neither takes her off
+    the cradle again nor charges the three days an order to an officer
+    costs. Everything else — the supplies, the vehicle, the camp, the zone —
+    is the same, because there is one way a party ends up on the ground.
+    """
     from . import tutorial_watch
     tutorial_watch.deed(game, "landed")
     from . import craft as craft_sim
@@ -182,7 +190,10 @@ def launch_expedition(game, body_index: int, officer_ids: list[int],
     # that has to be built for it and able to lift off this world again
     # (`sim/descent.py`).
     from . import descent as descent_sim
-    lander = descent_sim.best(game, body)
+    # A descent that was flown arrives in the craft that flew it — she is on
+    # her legs already, and `descent.best` only ever names one on the cradle.
+    lander = (descent_sim.on_the_ground(game) if flown
+              else descent_sim.best(game, body))
     if lander is None:
         return {"ok": False, "why": descent_sim.why_none(game, body)}
     kind = craft_sim.kind_of(lander)
@@ -209,7 +220,8 @@ def launch_expedition(game, body_index: int, officer_ids: list[int],
     days = min(days, kind.days)
 
     add_cargo(game.ship, "biomass", -tonnes)
-    descent_sim.take_down(game, lander)
+    if not flown:
+        descent_sim.take_down(game, lander)
     # And whatever will fit beside the supplies to cross the ground in
     # (`sim/vehicles.py`). Nothing that fits is nothing lost: a party on
     # foot is the state this game shipped in.
@@ -222,7 +234,8 @@ def launch_expedition(game, body_index: int, officer_ids: list[int],
     spare = kind.hold_t - tonnes - (vehicles_sim.kind_of(ride).mass_t
                                     if ride is not None else 0.0)
     shelter = camps_sim.best_for(game, lander, spare)
-    game.advance_days(3)
+    if not flown:
+        game.advance_days(3)
     if game.dead:
         return {"ok": True, "dead": True}
     game.expedition = exp_sim.generate(game.rng("landing"), game.system, body,

@@ -319,7 +319,9 @@ def beat(game, axis: str | None = None, main: bool = False,
     if conn is None or craft is None:
         return {"ok": False, "why": "Nothing is out."}
     from . import conn as conn_sim
+    from . import descent_flight
     from . import flightdeck, freeflight
+    going_down = descent_flight.under_way(game) is not None
     for _ in range(max(1, int(ticks))):
         freeflight.hold_course(game, conn)
         if axis or main:
@@ -328,6 +330,11 @@ def beat(game, axis: str | None = None, main: bool = False,
             order, drive, throttle = flightdeck.computer(game, conn)
             conn_sim.apply(conn, order, main=drive, ticks=1,
                            throttle=throttle)
+        # A descent is judged a couple of kilometres up rather than at the
+        # surface — see `sim/descent_flight.watch`, which is why the tick
+        # that ends it is this one and not `sim/outcome`'s.
+        if going_down:
+            descent_flight.watch(game, conn)
         if conn.over:
             break
     bill(game)
@@ -339,6 +346,11 @@ def beat(game, axis: str | None = None, main: bool = False,
     craft.hp = min(craft.hp, kind_of(craft).hull)
     out = {"ok": True, "km": round(out_km(game), 2),
            "fuel": round(craft.fuel, 2), "outcome": conn.outcome or ""}
+    if going_down and conn.over:
+        # The flight is finished, so the descent is: she is on her legs with
+        # the party walking out of her, or she is not.
+        out["arrival"] = descent_flight.arrive(game)
+        return out
     if craft.fuel <= 0.0 and out_km(game) > RECOVER_KM:
         # Dry, and not within reach of the cradle: the hull has to come and
         # get her, which is the ship's time rather than the craft's.

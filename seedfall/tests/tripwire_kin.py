@@ -285,6 +285,8 @@ KIN = {
     "quayside": ("quayside", "trade", "wharfage"),
     # Down to the ground (2026-09-22): the lander and the world's own pull.
     "descent": ("descent", "ground", "craft"),
+    # And flown rather than charged (2026-09-22).
+    "descent_flight": ("descentflight", "descent", "craft"),
     # What a party crosses ground in (2026-09-22).
     "vehicles": ("vehicles", "ground", "wayhome"),
     "camps": ("camps", "ground", "vehicles"),

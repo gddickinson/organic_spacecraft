@@ -303,6 +303,8 @@ SUITES: list[SuiteSpec] = [
               "what a landing party crosses ground in"),
     SuiteSpec("descent", "test_descent",
               "putting a party on a world: the lander and what she carries"),
+    SuiteSpec("descentflight", "test_descent_flight",
+              "flying her down: the descent as a flight, not a fee"),
     SuiteSpec("quayside", "test_quayside",
               "where you may deal from, and what the distance costs"),
     SuiteSpec("hangar", "test_hangar",

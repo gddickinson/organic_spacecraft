@@ -50,6 +50,17 @@ def can_arm(game, conn, mode: str) -> tuple[bool, str]:
         if marked(game, conn) is None:
             return False, "Lay a course on something first."
         return True, ""
+    if mode == "down":
+        # A descent is armed only on the flight that *is* one: the craft, the
+        # world and the party were chosen when it began (`descent_flight`).
+        from . import descent_flight
+        if descent_flight.under_way(game) is None:
+            return False, "Nothing is on its way down to anything."
+        from . import landing
+        if not landing.can_hold(conn):
+            return False, (landing.why_not(conn)
+                           or "She cannot hold the fall.")
+        return True, ""
     if mode in ("close", "orbit", "depart") and is_open(conn.target):
         return False, ("Nothing to " + {"close": "berth at", "orbit": "orbit",
                        "depart": "move away from"}[mode] + " out here — lay "
@@ -190,6 +201,9 @@ def computer(game, conn) -> tuple:
                 game.add_log(collision.line(threat), collision.tint(threat))
             return auto_sim.hold(conn, collision.brake_velocity(conn, threat))
         conn.avoiding = ""
+    if mode == "down":
+        from . import descent_flight
+        return descent_flight.step(game, conn)
     if mode == "run":
         aim = marked(game, conn)
         if aim is None:
