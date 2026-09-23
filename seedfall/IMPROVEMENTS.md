@@ -554,6 +554,28 @@ One real bug fell out of writing it: a denunciation's cooldown shared a key
 with the court it was ordered from, so denouncing anybody at a power's court
 made *that power* undenounceable for ninety days from anywhere.
 
+## Open — the freight desk is nearly inert, found 2026-09-23
+
+Not a regression; a measurement nobody had taken. Following the
+harbourmaster's advice and ignoring it were compared over **forty paired
+two-year careers, and thirty-three of them came out identical** — the
+register covers everywhere you have been, so the desk only ever tops the
+ranking somewhere you have not, and the old check's mean over *eight*
+careers was decided by whichever single career happened to clear six
+hundred thousand.
+
+That is why the check flipped the day world law levels changed which runs
+exist, with no sale failing anywhere. The check now measures the property
+worth holding — the desk never leaves the median career worse off — on
+twenty-four paired careers rather than eight unpaired ones.
+
+What is actually open is the feature: standing buys `desk_reach`, and reach
+buys almost nothing. A harbourmaster's real advantage over your own notes is
+knowledge you cannot write down — what his power's quays are short of before
+it shows on a board, which of them will not take what you are carrying
+(`sim/lawlevel.py` gives him that to say and nothing says it), and who is
+buying quietly. Worth its own pass.
+
 ## Open — the Traveller programme, begun 2026-09-20
 
 The world profile landed (`data/uwp.py`, `sim/profile.py`): eight
@@ -578,14 +600,66 @@ SEEDFALL already has:
    `sim/lifepath.py`, derived per officer. **What is left is the captain**:
    `ui/beginning_view.py` still asks who you are with three choices, where
    Traveller would have you play the terms out and take what they give you.
-4. **Patrons and tickets** — work that comes from a person, with a chance the
-   job is not what it was said to be. The contract board is the shape; what
-   is missing is the person and the lie.
+4. ~~**Patrons and tickets**~~ — landed 2026-09-23 as `data/patrons.py` and
+   `sim/patrons.py`. A port has a cast of three, derived from the sector
+   seed and stored nowhere, remembered by `sim/memory` the way a
+   harbourmaster is — so the fixer at a frontier quay is *that* fixer and
+   knowing them is worth up to +2 on reading them. Two thirds of a board
+   has a face on it; the rest is still an office, because a standing order
+   renewed quarterly has no face.
+
+   **What they are is the trade.** Measured over six sectors: a fixer pays
+   1.30× and turns four times in ten; a shipmaster pays the rate and turns
+   one in eleven. A twist is the ordinary machinery finding you — a fee
+   that arrives short, a power that takes an interest, a hold opened at the
+   far end — and one of the four is in your favour, so reading a patron is
+   worth doing rather than a tax on optimism.
+
+   **And you can read them before you sign**: one check, its odds quoted
+   first, made by whoever aboard is best at it rather than by the captain
+   (measured with the captain alone, the odds came out at 0% against a
+   fixer — a mechanic nobody in the game could ever use). The roll is
+   derived from the contract's own id, so it cannot be re-rolled by closing
+   the card. New suite `patrons` (10 checks).
+
+   A ticket is derived from **its own id**, not from the board generator's
+   rng. The first draft took three draws from that stream and moved every
+   draw after it: the careful captain diverged on two seeds of three and
+   one stopped reaching its ending, with the twists switched off entirely.
+   A feature that spends a shared stream changes every balance reading in
+   the game for reasons that have nothing to do with the feature.
+
+   Writing it turned up a latent flaw in `test_cargo`: the board's quote
+   prices the *shortfall* and the check bought the whole cargo, which only
+   ever passed because no posting for a good already in the hold had come
+   up. The moment the board's draw shifted it read "quoted 1,552 and it
+   cost 2,921".
 5. **The monthly bill** — a hull's mortgage, maintenance and life support.
    Traveller's whole economy is driven by a payment falling due; SEEDFALL's
    purse has no such pressure.
-6. **Law level bites** — the profile has the digit; wire it to what the port
-   will find in the hold (`sim/customs`, `sim/contraband`).
+6. ~~**Law level bites**~~ — landed 2026-09-23 as `sim/lawlevel.py`. The
+   digit had been on every world since `data/uwp.py` was written and nothing
+   had ever asked it: contraband was a *power's* business, one list per
+   faction applied identically at every quay it holds. Measured over six
+   sectors and 248 worlds, that was wrong in both directions — a Charter
+   capital at law 9 and a Charter outpost at law 2 opened a hold with the
+   same appetite, and the **Sanhedrin, whose worlds average law 8.1 and are
+   the strictest in the sector, never opened one at all**, because its
+   faction list is empty. The one power you could carry anything past was
+   the one that should have been hardest.
+
+   A quay asks two questions now and the harder answer wins: whose flag is
+   it, and what is the law here. `LAW_LADDER` is what a world starts seizing
+   as the digit climbs — unlicensed seed at 3, relics at 6, unapproved
+   pharma at 8, charts at 10 — chosen against the measured distribution so
+   the rungs fall 79% / 48% / 15% / 3% of ports, and deliberately naming
+   nothing a freight run carries, so ordinary trade is untouched. Everything
+   downstream is the machinery contraband already had: no posted counter
+   (`trade.sell`), a better unposted price (`customs.premium`), and the hold
+   opened (`customs.inspect`). `customs.seizes` is the one door; the port
+   screen says what the law is before you are alongside, because a rule you
+   can only discover by being boarded is a trap. New suite `lawlevel`
+   (8 checks).
 
 ### Left over from the crew screen (2026-09-20)
 

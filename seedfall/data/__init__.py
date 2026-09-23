@@ -1,7 +1,7 @@
 """Static content tables — commodities, hull chassis, fittings, weapons, the
 research tree, colony classes, factions, xenobiology and lore. Pure data.
 
-Contents (130 modules; one line each in `INTERFACE.md`):
+Contents (131 modules; one line each in `INTERFACE.md`):
 
 Modules: adaptations, afoot_arms, afoot_derelicts, afoot_folk,
     afoot_incidents, afoot_programs, afoot_rooms, afoot_rooms_more,
@@ -16,11 +16,11 @@ Modules: adaptations, afoot_arms, afoot_derelicts, afoot_folk,
     inquiry, kindred, kit, kith, lesson_types, lessons, lessons_early,
     lessons_late, life3d, lifeforms, lineages, lore, milestone_tracks,
     milestones, mining, models3d, modules, mounts, nemeses, offences,
-    officials, orbit_shapes, orders, part_types, parts, parts3d, personas,
-    phenomena, programmes, regions, relics3d, remnants, responses, robots,
-    robots3d, rumours, scenarios, screens, settlements, ships3d, shocks,
-    signals, sounds, stages, starclasses, strata, surfaces, surveys, tech,
-    territory, treatments, turrets, uwp, vehicles, ventures, venue_types,
-    venues, venues_aboard, venues_body, venues_establishments, venues_night,
-    venues_trade, watches, weather, wharfage, works, works3d, works3d_parts,
-    worlds3d, xenoparts, xenotech."""
+    officials, orbit_shapes, orders, part_types, parts, parts3d, patrons,
+    personas, phenomena, programmes, regions, relics3d, remnants, responses,
+    robots, robots3d, rumours, scenarios, screens, settlements, ships3d,
+    shocks, signals, sounds, stages, starclasses, strata, surfaces, surveys,
+    tech, territory, treatments, turrets, uwp, vehicles, ventures,
+    venue_types, venues, venues_aboard, venues_body, venues_establishments,
+    venues_night, venues_trade, watches, weather, wharfage, works, works3d,
+    works3d_parts, worlds3d, xenoparts, xenotech."""

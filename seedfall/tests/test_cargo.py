@@ -14,6 +14,8 @@ nothing else, so a trap looked exactly like a living.
 
 from __future__ import annotations
 
+import math
+
 from ..core.rng import RNG
 from ..core.state import new_game
 from ..data.commodities import BY_ID
@@ -260,9 +262,17 @@ def run(suite: Suite) -> None:
     @check("the board's quote is what actually happens")
     def _():
         # The screen prints this number. It has to be the truth.
-        checked = 0
+        checked, lied = 0, 0
         for game, system, contract in _boards(seeds=4, ports=3):
             if contract.kind != "deliver":
+                continue
+            # **A patron lying is not the board lying.** A ticket with a
+            # twist on it pays what the person decides to pay
+            # (`sim/patrons.py`), and that is the whole point of them; what
+            # this check is about is the *game* quoting one number and
+            # doing another. `test_patrons` holds the other half.
+            if getattr(contract, "twist", ""):
+                lied += 1
                 continue
             game.location_id = system.id
             game.credits = 5_000_000
@@ -270,12 +280,26 @@ def run(suite: Suite) -> None:
             assert money is not None
             before = game.credits
 
-            bought = trade_sim.buy(game, contract.commodity,
-                                   int(contract.amount))
-            if not bought["ok"] or bought["units"] < contract.amount:
+            # **What the quote prices is the shortfall**, not the whole
+            # cargo (`contract_price.quote` subtracts what is already
+            # aboard). Buying the full amount and comparing it to a quote
+            # for the remainder is the check disagreeing with itself, and
+            # it only ever passed because no posting for a good already in
+            # the hold happened to come up: the moment the board's draw
+            # shifted, it read "quoted 1,552 and it cost 2,921".
+            want = math.ceil(money["short"])
+            if want <= 0:
+                continue          # already carrying it; nothing to price
+            bought = trade_sim.buy(game, contract.commodity, want)
+            if not bought["ok"] or bought["units"] < want:
                 continue          # the port has none; not what this checks
             spent = before - game.credits
-            assert abs(spent - money["cost"]) < max(2.0, money["cost"] * 0.02), (
+            # One tonne of slack: a shortfall is a fraction of a tonne and a
+            # counter sells whole ones, so the two cannot agree more
+            # closely than the price of the tonne that rounding dropped.
+            a_tonne = money["cost"] / max(1.0, money["short"])
+            assert abs(spent - money["cost"]) < max(2.0, a_tonne,
+                                                    money["cost"] * 0.02), (
                 f"quoted {money['cost']:,} and it cost {spent:,.0f}")
 
             contract_sim.accept(game, contract)
@@ -289,7 +313,9 @@ def run(suite: Suite) -> None:
             if checked >= 6:
                 break
         assert checked >= 3, f"only {checked} deliveries could be flown"
-        return f"{checked} deliveries: cost and clear both as quoted"
+        return (f"{checked} deliveries: cost and clear both as quoted"
+                + (f"; {lied} more were posted by somebody who was not "
+                   "telling the whole of it" if lied else ""))
 
     @check("a quote knows what is already in the hold")
     def _():

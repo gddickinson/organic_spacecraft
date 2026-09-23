@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from ..core.util import credits as cr
-from ..core.util import pct
 from ..data.commodities import BY_ID
 from ..data.factions import FACTIONS_BY_ID, standing
 from ..sim import chains as chain_sim
@@ -20,13 +19,13 @@ from ..sim import intel as intel_sim
 from ..sim import market as market_sim
 from ..sim import wharfage as wharfage_sim
 from .berths_panel import BerthsMixin
-from ..sim.fieldwork import buy_field_notes, xeno_notes_price
-from ..sim import xeno as xeno_sim
+from ..sim.fieldwork import buy_field_notes
 from ..sim import commitments as commitments_sim
-from ..sim.ship import cargo_used, hull_pct
+from ..sim.ship import cargo_used
 from ..world.economy import demands
 from .market_grid import MarketGrid
-from .widgets import Panel, TabBar, View, button, label, note
+from . import port_services
+from .widgets import TabBar, View, button, label, note
 
 
 class PortView(BerthsMixin, View):
@@ -79,7 +78,7 @@ class PortView(BerthsMixin, View):
         if self.tab == "contracts":
             self._contracts(sys)
         elif self.tab == "services":
-            self._services(sys, fac, rep)
+            port_services.build(self, sys, fac, rep)
         elif self.tab == "crew":
             self._berths(sys)
         elif self.tab == "desk":
@@ -174,6 +173,13 @@ class PortView(BerthsMixin, View):
         self.col.addWidget(label(
             standing["line"], "", "chloro" if standing["alongside"] else
             "warn", wrap=True))
+        # **What the law is here, before you are alongside** — a rule a
+        # captain can only discover by being boarded is not a rule, it is a
+        # trap (`sim/lawlevel.py`).
+        from ..sim import lawlevel as lawlevel_sim
+        if lawlevel_sim.forbids(g, sys):
+            self.col.addWidget(label(lawlevel_sim.says(g, sys), "", "warn",
+                                     wrap=True))
         if not standing["alongside"]:
             # **And only when there is a harbourmaster within reach.** The
             # button was lit from anywhere in the system and answered "not
@@ -288,6 +294,15 @@ class PortView(BerthsMixin, View):
         if not res["ok"]:
             self.win.toast(res["why"], "warn")
             return
+        # A ticket is signed in a room with somebody in it
+        # (`sim/patrons.opening`), and that is the only part of the person a
+        # screen can show.
+        from ..sim import patrons as patron_sim
+        said = patron_sim.opening(self.game, contract)
+        if said:
+            self.win.dialog(patron_sim.says(self.game, contract).split(".")[0],
+                            [label(said, "", wrap=True)],
+                            [("Signed", None)])
         self.win.refresh()
 
     def _abandon(self, contract) -> None:
@@ -318,111 +333,6 @@ class PortView(BerthsMixin, View):
             self.win.toast(res["why"], "warn")
             return
         self.win.refresh()
-
-    def _services(self, sys, fac, rep) -> None:
-        g = self.game
-        st = g.ship_stats
-        # The drydock's price, from the drydock — `services.repair_quote`.
-        quote = services_sim.repair_quote(g)
-        damage, repair_cost = quote["damage"], quote["cost"]
-
-        dock = Panel("Drydock")
-        dock.add(label(f"Hull integrity {pct(hull_pct(g.ship))}. " + (
-            "A grown hull will close this on its own, given weeks and biomass. "
-            "Paying for it is faster." if st.regen > 0 else
-            "A fabricated hull will not close this on its own. Somebody has to be "
-            "holding the torch."), "", wrap=True))
-        dock.add_buttons(
-            button("No damage" if damage < 1 else f"Full repair — {cr(repair_cost)}",
-                   self._repair, kind="primary",
-                   enabled=damage >= 1 and g.credits >= repair_cost,
-                   tip="Close every wound in the hull now, at the drydock's price.",
-                   why=("The hull is whole." if damage < 1 else
-                        f"You have {cr(g.credits)} of the {cr(repair_cost)} it "
-                        "costs.")),
-            button(f"Clear {len(g.ship.disabled)} fault(s)", self._clear_faults,
-                   tip="Put every disabled system back in service.")
-            if g.ship.disabled else None)
-
-        # The counter's own quote — the market grid twenty lines up was
-        # switched to `quote_buy` and pinned; this button was missed.
-        vp = market_sim.quote_buy(self.game, sys, "volatiles") or 40
-        bunker = Panel("Bunkering")
-        bunker.add(label("Reaction mass is volatiles. Every jump burns roughly a "
-                         "tonne per light-year.", "", wrap=True))
-        bunker.add(note(f"Aboard: {round(g.ship.cargo.get('volatiles', 0))} t."))
-        # The till's own gate (`trade.can_buy`) — it was lit with an empty
-        # purse and answered "not enough credits".
-        from ..sim import trade as trade_sim
-        fuel_ok, fuel_why = trade_sim.can_buy(g, "volatiles")
-        bunker.add_buttons(button(f"Take on 40 t — ~{cr(vp * 40)}",
-                                  lambda: self._buy("volatiles", 40),
-                                  enabled=fuel_ok, why=fuel_why,
-                                  tip="Buy forty tonnes of volatiles over the "
-                                      "counter, at the market's price."))
-
-        data_held = g.ship.cargo.get("survey", 0)
-        office = Panel("Survey Office")
-        office.add(label(f"{fac.short if fac else 'The port'} buys charted orbits, ore "
-                         "grades and spectra. Selling them here raises your standing "
-                         "as well as your balance.", "", wrap=True))
-        office.add(note(f"{round(data_held)} data set(s) aboard."))
-        # **And somewhere to sell it from** (`sim/quayside`): a counter is a
-        # place, and this button was lit in deep space, where pressing it
-        # answered "nobody is at the counter — come alongside".
-        from ..sim import quayside as quayside_sim
-        at_hand, off_why = quayside_sim.at_counter(g, sys)
-        office.add_buttons(button("Sell all survey data", self._sell_data,
-                                  kind="primary",
-                                  enabled=data_held >= 1 and at_hand,
-                                  tip="Every data set aboard, for credits and "
-                                      "standing with this port's power.",
-                                  why=(off_why if not at_hand else
-                                       "No survey data aboard. Survey a "
-                                       "system first.")))
-
-        rep_panel = Panel("Standing")
-        rep_panel.add(label(fac.doctrine if fac else
-                            "This port answers to nobody in particular.", "", wrap=True))
-        for fid, value in g.rep.items():
-            f = FACTIONS_BY_ID.get(fid)
-            if not f or f.hidden:
-                continue
-            band, tint = standing(value)
-            rep_panel.add_row(f.short, f"{band} · {round(value)}", tint)
-
-        self.row(dock, bunker)
-        self.row(office, rep_panel)
-
-        target = xeno_sim.best_unfinished(g)
-        if target is not None and xeno_sim.is_known(g, target.id):
-            price = xeno_notes_price(g, target)
-            notes = Panel("Xenology Desk")
-            notes.add(label(
-                f"Somebody has already dug at a {target.culture.replace('_', ' ')} "
-                "site and written it up. Field notes are legal, expensive, and "
-                "save you a season in a trench.", "", wrap=True))
-            notes.add_row("On offer", target.name)
-            notes.add_row("Understood so far", pct(xeno_sim.progress(g, target.id)))
-            notes.add_buttons(button(f"Buy the notes — {cr(price)}",
-                                     lambda t=target.id: self._buy_notes(t),
-                                     kind="primary", enabled=g.credits >= price,
-                                     why=f"You have {cr(g.credits)} of the "
-                                         f"{cr(price)} they want."))
-            self.col.addWidget(notes)
-
-        if "research" in sys.port.services:
-            lib = Panel("Fleet Library")
-            lib.add(label("A hub keeps a copy of the canon. Two weeks reading it is "
-                          "worth as much as a month of your own instruments.", "",
-                          wrap=True))
-            lib.add_buttons(button(f"Study for a fortnight — {cr(4000)}",
-                                   self._study, enabled=g.credits >= 4000,
-                                   tip="Two weeks alongside, reading. The "
-                                       "calendar moves.",
-                                   why=f"You have {cr(g.credits)} of the "
-                                       f"{cr(4000)} it costs."))
-            self.col.addWidget(lib)
 
     def _buy_notes(self, tech_id: str) -> None:
         res = buy_field_notes(self.game, tech_id)

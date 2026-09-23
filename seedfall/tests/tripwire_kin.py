@@ -91,8 +91,12 @@ KIN = {
     "parley": ("parley", "combat"), "prize": ("prize",),
     "battle_state": ("prize", "combat"),
     "stations": ("routing", "orderplan", "seatwork", "turnplan", "gunnery"),
-    "damage": ("thermal_doors", "combat"), "contraband": ("customs",),
-    "customs": ("customs", "fence"),
+    "damage": ("thermal_doors", "combat"), "contraband": ("customs", "lawlevel"),
+    "customs": ("customs", "fence", "lawlevel"),
+    # The law digit bites (2026-09-23).
+    "lawlevel": ("lawlevel", "customs", "fence"),
+    # Work that comes from a person (2026-09-23).
+    "patrons": ("patrons", "postings", "cargo"),
     # `courtship` first: it is the real guard for the COURTSHIP_* family and
     # costs 1.4 s against `politics`'s 145.4 (#134).
     "diplomacy": ("courtship", "politics"),

@@ -48,8 +48,67 @@ def regime(faction: str | None):
 
 
 def outlaws(faction: str | None, cid: str) -> bool:
+    """Does this *power* seize this good, wherever it flies its flag?
+
+    The faction half alone. Ask `seizes` for what a particular quay will
+    actually take off you — a world has a law of its own
+    (`sim/lawlevel.py`), and after six sectors of measuring it turned out to
+    be the half that mattered: the Sanhedrin's regime is empty and its
+    worlds are the strictest in the sector.
+    """
     reg = regime(faction)
     return bool(reg and cid in reg.outlaws)
+
+
+def seizes(game, cid: str, system=None) -> bool:
+    """Will *this quay* take this good off you? The one door.
+
+    The power's own list, or the world's own law, whichever bites — which is
+    why a Charter outpost at law 2 and a Charter capital at law 9 are no
+    longer the same place to arrive with a hold full of relics.
+    """
+    system = system if system is not None else getattr(game, "system", None)
+    faction = getattr(getattr(system, "port", None), "faction", None)
+    if outlaws(faction, cid):
+        return True
+    from . import lawlevel
+    return cid in lawlevel.forbids(game, system)
+
+
+def seized_here(game, system=None) -> tuple:
+    """Everything this quay seizes, the power's list and the world's."""
+    system = system if system is not None else getattr(game, "system", None)
+    faction = getattr(getattr(system, "port", None), "faction", None)
+    reg = regime(faction)
+    from . import lawlevel
+    return tuple(dict.fromkeys((reg.outlaws if reg else ())
+                               + lawlevel.forbids(game, system)))
+
+
+def writ_here(game, faction: str | None, carrying=None, system=None) -> str:
+    """What the offence is called at this quay.
+
+    The power's, when what is aboard is on the power's own list; otherwise
+    the world's own statute. The one door, so the dialog, the log and the
+    quiet word on the quay cannot name three different offences.
+    """
+    from . import lawlevel
+    reg = regime(faction)
+    rows = aboard(game, faction) if carrying is None else carrying
+    theirs = any(outlaws(faction, cid) for cid, _t in rows)
+    if theirs and reg is not None and reg.writ:
+        return reg.writ
+    return lawlevel.writ(game, system)
+
+
+def zeal_here(game, faction: str | None, system=None) -> float:
+    """How hard they look here: the power's zeal or the world's, whichever
+    is higher. A power's own regime still outranks all but the tightest of
+    its worlds, which is right — the licensing is the Charter's, not its
+    outposts'."""
+    from . import lawlevel
+    reg = regime(faction)
+    return max(reg.zeal if reg else 0.0, lawlevel.zeal(game, system))
 
 
 def heat(game, faction: str | None) -> float:
@@ -73,13 +132,13 @@ def cool(game, days: int) -> None:
 
 
 def aboard(game, faction: str | None) -> list[tuple[str, float]]:
-    """What is in the hold that this power would seize."""
-    reg = regime(faction)
-    if not reg or not reg.outlaws:
+    """What is in the hold that this quay would seize — flag *and* statute."""
+    here = seized_here(game)
+    if not here:
         return []
     amnesty = assembly.effect(game, "amnesty", 0.0)     # seed, for the term
     return [(cid, tonnes) for cid, tonnes in game.ship.cargo.items()
-            if cid in reg.outlaws and tonnes > 0.01
+            if cid in here and tonnes > 0.01
             and not (amnesty and cid == "wildseed")]
 
 
@@ -92,8 +151,7 @@ def premium(game, faction: str | None, cid: str) -> int | None:
     legal supply of it, and the harder it looks the less there is. Scrutiny
     cuts the price too — a market that has just been raided is a nervous one.
     """
-    reg = regime(faction)
-    if not reg or cid not in reg.outlaws:
+    if not seizes(game, cid):
         return None
     good = BY_ID.get(cid)
     if good is None:
@@ -106,7 +164,8 @@ def premium(game, faction: str | None, cid: str) -> int | None:
     # work a system with a port and so can never supply one directly.
     from . import piracy as piracy_sim
     glut = 1.0 - FENCE_GLUT * piracy_sim.fence_pull(game, game.system)
-    return max(1, round(good.base * (1.15 + reg.zeal * 0.7) * nerve * glut))
+    return max(1, round(good.base * (1.15 + zeal_here(game, faction) * 0.7)
+                        * nerve * glut))
 
 
 # ── who looks ──────────────────────────────────────────────────────────────
@@ -121,13 +180,13 @@ def chance(game, faction: str | None, approach: float = 0.0) -> float:
     retire it. It is never zero and never certain: a run you cannot lose is not
     a run.
     """
-    reg = regime(faction)
-    if not reg or not reg.zeal:
+    zeal = zeal_here(game, faction)
+    if not zeal:
         return 0.0
     port = game.system.port
     level = port.level if port else 1
 
-    odds = reg.zeal * (0.14 + 0.06 * level) + heat(game, faction) * 0.45
+    odds = zeal * (0.14 + 0.06 * level) + heat(game, faction) * 0.45
     from . import running_dark
     odds += running_dark.suspicion(game)       # a quay wants a transponder
     odds *= assembly.effect(game, "search", 1.0)    # the Contraband Accord
@@ -179,9 +238,21 @@ def inspect(game, rng, approach: float = 0.0) -> dict:
     faction = port.faction if port else None
     reg = regime(faction)
     carrying = aboard(game, faction)
+    # **Whose boarding is this?** The power's, if what is aboard is on the
+    # power's own list; otherwise the world's own statute
+    # (`sim/lawlevel.py`), which is the case the Sanhedrin's empty regime
+    # made unreachable — its worlds are the strictest in the sector and
+    # nobody had ever come aboard on one.
+    from . import lawlevel
+    theirs = any(outlaws(faction, cid) for cid, _t in carrying)
+    writ = writ_here(game, faction, carrying)
+    notice, waved = ((reg.notice, reg.waved) if theirs and reg is not None
+                     and reg.writ else lawlevel.voice(game))
     out = {"searched": False, "caught": False, "faction": faction,
-           "regime": reg, "seized": [], "fine": 0.0, "goods": carrying}
-    if not carrying or not reg:
+           "regime": reg, "seized": [], "fine": 0.0, "goods": carrying,
+           "writ": writ, "notice": notice, "waved": waved,
+           "local": not theirs}
+    if not carrying:
         return out
 
     # A harbourmaster who owes you discretion signs the inspection off
@@ -225,7 +296,7 @@ def inspect(game, rng, approach: float = 0.0) -> dict:
     add_heat(game, faction, 0.45)
     tonnage = sum(t for _c, t in carrying)
     game.add_log(f"Boarded at {port.name}: {tonnage:.0f} t seized for "
-                 f"{reg.writ}. Fined {round(fine)}.", "bad")
+                 f"{writ}. Fined {round(fine)}.", "bad")
     # The quay remembers the specific hold it opened, which is what the
     # harbourmaster brings up next time rather than a standing figure.
     from ..data.factions import FACTIONS_BY_ID
@@ -233,7 +304,7 @@ def inspect(game, rng, approach: float = 0.0) -> dict:
     faction_name = getattr(FACTIONS_BY_ID.get(faction), "name", faction)
     memory_sim.note(game, f"port:{port.name}", "smuggling",
                     f"you brought {tonnage:.0f} t through this quay under "
-                    f"{reg.writ}", 1.2, tags=["port", "customs", faction],
+                    f"{writ}", 1.2, tags=["port", "customs", faction],
                     name=port.name, entity="port")
     memory_sim.note(game, f"faction:{faction}", "smuggling",
                     f"your hold was opened at {port.name}", 1.0,

@@ -49,7 +49,8 @@ def _commissioned(chain_id: str, seed: str = "mission"):
                    if s.port and s.port.faction == chain.issuer), None)
     assert system is not None, f"no {chain.issuer} port in this galaxy"
     game.location_id = system.id
-    game.rep[chain.issuer] = max(game.rep.get(chain.issuer, 0), chain.min_rep + 10)
+    game.rep[chain.issuer] = max(game.rep.get(chain.issuer, 0),
+                                 chain.min_rep + 10)
     return game, system
 
 

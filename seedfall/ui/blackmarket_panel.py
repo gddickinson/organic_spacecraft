@@ -59,14 +59,20 @@ def offer(game, system, on_sell, on_dump) -> Panel | None:
     port = getattr(system, "port", None)
     faction = port.faction if port else None
     carrying = customs_sim.aboard(game, faction)
-    reg = customs_sim.regime(faction)
-    if not carrying or not reg:
+    if not carrying:
         return None
+    # The offence is whichever authority is the one that bites — a power's
+    # writ, or this world's own statute (`sim/customs.writ_here`). Reading
+    # the regime alone left the Sanhedrin's empty writ in the sentence, and
+    # hid the panel entirely at a port with no flag over it.
+    writ = customs_sim.writ_here(game, faction, carrying)
 
     p = Panel("A quiet word on the quay", "warn")
     p.add(label(
-        f"Nothing you are carrying under {reg.writ} has a posted price here. "
+        f"Nothing you are carrying under {writ} has a posted price here. "
         "That is exactly why it has a good unposted one.", "", wrap=True))
+    from ..sim import lawlevel as lawlevel_sim
+    p.add(note(lawlevel_sim.says(game, system)))
 
     mood, tint = customs_sim.standing_note(game, faction)
     p.add(spacer(4), mono_label("How they are looking at you"))

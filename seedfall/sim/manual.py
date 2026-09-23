@@ -106,11 +106,21 @@ def _survey_pay(game) -> list:
 def _goods(game) -> list:
     from ..data.commodities import COMMODITIES
     from ..data.contraband import REGIMES
+    from ..data.commodities import BY_ID
+    from ..data.contraband import LAW_LADDER
     lines = [f"{len(COMMODITIES)} goods trade in the Verge, and "
              f"{len(REGIMES)} powers outlaw something:"]
     for regime in REGIMES:
         lines.append(f"  {regime.faction} — {regime.writ}: "
-                     + ", ".join(regime.outlaws))
+                     + (", ".join(regime.outlaws) or "nothing"))
+    # And the other half, which is the world rather than the flag over it
+    # (`sim/lawlevel.py`): a quay on a tight world seizes what its own
+    # statute names, whoever holds it.
+    lines.append("A world's own law level takes more as it climbs, whoever "
+                 "holds the port:")
+    for rung, cid in LAW_LADDER:
+        good = BY_ID.get(cid)
+        lines.append(f"  law {rung} and above — {good.name if good else cid}")
     return lines
 
 

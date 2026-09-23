@@ -186,7 +186,10 @@ def sell(game, cid: str, units: int) -> dict:
     system = game.system
     if not system.port:
         return {"ok": False, "why": "No port here."}
-    if customs_sim.outlaws(system.port.faction, cid):
+    # `seizes`, not `outlaws`: the power's list *and* this world's own law
+    # (`sim/lawlevel.py`). A quay that will take a good off you at the lock
+    # does not also post a price for it at the desk.
+    if customs_sim.seizes(game, cid):
         return {"ok": False,
                 "why": "Not over this counter. Not on this station."}
     barred = assembly.embargoed(game, system.port.faction, cid)
@@ -267,6 +270,13 @@ def sell_survey_data(game) -> dict:
     there, why = quayside_sim.at_counter(game, system)
     if not there:
         return {"ok": False, "why": why}
+    # And at law 10 movement is licensed and so are charts: a world that
+    # seizes survey data has no Survey Office window open to you
+    # (`sim/lawlevel.py`).
+    if customs_sim.seizes(game, "survey"):
+        return {"ok": False,
+                "why": "Charts are licensed here. This office will take "
+                       "them and not pay for them."}
     n = game.ship.cargo.get("survey", 0)
     if n < 1:
         return {"ok": False, "why": "No survey data aboard."}

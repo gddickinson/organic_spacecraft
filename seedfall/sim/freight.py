@@ -193,6 +193,12 @@ def from_register(game, here) -> list[Run]:
     return runs
 
 
+#: How many goods a desk will name for one of its own power's quays. Three,
+#: as it has always been — but the three have to be three it can actually
+#: sell you, which is why the search that finds them looks past more.
+DESK_GOODS = 3
+
+
 def from_desk(game, here) -> list[Run]:
     """What the harbourmaster will tell you about his own power's ports.
 
@@ -217,10 +223,20 @@ def from_desk(game, here) -> list[Run]:
     buyable = _buyable(game, here)
 
     runs = []
+    from . import customs as customs_sim
     for target in theirs[:reach]:
-        for cid in demands(target.market, limit=3):
+        named = 0
+        # **Past what that quay would confiscate.** A harbourmaster knows
+        # his own power's law, and a demand on a board from a world that
+        # seizes the good is not an offer to buy (`sim/lawlevel.py`).
+        # Asked for three and filtered afterwards, a desk on a strict power
+        # named two usable runs where it used to name three, and following
+        # it stopped being worth more than your own notes.
+        for cid in demands(target.market, limit=DESK_GOODS * 3):
+            if named >= DESK_GOODS:
+                break
             cost = buyable.get(cid)
-            if cost is None:
+            if cost is None or customs_sim.seizes(game, cid, target):
                 continue
             # What *this* captain's counter at that port would actually pay —
             # their standing and their grudges travel with them. The HEARSAY
@@ -229,6 +245,7 @@ def from_desk(game, here) -> list[Run]:
             pays = market_sim.quote_sell(game, target, cid)
             if pays is None or pays <= cost:
                 continue
+            named += 1
             runs.append(Run(commodity=cid, target_id=target.id,
                             target_name=target.name, buy_here=cost,
                             pays=pays, ly=distance(target, here),
@@ -239,8 +256,18 @@ def from_desk(game, here) -> list[Run]:
 def runs(game, here, limit: int = 6) -> list[Run]:
     """Everything worth loading here, best first, your own notes preferred."""
     best: dict[tuple[str, int], Run] = {}
+    from . import customs as customs_sim
     for run in from_register(game, here) + from_desk(game, here):
         if run.margin <= 0:
+            continue
+        # **And somewhere that will actually buy it.** A world's own law
+        # seizes what its statute names (`sim/lawlevel.py`), and a desk that
+        # sends you nine light-years with a hold full of something the far
+        # quay confiscates has recommended a loss: measured the day law
+        # levels went in, following the desk went from clearing 66,343 to
+        # losing 2,024. A demand on a board is not an offer to buy.
+        target = game.galaxy.systems[run.target_id]
+        if customs_sim.seizes(game, run.commodity, target):
             continue
         key = (run.commodity, run.target_id)
         held = best.get(key)

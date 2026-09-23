@@ -16,6 +16,7 @@ from ..core.util import credits as cr
 from ..data.factions import FACTIONS_BY_ID
 from ..sim import allegiance
 from ..sim import contracts as contract_sim
+from ..sim import patrons as patron_sim
 from . import commissions_panel, rumours_panel
 from .widgets import Card, Panel, Pill, button, label, note, spacer
 
@@ -54,7 +55,9 @@ def build(view, sysm) -> None:
             left = c.days_left(g.day)
             held.add(spacer(3))
             held.add(label(c.title, "h3", d.tint))
-            bits = [f"{d.name} · {FACTIONS_BY_ID[c.issuer].short}",
+            who = patron_sim.of(g, c)
+            bits = [f"{d.name} · " + (who.title if who is not None
+                                      else FACTIONS_BY_ID[c.issuer].short),
                     f"{cr(c.reward)}", f"{left} day(s) left"]
             if c.amount > 1 and c.kind in ("survey", "bounty"):
                 bits.append(f"{int(c.progress)}/{int(c.amount)} done")
@@ -79,6 +82,21 @@ def build(view, sysm) -> None:
         card.add(label(c.title, "h3", d.tint))
         card.add(Pill(d.name, d.tint))
         card.add(label(c.posting, "", wrap=True))
+        # **Who is actually asking** (`sim/patrons.py`), and what you can
+        # make of them. A board of offices is a freight desk; a board of
+        # people is somewhere you have been before.
+        said = patron_sim.says(g, c)
+        if said:
+            card.add(label(said, "", "osteo", wrap=True))
+            got = patron_sim.reads(g, c)
+            odds = patron_sim.forecast(g, c)
+            card.add(label(got["line"], "",
+                           "chloro" if got["ok"] and not got.get("twist")
+                           else "warn" if got["ok"] else "dim", wrap=True))
+            if not got["ok"]:
+                card.add(note(f"{odds:.0%} chance anybody aboard could read "
+                              "them; somebody with streetwise would do "
+                              "better."))
         card.add(note(f"{cr(c.reward)} · {c.days_left(g.day)} days · "
                       f"standing +{c.rep}"))
         # What the cargo costs, and what is left. A fee on its own hid a

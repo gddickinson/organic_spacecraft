@@ -148,19 +148,30 @@ GOVERNMENTS = {
 #: Law level, as what it actually stops you carrying. The whole reason a
 #: captain reads this digit: it is a list of what is in the hold and a list of
 #: what the port will find.
+#:
+#: **Traveller's own ladder is a list of weapons** — no poison gas at 1, no
+#: shotguns at 7 — and this setting does not model a single one of them. It
+#: read as a translation left half-done: a Sanhedrin quay announced that
+#: shotguns were refused and then impounded a relic. The rungs are the
+#: Verge's own now, and they say what `data/contraband.LAW_LADDER` actually
+#: does at each digit — seed at 3, worked matter at 6, compounds at 8,
+#: charts at 10 — so the sentence on the screen and the search at the lock
+#: are one fact.
 LAW_LEVELS = {
     0: ("None", "carry what you like; nobody asks"),
-    1: ("Low", "no poison gas, no explosives, no undetectable weapons"),
-    2: ("Low", "no portable energy weapons"),
-    3: ("Moderate", "weapons licensed; military hardware refused"),
-    4: ("Moderate", "no light assault weapons"),
-    5: ("Moderate", "no personal concealable weapons"),
-    6: ("High", "most firearms refused"),
-    7: ("High", "shotguns refused"),
-    8: ("High", "no blade over a hand's length"),
-    9: ("Extreme", "any weapon out of its case is an offence"),
-    10: ("Extreme", "weapons are contraband; so is much else"),
-    11: ("Extreme", "movement is licensed"),
+    1: ("Low", "the manifest is read, and believed"),
+    2: ("Low", "a sealed hold is opened at the harbourmaster's discretion"),
+    3: ("Moderate", "no unlicensed seed, and the sequencer is at the lock"),
+    4: ("Moderate", "bonded cargo only, and a broken seal is an offence"),
+    5: ("Moderate", "the manifest is checked against what you bought, and "
+                    "from whom"),
+    6: ("High", "worked alien matter is impounded on sight"),
+    7: ("High", "nothing grows aboard without a licence, and the licence is "
+                "checked"),
+    8: ("High", "unapproved compounds are seized and the crew is examined"),
+    9: ("Extreme", "cargo is bonded end to end; nothing moves on a signature"),
+    10: ("Extreme", "charts are licensed, and so is what you did with them"),
+    11: ("Extreme", "movement is licensed: you dock where you are told"),
     12: ("Extreme", "leaving is licensed"),
 }
 

@@ -174,18 +174,20 @@ class DockingView(View):
         out = customs_sim.inspect(g, g.rng("customs"), approach)
         if not out["searched"]:
             return
-        reg = out["regime"]
+        # The copy comes from `inspect`, not from the regime: a boarding can
+        # be the world's own statute rather than a power's writ, and the
+        # regime has nothing to say about that (`sim/lawlevel.py`).
         if not out["caught"]:
             self.win.dialog(
-                "Boarded", [label(reg.notice, "", wrap=True),
-                            note(reg.waved), note(out["line"])],
+                "Boarded", [label(out["notice"], "", wrap=True),
+                            note(out["waved"]), note(out["line"])],
                 [("Carry on", None)])
             return
         seized = ", ".join(f"{t:g} t of {BY_ID[c].short}"
                            for c, t in out["seized"])
         self.win.dialog(
             out["headline"],
-            [label(reg.notice, "", wrap=True),
+            [label(out["notice"], "", wrap=True),
              label(out["detail"], "", wrap=True),
              note(f"Seized: {seized}."),
              note(f"Fined {cr(round(out['fine']))}, and they will remember.")],

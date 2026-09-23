@@ -61,6 +61,14 @@ class Contract:
     #: Day accepted. A survey counts bodies charted *since* — it counted any,
     #: and 2 of 18 paid out inside a day. -1 on an old save, which counts all.
     taken_on: int = -1
+    #: Who is actually asking (`sim/patrons.py`), as `"<system>:<slot>"`, or
+    #: "" for a posting from an office. A person, so the same fixer is there
+    #: next year and remembers how the last one went.
+    patron: str = ""
+    #: What they did not say, decided when the ticket was written and not
+    #: shown until it fires — or until you read them well enough to be told
+    #: the tell. "" for a straight ticket, which is most of them.
+    twist: str = ""
 
     @property
     def definition(self):
@@ -177,8 +185,35 @@ def generate(rng, game, sysm) -> list[Contract]:
         if not shape(rng, game, sysm, c, faction,
                      EARLY_SCALE if early else 1.0):
             continue
+        # And who is asking. After `shape`, because a patron's own rate is a
+        # multiple of the fee the work is worth, and before the board is
+        # returned, because the number a posting quotes has to be the number
+        # the patron would pay — a card that says one figure and hands over
+        # another when you accept it is the *game* lying, which is a
+        # different thing from the patron doing it.
+        from . import patrons as patrons_sim
+        patrons_sim.attach(game, sysm, c)
         out.append(c)
     return out
+
+
+def _seized(game, cid: str, *wheres) -> bool:
+    """Would any of these quays take this good off you (`sim/lawlevel.py`)?
+
+    **Asked of the far end only.** A delivery is a promise to hand
+    something over at a counter that has to exist, and without this a
+    posting sent a hull nine light-years to a port that impounds the cargo.
+
+    It is deliberately *not* asked of the issuing port. A power that seizes
+    a good on sight and pays you to bring it in is not contradicting
+    itself — the impound is how it collects and the commission is the
+    licence — and every Sanhedrin world sits at law 6 or above, so asking
+    would have made the Sanhedrin's own relic commission unofferable
+    anywhere in the sector.
+    """
+    from . import customs as customs_sim
+    return any(customs_sim.seizes(game, cid, where) for where in wheres
+               if where is not None)
 
 
 def shape(rng, game, sysm, c: Contract, faction: str, scale: float = 1.0) -> bool:
@@ -202,6 +237,12 @@ def shape(rng, game, sysm, c: Contract, faction: str, scale: float = 1.0) -> boo
                          + c.amount * d.rate * 0.25)
         if kind == "deliver":
             target = _pick_target(rng, game, sysm, far=rng.chance(0.5))
+            # **Nobody sends a cargo to a counter that will confiscate it.**
+            # A world's law seizes what its statute names
+            # (`sim/lawlevel.py`), and a delivery is a promise to hand
+            # something over at the far end.
+            if _seized(game, c.commodity, target):
+                return False
             c.target_system = target.id
             c.title = (f"Carry {c.amount:g} t of {BY_ID[c.commodity].name} "
                        f"to {target.name}")
@@ -281,6 +322,9 @@ def accept(game, contract: Contract) -> tuple[bool, str]:
 def abandon(game, contract: Contract) -> None:
     contract.failed = True
     game.adjust_rep(contract.issuer, -contract.rep)
+    # And the person who posted it hears about it (`sim/patrons.py`).
+    from . import patrons as patrons_sim
+    patrons_sim.failed(game, contract)
 
 
 def _cargo_held(game, cid: str) -> float:
@@ -299,6 +343,8 @@ def check(game) -> list[tuple[Contract, str]]:
         if game.day > c.deadline:
             c.failed = True
             game.adjust_rep(c.issuer, -c.rep)
+            from . import patrons as patrons_sim
+            patrons_sim.failed(game, c)
             events.append((c, "expired"))
             continue
 
@@ -373,6 +419,14 @@ def _remember_done(game, contract: Contract) -> None:
 def _pay(game, c: Contract) -> None:
     c.done = True
     _remember_done(game, c)
+    # What the ticket turns out to be worth, which is the posted fee unless
+    # the person who posted it was not telling you everything
+    # (`sim/patrons.fire`).
+    from . import patrons as patrons_sim
+    turned = patrons_sim.fire(game, c, c.reward)
+    for text, tint in turned.get("lines", ()):
+        game.add_log(text, tint)
+    c.reward = int(turned.get("paid", c.reward))
     game.credits += c.reward
     game.adjust_rep(c.issuer, c.rep)
     # Being seen to do a power's work is a position, not a neutral errand.

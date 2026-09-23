@@ -31,7 +31,7 @@ def rows(game, system) -> list:
         # sell price up let you hand unlicensed seed over the desk at a Yards
         # station for a receipt, which is the exact thing the boarding party
         # is there to stop.
-        banned = customs_sim.outlaws(system.port.faction, c.id)
+        banned = customs_sim.seizes(game, c.id, system)
         # `quote_buy`, not `buy_price`: the till asks the quote helper, which
         # carries the grudge bias and the office rate. Measured with a quiet
         # price in hand, the raw market said 36 and 29 where the counter

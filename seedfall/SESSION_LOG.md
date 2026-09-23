@@ -1528,6 +1528,111 @@ anybody *at* the Charter's court shut the Charter off as a *target* for
 ninety days, from every seat in the sector, for a reason no screen could
 state. The work has its own namespace now (`@`).
 
+## The law digit bites, 2026-09-23
+
+Traveller programme item 6. Every world has had a law level since
+`data/uwp.py` was written — `LAW_LEVELS` is literally a list of what it
+forbids — and nothing had ever read it. Contraband was a power's business:
+one list per faction, applied identically at every quay that power holds.
+
+Measured over six sectors, 248 worlds:
+
+    charter     mean law 7.0   76% at 6+   16% at 9+
+    sanhedrin   mean law 8.1  100% at 6+   41% at 9+
+    concordat   mean law 4.5    23%         0%
+    freeholds   mean law 1.7     2%         0%
+
+So a Charter capital and a Charter outpost were the same place to arrive
+with a dirty hold, and **the Sanhedrin never looked in one at all** — its
+regime is empty, so the power whose doctrine *is* the law was the one you
+could carry anything past.
+
+`sim/lawlevel.py` reads the digit. A quay asks two questions and the harder
+answer wins. `LAW_LADDER` runs unlicensed seed at law 3, relics at 6,
+unapproved pharma at 8 and charts at 10, picked against the measured
+distribution so the rungs come out at 79% / 48% / 15% / 3% of ports — and
+naming nothing a freight run carries, so an ordinary cargo career never
+meets any of it. 25 of 117 ports seize nothing at all, which is where a
+smuggler buys.
+
+Everything downstream already existed: `customs.seizes` is the one door, and
+being on it means no posted counter, a premium off the books (1.14–1.78×
+base, measured) and the hold opened. `customs.writ_here` names whichever
+authority is actually boarding you, because a Sanhedrin world's statute is
+not the Charter's writ and reading the regime alone printed an empty one.
+
+New suite `lawlevel` (9 checks). The balance pins — `renown`, `chronicle`,
+`efficacy`, `tuning`, `provisional`, `fence`, `law` — are all unmoved.
+
+## Patrons: the work has a face on it, 2026-09-23
+
+Traveller programme item 4. The board posted work from offices, which reads
+like a freight desk; Traveller's work comes from a person in a room, and the
+first thing anybody running it is told is that the job may not be what they
+said it was.
+
+A port now has a cast of three (`sim/patrons.py`), derived from the sector
+seed, stored nowhere, and remembered by `sim/memory` like any other mind.
+Two thirds of a board has a face on it. What they are is the trade, measured
+over six sectors: a fixer pays 1.30× and turns 40% of the time, a shipmaster
+pays the rate and turns 9%. Four twists, one of them in your favour, each
+one something the game could already do to you — a short fee, a power that
+takes an interest, a hold opened at the far end.
+
+You can read them before you sign: one check, odds quoted first, rolled off
+the contract's own id so closing the card cannot re-roll it. **Made by
+whoever aboard is best at it** — measured with the captain alone, streetwise
+is untrained on most captains and the odds against a fixer came out at 0%,
+which is a mechanic the game offers and nobody in it can use.
+
+Three things fell out of building it:
+
+- I passed `"pays"` as the third positional argument to `PatronKind`, which
+  is `blurb`, and then gave `blurb` again as a keyword. Python is quite
+  clear about this and I did it six times. The persist suite caught it the
+  way it catches everything — by loading a save in a fresh process.
+- `test_cargo`'s "the board's quote is what actually happens" bought the
+  whole cargo and compared it to a quote for the *shortfall*. It had only
+  ever passed because no posting for a good already in the hold had come
+  up; attaching patrons shifted the board's RNG draw and it read "quoted
+  1,552 and it cost 2,921". The check was wrong, not the game.
+- **And the shift itself was the real lesson.** `attach` took three draws
+  from the board generator's rng, which moved every draw after it: the
+  careful captain's five-year chronicle diverged on two seeds of three and
+  one stopped reaching its ending. Switching every twist off entirely did
+  not fix it, which is how the twists were ruled out — a feature that
+  spends a shared stream changes every balance reading in the game for
+  reasons that have nothing to do with the feature. A ticket is derived
+  from its own id now, the way everything else in this project is, and the
+  only thing that moves is the fee a patron would actually pay.
+
+New suite `patrons` (10 checks).
+
+And one more thing fell out of the law levels, which is worth stating on its
+own: `test_freight`'s "following the desk beats having only your own notes"
+failed, and the cause was neither the feature nor the advice. Measured over
+**forty paired careers, thirty-three came out identical** — the desk only
+tops the ranking somewhere the register has not been — so a mean over eight
+unpaired careers was decided by whichever one cleared six hundred thousand.
+A coin flip wearing a measurement. The check is paired and twenty-four wide
+now, and holds the claim worth holding: the desk never leaves the median
+career worse off. The feature itself is nearly inert, which is recorded in
+`IMPROVEMENTS.md` as its own open item rather than tuned away.
+
+## A name a body reads is not looked up until the body runs, 2026-09-23
+
+Splitting `ui/port_view.py` at five hundred lines moved a panel into
+`ui/port_services.py` and left `FACTIONS_BY_ID` behind in the old module's
+imports. Importing the new module proved nothing, a scan for *unused*
+imports proved nothing, and the fault surfaced three suites later as a
+NameError inside a screen a player had opened.
+
+`test_reachable` has a second check now: **nothing uses a name it never
+bound.** A module's own text settles it — anything loaded that is not a
+builtin, an import, an assignment, an argument or a definition in the same
+file cannot resolve at runtime either. 918 modules, and it was verified by
+putting the fault back and watching it name the line.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one
@@ -1551,4 +1656,12 @@ state. The work has its own namespace now (`@`).
   from one frame to the next can be a corpse by the next one, and the
   `RuntimeError` that raises kills the process instead of failing a check.
 - A function written and never called is a defect the suite catches
-  (`test_reachable`) — wire it or delete it.
+  (`test_reachable`) — wire it or delete it. So is a name a module *reads*
+  and never binds: importing a module does not run its function bodies, so
+  a smoke import will not find it.
+- **Never spend the shared rng from a new feature.** A draw taken inside
+  the board generator moved every draw after it and the careful captain
+  stopped reaching its ending — with the feature's own effects switched
+  off. Derive from the record's own id, as everything else here does.
+- `memory.mind_for` *creates*, and gives the new mind a past. Anything a
+  screen asks per repaint must read `memory.minds(game).get(key)`.

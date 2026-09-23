@@ -364,6 +364,58 @@ def run(suite: Suite) -> None:
         return ("a local read credits nothing; a callback still does — "
                 f"{len(own_loose)} names from the owner itself")
 
+    @check("nothing uses a name it never bound")
+    def _():
+        """The other half of the same sweep, and it cost a red suite to learn.
+
+        Splitting `ui/port_view.py` at five hundred lines moved a panel into
+        a new module and left `FACTIONS_BY_ID` behind in the old one's
+        imports. Importing the new module proved nothing — **a name a
+        function body reads is not looked up until the body runs** — so a
+        smoke import passed, a scan for *unused* imports passed, and the
+        fault surfaced three suites later as a NameError inside a screen.
+
+        A module's own names are enough to settle it: anything loaded that
+        is not a builtin, an import, an assignment, an argument, a
+        comprehension target or a definition in the same file cannot
+        resolve at runtime either.
+        """
+        import builtins
+        root = ROOT
+        loose, scanned = [], 0
+        for path in sorted(root.rglob("*.py")):
+            if "__pycache__" in path.parts:
+                continue
+            tree = ast.parse(path.read_text(), filename=str(path))
+            bound = set(dir(builtins)) | {"__file__", "__name__", "__doc__"}
+            for node in ast.walk(tree):
+                if isinstance(node, (ast.Import, ast.ImportFrom)):
+                    for alias in node.names:
+                        bound.add((alias.asname or alias.name).split(".")[0])
+                elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                       ast.ClassDef)):
+                    bound.add(node.name)
+                elif isinstance(node, ast.arg):
+                    bound.add(node.arg)
+                elif isinstance(node, ast.ExceptHandler) and node.name:
+                    bound.add(node.name)
+                elif isinstance(node, ast.Global):
+                    bound.update(node.names)
+                elif isinstance(node, ast.Name) and isinstance(node.ctx,
+                                                               ast.Store):
+                    bound.add(node.id)
+            for node in ast.walk(tree):
+                if (isinstance(node, ast.Name)
+                        and isinstance(node.ctx, ast.Load)
+                        and node.id not in bound):
+                    loose.append(f"{path.relative_to(root)}:{node.lineno} "
+                                 f"{node.id}")
+            scanned += 1
+        assert scanned >= 200, scanned
+        assert not loose, sorted(set(loose))[:8]
+        return (f"{scanned} modules, every name they read bound somewhere in "
+                "the file that reads it")
+
     @check("treaties are worth something at a quay")
     def _():
         # Found by the check above: `treaty_bonus` promised that signing made
