@@ -117,25 +117,30 @@ def run(suite: Suite) -> None:
         from ..sim import craft as craft_sim
         game = _at_home("boat-free")
         _cast_off(game)
-        craft = craft_sim.aboard(game)[0]
+        # The lift is the roomiest craft on the cradle (`crossing.the_boat`),
+        # which on the starting hull is her lander.
+        boat = crossing.the_boat(game)
         free = quayside.own_lift(game)
         assert free > 0, "a craft on the cradle carried nothing"
         assert quayside.fee(game, free * 0.5) == 0, free
         assert quayside.fee(game, free + 50) > 0
-        # A tender is what a captain buys for this: nine tonnes a visit.
-        craft.class_id = "dory"
-        roomy = quayside.own_lift(game)
-        assert roomy > free * 3, (free, roomy)
+        # Take the lander off and the fighter is all that is left to lift
+        # with, which is a tenth of it.
+        game.craft = [c for c in game.craft if c is not boat]
+        small = quayside.own_lift(game)
+        assert 0 < small < free / 3, (small, free)
+        craft = craft_sim.aboard(game)[0]
+        roomy = free
         # Lost, and the hull lighters everything.
         game.craft = []
         assert quayside.own_lift(game) == 0.0
         assert quayside.fee(game, 1.0) >= quayside.LIGHTER_LEAST
         # And she does not work across a system.
-        game.craft = [craft]
+        game.craft = [boat]
         _cast_off(game, 7.0)
         assert quayside.own_lift(game) == 0.0, "a ship's boat crossed 7 AU"
-        return (f"a WASP lifts {free:g} t a visit free and a DORY {roomy:g}; "
-                "neither of them from seven AU out")
+        return (f"her lander lifts {free:g} t a visit free and the fighter "
+                f"alone {small:g}; neither of them from seven AU out")
 
     @check("a bench of survey sets is carried in by hand")
     def _():
@@ -173,17 +178,21 @@ def run(suite: Suite) -> None:
                    if market_sim.quote_buy(game, system, c)
                    and not game.ship.cargo.get(c))
         posted = market_sim.quote_buy(game, system, cid)
+        # More than the boat lifts for nothing, so there is lighterage in
+        # the card at all.
+        contract_amount = int(quayside.own_lift(game) / bulk_of(cid)) + 40
+        lighter = quayside.fee(game, contract_amount * bulk_of(cid))
+        assert lighter > 0, "a card quoted from orbit with nothing to lift"
         contract = contract_sim.Contract(
             id=1, kind="deliver", issuer=system.port.faction,
             issued_at=system.id, title="t", posting="p", commodity=cid,
-            amount=20)
+            amount=contract_amount)
         card = contract_sim.quote(game, contract)
-        lighter = quayside.fee(game, 20 * bulk_of(cid))
-        assert lighter > 0, "a card quoted from orbit with nothing to lift"
-        assert card["cost"] >= posted * 20 + lighter, (card, posted, lighter)
+        assert card["cost"] >= posted * contract_amount + lighter, (
+            card, posted, lighter)
         spent_before = game.credits
-        bought = trade_sim.buy(game, cid, 20)
-        if bought.get("ok") and bought["units"] == 20:
+        bought = trade_sim.buy(game, cid, contract_amount)
+        if bought.get("ok") and bought["units"] == contract_amount:
             spent = spent_before - game.credits
             assert abs(spent - card["cost"]) < max(2.0, card["cost"] * 0.02), (
                 f"the card quoted {card['cost']:,} and it cost {spent:,.0f}")

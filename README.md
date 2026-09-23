@@ -440,7 +440,10 @@ takes the enemy's close-in fire, and is called in — or lost, with the pilot co
 A yard cuts cradles, lays down craft of the family it builds hulls of, mends one by the point
 and buys one back at a loss; a grown craft knits her own hull whole in the cradle off the hold.
 Whoever flies is off their station while they are away — and a hull with the hands for a cradle
-deck launches its own at you, three at a time, which your close-in fire has to answer.
+deck launches its own at you, three at a time, which your close-in fire has to answer. A hull
+cannot land on a world, so a **lander** is how anybody stands on a planet: the starting ship
+carries one beside the fighter, and what she seats and holds is the size of the party and how
+long it can stay.
 
 **Afoot (2026-09-21).** Walk the decks: your own hull, the quay, habitat drums, holdings,
 settlements, derelicts adrift and boarded prizes, as a turn-based *Star Frontiers*-style

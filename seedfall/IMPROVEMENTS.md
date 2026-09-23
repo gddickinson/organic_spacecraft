@@ -316,6 +316,97 @@ turns, which is a threat to answer rather than a fight-decider.
 craft running freight between two places on its own account, and a flight of
 more than one of yours at a time.
 
+## Open — down to the ground, begun 2026-09-22
+
+Asked for: attack craft that can land on planets; larger hulls that mostly
+cannot, unless built for it; a **lander** on the starting ship beside the
+fighter, fitted for extended stays — communications back to the hull in
+orbit, supplies, and vehicles for exploring a surface; more ships of that
+kind; a variety of surface vehicles for different worlds; habitations for
+camps; and planets to explore as **2D maps** — undeveloped, part-developed
+and developed — carrying everything from unexplored ground and abandoned
+works to mining operations, outposts, villages, towns and cities. All of it
+dovetailing with what is here.
+
+A great deal of it already is here, unread or unowned, which is what makes
+this a programme rather than a new game:
+
+- `sim/landing.py` did the arithmetic that makes a lander necessary and
+  wrote it down — **a starship cannot land on a world** — and named the
+  lander as the reason an expedition works at all. Nobody owned one.
+- `sim/expedition.py` is a 7×7 landing zone with a fixed pad square, a
+  supply clock and a `rover: int` gauge; `data/expedition.py` holds the
+  game's **only terrain vocabulary** (nine kinds, each with a day's cost
+  and a chance of a hazard) and a table of features to find.
+- `data/surfaces.py` already gives every body deterministic surface
+  features at a longitude and a latitude, and **nothing in `sim/` reads
+  them**; `sim/profile.py` derives a Traveller profile per body, the same
+  answer every time it is asked.
+- `data/settlements.py` puts NPC settlements on bodies (four facts, flat,
+  900 heads apiece) and `data/establishments.py` six kinds of ground base;
+  `sim/afoot_groundplan.settlement` already draws a town with streets, a
+  pad and an airless variant, and `sim/afoot_map` is a complete tile engine
+  with sight, fog, reach and pathing.
+
+The order, each piece playable on its own:
+
+1. ~~**Landing is a rule, and the lander is a thing.**~~ **Closed
+   2026-09-22** (`data/craft.py`, `sim/descent.py`, suite `descent`). A
+   class says whether it `lands`, how many `days` it keeps a party alive,
+   how many `bays` of vehicles it carries and how far its mast reaches
+   (`link_km`); three landers join the four small craft — the grown
+   **ISOPOD**, the Yards' **PINNACE**, and the **CATAPHRACT** built for the
+   gravity wells nothing else leaves again. Where a craft may set down is
+   her own thrust against the world's own pull with a reserve for lifting
+   off loaded (`LIFT_RESERVE`), which is the ship's own landing arithmetic
+   applied one scale down: a DORY to 0.89 g, a WASP to 1.78, a CATAPHRACT
+   to 2.52. The starting hull sails with **two cradles full** — the fighter
+   and a lander — and `sim/fieldwork.launch_expedition`, which used to
+   conjure a lander out of prose, now needs a real one aboard that can lift
+   off this world, takes the party from her seats and the supplies from her
+   hold, sets her state to `down` while they are on the ground (not the
+   ship's boat, not something a yard can reach) and brings her up with
+   them.
+2. **Vehicles.** `data/vehicles.py` and `sim/vehicles.py`: rovers,
+   crawlers, ground-effect skiffs, atmospheric flyers, walkers and
+   submersibles, each crossing some of the nine terrains and refusing the
+   rest, with speed, range, seats, hold and a driver's ticket; bought,
+   mended and sold at a yard the way craft are (`sim/hangar.py`); carried
+   down in a lander's bays. `Expedition.rover` stops being a bare gauge and
+   becomes the machine you actually brought.
+3. **Camps.** `data/camps.py`: a bivouac, a camp, a base camp — mass out of
+   the lander's hold, people, days, and what each grants (shelter from a
+   hazard, a bench for study, a bay for a vehicle, a mast that keeps the
+   hull on the line past `link_km`). Set up on a tile, struck and carried
+   on.
+4. **The planet map.** `sim/worldmap.py`: a per-body 2D map, **derived and
+   never stored**, seeded `RNG(f"{seed}:world:{system}:{body}")` the way
+   every other derived thing here is. Elevation and moisture from a small
+   value-noise field, terrain by a Whittaker-style table onto the nine
+   terrains already written, keyed to the body's gravity, temperature and
+   biome and to the profile's atmosphere and hydrographics. The
+   expedition's 7×7 zone becomes one cell of it, so the game that already
+   exists is what happens when you stop somewhere.
+5. **What is on it.** `data/developments.py` and `sim/worldsites.py`: the
+   taxonomy the request names — unexplored ground, abandoned works, ruins,
+   mining operations, outposts, villages, towns, cities — placed by a
+   suitability score off the map and the profile, and grown and decayed by
+   a short history pass so a mine that runs dry leaves an abandoned mine
+   and a town that loses its reason leaves a named ruin, with a line in the
+   chronicle. Every one resolves to a `Place` → `afoot_sites.Site` → the
+   ground plan already written, so walking into one needs no new plumbing.
+6. **The screen.** `ui/worldmap_view.py`: the map as an image with marks on
+   it — `ui/expedition_view.ZoneMap` for picking a cell, `ui/afoot_canvas`
+   for fog and reach — with the lander's pad where she set down, the
+   vehicle's range as a ring, and the sites anybody has seen.
+
+Two of the captain's own projects were read for ideas rather than code:
+a world simulator (seeded value noise, a Whittaker biome table, a
+settlement history that founds, grows, depletes and ruins, and an A* road
+pass) and a building generator (an authored table of what rooms a building
+of a kind has, and a grid-with-fractions layout schema). Ideas ported,
+nothing copied.
+
 ## Open — the Traveller programme, begun 2026-09-20
 
 The world profile landed (`data/uwp.py`, `sim/profile.py`): eight

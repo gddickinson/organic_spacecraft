@@ -35,11 +35,18 @@ from ..data.craft import CRAFT_BY_ID
 
 #: How near the hull, in km, and how slow, in m/s, a craft is taken back on.
 RECOVER_KM, RECOVER_RATE = 2.0, 4.0
-#: What an hour of looking is worth as survey data, and how long a look takes.
-SCOUT_DATA, SCOUT_HOURS = 18.0, 1.0
-#: What a firing run costs the craft in reaction mass, and the share of the
-#: target's own weight of fire that comes back at her.
-STRIKE_T, RETURN_FIRE = 0.4, 0.5
+#: The share of the ship's own reaction mass a cradle will put into a craft
+#: when she comes home. **Never all of it.** Measured when a lander came up
+#: from every landing with a full tank off the hull: a six-year chronicle
+#: drained its volatiles to nothing, coasted seventeen days to the next
+#: port with no mass to burn, could not buy food, and died of it on day
+#: 1,233 with a crew of nobody. A cradle fills a craft out of what the ship
+#: can spare.
+TOP_UP_SHARE = 0.5
+#: What a firing run costs the craft in reaction mass. What a run and a look
+#: *do* is `sim/craft_errands.py`, split out at five hundred lines; this is
+#: here because the cradle's own rules read it too.
+STRIKE_T = 0.4
 
 
 @register
@@ -173,6 +180,27 @@ def best_pilot(game, craft) -> str:
     """Whom a captain would send: the best ticket aboard that may go."""
     able = [key for key, _n, _w, ok, _why in pilots(game, craft) if ok]
     return max(able, key=lambda key: rating(game, key)) if able else ""
+
+
+def who_flies(game, craft) -> str:
+    """Whom a captain sends when they have not said — **not themselves**.
+
+    A captain in a cockpit is not on the bridge: they cannot take a station
+    in an engagement (`sim/craft_battle.on_the_bridge`), and a captain who
+    flies the lander down is away for the whole of a landing party's weeks
+    on the ground. Measured when `take_down` used `best_pilot` (which
+    prefers the best rating, and the captain holds it): a six-year
+    chronicle went from 54 landings and 18 parties walking home to 6
+    landings, none home, and a crew of nobody — because every station order
+    of every engagement in those weeks was refused.
+
+    So the best ticket that is *not* the captain's goes, and the captain
+    only if nobody else aboard holds one. `best_pilot` is still the answer
+    where the captain flying is the point.
+    """
+    able = [key for key, _n, _w, ok, _why in pilots(game, craft) if ok]
+    others = [key for key in able if key != "captain"]
+    return max(others or able, key=lambda key: rating(game, key), default="")
 
 
 # ── the sortie ─────────────────────────────────────────────────────────────
@@ -313,6 +341,22 @@ def beat(game, axis: str | None = None, main: bool = False,
     return out
 
 
+def top_up(game, craft) -> float:
+    """Fill a craft's tank from the ship's own reaction mass, up to what the
+    ship can spare (`TOP_UP_SHARE`). Returns the tonnes moved.
+
+    The one door: a cradle that took whatever it needed starved the hull
+    that carried it.
+    """
+    kind = kind_of(craft)
+    want = max(0.0, kind.fuel_t - craft.fuel)
+    spare = float(game.ship.cargo.get("volatiles", 0.0))
+    took = max(0.0, min(want, spare * TOP_UP_SHARE))
+    if took:
+        game.ship.cargo["volatiles"] = spare - took
+        craft.fuel += took
+    return took
+
 def can_recover(game) -> tuple:
     """Is she in a state to be taken back aboard?"""
     craft, conn = flying(game), sortie(game)
@@ -338,136 +382,11 @@ def recover(game) -> dict:
     bill(game)
     kind = kind_of(craft)
     craft.state, craft.pilot = "cradled", ""
-    want = kind.fuel_t - craft.fuel
-    spare = float(game.ship.cargo.get("volatiles", 0.0))
-    took = max(0.0, min(want, spare))
-    if took:
-        game.ship.cargo["volatiles"] = spare - took
-        craft.fuel += took
+    took = top_up(game, craft)
     game.sortie = None
     game.add_log(f"{craft.name} is back on the cradle.", "good")
     return {"ok": True, "fuelled": round(took, 2),
             "hours": round(craft.hours, 2)}
-
-
-# ── what she is for ────────────────────────────────────────────────────────
-
-def targets(game) -> list:
-    """Everything out here a craft could make a run at: the hulls, nearest
-    first. A craft strafes ships; it does not shoot at worlds."""
-    from . import engage, track
-    conn = sortie(game)
-    if conn is None:
-        return []
-    rows = [c for c in track.contacts(game) if c.kind == "hull"]
-    return sorted(rows, key=lambda c: engage.range_km(game, conn, c))
-
-
-def can_strike(game, contact) -> tuple:
-    """May she make a run at this one?"""
-    craft, conn = flying(game), sortie(game)
-    if craft is None or conn is None:
-        return False, "Nothing is out."
-    if not kind_of(craft).guns:
-        return False, f"{craft.name} carries no guns."
-    if getattr(contact, "kind", "") != "hull":
-        return False, "A craft strafes ships, not worlds."
-    if craft.fuel <= STRIKE_T:
-        return False, "No reaction mass for a run."
-    from . import engage
-    km = engage.range_km(game, conn, contact)
-    if km > engage.REACH_KM:
-        return False, (f"{km:,.0f} km — a run is made inside "
-                       f"{engage.REACH_KM:,.0f} km.")
-    return True, ""
-
-
-def strike(game, contact, rng=None) -> dict:
-    """One firing run: her guns at a hull, and whatever comes back.
-
-    Not a fleet action — that is `sim/combat`, and opening a battle is the
-    *ship's* business. This is what a single seat does: a pass, some damage,
-    and the answer from whatever the other hull is carrying.
-    """
-    ok, why = can_strike(game, contact)
-    if not ok:
-        return {"ok": False, "why": why}
-    craft = flying(game)
-    rng = rng if rng is not None else game.rng("craft")
-    kind = kind_of(craft)
-    craft.fuel = max(0.0, craft.fuel - STRIKE_T)
-    dealt = sum(sum(rng.int(1, 6) for _n in range(dice))
-                for _name, dice in kind.guns)
-    hostile = bool(getattr(contact, "hostile", False))
-    back = 0
-    if hostile:
-        # What a working hull throws back at something the size of a launch.
-        back = int(max(0, sum(rng.int(1, 6) for _n in range(2))
-                       * RETURN_FIRE - kind.armour))
-        craft.hp = max(0, craft.hp - back)
-    craft.struck += 1
-    from . import dockets, hostiles
-    hull_id = getattr(contact, "hull_id", None) or contact.id
-    hostiles.mark(game, hull_id)
-    dockets.report(game, "affray",
-                   f"{craft.name} made a firing run on {contact.name}",
-                   weight=1.0)
-    text = (f"{craft.name} runs in on {contact.name}: {dealt} through her "
-            + ("plating" if hostile else "flank")
-            + (f", and {back} back." if back else "."))
-    game.add_log(text, "bad")
-    conn = sortie(game)
-    if conn is not None:
-        conn.log.append(text)
-    if craft.hp <= 0:
-        return dict(lose(game, f"shot down by {contact.name}"), dealt=dealt,
-                    took=back, text=text)
-    return {"ok": True, "dealt": dealt, "took": back, "text": text,
-            "hp": craft.hp}
-
-
-def can_scout(game, contact) -> tuple:
-    """May she go and look at this?"""
-    craft, conn = flying(game), sortie(game)
-    if craft is None or conn is None:
-        return False, "Nothing is out."
-    if getattr(contact, "kind", "") not in ("body", "hull", "anchorage"):
-        return False, "There is nothing there to look at."
-    from . import engage
-    km = engage.range_km(game, conn, contact)
-    if km > table.RANGE_KM:
-        return False, (f"{km:,.0f} km off — a craft works inside "
-                       f"{table.RANGE_KM:,.0f} km of the hull it flew from.")
-    return True, ""
-
-
-def scout(game, contact) -> dict:
-    """An hour's looking, close up: survey data for the bench, and a body
-    properly on the chart. What an array on a seat is for."""
-    ok, why = can_scout(game, contact)
-    if not ok:
-        return {"ok": False, "why": why}
-    craft = flying(game)
-    kind = kind_of(craft)
-    got = SCOUT_DATA * max(0.5, kind.sensor / 2.0)
-    from . import inquiry
-    inquiry.add(game.research, "survey", got)
-    craft.fuel = max(0.0, craft.fuel - STRIKE_T * 0.5)
-    conn = sortie(game)
-    if conn is not None:
-        conn.elapsed += SCOUT_HOURS * 3600.0
-    index = getattr(contact, "body_index", None)
-    seen = ""
-    if getattr(contact, "kind", "") == "body" and index is not None:
-        body = game.system.bodies[index]
-        body.scanned = True
-        seen = f" {body.name} is on the chart properly now."
-    text = (f"{craft.name} spends an hour over {contact.name}: "
-            f"{got:.0f} of survey data.{seen}")
-    game.add_log(text, "good")
-    if conn is not None:
-        conn.log.append(text)
-    return {"ok": True, "data": round(got, 1), "text": text}
 
 
 def lose(game, why: str) -> dict:
@@ -479,3 +398,10 @@ def lose(game, why: str) -> dict:
     game.sortie = None
     game.add_log(f"{craft.name} is lost: {why}", "bad")
     return {"ok": True, "why": why}
+
+
+# The two errands a single seat is sent on live in `sim/craft_errands.py`
+# (split out at 500 lines); re-exported so `craft.strike` stays the door.
+from .craft_errands import (RETURN_FIRE, SCOUT_DATA,  # noqa: E402,F401
+                            SCOUT_HOURS, can_scout, can_strike, scout,
+                            strike, targets)

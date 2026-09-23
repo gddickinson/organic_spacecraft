@@ -65,7 +65,8 @@ def run(suite: Suite) -> None:
     @check("she goes off the cradle into a running fight, and runs in the same turn")
     def _():
         game, battle, rng = _fight("into-the-fight")
-        craft = craft_sim.aboard(game)[0]
+        craft = next(c for c in craft_sim.aboard(game)
+                     if craft_sim.kind_of(c).guns)
         # The cradle tab is not the door while the shooting is on.
         shut, why = craft_sim.can_launch(game, craft)
         assert not shut and "engagement" in why, why
@@ -86,7 +87,8 @@ def run(suite: Suite) -> None:
     @check("only a certified pilot, a whole craft and a gun make a launch")
     def _():
         game, battle, _rng = _fight("refusals")
-        craft = craft_sim.aboard(game)[0]
+        craft = next(c for c in craft_sim.aboard(game)
+                     if craft_sim.kind_of(c).guns)
         refused = {}
         craft.hp = 0
         refused["wrecked"] = craft_battle.may_launch(battle)[1]
@@ -114,7 +116,8 @@ def run(suite: Suite) -> None:
     @check("they shoot back, and she can be called in before they get on her")
     def _():
         game, battle, rng = _fight("called-in", difficulty=1.6)
-        craft = craft_sim.aboard(game)[0]
+        craft = next(c for c in craft_sim.aboard(game)
+                     if craft_sim.kind_of(c).guns)
         kind = craft_sim.kind_of(craft)
         combat_sim.take_turn(battle, LAUNCH, rng)
         hurt = 0
@@ -138,7 +141,8 @@ def run(suite: Suite) -> None:
     @check("shot down is a pilot with a wound, not an officer spent")
     def _():
         game, battle, rng = _fight("shot-down", difficulty=1.8)
-        craft = craft_sim.aboard(game)[0]
+        craft = next(c for c in craft_sim.aboard(game)
+                     if craft_sim.kind_of(c).guns)
         combat_sim.take_turn(battle, LAUNCH, rng)
         who = craft.pilot
         name = craft_sim.name_of(game, who)
@@ -150,23 +154,24 @@ def run(suite: Suite) -> None:
                 break
             combat_sim.take_turn(battle, captain_ai.orders(battle), rng)
         assert craft.state == "lost", "a craft on one point flew on for ever"
-        assert craft_sim.aboard(game) == [], "a wreck is still on the list"
+        assert craft not in craft_sim.aboard(game), "a wreck is still listed"
         key = "captain" if who == "captain" else who.split(":")[-1]
         assert float(game.wounds.get(key, 0)) >= craft_battle.PILOT_HURT, (
             game.wounds)
         assert len(game.officers) == officers, "the pilot went with her"
         assert battle.player.resolve < nerve
         assert "clear of her" in _said(battle)
-        # And the boat is gone with her: the crossing knows it.
+        # And she is nobody's boat any more: the crossing knows it.
         from ..sim import crossing
-        assert not crossing.has_boat(game)
+        assert crossing.the_boat(game) is not craft
         return (f"{name} is out of her and carrying "
                 f"{game.wounds[key]:g} stamina of hurt; the cradle is empty")
 
     @check("the fight ends and she comes home — unless the hull does not")
     def _():
         game, battle, rng = _fight("homecoming")
-        craft = craft_sim.aboard(game)[0]
+        craft = next(c for c in craft_sim.aboard(game)
+                     if craft_sim.kind_of(c).guns)
         combat_sim.take_turn(battle, LAUNCH, rng)
         guard = 0
         while not battle.over and craft.state == "out" and guard < 40:
@@ -193,7 +198,8 @@ def run(suite: Suite) -> None:
     @check("whoever flies her is off their station, captain or officer")
     def _():
         game, battle, rng = _fight("off-station")
-        craft = craft_sim.aboard(game)[0]
+        craft = next(c for c in craft_sim.aboard(game)
+                     if craft_sim.kind_of(c).guns)
         # An officer away is an officer not at their post: the hull's own
         # numbers say so while she is out.
         officer = next(k for k, _n, _w, ok, _why
@@ -275,7 +281,8 @@ def run(suite: Suite) -> None:
         """Measured over sixteen engagements, eight of each weight."""
         def fought(seed: str, faction: str, hard: float, launched: bool):
             game, battle, rng = _fight(seed, difficulty=hard, faction=faction)
-            craft = craft_sim.aboard(game)[0]
+            craft = next(c for c in craft_sim.aboard(game)
+                     if craft_sim.kind_of(c).guns)
             if launched:
                 combat_sim.take_turn(battle, LAUNCH, rng)
             guard = 0

@@ -384,10 +384,22 @@ MORE_TOPICS = [
            "a station in a battle at all. Their side flies too — a hull with "
            "the hands for a cradle deck launches up to three at you and runs "
            "them in every turn, and close-in fire is what answers them.",
+           "And a world. A hull cannot land on one — a rocky world pulls a "
+           "hundred and forty times harder than a starship's drive can "
+           "push — so a landing party goes down in a lander and the ship "
+           "holds orbit. Whether a craft can set down is her own thrust "
+           "against that world's pull, with something in hand for lifting "
+           "off loaded: a DORY manages moons and light worlds, a WASP "
+           "anything short of a giant, and a CATAPHRACT the giants. What "
+           "she seats is the size of the party and what her hold takes is "
+           "how long they can stay.",
            "Classes: the WASP and the heavier SHRIKE are fighters, the MOTE "
            "is all array and tankage, and the DORY is a boat with three "
-           "seats behind the pilot. A craft is never in the fleet, never "
-           "jumps, and does its work inside one system."),
+           "seats behind the pilot. Three more are landers: the grown "
+           "ISOPOD a captain starts with, the Yards' roomier PINNACE, and "
+           "the CATAPHRACT built for the gravity wells nothing else leaves "
+           "again. A craft is never in the fleet, never jumps, and does "
+           "its work inside one system."),
           see=("crew", "flying-well", "combat")),
     Topic("establishments", "Yards, hotels, wheels and dens", "concourse",
           ("Besides its quay, a system has whatever the trade has built "

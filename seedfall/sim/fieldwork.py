@@ -166,6 +166,7 @@ def launch_expedition(game, body_index: int, officer_ids: list[int],
     """Put a landing party down. Costs biomass for supplies and time to descend."""
     from . import tutorial_watch
     tutorial_watch.deed(game, "landed")
+    from . import craft as craft_sim
     from . import expedition as exp_sim
     flight.ensure_at(game, body_index)
     body = game.system.bodies[body_index]
@@ -176,19 +177,45 @@ def launch_expedition(game, body_index: int, officer_ids: list[int],
         return {"ok": False, "why": "A party is already on the ground."}
     if not body.surveyed:
         return {"ok": False, "why": "Survey it from orbit first."}
+    # **And something to go down in.** The party used to arrive in a lander
+    # the prose mentioned and nothing owned; now it is a craft on the cradle
+    # that has to be built for it and able to lift off this world again
+    # (`sim/descent.py`).
+    from . import descent as descent_sim
+    lander = descent_sim.best(game, body)
+    if lander is None:
+        return {"ok": False, "why": descent_sim.why_none(game, body)}
+    kind = craft_sim.kind_of(lander)
+    room = descent_sim.party_room(lander)
+    if len(officer_ids) > room:
+        return {"ok": False,
+                "why": (f"A {kind.name} takes {room} down besides the "
+                        f"pilot; {len(officer_ids)} are going.")}
     from ..data.expedition import SUPPLY_LOADS
-    label, tonnes, days = SUPPLY_LOADS[max(0, min(load, len(SUPPLY_LOADS) - 1))]
+    load = max(0, min(load, len(SUPPLY_LOADS) - 1))
+    # Her hold is the ceiling on what goes down with them.
+    while load > 0 and SUPPLY_LOADS[load][1] > kind.hold_t:
+        load -= 1
+    label, tonnes, days = SUPPLY_LOADS[load]
+    if tonnes > kind.hold_t:
+        return {"ok": False,
+                "why": (f"A {kind.name} holds {kind.hold_t:g} t and the "
+                        f"lightest load is {tonnes} t.")}
     if game.ship.cargo.get("biomass", 0) < tonnes:
         return {"ok": False,
                 "why": f"{label} needs {tonnes} t of biomass; you have "
                        f"{int(game.ship.cargo.get('biomass', 0))}."}
+    # She keeps them alive for as long as she is built to, and no longer.
+    days = min(days, kind.days)
 
     add_cargo(game.ship, "biomass", -tonnes)
+    descent_sim.take_down(game, lander)
     game.advance_days(3)
     if game.dead:
         return {"ok": True, "dead": True}
     game.expedition = exp_sim.generate(game.rng("landing"), game.system, body,
                                        list(officer_ids), supply=days)
+    game.expedition.craft = lander.id
     from . import contracts as contract_sim
     contract_sim.note_landing(game, game.system.id, body.id)
     game.add_log(f"Landing party down on {body.name}.", "good")
@@ -197,7 +224,12 @@ def launch_expedition(game, body_index: int, officer_ids: list[int],
 
 def conclude_expedition(game) -> dict:
     """Bank what the party brought back and take the ship's time for it."""
+    from . import descent as descent_sim
     from . import expedition as exp_sim
+    # Whatever happened down there, the lander comes up — she is the way
+    # home, and `sim/expedition` has already said whether they were on her
+    # when the supplies ran out.
+    descent_sim.bring_up(game)
     exp = game.expedition
     if exp is None:
         return {"ok": False, "why": "No party in the field."}

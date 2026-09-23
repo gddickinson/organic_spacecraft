@@ -88,8 +88,15 @@ def new_game(seed: str | None = None, systems: int = 42,
     # `berthing.can_conn` refused all of them, and the conn opened on nothing
     # with controls that correctly did nothing. From turn one.
     _moor_at_home(game, start)
+    from ..data import craft as craft_table
     from ..sim import craft as craft_sim
-    craft_sim.give(game)                          # a launch in her cradle
+    # Two cradles on her flank and something in each: the launch she fights
+    # with, and the lander that puts a party on a world (`sim/descent.py`).
+    # A hull cannot land — `sim/landing.py` did the arithmetic — so the
+    # second of these is how anybody stands on a planet at all.
+    ship.cradles = 2
+    craft_sim.give(game)
+    craft_sim.give(game, craft_table.STARTING_LANDER)
     # The hull did not launch yesterday: there is a shakedown cruise's worth of
     # its own data already on the bench.
     inquiry_sim.add(game.research, "survey", 55)

@@ -27,9 +27,10 @@ from .harness import Suite
 
 
 def _out(seed: str = "craft"):
-    """A chronicle with her craft away and the sortie in hand."""
+    """A chronicle with her fighter away and the sortie in hand."""
     game = new_game(seed)
-    craft = craft_sim.aboard(game)[0]
+    craft = next(c for c in craft_sim.aboard(game)
+                 if craft_sim.kind_of(c).role == "fighter")
     got = craft_sim.launch(game, craft)
     assert got["ok"], got
     return game, craft, game.sortie
@@ -46,15 +47,22 @@ def run(suite: Suite) -> None:
     def _():
         game = new_game("craft-aboard")
         carried = craft_sim.aboard(game)
-        assert len(carried) == 1, carried
-        craft = carried[0]
+        # Two cradles and something in each: the launch she fights with and
+        # the lander that puts a party on a world (`sim/descent.py`).
+        assert len(carried) == 2, carried
+        craft = next(c for c in carried
+                     if craft_sim.kind_of(c).role == "fighter")
+        pod = next(c for c in carried
+                   if craft_sim.kind_of(c).role == "lander")
         kind = craft_sim.kind_of(craft)
         assert craft.state == "cradled" and craft.hp == kind.hull
         assert kind.role == "fighter" and kind.seats == 1, kind
+        assert craft_sim.kind_of(pod).lands and pod.state == "cradled"
         laid = afoot_plans.plan(game, afoot_sites.own_hull(game))
-        cradle = next((r for r in laid.rooms if "Cradle deck" in r.name), None)
-        assert cradle is not None, [r.name for r in laid.rooms]
-        assert kind.name.title() in cradle.name, cradle.name
+        cradles = [r for r in laid.rooms if "Cradle deck" in r.name]
+        assert len(cradles) == 2, [r.name for r in laid.rooms]
+        cradle = cradles[0]
+        assert any(kind.name.title() in r.name for r in cradles), cradles
         # And the way to her is a way, not a wall: the deck she is on is
         # walked like any other (`afootshapes` holds the whole hull).
         from ..sim import afoot
@@ -156,13 +164,22 @@ def run(suite: Suite) -> None:
         assert crossing.has_boat(game), "a craft in the cradle is no boat"
         ways = {w.id: w for w in crossing.ways(game, place)}
         assert ways["boat"].ok, ways["boat"].why
-        craft = craft_sim.aboard(game)[0]
-        craft_sim.launch(game, craft)
-        assert not crossing.has_boat(game), "the boat is out, and still a boat"
+        # The boat is whichever craft takes the most across — the lander,
+        # on a hull that carries one.
+        boat = crossing.the_boat(game)
+        assert craft_sim.kind_of(boat).seats == max(
+            craft_sim.kind_of(c).seats for c in craft_sim.aboard(game))
+        craft_sim.launch(game, boat)
+        assert crossing.the_boat(game) is not boat, "out, and still the boat"
         got = craft_sim.recover(game)
         assert got["ok"], got
-        assert crossing.has_boat(game)
-        return "the cradle's craft is the boat, and only while she is on it"
+        assert crossing.the_boat(game) is boat
+        # An empty cradle is no boat at all.
+        kept, game.craft = list(game.craft), []
+        assert not crossing.has_boat(game)
+        game.craft = kept
+        return (f"the boat is {craft_sim.kind_of(boat).name}, the roomiest "
+                "on the cradle, and only while she is on it")
 
     @check("she comes home to the cradle, and what the boats put in her tank")
     def _():
@@ -176,10 +193,11 @@ def run(suite: Suite) -> None:
         assert game.sortie is None
         assert craft.fuel > 1.0 and craft.fuel <= kind.fuel_t, craft.fuel
         assert craft_sim.flying(game) is None
-        # Lost is lost: she is off the cradle list and no boat.
+        # Lost is lost: she is off the cradle list.
+        was = len(craft_sim.aboard(game))
         craft_sim.launch(game, craft)
         craft_sim.lose(game, "shot to pieces")
-        assert craft_sim.aboard(game) == [] and game.sortie is None
-        assert not crossing.has_boat(game)
+        assert len(craft_sim.aboard(game)) == was - 1 and game.sortie is None
+        assert craft not in craft_sim.aboard(game)
         return (f"{got['fuelled']:.1f} t into her tank off the ship's own "
                 "hold; a craft lost is off the list")

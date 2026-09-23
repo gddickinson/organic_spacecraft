@@ -47,10 +47,15 @@ def run(suite: Suite) -> None:
     def _():
         game = _funded("cradles")
         ship = game.ship
-        assert hangar.cradles(ship) == 1, "she sails with the one she has"
-        assert hangar.room(game) == 0, "the starting craft is in it"
+        # She sails with two cradles full: the fighter and the lander.
+        assert hangar.cradles(ship) == 2, "the cradles she sails with"
+        assert hangar.room(game) == 0, "the starting craft are in them"
         room_for = hangar.most(ship)
         assert room_for >= 2, room_for
+        # A NAVIS is at her limit, so make room the way a captain would.
+        hangar.sell(game, craft_sim.aboard(game)[-1])
+        assert hangar.room(game) == 1
+        ship.cradles = 1
         before = game.credits
         day = game.day
         got = hangar.fit_cradle(game)
@@ -80,7 +85,8 @@ def run(suite: Suite) -> None:
     @check("a craft is laid down where its family's hulls are, for money, matter and days")
     def _():
         game = _funded("buying")
-        assert hangar.fit_cradle(game)["ok"]
+        # Sell the lander to clear a cradle for what this check buys.
+        hangar.sell(game, craft_sim.aboard(game)[-1])
         rows = {row["kind"].id: row for row in hangar.offers(game)}
         assert len(rows) == len(CRAFT)
         assert all(row["days"] >= hangar.LEAST_DAYS for row in rows.values())
@@ -100,7 +106,8 @@ def run(suite: Suite) -> None:
         # She is on the deck plan now, in a cradle deck of her own.
         laid = afoot_plans.plan(game, afoot_sites.own_hull(game))
         cradles = [r for r in laid.rooms if "Cradle deck" in r.name]
-        assert len(cradles) == 2, [r.name for r in laid.rooms]
+        assert len(cradles) == len(craft_sim.aboard(game)), (
+            [r.name for r in laid.rooms])
         # And the yard's own rule refuses what it cannot lay down: a family
         # this system has no slip for says so in the yard's words.
         from ..sim import shipyard
@@ -115,7 +122,8 @@ def run(suite: Suite) -> None:
     @check("a yard mends her by the point, and a grown craft knits herself")
     def _():
         game = _funded("mending")
-        craft = craft_sim.aboard(game)[0]
+        craft = next(c for c in craft_sim.aboard(game)
+                     if craft_sim.kind_of(c).role == "fighter")
         kind = craft_sim.kind_of(craft)
         assert kind.family == "grown"
         craft.hp = 40
@@ -144,6 +152,7 @@ def run(suite: Suite) -> None:
         assert craft.hp == 10, "a dry hold still fed her"
         # And a welded craft waits for a yard, whatever the hold holds.
         game.ship.cargo["biomass"] = 50.0
+        hangar.sell(game, craft_sim.aboard(game)[-1])   # a cradle to put it in
         welded = hangar.buy(game, "shrike")
         if welded["ok"]:
             welded["craft"].hp = 20
@@ -157,7 +166,8 @@ def run(suite: Suite) -> None:
     @check("selling is always a loss, and a wreck is worth less than a whole one")
     def _():
         game = _funded("selling")
-        craft = craft_sim.aboard(game)[0]
+        craft = next(c for c in craft_sim.aboard(game)
+                     if craft_sim.kind_of(c).role == "fighter")
         kind = craft_sim.kind_of(craft)
         whole = hangar.worth(craft)
         craft.hp = kind.hull // 4
@@ -172,8 +182,7 @@ def run(suite: Suite) -> None:
         got = hangar.sell(game, craft)
         assert got["ok"] and got["paid"] == whole, got
         assert game.credits == money + whole
-        assert craft_sim.aboard(game) == [], "sold and still on the flight line"
-        assert hangar.room(game) == hangar.cradles(game.ship)
+        assert craft not in craft_sim.aboard(game), "sold and still aboard"
         return (f"a whole WASP fetches {whole:,} against {kind.cost['credits']:,} "
                 f"to lay down; a quarter-hull one {hurt:,} "
                 f"({table.SALVAGE:.0%} salvage, scaled by condition)")
@@ -181,7 +190,8 @@ def run(suite: Suite) -> None:
     @check("nothing is done to a craft that is out, or anywhere but a yard")
     def _():
         game = _funded("refusals")
-        craft = craft_sim.aboard(game)[0]
+        craft = next(c for c in craft_sim.aboard(game)
+                     if craft_sim.kind_of(c).role == "fighter")
         craft.hp = 50
         refused = {}
         craft_sim.launch(game, craft)

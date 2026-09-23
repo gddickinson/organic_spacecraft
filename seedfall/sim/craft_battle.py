@@ -70,7 +70,11 @@ def may_launch(b) -> tuple:
     ready = [c for c in craft_sim.aboard(game) if c.state == "cradled"]
     if not ready:
         return False, "This hull carries no craft on the cradle.", None
-    craft = ready[0]
+    # The one with the most gun in her: a hull that carries a fighter and a
+    # lander sends the fighter, and complains about the lander's empty
+    # mounts only when the lander is all there is.
+    craft = max(ready, key=lambda c: sum(
+        dice for _name, dice in craft_sim.kind_of(c).guns))
     kind = craft_sim.kind_of(craft)
     if craft.hp <= 0:
         return False, f"{craft.name} is wrecked.", None
@@ -96,7 +100,7 @@ def launch(b, pilot: str = "") -> dict:
     if not ok:
         return {"ok": False, "why": why}
     game = b.game
-    pilot = pilot or _who_flies(game, craft)
+    pilot = pilot or craft_sim.who_flies(game, craft)
     craft.state, craft.pilot = "out", pilot
     craft.sorties += 1
     craft.fuel = max(0.0, craft.fuel - craft_sim.STRIKE_T)
@@ -104,22 +108,6 @@ def launch(b, pilot: str = "") -> dict:
     _say(b, f"{craft.name} drops off the cradle with {who} flying, "
             f"and comes round onto {b.enemy_name}.", "good")
     return {"ok": True, "craft": craft, "who": who}
-
-
-def _who_flies(game, craft) -> str:
-    """Whom a captain sends when they have not said.
-
-    **Not themselves.** A captain in a cockpit cannot con the ship
-    (`on_the_bridge`), so the best ticket that is not the captain's goes,
-    and the captain only if nobody else aboard holds one. `craft.best_pilot`
-    is the other answer — the right one outside an engagement, where the
-    bridge is not being shot at.
-    """
-    able = [key for key, _n, _w, ok, _why in craft_sim.pilots(game, craft)
-            if ok]
-    others = [key for key in able if key != "captain"]
-    return max(others or able, key=lambda key: craft_sim.rating(game, key),
-               default="")
 
 
 def may_recall(b) -> tuple:
@@ -239,13 +227,7 @@ def home(game) -> dict:
     if craft is None:
         return {"ok": False, "why": "Nothing is out."}
     craft.state, craft.pilot = "cradled", ""
-    kind = craft_sim.kind_of(craft)
-    spare = float(game.ship.cargo.get("volatiles", 0.0))
-    took = max(0.0, min(kind.fuel_t - craft.fuel, spare))
-    if took:
-        game.ship.cargo["volatiles"] = spare - took
-        craft.fuel += took
-    return {"ok": True, "fuelled": round(took, 2)}
+    return {"ok": True, "fuelled": round(craft_sim.top_up(game, craft), 2)}
 
 
 # ── and theirs ─────────────────────────────────────────────────────────────

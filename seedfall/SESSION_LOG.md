@@ -1381,6 +1381,21 @@ flake is fixed — it measured one instant of a decaying wobble whose phase
 comes from the shock's own seed, so it now takes the peak across the first
 fifth of a second, and grabs the picture on that same beat.
 
+## Down to the ground, stage one: the lander, 2026-09-22
+
+A player asked for landers, surface vehicles, camps and 2D planet maps.
+`IMPROVEMENTS.md` has the programme in six pieces; this is the first.
+`sim/landing.py` had already proved a starship cannot land on a world and
+named the lander as the reason expeditions work — and nobody owned one.
+Now a craft class says whether it `lands`, for how many `days` it keeps a
+party alive, how many vehicle `bays` it has and how far its mast reaches;
+three landers join the four craft (ISOPOD, PINNACE, CATAPHRACT); where a
+craft may set down is her thrust against the world's pull with a reserve
+for lifting off loaded; and the starting hull sails with two cradles full.
+`fieldwork.launch_expedition` used to conjure a lander out of prose and now
+needs a real one that can leave this world again, taking the party from her
+seats and the supplies from her hold. New suite `descent` (5 checks).
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one

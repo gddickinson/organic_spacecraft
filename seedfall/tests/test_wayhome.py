@@ -419,21 +419,34 @@ def run(suite: Suite) -> None:
 
         from . import chronicle
 
-        ends = collections.Counter()
+        # **Over a chronicle that survives its six years.** A captain who
+        # starves on day 1,233 lands no more parties, and which chronicles
+        # starve moves with any change that touches the seeded stream — so
+        # the claim is about the walk home, and a dead captain is skipped
+        # rather than counted as a party that failed to make it.
         real = exp_sim.finish
+        ends = collections.Counter()
+        died = []
+        for seed in ("chronicle-ground", "ground-a", "ground-b"):
+            ends = collections.Counter()
 
-        def spy(exp, how):
-            ends[how] += 1
-            return real(exp, how)
+            def spy(exp, how, _e=ends, _r=real):
+                _e[how] += 1
+                return _r(exp, how)
 
-        exp_sim.finish = spy
-        try:
-            game = new_game("chronicle-ground")
-            chronicle.play(game, years=6)
-        finally:
-            exp_sim.finish = real
+            exp_sim.finish = spy
+            try:
+                game = new_game(seed)
+                chronicle.play(game, years=6)
+            finally:
+                exp_sim.finish = real
+            if not game.dead:
+                break
+            died.append(seed)
         assert ends, "six years and nobody landed at all"
+        assert not game.dead, f"every chronicle tried died: {died}"
         assert ends.get("returned", 0) >= 3, (
             f"landings ended {dict(ends)} — the party still never walks back")
-        return (f"six years: " + " · ".join(f"{n} {k}"
-                                            for k, n in ends.most_common()))
+        return ("six years: " + " · ".join(f"{n} {k}"
+                                           for k, n in ends.most_common())
+                + (f" (after {len(died)} that starved)" if died else ""))

@@ -185,25 +185,27 @@ def run(suite: Suite) -> None:
         from ..sim import craft as craft_sim
         game = _at_hub_with_station()
         station = _neighbour(game)
-        craft = craft_sim.aboard(game)[0]
+        # The boat is the roomiest craft on the cradle (`the_boat`), which
+        # on the starting hull is her lander.
+        craft = crossing.the_boat(game)
         kind = craft_sim.kind_of(craft)
         seats = crossing.seats_of(craft)
         assert seats == max(1, kind.seats - 1), (seats, kind.seats)
         assert crossing.has_boat(game, seats)
         assert not crossing.has_boat(game, seats + 1)
         crowded = {w.id: w for w in crossing.ways(game, station, seats + 1)}
-        assert not crowded["boat"].ok, "a WASP took a party of three"
+        assert not crowded["boat"].ok, f"a {kind.name} took one too many"
         assert kind.name in crowded["boat"].why, crowded["boat"].why
         assert str(seats + 1) in crowded["boat"].why, crowded["boat"].why
-        # A tender is what a party rides in: three behind the pilot.
-        craft.class_id = "dory"
-        assert crossing.seats_of(craft) == 3
-        roomy = {w.id: w for w in crossing.ways(game, station, 3)}
-        assert roomy["boat"].ok, roomy["boat"].why
-        assert not crossing.has_boat(game, 5)
+        # And a fighter alone is one at a pinch, which is the other end of
+        # the same rule.
+        game.craft = [c for c in game.craft if c is not craft]
+        fighter = crossing.the_boat(game)
+        assert crossing.seats_of(fighter) == 1, fighter
+        assert not crossing.has_boat(game, 2)
         return (f"a {kind.name} takes {seats} across besides the pilot and "
-                f"refuses {seats + 1}: “{crowded['boat'].why[:48]}…”; a DORY "
-                "takes three")
+                f"refuses {seats + 1}: “{crowded['boat'].why[:48]}…”; a "
+                "fighter takes one at a pinch")
 
     @check("what a walk finds comes home by the way it went, and the rest stays")
     def _():
@@ -223,12 +225,13 @@ def run(suite: Suite) -> None:
         assert by_hand <= crossing.SUIT_T + 1e-6, by_hand
         assert any("left where it lay" in line for line in said), said
         by_boat, _said, game = haul("boat")
-        craft = craft_sim.aboard(game)[0]
-        room = craft_sim.kind_of(craft).hold_t * crossing.BOAT_TRIPS
+        room = crossing.lift_t(game, "boat")
         assert abs(by_boat - room) < 0.01, (by_boat, room)
+        assert room <= crossing.LIFT_MOST, (room, crossing.LIFT_MOST)
         alongside, said_all, _g = haul("dock")
         assert alongside == 12.0, alongside
         assert not any("left where it lay" in line for line in said_all)
         return (f"12 t found: {alongside:g} t home made fast, {by_boat:g} t "
-                f"by the boat ({crossing.BOAT_TRIPS} trips of her hold), "
-                f"{by_hand:g} t on a line")
+                f"by the boat ({crossing.BOAT_TRIPS} trips of her hold, "
+                f"{crossing.LIFT_MOST:g} t at the most), {by_hand:g} t on a "
+                "line")

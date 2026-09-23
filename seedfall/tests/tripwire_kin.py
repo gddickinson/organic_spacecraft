@@ -275,10 +275,14 @@ KIN = {
     "crossing": ("crossing", "concourse", "afoot"),
     # Single-seat craft (2026-09-22): the cradle, the ticket, the sortie.
     "craft": ("craft", "craftbattle"),
+    # Split out of `craft` at 500 lines: the run and the look.
+    "craft_errands": ("craft", "craftui"),
     # And in an engagement (2026-09-22): the run, the answer, the cradle.
     "craft_battle": ("craftbattle",),
     # The hangar deck (2026-09-22): cradles, buying, mending, selling.
     "hangar": ("hangar", "craft"),
     # Where you may deal from (2026-09-22): the counter and the lighterage.
     "quayside": ("quayside", "trade", "wharfage"),
+    # Down to the ground (2026-09-22): the lander and the world's own pull.
+    "descent": ("descent", "ground", "craft"),
 }

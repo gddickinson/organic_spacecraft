@@ -57,6 +57,12 @@ SHUTTLED = ("port", "station", "base", "habitat", "holding", "downside",
 #: trips while the party is ashore; a shuttle takes a crate or two as
 #: freight; suits carry this much a head.
 BOAT_TRIPS, SHUTTLE_T, SUIT_T = 3, 2.0, 0.2
+#: And the most any boat shifts in one visit, however big her hold. A
+#: ship's boat is not a lighter: she has one pilot, one ramp and the hours
+#: the party is ashore, and a lander with a season's supplies in her would
+#: otherwise have made `sim/quayside`'s lighterage free for most of a
+#: chronicle's trade.
+LIFT_MOST = 12.0
 
 
 @dataclass(frozen=True)
@@ -172,7 +178,7 @@ def lift_t(game, way_id: str, heads: int = 1) -> float:
         if boat is None:
             return 0.0
         from . import craft as craft_sim
-        return craft_sim.kind_of(boat).hold_t * BOAT_TRIPS
+        return min(LIFT_MOST, craft_sim.kind_of(boat).hold_t * BOAT_TRIPS)
     if way_id == "shuttle":
         return SHUTTLE_T
     return SUIT_T * max(1, heads)

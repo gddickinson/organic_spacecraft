@@ -42,14 +42,15 @@ def run(suite) -> bool:
         view.tab = "cradle"
         view.refresh()
         _pump()
-        craft = craft_sim.aboard(game)[0]
         named = {b.objectName(): b for b in view.findChildren(QPushButton)}
         launch = [b for name, b in named.items()
                   if name.startswith("craft_launch_") and b.isEnabled()]
         assert launch, sorted(named)
         launch[0].click()
         _pump()
-        assert craft.state == "out" and game.sortie is not None
+        # Two craft on the cradle now, so follow whichever the tab sent.
+        craft = craft_sim.flying(game)
+        assert craft is not None and game.sortie is not None
         cockpit = getattr(win, "craft_window", None) or open_cockpit(win)
         _pump()
         buttons = {b.objectName() for b in cockpit.findChildren(QPushButton)}
@@ -79,11 +80,14 @@ def run(suite) -> bool:
         from ..sim import craft as craft_sim
         from ..sim import encounters as enc_sim
         game = win.game
-        craft = craft_sim.aboard(game)[0]
-        if craft.state != "cradled":
-            # The check above left her three thousand km out, which is a long
-            # way to come for a fight that has not started yet.
-            craft.state, craft.pilot, game.sortie = "cradled", "", None
+        # Everything back on the cradle: the check above left one of them
+        # three thousand km out, which is a long way to come for a fight
+        # that has not started yet.
+        for got in craft_sim.aboard(game):
+            got.state, got.pilot = "cradled", ""
+        game.sortie = None
+        craft = next(c for c in craft_sim.aboard(game)
+                     if craft_sim.kind_of(c).guns)
         rng = RNG("battle-ui")
         enemy = enc_sim.make_enemy(rng, "charter", difficulty=1.3)
         win.battle = combat_sim.start(game.ship, game.ship_stats, enemy,
@@ -128,6 +132,16 @@ def run(suite) -> bool:
         win.go("yard")
         view = win.views["yard"]
         view.tab = "cradles"
+        view.refresh()
+        _pump()
+        # The hull she sails with has both cradles full, so put her back to
+        # one craft in one cradle — the state this check is about.
+        for got in craft_sim.aboard(game):
+            got.state, got.pilot = "cradled", ""
+        game.sortie = None
+        game.craft = [next(c for c in craft_sim.aboard(game)
+                           if craft_sim.kind_of(c).guns)]
+        game.ship.cradles = 1
         view.refresh()
         _pump()
         had = hangar_sim.cradles(game.ship)

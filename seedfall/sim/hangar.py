@@ -194,6 +194,9 @@ def can_mend(game, craft) -> tuple:
     """May she be made whole here?"""
     if craft is None or craft.state == "lost":
         return False, "There is no such craft aboard."
+    if craft.state == "down":
+        return False, (f"{craft.name} is on a world. A yard cannot reach "
+                       "her there.")
     if craft.state == "out":
         return False, f"{craft.name} is out. Nobody mends a craft in flight."
     cost = mend_cost(craft)
@@ -269,6 +272,8 @@ def worth(craft) -> int:
 def can_sell(game, craft) -> tuple:
     if craft is None or craft.state == "lost":
         return False, "There is no such craft aboard."
+    if craft.state == "down":
+        return False, f"{craft.name} is on a world. Lift her off first."
     if craft.state == "out":
         return False, f"{craft.name} is out. Bring her in first."
     return shipyard.can_refit_here(game)

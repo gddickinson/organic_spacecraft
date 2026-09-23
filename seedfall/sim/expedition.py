@@ -52,6 +52,9 @@ class Expedition:
     y: int = LANDER[1]
     supply: int = BASE_SUPPLY
     rover: int = 10
+    #: The craft they came down in (`sim/craft.Carried.id`), or -1 for a
+    #: party the old door put down before landers were things you owned.
+    craft: int = -1
     days: int = 0
     officers: list[int] = field(default_factory=list)
     haul: dict[str, float] = field(default_factory=dict)

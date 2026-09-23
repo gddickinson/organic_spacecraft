@@ -321,7 +321,15 @@ a grown interceptor, with a hatch through to the cradle deck so a pilot walks ou
   landing party's haul comes home by the way it went: everything alongside, three trips of the
   boat's hold from orbit, two tonnes in a shuttle, 0.2 t a head on a line. The rest stays where
   it lay — which is why a captain who means to carry anything buys a DORY.
-- Four classes: WASP and SHRIKE fighters, the MOTE scout, the DORY tender.
+- **And a world to go down to** (`sim/descent.py`). A hull cannot land on one — a rocky world
+  pulls a hundred and forty times harder than a starship's drive can push — which is why a
+  landing party goes down in a lander while the ship holds orbit. Whether a craft can set down
+  is her own thrust against that world's pull, with a reserve for lifting off loaded: a DORY
+  to 0.89 g, a WASP to 1.78, a CATAPHRACT to 2.52. The party is her seats and the supplies are
+  her hold, and she sits on the world — no yard can reach her there — until they come up.
+- Seven classes: WASP and SHRIKE fighters, the MOTE scout, the DORY tender, and three landers —
+  the grown ISOPOD a captain starts with, the roomier PINNACE, and the CATAPHRACT for the
+  gravity wells nothing else leaves again.
 - **The hangar deck** (`sim/hangar.py`, the Shipyard's **Cradles** tab). A cradle is fitted,
   not assumed: a hull carries as many as its complement can work, and a yard cuts another for
   ₡9,000 and a week. A craft is laid down where its family's hulls are, for its own money,
