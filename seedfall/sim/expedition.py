@@ -58,6 +58,9 @@ class Expedition:
     #: The craft they came down in (`sim/craft.Carried.id`), or -1 for a
     #: party the old door put down before landers were things you owned.
     craft: int = -1
+    #: Where on the world they are, as a cell of `sim/worldmap` — or
+    #: (-1, -1) for a party the old door put down before worlds had maps.
+    cell: tuple = (-1, -1)
     #: The camp that came down with them (`sim/camps.py`): its class id,
     #: where it stands once it is up, and the days of supply left in it.
     #: Field state lives here for the same reason `rover` does — the game

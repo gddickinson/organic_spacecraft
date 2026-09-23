@@ -172,3 +172,34 @@ def run(suite: Suite) -> None:
         assert checked >= 10, checked
         return (f"{checked} places, none of them on ground their own kind "
                 "refuses")
+
+    @check("a party sets down where the map was pointed at, and walks that ground")
+    def _():
+        from ..sim import fieldwork
+        game = new_game("set-down")
+        body = _worlds(game)[0]
+        body.surveyed = True
+        game.ship.cargo["biomass"] = 80
+        world = worldmap.of(game, body)
+        # Somewhere dry, and somewhere whose neighbourhood is of a piece.
+        cell = max((c for c in world.cells if not c.water),
+                   key=lambda c: sum(1 for dx in (-1, 0, 1)
+                                     for dy in (-1, 0, 1)
+                                     if world.at(c.x + dx,
+                                                 c.y + dy).terrain
+                                     == c.terrain))
+        got = fieldwork.launch_expedition(
+            game, game.system.bodies.index(body),
+            [o.id for o in game.officers[:1]], at=(cell.x, cell.y))
+        assert got["ok"], got
+        exp = game.expedition
+        assert exp.cell == (cell.x, cell.y), exp.cell
+        walked = {t.terrain for t in exp.tiles}
+        assert cell.terrain in walked, (cell.terrain, sorted(walked))
+        # And the zone is the neighbourhood's ground, not the biome's.
+        near = {world.at(cell.x + dx, cell.y + dy).terrain
+                for dx in (-1, 0, 1) for dy in (-1, 0, 1)}
+        assert walked <= near, (sorted(walked), sorted(near))
+        return (f"set down at {cell.lat:+.0f}°, {cell.lon:+.0f}° on "
+                f"{TERRAIN[cell.terrain].name.lower()}; the zone is "
+                + ", ".join(sorted(walked)))

@@ -2,7 +2,7 @@
 
 The screen for `sim/worldmap.py` and `sim/worldsites.py`. It owns no rules —
 the map is derived in the sim and this paints it — and it is deliberately
-the same picture the landing zone is drawn as (`ui/expedition_view.ZoneMap`):
+the same picture the landing zone is drawn as (`ui/zone_canvas.ZoneMap`):
 tinted tiles, a letter in a ring for anything on one, and a legend under it,
 because ten kinds of place share six colours and three of those are green.
 
@@ -144,10 +144,60 @@ class WorldMapView(View):
                       else TERRAIN[cell.terrain].name)
             p.add(label(standing.what.blurb if standing is not None
                         else TERRAIN[cell.terrain].blurb, "", wrap=True))
-        p.add(note("A landing party goes down from orbit in the lander "
-                   "(the Ship screen's Cradle tab). What this map shows is "
-                   "the ground they will be walking."))
+        p.add(note("A landing party goes down from orbit in the lander. "
+                   "What this map shows is the ground they will be "
+                   "walking: pick a cell and set down on it."))
+        ok, why = self._may_land(game, body)
+        down = button("Set down here", self._land, kind="primary",
+                      enabled=ok, why=why)
+        down.setObjectName("surface_land")
+        p.add(down)
         return p
+
+    def _may_land(self, game, body) -> tuple:
+        """May a party go down on the cell in hand? `(ok, why)`."""
+        x, y = self.cell
+        if not (0 <= x < worldmap.WIDE and 0 <= y < worldmap.HIGH):
+            return False, "Pick somewhere on the map first."
+        if worldmap.of(game, body).at(x, y).water:
+            return False, "That is under water. A lander wants ground."
+        if game.expedition is not None and not game.expedition.over:
+            return False, "A party is already on the ground."
+        if not body.surveyed:
+            return False, "Survey it from orbit first."
+        craft = descent_sim.best(game, body)
+        if craft is None:
+            return False, descent_sim.why_none(game, body)
+        return True, ""
+
+    def _land(self) -> None:
+        """Put a party down on the cell in hand (`sim/fieldwork`)."""
+        from ..data.expedition import SUPPLY_LOADS
+        from ..sim import fieldwork as fieldwork_sim
+        game = self.game
+        body = self.body()
+        ok, why = self._may_land(game, body)
+        if not ok:
+            self.win.toast(why, "warn")
+            return
+        picked = self.win.dialog(
+            "How long down there?",
+            [label("The lander's hold carries the supplies, the vehicle and "
+                   "the camp. What will not fit stays aboard.", "",
+                   wrap=True)],
+            [(row[0], n) for n, row in enumerate(SUPPLY_LOADS)]
+            + [("Stay aboard", None)])
+        if picked is None:
+            return
+        index = game.system.bodies.index(body)
+        got = fieldwork_sim.launch_expedition(
+            game, index, [o.id for o in game.officers], load=int(picked),
+            at=self.cell)
+        if not got.get("ok"):
+            self.win.toast(got.get("why", "She stays on the cradle."), "warn")
+            return
+        self.win.refresh()
+        self.win.go("ground")
 
     def _pick(self, x: int, y: int) -> None:
         self.cell = (x, y)

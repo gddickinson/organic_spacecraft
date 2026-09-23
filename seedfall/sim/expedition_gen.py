@@ -45,13 +45,39 @@ _FEATURE_BY_BIOME = {
 }
 
 
+def _around(game, body, at) -> tuple:
+    """The ground at a surface cell and the eight around it, as the mix a
+    landing zone is laid out from. The middle counts three times, so a zone
+    reads as the cell that was picked rather than as its neighbourhood.
+    """
+    from . import worldmap
+    world = worldmap.of(game, body)
+    x, y = int(at[0]), int(at[1])
+    here = world.at(x, y)
+    out = [here.terrain] * 3
+    for dx in (-1, 0, 1):
+        for dy in (-1, 0, 1):
+            if dx or dy:
+                out.append(world.at(x + dx, y + dy).terrain)
+    # Standing water is not ground a party walks; the shore is.
+    return tuple(t for t in out if t) or (here.terrain,)
+
+
 def generate(rng, system, body, officers: list[int],
-             supply: int = BASE_SUPPLY) -> Expedition:
-    """Lay out a landing zone. Denser features further from the lander."""
+             supply: int = BASE_SUPPLY, at=None, game=None) -> Expedition:
+    """Lay out a landing zone. Denser features further from the lander.
+
+    With `at` — a cell of the body's own surface (`sim/worldmap`) — the
+    ground is **that** cell's and its neighbours', so a party that picked a
+    dune sea off the map walks a dune sea. Without it the mix is the
+    biome's, which is what every landing before there was a map got.
+    """
     # Imported here, not at the top: `expedition` re-exports this module's
     # names, so a module-level import either way round is a cycle.
     from .expedition import H, LANDER, W, Expedition, Tile, _reveal, say
     kinds = _TERRAIN_BY_BIOME.get(body.biome, ("plain", "ridge", "scarp"))
+    if at is not None and game is not None:
+        kinds = _around(game, body, at) or kinds
     feats = list(_FEATURE_BY_BIOME.get(body.biome, ("seam", "wreck", "ruin")))
     if body.relic and body.relic_found:
         feats = ["ruin", "monolith"] + feats

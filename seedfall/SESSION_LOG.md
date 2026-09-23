@@ -1454,9 +1454,11 @@ station, garrison, and the ruins and worked-out mines they fall to — with
 whatever the game already held (a colony, a settlement, a ground base) going
 on first so the map agrees with the rest of the game. `ui/worldmap_view.py`
 draws it, reached from the body panel once the world has been surveyed. New
-suite `worldmap` (6 checks). Ideas ported from the captain's own world
+suite `worldmap` (7 checks). Ideas ported from the captain's own world
 simulator: the Whittaker-shaped terrain table, seeded value noise, and a
-history that leaves ruins behind.
+history that leaves ruins behind. **Set down here** closes the loop — the
+landing zone is laid out of the picked cell and its neighbours, so what the
+map showed is what the party walks.
 
 ## Standing facts about working here
 

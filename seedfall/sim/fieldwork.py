@@ -162,7 +162,7 @@ def seize_notes(game, faction_id: str, rng) -> dict | None:
 
 
 def launch_expedition(game, body_index: int, officer_ids: list[int],
-                      load: int = 1) -> dict:
+                      load: int = 1, at=None) -> dict:
     """Put a landing party down. Costs biomass for supplies and time to descend."""
     from . import tutorial_watch
     tutorial_watch.deed(game, "landed")
@@ -226,7 +226,14 @@ def launch_expedition(game, body_index: int, officer_ids: list[int],
     if game.dead:
         return {"ok": True, "dead": True}
     game.expedition = exp_sim.generate(game.rng("landing"), game.system, body,
-                                       list(officer_ids), supply=days)
+                                       list(officer_ids), supply=days,
+                                       at=at, game=game)
+    if at is not None:
+        game.expedition.cell = (int(at[0]), int(at[1]))
+        from . import worldsites
+        standing = worldsites.at(game, body, int(at[0]), int(at[1]))
+        if standing is not None:
+            game.add_log(f"The lander sets down at {standing.name}.", "good")
     game.expedition.craft = lander.id
     if ride is not None:
         game.expedition.vehicle = ride.class_id

@@ -437,10 +437,15 @@ The order, each piece playable on its own:
    green — and a panel that names the ground, what it costs to cross, and
    whatever your finger is on.
 
-   **Still open here:** the map is a map, not yet a chooser. Where a party
-   sets down is still the zone generator's own business; picking a cell and
-   landing *there*, with that cell's terrain seeding the zone, is the next
-   piece.
+   And it is a chooser, not only a map: **Set down here** puts a party on
+   the cell in hand, and `expedition_gen.generate` lays the 7×7 zone out of
+   *that* cell and its eight neighbours, so a party that picked a dune sea
+   off the map walks a dune sea. The expedition remembers where it is
+   (`Expedition.cell`), the ground screen gives the latitude and longitude
+   and names whatever they set down beside, and landing on a site says so
+   in the chronicle. The whole flow the request asked for now runs
+   end to end: the Helm's transfer into orbit, the surface map, a cell, the
+   lander, and the ground.
 7. **Orbit, and seeing it happen** — *the viewports half is closed
    2026-09-22* (`sim/sky.company`, suite `skycompany`). Asked for while
    stage three was landing: *a way to navigate the ship into orbit around a world, launch

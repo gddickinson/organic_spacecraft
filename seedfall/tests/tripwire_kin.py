@@ -290,6 +290,7 @@ KIN = {
     "camps": ("camps", "ground", "vehicles"),
     # A world as a map, and what is on it (2026-09-22).
     "worldmap": ("worldmap",), "worldsites": ("worldmap",),
+    "zone_canvas": ("ground", "keyboard"),
     "developments": ("worldmap",),
     # The yard side of what rides down, split out of `hangar` at 500 lines.
     "garage": ("vehicles", "camps", "hangar"),
