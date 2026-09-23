@@ -58,6 +58,14 @@ class Expedition:
     #: The craft they came down in (`sim/craft.Carried.id`), or -1 for a
     #: party the old door put down before landers were things you owned.
     craft: int = -1
+    #: The camp that came down with them (`sim/camps.py`): its class id,
+    #: where it stands once it is up, and the days of supply left in it.
+    #: Field state lives here for the same reason `rover` does — the game
+    #: on the ground is played out of one object.
+    camp: str = ""
+    camp_x: int = -1
+    camp_y: int = -1
+    camp_supply: int = 0
     days: int = 0
     officers: list[int] = field(default_factory=list)
     haul: dict[str, float] = field(default_factory=dict)
@@ -356,9 +364,15 @@ def shelter(exp: Expedition, rng) -> dict:
     """
     if exp.over:
         return {"ok": False, "why": "The expedition is over."}
+    # Under a roof the day still goes; the supply does not (`sim/camps`).
+    from . import camps as camps_sim
+    indoors = camps_sim.shelters(exp)
     res = weather_sim.shelter(exp, rng)
+    if indoors:
+        exp.supply += 1
     weather = res["weather"]
-    say(exp, f"Sat out the {weather.name.lower()}. A day gone.", "")
+    say(exp, f"Sat out the {weather.name.lower()}. A day gone"
+             + (", and the camp kept the stores." if indoors else "."), "")
     changed = weather_sim.tick(exp, 1, rng, exp.biome)
     if changed:
         say(exp, f"{weather_sim.current(exp).name}. "
@@ -376,7 +390,10 @@ def rest(exp: Expedition, officers, rng) -> dict:
     weather_sim.tick(exp, 1, rng, exp.biome)
     eng = max((o.level for o in officers if o.stat == "engineering"), default=0)
     med = max((o.level for o in officers if o.stat == "medicine"), default=0)
-    exp.rover = min(10, exp.rover + 1 + eng // 2)
+    # A day in a camp is worth more than a day on regolith (`sim/camps`).
+    from . import camps as camps_sim
+    worth = camps_sim.rest_worth(exp)
+    exp.rover = min(10, exp.rover + round((1 + eng // 2) * worth))
     healed = None
     if exp.injured and rng.chance(0.3 + med * 0.15):
         healed = exp.injured.pop(0)

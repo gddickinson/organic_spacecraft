@@ -33,7 +33,7 @@ from ..core.state import new_game
 from ..data.expedition import SUPPLY_LOADS, TERRAIN
 from ..data.vehicles import VEHICLES, VEHICLES_BY_ID, WHOLE
 from ..sim import (craft as craft_sim, descent, expedition as exp_sim,
-                   fieldwork, hangar, vehicles as veh)
+                   fieldwork, garage, hangar, vehicles as veh)
 from ..world.planets import BODY_KINDS
 from .harness import Suite
 from .quay import stand_at
@@ -72,18 +72,18 @@ def run(suite: Suite) -> None:
         assert len(held) == 1 and veh.kind_of(held[0]).id == "rover", held
         assert held[0].condition == WHOLE and held[0].state == "stowed"
         money = game.credits
-        got = hangar.buy_vehicle(game, "crawler")
+        got = garage.buy_vehicle(game, "crawler")
         assert got["ok"], got
         assert len(veh.aboard(game)) == 2
         assert money - game.credits >= got["paid"]
         # Worn, mended, and sold back at a loss.
         crawler = got["vehicle"]
         crawler.condition = 4
-        quote = hangar.vehicle_mend_cost(crawler)
-        assert quote["credits"] == hangar.VEHICLE_MEND * (WHOLE - 4)
-        mended = hangar.mend_vehicle(game, crawler)
+        quote = garage.vehicle_mend_cost(crawler)
+        assert quote["credits"] == garage.VEHICLE_MEND * (WHOLE - 4)
+        mended = garage.mend_vehicle(game, crawler)
         assert mended["ok"] and crawler.condition == WHOLE, mended
-        paid = hangar.sell_vehicle(game, crawler)["paid"]
+        paid = garage.sell_vehicle(game, crawler)["paid"]
         assert 0 < paid < VEHICLES_BY_ID["crawler"].cost["credits"]
         assert len(veh.aboard(game)) == 1
         return (f"a CRAWLER built for {got['paid']:,}, put right for "
@@ -191,7 +191,7 @@ def run(suite: Suite) -> None:
         exp.over, exp.outcome = True, "returned"
         fieldwork.conclude_expedition(game)
         assert rover.state == "stowed" and rover.condition == 5, rover
-        assert hangar.can_mend_vehicle(game, rover)[0]
+        assert garage.can_mend_vehicle(game, rover)[0]
         # And a party that walks out of the field leaves it where it stopped.
         assert fieldwork.launch_expedition(
             game, index, [o.id for o in game.officers[:1]])["ok"]

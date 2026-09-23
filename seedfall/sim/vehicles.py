@@ -34,7 +34,7 @@ DOWN = "down"
 
 @register
 @dataclass
-class Held:
+class Vehicle:
     """One vehicle, in the hold or on the ground."""
 
     id: int
@@ -69,10 +69,10 @@ def on_the_ground(game):
 
 
 def give(game, class_id: str = table.STARTING_VEHICLE,
-         name: str = "") -> Held:
+         name: str = "") -> Vehicle:
     """Put a vehicle in the hold. The one door for acquiring one."""
     kind = VEHICLES_BY_ID[class_id]
-    held = Held(id=len(getattr(game, "vehicles", []) or []) + 1,
+    held = Vehicle(id=len(getattr(game, "vehicles", []) or []) + 1,
                 class_id=class_id, name=name or _name_for(game, kind))
     game.vehicles = list(getattr(game, "vehicles", []) or []) + [held]
     return held

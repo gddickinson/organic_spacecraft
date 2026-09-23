@@ -22,6 +22,7 @@ from ..core.util import reaction_mass
 from ..data.chassis import FAMILY_LABEL, FAMILY_TINT
 from ..data.craft import ROLES
 from ..sim import craft as craft_sim
+from ..sim import garage as garage_sim
 from ..sim import hangar as hangar_sim
 from .widgets import Card, Panel, Pill, button, label, note, spacer
 
@@ -184,7 +185,7 @@ class CraftYard:
         view.col.addWidget(note(
             "Built where its family's hulls are, the way a craft is."))
         view.grid([self._machine(row)
-                   for row in hangar_sim.vehicle_offers(game)], cols=2)
+                   for row in garage_sim.vehicle_offers(game)], cols=2)
 
     def _held(self, game, machine, whole: int) -> Card:
         from ..sim import vehicles as vehicles_sim
@@ -196,16 +197,16 @@ class CraftYard:
                        "days driven"
                        + (" · on the ground" if machine.state == "down"
                           else ""), "sub"))
-        quote = hangar_sim.vehicle_mend_cost(machine)
-        mend_ok, mend_why = hangar_sim.can_mend_vehicle(game, machine)
+        quote = garage_sim.vehicle_mend_cost(machine)
+        mend_ok, mend_why = garage_sim.can_mend_vehicle(game, machine)
         mend = button(f"Put it right — {bill(quote)}" if quote
                       else "It is whole",
                       (lambda _=False, m=machine: self._mend_vehicle(m)),
                       kind="primary" if mend_ok else "flat",
                       enabled=mend_ok, why=mend_why)
         mend.setObjectName("yard_vehicle_mend")
-        sell_ok, sell_why = hangar_sim.can_sell_vehicle(game, machine)
-        sell = button(f"Sell it — ₡{hangar_sim.vehicle_worth(machine):,}",
+        sell_ok, sell_why = garage_sim.can_sell_vehicle(game, machine)
+        sell = button(f"Sell it — ₡{garage_sim.vehicle_worth(machine):,}",
                       (lambda _=False, m=machine: self._sell_vehicle(m)),
                       kind="flat", enabled=sell_ok, why=sell_why)
         sell.setObjectName("yard_vehicle_sell")
@@ -237,14 +238,81 @@ class CraftYard:
         return card
 
     def _buy_vehicle(self, class_id: str) -> None:
-        got = hangar_sim.buy_vehicle(self.view.game, class_id)
+        got = garage_sim.buy_vehicle(self.view.game, class_id)
         self._said(got, (f"{got['vehicle'].name} is in the hold — "
                          f"₡{got['paid']:,}." if got.get("ok") else ""))
 
     def _mend_vehicle(self, machine) -> None:
-        got = hangar_sim.mend_vehicle(self.view.game, machine)
+        got = garage_sim.mend_vehicle(self.view.game, machine)
         self._said(got, f"{machine.name} put right.")
 
     def _sell_vehicle(self, machine) -> None:
-        got = hangar_sim.sell_vehicle(self.view.game, machine)
+        got = garage_sim.sell_vehicle(self.view.game, machine)
         self._said(got, f"{machine.name} sold for ₡{got.get('paid', 0):,}.")
+
+    # ── and the camps ─────────────────────────────────────────────────────
+
+    def camps(self) -> None:
+        """What a party pitches when it means to stay."""
+        view = self.view
+        game = view.game
+        from ..sim import camps as camps_sim
+        held = camps_sim.aboard(game)
+        p = Panel(f"Camps — {len(held)} aboard")
+        p.add(note("A camp rides down in the lander's hold after the "
+                   "supplies and the vehicle. It sits out weather for "
+                   "nothing, a day's rest inside is worth more, and days of "
+                   "supply left in it can be walked back to."))
+        for camp in held:
+            kind = camps_sim.kind_of(camp)
+            card = Card(selectable=False)
+            card.add(label(f"{camp.name} — {kind.name}", "h3",
+                           FAMILY_TINT.get(kind.family, "")))
+            card.add(label(f"{kind.mass_t:g} t · sleeps {kind.sleeps} · "
+                           f"holds {kind.holds} days · rest {kind.rest:g}×"
+                           + (" · on a world" if camp.state == "down"
+                              else ""), "sub"))
+            sell_ok, sell_why = garage_sim.can_sell_camp(game, camp)
+            sell = button(f"Sell it — ₡{garage_sim.camp_worth(camp):,}",
+                          (lambda _=False, c=camp: self._sell_camp(c)),
+                          kind="flat", enabled=sell_ok, why=sell_why)
+            sell.setObjectName("yard_camp_sell")
+            card.add(sell)
+            p.add(spacer(6))
+            p.add(card)
+        if not held:
+            p.add(note("Nothing to pitch. A party sits out a gale in the "
+                       "open and pays a day of stores for it."))
+        view.col.addWidget(p)
+        view.grid([self._camp(row) for row in garage_sim.camp_offers(game)],
+                  cols=2)
+
+    def _camp(self, row) -> Card:
+        kind = row["kind"]
+        card = Card(selectable=False)
+        card.add(label(kind.name, "h3",
+                       FAMILY_TINT.get(kind.family, "") if row["ok"]
+                       else "dim"))
+        card.add(label(f"{FAMILY_LABEL.get(kind.family, kind.family)} · "
+                       f"{kind.mass_t:g} t · sleeps {kind.sleeps}", "sub"))
+        card.add(label(kind.blurb, "", wrap=True))
+        card.add(note(f"Holds {kind.holds} days of supply · a day's rest "
+                      f"inside is worth {kind.rest:g}×"))
+        card.add(note(bill(kind.cost)))
+        buy = button("Build one" if row["ok"] else row["why"],
+                     (lambda _=False, cid=kind.id: self._buy_camp(cid))
+                     if row["ok"] else None,
+                     kind="primary" if row["ok"] else "flat",
+                     enabled=row["ok"], why=row["why"])
+        buy.setObjectName(f"yard_camp_buy_{kind.id}")
+        card.add(buy)
+        return card
+
+    def _buy_camp(self, class_id: str) -> None:
+        got = garage_sim.buy_camp(self.view.game, class_id)
+        self._said(got, (f"{got['camp'].name} stowed — ₡{got['paid']:,}."
+                         if got.get("ok") else ""))
+
+    def _sell_camp(self, camp) -> None:
+        got = garage_sim.sell_camp(self.view.game, camp)
+        self._said(got, f"{camp.name} sold for ₡{got.get('paid', 0):,}.")

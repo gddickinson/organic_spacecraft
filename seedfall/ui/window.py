@@ -436,6 +436,11 @@ class MainWindow(QMainWindow):
         # repaint of a corpse — see `ui/effect_clock._repaint`.
         self.effect_timer.stop()
         self.effect_surfaces = None
+        # And every pop-out goes with it (`ui/popout.close_all`): each holds
+        # a viewport, and a viewport painting into a destroyed main window
+        # takes the process with it.
+        from . import popout
+        popout.close_all(self)
         # Quitting is a save. Trading advances no calendar, so the autosave
         # in `refresh` never fires for it — a shopping run used to be lost
         # on quit while the manual promised it could not be.

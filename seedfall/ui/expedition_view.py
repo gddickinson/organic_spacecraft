@@ -341,6 +341,27 @@ class ExpeditionView(View):
             button("Lift off", self._lift, kind="primary",
                    enabled=exp_sim.can_lift(exp)),
             button("Abandon the site", self._abort, kind="danger"))
+        # The camp they brought down (`sim/camps.py`): a day to pitch, a day
+        # to strike, and a place days of supply can be left and found again.
+        from ..sim import camps as camps_sim
+        if camps_sim.kind_for(exp) is not None:
+            p.add(note(camps_sim.says(exp)))
+            pitch_ok, pitch_why = camps_sim.can_pitch(exp)
+            strike_ok, strike_why = camps_sim.can_strike(exp)
+            keep = max(0, exp.supply // 2)
+            pitch_b = button(f"Pitch the camp, leave {keep}d (1d)",
+                             self._pitch, enabled=pitch_ok, why=pitch_why)
+            pitch_b.setObjectName("ground_camp_pitch")
+            strike_b = button("Strike the camp (1d)", self._strike,
+                              enabled=strike_ok, why=strike_why)
+            strike_b.setObjectName("ground_camp_strike")
+            draw_b = button(f"Take the {exp.camp_supply}d in it",
+                            self._draw,
+                            enabled=camps_sim.at_camp(exp)
+                            and exp.camp_supply > 0,
+                            why="They are not standing in it.")
+            draw_b.setObjectName("ground_camp_draw")
+            p.add_buttons(pitch_b, strike_b, draw_b)
         if not exp.at_lander:
             p.add(note("The lander is the green square. Nothing is banked until "
                        "the party is back on it."))
@@ -398,6 +419,31 @@ class ExpeditionView(View):
 
     def _rest(self) -> None:
         exp_sim.rest(self.game.expedition, self._party(), self.game.rng("camp"))
+        self.win.refresh()
+
+    def _pitch(self) -> None:
+        from ..sim import camps as camps_sim
+        exp = self.game.expedition
+        got = camps_sim.pitch(exp, days=max(0, exp.supply // 2))
+        if not got.get("ok"):
+            self.win.toast(got["why"], "warn")
+            return
+        self.win.refresh()
+
+    def _strike(self) -> None:
+        from ..sim import camps as camps_sim
+        got = camps_sim.strike(self.game.expedition)
+        if not got.get("ok"):
+            self.win.toast(got["why"], "warn")
+            return
+        self.win.refresh()
+
+    def _draw(self) -> None:
+        from ..sim import camps as camps_sim
+        got = camps_sim.draw(self.game.expedition)
+        if not got.get("ok"):
+            self.win.toast(got["why"], "warn")
+            return
         self.win.refresh()
 
     def _lift(self) -> None:

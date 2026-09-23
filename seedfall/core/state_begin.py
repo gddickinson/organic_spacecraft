@@ -100,8 +100,10 @@ def new_game(seed: str | None = None, systems: int = 42,
     # And something to cross ground in once she is down (`sim/vehicles.py`):
     # the rover the expedition's own gauge has implied since the first
     # landing, now a machine with wheels and an opinion about terrain.
+    from ..sim import camps as camps_sim
     from ..sim import vehicles as vehicles_sim
     vehicles_sim.give(game)
+    camps_sim.give(game)          # and a bivouac to sit out the weather in
     # The hull did not launch yesterday: there is a shakedown cruise's worth of
     # its own data already on the bench.
     inquiry_sim.add(game.research, "survey", 55)

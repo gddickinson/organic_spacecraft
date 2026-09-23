@@ -1,4 +1,4 @@
-"""The hangar deck and the garage: what a hull carries, bought and mended.
+"""The hangar deck: cradles fitted, craft bought, mended, and sold.
 
 `sim/craft.py` flies what a hull already carries and `sim/craft_battle.py`
 fights with it. This is where one comes from and where it goes — the yard
@@ -22,11 +22,9 @@ side of a cradle, and the only door that adds or removes a craft.
   yard that pays what it charges is a money pump — `shipyard.scrap_value`
   learned that at 146,470 credits a cycle.
 
-The same counter sells **surface vehicles** (`sim/vehicles.py`): they are
-bought where their family's hulls are built, stowed in the hold rather than
-a cradle, mended by the point of condition, and sold back at the same loss.
-A rover is not a craft — it has no cradle and never flies — but the yard
-side of one is the yard side of the other, and one door is better than two.
+The same counter sells what rides *down* rather than out — surface vehicles
+and camps — and that half lives in `sim/garage.py`, split off when this file
+reached five hundred lines. Same shape, same rules, different thing.
 """
 
 from __future__ import annotations
@@ -294,141 +292,4 @@ def sell(game, craft) -> dict:
     game.credits += paid
     game.craft = [c for c in (game.craft or []) if c is not craft]
     game.add_log(f"{craft.name} sold off the cradle for {paid:,}.", "")
-    return {"ok": True, "paid": paid}
-
-
-# ── the garage ─────────────────────────────────────────────────────────────
-
-#: What a yard charges to put one point of condition back into a machine,
-#: and the days it takes to do the lot.
-VEHICLE_MEND, VEHICLE_DAYS = 900, 2
-
-
-def vehicle_offers(game) -> list:
-    """Every vehicle class, what it costs, and why it cannot be had here."""
-    from ..data.vehicles import VEHICLES
-    out = []
-    for kind in VEHICLES:
-        ok, why = can_buy_vehicle(game, kind.id)
-        out.append({"kind": kind, "ok": ok, "why": why,
-                    "credits": int(kind.cost.get("credits", 0))})
-    return out
-
-
-def can_buy_vehicle(game, class_id: str) -> tuple:
-    """May this machine be built for you here?"""
-    from ..data.vehicles import VEHICLES_BY_ID
-    kind = VEHICLES_BY_ID.get(class_id)
-    if kind is None:
-        return False, "No such class."
-    ok, why = shipyard.can_refit_here(game)
-    if not ok:
-        return False, why
-    # The same family rule hulls and craft are built under.
-    here, refusal = shipyard.can_build_here(game, game.system, kind)
-    if not here:
-        return False, refusal
-    from .ship import cargo_free
-    if kind.mass_t > cargo_free(game.ship, game.ship_stats):
-        return False, (f"A {kind.name} is {kind.mass_t:g} t and the hold has "
-                       "no room for it.")
-    short = stores.lacking(game, kind.cost)
-    if short:
-        key, need, have = short[0]
-        return False, f"Short of {key}: need {need:g}, have {have:g}."
-    return True, ""
-
-
-def buy_vehicle(game, class_id: str, name: str = "") -> dict:
-    """Build one and stow it. The yard's side of `vehicles.give`."""
-    from . import vehicles as vehicles_sim
-    ok, why = can_buy_vehicle(game, class_id)
-    if not ok:
-        return {"ok": False, "why": why}
-    from ..data.vehicles import VEHICLES_BY_ID
-    kind = VEHICLES_BY_ID[class_id]
-    stores.spend(game, dict(kind.cost))
-    held = vehicles_sim.give(game, class_id, name)
-    game.add_log(f"{held.name} built at {game.system.name} for "
-                 f"{kind.cost.get('credits', 0):,}.", "good")
-    return {"ok": True, "vehicle": held,
-            "paid": int(kind.cost.get("credits", 0))}
-
-
-def vehicle_mend_cost(vehicle) -> dict:
-    """What a yard charges to make a machine whole."""
-    from ..data.vehicles import WHOLE
-    from . import vehicles as vehicles_sim
-    points = max(0, WHOLE - int(vehicle.condition))
-    if not points:
-        return {}
-    kind = vehicles_sim.kind_of(vehicle)
-    matter = "biomass" if kind.family == "grown" else "alloy"
-    return {"credits": VEHICLE_MEND * points,
-            matter: round(kind.mass_t * 0.15 * points, 2)}
-
-
-def can_mend_vehicle(game, vehicle) -> tuple:
-    if vehicle is None or vehicle.state == "lost":
-        return False, "There is no such machine aboard."
-    if vehicle.state != "stowed":
-        return False, f"{vehicle.name} is on a world. Bring it up first."
-    cost = vehicle_mend_cost(vehicle)
-    if not cost:
-        return False, f"{vehicle.name} is whole."
-    ok, why = shipyard.can_refit_here(game)
-    if not ok:
-        return False, why
-    short = stores.lacking(game, cost)
-    if short:
-        key, need, have = short[0]
-        return False, f"Short of {key}: need {need:g}, have {have:g}."
-    return True, ""
-
-
-def mend_vehicle(game, vehicle) -> dict:
-    """Put its condition back, by the point."""
-    from ..data.vehicles import WHOLE
-    ok, why = can_mend_vehicle(game, vehicle)
-    if not ok:
-        return {"ok": False, "why": why}
-    cost = vehicle_mend_cost(vehicle)
-    points = WHOLE - int(vehicle.condition)
-    stores.spend(game, cost)
-    vehicle.condition = WHOLE
-    game.advance_days(VEHICLE_DAYS)
-    game.add_log(f"{vehicle.name} put right: {points} points, "
-                 f"{cost.get('credits', 0):,} credits.", "good")
-    return {"ok": True, "points": points, "paid": int(cost.get("credits", 0))}
-
-
-def vehicle_worth(vehicle) -> int:
-    """What a yard pays for a machine: salvage, scaled by condition."""
-    from ..data.vehicles import SALVAGE, WHOLE
-    from . import vehicles as vehicles_sim
-    kind = vehicles_sim.kind_of(vehicle)
-    share = SALVAGE * (0.4 + 0.6 * max(0.0, vehicle.condition / WHOLE))
-    value = kind.cost.get("credits", 0) * share
-    value += sum(n * material_value(key) * share
-                 for key, n in kind.cost.items() if key != "credits")
-    return round(value)
-
-
-def can_sell_vehicle(game, vehicle) -> tuple:
-    if vehicle is None or vehicle.state == "lost":
-        return False, "There is no such machine aboard."
-    if vehicle.state != "stowed":
-        return False, f"{vehicle.name} is on a world. Bring it up first."
-    return shipyard.can_refit_here(game)
-
-
-def sell_vehicle(game, vehicle) -> dict:
-    """Off the books, for what a yard will give."""
-    ok, why = can_sell_vehicle(game, vehicle)
-    if not ok:
-        return {"ok": False, "why": why}
-    paid = vehicle_worth(vehicle)
-    game.credits += paid
-    game.vehicles = [v for v in (game.vehicles or []) if v is not vehicle]
-    game.add_log(f"{vehicle.name} sold for {paid:,}.", "")
     return {"ok": True, "paid": paid}

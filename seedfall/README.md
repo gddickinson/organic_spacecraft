@@ -335,6 +335,11 @@ a grown interceptor, with a hatch through to the cradle deck so a pilot walks ou
   **STRIDER**. It rides down in the lander's hold *against the supplies*, so what fits is a
   choice; it wears, it is mended at the yard's garage, and a party that has to walk out of the
   field leaves it where it stopped.
+- **And a camp to pitch when they mean to stay** (`data/camps.py`). It rides down after the
+  supplies and the vehicle, and it is a place **days of supply can be left and walked back
+  to** — which turns a survey from a star into a route. It sits out weather without spending
+  stores, and a day's rest inside is worth more than a day on regolith. What is still in it
+  when they lift off is left behind.
 - Seven classes: WASP and SHRIKE fighters, the MOTE scout, the DORY tender, and three landers —
   the grown ISOPOD a captain starts with, the roomier PINNACE, and the CATAPHRACT for the
   gravity wells nothing else leaves again.

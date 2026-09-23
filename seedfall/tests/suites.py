@@ -293,6 +293,8 @@ SUITES: list[SuiteSpec] = [
               "afoot's fire: bursts, suppression, grenades and smoke"),
     SuiteSpec("craft", "test_craft",
               "single-seat craft: the cradle, the ticket, the sortie"),
+    SuiteSpec("camps", "test_camps",
+              "what a landing party pitches when it means to stay"),
     SuiteSpec("vehicles", "test_vehicles",
               "what a landing party crosses ground in"),
     SuiteSpec("descent", "test_descent",

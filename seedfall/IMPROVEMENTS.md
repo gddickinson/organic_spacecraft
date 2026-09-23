@@ -387,11 +387,19 @@ The order, each piece playable on its own:
    walks** — the state the game shipped in — and `data/careers.SKILLS`'
    *drive* entry ("anything with wheels or tracks on a surface"), written
    with the lifepath and read by nothing since, has its first reader.
-3. **Camps.** `data/camps.py`: a bivouac, a camp, a base camp — mass out of
-   the lander's hold, people, days, and what each grants (shelter from a
-   hazard, a bench for study, a bay for a vehicle, a mast that keeps the
-   hull on the line past `link_km`). Set up on a tile, struck and carried
-   on.
+3. ~~**Camps.**~~ **Closed 2026-09-22** (`data/camps.py`, `sim/camps.py`,
+   suite `camps`). The expedition's only building was the lander and the
+   only place its supply clock could be refilled was orbit, so every
+   landing was one walk out and one walk back and the shape of a survey was
+   a star. A camp is the second building: BIVOUAC, FIELD CAMP, FIELD
+   STATION and the grown BOLE, each riding down in the lander's hold *after*
+   the supplies and the vehicle. It **holds days** — supply left in it is
+   not carried, and a party that walks back into its own camp picks them up
+   — it **sits out weather for nothing** (the day goes, the stores do not),
+   and **a day's rest inside is worth more** than a day on regolith. What is
+   still in it when they lift off is left. Bought and sold at the yard's
+   garage (`sim/garage.py`, split off `sim/hangar.py` at five hundred
+   lines: a cradle holds what flies out, a hold holds what goes down).
 4. **The planet map.** `sim/worldmap.py`: a per-body 2D map, **derived and
    never stored**, seeded `RNG(f"{seed}:world:{system}:{body}")` the way
    every other derived thing here is. Elevation and moisture from a small
@@ -412,6 +420,22 @@ The order, each piece playable on its own:
    it — `ui/expedition_view.ZoneMap` for picking a cell, `ui/afoot_canvas`
    for fog and reach — with the lander's pad where she set down, the
    vehicle's range as a ring, and the sites anybody has seen.
+7. **Orbit, and seeing it happen.** Asked for while stage three was
+   landing: *a way to navigate the ship into orbit around a world, launch
+   the lander to the surface from there, and see it out of the viewports —
+   from the lander (which should see the mother ship and whatever else is
+   about) and from the ship (which should see the lander leave and come
+   back).* The pieces exist and have never been joined: `sim/flight`
+   holds a hull at a body, `sim/conn` flies it, `sim/berthing` and
+   `sim/moorings` bring it alongside a structure, `ui/viewport.py` draws
+   what is out there from a `Conn`, and `sim/craft.launch` already builds
+   the lander's own `Conn` so the cockpit window has instruments. What is
+   missing is **orbit as a state you can be in and fly out of** (a hold at
+   a body that a descent departs from), a **descent flown rather than
+   charged** (the three days `fieldwork` takes are a number, not a
+   manoeuvre), and **each hull in the other's sky**: a contact for the
+   lander seen from the ship and for the ship seen from the lander, so both
+   viewports draw the thing that is actually happening.
 
 Two of the captain's own projects were read for ideas rather than code:
 a world simulator (seeded value noise, a Whittaker biome table, a

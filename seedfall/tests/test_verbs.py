@@ -222,12 +222,24 @@ def run(suite: Suite) -> bool:
         """
         from PyQt6.QtCore import QEvent
         try:
+            # **Hide it first, and drain what is queued.** `close()` plus
+            # `deleteLater()` settles the widget's own lifetime and says
+            # nothing about the paint already posted against it — and a
+            # window that is closed but not hidden goes on posting more as
+            # it comes down. Measured when a hull began carrying two craft,
+            # which builds enough windows for the race to land: a segfault
+            # in `render3d.draw` at `painter.setBrush`, the painter fine
+            # and its device gone, while the *next* screen was being shown.
+            # Hide, pump, close, delete, pump, pump.
+            widget.hide()
+            app.processEvents()
             widget.close()
             widget.deleteLater()
         except RuntimeError:
             return
         app.processEvents()
         app.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        app.processEvents()
 
     def _drive(screen: str, tab: str | None = None,
                state=None) -> tuple[int, list]:

@@ -92,6 +92,10 @@ def _launch(view, craft, key: str) -> None:
 
 
 def _cockpit(view) -> None:
+    """Open the cockpit. **Not deferred**: a window built after the click
+    returns can be built onto a main window that has since closed, and a
+    viewport with a dead parent takes the process down — which is the crash
+    `ui/popout.close_all` exists to prevent from the other end."""
     from .craft_window import open_cockpit
     open_cockpit(view.win)
 

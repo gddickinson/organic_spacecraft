@@ -213,10 +213,15 @@ def launch_expedition(game, body_index: int, officer_ids: list[int],
     # And whatever will fit beside the supplies to cross the ground in
     # (`sim/vehicles.py`). Nothing that fits is nothing lost: a party on
     # foot is the state this game shipped in.
+    from . import camps as camps_sim
     from . import vehicles as vehicles_sim
     ride = vehicles_sim.best_for(game, lander, body, supplies_t=tonnes)
     if ride is not None:
         vehicles_sim.take_down(game, ride)
+    # And a camp, if anything is left of the hold after the two of them.
+    spare = kind.hold_t - tonnes - (vehicles_sim.kind_of(ride).mass_t
+                                    if ride is not None else 0.0)
+    shelter = camps_sim.best_for(game, lander, spare)
     game.advance_days(3)
     if game.dead:
         return {"ok": True, "dead": True}
@@ -228,6 +233,8 @@ def launch_expedition(game, body_index: int, officer_ids: list[int],
         game.expedition.rover = ride.condition
     else:
         game.expedition.vehicle, game.expedition.rover = "", 0
+    if shelter is not None:
+        camps_sim.take_down(game, game.expedition, shelter)
     from . import contracts as contract_sim
     contract_sim.note_landing(game, game.system.id, body.id)
     game.add_log(f"Landing party down on {body.name}.", "good")
@@ -256,6 +263,8 @@ def conclude_expedition(game) -> dict:
         vehicles_sim.lose(game, "the party walked out without it")
     else:
         vehicles_sim.bring_up(game)
+    from . import camps as camps_sim
+    camps_sim.bring_up(game, game.expedition)
     exp = game.expedition
     if exp is None:
         return {"ok": False, "why": "No party in the field."}

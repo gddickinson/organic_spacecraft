@@ -1407,6 +1407,29 @@ stopped if the party walks out. A party with nothing still walks. The
 `drive` skill, in `data/careers` since the lifepath and read by nothing, has
 its first reader. New suite `vehicles` (5 checks).
 
+## Down to the ground, stage three: the camps, 2026-09-22
+
+The expedition's only building was the lander. A camp is the second one:
+four classes, carried down in the hold after the supplies and the vehicle,
+pitched and struck for a day each. It holds days of supply that a party can
+walk back to, sits out weather without spending stores, and makes a day's
+rest worth more. What is still inside it when they lift off is left behind.
+The yard's garage (`sim/garage.py`, split off `hangar` at 500 lines) sells
+both vehicles and camps. New suite `camps` (5 checks).
+
+Two traps for next time. Two new saved records were both called `Held`, and
+`core/save` keys its registry by class name — the second silently displaced
+the first and every save with one in it raised "Held is saved but not
+@register'd". They are `Vehicle` and `Camp` now. And giving the starting
+hull a *second* craft made `verbs` segfault: more windows built and torn
+down, and the long-known race in `_put_down` finally landed — a paint
+posted against a window that was closed but never hidden, delivered while
+the next screen was showing, dying in `render3d.draw` with the painter fine
+and its device gone. Hide, pump, close, delete, pump, pump. `MainWindow`
+now closes its pop-outs too (`ui/popout.close_all`), which is the same
+lesson from the other end: a cockpit holds a viewport and must not outlive
+the window that opened it.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one

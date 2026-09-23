@@ -143,6 +143,8 @@ class Game:
     #: What a landing party crosses ground in (`sim/vehicles.py`), in the
     #: hold until a lander takes one down.
     vehicles: list = field(default_factory=list)
+    #: What it pitches when it means to stay (`sim/camps.py`).
+    camps: list = field(default_factory=list)
     sortie: object | None = field(default=None, compare=False,
                                   metadata={"transient": True})
     #: The engagement, while one is running. Like the envoy and the situation

@@ -287,4 +287,7 @@ KIN = {
     "descent": ("descent", "ground", "craft"),
     # What a party crosses ground in (2026-09-22).
     "vehicles": ("vehicles", "ground", "wayhome"),
+    "camps": ("camps", "ground", "vehicles"),
+    # The yard side of what rides down, split out of `hangar` at 500 lines.
+    "garage": ("vehicles", "camps", "hangar"),
 }

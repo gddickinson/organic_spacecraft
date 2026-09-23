@@ -189,7 +189,12 @@ TOPICS = [
            "day off flat ground and will not go near a scarp, a crawler is "
            "the other way about, a fan-lift flyer ignores the ground and is "
            "dead weight where there is no air. A party with nothing walks, "
-           "and pays for it a day at a time."),
+           "and pays for it a day at a time.",
+           "A camp rides down after those two. Pitch it and it holds days "
+           "of supply you can walk back to, sits out weather without "
+           "spending stores, and makes a day's rest worth more than a day "
+           "on regolith — and whatever is still inside it when the lander "
+           "lifts is left where it stands."),
           facts=(), see=("crew", "xeno")),
 
     Topic("combat", "Combat is positional", "",

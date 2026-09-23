@@ -56,3 +56,40 @@ def keep(win, name: str, window) -> None:
             setattr(win, name, None)
 
     window.destroyed.connect(gone)
+
+
+#: Every slot on the main window a pop-out is kept in. One list, because a
+#: window that is coming down has to take all of them with it and a name
+#: missing from here is a window that outlives its parent.
+SLOTS = ("conn_window", "flight_window", "approach_window",
+         "tactical_window", "gunner_window", "plot_window", "turret_window",
+         "craft_window", "comms_window", "log_wide_window")
+
+
+def close_all(win) -> int:
+    """Close every pop-out this window is keeping. Returns how many.
+
+    **A pop-out outlives the window that made it**, and that is fatal rather
+    than untidy: each of these holds a `ui/viewport.Viewport`, and a viewport
+    whose main window has been destroyed paints into a device that is gone —
+    measured, `render3d.draw` at `painter.setBrush`, "Cannot destroy paint
+    device that is being painted", and the process down with exit 139 and no
+    traceback. `tests/test_verbs._put_down` learned the same lesson about the
+    main window itself; this is the other half of it.
+    """
+    shut = 0
+    for name in SLOTS:
+        window = getattr(win, name, None)
+        # Some of these slots hold a flag rather than a window — the wide
+        # log is a bool on the main window — so this asks the object, not
+        # the name.
+        if window is None or not hasattr(window, "close"):
+            continue
+        setattr(win, name, None)
+        try:
+            window.close()
+            window.deleteLater()
+            shut += 1
+        except RuntimeError:          # already a corpse; nothing to do
+            continue
+    return shut
