@@ -48,6 +48,7 @@ def classes() -> dict:
     from .system_view import SystemView
     from .tech_view import TechView
     from .transit_view import TransitView
+    from .worldmap_view import WorldMapView
     from .yard_view import YardView
 
     return {
@@ -55,6 +56,7 @@ def classes() -> dict:
         "ship": ShipView, "yard": YardView, "tech": TechView,
         "empire": EmpireView, "codex": CodexView, "battle": BattleView,
         "ground": ExpeditionView, "helm": HelmView,
+        "surface": WorldMapView,
         "gunnery": GunneryView,
         "crew": CrewView,
         "concourse": ConcourseView,

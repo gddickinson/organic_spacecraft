@@ -350,6 +350,22 @@ a grown interceptor, with a hatch through to the cradle deck so a pilot walks ou
   back in the cradle off the hold's biomass, without a bill. Selling is a loss at every class
   and every condition — a yard that paid what it charges is a money pump.
 
+## A world you can look at
+
+Every body has a **surface** now, between the survey line and the 7×7 landing zone: 24 × 14
+cells, derived from the sector's seed and never stored (`sim/worldmap.py`). Height is a warped
+noise field, the water is the world's own Traveller hydrographics digit — so the survey screen
+and the map cannot disagree — and the terrain is the same nine kinds a landing party walks, so
+what the map shows is the ground they will be on. Cold is only ice where there is something to
+freeze: a barren asteroid at 114 K is regolith that happens to be cold.
+
+And **what is on it** (`sim/worldsites.py`, `data/developments.py`): cities, towns, villages,
+outposts, mines, farms, research stations and garrisons — and the abandoned stations, worked-out
+mines, ruins and downed hulls they leave behind. Whatever the game already held goes on first, so
+a colony you planted and a mining base the Charter built are *on the map*; the world's population
+digit decides the rest; and a fifth of what was ever built has failed into what it falls to, which
+is how a world ends up with a ruin next to a worked-out mine and a history you can read.
+
 ## Afoot — the Verge at walking pace
 
 Everything else in SEEDFALL happens at the scale of a hull. **Afoot** (`o` on the rail, or

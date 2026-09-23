@@ -400,26 +400,47 @@ The order, each piece playable on its own:
    still in it when they lift off is left. Bought and sold at the yard's
    garage (`sim/garage.py`, split off `sim/hangar.py` at five hundred
    lines: a cradle holds what flies out, a hold holds what goes down).
-4. **The planet map.** `sim/worldmap.py`: a per-body 2D map, **derived and
-   never stored**, seeded `RNG(f"{seed}:world:{system}:{body}")` the way
-   every other derived thing here is. Elevation and moisture from a small
-   value-noise field, terrain by a Whittaker-style table onto the nine
-   terrains already written, keyed to the body's gravity, temperature and
-   biome and to the profile's atmosphere and hydrographics. The
-   expedition's 7×7 zone becomes one cell of it, so the game that already
-   exists is what happens when you stop somewhere.
-5. **What is on it.** `data/developments.py` and `sim/worldsites.py`: the
-   taxonomy the request names — unexplored ground, abandoned works, ruins,
-   mining operations, outposts, villages, towns, cities — placed by a
-   suitability score off the map and the profile, and grown and decayed by
-   a short history pass so a mine that runs dry leaves an abandoned mine
-   and a town that loses its reason leaves a named ruin, with a line in the
-   chronicle. Every one resolves to a `Place` → `afoot_sites.Site` → the
-   ground plan already written, so walking into one needs no new plumbing.
-6. **The screen.** `ui/worldmap_view.py`: the map as an image with marks on
-   it — `ui/expedition_view.ZoneMap` for picking a cell, `ui/afoot_canvas`
-   for fog and reach — with the lander's pad where she set down, the
-   vehicle's range as a ring, and the sites anybody has seen.
+4. ~~**The planet map.**~~ **Closed 2026-09-22** (`sim/worldmap.py`, suite
+   `worldmap`). A body was a line on a survey and a landing zone was a 7×7
+   grid; there was nothing in between, and nowhere to put a city. Now every
+   body has a 24 × 14 surface, **derived and never stored**, seeded off the
+   sector the way `sim/profile` and `sim/afoot_plans` already are — ask
+   twice and it is the same world, and a save from before it reads exactly
+   the same. Height is a warped value-noise field; **the water is the
+   profile's own hydrographics digit**, so a world the survey screen calls
+   seven tenths water is seven tenths water here (measured: every world
+   within eight points of its own profile); wet is a second field raised
+   near a coast; cold is latitude against the body's own `temp_k`. Terrain
+   is the **nine `data/expedition.TERRAIN` kinds and not a second
+   vocabulary**, because a cell of this map is where a landing zone
+   happens. One rule earned its own constant: *cold is only ice where there
+   is something to freeze* — a barren asteroid at 114 K is regolith that
+   happens to be cold, and reading every cold world as ice made four fifths
+   of a sector look like the same moon.
+5. ~~**What is on it.**~~ **Closed 2026-09-22** (`data/developments.py`,
+   `sim/worldsites.py`). Twelve kinds: city, town, village, outpost, mine,
+   farm, research station and garrison, and the abandoned station,
+   worked-out mine, ruin and downed hull they leave behind. Three rules, in
+   order: **what the game already knows goes on first** (a colony, an NPC
+   settlement, a ground base — placed rather than invented again, so the
+   map agrees with the rest of the game); **the profile decides the rest**,
+   off the same population digit that drives the port and the market; and
+   **a short history**, so a fifth of what was ever built has failed into
+   what `data/developments.falls_to` says it becomes. Each carries the
+   `style` `sim/afoot_sites` already reads, so walking into one is the
+   layer that exists.
+6. ~~**The screen.**~~ **Closed 2026-09-22** (`ui/worldmap_view.py`,
+   screen `surface`, reached from the system screen's body panel once it
+   has been surveyed). Tinted tiles shaded by height, a letter in a ring
+   for anything standing on one — the same rule the landing zone is drawn
+   by, because ten kinds of place share six colours and three of those are
+   green — and a panel that names the ground, what it costs to cross, and
+   whatever your finger is on.
+
+   **Still open here:** the map is a map, not yet a chooser. Where a party
+   sets down is still the zone generator's own business; picking a cell and
+   landing *there*, with that cell's terrain seeding the zone, is the next
+   piece.
 7. **Orbit, and seeing it happen** — *the viewports half is closed
    2026-09-22* (`sim/sky.company`, suite `skycompany`). Asked for while
    stage three was landing: *a way to navigate the ship into orbit around a world, launch

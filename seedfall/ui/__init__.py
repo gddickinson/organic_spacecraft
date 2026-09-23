@@ -1,7 +1,7 @@
 """PyQt6 presentation layer. Views never mutate state directly — they call into
 sim/ and then ask the window to refresh.
 
-Contents (176 modules; one line each in `INTERFACE.md`):
+Contents (177 modules; one line each in `INTERFACE.md`):
 
 The window: app, window, window_dialogs, view_registry, menubar, hud,
     log_panel, crash, popout, monitors, title, chronicle_picker,
@@ -48,4 +48,5 @@ News, help and the rest: despatch_view, comms_window, codex_view, help_view,
     academy_panel, legacy_view, memoir_panel, orders_panel, transit_view,
     options_view.
 Sound: audio, synth, soundmap.
-Everything else: afoot_marks, craft_panel, craft_window, craft_yard."""
+Everything else: afoot_marks, craft_panel, craft_window, craft_yard,
+    worldmap_view."""

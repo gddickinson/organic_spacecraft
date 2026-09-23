@@ -288,6 +288,9 @@ KIN = {
     # What a party crosses ground in (2026-09-22).
     "vehicles": ("vehicles", "ground", "wayhome"),
     "camps": ("camps", "ground", "vehicles"),
+    # A world as a map, and what is on it (2026-09-22).
+    "worldmap": ("worldmap",), "worldsites": ("worldmap",),
+    "developments": ("worldmap",),
     # The yard side of what rides down, split out of `hangar` at 500 lines.
     "garage": ("vehicles", "camps", "hangar"),
 }

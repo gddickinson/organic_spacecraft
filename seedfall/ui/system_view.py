@@ -256,10 +256,28 @@ class SystemView(View):
             if (b.relic and b.relic_found
                 and not xeno_sim.is_incorporated(g, b.relic)) else None,
             button("Plant a seed", self._colonise),
+            # The world as a map (`sim/worldmap`): terrain, and what anybody
+            # has ever put on it. A survey from orbit is what earns it.
+            button("Look at the surface", self._surface)
+            if (b.surveyed and BODY_KINDS[b.kind][2]) else None,
             button("Land a party", self._land)
             if (b.surveyed and BODY_KINDS[b.kind][2]) else None,
         )
         return panel
+
+    def _surface(self) -> None:
+        """Take the surface map to the world this panel is looking at.
+
+        It draws the world the ship is in orbit of (`descent.in_orbit`), so
+        the Helm's transfer is what puts a world under the screen — and a
+        captain who has not flown there is told that rather than shown
+        somewhere they have never been.
+        """
+        from ..sim import flight as flight_sim
+        body = self.game.system.bodies[self.selected]
+        if self.game.orbit_body != body.id:
+            flight_sim.hold_at(self.game, body)
+        self.win.go("surface")
 
     # ── actions ────────────────────────────────────────────────────────────
 

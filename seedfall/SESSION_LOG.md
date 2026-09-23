@@ -1443,6 +1443,21 @@ alongside fill the window at any range. Both are drawn as themselves now:
 the chassis's own silhouette and a new launch shape. New suite `skycompany`
 (5 checks).
 
+## A world you can look at, 2026-09-22
+
+Stages four to six of the ground programme. `sim/worldmap.py` gives every
+body a 24 × 14 surface, derived and never stored, from a seeded noise field
+and the Traveller profile: the water is the hydrographics digit, the terrain
+is the nine kinds a landing party already walks. `sim/worldsites.py` puts
+twelve kinds of place on it — city down to outpost, mine, farm, research
+station, garrison, and the ruins and worked-out mines they fall to — with
+whatever the game already held (a colony, a settlement, a ground base) going
+on first so the map agrees with the rest of the game. `ui/worldmap_view.py`
+draws it, reached from the body panel once the world has been surveyed. New
+suite `worldmap` (6 checks). Ideas ported from the captain's own world
+simulator: the Whittaker-shaped terrain table, seeded value noise, and a
+history that leaves ruins behind.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one
