@@ -81,6 +81,40 @@ def imported(game, system, cid: str, units: float) -> float:
     return units - back
 
 
+def can_buy(game, cid: str) -> tuple:
+    """May a single tonne of this be bought here at all? `(ok, why)`.
+
+    **The gate the Buy button is lit by, and the one the till refuses on.**
+    They were two: the market grid lit Buy on "somebody here is selling it"
+    and `buy` refused on credits, hold room and stock, so a session pressing
+    a lit control was answered "no room in the hold" and "not enough
+    credits". `buy` already clamps the tonnage asked for down to what will
+    fit and what is affordable — asking for ten and getting three is a fair
+    answer to a question about quantity — so the only thing that needs
+    saying up front is whether *one* tonne is possible.
+    """
+    from . import enforce as enforce_sim
+    dealing, refusal = enforce_sim.may_trade(game, game.system)
+    if not dealing:
+        return False, refusal
+    system = game.system
+    if not system.port:
+        return False, "No port here."
+    price = market_sim.quote_buy(game, system, cid)
+    if price is None:
+        return False, "They do not stock it."
+    moving, refusal = quayside_sim.may_move(game, 1.0, system)
+    if not moving:
+        return False, refusal
+    if int(cargo_free(game.ship, game.ship_stats) / bulk_of(cid)) < 1:
+        return False, "No room in the hold."
+    if game.credits < wharfage_sim.unit_cost(game, system, price):
+        return False, "Not enough credits for a tonne of it."
+    if system.market.stock[cid].units < 1:
+        return False, "The port has none left."
+    return True, ""
+
+
 def buy(game, cid: str, units: int) -> dict:
     """Take `units` off the local market, as many as can be paid for and stowed."""
     # A counter that has struck you from the record does not price for you.

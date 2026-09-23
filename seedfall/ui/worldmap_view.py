@@ -148,8 +148,17 @@ class WorldMapView(View):
                    "What this map shows is the ground they will be "
                    "walking: pick a cell and set down on it."))
         ok, why = self._may_land(game, body)
+        # **Flying her down asks one more thing than sending her**: the
+        # cradle deck has to be free and the sky quiet (`descent_flight
+        # .can_fly`). Lit on the landing gate alone, this button answered
+        # "another craft is out; the cradle deck is busy".
+        fly_ok, fly_why = ok, why
+        if ok:
+            from ..sim import descent_flight
+            fly_ok, fly_why = descent_flight.can_fly(
+                game, descent_sim.best(game, body), body)
         fly = button("Fly her down yourself", self._fly, kind="primary",
-                     enabled=ok, why=why)
+                     enabled=fly_ok, why=fly_why)
         fly.setObjectName("surface_fly")
         down = button("Send the party down", self._land, enabled=ok, why=why)
         down.setObjectName("surface_land")
@@ -170,21 +179,46 @@ class WorldMapView(View):
             return False, "A party is already on the ground."
         if not body.surveyed:
             return False, "Survey it from orbit first."
+        # Supplies are biomass, and a party that cannot be fed does not go
+        # down: without this the dialog offered loads the hold could not pay
+        # for and the act refused after the choice was made.
+        from ..data.expedition import SUPPLY_LOADS
+        held = int(game.ship.cargo.get("biomass", 0))
+        if held < SUPPLY_LOADS[0][1]:
+            return False, (f"Supplies are biomass: the lightest load is "
+                           f"{SUPPLY_LOADS[0][1]} t and there is {held} t "
+                           "aboard.")
         craft = descent_sim.best(game, body)
         if craft is None:
             return False, descent_sim.why_none(game, body)
         return True, ""
 
     def _ask_load(self):
-        """How much goes down with them, or None if they stay aboard."""
+        """How much goes down with them, or None if they stay aboard.
+
+        **Only loads the hold can actually pay for.** Supplies are biomass,
+        and a load offered without the biomass behind it is a choice that
+        can only be answered "a proper survey needs 20 t; you have 0" — the
+        system view's own dialog has always said which were affordable.
+        """
         from ..data.expedition import SUPPLY_LOADS
+        held = int(self.game.ship.cargo.get("biomass", 0))
+        rows = [(f"{row[0]}: {row[1]} t → {row[2]} days"
+                 + ("" if held >= row[1] else "  — not enough biomass"), n)
+                for n, row in enumerate(SUPPLY_LOADS) if held >= row[1]]
+        if not rows:
+            self.win.toast(
+                f"{SUPPLY_LOADS[0][1]} t of biomass is the lightest load a "
+                f"party goes down with, and there is {held} t aboard.",
+                "warn")
+            return None
         return self.win.dialog(
             "How long down there?",
             [label("The lander's hold carries the supplies, the vehicle and "
                    "the camp. What will not fit stays aboard.", "",
-                   wrap=True)],
-            [(row[0], n) for n, row in enumerate(SUPPLY_LOADS)]
-            + [("Stay aboard", None)])
+                   wrap=True),
+             note(f"{held} t of biomass in the hold.")],
+            rows + [("Stay aboard", None)])
 
     def _party(self, game, craft) -> list:
         """Who rides down: as many as her seats leave room for."""

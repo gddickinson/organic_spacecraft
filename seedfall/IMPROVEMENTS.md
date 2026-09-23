@@ -535,6 +535,25 @@ pass) and a building generator (an authored table of what rooms a building
 of a kind has, and a grid-with-fractions layout schema). Ideas ported,
 nothing copied.
 
+## Closed — every gate says what the act says, 2026-09-22
+
+Found by playing the game rather than by reading it: six sessions through
+the real windows, pressing what was enabled and recording which control
+produced each refusal. Ten controls were lit by one question and refused by
+another — the market's Buy, the bunker, a craft's Launch, Land a party, Work
+it, the harbourmaster, Sell survey data, Draw out, Denounce a rival, and the
+surface map's own Fly her down. Each is now greyed with its reason, and the
+`screengates` suite holds the property so it stays closed: the gate a
+control is lit by is the gate the act refuses on. Where `gates` asks it of
+the sim's own gate functions — where the act calls the gate, so they cannot
+drift — this asks it of the gates a *screen* assembles out of several sim
+answers, which is where they do. `sim/trade.can_buy` is the new door
+for the counter.
+
+One real bug fell out of writing it: a denunciation's cooldown shared a key
+with the court it was ordered from, so denouncing anybody at a power's court
+made *that power* undenounceable for ninety days from anywhere.
+
 ## Open — the Traveller programme, begun 2026-09-20
 
 The world profile landed (`data/uwp.py`, `sim/profile.py`): eight

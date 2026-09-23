@@ -161,7 +161,7 @@ class DiplomacyView(View):
                        f"{warmth:.0%} of what it would move a stranger — "
                        "goodwill is cheapest from people who barely know you."))
 
-        for action, ok, why in dip.available(g, fid):
+        for action, ok, why in dip.available(g, fid, self.partner):
             p.add(spacer(3))
             p.add(label(action.name, "h3", "chloro" if ok else "dim"))
             p.add(note(action.blurb))

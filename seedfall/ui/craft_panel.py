@@ -66,6 +66,11 @@ def _craft(view, game, craft) -> Panel:
         open_ = button("Open the cockpit", lambda: _cockpit(view),
                        kind="primary")
         open_.setObjectName("craft_cockpit")
+        # And what she is doing, if what she is doing is going down
+        # (`sim/descent_flight.says`): the bridge watches the descent too.
+        from ..sim import descent_flight
+        if descent_flight.under_way(game) is not None:
+            p.add(label(descent_flight.says(game), "", "warn", wrap=True))
         home_ok, home_why = craft_sim.can_recover(game)
         home = button("Back on the cradle", lambda: _recover(view),
                       enabled=home_ok, why=home_why)
@@ -74,7 +79,15 @@ def _craft(view, game, craft) -> Panel:
         return p
     p.add(note("Who takes her out — a Pilot ticket and nothing else, and "
                "whoever goes is off their station until she is back."))
+    # **And the cradle deck has to be free.** `pilots` answers about the
+    # *person*; whether anything may go out at all is `can_launch` — another
+    # craft out, an engagement running, a wrecked hull, a dry tank. Lit on
+    # the ticket alone, every name on the list was pressable while a craft
+    # was already out, and every one of them answered "the cradle deck is
+    # busy".
+    deck_ok, deck_why = craft_sim.can_launch(game, craft)
     for key, name, what, ok, why in craft_sim.pilots(game, craft):
+        ok, why = (ok and deck_ok), (why if not ok else deck_why)
         b = button(f"Launch — {name}",
                    lambda _=False, k=key: _launch(view, craft, k),
                    kind="primary" if ok else "flat", enabled=ok, why=why)

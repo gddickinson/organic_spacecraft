@@ -117,9 +117,17 @@ def _shelves(view, game, place) -> None:
             tint = "" if row["legal"] else "warn"
             box.addWidget(label(f"{item.name} — {row['cr']:,}", "note", tint),
                           1)
+            # **And the price**, which this counter alone was not asking
+            # about: the same shelf reached from a deck (`afoot_talk_panel`)
+            # greys what you cannot afford, and here it stayed lit and
+            # answered "1,200 credits, and you have -214".
+            afford = game.credits >= row["cr"]
             box.addWidget(button(
                 "Buy", lambda _=False, i=item.id: _buy(view, place, i),
-                kind="flat", enabled=can, tip=why))
+                kind="flat", enabled=can and afford, tip=why,
+                why=why if not can else
+                    f"{row['cr']:,} credits, and you have "
+                    f"{int(game.credits):,}."))
             if item.id in held:
                 box.addWidget(button(
                     "Sell", lambda _=False, i=item.id: _sell(view, place, i),

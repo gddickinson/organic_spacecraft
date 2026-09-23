@@ -249,6 +249,7 @@ class SystemView(View):
                            "and mass. How you look at it decides what you find."))
 
         panel.add(self._how_to_look(g, b))
+        down_ok, down_why, _craft = self._may_land(g, b)
         panel.add_buttons(
             button("Dive the ocean", self._dive)
             if (b.biome == "subsurface" and st.can_dive) else None,
@@ -260,10 +261,27 @@ class SystemView(View):
             # has ever put on it. A survey from orbit is what earns it.
             button("Look at the surface", self._surface)
             if (b.surveyed and BODY_KINDS[b.kind][2]) else None,
-            button("Land a party", self._land)
+            button("Land a party", self._land, enabled=down_ok, why=down_why)
             if (b.surveyed and BODY_KINDS[b.kind][2]) else None,
         )
         return panel
+
+    def _may_land(self, game, body) -> tuple:
+        """May a party go down on this world, and in what? `(ok, why, craft)`.
+
+        **The gate the button is lit by is the gate the act is refused by.**
+        It used to light on "surveyed, and something to stand on", and then
+        `launch_expedition` said "a WASP seats 1 — the pilot, and nobody
+        else" or "the Isopod is not on the cradle": a control a player can
+        press and only ever be told no by.
+        """
+        from ..sim import descent as descent_sim
+        if not game.officers:
+            return False, "Nobody aboard to send down.", None
+        craft = descent_sim.best(game, body)
+        if craft is None:
+            return False, descent_sim.why_none(game, body), None
+        return True, "", craft
 
     def _surface(self) -> None:
         """Take the surface map to the world this panel is looking at.
@@ -360,10 +378,11 @@ class SystemView(View):
     def _land(self) -> None:
         from ..data.expedition import SUPPLY_LOADS
         g = self.game
-        if not g.officers:
-            self.win.toast("Nobody aboard to send down.", "warn")
-            return
         body = g.system.bodies[self.selected]
+        ok, why, craft = self._may_land(g, body)
+        if not ok:
+            self.win.toast(why, "warn")
+            return
         held = int(g.ship.cargo.get("biomass", 0))
         choices = []
         for i, (label, tonnes, days) in enumerate(SUPPLY_LOADS):
@@ -374,11 +393,17 @@ class SystemView(View):
             f"Land on {body.name}",
             ["Biomass goes down as supplies. The party is on its own until it "
              "walks back to the lander, and nothing is banked until it does.",
-             note(f"{held} t of biomass in the hold. Three days to descend.")],
+             note(f"{held} t of biomass in the hold. Three days to descend — "
+                  "or look at the surface and fly her down yourself.")],
             choices)
         if load is None:
             return
-        res = launch_expedition(g, self.selected, [o.id for o in g.officers], load)
+        # As many as her seats leave room for, and no more: the refusal for
+        # a party too big for the lander used to arrive *after* the captain
+        # had chosen a supply load (`descent.party_room`).
+        from ..sim import descent as descent_sim
+        going = [o.id for o in g.officers][:descent_sim.party_room(craft)]
+        res = launch_expedition(g, self.selected, going, load)
         if not res.get("ok"):
             self.win.toast(res["why"], "warn")
             return

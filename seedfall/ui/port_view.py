@@ -175,10 +175,18 @@ class PortView(BerthsMixin, View):
             standing["line"], "", "chloro" if standing["alongside"] else
             "warn", wrap=True))
         if not standing["alongside"]:
+            # **And only when there is a harbourmaster within reach.** The
+            # button was lit from anywhere in the system and answered "not
+            # in this orbit: fly there first", which is a door with a wall
+            # behind it. `sim/crossing.ways` already knows.
+            way = self._alongside_way(g)
             self.col.addWidget(button(
                 "Let the harbourmaster bring you in", self._come_alongside,
-                kind="primary", tip="An hour, and the counter's cranes are "
-                                    "yours for nothing."))
+                kind="primary", enabled=way is None or way.ok,
+                tip="An hour, and the counter's cranes are yours for "
+                    "nothing.",
+                why=(way.why if way is not None and not way.ok
+                     else "Nobody there to bring you in.")))
 
         news = register_panel.local_news(g, sys)
         if news is not None:
@@ -231,6 +239,15 @@ class PortView(BerthsMixin, View):
                            f"{cr(res['due'])} to the quay.", "osteo")
         self.win.save()
         self.win.refresh()
+
+    def _alongside_way(self, game):
+        """The harbourmaster's own way across, or None if there is no port."""
+        from ..sim import crossing, places
+        place = places.by_id(game, f"port-{game.location_id}")
+        if place is None:
+            return None
+        return next((w for w in crossing.ways(game, place)
+                     if w.id == "dock"), None)
 
     def _come_alongside(self) -> None:
         """The harbourmaster's own door (`sim/crossing`), from the board."""
@@ -334,8 +351,13 @@ class PortView(BerthsMixin, View):
         bunker.add(label("Reaction mass is volatiles. Every jump burns roughly a "
                          "tonne per light-year.", "", wrap=True))
         bunker.add(note(f"Aboard: {round(g.ship.cargo.get('volatiles', 0))} t."))
+        # The till's own gate (`trade.can_buy`) — it was lit with an empty
+        # purse and answered "not enough credits".
+        from ..sim import trade as trade_sim
+        fuel_ok, fuel_why = trade_sim.can_buy(g, "volatiles")
         bunker.add_buttons(button(f"Take on 40 t — ~{cr(vp * 40)}",
                                   lambda: self._buy("volatiles", 40),
+                                  enabled=fuel_ok, why=fuel_why,
                                   tip="Buy forty tonnes of volatiles over the "
                                       "counter, at the market's price."))
 
@@ -345,12 +367,19 @@ class PortView(BerthsMixin, View):
                          "grades and spectra. Selling them here raises your standing "
                          "as well as your balance.", "", wrap=True))
         office.add(note(f"{round(data_held)} data set(s) aboard."))
+        # **And somewhere to sell it from** (`sim/quayside`): a counter is a
+        # place, and this button was lit in deep space, where pressing it
+        # answered "nobody is at the counter — come alongside".
+        from ..sim import quayside as quayside_sim
+        at_hand, off_why = quayside_sim.at_counter(g, sys)
         office.add_buttons(button("Sell all survey data", self._sell_data,
-                                  kind="primary", enabled=data_held >= 1,
+                                  kind="primary",
+                                  enabled=data_held >= 1 and at_hand,
                                   tip="Every data set aboard, for credits and "
                                       "standing with this port's power.",
-                                  why="No survey data aboard. Survey a system "
-                                      "first."))
+                                  why=(off_why if not at_hand else
+                                       "No survey data aboard. Survey a "
+                                       "system first.")))
 
         rep_panel = Panel("Standing")
         rep_panel.add(label(fac.doctrine if fac else

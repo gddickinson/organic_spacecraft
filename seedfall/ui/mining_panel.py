@@ -93,8 +93,12 @@ def build(view, game, body, method_id: str) -> Panel:
     # hold spent sixty days and a third of the body to recover ten tonnes.
     room = cargo_free(game.ship, st)
     p.add(spacer(4), mono_label("If you work it"))
+    # What each spell can actually be, so the buttons below are lit by the
+    # same arithmetic the rows are printed from (`_spell_ok`).
+    spells: dict = {}
     for spell in (30, 90):
         lasts = mining.days_of_room(body, method.id, st, room, spell)
+        spells[spell] = lasts
         raised = mining.raise_rate(body, method.id, st) * lasts
         if lasts <= 0:
             p.add_row(f"{spell} days", "no room in the hold at all", "warn")
@@ -109,8 +113,29 @@ def build(view, game, body, method_id: str) -> Panel:
                     "something before putting a rig down.", "", "warn",
                     wrap=True))
 
-    p.add_buttons(
-        button("Work it — 30 days", lambda: view.run_extract(30),
-               kind="primary" if ok else "", enabled=ok),
-        button("Work it — 90 days", lambda: view.run_extract(90), enabled=ok))
+    # **The rig's gate is the working's gate.** `available` answers whether
+    # this *method* may be used; whether this *spell* may be run also wants
+    # somewhere to put what it raises and the upkeep to run it, and both
+    # were checked only by `actions.extract` — so a full hold left both
+    # buttons lit and answered "no room in the hold for anything it would
+    # raise", and an empty bunker answered "that needs 18 t of volatiles;
+    # you have 0".
+    rows = []
+    for spell in (30, 90):
+        spell_ok, spell_why = _spell_ok(game, mining, method, spells[spell],
+                                        ok, why)
+        rows.append(button(f"Work it — {spell} days",
+                           lambda _=False, d=spell: view.run_extract(d),
+                           kind="primary" if spell_ok and spell == 30 else "",
+                           enabled=spell_ok, why=spell_why))
+    p.add_buttons(*rows)
     return p
+
+
+def _spell_ok(game, mining, method, lasts: int, ok: bool, why: str) -> tuple:
+    """May this spell be run at all? `(ok, why)` — the act's own refusals."""
+    if not ok:
+        return False, why
+    if lasts <= 0:
+        return False, "No room in the hold for anything it would raise."
+    return mining.can_afford(game, method.id, lasts)

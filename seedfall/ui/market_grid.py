@@ -124,10 +124,17 @@ class MarketGrid(Panel):
         cells["local"].set_tint(note_text, note_tint)
         cells["aboard"].setText(f"{round(held, 1):g}" if held else "—")
         b_buy, b_sell = cells["b_buy"], cells["b_sell"]
-        b_buy.setEnabled(bp is not None)
+        # **The till's own gate** (`trade.can_buy`), not merely a posted
+        # price: lit on the price alone, Buy answered "no room in the hold"
+        # and "not enough credits" in a play session.
+        from ..sim import trade as trade_sim
+        can_buy, buy_why = (trade_sim.can_buy(self.view.game, c.id)
+                            if bp is not None
+                            else (False,
+                                  f"Nobody here is selling {c.name.lower()}."))
+        b_buy.setEnabled(can_buy)
         b_buy.setToolTip(f"Buy the tonnage set beside it, at {cr(bp)} a tonne."
-                         if bp is not None else
-                         f"Nobody here is selling {c.name.lower()}.")
+                         if can_buy else buy_why)
         can_sell = held > 0 and not banned
         b_sell.setEnabled(can_sell)
         b_sell.setToolTip(

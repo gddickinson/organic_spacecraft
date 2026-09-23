@@ -37,7 +37,8 @@ MODES = (("run", "Run for it"), ("brake", "All stop"),
 #: And the one a descent adds, which replaces them: a lander on her way
 #: down has nothing to run at and nowhere to hold station
 #: (`sim/descent_flight.py`).
-DESCENT_MODES = (("down", "Take her down"), ("brake", "Hold her off"))
+DESCENT_MODES = ((descent_flight.MODE, "Take her down"),
+                 ("brake", "Hold her off"))
 
 
 class CraftWindow(QDialog):

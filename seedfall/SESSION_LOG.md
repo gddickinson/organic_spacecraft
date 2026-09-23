@@ -1495,6 +1495,39 @@ already be sized for. Measured over twenty sectors: **74 of 74 flown
 descents land**; hands off, 10 of 33, twelve of them lost. New suite
 `descentflight` (8 checks).
 
+## Played through the windows, 2026-09-22
+
+Four chronicles and two whole careers driven through the real `MainWindow`
+offscreen — every rail screen, the surface map, a flown descent, the ground,
+a sortie, the conn, a port, a yard, a jump, an engagement, a save reloaded —
+with `sys.excepthook` catching what Qt swallows and every `warn` toast
+attributed to the control that caused it.
+
+**Nothing raised.** Across ~900 presses in six sessions, zero exceptions.
+What it did find was one defect wearing eleven hats: **a control lit by one
+question and refused by another.** Buy with a full hold, Take on 40 t with
+an empty purse, Launch with the deck busy, Land a party in a one-seat WASP,
+Work it with nowhere to put the ore, the harbourmaster from the wrong orbit,
+Sell survey data from deep space, Draw out on an empty account, Denounce a
+rival on a cooldown the gate never asked about, and my own Fly her down with
+a craft already out. Every one is a button a player can press and only ever
+be told no by, which reads as a broken game rather than as a rule.
+
+All ten are now greyed with the reason in the tooltip, and the class is
+closed permanently by the new `screengates` suite (6 checks), beside the
+long-standing `gates` suite that holds the same property for the sim's own
+gate functions: **for every act with a screen-side gate, the gate says yes
+exactly when the act does.** It asks the two doors the same question in the
+same state rather than pressing buttons, so it cannot rot. `sim/trade.can_buy` is new — the till's own
+answer, reachable without spending — and 256 counter states agree with it.
+
+Writing that suite turned up a real bug underneath: `diplomacy_acts._work_key`
+keyed a denunciation's cooldown as `denounce|<target>`, which is the same
+string the seat's own cooldown uses (`denounce|<faction>`). So denouncing
+anybody *at* the Charter's court shut the Charter off as a *target* for
+ninety days, from every seat in the sector, for a reason no screen could
+state. The work has its own namespace now (`@`).
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one

@@ -23,8 +23,17 @@ from ..data.factions import FACTIONS_BY_ID
 from . import loyalty, stores
 
 
-def available(game, faction: str) -> list[tuple]:
-    """(action, ok, reason) for every diplomatic move against this faction."""
+def available(game, faction: str, other: str | None = None) -> list[tuple]:
+    """(action, ok, reason) for every diplomatic move against this faction.
+
+    `other` is the second party where there is one — whom you would denounce,
+    or whom you would broker with. **It has to be here**, because the work's
+    own cooldown is keyed on the target rather than the seat you order it
+    from (`_work_key`), and a gate that only asked about the seat offered
+    moves the act then refused: measured in a play session, *Denounce a
+    rival — Concordat* was lit and answered "that ground was worked 0 days
+    ago — not for another 90", which is a button doing nothing but saying no.
+    """
     from .diplomacy import ensure, has_treaty
     state = ensure(game)
     rep = game.rep.get(faction, 0)
@@ -32,8 +41,11 @@ def available(game, faction: str) -> list[tuple]:
     for action in ACTIONS_BY_ID.values():
         ok, why = True, ""
         ready = state.cooldowns.get(f"{action.id}|{faction}", -9999)
+        work = _work_key(action.id, faction, other)
+        if work is not None:
+            ready = max(ready, state.cooldowns.get(work, -9999))
         if game.day < ready:
-            ok, why = False, f"Not for another {ready - game.day} day(s)."
+            ok, why = False, f"Not for another {ready - game.day:.0f} day(s)."
         elif rep < action.min_rep:
             ok, why = False, f"They will not hear it below {action.min_rep:g} standing."
         elif action.id == "treaty" and has_treaty(game, faction):
@@ -161,11 +173,18 @@ def _work_key(action_id: str, faction: str, other: str | None) -> str | None:
     sector — +18 with three powers, free, repeatable. Brokering B with A
     *is* brokering A with B, and a denunciation is of its target, whoever
     you said it to.
+
+    **The work has its own namespace**, and it did not: the seat's key is
+    `f"{action}|{faction}"`, so a denunciation *made at* the Charter's court
+    wrote `denounce|charter` — the very key that asks whether the Charter
+    may be denounced. Denouncing anybody from a court shut that court off
+    as a target for ninety days, from every seat in the sector, for a reason
+    no screen could state. Keyed with `@`, the two cannot collide.
     """
     if action_id == "broker" and other:
-        return f"{action_id}|{'|'.join(sorted((faction, other)))}"
+        return f"{action_id}@{'@'.join(sorted((faction, other)))}"
     if action_id == "denounce" and other:
-        return f"{action_id}|{other}"
+        return f"{action_id}@{other}"
     return None
 
 
@@ -207,7 +226,7 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
     action = ACTIONS_BY_ID.get(action_id)
     if action is None:
         return {"ok": False, "why": "No such overture."}
-    ok, why = next(((o, w) for a, o, w in available(game, faction)
+    ok, why = next(((o, w) for a, o, w in available(game, faction, other)
                     if a.id == action_id), (False, "Unavailable."))
     if not ok:
         return {"ok": False, "why": why}
@@ -216,8 +235,10 @@ def perform(game, action_id: str, faction: str, other: str | None = None) -> dic
         ready = state.cooldowns.get(pair_key, -9999)
         if game.day < ready:
             return {"ok": False,
-                    "why": f"That ground was worked {action.cooldown - (ready - game.day)} "
-                           f"day(s) ago — not for another {ready - game.day}."}
+                    "why": (f"That ground was worked "
+                            f"{action.cooldown - (ready - game.day):.0f} "
+                            "day(s) ago — not for another "
+                            f"{ready - game.day:.0f}.")}
 
     said = refusal(game, action_id, faction, other)
     if said:

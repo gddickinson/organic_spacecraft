@@ -119,8 +119,12 @@ def _account(view, house) -> Panel:
     h.addWidget(amount)
     h.addWidget(button("Pay in", lambda: _act(
         view, lines_sim.deposit(g, amount.value()))))
+    # Nothing to draw is not an act to offer: the button was lit on an empty
+    # account and answered "the account is empty".
     h.addWidget(button("Draw out", lambda: _act(
-        view, lines_sim.withdraw(g, amount.value()))))
+        view, lines_sim.withdraw(g, amount.value())),
+        enabled=house.account > 0,
+        why="Nothing in the account to draw out."))
     h.addStretch(1)
     p.add(row)
     p.add_buttons(
