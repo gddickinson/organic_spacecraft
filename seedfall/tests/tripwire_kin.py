@@ -99,6 +99,8 @@ KIN = {
     "patrons": ("patrons", "postings", "cargo"),
     # The captain's own life, played (2026-09-23).
     "captain_path": ("captainpath", "lifepath", "beginnings"),
+    # Plotting the jump (2026-09-23): the first reader of Astrogation.
+    "astrogation": ("astrogation", "position", "flight"),
     # `courtship` first: it is the real guard for the COURTSHIP_* family and
     # costs 1.4 s against `politics`'s 145.4 (#134).
     "diplomacy": ("courtship", "politics"),

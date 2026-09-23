@@ -1684,6 +1684,72 @@ the new ones — and that dialog rebuilds on *every pick*. The same fault
 `ui/craft_window._build` already records in its own comment. Off the screen
 now, not when the event loop gets round to it.
 
+## The three skills nothing ever asked for, 2026-09-23
+
+Traveller programme item 2 — bringing the game's acts across into the 2d6
+grammar. An audit was the right way to choose where to start: of the
+**thirty-one skills the fourteen careers teach, exactly three are never
+asked for by anything** — `tactics`, `gunnery` and `astrogation` — and those
+three are precisely the ones that describe running a starship. Everything
+the game rolls is person-scale, out of the Afoot layer; the ship's own acts
+resolve on ratings no crew member's history touches.
+
+`sim/astrogation.py` is the first of the three, on the reading Traveller is
+clearest about: **astrogation is jump accuracy.** You do not roll to arrive,
+you roll for *where* — and a jump in SEEDFALL had always arrived at exactly
+`(0, -ARRIVAL_RADIUS, 0)`, in every system, for every captain, with a whole
+in-system flight layer downstream of a point that never varied. A plot moves
+the landfall; the flight layer prices the difference in days.
+
+Four numbers came off measurement rather than out of the air:
+
+- **The rungs.** 756 near-neighbour legs across six galaxies: median 7.1 ly.
+  So an ordinary leg is an *average* plot. At the first draft's guess a
+  median leg was *difficult* and most arrivals in the game would have been
+  wide ones.
+- **The plotter.** Picking the largest skill and throwing *that* person's
+  characteristic put an officer with Astrogation 1 and Education 2 on the
+  board ahead of a machine that plots better. Whoever plots best plots.
+- **`HULL_PLOTS = 0`.** A hull plots its own jumps, so a crew with no
+  astrogator is no better than the board rather than worse than nothing. At
+  Traveller's −3 every chronicle that never hired one would have started
+  arriving 1.6 AU wide of a mark it had hit for its whole life — a tax, not
+  a feature.
+- **And a typo.** `"very difficult"` is not an id; `"very_difficult"` is.
+  `DIFFICULTY_DM.get(how, 0)` answers 0 for anything it does not know, so
+  the longest jumps were silently *average* and a twenty light-year plot
+  came out easier than a twelve (72% against 42%).
+
+And the shared-stream lesson again, one commit after writing it down:
+`game.rng(tag)` **advances a counter every other roll comes off**, so
+plotting a jump through it moved every draw after it. Measured with the
+arrival pinned to the old mark, the careful captain stopped reaching its
+ending on one seed of four — which is how the landfall was ruled out as the
+cause. The plot has its own dice now, named for the jump.
+
+That also exposed a check worth fixing rather than re-pinning: the careful
+captain's ending was measured on **one seed**, and any change that moves the
+world reshuffles which chronicles finish inside five years — three of four
+either way, a different three. It runs five seeds now and holds the claim
+worth holding: the rewards are what carry a careful captain to an ending
+(4 of 5 with them, 1 of 5 without).
+
+And a second check of the same shape, found by the same change:
+`test_freight` asserted that following the desk left a career with a
+*positive mean*, which in a heavy tail is a question about whether one
+career happened to hit a jackpot. **The median trading career in that
+harness clears about -18,000 and always has, in both arms** — it buys
+whatever tops the list and flies it blind. It holds the claim worth holding
+now (the trade can be made to pay) and prints the median plainly, so the
+harness's own bleakness is visible rather than hidden behind a mean.
+
+`sim/actions.py` crossed the ceiling and split into `sim/stranded.py`, at a
+seam rather than a line count: everything left in `actions` is a thing a
+captain *chooses* to do, and those three answer the other question a sandbox
+has to answer honestly — is this chronicle over?
+
+New suite `astrogation` (7 checks).
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one

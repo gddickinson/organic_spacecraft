@@ -592,10 +592,38 @@ SEEDFALL already has:
    `freightlines` and `wharfage` against the new curve, and probably a
    smaller shift than the table's first draft.
 2. ~~**A 2d6 grammar**~~ — landed as `sim/checks.py`: six characteristics, a
-   seven-rung difficulty ladder, −3 untrained, and the Effect. **What is left
-   is the bringing-across**: every act that still resolves on an ad-hoc curve
-   (survey, dig, repair, haggling, the docking approach) could be re-stated
-   in the grammar, one at a time, each with its own re-pinning.
+   seven-rung difficulty ladder, −3 untrained, and the Effect. **The
+   bringing-across is begun**, and an audit was the right way to choose
+   where: of the thirty-one skills the fourteen careers teach, **exactly
+   three are never asked for by anything** — `tactics`, `gunnery` and
+   `astrogation` — and those three are precisely the skills that describe
+   running a starship. Every skill the game rolls is person-scale, out of
+   the Afoot layer; the ship's own acts resolve on ratings no crew member's
+   history touches.
+
+   **Astrogation landed 2026-09-23** (`sim/astrogation.py`), on the reading
+   Traveller is clearest about: astrogation is jump accuracy. You do not
+   roll to arrive, you roll for *where* — and a jump in SEEDFALL had always
+   arrived at exactly `(0, -ARRIVAL_RADIUS, 0)`, in every system, for every
+   captain, with a whole in-system flight layer downstream of a point that
+   never varied. A plot moves the landfall and the flight layer prices the
+   difference in days, which is the currency it already deals in. An Effect
+   of nought is the old mark to the metre.
+
+   Three numbers came off the sector rather than out of the air: the rungs
+   (median leg 7.1 ly over 756 measured legs, so an ordinary leg is an
+   *average* plot — at the first draft's guess it was *difficult* and most
+   arrivals in the game would have been wide), the plotter (whoever plots
+   best, skill *and* characteristic, not the biggest number in one column),
+   and `HULL_PLOTS = 0` (a hull plots its own jumps, so a crew with no
+   astrogator is no better than the board rather than worse than nothing —
+   at −3 every chronicle that never hired one would have started arriving
+   1.6 AU wide of a mark it had hit for its whole life). New suite
+   `astrogation` (7 checks).
+
+   **Still to bring across:** `tactics` and `gunnery`, and the acts that
+   still resolve on their own curves (survey, dig, repair, the docking
+   approach).
 3. ~~**Life-path beginnings**~~ — landed as `data/careers.py` and
    `sim/lifepath.py`, derived per officer; **and the captain's own, played,
    on 2026-09-23** (`sim/captain_path.py`, `ui/beginning_path.py`). The

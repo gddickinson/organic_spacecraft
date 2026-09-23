@@ -1,7 +1,7 @@
 """Game rules: ships, shipyards, combat, colonies, research, crew, encounters,
 the Bloom, and the player actions that span them. Never touches Qt.
 
-Contents (260 modules; one line each in `INTERFACE.md`):
+Contents (262 modules; one line each in `INTERFACE.md`):
 
 The ship and its fittings: ship, plans, loading, thrusters, shipyard,
     stores, services, abilities, damage, adaptation, readiness.
@@ -54,7 +54,8 @@ Renown, counsel and the memoir: renown, renown_facts, renown_perks, counsel,
 Starting, teaching and settings: beginning, tutorial, tutorial_watch,
     manual, options, orders, minigames.
 Everything else: afoot_fire, afoot_holdings, afoot_kith, afoot_ringplan,
-    afoot_trouble, afoot_ways, camps, captain_path, contract_price, craft,
-    craft_battle, craft_errands, crossing, descent, descent_flight,
-    establishments, garage, hangar, lawlevel, lifepath_since, patrons,
-    quayside, vehicles, worldmap, worldsites."""
+    afoot_trouble, afoot_ways, astrogation, camps, captain_path,
+    contract_price, craft, craft_battle, craft_errands, crossing, descent,
+    descent_flight, establishments, garage, hangar, lawlevel,
+    lifepath_since, patrons, quayside, stranded, vehicles, worldmap,
+    worldsites."""

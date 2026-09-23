@@ -74,7 +74,24 @@ def jump_to(game, system_id: int, crossing: str = CROSSING_DEFAULT) -> dict:
     adaptation.fleet_record(game, "crossing", q["ly"])
     adaptation.fleet_record(game, "burn", 1.0 if q["dilation"] > 1 else 0.0)
     game.location_id = system_id
-    flight.arrive_in_system(game)
+    # **Where the jump puts you is plotted, not fixed** — the first thing in
+    # this game to ask for Astrogation, which the life path has been
+    # teaching since it shipped and nothing had ever read
+    # (`sim/astrogation.py`). An Effect of nought is the mark every jump
+    # has always arrived at, to the metre.
+    #
+    # **Off this jump's own name, not `game.rng`.** That advances a counter
+    # every other draw in the chronicle comes off, so plotting a jump would
+    # move every roll after it: measured, the careful captain stopped
+    # reaching its ending on one seed of four — with the plot pinned to the
+    # old fixed mark, which is how the arrival was ruled out as the cause.
+    # The same fault `sim/patrons.attach` records, in a new coat.
+    from . import astrogation
+    from ..core.rng import RNG
+    dice = RNG(f"{game.seed}:plot:{game.location_id}:{system_id}:"
+               f"{int(game.day)}")
+    plotted = astrogation.plot(game, dice, q["ly"])
+    flight.arrive_in_system(game, astrogation.landfall(plotted, dice))
     game.advance_days(q["days"], q["dilation"])
     if game.dead:
         return {"ok": True, "days": q["days"], "dead": True}
@@ -92,7 +109,11 @@ def jump_to(game, system_id: int, crossing: str = CROSSING_DEFAULT) -> dict:
     for kind, text in rumour_sim.resolve(game, system_id):
         game.add_log(text, kind)
 
-    out = {"ok": True, "days": q["days"], "first": first,
+    said, tint = astrogation.says(plotted, q["ly"])
+    if int(getattr(plotted, "effect", 0) or 0) != 0:
+        game.add_log(said + f" ({astrogation.drift_au(plotted):.2f} AU off "
+                            "the usual mark.)", tint)
+    out = {"ok": True, "days": q["days"], "first": first, "plot": plotted,
            "event": None, "encounter": None}
     ev = roll_event(r)
     if ev:
@@ -371,100 +392,6 @@ def burn_bloom(game) -> dict:
     return res
 
 
-def is_stranded(game) -> bool:
-    """No fuel for any reachable system, and no way to make any here.
-
-    Every way out has to be asked of whatever actually grants it, not guessed
-    at with a literal. Both of these were guesses:
-
-    * The ice test read `resources["volatiles"] > 0.05`, which is how *rich* a
-      body is. Whether a rig may be put on it is `mining.worked_out`, which
-      reads how much has been *taken* — a different quantity entirely, so a
-      rich body worked to exhaustion read as fuel for ever. Measured: a
-      captain at Amber Anchorage with 0 credits and 2.3 tonnes, one body in
-      the system holding 0.271 volatiles and worked out, `extract` refusing
-      it and this function answering "you can still move".
-    * The port test fell back to `or 40` when `buy_price` returned None, and
-      None is what it returns when the market holds none to sell. No port in
-      the sector is currently dry, so nothing was reaching it — but a way out
-      that does not exist must not count as one.
-    """
-    from ..world.galaxy import in_range
-    from . import mining
-
-    reach = in_range(game.galaxy.systems, game.system, game.ship_stats.jump)
-    fuel = game.ship.cargo.get("volatiles", 0)
-    if any(fuel >= jump_quote(game, s)["fuel"] for s in reach):
-        return False
-    if game.system.port and game.system.market:
-        # A port can sell you fuel, if it has any and you can pay for it —
-        # and **what is in the hold is money at a counter.** This read
-        # `game.credits` alone, so a captain standing at a market with
-        # nothing in the purse and 15,000 credits of silicon aboard was
-        # called stranded, and the tow that answered charged them standing
-        # to be dragged away from the very quay that would have fixed it.
-        from . import market as market_sim
-        cheapest = min((jump_quote(game, s)["fuel"] for s in reach), default=99)
-        # The counter's quote, like the sellable side below it already was —
-        # this function priced escape at the raw price and salvation at the
-        # quoted one, which is two answers to the same question.
-        price = market_sim.quote_buy(game, game.system, "volatiles")
-        sellable = 0.0
-        for cid, tonnes in game.ship.cargo.items():
-            if cid == "volatiles" or tonnes <= 0:
-                continue
-            offer = market_sim.quote_sell(game, game.system, cid)
-            if offer:
-                sellable += offer * tonnes
-        if price is not None and (game.credits + sellable) >= price * (cheapest - fuel):
-            return False
-    # Can we make our own out of ice in this system? Only off a body a rig
-    # will actually go on — the same question `extract` asks.
-    if game.ship_stats.drink > 0 and any(
-            b.resources.get("volatiles", 0) > 0.05 and not mining.worked_out(b)
-            for b in game.system.bodies):
-        return False
-    return bool(reach)
-
-
-def distress_call(game) -> dict:
-    """Broadcast for a tow. Somebody always comes; nobody comes for free."""
-    from ..world.galaxy import nearest_port
-    if not is_stranded(game):
-        return {"ok": False, "why": "You are not stranded — you can still move."}
-    port = nearest_port(game.galaxy.systems, game.system, game.galaxy)
-    if port is None:
-        return {"ok": False, "why": "There is no port left in the Verge to answer."}
-
-    faction = port.port.faction
-    days = 20 + game.rng("tow").int(5, 25)
-    game.advance_days(days)
-    if game.dead:
-        return {"ok": True, "dead": True}
-    game.location_id = port.id
-    port.visited = True
-    game.adjust_rep(faction, -12)
-    add_cargo(game.ship, "volatiles", 20)
-    game.credits = max(0.0, game.credits - 2000)
-    game.add_log(f"Answered by {faction}. Towed to {port.name}; they logged it, "
-                 "and they will remember.", "warn")
-    return {"ok": True, "port": port, "days": days, "faction": faction}
-
-
-def launch_exodus(game) -> dict:
-    """Take the ark and go. This ends the chronicle."""
-    ark = (game.ship if game.ship.chassis == "leviathan"
-           else next((s for s in game.fleet if s.chassis == "leviathan"), None))
-    if ark is None:
-        return {"ok": False, "why": "You have no LEVIATHAN. Twelve drums, or nothing."}
-    berths = sum(c.pop for c in game.colonies if c.online)
-    game.flags["exodus_launched"] = True
-    game.add_log("The trunk meristem stood down. The Verge is a light behind you.",
-                 "good")
-    game.advance_days(1)
-    return {"ok": True, "ark": ark, "carried": berths}
-
-
 def transfer(game, cid: str, units: float, to_ship: bool) -> float:
     """Move cargo between the hold and the empire depot."""
     if to_ship:
@@ -481,3 +408,10 @@ def transfer(game, cid: str, units: float, to_ship: bool) -> float:
     add_cargo(game.ship, cid, -n)
     game.stores[cid] = game.stores.get(cid, 0) + n
     return n
+
+
+# When a captain cannot move at all lives in `sim/stranded.py` (split out at
+# five hundred lines); re-exported so `actions.is_stranded` stays the door
+# every screen and check already reaches for.
+from .stranded import (distress_call, is_stranded,  # noqa: E402,F401
+                       launch_exodus)

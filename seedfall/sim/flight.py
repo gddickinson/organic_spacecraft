@@ -401,8 +401,13 @@ def ensure_at(game, body_index: int) -> dict:
     return travel_to(game, body_index, "coast")
 
 
-def arrive_in_system(game) -> None:
-    """A jump drops you at the edge, not alongside anything."""
-    stand_off(game)
+def arrive_in_system(game, at=None) -> None:
+    """A jump drops you at the edge, not alongside anything.
+
+    `at` is where the plot put you (`sim/astrogation.landfall`). Without one
+    it is the mark every jump in this game has always arrived at, which is
+    what a chronicle from before plots existed gets.
+    """
+    stand_off(game, at)
     from . import kith              # the Cradle: the Kith's first sighting
     kith.arrive(game)

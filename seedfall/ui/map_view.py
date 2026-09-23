@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (QListWidget, QListWidgetItem, QVBoxLayout,
                              QWidget)
 
 from ..core.util import credits as cr
-from ..core.util import duration, num, reaction_mass
+from ..core.util import duration, num, pct, reaction_mass
 from ..data.factions import FACTIONS, FACTIONS_BY_ID
 from ..sim import intel as intel_sim
 from . import counsel_card, mesh_panel, orders_panel, weave_panel
@@ -347,6 +347,20 @@ class MapView(View):
         panel.add_row("Distance", f"{q['ly']:.1f} ly")
         panel.add_row("Jump range", f"{g.ship_stats.jump:.1f} ly")
         panel.add_row("Transit", "—" if here else duration(q["days"]))
+        # **Who plots it, and how likely they are to get it right**
+        # (`sim/astrogation.py`). Preview equals act: these are the odds the
+        # jump actually throws, and they are the whole reason an astrogator
+        # aboard is worth a berth.
+        if not here:
+            from ..sim import astrogation as astro_sim
+            plot = astro_sim.forecast(g, q["ly"])
+            from ..sim.checks import DIFFICULTY_NAME
+            panel.add_row("Plotted by", plot["who"])
+            panel.add_row(
+                "The plot",
+                f"{DIFFICULTY_NAME.get(plot['how'], 'Average')} · "
+                f"{pct(plot['chance'])}",
+                "chloro" if plot["chance"] >= 0.6 else "warn")
         panel.add_row("Reaction mass", "—" if here else reaction_mass(q["fuel"]),
                       "warn" if (not here and
                                  g.ship.cargo.get("volatiles", 0) < q["fuel"]) else "")
