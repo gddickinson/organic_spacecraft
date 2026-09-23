@@ -225,11 +225,41 @@ def arcs(game) -> list:
 
 def save_money(game) -> list:
     """Nothing better to do at a quay with survey data aboard: sell it."""
+    from . import quayside
     if not in_market(game) or game.ship.cargo.get("survey", 0) < 1:
         return []
+    if not quayside.at_counter(game)[0]:
+        return []           # `come_alongside` is the move that comes first
     return [S("sell_survey", "Sell the survey data",
               "Survey sets in the hold are worth money at this counter.",
               "port", "market", verb="sell_survey", weight=66)]
+
+
+def come_alongside(game) -> list:
+    """There is business at the quay and the hull is not made fast to it.
+
+    The counter is where you are standing (`sim/quayside`): a bench of
+    survey sets is handed over at it, and cargo that does not cross by your
+    own boat is lightered at a price. So the first move at a port you have
+    only arrived in is to be brought in.
+    """
+    from . import crossing, places, quayside
+    if not in_market(game) or quayside.alongside(game):
+        return []
+    place = places.by_id(game, f"port-{game.location_id}")
+    if place is None or crossing.across(game, place):
+        return []
+    way = next((w for w in crossing.ways(game, place) if w.id == "dock"), None)
+    if way is None:
+        return []
+    sets = game.ship.cargo.get("survey", 0)
+    why = (f"{sets:g} survey set{'s' if sets != 1 else ''} to hand over, and "
+           "a counter you are not standing at."
+           if sets >= 1 else
+           f"{quayside.line(game)} The cranes are free alongside.")
+    return [S("dock", "Come alongside", why, "system", verb="dock",
+              weight=70 if sets >= 1 else 52,
+              blocked="" if way.ok else way.why)]
 
 
 #: Days since anybody stopped at an officer's station, and the loyalty

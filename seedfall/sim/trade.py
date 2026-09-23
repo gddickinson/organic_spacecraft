@@ -16,6 +16,7 @@ from . import customs as customs_sim
 from . import inquiry
 from . import market as market_sim
 from . import officials as officials_sim
+from . import quayside as quayside_sim
 from . import wharfage as wharfage_sim
 from . import diplomacy as dip_sim
 from . import loyalty as loyalty_sim
@@ -99,6 +100,12 @@ def buy(game, cid: str, units: int) -> dict:
     if price is None:
         return {"ok": False, "why": "They do not stock it."}
 
+    # **And the goods have to cross the gap** (`sim/quayside`): alongside
+    # the quay that is the port's crane, and from anywhere else in the
+    # system it is your boat or their lighters, by the tonne.
+    moving, refusal = quayside_sim.may_move(game, 1.0, system)
+    if not moving:
+        return {"ok": False, "why": refusal}
     room = int(cargo_free(game.ship, game.ship_stats) / bulk_of(cid))
     # Sized against what a tonne actually costs here — the posted price plus the
     # quay's cut. Filling the hold to the last credit of the posted price and
@@ -115,6 +122,7 @@ def buy(game, cid: str, units: int) -> dict:
 
     game.credits -= n * price
     due = wharfage_sim.collect(game, system, n * price)
+    lighter = quayside_sim.collect(game, n * bulk_of(cid), system)
     # "This once" means this once: the office rate is spent by using it.
     officials_sim.spend_once(game, system, "quiet_price")
     add_cargo(game.ship, cid, n)
@@ -124,9 +132,11 @@ def buy(game, cid: str, units: int) -> dict:
     if not BY_ID[cid].legal:
         game.adjust_rep(system.port.faction, -BUY_TAINT)
     game.add_log(f"Bought {n} {BY_ID[cid].short} at {price:,} — "
-                 f"{n * price:,}." + (f" Wharfage {due:,}." if due else ""))
+                 f"{n * price:,}." + (f" Wharfage {due:,}." if due else "")
+                 + (f" Lighterage {lighter:,}." if lighter else ""))
     return {"ok": True, "units": n, "price": price, "paid": n * price,
-            "due": due, "spent": n * price + due}
+            "due": due, "lighter": lighter,
+            "spent": n * price + due + lighter}
 
 
 def sell(game, cid: str, units: int) -> dict:
@@ -149,6 +159,9 @@ def sell(game, cid: str, units: int) -> dict:
     if barred:
         return {"ok": False, "why": barred}
 
+    moving, refusal = quayside_sim.may_move(game, 1.0, system)
+    if not moving:
+        return {"ok": False, "why": refusal}
     price = market_sim.quote_sell(game, system, cid)
     n = min(units, game.ship.cargo.get(cid, 0))
     if n <= 0 or price is None:
@@ -163,7 +176,9 @@ def sell(game, cid: str, units: int) -> dict:
 
     game.credits += n * price
     out["due"] = wharfage_sim.collect(game, system, n * price)
-    out["net"] = n * price - out["due"]
+    # And what it cost to get it across (`sim/quayside`) — nothing alongside.
+    out["lighter"] = quayside_sim.collect(game, n * bulk_of(cid), system)
+    out["net"] = n * price - out["due"] - out["lighter"]
     officials_sim.spend_once(game, system, "quiet_price")
     # Only what you brought counts as trade — for the crew's pride as much as
     # for the port's regard. See `BOUGHT_MEMORY`.
@@ -185,7 +200,9 @@ def sell(game, cid: str, units: int) -> dict:
     game.add_log(f"Sold {round(n)} {BY_ID[cid].short} at {price:,} — "
                  f"{round(n * price):,}."
                  + (f" Wharfage {out['due']:,}, {out['net']:,} clear."
-                    if out["due"] else ""))
+                    if out["due"] else "")
+                 + (f" Lighterage {out['lighter']:,}."
+                    if out["lighter"] else ""))
     renown_sim.note(game, "sales", int(brought > 0))   # only what you brought
     return out
 
@@ -210,6 +227,12 @@ def sell_survey_data(game) -> dict:
     system = game.system
     if not system.port:
         return {"ok": False, "why": "No port here."}
+    # A bench of sets is handed over, not transmitted: somebody has to be at
+    # the counter (`sim/quayside`). A play-test sold survey data at the Fleet
+    # Hub from seven AU out.
+    there, why = quayside_sim.at_counter(game, system)
+    if not there:
+        return {"ok": False, "why": why}
     n = game.ship.cargo.get("survey", 0)
     if n < 1:
         return {"ok": False, "why": "No survey data aboard."}

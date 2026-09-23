@@ -40,7 +40,10 @@ def _held_port(game, power: str):
 
 
 def _dock(game, system) -> None:
-    game.location_id = system.id
+    """At that quay **and made fast to it** — `tests/quay.py` says why: a
+    counter deals with the hull that is alongside it (`sim/quayside`)."""
+    from .quay import stand_at
+    stand_at(game, system, note=False)
 
 
 def _wharfage(game):

@@ -165,6 +165,21 @@ class PortView(BerthsMixin, View):
                 toll, "", "dim" if wharfage_sim.holder(g, sys) is None
                 else "lumen", wrap=True))
 
+        # And where you are dealing *from* (`sim/quayside`): alongside the
+        # cranes are theirs, and from out in the system the goods are
+        # lightered at a rate that rises with the distance. Named on the
+        # board for the same reason the due is — it is charged at the till.
+        from ..sim import quayside as quayside_sim
+        standing = quayside_sim.quote(g, sys)
+        self.col.addWidget(label(
+            standing["line"], "", "chloro" if standing["alongside"] else
+            "warn", wrap=True))
+        if not standing["alongside"]:
+            self.col.addWidget(button(
+                "Let the harbourmaster bring you in", self._come_alongside,
+                kind="primary", tip="An hour, and the counter's cranes are "
+                                    "yours for nothing."))
+
         news = register_panel.local_news(g, sys)
         if news is not None:
             self.col.addWidget(news)
@@ -217,6 +232,18 @@ class PortView(BerthsMixin, View):
         self.win.save()
         self.win.refresh()
 
+    def _come_alongside(self) -> None:
+        """The harbourmaster's own door (`sim/crossing`), from the board."""
+        from ..sim import crossing, places
+        g = self.game
+        place = places.by_id(g, f"port-{g.location_id}")
+        got = (crossing.cross(g, place, "dock") if place is not None
+               else {"ok": False, "why": "Nobody there to bring you in."})
+        self.win.toast(got.get("text") or got.get("why", ""),
+                       "good" if got.get("ok") else "warn")
+        self.win.refresh()
+        self.refresh()
+
     def _sell(self, cid: str, units: int) -> None:
         res = trade_sim.sell(self.game, cid, units)
         if not res["ok"]:
@@ -225,10 +252,12 @@ class PortView(BerthsMixin, View):
         if res["logged"]:
             self.win.toast("They took it. They also logged who sold it.",
                            "osteo")
-        elif res["due"]:
+        elif res["due"] or res.get("lighter"):
+            lightered = (f" and {cr(res['lighter'])} lighterage"
+                         if res.get("lighter") else "")
             self.win.toast(f"{cr(res['took'])} over the counter, less "
-                           f"{cr(res['due'])} wharfage — {cr(res['net'])} "
-                           "clear.", "osteo")
+                           f"{cr(res['due'])} wharfage{lightered} — "
+                           f"{cr(res['net'])} clear.", "osteo")
         self.win.save()
         self.win.refresh()
 

@@ -42,7 +42,8 @@ def moves(game) -> list:
     track = renown.focus(game)
     out = (sources.urgent(game) + sources.answers(game)
            + sources.bench(game, track) + sources.freight(game)
-           + doors.save_money(game) + sources.contracts(game)
+           + doors.come_alongside(game) + doors.save_money(game)
+           + sources.contracts(game)
            + doors.house(game) + doors.milestone(game, track)
            + sources.surveys(game) + doors.bounty(game)
            + doors.reaches(game) + doors.body(game) + doors.arcs(game)
@@ -155,6 +156,19 @@ def _answer(game, what):
     return {"ok": live, "why": "" if live else "Nothing is waiting."}
 
 
+def _dock(game):
+    """Have the harbourmaster bring her in (`sim/crossing`).
+
+    The counter is where the hull is made fast (`sim/quayside`), so getting
+    alongside is a move the first officer can advise like any other.
+    """
+    from . import crossing, places
+    place = places.by_id(game, f"port-{game.location_id}")
+    if place is None:
+        return {"ok": False, "why": "No quay here."}
+    return crossing.cross(game, place, "dock")
+
+
 def _go(game):
     return {"ok": True, "why": ""}
 
@@ -170,4 +184,5 @@ _ACTS = {"buy": _buy, "jump": _jump, "repair": _repair, "sign_on": _sign_on,
          "take_contract": _take_contract, "take_bounty": _take_bounty,
          "charter": _charter, "relight": _relight, "dive": _dive,
          "sell_survey": _sell_survey, "answer": _answer, "go": _go,
+         "dock": _dock,
          "walk": _walk}

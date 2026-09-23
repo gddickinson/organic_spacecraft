@@ -47,9 +47,10 @@ def run(suite: Suite) -> None:
         # imported the raw pair quoted a figure the counter would not honour
         # — the freight desk, the bunkering button, the bridge's market verb
         # and `is_stranded` all did. Two exceptions are deliberate and
-        # documented in place: `contracts` prices generation neutrally, and
-        # `industry` forecasts on a throwaway market twin with no game to ask.
-        allowed = {"contracts.py", "industry.py", "market.py"}
+        # documented in place: `contract_price` (split out of `contracts`)
+        # prices generation neutrally, and `industry` forecasts on a
+        # throwaway market twin with no game to ask.
+        allowed = {"contract_price.py", "industry.py", "market.py"}
         root = Path(__file__).resolve().parent.parent
         offenders = []
         for pkg in ("sim", "ui", "bridge"):

@@ -37,7 +37,7 @@ FOOD_DAYS = 240
 MELT_HEAD_PURSE = 21_000
 #: The moves this captain takes from counsel, and those that cost no day.
 TRUST = {"buy", "repair", "sign_on", "research", "sell_survey", "survey",
-         "take_contract", "jump", "dive", "relight"}
+         "take_contract", "jump", "dive", "relight", "dock"}
 INSTANT = {"buy", "repair", "sign_on", "research", "sell_survey",
            "take_contract"}
 
@@ -58,9 +58,20 @@ def _road(g) -> None:
 
 
 def _ashore(g) -> None:
-    """At a quay: read the board (the Port screen writes the prices down),
-    sell what was brought, feed and fuel, crew, repair."""
-    from ..sim import market
+    """At a quay: **come alongside first** (`sim/quayside` — the counter is
+    where the hull is made fast), read the board (the Port screen writes the
+    prices down), sell what was brought, feed and fuel, crew, repair."""
+    from ..sim import anchorage, crossing, flight, market, places, quayside
+    if not quayside.alongside(g):
+        # Fly to the quay's own world and let the harbourmaster bring her
+        # in: the counter is where the hull is made fast (`sim/quayside`),
+        # and lighterage from the jump radius is ruinous.
+        body, _index = anchorage.anchor_body(g.system)
+        if body is not None:
+            flight.hold_at(g, body)
+        place = places.by_id(g, f"port-{g.location_id}")
+        if place is not None:
+            crossing.cross(g, place, "dock")
     market.note_prices(g, g.system, g.rep.get(g.system.port.faction, 0),
                        g.ship_stats.trade)
     if g.ship.cargo.get("survey", 0) >= 1:

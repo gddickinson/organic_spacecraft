@@ -96,6 +96,14 @@ power's ports and what they are short of but will not quote you their board. It 
 by what the *voyage* clears, not the spread — a four-credit margin nine light-years away
 costs more in reaction mass than it pays.
 
+**Where you deal from is part of the price** (`sim/quayside.py`). Made fast to the quay,
+the cranes are theirs and cost nothing. From anywhere else in the system the goods have to
+be lightered out to you: your own boat carries what she holds for nothing, within her own
+range, and the port charges for the rest by the tonne at a rate that rises with the
+distance — 692 credits on a hundred tonnes from orbit off the quay, 6,300 from seven AU
+out. A bench of survey data is not lightered at all: somebody has to carry it in. The
+board says which you are, and the harbourmaster will bring you in for an hour.
+
 There is also an **unposted market**. One good in the table is contraband, worth more
 exactly where it is forbidden, and the power that forbids it opens your hold at the dock.
 A concealed hold, good standing and a clean approach each take a share off the odds; none

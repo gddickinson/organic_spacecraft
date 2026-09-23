@@ -71,10 +71,9 @@ def _quays_of(game, power: str) -> list:
 
 
 def _stand_at(game, system) -> None:
-    game.location_id = system.id
-    market_sim.note_prices(game, system,
-                           game.rep.get(system.port.faction, 0),
-                           game.ship_stats.trade)
+    """At this quay and made fast to it — `tests/quay.py` says why."""
+    from .quay import stand_at
+    stand_at(game, system)
 
 
 def _tradeable(game, system) -> str:

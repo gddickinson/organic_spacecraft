@@ -32,7 +32,7 @@ def buyable(game, cid: str, units: int) -> bool:
 
     The same gates in the same order: the counter will deal with you, it
     stocks the good, there is room, you can pay a tonne and its due."""
-    from . import enforce, market as market_sim, wharfage
+    from . import enforce, market as market_sim, quayside, wharfage
     from ..data.commodities import bulk_of
     from .ship import cargo_free
     here = game.system
@@ -40,6 +40,8 @@ def buyable(game, cid: str, units: int) -> bool:
         return False
     if not enforce.may_trade(game, here)[0]:
         return False
+    if not quayside.may_move(game, 1.0, here)[0]:
+        return False          # too far off the quay for anything to cross
     price = market_sim.quote_buy(game, here, cid)
     if price is None or cid not in here.market.stock:
         return False

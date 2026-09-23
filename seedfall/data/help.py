@@ -120,7 +120,16 @@ TOPICS = [
            "ranks runs by what the voyage clears, not by the spread.",
            "One good in the table is contraband: worth more exactly where it "
            "is forbidden, and the power that forbids it opens your hold at "
-           "the dock."),
+           "the dock.",
+           "And where you deal from is part of the price. Made fast to the "
+           "quay, the cranes are theirs and cost nothing. From anywhere "
+           "else in the system the goods have to be lightered out to you: "
+           "your own boat carries what she holds for nothing, and the port "
+           "charges for the rest by the tonne, dearer the further off you "
+           "sit. A bench of survey data is not lightered at all — somebody "
+           "has to carry it in, so it wants the hull alongside or the crew "
+           "across. The Port's board says which you are, and the "
+           "harbourmaster will bring you in for an hour of the clock."),
           facts=("goods",), see=("contracts", "customs")),
 
     Topic("customs", "Contraband, and the people who look for it", "port",

@@ -28,82 +28,16 @@ import math
 import time
 
 from ..core.state import new_game
-from ..sim import berthing as berth_sim
 from ..sim import conn as conn_sim
 from ..sim import shock as shock_sim
 from ..sim import track as track_sim
 from .harness import Suite
 from .qtkit import app as _app
 from .qtkit import main_window
-
-#: A frozen clock, so a check can ask what the picture looks like 300 ms after
-#: a collision without waiting 300 ms for it. The one hook `ui/effects` leaves
-#: for exactly this, the way `soundmap.clock` does.
-NOW = [1_000.0]
-
-
-def _at(when: float) -> float:
-    NOW[0] = 1_000.0 + when
-    return NOW[0]
-
-
-def _deck(seed: str, kind: str = "anchorage"):
-    """A window with the conn open on something that can be flown into."""
-    from ..ui import effects
-    from ..ui.conn_window import open_conn
-    keep = _app()
-    effects.clock = lambda: NOW[0]
-    effects.clear()
-    _at(0.0)
-    game = new_game(seed)
-    win = main_window(game, (1200, 820))
-    target = next(c for c in track_sim.contacts(game)
-                  if c.kind == kind and berth_sim.can_conn(game, c)[0])
-    window = open_conn(win, target)
-    window.resize(1000, 700)
-    keep.processEvents()
-    return win, window, win.conn
-
-
-def _shut(win, window) -> None:
-    keep = _app()
-    window.close()
-    keep.processEvents()
-    win.close()
-    keep.processEvents()
-
-
-def _fly_into(win, conn, speed: float, beats: int = 3_000) -> None:
-    """Point her at it, take the safeties off, and let the clock run."""
-    conn.safeties = False
-    span = conn.range_km
-    conn.vel = [-p / span * speed for p in conn.pos]
-    for _ in range(beats):
-        win.fly_beat()
-        if conn.over:
-            return
-
-
-def _fly_gently(win, conn, beats: int = 4_000) -> None:
-    """Let the flight computer berth her, which is what it is for."""
-    conn.auto = "close"
-    win.set_conn_clock(True)
-    for _ in range(beats):
-        win.fly_beat()
-        if conn.over:
-            return
-
-
-def _changed(feed, a: float, b: float) -> int:
-    """How many sampled pixels differ between two instants of one camera."""
-    _at(a)
-    first = feed.grab().toImage()
-    _at(b)
-    again = feed.grab().toImage()
-    w, h = feed.width(), feed.height()
-    return sum(1 for y in range(0, h, 3) for x in range(0, w, 3)
-               if first.pixel(x, y) != again.pixel(x, y))
-
+# The machinery every check here shares (`tests/shock_kit.py`): the frozen
+# clock, a deck with the conn open on something you can hit, flying her into
+# it, and counting the pixels that moved.
+from .shock_kit import NOW, _at, _changed, _deck, _fly_gently, _fly_into, _shut
 
 def run(suite: Suite) -> None:
     check = suite.check
@@ -442,13 +376,26 @@ def run(suite: Suite) -> None:
         assert effects.live(_at(0.05)) == [], "a volley reached the cameras"
         assert effects.live(_at(0.05), shock_sim.BATTLE), "and not the bridge"
         assert effects.shake(_at(0.05)) == (0.0, 0.0), "the conn shook"
-        felt = math.dist(effects.shake(_at(0.05), shock_sim.BATTLE),
-                         (0.0, 0.0))
+        # **Measured at its peak, not at one instant.** The shake is a pair
+        # of decaying sines with phases taken from the shock's own seed, so
+        # any single moment can land on a zero crossing: this check read
+        # 8.0, 9.7 and 11.8 px alone and 1.03 px once in a full parallel run
+        # against a 2.0 px floor, and the picture was never at fault. The
+        # claim is that a volley is felt, so look across the wobble's first
+        # fifth of a second and take the worst of it.
+        peak, felt = 0.0, 0.0
+        for step in range(1, 41):
+            when = step / 200.0
+            throw = math.dist(effects.shake(_at(when), shock_sim.BATTLE),
+                              (0.0, 0.0))
+            if throw > felt:
+                peak, felt = when, throw
         assert felt > effects.SHAKE_FLOOR, felt
-        # And the engagement's own picture moves with it.
+        # And the engagement's own picture moves with it — looked at on the
+        # same beat, for the same reason.
         view = Battle3D(battle)
         view.resize(420, 320)
-        _at(0.05)
+        _at(peak)
         struck = view.grab().toImage()
         _at(effects.LIFE["gunfire"] + 0.5)
         calm = view.grab().toImage()

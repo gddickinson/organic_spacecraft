@@ -448,12 +448,27 @@ sky-data quote, the berth lesson, the chart and Helm layouts, the Academy,
 the Hollow's reach wording, signing on crew, raw `**` in Help, "A The
 Tessellate site", and raw floats in the Port. Still open:
 
-- **Where can you trade from?** The Port prices and buys for any hull in the
-  system — survey data sold at Fleet Hub from 7 AU — while the shipyard
-  wants you alongside and the berth lesson says the Port opens once you are.
-  "Let the harbourmaster bring you in" opens the Port and docks nothing.
-  One rule, chosen and applied at every counter; it moves the economy, so it
-  is a design pass with the bots re-measured, not a patch.
+- ~~**Where can you trade from?**~~ Closed 2026-09-22 (`sim/quayside.py`,
+  suite `quayside`). One rule, and it is a ladder rather than a gate:
+  **alongside the quay the cranes are theirs and cost nothing; from
+  anywhere else in the system the goods are lightered, and the gap is the
+  price** — your own boat carries what she lifts in a visit for nothing and
+  only within her own range, and the port's lighters take the rest by the
+  tonne at a rate that rises with the distance. Measured on 100 tonnes: 692
+  credits in orbit off the quay, 1,400 from an AU, 6,300 from the seven the
+  play-test sold survey data at. Handing over a bench of survey sets is a
+  rule rather than a price — somebody has to be at the counter — and that
+  was the play-test's own example. The board names the rate, the contract
+  card prices the sourcing with it in (it under-quoted by the whole of it),
+  the Port screen says where you are dealing from, and **"Let the
+  harbourmaster bring you in" now docks**: it is `crossing.cross(..., "dock")`,
+  the same door the walking layer uses, and the first officer offers it as
+  *Come alongside* when there is business at a quay you are not made fast
+  to. Re-measured on the reference captain (`tests/careful_captain`): it
+  reaches the Genesis ending on day 1,415 of five years, paying 250 credits
+  of lighterage in the whole career and dealing from orbit 6 times in 156 —
+  because a captain who means to trade comes alongside, which is what the
+  berth lesson always said.
 - **The Assembly's listed reasons do not sum to the vote** shown (+0.3 of
   reasons against −0.2); one function should produce both.
 - **"Payroll missed" repeats** on about one broke day in three. It draws on
@@ -493,11 +508,15 @@ Tessellate site", and raw floats in the Port. Still open:
 6. **Run bill on the button as well as the board.** The ship board quotes
    it every beat; the `Run for X` button label could carry it too (stale
    between rebuilds — needs the label refreshed in `sync`).
-7. **`shock`'s volley check flakes under load.** "A volley you take is felt" measured
-   8.0, 9.7 and 11.8 px of shake on three runs alone and 1.03 px once in a
-   full `-j 8` run (2026-09-22), against a 2.0 px floor: the shake it samples
-   depends on timing the check does not pin. Pin its clock, or measure the peak
-   rather than one instant.
+7. ~~**`shock`'s volley check flakes under load.**~~ Fixed 2026-09-22 by
+   measuring the peak rather than one instant: the shake is a pair of
+   decaying sines whose phases come from the shock's own seed, so any single
+   moment can land on a zero crossing — which is how the same picture read
+   8.0, 9.7 and 11.8 px alone and 1.03 px once in a full `-j 8` run against
+   a 2.0 px floor. The check now looks across the wobble's first fifth of a
+   second and takes the worst of it (11-13 px over three runs), and grabs
+   the engagement's picture on that same beat, which was the same flake
+   waiting to happen to the pixel count.
 
 ## Ideas — not defects; would make it more fun or easier to pick up
 

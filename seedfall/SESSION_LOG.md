@@ -1355,6 +1355,32 @@ every turn, wherever the range track stands; close-in fire is what answers.
 Two checks in `craftbattle`, a readout panel on the battle screen. The
 small-craft list is closed.
 
+## Where you may deal from, 2026-09-22
+
+The play-test's biggest open item. `sim/quayside.py` is the one rule for
+every counter: alongside is free and unlimited, and from anywhere else in
+the system the goods are lightered at a rate that rises with the distance
+(692 credits on 100 t from orbit, 6,300 from seven AU), with your own boat's
+lift free inside her own range. Survey data needs somebody at the counter,
+which was the play-test's own example. The board, the contract card and the
+till all quote it; the Port screen says where you are dealing from and its
+harbourmaster button actually docks; counsel offers *Come alongside*.
+
+Two things fell out of it. The reference captain had to learn to fly to the
+quay and be brought in — it does now, and reaches its ending on day 1,415
+paying 250 credits of lighterage in five years. And `tests/quay.py` is the
+new door for putting a chronicle at a quay in a check: writing
+`game.location_id` alone leaves the hull adrift in the system, which used to
+be invisible and is now a billion kilometres of lighterage.
+
+Two files hit the ceiling in the doing and were split at their own seams:
+`sim/contract_price.py` (what a posting costs to source and what the card
+quotes, out of `sim/contracts.py`) and `tests/shock_kit.py` (the frozen
+clock and the deck the shock checks share). And the `shock` suite's volley
+flake is fixed — it measured one instant of a decaying wobble whose phase
+comes from the shock's own seed, so it now takes the peak across the first
+fifth of a second, and grabs the picture on that same beat.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one

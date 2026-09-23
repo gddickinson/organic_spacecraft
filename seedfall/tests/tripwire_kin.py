@@ -114,6 +114,9 @@ KIN = {
     "detection": ("detection", "collision"),
     "countermeasures": ("detection", "collision"),
     "contracts": ("postings", "missions", "cargo"), "chains": ("missions",),
+    # Split out of `contracts` at 500 lines: the margin, the haulage rate and
+    # what a card quotes.
+    "contract_price": ("cargo", "postings", "quayside"),
     "expedition": ("landing", "ground", "wayhome"), "weather": ("ground",),
     # Split out of `expedition` (#35): generation and the haul home.
     "expedition_gen": ("landing", "ground", "wayhome"),
@@ -276,4 +279,6 @@ KIN = {
     "craft_battle": ("craftbattle",),
     # The hangar deck (2026-09-22): cradles, buying, mending, selling.
     "hangar": ("hangar", "craft"),
+    # Where you may deal from (2026-09-22): the counter and the lighterage.
+    "quayside": ("quayside", "trade", "wharfage"),
 }

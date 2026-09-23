@@ -174,9 +174,17 @@ def run(suite: Suite) -> None:
         st = renown.state(g)
         # What the old save kept, it is credited; acts it never counted
         # (`renown_facts.COUNTED`) wait for the next time they are done.
+        from ..sim import renown_facts
         from ..sim.renown_facts import COUNTED
+        # A fact that can *fall* is no more re-derivable than a counter
+        # somebody forgot to keep: live price quotes decay (`car_2` is a
+        # share of the Verge's markets still current), so a chronicle that
+        # earned one and then let it lapse cannot be credited with it off a
+        # later state. What it can still show, it is credited.
         kept = {mid for mid in before.achieved
-                if renown.BY_ID[mid].fact not in COUNTED}
+                if renown.BY_ID[mid].fact not in COUNTED
+                and renown_facts.fact(g, renown.BY_ID[mid].fact)
+                >= renown.BY_ID[mid].at}
         assert kept and set(st.achieved) >= kept, kept - set(st.achieved)
         assert not st.paid and not st.fresh, "backdated milestones paid"
         assert g.credits == credits

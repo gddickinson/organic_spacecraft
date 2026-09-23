@@ -91,7 +91,10 @@ def run(suite: Suite) -> None:
         before = game.credits
         result = trade_sim.buy(game, cid, 4)
         assert result["ok"], result.get("why")
-        paid = (before - game.credits - result["due"]) / result["units"]
+        # Net of both lines the counter discloses: the quay's due and, when
+        # the hull is not made fast to it, the lighterage (`sim/quayside`).
+        paid = ((before - game.credits - result["due"]
+                 - result.get("lighter", 0)) / result["units"])
         assert abs(paid - quoted) < 0.51, (
             f"quoted {quoted}, charged {paid:.1f} each")
 
@@ -99,7 +102,8 @@ def run(suite: Suite) -> None:
         before = game.credits
         sold = trade_sim.sell(game, cid, result["units"])
         assert sold["ok"], sold.get("why")
-        took = (game.credits - before + sold["due"]) / sold["units"]
+        took = ((game.credits - before + sold["due"]
+                 + sold.get("lighter", 0)) / sold["units"])
         assert abs(took - got_quote) < 0.51, (
             f"quoted {got_quote}, paid {took:.1f} each")
         return f"buying and selling {cid} both matched the quote to the credit"

@@ -96,7 +96,11 @@ def run(suite: Suite) -> None:
                 moved = credits_before - game.credits if act == "buy" else \
                     game.credits - credits_before
                 goods = res["paid"] if act == "buy" else res["took"]
-                want = goods + res["due"] if act == "buy" else goods - res["due"]
+                # The quay's due, and the lighterage when the hull is not
+                # made fast to it (`sim/quayside`) — two disclosed lines.
+                lighter = res.get("lighter", 0)
+                want = (goods + res["due"] + lighter if act == "buy"
+                        else goods - res["due"] - lighter)
                 assert abs(moved - want) < 0.01, (
                     f"{system.name}: the captain's account moved {moved} on a "
                     f"{act} of {goods} with a due of {res['due']}")
