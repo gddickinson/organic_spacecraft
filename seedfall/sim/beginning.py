@@ -39,6 +39,13 @@ class Choices:
     posting: str = "charter"
     crew: tuple = ()             # station ids; empty means the standard crew
     name: str = "Patient Increment"
+    #: The captain's own life, if they played it out
+    #: (`sim/captain_path.py`): which service they enlisted in and how many
+    #: terms they served before getting out. "" and 0 mean nobody played
+    #: one, and the record is derived from the origin as it always was —
+    #: which is what every chronicle begun before this has.
+    service: str = ""
+    service_terms: int = 0
 
     def resolved(self) -> tuple:
         return (STOCKS_BY_ID[self.stock], ORIGINS_BY_ID[self.origin],

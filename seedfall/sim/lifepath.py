@@ -34,6 +34,7 @@ from dataclasses import dataclass, field
 from ..core.rng import RNG
 from ..data import careers as table
 from . import checks
+from . import lifepath_since as since
 from . import lifespan
 
 #: The most terms anybody serves before they are simply too old for it. Six
@@ -201,11 +202,38 @@ def of(game, officer) -> Record:
     record.characteristics = _roll_characteristics(rng, officer)
     first, fallbacks = _careers_for(rng, officer)
     wanted = _terms_wanted(rng, officer, lifespan.age_of(officer, game))
-    career = table.CAREER_BY_ID[first]
-    served, rank_at = 0, 0
+    career, served, rank_at = serve_out(rng, record, first, fallbacks, wanted)
+    record.age = table.ENTRY_AGE + served * table.TERM_YEARS
+    record.career = career.id
+    record.career_name = career.name
+    record.rank = career.ranks[min(rank_at, len(career.ranks) - 1)]
+    _age(record, rng, served)
+    _muster(record, rng, career, served)
+    since.qualify(record, officer)
+    since.bought(game, record, officer)
+    since.staged(game, record, officer)
+    if not record.ended:
+        record.ended = f"Left the {career.name} of their own accord."
+    return record
+
+
+def serve_out(rng, record: Record, first: str, fallbacks: list,
+              wanted: int, career=None, rank_at: int = 0) -> tuple:
+    """Serve terms until they run out, or a mishap ends it. `(career,
+    served, rank_at)`.
+
+    The loop `of` has always run, lifted out so the captain can be played
+    through it one term at a time (`sim/captain_path.py`) rather than having
+    it run to the end on their behalf. `served` counts terms *added by this
+    call*, so a played path can ask for one more and carry the rank on.
+    """
+    career = career or table.CAREER_BY_ID[first]
+    served = 0
     while served < wanted:
         served += 1
-        got = _serve(rng, record, career, served, rank_at)
+        # Numbered by what is already on the record, so a played path that
+        # asks for one more term calls it the fifth rather than the first.
+        got = _serve(rng, record, career, len(record.terms) + 1, rank_at)
         record.terms.append(got)
         if got.mishap:
             record.ended = got.mishap
@@ -223,92 +251,7 @@ def of(game, officer) -> Record:
             # differently from a short one.
             pool = list(career.skills) + list(career.officer_skills or ())
             got.skill += " · " + _learn(record, _pick_skill(rng, record, pool))
-    record.age = table.ENTRY_AGE + served * table.TERM_YEARS
-    record.career = career.id
-    record.career_name = career.name
-    record.rank = career.ranks[min(rank_at, len(career.ranks) - 1)]
-    _age(record, rng, served)
-    _muster(record, rng, career, served)
-    _qualify(record, officer)
-    _bought(game, record, officer)
-    _staged(game, record, officer)
-    if not record.ended:
-        record.ended = f"Left the {career.name} of their own accord."
-    return record
-
-
-def _bought(game, record: Record, officer) -> None:
-    """Fold on what a concourse has done to them since they signed on.
-
-    A service record is *derived* and may be recomputed at will; a fitted
-    cortex link and a course somebody paid for are **facts**, and they live
-    on the save (`sim/clinic.py`, `game.fitted` and `game.taught`). Folding
-    them on here rather than at the twenty places that read a record is what
-    makes a muscle weave show up in the gunnery check, the boarding action,
-    the ship's abilities table and the officer's own sheet at once.
-
-    Nothing is taken away and nothing goes past `SCORE_CAP`: a treatment is
-    a floor under a characteristic, never a replacement for a life.
-    """
-    if game is None:
-        return
-    from ..data import treatments as clinic_table
-    key = str(getattr(officer, "id", 0))
-    for tid in (getattr(game, "fitted", None) or {}).get(key, []):
-        got = clinic_table.TREATMENT_BY_ID.get(tid)
-        if got is None:
-            continue
-        for cid, delta in got.gives.items():
-            if cid in record.characteristics:
-                record.characteristics[cid] = min(
-                    clinic_table.SCORE_CAP,
-                    record.characteristics[cid] + delta)
-        if got.skill:
-            record.skills[got.skill] = max(record.skills.get(got.skill, -1), 0)
-    for name, levels in (getattr(game, "taught", None) or {}).get(
-            key, {}).items():
-        if name in table.SKILLS:
-            record.skills[name] = record.skills.get(name, -1) + int(levels)
-
-
-def _staged(game, record: Record, officer) -> None:
-    """Fold on where they are in their run, and how far apart their clocks are.
-
-    `data/stages.py` is what a stretch of life is worth — the green are
-    quick and unlistened-to, the declining slow and worth hearing — and what
-    decades lived beyond the body's years do to somebody. Both are deltas on
-    the six scores, kept between 1 and the clinic's cap like everything else
-    folded on here.
-    """
-    from ..data import treatments as clinic_table
-    for got in (lifespan.stage_of(officer, game).gives,
-                lifespan.gap_of(officer, game).gives):
-        for cid, delta in got.items():
-            if cid in record.characteristics:
-                record.characteristics[cid] = max(1, min(
-                    clinic_table.SCORE_CAP,
-                    record.characteristics[cid] + delta))
-
-
-def _qualify(record: Record, officer) -> None:
-    """Make sure they can do the job the crew list says they do.
-
-    A career is only *weighted* towards a station, so the dice could leave a
-    Chief Engineer who had never touched a drive and a Navigator who could
-    not plot — which reads as a broken crew list rather than as an unlucky
-    life. Their station's own skill is brought up to what their level claims
-    and the one beside it to trained, and **nothing is ever taken away**: an
-    engineer who really did spend four terms learning it keeps all of it.
-    """
-    pair = table.STATION_SKILLS.get(record.station or "", ())
-    if not pair:
-        return
-    want = max(1, min(4, int(getattr(officer, "level", 1) or 1) - 1))
-    record.skills[pair[0]] = max(record.skills.get(pair[0], -1), want)
-    # A station may name more than two: the first is brought to what their
-    # level claims, and everything beside it to trained.
-    for beside in pair[1:]:
-        record.skills[beside] = max(record.skills.get(beside, -1), 0)
+    return career, served, rank_at
 
 
 def _serve(rng, record: Record, career, number: int, rank_at: int) -> Term:

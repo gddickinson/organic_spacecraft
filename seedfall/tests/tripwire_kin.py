@@ -97,6 +97,8 @@ KIN = {
     "lawlevel": ("lawlevel", "customs", "fence"),
     # Work that comes from a person (2026-09-23).
     "patrons": ("patrons", "postings", "cargo"),
+    # The captain's own life, played (2026-09-23).
+    "captain_path": ("captainpath", "lifepath", "beginnings"),
     # `courtship` first: it is the real guard for the COURTSHIP_* family and
     # costs 1.4 s against `politics`'s 145.4 (#134).
     "diplomacy": ("courtship", "politics"),

@@ -1633,6 +1633,57 @@ builtin, an import, an assignment, an argument or a definition in the same
 file cannot resolve at runtime either. 918 modules, and it was verified by
 putting the fault back and watching it name the line.
 
+## The captain's own life, played, 2026-09-23
+
+Traveller programme item 3's remainder. The beginning screen asked who you
+were with three choices and worked the rest out — a biography. Traveller's
+opening is one decision made four or five times: *another term, or out?*
+
+`sim/captain_path.py` is that decision and `ui/beginning_path.py` offers it.
+Enlist in any of the fourteen services, see what this one asks you to
+survive and how fast it promotes, and then answer the question with the
+odds in front of you. A mishap ends the career where it falls and you leave
+with what you have — which is a better opening than a tidy one.
+
+Three properties, and each is the house rule applied to a new thing:
+
+- **The dice are the sector's, not the button's.** Serving a term rebuilds
+  the whole life from `RNG(f"{seed}:captain-path:{service}")`, so a term has
+  the outcome it always had and reopening the dialog cannot shop for a
+  better one. `_build` is the one derivation and serving is asking it for
+  one more term.
+- **Only the decision is stored** — `Choices.service` and
+  `service_terms` — and the record is replayed from them, so a save carries
+  two small fields and no history that could go stale. A chronicle begun
+  before this still has the captain it always had, derived from its origin.
+- **Preview equals act**: `odds` quotes the survival throw from the same
+  table `checks.roll` uses, and the suite holds the two to the same number
+  over sixty-nine terms.
+
+`sim/lifepath.of`'s term loop is `serve_out` now, shared by both — the
+played path is the same loop asked for one term at a time. `sim/lifepath.py`
+crossed the ceiling in the process and split into `sim/lifepath_since.py`,
+along the seam its own docstring already drew: the career that made
+somebody, against what the chronicle has done to them since.
+
+New suite `captainpath` (8 checks).
+
+One thing the played path nearly took away: a captain whose history is
+*derived* has always had the two things owning a starship gives anybody — a
+point of standing, and enough command and stick to run their own hull — and
+the played one returned before any of that, so four terms in the Clinical
+Service bought a captain who could not fly. The ship goes on top of the
+life now, whichever way the life came, and the check holds it to adding
+exactly the one point rather than a floor, because standing is a
+characteristic and a drifter may simply have rolled a poor one.
+
+And one more thing the script found by pressing the button and then looking:
+`BeginningDialog._clear` called `deleteLater()` without unparenting, so
+every rebuild left the previous build's widgets parented and painted over
+the new ones — and that dialog rebuilds on *every pick*. The same fault
+`ui/craft_window._build` already records in its own comment. Off the screen
+now, not when the event loop gets round to it.
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one

@@ -50,8 +50,16 @@ class BeginningDialog(QDialog):
     def _clear(self) -> None:
         while self._outer.count():
             item = self._outer.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+            widget = item.widget()
+            if widget is not None:
+                # **Off the screen now, not when the event loop gets round
+                # to it.** A deferred delete leaves the last build's
+                # widgets parented and painted over this one's, and this
+                # dialog rebuilds on every single pick — the same fault
+                # `ui/craft_window._build` records, found here by a script
+                # that pressed a button and then found two of it.
+                widget.setParent(None)
+                widget.deleteLater()
 
     def _rebuild(self) -> None:
         self._clear()
@@ -98,9 +106,30 @@ class BeginningDialog(QDialog):
         self.name_box.setFixedWidth(300)
         nh.addWidget(self.name_box)
         nh.addStretch(1)
+        # **Who you were before the ship** (`sim/captain_path.py`). Optional:
+        # skip it and the captain is derived from their origin, which is
+        # what every chronicle begun before this has.
+        played = button(self._path_label(), self._play_life)
+        played.setObjectName("beginning_path")
+        nh.addWidget(played)
         nh.addWidget(button("Take the standard commission", self._standard))
         nh.addWidget(button("Begin", self._accept, kind="primary"))
         self._outer.addWidget(name_row)
+
+    def _path_label(self) -> str:
+        from ..sim import captain_path as path_sim
+        service, terms = path_sim.played(self.picked)
+        if not service:
+            return "Play your own life out"
+        from ..data.careers import CAREER_BY_ID
+        return (f"{CAREER_BY_ID[service].name}, {terms} term"
+                f"{'' if terms == 1 else 's'}")
+
+    def _play_life(self) -> None:
+        """The captain's own terms, played rather than implied."""
+        from . import beginning_path
+        beginning_path.play(self.picked, self, None)
+        self._rebuild()
 
     def _pick(self, field: str, value) -> None:
         setattr(self.picked, field, value)

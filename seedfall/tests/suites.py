@@ -303,6 +303,8 @@ SUITES: list[SuiteSpec] = [
               "what a landing party crosses ground in"),
     SuiteSpec("descent", "test_descent",
               "putting a party on a world: the lander and what she carries"),
+    SuiteSpec("captainpath", "test_captain_path",
+              "the captain's own life, played out rather than handed over"),
     SuiteSpec("patrons", "test_patrons",
               "work that comes from a person, and what they did not say"),
     SuiteSpec("lawlevel", "test_lawlevel",

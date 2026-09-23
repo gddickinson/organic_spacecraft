@@ -597,9 +597,32 @@ SEEDFALL already has:
    (survey, dig, repair, haggling, the docking approach) could be re-stated
    in the grammar, one at a time, each with its own re-pinning.
 3. ~~**Life-path beginnings**~~ — landed as `data/careers.py` and
-   `sim/lifepath.py`, derived per officer. **What is left is the captain**:
-   `ui/beginning_view.py` still asks who you are with three choices, where
-   Traveller would have you play the terms out and take what they give you.
+   `sim/lifepath.py`, derived per officer; **and the captain's own, played,
+   on 2026-09-23** (`sim/captain_path.py`, `ui/beginning_path.py`). The
+   beginning screen asked who you were with three choices and worked the
+   rest out, which is a biography. Traveller's opening is one decision made
+   four or five times — *another term, or out?* — with the survival throw
+   in front of you each time, and that is what this is.
+
+   Three properties hold it together. **The dice are the sector's, not the
+   button's**: every throw comes off `RNG(f"{seed}:captain-path:{service}")`
+   and serving a term rebuilds the life from the top, so closing the dialog
+   and reopening it cannot shop for a better one — the choice is where to
+   stop. **Only the decision is stored**, the service and the number of
+   terms, and the record is replayed from those two fields, so nothing goes
+   on a save that could go stale. **And the odds are quoted before the term
+   is taken**, because a gamble a screen will not price is a surprise.
+
+   Skipping it changes nothing: a captain with no played life is derived
+   from their origin exactly as before, which is what every chronicle begun
+   before this has. The ship goes on top of the life either way — owning a
+   starship is a point of standing and commanding one teaches you to
+   command — which the played path nearly took away, leaving four terms in
+   the Clinical Service buying a captain who could not fly. New suite
+   `captainpath` (9 checks). `sim/lifepath.py`
+   split at the ceiling into `sim/lifepath_since.py` — the career that made
+   somebody, against what the chronicle has done to them since, which is
+   the seam the module's own docstring already drew.
 4. ~~**Patrons and tickets**~~ — landed 2026-09-23 as `data/patrons.py` and
    `sim/patrons.py`. A port has a cast of three, derived from the sector
    seed and stored nowhere, remembered by `sim/memory` the way a

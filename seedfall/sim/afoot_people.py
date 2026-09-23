@@ -82,6 +82,22 @@ def captain_record(game) -> lifepath.Record:
     nowhere."""
     from types import SimpleNamespace
     begun = getattr(game, "beginning", None)
+    # **A life they played out is the life they had.** Only when nobody
+    # played one does the origin decide it (`sim/captain_path.py`).
+    if begun is not None:
+        from . import captain_path
+        played = captain_path.record_for(game, begun, captain_name(game))
+        if played is not None:
+            # **The ship still goes on top.** A played life is the history;
+            # owning a starship raises your standing and commanding one
+            # teaches you to command, exactly as they do for a captain whose
+            # history was derived. Without this a captain who played four
+            # terms in the Clinical Service could not fly their own hull.
+            played.characteristics["soc"] = min(
+                15, played.characteristics.get("soc", 7) + 1)
+            for name, level in COMMAND.items():
+                played.skills[name] = max(played.skills.get(name, -3), level)
+            return played
     origin = getattr(begun, "origin", "surveyor") or "surveyor"
     taught, leans = ORIGIN_SKILLS.get(origin, ORIGIN_SKILLS["surveyor"])
     stock = of_stock(getattr(begun, "stock", None))
