@@ -1396,6 +1396,17 @@ for lifting off loaded; and the starting hull sails with two cradles full.
 needs a real one that can leave this world again, taking the party from her
 seats and the supplies from her hold. New suite `descent` (5 checks).
 
+## Down to the ground, stage two: the vehicles, 2026-09-22
+
+`Expedition.rover` became a machine. Five classes (`data/vehicles.py`), each
+with ground it is made for and ground it refuses, a mass that competes with
+the supplies for the lander's hold, an opinion about air, and a build that
+decides what a hazard costs it. Bought, mended and sold at the yard's new
+garage beside the cradles; worn and kept between landings; left where it
+stopped if the party walks out. A party with nothing still walks. The
+`drive` skill, in `data/careers` since the lifepath and read by nothing, has
+its first reader. New suite `vehicles` (5 checks).
+
 ## Standing facts about working here
 
 - `python -m seedfall.tests -j 8` runs the lot (~3 min, 235 suites); one

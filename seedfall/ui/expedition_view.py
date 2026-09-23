@@ -8,6 +8,7 @@ from PyQt6.QtGui import QColor, QFont, QPainter, QPen
 from PyQt6.QtWidgets import QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 
 from ..data.expedition import FEATURES, PARTY_CAPACITY, TERRAIN
+from ..data.vehicles import VEHICLES_BY_ID
 from ..sim import expedition as exp_sim
 from ..sim import wayhome as wayhome_sim
 from ..sim import weather as weather_sim
@@ -215,8 +216,21 @@ class ExpeditionView(View):
                       "warn" if way["spare"] <= 2 else "")
             if way["pinned"]:
                 p.add(note(way["why"]))
-        p.add_row("Rover", f"{exp.rover}/10", "warn" if exp.rover <= 3 else "")
-        p.add_bar(exp.rover / 10, "osteo")
+        # What they are crossing ground *in* (`sim/vehicles.py`): the gauge
+        # is that machine's condition, and what it is good and bad at is
+        # what decides a route.
+        from ..sim import vehicles as vehicles_sim
+        kind = VEHICLES_BY_ID.get(getattr(exp, "vehicle", "") or "")
+        # The machine itself where the hull still owns it, so the row names
+        # the thing in the hold rather than its class.
+        machine = vehicles_sim.driving(self.game, exp)
+        p.add_row(machine.name if machine is not None else
+                  (kind.name if kind else "On foot"),
+                  f"{exp.rover}/10" if kind else "nothing came down",
+                  "warn" if (kind and exp.rover <= 3) or not kind else "")
+        if kind:
+            p.add_bar(exp.rover / 10, "osteo")
+        p.add(note(vehicles_sim.says(exp)))
         p.add_row("Carrying", f"{round(exp.carried)} / {round(PARTY_CAPACITY)}",
                   "warn" if exp.carried > PARTY_CAPACITY else "")
         # What that actually means when the lander goes up. "140 / 60" in

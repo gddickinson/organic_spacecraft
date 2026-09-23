@@ -97,6 +97,11 @@ def new_game(seed: str | None = None, systems: int = 42,
     ship.cradles = 2
     craft_sim.give(game)
     craft_sim.give(game, craft_table.STARTING_LANDER)
+    # And something to cross ground in once she is down (`sim/vehicles.py`):
+    # the rover the expedition's own gauge has implied since the first
+    # landing, now a machine with wheels and an opinion about terrain.
+    from ..sim import vehicles as vehicles_sim
+    vehicles_sim.give(game)
     # The hull did not launch yesterday: there is a shakedown cruise's worth of
     # its own data already on the bench.
     inquiry_sim.add(game.research, "survey", 55)

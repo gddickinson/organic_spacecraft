@@ -367,13 +367,26 @@ The order, each piece playable on its own:
    hold, sets her state to `down` while they are on the ground (not the
    ship's boat, not something a yard can reach) and brings her up with
    them.
-2. **Vehicles.** `data/vehicles.py` and `sim/vehicles.py`: rovers,
-   crawlers, ground-effect skiffs, atmospheric flyers, walkers and
-   submersibles, each crossing some of the nine terrains and refusing the
-   rest, with speed, range, seats, hold and a driver's ticket; bought,
-   mended and sold at a yard the way craft are (`sim/hangar.py`); carried
-   down in a lander's bays. `Expedition.rover` stops being a bare gauge and
-   becomes the machine you actually brought.
+2. ~~**Vehicles.**~~ **Closed 2026-09-22** (`data/vehicles.py`,
+   `sim/vehicles.py`, suite `vehicles`). `Expedition.rover` was a number
+   from nought to ten that bought one day off a step while it stayed above
+   eight — no class, no mass, no seats, and no opinion about the nine
+   terrains a party walks over, so a dune sea and a scarp were the same
+   problem to it. Five classes now: the **ROVER** a captain starts with,
+   the **CRAWLER** that will go up a scarp at walking pace, the
+   ground-effect **SKIFF**, the fan-lift **KITE** that ignores the ground
+   entirely, and the grown six-legged **STRIDER**. Each has ground it is
+   made for (a day off the step) and ground it refuses (a day on, because
+   the party leaves it and walks), a mass that comes out of the lander's
+   hold *against the supplies*, and a build that decides how much of a
+   hazard's toll it takes. A lift fan is dead weight where the profile says
+   there is no air. They are built, mended by the point and sold back at a
+   loss at the same counter craft are (`sim/hangar.py`'s garage), they wear
+   and are kept between landings, and a party that walks out of the field
+   leaves the machine where it stopped. **A party with nothing still
+   walks** — the state the game shipped in — and `data/careers.SKILLS`'
+   *drive* entry ("anything with wheels or tracks on a surface"), written
+   with the lifepath and read by nothing since, has its first reader.
 3. **Camps.** `data/camps.py`: a bivouac, a camp, a base camp — mass out of
    the lander's hold, people, days, and what each grants (shelter from a
    hazard, a bench for study, a bay for a vehicle, a mast that keeps the

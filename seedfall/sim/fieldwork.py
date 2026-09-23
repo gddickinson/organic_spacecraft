@@ -210,12 +210,24 @@ def launch_expedition(game, body_index: int, officer_ids: list[int],
 
     add_cargo(game.ship, "biomass", -tonnes)
     descent_sim.take_down(game, lander)
+    # And whatever will fit beside the supplies to cross the ground in
+    # (`sim/vehicles.py`). Nothing that fits is nothing lost: a party on
+    # foot is the state this game shipped in.
+    from . import vehicles as vehicles_sim
+    ride = vehicles_sim.best_for(game, lander, body, supplies_t=tonnes)
+    if ride is not None:
+        vehicles_sim.take_down(game, ride)
     game.advance_days(3)
     if game.dead:
         return {"ok": True, "dead": True}
     game.expedition = exp_sim.generate(game.rng("landing"), game.system, body,
                                        list(officer_ids), supply=days)
     game.expedition.craft = lander.id
+    if ride is not None:
+        game.expedition.vehicle = ride.class_id
+        game.expedition.rover = ride.condition
+    else:
+        game.expedition.vehicle, game.expedition.rover = "", 0
     from . import contracts as contract_sim
     contract_sim.note_landing(game, game.system.id, body.id)
     game.add_log(f"Landing party down on {body.name}.", "good")
@@ -230,6 +242,20 @@ def conclude_expedition(game) -> dict:
     # home, and `sim/expedition` has already said whether they were on her
     # when the supplies ran out.
     descent_sim.bring_up(game)
+    # The machine comes up in whatever state the ground left it.
+    from . import vehicles as vehicles_sim
+    ride = vehicles_sim.on_the_ground(game)
+    if ride is not None and game.expedition is not None:
+        ride.condition = int(getattr(game.expedition, "rover", ride.condition))
+        ride.days += float(getattr(game.expedition, "days", 0) or 0)
+    # A party whose supplies ran out walks to the lander with what is on
+    # their backs (`expedition.STRANDED_SHARE`); the machine is not on
+    # anybody's back.
+    if (game.expedition is not None
+            and getattr(game.expedition, "outcome", "") == "stranded"):
+        vehicles_sim.lose(game, "the party walked out without it")
+    else:
+        vehicles_sim.bring_up(game)
     exp = game.expedition
     if exp is None:
         return {"ok": False, "why": "No party in the field."}

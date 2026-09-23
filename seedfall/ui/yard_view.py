@@ -59,6 +59,8 @@ class YardView(View):
             self.col.addWidget(yard.cradles())
             self.col.addWidget(spacer(8))
             yard.slips()
+            self.col.addWidget(spacer(10))
+            yard.garage()
             return
         if self.tab == "machines":
             # Hands that are not people. Its own module: `ui/machineshop.py`,

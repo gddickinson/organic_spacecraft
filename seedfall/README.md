@@ -327,6 +327,14 @@ a grown interceptor, with a hatch through to the cradle deck so a pilot walks ou
   is her own thrust against that world's pull, with a reserve for lifting off loaded: a DORY
   to 0.89 g, a WASP to 1.78, a CATAPHRACT to 2.52. The party is her seats and the supplies are
   her hold, and she sits on the world — no yard can reach her there — until they come up.
+- **And something to cross the ground in** (`data/vehicles.py`). Five classes, each with
+  ground it is made for — a day off the step — and ground it refuses, where the party leaves
+  it and walks: the **ROVER** every survey has had one of, the **CRAWLER** that will go up a
+  scarp at walking pace, the ground-effect **SKIFF**, the fan-lift **KITE** that ignores the
+  ground entirely and is dead weight where there is no air, and the grown six-legged
+  **STRIDER**. It rides down in the lander's hold *against the supplies*, so what fits is a
+  choice; it wears, it is mended at the yard's garage, and a party that has to walk out of the
+  field leaves it where it stopped.
 - Seven classes: WASP and SHRIKE fighters, the MOTE scout, the DORY tender, and three landers —
   the grown ISOPOD a captain starts with, the roomier PINNACE, and the CATAPHRACT for the
   gravity wells nothing else leaves again.

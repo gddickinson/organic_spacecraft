@@ -52,6 +52,9 @@ class Expedition:
     y: int = LANDER[1]
     supply: int = BASE_SUPPLY
     rover: int = 10
+    #: The class of machine they are driving (`data/vehicles.py`), or "" for
+    #: a party on foot. `rover` is that machine's condition.
+    vehicle: str = ""
     #: The craft they came down in (`sim/craft.Carried.id`), or -1 for a
     #: party the old door put down before landers were things you owned.
     craft: int = -1
@@ -161,8 +164,13 @@ def step_cost(exp: Expedition, dest: Tile) -> int:
     track to follow. Otherwise coming home is a death sentence.
     """
     terrain = TERRAIN[dest.terrain]
+    # What they are crossing it *in* (`sim/vehicles.py`): a day off ground
+    # the machine is made for, a day on ground it will not enter and the
+    # party walks. A rover was a flat day off everything.
+    from . import vehicles as vehicles_sim
     base = (1 if dest.visited
-            else max(1, terrain.cost - (1 if exp.rover >= 8 else 0)))
+            else max(1, terrain.cost
+                     + vehicles_sim.step_change(exp, dest.terrain)))
     return weather_sim.move_cost(exp, base)
 
 
@@ -175,7 +183,8 @@ def _spring_hazard(exp: Expedition, officers, rng) -> dict:
         return {"hazard": hz, "beaten": True}
 
     exp.supply = max(0, exp.supply - hz.supply)
-    exp.rover = max(0, exp.rover - hz.rover)
+    from . import vehicles as vehicles_sim
+    exp.rover = max(0, exp.rover - vehicles_sim.wear(exp, hz.rover))
     hurt = None
     if hz.injury and rng.chance(hz.injury) and officers:
         victim = rng.pick([o for o in officers if o.id not in exp.injured] or officers)

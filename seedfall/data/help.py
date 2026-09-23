@@ -180,7 +180,16 @@ TOPICS = [
            "what makes coming home survivable.",
            "Every feature is a choice, and each states its odds, the officer "
            "who would take it, the prize, and what a failure risks. Nothing "
-           "is banked until the party is back on the lander."),
+           "is banked until the party is back on the lander.",
+           "How you get there and what you cross it in are things you own. "
+           "A hull cannot land on a world, so a lander takes the party "
+           "down: what she seats is the size of the party and what her hold "
+           "takes is how long they can stay. A surface vehicle rides down "
+           "in that same hold, against those same supplies — a rover is a "
+           "day off flat ground and will not go near a scarp, a crawler is "
+           "the other way about, a fan-lift flyer ignores the ground and is "
+           "dead weight where there is no air. A party with nothing walks, "
+           "and pays for it a day at a time."),
           facts=(), see=("crew", "xeno")),
 
     Topic("combat", "Combat is positional", "",
